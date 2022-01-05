@@ -1,0 +1,64 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+
+    <title>EXAM-REVIEW</title>
+
+    <script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+
+    {% block extra_head %}{% endblock %}
+
+  <title>{% block title %}Exam review{% endblock %}</title>
+</head>
+<body>
+  <main>
+
+
+
+        <script type="text/javascript">
+
+          function showMarkerArea(target) {
+            const markerArea = new markerjs2.MarkerArea(target);
+            markerArea.addEventListener("render", (event) => (target.src = event.dataUrl));
+            markerArea.show();
+          }
+
+
+
+
+
+
+        </script>
+
+        <div id="wrapper">
+
+            <!-- Topbar -->
+            <div id="topbar-wrapper">
+                <div id="topbar">
+                    topbar
+                </div>
+            </div>
+            <!-- Sidebar -->
+            <div id="sidebar-wrapper">
+                sidebar
+            </div>
+
+            <div id="page-content-wrapper">
+
+                <div class="container-fluid">
+                  <!-- Page Content -->
+                  {% block content %}
+
+                  {% endblock %}
+
+                </div>
+            </div>
+        </div>
+
+
+
+  </main>
+</body>
+</html>
