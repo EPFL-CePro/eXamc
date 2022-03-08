@@ -23,4 +23,5 @@ from examreview_app import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
-] + static(settings.SCAN_URL, document_root=settings.SCAN_ROOT)
+    path('test_function>', views.test_function, name="test_function")
+] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
