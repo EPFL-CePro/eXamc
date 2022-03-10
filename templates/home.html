@@ -3,6 +3,22 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
+<div style="width: 500px; margin: auto;">
+			<fieldset name="Multiple Files Upload">
+				<form method="post" action="{% url 'upload_scans' 6 %}" enctype="multipart/form-data">
+					{% csrf_token %}
+					<dl>
+						<p>
+							<label>Browse and select one or more files</label>&nbsp;&nbsp;
+							<input type="file" name="files" autocomplete="off" required multiple>
+						</p>
+					</dl>
+					<p>
+						<input type="submit" value="Upload">
+					</p>
+				</form>
+			</fieldset>
+		</div>
   <a href="{% url 'test_function' %}">Test function</a>
      <img src="scan/sample-1.jpg" style="max-width: 600px;" onclick="showMarkerArea(this);" />
 

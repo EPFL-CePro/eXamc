@@ -1,16 +1,43 @@
 <!-- templates/base.html -->
+{% load static %}
+
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
 
-    <title>EXAM-REVIEW</title>
+    <title>EXAM-STATS</title>
 
-    <script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+    <!-- bootstrap script and stylesheet -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js" integrity="sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF" crossorigin="anonymous"></script>
 
+    <script src="{% static 'js/bootstrap-checkbox.min.js' %}" defer></script>
+    <script src="{% static 'js/jquery.bootstrap.modal.forms.min.js' %}"></script>
+    <script src="{% static 'js/Chart.min.js' %}"></script>
+    <script src="{% static 'js/palette.js' %}"></script>
+
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+
+    <!-- menubars stylesheet -->
+    <link rel="stylesheet" href="{% static 'css/menubars.css' %}">
+
+    <!-- icons -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+
+    <!-- favicon -->
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+
+
+    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap5.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">
     {% block extra_head %}{% endblock %}
 
-  <title>{% block title %}Exam review{% endblock %}</title>
+
 </head>
 <body>
   <main>
@@ -36,13 +63,48 @@
 
             <!-- Topbar -->
             <div id="topbar-wrapper">
-                <div id="topbar">
-                    topbar
-                </div>
+              <div id="topbar">
+                  <div style="text-align:center;float:left;display:inline-block;width:70%;">
+                      <a  style="font-weight:bolder">{{ EXAM.code }}</a>
+                  </div>
+                  <div style="text-align:right;float:right;display:inline-block;width:30%;">
+                    {% if user.is_superuser %}
+                      <a id="import-data-bt" class="btn btn-outline-info btn-sm" href="#">Import data</a>
+                    {% endif %}
+                      <a style="font-style: italic;margin-right:50px;">User : {{ user.username }}</a>
+                  </div>
+              </div>
+              <div id="importDataDiv" style="display:none;padding:10px;width:100%;margin-top:100px;color:#000;">
+                <fieldset name="Multiple Files Upload">
+                  <h3>Upload scans</h3>
+          				<form method="POST" action="{% url 'upload_scans' 6 %}" enctype="multipart/form-data" class="form-horizontal">
+          					{% csrf_token %}
+          					<dl>
+          						<p>
+          							<label>Browse and select one or more files</label>&nbsp;&nbsp;
+          							<input type="file" name="files" autocomplete="off" required multiple>
+          						</p>
+          					</dl>
+          					<p>
+          						<input type="submit" value="Upload">
+          					</p>
+          				</form>
+          			</fieldset>
+              </div>
             </div>
             <!-- Sidebar -->
             <div id="sidebar-wrapper">
-                sidebar
+              <ul class="sidebar-nav">
+                  <li style="margin-bottom:150px">
+                      <a class="select-exam btn btn-outline-secondary" href="{% url 'examSelect' %}" style="width:180px;margin-left:5px;margin-top:0px;">Exams</a>
+                  </li>
+                  <li>
+                      <a id="import-data-bt" class="btn btn-outline-info btn-sm" href="#">Import data</a>
+                  </li>
+                  <li>
+                      new
+                  </li>
+              </ul>
             </div>
 
             <div id="page-content-wrapper">

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% load django_tables2 %}
+{% block title %}Select Exam {% endblock %}
+{% block content %}
+<h4>Select Exam</h4>
+<div id="examList"  style="padding:10px;">
+    <div class="row">
+        <div class="col-sm-10">
+            {% include "django_tables2/bootstrap4.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}

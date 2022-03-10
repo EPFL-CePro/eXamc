@@ -17,11 +17,20 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
+from django_tequila.urls import urlpatterns as django_tequila_urlpatterns
+from django.contrib.auth.decorators import login_required
+from django.conf.urls import url
 
 from examreview_app import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
+    path('upload_scans/<int:pk>', views.upload_scans, name="upload_scans"),
+    path('examSelect', login_required(views.ExamSelectView.as_view()), name="examSelect"),
+    path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view()), name="examInfo"),
+    path('select_exam/<int:pk>', views.select_exam, name="select_exam"),
     path('test_function>', views.test_function, name="test_function")
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
+
+urlpatterns += django_tequila_urlpatterns

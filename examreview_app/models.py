@@ -13,6 +13,7 @@ class Exam(models.Model):
     semester = models.IntegerField(default=1)
     year = models.CharField(max_length=9)
     users = models.ManyToManyField(User, blank=True)
+    pages_by_copy = models.CharField(max_length=2048,blank=True)
 
     class Meta:
         unique_together = ('code','semester','year')
