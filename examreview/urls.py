@@ -27,9 +27,15 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
     path('upload_scans/<int:pk>', views.upload_scans, name="upload_scans"),
+    path('review/<int:pk>',login_required(views.ReviewView.as_view()), name="reviewView"),
+    path('reviewSettings/<int:pk>',login_required(views.ReviewSettingsView.as_view()), name="reviewSettingsView"),
     path('examSelect', login_required(views.ExamSelectView.as_view()), name="examSelect"),
     path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view()), name="examInfo"),
-    path('select_exam/<int:pk>', views.select_exam, name="select_exam"),
+    path('select_exam/<int:pk>', login_required(views.select_exam), name="select_exam"),
+    path('manageExamPagesGroups/<int:pk>',login_required(views.ManageExamPagesGroupsView.as_view()), name="manageExamPagesGroups"),
+    #path('examPagesGroupsAdd/<int:pk>',login_required(views.ExamPagesGroupsAddView.as_view()), name="examPagesGroupsAdd"),
+    #path('managePagesGroups/<int:pk>', login_required(views.manage_exam_pages_groups), name="managePagesGroups"),
+    #path('addExamPagesGroup/<int:pk>', login_required(views.add_new_pages_group), name="addExamPagesGroup"),
     path('test_function>', views.test_function, name="test_function")
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
 

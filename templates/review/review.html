@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/markerjs-live/markerjs-live.js"></script>
+<script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+{% endblock %}
+
+{% block title %}Review{% endblock %}
+
+{% block scripts %}
+let sourceImage, target, targetRoot, maState, markerArea;
+
+    function showMarkerArea(target) {
+      // const markerArea = new markerjs2.MarkerArea(sourceImage);
+      // since the container div is set to position: relative it is now our positioning root
+      // end we have to let marker.js know that
+      // markerArea.targetRoot = targetRoot;
+      //markerArea.addRenderEventListener((imgURL, state) => {
+      //  target.src = imgURL;
+        // save the state of MarkerArea
+      //  maState = state;
+      //});
+      markerArea.show();
+      // if previous state is present - restore it
+      if (maState) {
+        markerArea.restoreState(maState);
+      }
+    }
+
+	function initMarkerArea() {
+
+		sourceImage = document.getElementById("source_img");
+		target = document.getElementById("marked_img");
+		targetRoot = sourceImage.parentElement;
+
+		//MarkerArea settings
+		markerArea = new markerjs2.MarkerArea(sourceImage);
+		markerArea.uiStyleSettings.redoButtonVisible = true;
+		markerArea.uiStyleSettings.notesButtonVisible = true;
+		markerArea.uiStyleSettings.zoomButtonVisible = true;
+		markerArea.uiStyleSettings.zoomOutButtonVisible = true;
+		markerArea.uiStyleSettings.clearButtonVisible = true;
+		markerArea.uiStyleSettings.resultButtonBlockVisible = false
+
+		// set position to parent div to align
+		markerArea.targetRoot = targetRoot;
+
+		markerArea.addRenderEventListener((imgURL, state) => {
+			target.src = imgURL;
+			// save the state of MarkerArea
+			maState = state;
+			markerArea.show();
+      // if previous state is present - restore it
+      if (maState) {
+        markerArea.restoreState(maState);
+      }
+		});
+
+		//
+		markerArea.addEventListener("markercreate", (event) => {
+		  alert('create');
+		});
+		markerArea.addEventListener("markerdelete", (event) => {
+		  alert('delete');
+		});
+		markerArea.addEventListener("markerchange", (event) => {
+		  alert('change');
+		});
+	}
+
+	$(window).on("load",function(){
+		initMarkerArea();
+		showMarkerArea()
+	});
+
+{% endblock %}
+
+{% block content %}
+<h3>Review</h3>
+<div class="row">
+  <div class="col" style="column;max-width: 1200px;min-width:600px;">
+    <nav aria-label="Page navigation example" style="ce">
+      <ul  class="pagination pagination-lg justify-content-center">
+        <li class="page-item">
+          <a class="page-link" href="#" aria-label="Previous">
+            <span aria-hidden="true">&laquo;</span>
+          </a>
+        </li>
+        <li class="page-item"><a class="page-link" href="#">1</a></li>
+        <li class="page-item"><a class="page-link" href="#">2</a></li>
+        <li class="page-item"><a class="page-link" href="#">3</a></li>
+        <li class="page-item">
+          <a class="page-link" href="#" aria-label="Next">
+            <span aria-hidden="true">&raquo;</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    <div class="row" style="height:900px;overflow-y: scroll;">
+        <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
+  				<img id="source_img" src="../../scans/2022/2/MATH-207(c)/copy_001/scan_2022050414380192820220706085059222.jpg" style="max-width:100%;min-width: 600px"   />
+  				<img id="marked_img" src="../../scans/2022/2/MATH-207(c)/copy_001/scan_2022050414380192820220706085059222.jpg" style="max-width:100%;min-width: 600px; position: absolute;"  />
+        </div>
+    </div>
+  </div>
+  <div class="col">
+    Column
+  </div>
+</div>
+
+{% endblock %}

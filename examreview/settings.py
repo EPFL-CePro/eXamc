@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'userprofile',
     'sslserver',
     'django_tables2',
+    'crispy_forms',
 ]
 
 MIDDLEWARE = [

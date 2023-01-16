@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load render_table from django_tables2 %}
+
+{% block title %}Exam info {% endblock %}
+
+{% block scripts %}
+let groupForm, container, addButton, totalForms, formNum
+{% endblock %}
+
+{% block content %}
+
+{% if user_allowed %}
+
+
+{% endif %}
+<h4>NEW PAGES GROUP</h4>
+
+<form id="form-container" method="POST">
+  <button type="submit" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Create Groups</button>
+  {% csrf_token %}
+  {{exam_pages_groups_formset.management_form}}
+  {% for form in exam_pages_groups_formset %}
+  <div class="exam-pages-group-form">
+    {{form.as_table}}
+  </div>
+  {% endfor %}
+  <button id="add-form" type="button" style="margin-top:20px;" class="btn btn-outline-info btn-sm">Add Another Group</button>
+</form>
+
+<script type="text/javascript">
+
+
+  groupForm = document.querySelectorAll(".exam-pages-group-form")
+  container = document.querySelector("#form-container")
+  addButton = document.querySelector("#add-form")
+  totalForms = document.querySelector("#id_form-TOTAL_FORMS")
+
+  formNum = groupForm.length-1
+  addButton.addEventListener('click', addForm)
+
+  function addForm(e){
+    e.preventDefault()
+
+    newGroupForm = groupForm[0].cloneNode(true)
+    formRegex = RegExp(`form-(\\d){1}-`,'g')
+
+    formNum++
+    newGroupForm.innerHTML = newGroupForm.innerHTML.replace(formRegex, `form-${formNum}-`)
+    container.insertBefore(newGroupForm, addButton)
+
+    totalForms.setAttribute('value', `${formNum+1}`)
+  }
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock %}

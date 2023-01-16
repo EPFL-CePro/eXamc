@@ -37,28 +37,18 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">
     {% block extra_head %}{% endblock %}
 
+  <title>{% block title %}Exam review{% endblock %}</title>
+
 
 </head>
 <body>
   <main>
 
+    <script type="text/javascript">
 
+      {% block scripts %}{% endblock %}
 
-        <script type="text/javascript">
-
-          function showMarkerArea(target) {
-            const markerArea = new markerjs2.MarkerArea(target);
-            markerArea.addEventListener("render", (event) => (target.src = event.dataUrl));
-            markerArea.show();
-          }
-
-
-
-
-
-
-        </script>
-
+    </script>
         <div id="wrapper">
 
             <!-- Topbar -->
@@ -98,12 +88,20 @@
                   <li style="margin-bottom:150px">
                       <a class="select-exam btn btn-outline-secondary" href="{% url 'examSelect' %}" style="width:180px;margin-left:5px;margin-top:0px;">Exams</a>
                   </li>
+                  {% if exam %}
                   <li>
-                      <a id="import-data-bt" class="btn btn-outline-info btn-sm" href="#">Import data</a>
+                    <a href="{% url 'upload_scans' exam.pk %}">Upload scans</a>
                   </li>
                   <li>
-                      new
+                    <a href="{% url 'manageExamPagesGroups' exam.pk %}">Manage pages groups</a>
                   </li>
+                  <li>
+                    <a href="{% url 'reviewView' exam.pk %}">Review</a>
+                  </li>
+                  <li>
+                    <a href="{% url 'reviewSettingsView' exam.pk %}">Review settings</a>
+                  </li>
+                  {% endif %}
               </ul>
             </div>
 
