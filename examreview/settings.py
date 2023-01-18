@@ -118,6 +118,10 @@ STATIC_ROOT = BASE_DIR / 'static/'
 SCANS_ROOT = BASE_DIR / 'scans/'
 SCANS_URL = '/scans/'
 
+# Autoupload folder
+AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload'
+AUTOUPLOAD_URL = '/autoupload/'
+
 # Django-tequila specifics
 AUTH_PROFILE_MODULE = "userprofile.UserProfile"
 

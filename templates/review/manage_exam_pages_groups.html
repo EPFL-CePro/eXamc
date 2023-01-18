@@ -1,20 +1,5 @@
-{% extends 'base.html' %}
-{% load render_table from django_tables2 %}
-{% load crispy_forms_tags %}
-
-{% block title %}Exam info {% endblock %}
-
-{% block scripts %}
-let groupForm, container, addButton, totalForms, formNum
-{% endblock %}
-
-{% block content %}
-
-{% if user_allowed %}
-
-
-{% endif %}
-<h4>MANAGE PAGES GROUP</h4>
+</br>
+<h6>PAGES GROUPS</h6>
 
 <form id="form-container" method="POST">
     {% csrf_token %}
@@ -55,16 +40,3 @@ let groupForm, container, addButton, totalForms, formNum
   }
 
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-{% endblock %}

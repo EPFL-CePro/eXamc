@@ -16,7 +16,7 @@ class Exam(models.Model):
     pdf_catalog_name = models.CharField(max_length=100, blank=True)
     overall = models.BooleanField(default=0)
     indiv_formula = models.CharField(max_length=100, blank=True)
-    pages_by_copy = models.IntegerField(default=0)
+    pages_by_copy = models.TextField(blank=True)
 
     class Meta:
         unique_together = ('code','semester','year')
@@ -59,7 +59,7 @@ class ExamPagesGroup(models.Model):
     group_name = models.CharField(max_length=20,default='0')
     page_from = models.IntegerField(default=0)
     page_to = models.IntegerField(default=0)
- 
+
     def __str__(self):
         return self.exam.code + " - " + self.group_name + " " + str(self.page_from) + "..." + str(self.page_to)
 

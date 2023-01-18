@@ -30,7 +30,6 @@ def split_scans_by_copy(exam):
             # Read image
             im = cv2.imread(f)
             decodedObjects = pyzbar.decode(im)
-
             for obj in decodedObjects:
                 if str(obj.type) == 'QRCODE' and 'first-page' in str(obj.data) :
                     if copy_nr > 0:
@@ -45,27 +44,34 @@ def split_scans_by_copy(exam):
 
 
             page_nr += 1
-            os.rename(f,current_subdir+"/"+os.path.basename(f))
+            os.rename(f,current_subdir+"/copy_"+str(copy_nr).zfill(4)+"_"+str(page_nr).zfill(2))
             print(copy_nr)
     pages_by_copy.append([copy_nr,page_nr])
     json_pages_by_copy = json.dumps(pages_by_copy)
 
     exam.pages_by_copy = json_pages_by_copy
     exam.save()
-    print(exam)
 
-def import_scans(exam, files):
-    print("* Start upload scans")
+    return copy_nr
+
+def import_scans(exam, path):
+    print("* Start importing scans")
     scans_dir = str(settings.SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
     os.makedirs(scans_dir, exist_ok=True)
     delete_old_scans(exam)
-    for tmp_scan in files:
-        fs = FileSystemStorage(location=scans_dir) #defaults to   MEDIA_ROOT
-        scan = fs.save(tmp_scan.name, tmp_scan)
+    count=0
+    for tmp_scan in os.listdir(path):
+        print(tmp_scan)
+        shutil.copy(path+"/"+tmp_scan,scans_dir+"/"+tmp_scan)
+        count+=1
+        # fs = FileSystemStorage(location=scans_dir) #defaults to   MEDIA_ROOT
+        # scan = fs.save(tmp_scan.name, tmp_scan)
 
-    print(str(len(files))+" scans imported")
+    print(str(count)+" scans imported")
 
-    split_scans_by_copy(exam)
+    nb_copies = split_scans_by_copy(exam)
+
+    return "Imported "+str(nb_copies)+" copies ("+count+" scans)"
 
 def delete_old_scans(exam):
     scans_dir = str(settings.SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
