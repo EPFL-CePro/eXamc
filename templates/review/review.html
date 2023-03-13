@@ -1,77 +1,193 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
 
 {% block extra_head %}
 <script src="https://unpkg.com/markerjs-live/markerjs-live.js"></script>
 <script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+<script src="{% static 'js/review.js' %}"></script>
+
 {% endblock %}
 
 {% block title %}Review{% endblock %}
 
 {% block scripts %}
-let sourceImage, target, targetRoot, maState, markerArea;
 
-    function showMarkerArea(target) {
-      // const markerArea = new markerjs2.MarkerArea(sourceImage);
-      // since the container div is set to position: relative it is now our positioning root
-      // end we have to let marker.js know that
-      // markerArea.targetRoot = targetRoot;
-      //markerArea.addRenderEventListener((imgURL, state) => {
-      //  target.src = imgURL;
-        // save the state of MarkerArea
-      //  maState = state;
-      //});
-      markerArea.show();
-      // if previous state is present - restore it
-      if (maState) {
-        markerArea.restoreState(maState);
-      }
+//let sourceImage, target, targetRoot, maState, markerArea,groups_paths;
+
+function createPagination(group_name, pages, page) {
+    let str = ''//'<ul class="list-group list-group-horizontal">';
+
+    // Set source image for markerjs
+    setSourceScan(groups_paths[""+group_name+""][page-1]["path"], group_name);
+
+    // Show the Previous button only if you are on a page other than the first
+    if (page > 1) {
+      str += '<a class="list-group-item list-group-item-action" onclick="createPagination(\''+group_name+'\', '+pages+', '+(page-1)+')">Previous</a>';
     }
 
-	function initMarkerArea() {
-
-		sourceImage = document.getElementById("source_img");
-		target = document.getElementById("marked_img");
-		targetRoot = sourceImage.parentElement;
-
-		//MarkerArea settings
-		markerArea = new markerjs2.MarkerArea(sourceImage);
-		markerArea.uiStyleSettings.redoButtonVisible = true;
-		markerArea.uiStyleSettings.notesButtonVisible = true;
-		markerArea.uiStyleSettings.zoomButtonVisible = true;
-		markerArea.uiStyleSettings.zoomOutButtonVisible = true;
-		markerArea.uiStyleSettings.clearButtonVisible = true;
-		markerArea.uiStyleSettings.resultButtonBlockVisible = false
-
-		// set position to parent div to align
-		markerArea.targetRoot = targetRoot;
-
-		markerArea.addRenderEventListener((imgURL, state) => {
-			target.src = imgURL;
-			// save the state of MarkerArea
-			maState = state;
-			markerArea.show();
-      // if previous state is present - restore it
-      if (maState) {
-        markerArea.restoreState(maState);
+    // Show the very first page followed by a "..." at the beginning of the
+    // pagination section (after the Previous button)
+    if (page > 1) {
+      str += '<a class="list-group-item list-group-item-action" onclick="createPagination(\''+group_name+'\', '+pages+', 1)">1</a>';
+      if (page > 2) {
+        str += '<a class="list-group-item list-group-item-action" onclick="createPagination(\''+group_name+'\', '+pages+','+(page-2)+')">...</a>';
       }
-		});
+    }
+    // Determine how many pages to show after the current page index
+    if (page === 1) {
+      <!-- pageCutHigh += 1; -->
+    } else if (page === 2) {
+      <!-- pageCutHigh += 0; -->
+    }
+    // Determine how many pages to show before the current page index
+    if (page === pages) {
+      <!-- pageCutLow -= 1; -->
+    } else if (page === pages-1) {
+      <!-- pageCutLow -= 0; -->
+    }
+    // active page
+    str += '<a class="list-group-item list-group-item-action active"onclick="createPagination(\''+group_name+'\', '+pages+', '+page+')">'+ page +'</a>';
 
-		//
-		markerArea.addEventListener("markercreate", (event) => {
-		  alert('create');
-		});
-		markerArea.addEventListener("markerdelete", (event) => {
-		  alert('delete');
-		});
-		markerArea.addEventListener("markerchange", (event) => {
-		  alert('change');
-		});
-	}
+    // Show the very last page preceded by a "..." at the end of the pagination
+    // section (before the Next button)
+    if (page < pages-1) {
+      if (page < pages-2) {
+        str += '<a class="list-group-item list-group-item-action" onclick="createPagination(\''+group_name+'\', '+pages+','+(page+2)+')">...</a>';
+      }
+      str += '<a class="list-group-item list-group-item-action" onclick="createPagination(\''+group_name+'\', '+pages+','+pages+')">'+pages+'</a>';
+    }
+    // Show the Next button only if you are on a page other than the last
+    if (page < pages) {
+      str += '<a class="list-group-item list-group-item-action" onclick="createPagination(\''+group_name+'\', '+pages+','+(page+1)+')">Next</a>';
+    }
 
-	$(window).on("load",function(){
-		initMarkerArea();
-		showMarkerArea()
-	});
+    // Return the pagination string to be outputted in the pug templates
+    document.getElementById("pagination-"+group_name).innerHTML = str;
+    target = document.getElementById("marked_img-"+group_name);
+    setMarkerArea(group_name);
+    return str;
+  }
+
+function showMarkerArea(target) {
+  const markerArea = new markerjs2.MarkerArea(sourceImage);
+  // since the container div is set to position: relative it is now our positioning root
+  // end we have to let marker.js know that
+  markerArea.targetRoot = targetRoot;
+  markerArea.addRenderEventListener((imgURL, state) => {
+    target.src = imgURL;
+    // save the state of MarkerArea
+    maState = state;
+    });
+    markerArea.show();
+    // if previous state is present - restore it
+    if (maState) {
+      markerArea.restoreState(maState);
+    }
+  }
+
+function setSourceScan(scan_path, group_name){
+  old_source = document.getElementById("source_img-"+group_name).src;
+  document.getElementById("source_img-"+group_name).src = scan_path;
+  document.getElementById("marked_img-"+group_name).src = scan_path;
+
+  // change current and last source element background color
+  currSourceElementId = scan_path.split('/').pop().split('.').slice(-2)[0].replaceAll('0','');
+  if (old_source){
+    lastSourceElementId = old_source.split('/').pop().split('.').slice(-2)[0].replaceAll('0','');
+    document.getElementById(lastSourceElementId).style.backgroundColor = "";
+  }
+  document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
+}
+
+function initPagination(){
+  groups_paths = JSON.parse('{{json_groups_scans_pathes|safe }}');
+  {% for key, value in scans_pathes_list.items %}
+  createPagination("{{ key|cut:' ' }}",{{ value|length }}, 1);
+  {% endfor %}
+}
+
+function setMarkerArea(group_name){
+  sourceImage = document.getElementById("source_img-"+group_name);
+  target = document.getElementById("marked_img-"+group_name );
+  targetRoot = sourceImage.parentElement;
+
+  //MarkerArea settings
+  markerArea = new markerjs2.MarkerArea(sourceImage);
+  markerArea.uiStyleSettings.redoButtonVisible = true;
+  markerArea.uiStyleSettings.notesButtonVisible = true;
+  markerArea.uiStyleSettings.zoomButtonVisible = true;
+  markerArea.uiStyleSettings.zoomOutButtonVisible = true;
+  markerArea.uiStyleSettings.clearButtonVisible = true;
+  markerArea.uiStyleSettings.resultButtonBlockVisible = false
+
+  // set position to parent div to align
+  markerArea.targetRoot = targetRoot;
+
+  markerArea.addRenderEventListener((imgURL, state) => {
+    target.src = imgURL;
+    // save the state of MarkerArea
+    maState = state;
+    markerArea.show();
+    // if previous state is present - restore it
+    if (maState) {
+      markerArea.restoreState(maState);
+    }
+  });
+
+  //
+  markerArea.addEventListener("markercreate", (event) => {
+    alert('create');
+  });
+  markerArea.addEventListener("markerdelete", (event) => {
+    alert('delete');
+  });
+  markerArea.addEventListener("markerchange", (event) => {
+    alert('change');
+  });
+
+  showMarkerArea(target);
+}
+
+function initMarkerArea() {
+
+  {% for key, value in scans_pathes_list.items %}
+  setMarkerArea("{{ key }}");
+  {% endfor %}
+
+}
+
+function initSourcesScans(){
+  {% for key, value in scans_pathes_list.items %}
+      setSourceScan("{{ value.0.path }}","{{ key|cut:' ' }}");
+  {% endfor %}
+}
+
+function initCopyPagesTableOnClickRowEvent(){
+  {% for key, value in scans_pathes_list.items %}
+
+    $("#table-copies-pages-{{ key|cut:' '}}").on('click', 'tr', function () {
+      createPagination("{{ key }}",{{ value|length }}, parseInt(this.cells[0].innerText));
+    });
+
+    var table = $("#table-copies-pages-{{ key|cut:' '}}").DataTable( {
+        scrollY:    '900px',
+        "dom": 'rtip',
+        "lengthChange": false,
+        "paging": false
+    } );
+
+  {% endfor %}
+}
+
+$(window).on("load",function(){
+  initSourcesScans();
+  initMarkerArea();
+  showMarkerArea();
+  initPagination();
+  initCopyPagesTableOnClickRowEvent();
+
+});
 
 {% endblock %}
 
@@ -83,7 +199,7 @@ let sourceImage, target, targetRoot, maState, markerArea;
   </li>
   {% for pages_group in exam_pages_group_list %}
   <li class="nav-item" role="presentation">
-    <a class="flex-sm-fill text-sm-center nav-link" id="review-group-{{ pages_group.group_name }}-tab" data-toggle="pill" href="#pills-review-group-{{ pages_group.group_name }}" role="tab" aria-controls="pills-review-group-{{ pages_group.group_name }}" aria-selected="false">Review group {{ pages_group.group_name }}</a>
+    <a class="flex-sm-fill text-sm-center nav-link" id="review-{{ pages_group.group_name|cut:' ' }}-tab" data-toggle="pill" href="#pills-review-{{ pages_group.group_name|cut:' ' }}" role="tab" aria-controls="pills-review-{{ pages_group.group_name|cut:' ' }}" aria-selected="false">Review {{ pages_group.group_name }}</a>
   </li>
   {% endfor %}
 </ul>
@@ -105,48 +221,50 @@ let sourceImage, target, targetRoot, maState, markerArea;
           <td>{{ pages_group.group_name }}</td>
           <td>{{ pages_group.page_from }}</td>
           <td>{{ pages_group.page_to }}</td>
-          <td><a class="btn btn-danger btn-sm" href="">Review</a></td>
+          <td><a class="btn btn-danger btn-sm" onclick="$('#review-{{ pages_group.group_name|cut:' ' }}-tab').trigger('click')">Review</a></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-{% for pages_group in exam_pages_group_list %}
-  <div class="tab-pane fade" id="pills-review-group-{{ pages_group.group_name }}" role="tabpanel" aria-labelledby="pills-review-group-{{ pages_group.group_name }}-tab">
-    <div class="row">
-      <div class="col" style="column;max-width: 1200px;min-width:600px;">
-        <nav aria-label="Page navigation example" style="ce">
-          <ul  class="pagination pagination-lg justify-content-center">
-            <li class="page-item">
-              <a class="page-link" href="#" aria-label="Previous">
-                <span aria-hidden="true">&laquo;</span>
-              </a>
-            </li>
-            <li class="page-item"><a class="page-link" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
-            <li class="page-item">
-              <a class="page-link" href="#" aria-label="Next">
-                <span aria-hidden="true">&raquo;</span>
-              </a>
-            </li>
-          </ul>
-        </nav>
-        <div class="row" style="height:900px;overflow-y: scroll;">
-            <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
-      				<img id="source_img" src="../../scans/2022/2/MATH-207(c)/copy_001/scan_2022050414380192820220706085059222.jpg" style="max-width:100%;min-width: 600px"   />
-      				<img id="marked_img" src="../../scans/2022/2/MATH-207(c)/copy_001/scan_2022050414380192820220706085059222.jpg" style="max-width:100%;min-width: 600px; position: absolute;"  />
-            </div>
+  {% for key, value in scans_pathes_list.items %}
+
+  <div class="tab-pane fade" id="pills-review-{{ key|cut:' ' }}" role="tabpanel" aria-labelledby="pills-review-{{ key|cut:' ' }}-tab">
+    <div class="d-flex">
+      <div class="list-group" style="column;max-width: 1200px;min-width:600px;">
+        <div id="pagination-{{ key|cut:' ' }}" class="list-group list-group-horizontal"></div>
+        <div id="markerjs_div-{{ key|cut:' ' }}" style="height:900px;overflow-y: scroll;">
+          <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
+            <img id="source_img-{{ key|cut:' ' }}" style="max-width:100%;min-width: 600px"   />
+            <img id="marked_img-{{ key|cut:' ' }}" style="max-width:100%;min-width: 600px; position: absolute;"  />
+          </div>
         </div>
       </div>
-      <div class="col">
-      RIGHT
+      <div>
+        <table class="table table-striped table-sm" id="table-copies-pages-{{ key|cut:' '}}">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>Copy</th>
+              <th>Page</th>
+              <th>Annotated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for page in value %}
+            <tr id="copy_{{page.copy_no}}_{{page.page_no}}">
+              <td>{{ forloop.counter }}</td>
+              <td>{{ page.copy_no }}</td>
+              <td>{{ page.page_no }}</td>
+              <td>to do</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
-  {% endfor %}
 </div>
 
-
+  {% endfor %}
 
 {% endblock %}

@@ -9,13 +9,14 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, Http404, FileResponse, HttpRequest, HttpResponseRedirect, HttpResponseForbidden,HttpResponseBadRequest
 from django.urls import reverse, reverse_lazy
 import zipfile
+import json
 
 
 # TESTING
 # ------------------------------------------
-def test_function(request):
-    split_scans_by_copy('2022','1','PREPA-004')
-    return render(request, 'home.html')
+#def test_function(request):
+#    split_scans_by_copy('2022','1','PREPA-004')
+#    return render(request, 'home.html')
 
 # CLASSES
 # ------------------------------------------
@@ -61,19 +62,29 @@ class ReviewView(DetailView):
     def get_context_data(self, **kwargs):
         context = super(ReviewView, self).get_context_data(**kwargs)
 
-        global EXAM
-        EXAM = Exam.objects.get(pk=context.get("object").id)
+        exam = Exam.objects.get(pk=context.get("object").id)
 
-        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=EXAM))
-        if user_allowed(EXAM,self.request.user.id):
+        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+
+        # Get scans file path dict by pages groups
+        scans_pathes_list = get_scans_pathes_by_group(exam)
+        
+        if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
-            context['common_list'] = get_common_list(EXAM)
             context['current_url'] = "review"
-            context['exam'] = EXAM
-            context['exam_pages_group_list'] = EXAM.examPagesGroup.all()
+            context['exam'] = exam
+            context['exam_pages_by_copy_list'] = json.loads(exam.pages_by_copy)
+            context['scans_pathes_list'] = scans_pathes_list
+            context['json_groups_scans_pathes'] = json.dumps(scans_pathes_list)
+            context['exam_pages_group_list'] = exam.examPagesGroup.all()
             return context
         else:
             context['user_allowed'] = False
+            context['current_url'] = "review"
+            context['exam'] = exam
+            context['scans_pathes_list'] = scans_pathes_list
+            context['exam_pages_by_copy_list'] = json.loads(exam.pages_by_copy)
+            #context['exam_pages_group_list'] = exam.examPagesGroup.all()
             return context
 
 @method_decorator(login_required, name='dispatch')
@@ -84,20 +95,21 @@ class ReviewSettingsView(DetailView):
     def get_context_data(self, **kwargs):
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
 
-        global EXAM
-        EXAM = Exam.objects.get(pk=context.get("object").id)
+        exam = Exam.objects.get(pk=context.get("object").id)
 
-        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=EXAM))
+        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
 
-        if user_allowed(EXAM,self.request.user.id):
+        if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
-            context['common_list'] = get_common_list(EXAM)
             context['current_url'] = "reviewSettings"
-            context['exam'] = EXAM
+            context['exam'] = exam
             context['exam_pages_groups_formset'] = formset
             return context
         else:
             context['user_allowed'] = False
+            context['current_url'] = "reviewSettings"
+            context['exam'] = exam
+            context['exam_pages_groups_formset'] = formset
             return context
 
     # Define method to handle POST request
@@ -118,50 +130,54 @@ class ReviewSettingsView(DetailView):
                 else:
                     pagesGroup.save()
 
-        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=EXAM))
+        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
         self.object = self.get_object()
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
-        if user_allowed(EXAM,self.request.user.id):
+        if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
-            context['common_list'] = get_common_list(EXAM)
             context['current_url'] = "reviewSettings"
-            context['exam'] = [[] for _ in range(EXAM.pages_by_copy)]
+            context['exam'] = exam
             context['exam_pages_groups_formset'] = formset
         else:
             context['user_allowed'] = False
+            context['current_url'] = "reviewSettings"
+            context['exam'] = exam
+            context['exam_pages_groups_formset'] = formset
+            return context
         return self.render_to_response(context=context)
 
-@method_decorator(login_required, name='dispatch')
-class ManageExamPagesGroupsView(TemplateView):
-    template_name = "exam/manage_exam_pages_groups.html"
-
-    # Define method to handle GET request
-    def get(self, *args, **kwargs):
-        # Create an instance of the formset
-        exam = Exam.objects.get(pk=self.kwargs['pk'])
-        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
-        return self.render_to_response({'exam_pages_groups_formset': formset})
-
-    # Define method to handle POST request
-    def post(self, *args, **kwargs):
-        exam = Exam.objects.get(pk=self.kwargs['pk'])
-
-        formset = ExamPagesGroupsFormSet(data=self.request.POST)
-
-        # Check if submitted forms are valid
-        if formset.is_valid():
-            #add, update or delete entries
-            for form in formset:
-                pagesGroup = form.save(commit=False)
-                pagesGroup.exam = exam
-
-                if form in formset.deleted_forms:
-                    pagesGroup.delete()
-                else:
-                    pagesGroup.save()
-            return redirect(reverse_lazy("manageExamPagesGroups", kwargs={'pk': exam.pk}))
-
-        return self.render_to_response({'exam_pages_groups_formset': formset})
+# @method_decorator(login_required, name='dispatch')
+# class ManageExamPagesGroupsView(TemplateView):
+#     template_name = "exam/manage_exam_pages_groups.html"
+#
+#     # Define method to handle GET request
+#     def get(self, *args, **kwargs):
+#         # Create an instance of the formset
+#         exam = Exam.objects.get(pk=self.kwargs['pk'])
+#         formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+#         return self.render_to_response({'exam_pages_groups_formset': formset})
+#
+#     # Define method to handle POST request
+#     def post(self, *args, **kwargs):
+#         exam = Exam.objects.get(pk=self.kwargs['pk'])
+#
+#         formset = ExamPagesGroupsFormSet(data=self.request.POST)
+#
+#         # Check if submitted forms are valid
+#         if formset.is_valid():
+#             #add, update or delete entries
+#             for form in formset:
+#                 pagesGroup = form.save(commit=False)
+#                 pagesGroup.exam = exam
+#
+#                 if form in formset.deleted_forms:
+#                     pagesGroup.delete()
+#                 else:
+#                     pagesGroup.save()
+#
+#             return redirect(reverse_lazy("reviewSettingsView", kwargs={'pk': exam.pk}))
+#
+#         return self.render_to_response({'exam_pages_groups_formset': formset})
 
 # VIEWS
 # ------------------------------------------
@@ -195,7 +211,7 @@ def select_exam(request, pk, current_url=None):
 def upload_scans(request,pk):
     exam = Exam.objects.get(pk=pk)
 
-    files = [];
+    files = []
 
     zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code + "_" + exam.name
     print(zip_path)

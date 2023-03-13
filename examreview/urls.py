@@ -33,8 +33,8 @@ urlpatterns = [
     path('examSelect', login_required(views.ExamSelectView.as_view()), name="examSelect"),
     path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view()), name="examInfo"),
     path('select_exam/<int:pk>', login_required(views.select_exam), name="select_exam"),
-    path('manageExamPagesGroups/<int:pk>',login_required(views.ManageExamPagesGroupsView.as_view()), name="manageExamPagesGroups"),
-    path('test_function>', views.test_function, name="test_function")
+    #path('manageExamPagesGroups/<int:pk>',login_required(views.ManageExamPagesGroupsView.as_view()), name="manageExamPagesGroups"),
+    #path('test_function>', views.test_function, name="test_function")
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
 
 urlpatterns += django_tequila_urlpatterns

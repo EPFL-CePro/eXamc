@@ -9,6 +9,7 @@ import os
 import imghdr
 import json
 import shutil
+import pathlib
 
 from django.db.models import Q
 
@@ -44,7 +45,7 @@ def split_scans_by_copy(exam):
 
 
             page_nr += 1
-            os.rename(f,current_subdir+"/copy_"+str(copy_nr).zfill(4)+"_"+str(page_nr).zfill(2))
+            os.rename(f,current_subdir+"/copy_"+str(copy_nr).zfill(4)+"_"+str(page_nr).zfill(2)+pathlib.Path(filename).suffix)
             print(copy_nr)
     pages_by_copy.append([copy_nr,page_nr])
     json_pages_by_copy = json.dumps(pages_by_copy)
@@ -93,3 +94,29 @@ def user_allowed(exam, user_id):
         return True
     else:
         return False
+
+def get_scans_pathes_by_group(exam):
+
+    scans_pathes_list = {}
+    scans_dir = str(settings.SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
+    scans_url = "../../scans/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
+
+    for group in exam.examPagesGroup.all():
+
+
+        scans_pathes = []
+
+        for dir in sorted(os.listdir(scans_dir)):
+            for filename in sorted(os.listdir(scans_dir+"/"+dir)):
+                split_filename = filename.split('_')
+                copy_no = int(split_filename[-2])
+                page_no = int(split_filename[-1].split('.')[0])
+                if page_no >= group.page_from and page_no <= group.page_to:
+                    scans_path_dict = {}
+                    scans_path_dict["copy_no"] = copy_no
+                    scans_path_dict["page_no"] = page_no
+                    scans_path_dict["path"] = scans_url+"/"+dir+"/"+filename
+                    scans_pathes.append(scans_path_dict)
+
+        scans_pathes_list[group.group_name.replace(" ","")] = scans_pathes
+    return scans_pathes_list
