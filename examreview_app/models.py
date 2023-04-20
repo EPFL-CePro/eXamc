@@ -65,6 +65,7 @@ class ExamPagesGroup(models.Model):
 
 class ScanMarkers(models.Model):
     copie_no = models.CharField(max_length=10,default='0')
+    page_no = models.CharField(max_length=10,default='0')
     filename = models.CharField(max_length=100)
     markers = models.TextField(blank = True)
     comment = models.TextField(blank = True)

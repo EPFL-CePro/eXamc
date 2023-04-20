@@ -11,6 +11,9 @@ from django.urls import reverse, reverse_lazy
 import zipfile
 import json
 
+import re
+import base64
+
 
 # TESTING
 # ------------------------------------------
@@ -64,27 +67,47 @@ class ReviewView(DetailView):
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
-        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
-
-        # Get scans file path dict by pages groups
-        scans_pathes_list = get_scans_pathes_by_group(exam)
-        
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "review"
             context['exam'] = exam
-            context['exam_pages_by_copy_list'] = json.loads(exam.pages_by_copy)
-            context['scans_pathes_list'] = scans_pathes_list
-            context['json_groups_scans_pathes'] = json.dumps(scans_pathes_list)
             context['exam_pages_group_list'] = exam.examPagesGroup.all()
             return context
         else:
             context['user_allowed'] = False
             context['current_url'] = "review"
             context['exam'] = exam
+            return context
+
+@method_decorator(login_required, name='dispatch')
+class ReviewGroupView(DetailView):
+    model = ExamPagesGroup
+    template_name = 'review/reviewGroup.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(ReviewGroupView, self).get_context_data(**kwargs)
+
+        examPagesGroup = ExamPagesGroup.objects.get(pk=context.get("object").id)
+
+        current_page = self.kwargs['currpage']
+
+        # Get scans file path dict by pages groups
+        scans_pathes_list = get_scans_pathes_by_group(examPagesGroup)
+        print(scans_pathes_list)
+        if user_allowed(examPagesGroup.exam,self.request.user.id):
+            context['user_allowed'] = True
+            context['current_url'] = "reviewGroup"
+            context['exam'] = examPagesGroup.exam
+            context['pages_group'] = examPagesGroup
             context['scans_pathes_list'] = scans_pathes_list
-            context['exam_pages_by_copy_list'] = json.loads(exam.pages_by_copy)
-            #context['exam_pages_group_list'] = exam.examPagesGroup.all()
+            context['currpage'] = current_page,
+            context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
+            return context
+        else:
+            context['user_allowed'] = False
+            context['current_url'] = "review"
+            context['exam'] = examPagesGroup.exam
+            context['pages_group'] = examPagesGroup
             return context
 
 @method_decorator(login_required, name='dispatch')
@@ -146,43 +169,23 @@ class ReviewSettingsView(DetailView):
             return context
         return self.render_to_response(context=context)
 
-# @method_decorator(login_required, name='dispatch')
-# class ManageExamPagesGroupsView(TemplateView):
-#     template_name = "exam/manage_exam_pages_groups.html"
-#
-#     # Define method to handle GET request
-#     def get(self, *args, **kwargs):
-#         # Create an instance of the formset
-#         exam = Exam.objects.get(pk=self.kwargs['pk'])
-#         formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
-#         return self.render_to_response({'exam_pages_groups_formset': formset})
-#
-#     # Define method to handle POST request
-#     def post(self, *args, **kwargs):
-#         exam = Exam.objects.get(pk=self.kwargs['pk'])
-#
-#         formset = ExamPagesGroupsFormSet(data=self.request.POST)
-#
-#         # Check if submitted forms are valid
-#         if formset.is_valid():
-#             #add, update or delete entries
-#             for form in formset:
-#                 pagesGroup = form.save(commit=False)
-#                 pagesGroup.exam = exam
-#
-#                 if form in formset.deleted_forms:
-#                     pagesGroup.delete()
-#                 else:
-#                     pagesGroup.save()
-#
-#             return redirect(reverse_lazy("reviewSettingsView", kwargs={'pk': exam.pk}))
-#
-#         return self.render_to_response({'exam_pages_groups_formset': formset})
-
 # VIEWS
 # ------------------------------------------
-@login_required
 
+
+# TESTING
+# ------------------------------------------
+@login_required
+def testing(request):
+    user_info = request.user.__dict__
+    if request.user.is_authenticated:
+        user_info.update(request.user.__dict__)
+        return render(request, 'review/testing.html', {
+            'user': request.user,
+            'user_info': user_info,
+    })
+
+@login_required
 def home(request):
     user_info = request.user.__dict__
     if request.user.is_authenticated:
@@ -213,7 +216,7 @@ def upload_scans(request,pk):
 
     files = []
 
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code + "_" + exam.name
+    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
     print(zip_path)
 
     for file in os.listdir(zip_path):
@@ -229,7 +232,7 @@ def upload_scans(request,pk):
 def start_upload_scans(request,pk,filename):
     exam = Exam.objects.get(pk=pk)
 
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code + "_" + exam.name
+    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
     zip_file_path = zip_path+"/"+filename
     tmp_extract_path = zip_path+"/tmp_extract"
 
@@ -243,7 +246,7 @@ def start_upload_scans(request,pk,filename):
     if os.path.isdir(first_path):
         tmp_extract_path = first_path
 
-    message = "Imported 430 copies (1243545 scans)"#import_scans(exam,tmp_extract_path)
+    message = import_scans(exam,tmp_extract_path)
 
     # remove imported Files (zip + extracted)
     for filename in os.listdir(zip_path):
@@ -270,15 +273,6 @@ def get_common_list(exam):
         common_list.sort(key=operator.attrgetter('code'))
     return common_list
 
-# @login_required
-# def manage_exam_pages_groups(request,pk):
-#     exam = Exam.objects.get(pk=pk)
-#     pagesGroups = exam.examPagesGroup.all()
-#     forms = []
-#     for pg in pagesGroups:
-#         forms.append(ManageExamPagesGroupsForm(instance=pg))
-#     return render(request, 'exam/manage_exam_pages_groups.html', {'forms': forms, 'exam':exam})
-
 @login_required
 def add_new_pages_group(request,pk):
     exam = Exam.objects.get(pk=pk)
@@ -289,3 +283,46 @@ def add_new_pages_group(request,pk):
     newPG.page_to = 0
     newPG.save()
     return HttpResponse(1)
+
+@login_required
+def saveMarkers(request):
+    print(list(request.POST.items()))
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+
+    scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], exam=exam)
+
+    scan_markers.markers = request.POST['markers']
+    scan_markers.comment = request.POST['comment']
+    scan_markers.filename = request.POST['filename']
+    print(request.POST.get('marked_img_dataUrl'))
+    dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
+    ImageData = request.POST.get('marked_img_dataUrl')
+    if dataUrlPattern.match(ImageData):
+      ImageData = dataUrlPattern.match(ImageData).group(2)
+      # Decode the 64 bit string into 32 bit
+      ImageData = base64.b64decode(ImageData)
+
+      marked_img_path = str(settings.MARKED_SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"+scan_markers.copie_no+"/"+"marked_"+scan_markers.filename.rsplit("/", 1)[-1]
+      os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
+
+      with open(marked_img_path,"wb") as marked_file:
+        marked_file.write(ImageData)
+
+    scan_markers.save()
+    print(request)
+    return HttpResponseRedirect( reverse('reviewGroup', kwargs={'pk':request.POST['reviewGroup_pk'],'currpage':scan_markers.page_no}))
+
+@login_required
+def getMarkers(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    try:
+        scan_markers = ScanMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], filename=request.POST['filename'],exam=exam)
+        print(scan_markers)
+        json_string = scan_markers.markers
+    except ScanMarkers.DoesNotExist:
+        json_string = None;
+
+    if(json_string):
+        return HttpResponse(json_string)
+    else:
+        return HttpResponse(None)

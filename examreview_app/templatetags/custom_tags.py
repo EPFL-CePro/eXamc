@@ -1,14 +1,9 @@
 from django import template
 
+import json
+
 register = template.Library()
 
-# @register.filter
-# def getPageFromJpgPath(jpg_path):
-#     split_path = jpg_path.split('/')
-#     return split_path[-1].split('.')[0]
-#
-# @register.filter
-# def getCopyAndPageFromJpgPath(jpg_path):
-#     split_path = jpg_path.split('/')
-#     copyPage = split_path[-2] + " page " + split_path[-1].split('_')[-1].split('.')[0]
-#     return copyPage
+@register.filter
+def get_number_of_pages(group_name,scan_pathes_list):
+    return len(scan_pathes_list[group_name])

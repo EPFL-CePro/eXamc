@@ -19,6 +19,14 @@
     <script src="{% static 'js/Chart.min.js' %}"></script>
     <script src="{% static 'js/palette.js' %}"></script>
 
+
+
+    <!-- testing -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+
+
+
+
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
 
     <!-- menubars stylesheet -->
@@ -104,6 +112,9 @@
                   </li>
                   <li>
                     <a href="{% url 'reviewSettingsView' exam.pk %}">Review settings</a>
+                  </li>
+                  <li>
+                    <a href="{% url 'testing' %}">TESTING</a>
                   </li>
                   {% endif %}
               </ul>

@@ -1,8 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}Import scans{% endblock %}
+{% block title %}Upload scans{% endblock %}
 
 {% block scripts %}
+
+function toto(){
+  alert("toto");
+}
 
 function startUpload(pk,filename){
 
@@ -45,7 +49,7 @@ function startUpload(pk,filename){
 			{% for file in files %}
 			<tr>
 				<td>{{ file }}</td>
-				<td><button id="startUploadBt" onclick="startUpload( '{{ exam.pk }}' , '{{ file }}' );" class="btn btn-primary btn-sm"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;"></span>Start upload</button></td>
+				<td><a class="btn btn-primary btn-sm" href="{% url 'start_upload_scans' exam.pk file %}">Start upload</a></td>
 			</tr>
 			{% endfor %}
 		</tbody>

@@ -118,6 +118,10 @@ STATIC_ROOT = BASE_DIR / 'static/'
 SCANS_ROOT = BASE_DIR / 'scans/'
 SCANS_URL = '/scans/'
 
+# Marked scans folder
+MARKED_SCANS_ROOT = BASE_DIR / 'marked_scans/'
+MARKED_SCANS_URL = '/marked_scans/'
+
 # Autoupload folder
 AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload'
 AUTOUPLOAD_URL = '/autoupload/'
