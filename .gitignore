@@ -131,3 +131,6 @@ dmypy.json
 # scans subfolders
 !scans/
 scans/*/
+
+!marked_scans/
+marked_scans/*/
