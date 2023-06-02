@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block extra_head %}
+
+{% endblock %}
+
+{% block title %}Export{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}
+
+{% block content %}
+
+{% if user_allowed %}
+
+<h4>Export Marked Files</h4>
+
+<style>
+.custom-radio-list {
+    list-style-type: none;
+    padding-top: 20px;
+    margin-left: 0px;
+}
+.custom-radio-list li {
+    margin-left: 20px;
+}
+</style>
+
+<div id="export_marked_files_div" style="padding:20px">
+  <h6>Options :</h6>
+  <form action="{% url 'export_marked_files' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal" style="margin-top:20px;">
+    {% csrf_token %}
+    {% for radio in form.export_type %}
+      <div>
+          {{ radio }}
+      </div>
+      {% endfor %}
+      <br/>
+      <button type="submit" class="btn btn-primary">Export</button>
+  </form>
+
+</div>
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
+{% endif %}
+
+{% endblock %}

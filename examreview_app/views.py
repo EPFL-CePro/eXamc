@@ -9,11 +9,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, Http404, FileResponse, HttpRequest, HttpResponseRedirect, HttpResponseForbidden,HttpResponseBadRequest
 from django.urls import reverse, reverse_lazy
 import zipfile
+import os
 import json
+from PIL import Image
 
 import re
 import base64
-
 
 # TESTING
 # ------------------------------------------
@@ -22,6 +23,9 @@ import base64
 #    return render(request, 'home.html')
 
 # CLASSES
+# ------------------------------------------
+
+# VIEWS
 # ------------------------------------------
 @method_decorator(login_required, name='dispatch')
 class ExamSelectView(SingleTableView):
@@ -93,7 +97,6 @@ class ReviewGroupView(DetailView):
 
         # Get scans file path dict by pages groups
         scans_pathes_list = get_scans_pathes_by_group(examPagesGroup)
-        print(scans_pathes_list)
         if user_allowed(examPagesGroup.exam,self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewGroup"
@@ -169,8 +172,55 @@ class ReviewSettingsView(DetailView):
             return context
         return self.render_to_response(context=context)
 
-# VIEWS
-# ------------------------------------------
+
+@login_required
+def export_marked_files(request,pk):
+    exam = Exam.objects.get(pk=pk)
+
+    if user_allowed(exam,request.user.id):
+
+        if request.method == 'POST':
+
+            # delete old tmp folders and zips
+            for filename in os.listdir(str(settings.EXPORT_TMP_ROOT)):
+                file_path = os.path.join(str(settings.EXPORT_TMP_ROOT), filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print('Failed to delete %s. Reason: %s' % (file_path, e))
+
+            form = ExportMarkedFilesForm(request.POST,exam=exam)
+
+            if form.is_valid():
+
+              generated_marked_files_zip_path = generate_marked_files_zip(exam, request.POST['export_type'])
+
+
+              zip_file = open(generated_marked_files_zip_path, 'rb')
+              return FileResponse(zip_file)
+
+            else:
+              logger.info("INVALID")
+              logger.info(form.errors)
+              return HttpResponseRedirect(request.path_info)
+
+        # if a GET (or any other method) we'll create a blank form
+        else:
+          form = ExportMarkedFilesForm()
+          return render(request, 'export/export_marked_files.html', {"user_allowed":True,
+                                                        "form": form,
+                                                        "exam" : exam,
+                                                        "current_url": "export_marked_files"})
+    else:
+        return render(request, 'export/export_marked_files.html', {"user_allowed":False,
+                                                      "form": None,
+                                                      "exam" : exam,
+                                                      "current_url": "export_marked_files"})
+
+
 
 
 # TESTING
@@ -217,7 +267,6 @@ def upload_scans(request,pk):
     files = []
 
     zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
-    print(zip_path)
 
     for file in os.listdir(zip_path):
         if os.path.isfile(os.path.join(zip_path,file)) and os.path.splitext(file)[1] == '.zip':
@@ -286,7 +335,7 @@ def add_new_pages_group(request,pk):
 
 @login_required
 def saveMarkers(request):
-    print(list(request.POST.items()))
+
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
 
     scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], exam=exam)
@@ -294,7 +343,6 @@ def saveMarkers(request):
     scan_markers.markers = request.POST['markers']
     scan_markers.comment = request.POST['comment']
     scan_markers.filename = request.POST['filename']
-    print(request.POST.get('marked_img_dataUrl'))
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
     if dataUrlPattern.match(ImageData):
@@ -302,14 +350,13 @@ def saveMarkers(request):
       # Decode the 64 bit string into 32 bit
       ImageData = base64.b64decode(ImageData)
 
-      marked_img_path = str(settings.MARKED_SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"+scan_markers.copie_no+"/"+"marked_"+scan_markers.filename.rsplit("/", 1)[-1]
+      marked_img_path = str(settings.MARKED_SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"+scan_markers.copie_no+"/"+"marked_"+scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg','.png')
       os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
 
       with open(marked_img_path,"wb") as marked_file:
         marked_file.write(ImageData)
 
     scan_markers.save()
-    print(request)
     return HttpResponseRedirect( reverse('reviewGroup', kwargs={'pk':request.POST['reviewGroup_pk'],'currpage':scan_markers.page_no}))
 
 @login_required
@@ -317,7 +364,6 @@ def getMarkers(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     try:
         scan_markers = ScanMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], filename=request.POST['filename'],exam=exam)
-        print(scan_markers)
         json_string = scan_markers.markers
     except ScanMarkers.DoesNotExist:
         json_string = None;

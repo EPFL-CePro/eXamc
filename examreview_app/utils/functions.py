@@ -2,6 +2,7 @@
 from django.conf import settings
 from examreview_app.models import *
 from django.core.files.storage import FileSystemStorage
+from PIL import Image
 import pyzbar.pyzbar as pyzbar
 from PIL import Image
 import numpy as np
@@ -11,6 +12,9 @@ import imghdr
 import json
 import shutil
 import pathlib
+import datetime
+import zipfile
+from fpdf import FPDF
 
 from django.db.models import Q
 
@@ -49,7 +53,7 @@ def split_scans_by_copy(exam,tmp_extract_path):
 
             #print("copy "+str(copy_nr)+" / page "+str(page_nr))
 
-            copy_nr_dir = "copy_"+str(copy_nr).zfill(3)
+            copy_nr_dir = str(copy_nr).zfill(4)
             subdir = os.path.join(scans_dir,copy_nr_dir)
             if not os.path.exists(subdir):
               os.mkdir(subdir)
@@ -109,7 +113,6 @@ def delete_old_scans(exam):
 def user_allowed(exam, user_id):
     exam_users = User.objects.filter(Q(exam=exam) | Q(exam__in=exam.common_exams.all()))
     user = User.objects.get(pk=user_id)
-    print("coucou")
     if user in exam_users or user.is_superuser:
         return True
     else:
@@ -133,14 +136,86 @@ def get_scans_pathes_by_group(examPagesGroup):
             page_no_int = int(page_no_real[0:2])
             if page_no_int >= examPagesGroup.page_from and page_no_int <= examPagesGroup.page_to:
                 marked = False
+                comment = None
                 scanMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4), page_no=str(page_no_real).zfill(2).replace('.','x')).first()
-                if scanMarkers and scanMarkers.markers is not None:
-                   marked = True
+                if scanMarkers :
+                  if scanMarkers.comment != "None":
+                    comment = scanMarkers.comment
+                  if scanMarkers.markers is not None:
+                    marked = True
+
                 scans_path_dict = {}
                 scans_path_dict["copy_no"] = copy_no
                 scans_path_dict["page_no"] = page_no_real.lstrip("0")
                 scans_path_dict["path"] = scans_url+"/"+dir+"/"+filename
                 scans_path_dict["marked"] = marked
+                scans_path_dict["comment"] = comment
                 scans_pathes.append(scans_path_dict)
 
     return scans_pathes
+
+def generate_marked_files_zip(exam, export_type):
+
+  scans_dir = str(settings.SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
+  marked_dir = str(settings.MARKED_SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
+  export_tmp_dir = str(settings.EXPORT_TMP_ROOT)+"/"+str(exam.year)+"_"+str(exam.semester)+"_"+exam.code+"_"+datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
+
+  if not os.path.exists(export_tmp_dir):
+    os.mkdir(export_tmp_dir)
+
+  # list files from scans dir
+  for dir in sorted(os.listdir(scans_dir)):
+
+    copy_export_subdir = export_tmp_dir+"/"+dir
+
+    if not os.path.exists(copy_export_subdir):
+      os.mkdir(copy_export_subdir)
+
+    for filename in sorted(os.listdir(scans_dir+"/"+dir)):
+        # check if a marked file exist, if yes copy it, or copy original scans
+
+        marked_file_path = pathlib.Path(marked_dir+"/"+dir+"/marked_"+filename.replace('.jpeg','.png'))
+        if os.path.exists(marked_file_path):
+          shutil.copyfile(marked_file_path,copy_export_subdir+"/"+filename.replace('.jpeg','.png'))
+        else:
+          shutil.copyfile(scans_dir+"/"+dir+"/"+filename,copy_export_subdir+"/"+filename)
+
+  if int(export_type) > 1:
+    generate_marked_pdfs(export_tmp_dir,export_type)
+
+    #remove subfolders with images
+    for root, dirs, files in os.walk(export_tmp_dir):
+      for name in dirs:
+        shutil.rmtree(os.path.join(root,name))
+
+  # zip folder
+  zipf = zipfile.ZipFile(export_tmp_dir+".zip", 'w', zipfile.ZIP_DEFLATED)
+  zipdir(export_tmp_dir, zipf)
+  zipf.close()
+
+  #remove tmp folder not zipped
+  shutil.rmtree(export_tmp_dir)
+
+  return export_tmp_dir+".zip"
+
+
+
+def zipdir(path, ziph):
+# ziph is zipfile handle
+  for root, dirs, files in os.walk(path):
+      for file in files:
+          ziph.write(os.path.join(root, file),
+          os.path.relpath(os.path.join(root, file),
+          os.path.join(path, '..')))
+
+def generate_marked_pdfs(files_path, export_type):
+
+  for subdir in os.listdir(files_path):
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    pdf.set_auto_page_break(0)
+
+    for image in os.listdir(files_path+"/"+subdir):
+      pdf.add_page()
+      pdf.image(files_path+"/"+subdir+"/"+image, 0, 0, 210)
+
+    pdf.output(files_path+"/copy_"+subdir+".pdf","F")
