@@ -2,10 +2,11 @@ import logging
 
 from django import forms
 from django.forms import modelformset_factory
-from .models import ExamPagesGroup
+from .models import ExamPagesGroup, ExamReviewer
+
 
 class UploadScansForm(forms.Form):
-    files = forms.FileField(widget=forms.ClearableFileInput(attrs={'multiple': True}))
+    files = forms.FileField(widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
 
 class ManageExamPagesGroupsForm(forms.ModelForm):
     class Meta:
@@ -14,6 +15,15 @@ class ManageExamPagesGroupsForm(forms.ModelForm):
 
 ExamPagesGroupsFormSet = modelformset_factory(
     ExamPagesGroup, fields=('id','group_name','page_from','page_to'), extra=0, can_delete=True
+)
+
+class ManageExamReviewersForm(forms.ModelForm):
+    class Meta:
+        model = ExamReviewer
+        fields = ['user','pages_groups']
+
+ExamReviewersFormSet = modelformset_factory(
+    ExamReviewer, fields=('id','user','pages_groups'), extra=0, can_delete=True
 )
 
 class ExportMarkedFilesForm(forms.Form):

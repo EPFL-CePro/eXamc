@@ -1,0 +1,42 @@
+</br>
+<h6>PAGES GROUPS</h6>
+
+<form id="form-container" method="POST">
+    {% csrf_token %}
+    {{ exam_reviewers_formset.management_form }}
+    <button type="submit" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save Groups</button>
+    {% for form in exam_reviewers_formset.forms %}
+    <div class="exam-reviewer-form">
+    {{form.as_table}}
+    </div>
+    {% endfor %}
+    <div class="exam_reviewers_formset_empty_form" hidden>
+      {{exam_reviewers_formset.empty_form}}
+    </div>
+    <button id="add-form" type="button" style="margin-top:20px;" class="btn btn-outline-info btn-sm">Add Another Group</button>
+</form>
+
+<script type="text/javascript">
+  groupForm = document.querySelectorAll(".exam-reviewer-form")
+  container = document.querySelector("#form-container")
+  addButton = document.querySelector("#add-form")
+  totalForms = document.querySelector("#id_form-TOTAL_FORMS")
+  emptyForm = document.querySelector(".exam_reviewers_formset_empty_form")
+
+  formNum = groupForm.length-1
+  addButton.addEventListener('click', addForm)
+
+  function addForm(e){
+    e.preventDefault()
+
+    newGroupForm = emptyForm.cloneNode(true)
+    formRegex = RegExp(`form-__prefix__-`,'g')
+
+    formNum++
+    newGroupForm.innerHTML = newGroupForm.innerHTML.replace(formRegex, `form-${formNum}-`)
+    newGroupForm.removeAttribute('hidden')
+    container.insertBefore(newGroupForm,addButton)
+    totalForms.setAttribute('value', `${formNum+1}`)
+  }
+
+</script>

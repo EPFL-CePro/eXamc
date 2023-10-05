@@ -16,15 +16,17 @@
     <a class="flex-sm-fill text-sm-center nav-link active" id="pages-groups-tab" data-toggle="pill" href="#pills-pages-groups" role="tab" aria-controls="pills-pages-groups" aria-selected="true">Pages groups</a>
   </li>
   <li class="nav-item" role="presentation">
-    <a class="flex-sm-fill text-sm-center nav-link" id="NEW-tab" data-toggle="pill" href="#pills-NEW" role="tab" aria-controls="pills-NEW" aria-selected="false">NEW</a>
+    <a class="flex-sm-fill text-sm-center nav-link" id="reviewers-tab" data-toggle="pill" href="#pills-reviewers" role="tab" aria-controls="pills-reviewers" aria-selected="false">Reviewers</a>
   </li>
 </ul>
 
 <div class="tab-content" id="pages-groups-pills-tabContent">
   <div class="tab-pane fade show active" id="pills-pages-groups" role="tabpanel" aria-labelledby="pills-pages-groups-tab">
     {% include "./manage_exam_pages_groups.html" %}
-  <div class="tab-pane fade" id="pills-NEW" role="tabpanel" aria-labelledby="pills-NEW-tab">
-    NEW
+  </div>
+<div class="tab-content" id="reviewers-pills-tabContent">
+  <div class="tab-pane fade show active" id="pills-reviewers" role="tabpanel" aria-labelledby="pills-reviewers-tab">
+    {% include "./manage_exam_reviewers.html" %}
   </div>
 </div>
 {% endblock %}

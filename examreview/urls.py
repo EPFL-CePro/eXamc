@@ -19,7 +19,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django_tequila.urls import urlpatterns as django_tequila_urlpatterns
 from django.contrib.auth.decorators import login_required
-from django.conf.urls import url
 
 from examreview_app import views
 

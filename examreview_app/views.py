@@ -1,3 +1,5 @@
+import operator
+
 from django.shortcuts import render, redirect
 from examreview_app.utils.functions import *
 from .forms import *
@@ -123,13 +125,15 @@ class ReviewSettingsView(DetailView):
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
-        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+        formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
 
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
-            context['exam_pages_groups_formset'] = formset
+            context['exam_pages_groups_formset'] = formsetPagesGroups
+            context['exam_reviewers_formset'] = formsetReviewers
             return context
         else:
             context['user_allowed'] = False
