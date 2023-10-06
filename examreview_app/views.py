@@ -139,7 +139,6 @@ class ReviewSettingsView(DetailView):
             context['user_allowed'] = False
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
-            context['exam_pages_groups_formset'] = formset
             return context
 
     # Define method to handle POST request

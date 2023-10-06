@@ -13,8 +13,14 @@ class ManageExamPagesGroupsForm(forms.ModelForm):
         model = ExamPagesGroup
         fields = ['group_name','page_from','page_to']
 
+    def __init__(self, *args, **kwargs):
+        super(ManageExamPagesGroupsForm, self).__init__(*args, **kwargs)
+        # you can iterate all fields here
+        for fname, f in self.fields.items():
+            f.widget.attrs['class'] = 'form-control'
+
 ExamPagesGroupsFormSet = modelformset_factory(
-    ExamPagesGroup, fields=('id','group_name','page_from','page_to'), extra=0, can_delete=True
+    ExamPagesGroup, form=ManageExamPagesGroupsForm, can_delete=True
 )
 
 class ManageExamReviewersForm(forms.ModelForm):
@@ -22,8 +28,15 @@ class ManageExamReviewersForm(forms.ModelForm):
         model = ExamReviewer
         fields = ['user','pages_groups']
 
+    def __init__(self, *args, **kwargs):
+        super(ManageExamReviewersForm, self).__init__(*args, **kwargs)
+        print('test')
+        # you can iterate all fields here
+        for fname, f in self.fields.items():
+            f.widget.attrs['class'] = 'form-control'
+
 ExamReviewersFormSet = modelformset_factory(
-    ExamReviewer, fields=('id','user','pages_groups'), extra=0, can_delete=True
+    ExamReviewer, form=ManageExamReviewersForm, extra=0, can_delete=True
 )
 
 class ExportMarkedFilesForm(forms.Form):

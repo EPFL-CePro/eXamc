@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'sslserver',
     'django_tables2',
     'crispy_forms',
+    'crispy_bootstrap4',
 ]
 
 MIDDLEWARE = [
@@ -95,6 +96,8 @@ DATABASES = {
         },
     }
 }
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 LANGUAGE_CODE = 'en-us'
 

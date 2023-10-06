@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load crispy_forms_tags %}
 {% block extra_head %}
 {% endblock %}
 
@@ -20,11 +20,10 @@
   </li>
 </ul>
 
-<div class="tab-content" id="pages-groups-pills-tabContent">
+<div class="tab-content" id="pills-tabContent">
   <div class="tab-pane fade show active" id="pills-pages-groups" role="tabpanel" aria-labelledby="pills-pages-groups-tab">
     {% include "./manage_exam_pages_groups.html" %}
   </div>
-<div class="tab-content" id="reviewers-pills-tabContent">
   <div class="tab-pane fade show active" id="pills-reviewers" role="tabpanel" aria-labelledby="pills-reviewers-tab">
     {% include "./manage_exam_reviewers.html" %}
   </div>

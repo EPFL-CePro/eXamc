@@ -1,24 +1,42 @@
 </br>
 <h6>PAGES GROUPS</h6>
+{% load crispy_forms_tags %}
 
-<form id="form-container" method="POST">
+<form id="form-groups" method="POST">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
-    <button type="submit" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save Groups</button>
-    {% for form in exam_pages_groups_formset.forms %}
-    <div class="exam-pages-group-form">
-    {{form.as_table}}
-    </div>
-    {% endfor %}
-    <div class="exam_pages_groups_formset_empty_form" hidden>
-      {{exam_pages_groups_formset.empty_form}}
-    </div>
+    <button type="submit" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save groups</button>
+    <table class="table">
+      <thead>
+        <tr>
+            {% for field in exam_pages_groups_formset.forms.0 %}
+            {% if field.label != 'Id' %}
+            <th scope="col">{{ field.label }}</th>
+            {% endif %}
+            {% endfor %}
+        </tr>
+      </thead>
+      <tbody id="group-tbody">
+        {% for form in exam_pages_groups_formset.initial_forms %}
+        <tr>
+            {% for field in form %}
+            <td>{{ field }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+        <tr class="exam_pages_groups_formset_empty_form" hidden>
+            {% for field in exam_pages_groups_formset.empty_form %}
+            <td>{{ field }}</td>
+            {% endfor %}
+        </tr>
+      </tbody>
+    </table>
     <button id="add-form" type="button" style="margin-top:20px;" class="btn btn-outline-info btn-sm">Add Another Group</button>
 </form>
 
 <script type="text/javascript">
   groupForm = document.querySelectorAll(".exam-pages-group-form")
-  container = document.querySelector("#form-container")
+  container = document.querySelector("#group-tbody")
   addButton = document.querySelector("#add-form")
   totalForms = document.querySelector("#id_form-TOTAL_FORMS")
   emptyForm = document.querySelector(".exam_pages_groups_formset_empty_form")
@@ -35,7 +53,7 @@
     formNum++
     newGroupForm.innerHTML = newGroupForm.innerHTML.replace(formRegex, `form-${formNum}-`)
     newGroupForm.removeAttribute('hidden')
-    container.insertBefore(newGroupForm,addButton)
+    container.insertBefore(newGroupForm,emptyForm)
     totalForms.setAttribute('value', `${formNum+1}`)
   }
 

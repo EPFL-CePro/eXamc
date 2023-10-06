@@ -3,6 +3,9 @@ from django.contrib.auth.models import User
 
 # Get an instance of a logger
 import logging
+
+from django.db.models import Count
+
 logger = logging.getLogger(__name__)
 
 class Exam(models.Model):
@@ -16,7 +19,7 @@ class Exam(models.Model):
     pdf_catalog_name = models.CharField(max_length=100, blank=True)
     overall = models.BooleanField(default=0)
     indiv_formula = models.CharField(max_length=100, blank=True)
-    pages_by_copy = models.TextField(blank=True)
+    pages_by_copy = models.IntegerField(default=0,blank=True)
 
     class Meta:
         unique_together = ('code','semester','year')
