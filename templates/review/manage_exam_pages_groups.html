@@ -5,11 +5,11 @@
 <form id="form-groups" method="POST">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
-    <button type="submit" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save groups</button>
-    <table class="table">
+    <button type="submit" name="submit-groups" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save groups</button>
+    <table class="table" style="max-width:500px">
       <thead>
         <tr>
-            {% for field in exam_pages_groups_formset.forms.0 %}
+            {% for field in exam_pages_groups_formset.initial_forms.0 %}
             {% if field.label != 'Id' %}
             <th scope="col">{{ field.label }}</th>
             {% endif %}
@@ -19,14 +19,28 @@
       <tbody id="group-tbody">
         {% for form in exam_pages_groups_formset.initial_forms %}
         <tr>
-            {% for field in form %}
-            <td>{{ field }}</td>
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% for field in form.visible_fields %}
+            {% if field.label == 'Delete' %}
+                <td style="text-align:center;padding-top:35px">{{ field }}</td>
+            {% else %}
+                <td>{{ field }}</td>
+            {% endif %}
             {% endfor %}
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
-            {% for field in exam_pages_groups_formset.empty_form %}
-            <td>{{ field }}</td>
+            {% for hidden in exam_pages_groups_formset.extra_forms.0.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% for field in exam_pages_groups_formset.extra_forms.0.visible_fields %}
+                {% if field.label == 'Delete' %}
+                <td style="text-align:center;padding-top:35px">{{ field }}</td>
+            {% else %}
+                <td>{{ field }}</td>
+            {% endif %}
             {% endfor %}
         </tr>
       </tbody>

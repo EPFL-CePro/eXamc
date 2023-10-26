@@ -14,14 +14,14 @@ import zipfile
 import os
 import json
 from PIL import Image
-
+from examreview_app.utils.epflldap import ldap_search
 import re
 import base64
 
 # TESTING
 # ------------------------------------------
 #def test_function(request):
-#    split_scans_by_copy('2022','1','PREPA-004')
+#    split_scans_by_copy('2023','1','PREPA-004')
 #    return render(request, 'home.html')
 
 # CLASSES
@@ -125,7 +125,10 @@ class ReviewSettingsView(DetailView):
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
-        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+        curr_tab = "groups"
+        if "curr_tab" != '' in context:
+            curr_tab = context.get("curr_tab")
+        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam),initial=[{'id':None,'group_name':'[New]','page_from':-1,'page_to':-1}])
         formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
 
         if user_allowed(exam,self.request.user.id):
@@ -134,6 +137,7 @@ class ReviewSettingsView(DetailView):
             context['exam'] = exam
             context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
+            context['curr_tab'] = curr_tab
             return context
         else:
             context['user_allowed'] = False
@@ -143,37 +147,96 @@ class ReviewSettingsView(DetailView):
 
     # Define method to handle POST request
     def post(self, *args, **kwargs):
+        self.object = self.get_object()
         exam = Exam.objects.get(pk=self.kwargs['pk'])
 
-        formset = ExamPagesGroupsFormSet(data=self.request.POST)
-
-        # Check if submitted forms are valid
-        if formset.is_valid():
-            #add, update or delete entries
+        if "submit-reviewers" in self.request.POST:
+            curr_tab = "reviewers"
+            formset = ExamReviewersFormSet(self.request.POST)
             for form in formset:
-                pagesGroup = form.save(commit=False)
-                pagesGroup.exam = exam
+                if form.cleaned_data and form.cleaned_data["user"]:
+                    examReviewer = form.save(commit=False)
+                    examReviewer.exam = exam
+                    if "pages_groups" in form.cleaned_data:
+                        examReviewer.pages_groups.set(form.cleaned_data["pages_groups"])
+                    if form.cleaned_data["DELETE"]:
+                        examReviewer.delete()
+                    else:
+                        examReviewer.save()
+                        form.save_m2m()
+        else:
+            curr_tab = "groups"
+            formset = ExamPagesGroupsFormSet(self.request.POST)
+            for form in formset:
+                if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
+                    pagesGroup = form.save(commit=False)
+                    pagesGroup.exam = exam
+                    print(form.cleaned_data)
+                    if form.cleaned_data["DELETE"]:
+                        pagesGroup.delete()
+                    else:
+                        pagesGroup.save()
 
-                if form in formset.deleted_forms:
-                    pagesGroup.delete()
-                else:
-                    pagesGroup.save()
+        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam),initial=[{'id':None,'group_name':'New'}])
+        formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
 
-        formset = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
-        self.object = self.get_object()
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
-            context['exam_pages_groups_formset'] = formset
+            context['exam_pages_groups_formset'] = formsetGroups
+            context['exam_reviewers_formset'] = formsetReviewers
+            context['curr_tab'] = curr_tab
         else:
             context['user_allowed'] = False
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
-            context['exam_pages_groups_formset'] = formset
             return context
         return self.render_to_response(context=context)
+
+
+@login_required
+def ldap_search_by_email(request):
+    email = request.POST['email']
+    user = ExamReviewer.objects.filter(user__email=email,exam__id=request.POST['pk']).all()
+    if user:
+        return HttpResponse("exist")
+
+    user_entry = ldap_search.get_entry(email,'mail')
+    entry_str = user_entry['uniqueidentifier'][0]+ ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][0] + ";" + email
+
+
+    return HttpResponse(entry_str)
+
+
+@login_required
+def add_new_reviewers(request):
+    exam = Exam.objects.get(pk=request.POST.get('pk'))
+    reviewers = request.POST.getlist('reviewer_list[]')
+    for reviewer in reviewers:
+        user_list = reviewer.split(";")
+        users = User.objects.filter(email=user_list[3]).all()
+        if users:
+            user = users.first()
+        else:
+            user = User()
+
+        user.username = user_list[0]
+        user.first_name = user_list[1]
+        user.last_name = user_list[2]
+        user.email = user_list[3]
+        user.save()
+
+        examReviewer = ExamReviewer()
+        examReviewer.user = user
+        examReviewer.exam = exam
+        examReviewer.save()
+        examReviewer.pages_groups.set(exam.examPagesGroup.all())
+        examReviewer.save()
+        print(examReviewer)
+
+    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk),'curr_tab': "reviewers"}))
 
 
 @login_required

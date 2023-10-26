@@ -1,29 +1,8 @@
-{% extends 'base.html' %}
-{% load static %}
-{% load custom_tags %}
-
-{% block extra_head %}
-<script src="https://unpkg.com/markerjs-live/markerjs-live.js"></script>
-<script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
-
-<script type="text/javascript" src="{% static 'tmp/comments-data.js' %}"></script>
-<script type="text/javascript"
-        src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
-<script type="text/javascript" src="{% static 'js/jquery-comments.js' %}"></script>
-
-<link rel="stylesheet" type="text/css" href="{% static 'css/jquery-comments.css' %}">
-
-{% endblock %}
-
-{% block title %}Review {{ pages_group }}{% endblock %}
-
-{% block scripts %}
-
 let sourceImage, markedImage, targetRoot, maState;
 let group_pathes = JSON.parse('{{json_group_scans_pathes|safe }}');
 
 function createPagination(pages, page) {
-    let str = ''//'<ul class="list-group list-group-horizontal">';
+let str = ''//'<ul class="list-group list-group-horizontal">';
 
     setSourceScan(group_pathes[page-1]["path"], "");
 
@@ -248,57 +227,56 @@ $(function() {
     });
 
     return data;
-    }
+}
 
-    $('#comments-container').comments({
-        profilePictureURL: 'https://viima-app.s3.amazonaws.com/media/public/defaults/user-icon.png',
-        currentUserId: 1,
-        roundProfilePictures: true,
-        textareaRows: 1,
-        enableAttachments: true,
-        enableHashtags: true,
-        enablePinging: true,
-        scrollContainer: $(window),
-        searchUsers: function(term, success, error) {
-            setTimeout(function() {
-                success(usersArray.filter(function(user) {
-                    var containsSearchTerm = user.fullname.toLowerCase().indexOf(term.toLowerCase()) != -1;
-                    var isNotSelf = user.id != 1;
-                    return containsSearchTerm && isNotSelf;
-                }));
-            }, 500);
-        },
-        getComments: function(success, error) {
-            setTimeout(function() {
-                success(commentsArray);
-            }, 500);
-        },
-        postComment: function(data, success, error) {
-            setTimeout(function() {
-                success(saveComment(data));
-            }, 500);
-        },
-        putComment: function(data, success, error) {
-            setTimeout(function() {
-                success(saveComment(data));
-            }, 500);
-        },
-        deleteComment: function(data, success, error) {
-            setTimeout(function() {
-                success();
-            }, 500);
-        },
-        upvoteComment: function(data, success, error) {
-            setTimeout(function() {
-                success(data);
-            }, 500);
-        },
-        validateAttachments: function(attachments, callback) {
-            setTimeout(function() {
-                callback(attachments);
-            }, 500);
-        },
-    });
+$('#comments-container').comments({
+    profilePictureURL: 'https://viima-app.s3.amazonaws.com/media/public/defaults/user-icon.png',
+    currentUserId: 1,
+    roundProfilePictures: true,
+    textareaRows: 1,
+    enableAttachments: true,
+    enableHashtags: true,
+    enablePinging: true,
+    scrollContainer: $(window),
+    searchUsers: function(term, success, error) {
+        setTimeout(function() {
+            success(usersArray.filter(function(user) {
+                var containsSearchTerm = user.fullname.toLowerCase().indexOf(term.toLowerCase()) != -1;
+                var isNotSelf = user.id != 1;
+                return containsSearchTerm && isNotSelf;
+            }));
+        }, 500);
+    },
+    getComments: function(success, error) {
+        setTimeout(function() {
+            success(commentsArray);
+        }, 500);
+    },
+    postComment: function(data, success, error) {
+        setTimeout(function() {
+            success(saveComment(data));
+        }, 500);
+    },
+    putComment: function(data, success, error) {
+        setTimeout(function() {
+            success(saveComment(data));
+        }, 500);
+    },
+    deleteComment: function(data, success, error) {
+        setTimeout(function() {
+            success();
+        }, 500);
+    },
+    upvoteComment: function(data, success, error) {
+        setTimeout(function() {
+            success(data);
+        }, 500);
+    },
+    validateAttachments: function(attachments, callback) {
+        setTimeout(function() {
+            callback(attachments);
+        }, 500);
+    },
 });
 
 
@@ -319,63 +297,3 @@ $(window).on("load",function(){
     sideb.style.display = "none";
 
 });
-
-{% endblock %}
-
-{% block content %}
-<h3>Review {{ pages_group.group_name }}<a style="margin-left:150px;" href="{% url 'reviewView' exam.pk %}"
-                                          class="btn btn-outline-info btn-sm">Back to Summary</a></h3>
-<div class="d-flex">
-    <div id="pages_group_list" style="height:100vh;background-color:#f1f1f1;">
-        <table class="table table-striped table-sm" id="table-copies-pages">
-            <thead>
-            <tr>
-                <th>id</th>
-                <th>Copy</th>
-                <th>Page</th>
-                <th>Annotated</th>
-                <th><i class="fas fa-solid fa-comment-dots "></i></th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for page in scans_pathes_list %}
-            <tr id="copy_{{page.copy_no}}_{{page.page_no}}">
-                <td>{{ forloop.counter }}</td>
-                <td>{{ page.copy_no }}</td>
-                <td>{{ page.page_no }}</td>
-                <td>{% if page.marked %}<i class="fas fa-circle"
-                                           style="font-size:18px;color:green;padding-left:25px;">{% endif %}</td>
-                <td>
-                    <a data-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false"
-                       aria-controls="collapseExample">
-                        <i class="fas fa-angle-double-down fa-rotate-270 fa-lg" {% if page.comment %}
-                           style="font-size:18px;color: #f0a53d;" {% else %}
-                           style="font-size:18px;color: lightgrey;" {% endif %}></i>
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="list-group" style="column;height:100vh;max-width: 1200px;min-width:600px;margin-left:5px">
-        <div id="pagination" class="list-group list-group-horizontal"></div>
-        <div id="markerjs_div" style="height:87%;overflow-y: scroll;border:1px solid lightgrey;">
-            <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
-                <img id="source_img" style="max-width:100%;min-width: 600px"/>
-                <img id="marked_img" style="max-width:100%;min-width: 600px; position: absolute;"/>
-            </div>
-        </div>
-    </div>
-    <div style="margin-left:5px;background-color:#f1f1f1;">
-        <p style="padding:20px 0px 0px 20px" class="table th">
-            <i class="fas fa-comments fa-lg"></i>
-            DISCUSSION
-            <hr>
-        </p>
-
-        <div id="comments-container"></div>
-    </div>
-</div>
-
-{% endblock %}

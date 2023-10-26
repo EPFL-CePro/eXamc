@@ -10,21 +10,21 @@
 
 {% block content %}
 <h3>Review Settings</h3>
-
+{{ curr_tab }}
 <ul class="nav nav-pills flex-column flex-sm-row border" id="review-settings-pills-tab" role="tablist">
   <li class="nav-item" role="presentation">
-    <a class="flex-sm-fill text-sm-center nav-link active" id="pages-groups-tab" data-toggle="pill" href="#pills-pages-groups" role="tab" aria-controls="pills-pages-groups" aria-selected="true">Pages groups</a>
+    <a class="flex-sm-fill text-sm-center nav-link {% if curr_tab == 'groups' %}active{% endif %}" id="pages-groups-tab" data-toggle="pill" href="#pills-pages-groups" role="tab" aria-controls="pills-pages-groups" aria-selected="{% if curr_tab == 'groups' %}true{% else %}false{% endif %}">Pages groups</a>
   </li>
   <li class="nav-item" role="presentation">
-    <a class="flex-sm-fill text-sm-center nav-link" id="reviewers-tab" data-toggle="pill" href="#pills-reviewers" role="tab" aria-controls="pills-reviewers" aria-selected="false">Reviewers</a>
+    <a class="flex-sm-fill text-sm-center nav-link {% if curr_tab == 'reviewers' %}active{% endif %}" id="reviewers-tab" data-toggle="pill" href="#pills-reviewers" role="tab" aria-controls="pills-reviewers" aria-selected="{% if curr_tab == 'reviewers' %}true{% else %}false{% endif %}">Reviewers</a>
   </li>
 </ul>
 
 <div class="tab-content" id="pills-tabContent">
-  <div class="tab-pane fade show active" id="pills-pages-groups" role="tabpanel" aria-labelledby="pills-pages-groups-tab">
+  <div class="tab-pane fade show {% if curr_tab == 'groups' %}active{% endif %}" id="pills-pages-groups" role="tabpanel" aria-labelledby="pills-pages-groups-tab">
     {% include "./manage_exam_pages_groups.html" %}
   </div>
-  <div class="tab-pane fade show active" id="pills-reviewers" role="tabpanel" aria-labelledby="pills-reviewers-tab">
+  <div class="tab-pane fade show {% if curr_tab == 'reviewers' %}active{% endif %}" id="pills-reviewers" role="tabpanel" aria-labelledby="pills-reviewers-tab">
     {% include "./manage_exam_reviewers.html" %}
   </div>
 </div>

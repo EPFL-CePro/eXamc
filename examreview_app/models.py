@@ -8,6 +8,7 @@ from django.db.models import Count
 
 logger = logging.getLogger(__name__)
 
+User.__str__ = lambda user_instance: user_instance.first_name + " " + user_instance.last_name
 class Exam(models.Model):
     code = models.CharField(max_length=50)
     name = models.CharField(max_length=100)
@@ -64,12 +65,15 @@ class ExamPagesGroup(models.Model):
     page_to = models.IntegerField(default=0)
 
     def __str__(self):
-        return self.exam.code + " - " + self.group_name + " " + str(self.page_from) + "..." + str(self.page_to)
+        return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
 
 class ExamReviewer(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='examReviewers')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examReviewers')
-    pages_groups = models.ManyToManyField(ExamPagesGroup)
+    pages_groups = models.ManyToManyField(ExamPagesGroup, blank=True)
+
+    def __str__(self):
+        return self.exam.code + " - " + self.user.username
 
 class ScanMarkers(models.Model):
     copie_no = models.CharField(max_length=10,default='0')

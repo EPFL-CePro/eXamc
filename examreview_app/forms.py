@@ -18,25 +18,34 @@ class ManageExamPagesGroupsForm(forms.ModelForm):
         # you can iterate all fields here
         for fname, f in self.fields.items():
             f.widget.attrs['class'] = 'form-control'
+            if fname == 'group_name':
+                f.widget.attrs['style'] = 'width:300px;'
+            else:
+                f.widget.attrs['style'] = 'width:100px;'
+
+
 
 ExamPagesGroupsFormSet = modelformset_factory(
-    ExamPagesGroup, form=ManageExamPagesGroupsForm, can_delete=True
+    ExamPagesGroup, form=ManageExamPagesGroupsForm, can_delete=True, extra=1
 )
 
 class ManageExamReviewersForm(forms.ModelForm):
+
     class Meta:
         model = ExamReviewer
         fields = ['user','pages_groups']
 
     def __init__(self, *args, **kwargs):
         super(ManageExamReviewersForm, self).__init__(*args, **kwargs)
-        print('test')
         # you can iterate all fields here
         for fname, f in self.fields.items():
+            f.widget.attrs['style'] = 'width:300px;'
             f.widget.attrs['class'] = 'form-control'
+            if fname == 'user':
+                f.disabled = True
 
 ExamReviewersFormSet = modelformset_factory(
-    ExamReviewer, form=ManageExamReviewersForm, extra=0, can_delete=True
+    ExamReviewer, form=ManageExamReviewersForm, can_delete=True
 )
 
 class ExportMarkedFilesForm(forms.Form):
