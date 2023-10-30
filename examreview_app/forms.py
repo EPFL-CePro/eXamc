@@ -26,7 +26,7 @@ class ManageExamPagesGroupsForm(forms.ModelForm):
 
 
 ExamPagesGroupsFormSet = modelformset_factory(
-    ExamPagesGroup, form=ManageExamPagesGroupsForm, can_delete=True, extra=1
+    ExamPagesGroup, form=ManageExamPagesGroupsForm, can_delete=True, extra=0
 )
 
 class ManageExamReviewersForm(forms.ModelForm):
@@ -45,7 +45,7 @@ class ManageExamReviewersForm(forms.ModelForm):
                 f.disabled = True
 
 ExamReviewersFormSet = modelformset_factory(
-    ExamReviewer, form=ManageExamReviewersForm, can_delete=True
+    ExamReviewer, form=ManageExamReviewersForm, can_delete=True, extra=0
 )
 
 class ExportMarkedFilesForm(forms.Form):

@@ -38,6 +38,7 @@ urlpatterns = [
     path('testing', views.testing, name="testing"),
     path('search_ldap', views.ldap_search_by_email, name="search_ldap"),
     path('add_new_reviewers', views.add_new_reviewers, name="add_new_reviewers"),
+    path('add_new_pages_group/<int:pk>',views.add_new_pages_group, name="add_new_pages_group"),
     #path('manageExamPagesGroups/<int:pk>',login_required(views.ManageExamPagesGroupsView.as_view()), name="manageExamPagesGroups"),
     #path('test_function>', views.test_function, name="test_function")
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)

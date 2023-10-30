@@ -168,7 +168,7 @@ class ReviewSettingsView(DetailView):
             curr_tab = "groups"
             formset = ExamPagesGroupsFormSet(self.request.POST)
             for form in formset:
-                if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
+                if form.cleaned_data and form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
                     pagesGroup = form.save(commit=False)
                     pagesGroup.exam = exam
                     print(form.cleaned_data)
@@ -177,7 +177,7 @@ class ReviewSettingsView(DetailView):
                     else:
                         pagesGroup.save()
 
-        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam),initial=[{'id':None,'group_name':'New'}])
+        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))#,initial=[{'id':None,'group_name':'New'}])
         formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
@@ -195,6 +195,18 @@ class ReviewSettingsView(DetailView):
             return context
         return self.render_to_response(context=context)
 
+
+@login_required
+def add_new_pages_group(request, pk):
+    exam = Exam.objects.get(pk=pk)
+    new_group = ExamPagesGroup()
+    new_group.exam = exam
+    new_group.group_name = '[NEW]'
+    new_group.page_from = -1
+    new_group.page_to = -1
+    new_group.save()
+
+    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups"}))
 
 @login_required
 def ldap_search_by_email(request):
@@ -387,17 +399,6 @@ def get_common_list(exam):
         common_list.extend(commons)
         common_list.sort(key=operator.attrgetter('code'))
     return common_list
-
-@login_required
-def add_new_pages_group(request,pk):
-    exam = Exam.objects.get(pk=pk)
-    newPG = ExamPagesGroup()
-    newPG.exam = exam
-    newPG.group_name = 'NEW'
-    newPG.page_from = 0
-    newPG.page_to = 0
-    newPG.save()
-    return HttpResponse(1)
 
 @login_required
 def saveMarkers(request):
