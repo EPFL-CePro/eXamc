@@ -1,5 +1,7 @@
+import datetime
 import operator
 
+from django.core.serializers import serialize
 from django.shortcuts import render, redirect
 from examreview_app.utils.functions import *
 from .forms import *
@@ -427,15 +429,42 @@ def saveMarkers(request):
     return HttpResponseRedirect( reverse('reviewGroup', kwargs={'pk':request.POST['reviewGroup_pk'],'currpage':scan_markers.page_no}))
 
 @login_required
-def getMarkers(request):
+def getMarkersAndComments(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    data_dict = {}
     try:
         scan_markers = ScanMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], filename=request.POST['filename'],exam=exam)
-        json_string = scan_markers.markers
+        #json_string = scan_markers.markers
+        data_dict["markers"]=scan_markers.markers
     except ScanMarkers.DoesNotExist:
         json_string = None;
 
-    if(json_string):
-        return HttpResponse(json_string)
+    # comments
+    comments = ExamPagesGroupComment.objects.filter(pages_group=request.POST['group_id'], copy_no=request.POST['copy_no']).all()
+    data_dict["comments"] = [comment.serialize() for comment in comments]
+
+    return HttpResponse(json.dumps(data_dict))
+
+@login_required
+def saveComment(request):
+    comment_data = json.loads(request.POST['comment'])
+    if not comment_data['id'].startswith('c') :
+        comment = ExamPagesGroupComment.objects.get(pk=comment_data['id'])
+        comment.content = comment_data['content']
+        comment.modified = datetime.datetime.now()
+        comment.save()
     else:
-        return HttpResponse(None)
+        comment = ExamPagesGroupComment()
+        comment.is_new=True
+        comment.content = comment_data['content']
+        comment.created = datetime.datetime.now()
+        comment.user_id = request.user.id
+        comment.pages_group_id = request.POST['group_id']
+        comment.copy_no = request.POST['copy_no']
+        comment.parent_id = int(comment_data['parent'])
+        comment.save()
+
+
+    print(comment)
+
+    return HttpResponse("")

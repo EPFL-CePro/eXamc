@@ -154,7 +154,7 @@
                 // Functionalities
                 enableReplying: true,
                 enableEditing: true,
-                enableUpvoting: true,
+                enableUpvoting: false,
                 enableDeleting: true,
                 enableAttachments: false,
                 enableHashtags: false,

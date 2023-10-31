@@ -71,6 +71,7 @@ function createPagination(pages, page) {
     // Return the pagination string to be outputted in the pug templates
     document.getElementById("pagination").innerHTML = str;
     setMarkerArea();
+    getComments();
     return str;
 }
 
@@ -94,6 +95,9 @@ function setSourceScan(scan_path){
         document.getElementById(lastSourceElementId).style.backgroundColor = "";
     }
     document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
+}
+
+function getComments(){
 }
 
 function setMarkerArea(){
@@ -130,6 +134,7 @@ function setMarkerArea(){
     });
 
 
+
     // Event Listeners for create/delete and change
     markerArea.addEventListener("markercreate", (event) => {
         imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
@@ -163,7 +168,7 @@ function setMarkerArea(){
     copy_no = currSourceIdSplit[1];
     page_no = currSourceIdSplit[2];
 
-    maState = getMarkers("{{ exam.pk }}",copy_no,page_no,sourceImage.getAttribute("src"));
+    maState = getMarkersAndComments("{{ exam.pk }}",copy_no,page_no,sourceImage.getAttribute("src"));
     markerArea.show();
     if(maState && maState!="None"){
         markerArea.restoreState(maState);
@@ -211,10 +216,10 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,comm
     });
 }
 
-function getMarkers(pk,copy_no,page_no,filename){
+function getMarkersAndComments(pk,copy_no,page_no,filename){
     var markers;
     $.ajax({
-        url: "{% url 'get_markers' %}",
+        url: "{% url 'get_markers_and_comments' %}",
         async : false,
         type: "POST",
         data : {
@@ -222,12 +227,16 @@ function getMarkers(pk,copy_no,page_no,filename){
             'exam_pk' : pk,
             'copy_no' : copy_no,
             'page_no' : ""+page_no,
-            'filename' : filename
+            'filename' : filename,
+            'group_id' : {{ pages_group.id }}
         },
         success: (data) => {
             markers="None";
             if(data!="None"){
-                markers=JSON.parse(data);
+                data_full = JSON.parse(data);
+                markers=data_full.markers;
+                comments=data_full.comments;
+                initComments(comments);
             }
         },
         error: (error) => {
@@ -237,27 +246,32 @@ function getMarkers(pk,copy_no,page_no,filename){
     return markers;
 }
 
-$(function() {
-    var saveComment = function(data) {
-
-    // Convert pings to human readable format
-    $(Object.keys(data.pings)).each(function(index, userId) {
-        var fullname = data.pings[userId];
-        var pingText = '@' + fullname;
-        data.content = data.content.replace(new RegExp('@' + userId, 'g'), pingText);
+function saveComment(data){
+    copy_no = currSourceIdSplit[1];
+    $.ajax({
+        url : "{% url 'save_comment' %}",
+        async : false,
+        type : "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'comment' : JSON.stringify(data),
+            'group_id' : {{ pages_group.id }},
+            'copy_no' : copy_no
+        }
     });
+}
 
-    return data;
-    }
-
+function initComments(commentsArray){
     $('#comments-container').comments({
         profilePictureURL: 'https://viima-app.s3.amazonaws.com/media/public/defaults/user-icon.png',
         currentUserId: 1,
         roundProfilePictures: true,
         textareaRows: 1,
-        enableAttachments: true,
-        enableHashtags: true,
-        enablePinging: true,
+        enableAttachments: false,
+        enableHashtags: false,
+        enableUpvoting: false,
+        enableEditing: true,
+        enableDeleting: true,
         scrollContainer: $(window),
         searchUsers: function(term, success, error) {
             setTimeout(function() {
@@ -283,23 +297,8 @@ $(function() {
                 success(saveComment(data));
             }, 500);
         },
-        deleteComment: function(data, success, error) {
-            setTimeout(function() {
-                success();
-            }, 500);
-        },
-        upvoteComment: function(data, success, error) {
-            setTimeout(function() {
-                success(data);
-            }, 500);
-        },
-        validateAttachments: function(attachments, callback) {
-            setTimeout(function() {
-                callback(attachments);
-            }, 500);
-        },
     });
-});
+};
 
 
 $(window).on("load",function(){
@@ -344,7 +343,7 @@ $(window).on("load",function(){
                 <td>{{ page.copy_no }}</td>
                 <td>{{ page.page_no }}</td>
                 <td>{% if page.marked %}<i class="fas fa-circle"
-                                           style="font-size:18px;color:green;padding-left:25px;">{% endif %}</td>
+                                           style="font-size:18px;color:green;padding-left:25px;">{% endif %}</i></td>
                 <td>
                     <a data-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false"
                        aria-controls="collapseExample">
@@ -367,7 +366,7 @@ $(window).on("load",function(){
             </div>
         </div>
     </div>
-    <div style="margin-left:5px;background-color:#f1f1f1;">
+    <div style="margin-left:5px;background-color:#f1f1f1;width:25%;">
         <p style="padding:20px 0px 0px 20px" class="table th">
             <i class="fas fa-comments fa-lg"></i>
             DISCUSSION

@@ -75,6 +75,33 @@ class ExamReviewer(models.Model):
     def __str__(self):
         return self.exam.code + " - " + self.user.username
 
+
+class ExamPagesGroupComment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examPagesGroupComments')
+    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments')
+    copy_no = models.CharField(max_length=10,default='0')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, related_name='childrenComments', blank=True)
+    created = models.DateTimeField(auto_now_add=True, blank=True)
+    modified = models.DateTimeField(blank=True)
+    content = models.TextField()
+    is_new = models.BooleanField()
+
+    def serialize(self):
+        modified_str = ""
+        if self.modified:
+            modified_str = self.modified.strftime("%Y-%m-%d %H:%M:%S")
+        return {
+            "id": self.pk,
+            "parent": self.parent_id,
+            "created": self.created.strftime("%Y-%m-%d %H:%M:%S"),
+            "modified": modified_str,
+            "content": self.content,
+            "creator": self.user_id,
+            "fullname": self.user.first_name+" "+self.user.last_name,
+            "is_new": self.is_new
+        }
+
+
 class ScanMarkers(models.Model):
     copie_no = models.CharField(max_length=10,default='0')
     page_no = models.CharField(max_length=10,default='0')
