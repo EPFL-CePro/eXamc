@@ -461,7 +461,8 @@ def saveComment(request):
         comment.user_id = request.user.id
         comment.pages_group_id = request.POST['group_id']
         comment.copy_no = request.POST['copy_no']
-        comment.parent_id = int(comment_data['parent'])
+        if comment_data['parent']:
+            comment.parent_id = int(comment_data['parent'])
         comment.save()
 
 

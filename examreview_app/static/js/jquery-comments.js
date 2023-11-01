@@ -1347,12 +1347,12 @@
 
         createProfilePictureElement: function(src, userId) {
             if(src) {
-              var profilePicture = $('<div/>').css({
-                  'background-image': 'url(' + src + ')'
+              var profilePicture = $('<i/>', {
+                    'class': src
                 });
             } else {
                 var profilePicture = $('<i/>', {
-                    'class': 'fa fa-user'
+                    'class': 'far fa-user-circle'
                 });
             }
             profilePicture.addClass('profile-picture');

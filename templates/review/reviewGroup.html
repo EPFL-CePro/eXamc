@@ -6,7 +6,6 @@
 <script src="https://unpkg.com/markerjs-live/markerjs-live.js"></script>
 <script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
 
-<script type="text/javascript" src="{% static 'tmp/comments-data.js' %}"></script>
 <script type="text/javascript"
         src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
 <script type="text/javascript" src="{% static 'js/jquery-comments.js' %}"></script>
@@ -248,6 +247,14 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
 
 function saveComment(data){
     copy_no = currSourceIdSplit[1];
+
+    // Convert pings to human readable format
+    $(Object.keys(data.pings)).each(function(index, userId) {
+        var fullname = data.pings[userId];
+        var pingText = '@' + fullname;
+        data.content = data.content.replace(new RegExp('@' + userId, 'g'), pingText);
+    });
+
     $.ajax({
         url : "{% url 'save_comment' %}",
         async : false,
@@ -259,11 +266,13 @@ function saveComment(data){
             'copy_no' : copy_no
         }
     });
+
+    return data;
 }
 
 function initComments(commentsArray){
     $('#comments-container').comments({
-        profilePictureURL: 'https://viima-app.s3.amazonaws.com/media/public/defaults/user-icon.png',
+        profilePictureURL: 'fa fa-user-circle fa-sm',
         currentUserId: 1,
         roundProfilePictures: true,
         textareaRows: 1,
@@ -317,7 +326,10 @@ $(window).on("load",function(){
     topb.style.display = "none";
     sideb.style.display = "none";
 
+
+
 });
+
 
 {% endblock %}
 
@@ -366,15 +378,45 @@ $(window).on("load",function(){
             </div>
         </div>
     </div>
-    <div style="margin-left:5px;background-color:#f1f1f1;width:25%;">
-        <p style="padding:20px 0px 0px 20px" class="table th">
-            <i class="fas fa-comments fa-lg"></i>
-            DISCUSSION
+    <div>
+        <div style="background-color:#f1f1f1;float:right;padding:10px;">
+          <a id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
+            <span id="collapse-icon" class="fa fa-2x mr-3 fa-angle-double-right"></span>
+              <br/>
+              <i id="comment-icon" class="fas fa-comments fa-lg"></i>
+          </a>
+        </div>
+        <div id="comments-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;padding:10px;">
+            <div>
+                <p class="table th">
+                    <i class="fas fa-comments fa-lg"></i>
+                    DISCUSSION
+                </p>
+            </div>
             <hr>
-        </p>
-
-        <div id="comments-container"></div>
+            <div id="comments-container" style="padding:5px;"></div>
+        </div>
     </div>
+
 </div>
+
+<script>
+
+document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
+        var commentIcon = $( "#comment-icon" );
+        var collapseIcon = $( "#collapse-icon" );
+        if(collapseIcon.hasClass('fa-angle-double-right')){
+            collapseIcon.removeClass('fa-angle-double-right');
+            collapseIcon.addClass('fa-angle-double-left');
+            commentIcon.hide();
+        }else{
+            collapseIcon.removeClass('fa-angle-double-left');
+            collapseIcon.addClass('fa-angle-double-right');
+            commentIcon.show();
+        }
+
+    });
+
+</script>
 
 {% endblock %}

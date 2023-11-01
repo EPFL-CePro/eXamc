@@ -133,17 +133,17 @@ http://viima.github.io/jquery-comments/*/
 
 .jquery-comments .profile-picture {
 	float: left;
-	width: 3.6rem;
-	height: 3.6rem;
-	max-width: 50px;
-	max-height: 50px;
+	width: 2rem;
+	height: 2rem;
+	max-width: 30px;
+	max-height: 30px;
 	background-size: cover;
 	background-repeat: no-repeat;
 	background-position: center center;
 }
 
 .jquery-comments i.profile-picture {
-	font-size: 3.4em;
+	font-size: 2em;
 	text-align: center;
 }
 
