@@ -233,7 +233,7 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
             markers="None";
             if(data!="None"){
                 data_full = JSON.parse(data);
-                markers=data_full.markers;
+                markers=JSON.parse(data_full.markers);
                 comments=data_full.comments;
                 initComments(comments);
             }
@@ -286,7 +286,7 @@ function initComments(commentsArray){
             setTimeout(function() {
                 success(usersArray.filter(function(user) {
                     var containsSearchTerm = user.fullname.toLowerCase().indexOf(term.toLowerCase()) != -1;
-                    var isNotSelf = user.id != 1;
+                    var isNotSelf = user.id != {{ user.id }};
                     return containsSearchTerm && isNotSelf;
                 }));
             }, 500);
@@ -378,44 +378,108 @@ $(window).on("load",function(){
             </div>
         </div>
     </div>
-    <div>
-        <div style="background-color:#f1f1f1;float:right;padding:10px;">
-          <a id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
-            <span id="collapse-icon" class="fa fa-2x mr-3 fa-angle-double-right"></span>
-              <br/>
-              <i id="comment-icon" class="fas fa-comments fa-lg"></i>
-          </a>
-        </div>
-        <div id="comments-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;padding:10px;">
-            <div>
-                <p class="table th">
-                    <i class="fas fa-comments fa-lg"></i>
-                    DISCUSSION
-                </p>
+    <div style="background-color:#f1f1f1;padding:20px;">
+        <div class="row">
+            <div style="float:right;">
+                <a title="Discussion" id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
+                    <i id="comment-icon" class="fas fa-comments fa-lg"></i>
+                    <i id="collapse-d-icon" class="fa fa-2x mr-3"></i>
+                </a>
+                <div id="comments-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
+                    <div>
+                        <p class="table th">
+                            <i class="fas fa-comments fa-lg"></i>
+                            DISCUSSION
+                        </p>
+                    </div>
+                    <hr>
+                    <div id="comments-container" style="padding:5px;"></div>
+                </div>
             </div>
-            <hr>
-            <div id="comments-container" style="padding:5px;"></div>
+        </div>
+        <hr>
+        <div class="row">
+            <div style="float:right">
+                <a title="Grading help" id="expandCollapseGradingHelpBt" type="button" data-bs-toggle="collapse" data-bs-target="#grading-help-div" aria-expanded="false" aria-controls="grading-help-div">
+                    <i id="grading-help-icon" class="fas fa-question-circle fa-lg"></i>
+                    <i id="collapse-gh-icon" class="fa fa-2x mr-3"></i>
+                </a>
+                <div id="grading-help-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
+                    <div>
+                        <p class="table th">
+                            <i class="fas fa-question-circle fa-lg"></i>
+                            GRADING HELP
+                        </p>
+                    </div>
+                    <hr>
+                    <div id="grading-help-container" style="padding:5px;"><textarea id="grading-help_textarea"></textarea></div>
+                </div>
+            </div>
+
         </div>
     </div>
 
 </div>
 
 <script>
+tinymce.init({
+    selector: 'textarea#grading-help_textarea',
+    skin: 'bootstrap',
+    plugins: '',
+    toolbar: '',
+    menubar: false,
+    readonly: 1,
+    height: "750",
+});
+
+
 
 document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
-        var commentIcon = $( "#comment-icon" );
-        var collapseIcon = $( "#collapse-icon" );
-        if(collapseIcon.hasClass('fa-angle-double-right')){
-            collapseIcon.removeClass('fa-angle-double-right');
-            collapseIcon.addClass('fa-angle-double-left');
-            commentIcon.hide();
-        }else{
-            collapseIcon.removeClass('fa-angle-double-left');
-            collapseIcon.addClass('fa-angle-double-right');
-            commentIcon.show();
-        }
+    var commentIcon = $( "#comment-icon" );
+    var collapseIcon = $( "#collapse-d-icon" );
+    if(collapseIcon.hasClass('fa-angle-double-left')){
+        collapseIcon.removeClass('fa-angle-double-left');
+        commentIcon.show();
+    }else{
+        collapseIcon.addClass('fa-angle-double-left');
+        commentIcon.hide();
+    }
 
-    });
+});
+
+document.getElementById("expandCollapseGradingHelpBt").addEventListener("click", function(event) {
+    var gradingHelpIcon = $( "#grading-help-icon" );
+    var collapseIcon = $( "#collapse-gh-icon" );
+    if(collapseIcon.hasClass('fa-angle-double-left')){
+        collapseIcon.removeClass('fa-angle-double-left');
+        gradingHelpIcon.show();
+    }else{
+        collapseIcon.addClass('fa-angle-double-left');
+        gradingHelpIcon.hide();
+
+
+        $.ajax({
+            url: "{% url 'get_pages_group_grading_help' %}",
+            async : false,
+            type: "POST",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'pk' : {{ pages_group.id }},
+            },
+            success: (data) => {
+                tinymce.get("grading-help_textarea").setContent(data);
+                tinymce.activeEditor.mode.set("readonly");
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+
+
+
+    }
+
+});
 
 </script>
 

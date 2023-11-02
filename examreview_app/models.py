@@ -63,6 +63,7 @@ class ExamPagesGroup(models.Model):
     group_name = models.CharField(max_length=20,default='0')
     page_from = models.IntegerField(default=0)
     page_to = models.IntegerField(default=0)
+    grading_help = models.TextField(default='')
 
     def __str__(self):
         return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
@@ -80,16 +81,19 @@ class ExamPagesGroupComment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examPagesGroupComments')
     pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments')
     copy_no = models.CharField(max_length=10,default='0')
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, related_name='childrenComments', blank=True)
+    parent = models.ForeignKey('self',on_delete=models.CASCADE,  blank=True)
     created = models.DateTimeField(auto_now_add=True, blank=True)
     modified = models.DateTimeField(blank=True)
     content = models.TextField()
     is_new = models.BooleanField()
 
-    def serialize(self):
+    def serialize(self, curr_user_id):
         modified_str = ""
         if self.modified:
             modified_str = self.modified.strftime("%Y-%m-%d %H:%M:%S")
+        profile_picture = 'far fa-user-circle fa-sm'
+        if self.user_id == curr_user_id:
+            profile_picture = 'fa fa-user-circle fa-sm'
         return {
             "id": self.pk,
             "parent": self.parent_id,
@@ -98,7 +102,8 @@ class ExamPagesGroupComment(models.Model):
             "content": self.content,
             "creator": self.user_id,
             "fullname": self.user.first_name+" "+self.user.last_name,
-            "is_new": self.is_new
+            "is_new": self.is_new,
+            "profile_picture_url": profile_picture
         }
 
 

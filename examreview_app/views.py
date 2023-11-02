@@ -211,6 +211,19 @@ def add_new_pages_group(request, pk):
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups"}))
 
 @login_required
+def edit_pages_group_grading_help(request):
+    pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
+    pages_group.grading_help = request.POST['grading_help']
+    pages_group.save()
+
+    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
+
+@login_required
+def get_pages_group_grading_help(request):
+    pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
+    return HttpResponse(pages_group.grading_help)
+
+@login_required
 def ldap_search_by_email(request):
     email = request.POST['email']
     user = ExamReviewer.objects.filter(user__email=email,exam__id=request.POST['pk']).all()
@@ -441,7 +454,7 @@ def getMarkersAndComments(request):
 
     # comments
     comments = ExamPagesGroupComment.objects.filter(pages_group=request.POST['group_id'], copy_no=request.POST['copy_no']).all()
-    data_dict["comments"] = [comment.serialize() for comment in comments]
+    data_dict["comments"] = [comment.serialize(request.user.id) for comment in comments]
 
     return HttpResponse(json.dumps(data_dict))
 

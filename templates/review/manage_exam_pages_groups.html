@@ -2,6 +2,8 @@
 <h6>PAGES GROUPS</h6>
 {% load crispy_forms_tags %}
 
+{% load custom_tags %}
+
 <form id="form-groups" method="POST">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
@@ -14,6 +16,7 @@
             <th scope="col">{{ field.label }}</th>
             {% endif %}
             {% endfor %}
+            <th scope="col"></th>
         </tr>
       </thead>
       <tbody id="group-tbody">
@@ -29,6 +32,7 @@
                 <td>{{ field }}</td>
             {% endif %}
             {% endfor %}
+            <td><a id="grading-help-bt" class="btn btn-outline-info btn-sm" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )">Grading Help</a></td>
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
@@ -48,32 +52,85 @@
     <a id="add-form" style="margin-top:20px;" class="btn btn-outline-info btn-sm" href="{% url 'add_new_pages_group' exam.pk %}">Add Another Group</a>
 </form>
 
+<div id="grading-help-modal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span hidden id="grading-help-group-id"></span>
+        <h5 class="modal-title">Grading Help</h5>
+        <button type="button" class="close" onclick="cancelGradingHelp();">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+            <textarea id="grading-help"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a type="button" class="btn btn-primary" onclick="saveGradingHelp();">Save changes</a>
+        <button type="button" class="btn btn-secondary" onclick="cancelGradingHelp();">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="text/javascript">
-<!--  groupForm = document.querySelectorAll("#group-form");-->
-<!--  container = document.querySelector("#group-tbody");-->
-<!--  addButton = document.querySelector("#add-form");-->
-<!--  totalForms = document.querySelector("#id_form-TOTAL_FORMS");-->
-<!--&lt;!&ndash;  emptyForm = document.querySelector(".exam_pages_groups_formset_empty_form");&ndash;&gt;-->
+tinymce.init({
+    selector: 'textarea#grading-help',
+    skin: 'bootstrap',
+    plugins: 'lists',
+    toolbar: 'h1 h2 bold italic strikethrough blockquote | bullist numlist | backcolor | removeformat help',
+    menubar: false,
+});
 
-<!--  formNum = groupForm.length-1;-->
-<!--  addButton.addEventListener('click', addForm);-->
+function openGradingHelpDialog(group_id){
+     tinymce.get("grading-help").execCommand('RemoveFormat');
+     $.ajax({
+        url: "{% url 'get_pages_group_grading_help' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : group_id,
+        },
+        success: (data) => {
+            tinymce.get("grading-help").setContent(data);
+            $('#grading-help-group-id').val(group_id)
+            $('#grading-help-modal').modal('show');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
 
-<!--  function addForm(e){-->
-<!--    e.preventDefault();-->
+function cancelGradingHelp(){
+    $('#grading-help-modal').modal('hide');
+}
 
-<!--    newGroupForm = groupForm[0].cloneNode(true);-->
-<!--    formRegex = RegExp(`form-__prefix__-`,'g');-->
+function saveGradingHelp(group_id){
 
-<!--    formNum++;-->
-<!--    newGroupForm.innerHTML = newGroupForm.innerHTML.replace(formRegex, `form-${formNum}-`);-->
-<!--&lt;!&ndash;    newGroupForm.removeAttribute('hidden');&ndash;&gt;-->
-<!--&lt;!&ndash;    newGroupForm.removeAttribute('class');&ndash;&gt;-->
-<!--    insertAfter(newGroupForm,groupForm[formNum-1]);-->
-<!--    totalForms.setAttribute('value', `${formNum+1}`);-->
-<!--  };-->
+    $.ajax({
+        url: "{% url 'edit_pages_group_grading_help' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : $('#grading-help-group-id').val(),
+            'grading_help' : tinymce.get("grading-help").getContent(),
+        },
+        success: (data) => {
+            $('#grading-help-modal').modal('hide');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
 
-<!--function insertAfter(newNode, existingNode) {-->
-<!--    existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);-->
-<!--}-->
+
+
+
+}
 
 </script>
