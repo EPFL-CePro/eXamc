@@ -223,4 +223,4 @@ def generate_marked_pdfs(files_path, export_type):
 def updateCorrectorBoxMarked(scanMarkers):
     markers = json.loads(scanMarkers.markers)['markers']
     for marker in markers:
-        if
+        return None
