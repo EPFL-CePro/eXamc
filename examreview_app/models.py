@@ -20,7 +20,7 @@ class Exam(models.Model):
     pdf_catalog_name = models.CharField(max_length=100, blank=True)
     overall = models.BooleanField(default=0)
     indiv_formula = models.CharField(max_length=100, blank=True)
-    pages_by_copy = models.IntegerField(default=0,blank=True)
+    pages_by_copy = models.TextField(blank = True)
 
     class Meta:
         unique_together = ('code','semester','year')
@@ -64,6 +64,7 @@ class ExamPagesGroup(models.Model):
     page_from = models.IntegerField(default=0)
     page_to = models.IntegerField(default=0)
     grading_help = models.TextField(default='')
+    correctorBoxes = models.TextField(blank=True)
 
     def __str__(self):
         return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
@@ -114,6 +115,7 @@ class ScanMarkers(models.Model):
     markers = models.TextField(blank = True)
     comment = models.TextField(blank = True)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scanMarkers')
+    correctorBoxMarked = models.BooleanField(default=False)
 
     def __str__(self):
         return self.copie_no + " - " + self.filename + " " + self.exam.code

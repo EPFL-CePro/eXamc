@@ -155,7 +155,9 @@ class ReviewSettingsView(DetailView):
         if "submit-reviewers" in self.request.POST:
             curr_tab = "reviewers"
             formset = ExamReviewersFormSet(self.request.POST)
+
             for form in formset:
+                print(form.is_valid())
                 if form.cleaned_data and form.cleaned_data["user"]:
                     examReviewer = form.save(commit=False)
                     examReviewer.exam = exam
@@ -170,6 +172,7 @@ class ReviewSettingsView(DetailView):
             curr_tab = "groups"
             formset = ExamPagesGroupsFormSet(self.request.POST)
             for form in formset:
+                print(form.is_valid())
                 if form.cleaned_data and form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
                     pagesGroup = form.save(commit=False)
                     pagesGroup.exam = exam
@@ -357,29 +360,28 @@ def select_exam(request, pk, current_url=None):
 def upload_scans(request,pk):
     exam = Exam.objects.get(pk=pk)
 
-    files = []
+    #files = []
 
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
+    #zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
 
-    for file in os.listdir(zip_path):
-        if os.path.isfile(os.path.join(zip_path,file)) and os.path.splitext(file)[1] == '.zip':
-            files.append(file)
+    # for file in os.listdir(zip_path):
+    #     if os.path.isfile(os.path.join(zip_path,file)) and os.path.splitext(file)[1] == '.zip':
+    #         files.append(file)
 
     return render(request, 'import/upload_scans.html', {
         'exam': exam,
-        'files' : files,
+        'files' : None,
         'message':''})
 
 @login_required
-def start_upload_scans(request,pk,filename):
+def start_upload_scans(request,pk):
     exam = Exam.objects.get(pk=pk)
 
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
-    zip_file_path = zip_path+"/"+filename
-    tmp_extract_path = zip_path+"/tmp_extract"
+    zip_file = request.FILES['exam_scans']
+    tmp_extract_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code+"/tmp_extract"
 
     # extract zip file in tmp dir
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
         print("start extraction")
         zip_ref.extractall(tmp_extract_path)
 
@@ -391,8 +393,8 @@ def start_upload_scans(request,pk,filename):
     message = import_scans(exam,tmp_extract_path)
 
     # remove imported Files (zip + extracted)
-    for filename in os.listdir(zip_path):
-        file_path = os.path.join(zip_path, filename)
+    for filename in os.listdir(tmp_extract_path):
+        file_path = os.path.join(tmp_extract_path, filename)
         try:
             if os.path.isfile(file_path) or os.path.islink(file_path):
                 os.unlink(file_path)
@@ -422,23 +424,30 @@ def saveMarkers(request):
 
     scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], exam=exam)
 
-    scan_markers.markers = request.POST['markers']
-    scan_markers.comment = request.POST['comment']
-    scan_markers.filename = request.POST['filename']
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
-    if dataUrlPattern.match(ImageData):
-      ImageData = dataUrlPattern.match(ImageData).group(2)
-      # Decode the 64 bit string into 32 bit
-      ImageData = base64.b64decode(ImageData)
+    markers = json.loads(request.POST['markers'])
+    if markers["markers"]:
+        scan_markers.markers = request.POST['markers']
+        scan_markers.comment = request.POST['comment']
+        scan_markers.filename = request.POST['filename']
+        if dataUrlPattern.match(ImageData):
+          ImageData = dataUrlPattern.match(ImageData).group(2)
+          # Decode the 64 bit string into 32 bit
+          ImageData = base64.b64decode(ImageData)
 
-      marked_img_path = str(settings.MARKED_SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"+scan_markers.copie_no+"/"+"marked_"+scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg','.png')
-      os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
+          marked_img_path = str(settings.MARKED_SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"+scan_markers.copie_no+"/"+"marked_"+scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg','.png')
+          os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
 
-      with open(marked_img_path,"wb") as marked_file:
-        marked_file.write(ImageData)
+          with open(marked_img_path,"wb") as marked_file:
+            marked_file.write(ImageData)
 
-    scan_markers.save()
+        scan_markers.save()
+    else:
+        marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year) + "/" + str(exam.semester) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
+        #os.remove(marked_img_path)
+        scan_markers.delete()
+
     return HttpResponseRedirect( reverse('reviewGroup', kwargs={'pk':request.POST['reviewGroup_pk'],'currpage':scan_markers.page_no}))
 
 @login_required
@@ -447,10 +456,9 @@ def getMarkersAndComments(request):
     data_dict = {}
     try:
         scan_markers = ScanMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], filename=request.POST['filename'],exam=exam)
-        #json_string = scan_markers.markers
         data_dict["markers"]=scan_markers.markers
     except ScanMarkers.DoesNotExist:
-        json_string = None;
+        data_dict["markers"]=None;
 
     # comments
     comments = ExamPagesGroupComment.objects.filter(pages_group=request.POST['group_id'], copy_no=request.POST['copy_no']).all()

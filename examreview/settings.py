@@ -129,6 +129,10 @@ MARKED_SCANS_URL = '/marked_scans/'
 AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload'
 AUTOUPLOAD_URL = '/autoupload/'
 
+# Export marked files folder tmp
+EXPORT_TMP_ROOT = BASE_DIR / 'export_tmp'
+EXPORT_TMP_URL = '/export_tmp/'
+
 # Django-tequila specifics
 AUTH_PROFILE_MODULE = "userprofile.UserProfile"
 

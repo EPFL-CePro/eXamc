@@ -26,7 +26,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
     path('upload_scans/<int:pk>', views.upload_scans, name="upload_scans"),
-    path('start_upload_scans/<int:pk>/<str:filename>', views.start_upload_scans, name="start_upload_scans"),
+    path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),
     path('review/<int:pk>',login_required(views.ReviewView.as_view()), name="reviewView"),
     path('reviewGroup/<int:pk>/<int:currpage>', login_required(views.ReviewGroupView.as_view()), name="reviewGroup"),
     path('reviewSettings/<int:pk>/<str:curr_tab>',login_required(views.ReviewSettingsView.as_view()), name="reviewSettingsView"),
@@ -42,6 +42,7 @@ urlpatterns = [
     path('add_new_pages_group/<int:pk>',views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
+    path('export_marked_files/<int:pk>', views.export_marked_files, name="export_marked_files"),
     #path('manageExamPagesGroups/<int:pk>',login_required(views.ManageExamPagesGroupsView.as_view()), name="manageExamPagesGroups"),
     #path('test_function>', views.test_function, name="test_function")
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)

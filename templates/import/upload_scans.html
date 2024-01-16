@@ -4,56 +4,25 @@
 
 {% block scripts %}
 
-function toto(){
-  alert("toto");
-}
-
-function startUpload(pk,filename){
-
-	url = "{% url 'start_upload_scans' 999999 'FILENAME' %}".replace('999999',pk).replace('FILENAME',filename)
-
-	$.ajax({
-		url : url,
-		type : "POST",
-		data : {
-			'csrfmiddlewaretoken' : "{{  csrf_token  }}"
-		},
-		beforeSend : function(){
-			$('#loadingModal').modal('show');
-		},
-		complete: function () {
-			$('#loadingModal').modal('hide');
-		},
-		success : function(result) {
-			window.location.href += "?dataUpdated=true";
-			window.location.reload();
-		}
-	});
-}
-
-
 {% endblock %}
 
 {% block content %}
 <div id="uploadScansDiv" style="padding:10px;width:100%;margin-top:100px;color:#000;">
 	<h3>Upload scans</h3>
-
-	<table class="table table-striped table-sm">
-		<thead>
-			<tr>
-				<th>Available files</th>
-				<th></th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for file in files %}
-			<tr>
-				<td>{{ file }}</td>
-				<td><a class="btn btn-primary btn-sm" href="{% url 'start_upload_scans' exam.pk file %}">Start upload</a></td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+	<form action="{% url 'start_upload_scans' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+	  {% csrf_token %}
+	  <div class="form-group">
+		  <div class="col-md-8">
+			  <input type="file" accept=".zip" name="exam_scans" id="importExamScans" class="custom-file-input form-control">
+			  <label class="custom-file-label" for="importExamScans">Choose scans .zip folder</label>
+		  </div>
+	  </div>
+	  <div class="form-group">
+		  <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3" style="margin-bottom:10px;">
+			  <button class="btn btn-primary"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;"></span>Upload scans</button>
+		  </div>
+	  </div>
+	</form>
 	<h6>{{ message }}</h6>
 
 {% endblock %}

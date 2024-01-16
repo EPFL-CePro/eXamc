@@ -139,8 +139,8 @@ def get_scans_pathes_by_group(examPagesGroup):
                 comment = None
                 scanMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4), page_no=str(page_no_real).zfill(2).replace('.','x')).first()
                 if scanMarkers :
-                  if scanMarkers.comment != "None":
-                    comment = scanMarkers.comment
+                  if ExamPagesGroupComment.objects.filter(pages_group=examPagesGroup, copy_no=scanMarkers.copie_no).exists():
+                    comment = True
                   if scanMarkers.markers is not None:
                     marked = True
 
@@ -219,3 +219,8 @@ def generate_marked_pdfs(files_path, export_type):
       pdf.image(files_path+"/"+subdir+"/"+image, 0, 0, 210)
 
     pdf.output(files_path+"/copy_"+subdir+".pdf","F")
+
+def updateCorrectorBoxMarked(scanMarkers):
+    markers = json.loads(scanMarkers.markers)['markers']
+    for marker in markers:
+        if
