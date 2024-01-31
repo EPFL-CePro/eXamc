@@ -2,12 +2,15 @@ import datetime
 import operator
 
 from django.core.serializers import serialize
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views import View
+
 from examreview_app.utils.functions import *
 from .forms import *
 from django_tables2 import SingleTableView
 from django.views.generic import DetailView, ListView, TemplateView
 from .tables import ExamSelectTable
+from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, Http404, FileResponse, HttpRequest, HttpResponseRedirect, HttpResponseForbidden,HttpResponseBadRequest
@@ -155,38 +158,38 @@ class ReviewSettingsView(DetailView):
         if "submit-reviewers" in self.request.POST:
             curr_tab = "reviewers"
             formset = ExamReviewersFormSet(self.request.POST)
-
-            for form in formset:
-                print(form.is_valid())
-                if form.cleaned_data and form.cleaned_data["user"]:
-                    examReviewer = form.save(commit=False)
-                    examReviewer.exam = exam
-                    if "pages_groups" in form.cleaned_data:
-                        examReviewer.pages_groups.set(form.cleaned_data["pages_groups"])
-                    if form.cleaned_data["DELETE"]:
-                        examReviewer.delete()
-                    else:
-                        examReviewer.save()
-                        form.save_m2m()
+            if formset.is_valid():
+                for form in formset:
+                    print(form)
+                    if form.is_valid() and form.cleaned_data and form.cleaned_data["user"]:
+                        examReviewer = form.save(commit=False)
+                        examReviewer.exam = exam
+                        if "pages_groups" in form.cleaned_data:
+                            examReviewer.pages_groups.set(form.cleaned_data["pages_groups"])
+                        if form.cleaned_data["DELETE"]:
+                            examReviewer.delete()
+                        else:
+                            examReviewer.save()
+                            form.save_m2m()
         else:
             curr_tab = "groups"
             formset = ExamPagesGroupsFormSet(self.request.POST)
-            for form in formset:
-                print(form.is_valid())
-                if form.cleaned_data and form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
-                    pagesGroup = form.save(commit=False)
-                    pagesGroup.exam = exam
-                    print(form.cleaned_data)
-                    if form.cleaned_data["DELETE"]:
-                        pagesGroup.delete()
-                    else:
-                        pagesGroup.save()
+            if formset.is_valid():
+                for form in formset:
+                    print(form)
+                    if form.is_valid() and form.cleaned_data :
+                        pagesGroup = form.save(commit=False)
+                        if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
+                            pagesGroup.exam = exam
+                            pagesGroup.save()
+                        if form.cleaned_data["DELETE"]:
+                            pagesGroup.delete()
 
-        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))#,initial=[{'id':None,'group_name':'New'}])
+        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
         formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
-        if user_allowed(exam,self.request.user.id):
+        if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
@@ -198,6 +201,7 @@ class ReviewSettingsView(DetailView):
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
             return context
+
         return self.render_to_response(context=context)
 
 
@@ -229,12 +233,12 @@ def get_pages_group_grading_help(request):
 @login_required
 def ldap_search_by_email(request):
     email = request.POST['email']
-    user = ExamReviewer.objects.filter(user__email=email,exam__id=request.POST['pk']).all()
+    user = ExamReviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
     if user:
         return HttpResponse("exist")
 
-    user_entry = ldap_search.get_entry(email,'mail')
-    entry_str = user_entry['uniqueidentifier'][0]+ ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][0] + ";" + email
+    user_entry = ldap_search.get_entry(email, 'mail')
+    entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][0] + ";" + email
 
 
     return HttpResponse(entry_str)
@@ -357,44 +361,79 @@ def select_exam(request, pk, current_url=None):
         return HttpResponseRedirect( reverse(current_url, kwargs={'pk':str(pk)}) )
 
 @login_required
-def upload_scans(request,pk):
+def upload_scans(request, pk):
     exam = Exam.objects.get(pk=pk)
 
-    #files = []
+    if request.method == 'POST':
+        if 'exams_zip_file' not in request.FILES:
+            messages.error(request, "No zip file provided.")
+            return redirect(f'../upload_scans/{exam.pk}')
 
-    #zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
+        zip_file = request.FILES['exams_zip_file']
+        file_name = f"exam_{exam.pk}.zip"
+        temp_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, file_name)
 
+        os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
+
+        with open(temp_file_path, 'wb') as temp_file:
+            for chunk in zip_file.chunks():
+                temp_file.write(chunk)
+
+        message = start_upload_scans(request, exam.pk, temp_file_path)
+
+        return render(request, 'import/upload_scans.html', {
+                 'exam': exam,
+                 'files': [],
+                 'message': message
+             })
+        # messages.success(request, message)
+        # return redirect(f'/exams/{exam.pk}')
+
+    return render(request, 'import/upload_scans.html', {'exam': exam,
+                                                        'files': []})
+    #
+    # files = []
+    #
+    # zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
+    #
     # for file in os.listdir(zip_path):
     #     if os.path.isfile(os.path.join(zip_path,file)) and os.path.splitext(file)[1] == '.zip':
     #         files.append(file)
-
-    return render(request, 'import/upload_scans.html', {
-        'exam': exam,
-        'files' : None,
-        'message':''})
+    #
+    # return render(request, 'import/upload_scans.html', {
+    #     'exam': exam,
+    #     'files' : files,
+    #     'message':''})
 
 @login_required
-def start_upload_scans(request,pk):
+def start_upload_scans(request, pk, zip_file_path):
     exam = Exam.objects.get(pk=pk)
 
-    zip_file = request.FILES['exam_scans']
-    tmp_extract_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code+"/tmp_extract"
+    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
+    tmp_extract_path = zip_path + "/tmp_extract"
 
     # extract zip file in tmp dir
-    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         print("start extraction")
         zip_ref.extractall(tmp_extract_path)
 
-    # check if subfolder to get jpg files path
-    first_path = tmp_extract_path+"/"+os.listdir(tmp_extract_path)[0]
-    if os.path.isdir(first_path):
-        tmp_extract_path = first_path
+    dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
 
-    message = import_scans(exam,tmp_extract_path)
+    if dirs:
+        tmp_extract_path = os.path.join(tmp_extract_path, dirs[0])
+
+    result = import_scans(exam, tmp_extract_path)
+
+    if isinstance(result, tuple) and len(result) == 2:
+        message, files = result
+    elif isinstance(result, str):
+        message, files = result, []
+    else:
+        message, files = "An unexpected error occurred during the upload.", []
 
     # remove imported Files (zip + extracted)
-    for filename in os.listdir(tmp_extract_path):
-        file_path = os.path.join(tmp_extract_path, filename)
+    for filename in os.listdir(zip_path):
+        file_path = os.path.join(zip_path, filename)
         try:
             if os.path.isfile(file_path) or os.path.islink(file_path):
                 os.unlink(file_path)
@@ -403,10 +442,12 @@ def start_upload_scans(request,pk):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-    return render(request, 'import/upload_scans.html', {
-        'exam': exam,
-        'files' : [],
-        'message':message})
+    return message
+    # return render(request, 'import/upload_scans.html', {
+    #     'exam': exam,
+    #     'files': files,
+    #     'message': message
+    # })
 
 def get_common_list(exam):
     common_list = []
@@ -423,7 +464,7 @@ def saveMarkers(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
 
     scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], exam=exam)
-
+    #scan_markers.pages_group = ExamPagesGroup.query.filters(exam=exam, page_from__gte=page_no)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
     markers = json.loads(request.POST['markers'])
@@ -448,7 +489,9 @@ def saveMarkers(request):
         #os.remove(marked_img_path)
         scan_markers.delete()
 
-    return HttpResponseRedirect( reverse('reviewGroup', kwargs={'pk':request.POST['reviewGroup_pk'],'currpage':scan_markers.page_no}))
+
+    scan_markers.save()
+    return HttpResponseRedirect(reverse('reviewGroup', kwargs={'pk':request.POST['reviewGroup_pk'],'currpage':scan_markers.page_no}))
 
 @login_required
 def getMarkersAndComments(request):
@@ -458,7 +501,8 @@ def getMarkersAndComments(request):
         scan_markers = ScanMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], filename=request.POST['filename'],exam=exam)
         data_dict["markers"]=scan_markers.markers
     except ScanMarkers.DoesNotExist:
-        data_dict["markers"]=None;
+        json_string = None
+        data_dict["markers"]=None
 
     # comments
     comments = ExamPagesGroupComment.objects.filter(pages_group=request.POST['group_id'], copy_no=request.POST['copy_no']).all()
@@ -489,4 +533,4 @@ def saveComment(request):
 
     print(comment)
 
-    return HttpResponse("")
+    return HttpResponse("ok")

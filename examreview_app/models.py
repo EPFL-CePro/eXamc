@@ -20,7 +20,7 @@ class Exam(models.Model):
     pdf_catalog_name = models.CharField(max_length=100, blank=True)
     overall = models.BooleanField(default=0)
     indiv_formula = models.CharField(max_length=100, blank=True)
-    pages_by_copy = models.TextField(blank = True)
+    pages_by_copy = models.CharField(max_length=10000, blank=True)
 
     class Meta:
         unique_together = ('code','semester','year')
@@ -66,6 +66,7 @@ class ExamPagesGroup(models.Model):
     grading_help = models.TextField(default='')
     correctorBoxes = models.TextField(blank=True)
 
+
     def __str__(self):
         return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
 
@@ -81,8 +82,8 @@ class ExamReviewer(models.Model):
 class ExamPagesGroupComment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examPagesGroupComments')
     pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments')
-    copy_no = models.CharField(max_length=10,default='0')
-    parent = models.ForeignKey('self',on_delete=models.CASCADE,  blank=True)
+    copy_no = models.CharField(max_length=10, default='0')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True, blank=True)
     modified = models.DateTimeField(blank=True)
     content = models.TextField()
@@ -111,6 +112,7 @@ class ExamPagesGroupComment(models.Model):
 class ScanMarkers(models.Model):
     copie_no = models.CharField(max_length=10,default='0')
     page_no = models.CharField(max_length=10,default='0')
+    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupMarkers',default=None)
     filename = models.CharField(max_length=100)
     markers = models.TextField(blank = True)
     comment = models.TextField(blank = True)

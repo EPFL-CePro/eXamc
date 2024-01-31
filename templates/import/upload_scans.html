@@ -1,28 +1,41 @@
-{% extends 'base.html' %}
 
+{% extends 'base.html' %}
+{% load static %}
 {% block title %}Upload scans{% endblock %}
 
-{% block scripts %}
-
-{% endblock %}
-
 {% block content %}
+<body>
 <div id="uploadScansDiv" style="padding:10px;width:100%;margin-top:100px;color:#000;">
-	<h3>Upload scans</h3>
-	<form action="{% url 'start_upload_scans' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
-	  {% csrf_token %}
-	  <div class="form-group">
-		  <div class="col-md-8">
-			  <input type="file" accept=".zip" name="exam_scans" id="importExamScans" class="custom-file-input form-control">
-			  <label class="custom-file-label" for="importExamScans">Choose scans .zip folder</label>
-		  </div>
-	  </div>
-	  <div class="form-group">
-		  <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3" style="margin-bottom:10px;">
-			  <button class="btn btn-primary"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;"></span>Upload scans</button>
-		  </div>
-	  </div>
-	</form>
-	<h6>{{ message }}</h6>
+    <h3>Upload scans</h3>
 
+    <form id="uploadForm" method="post" action="{% url 'upload_scans' pk=exam.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="exams_zip_file" accept=".zip" required>
+        <button type="submit" class="btn btn-dark">Upload</button>
+    </form>
+    <h6>{{ message }}</h6>
+</div>
+<div id="spinner" class="hidden">
+    <img src="{% static 'images/x.gif' %}" alt="Spinner">
+</div>
+<script async defer>
+    document.addEventListener("DOMContentLoaded", function () {
+        var uploadForm = document.getElementById("uploadForm");
+        var spinnerElement = document.getElementById("spinner");
+
+        if (uploadForm && spinnerElement) {
+            uploadForm.addEventListener("submit", function () {
+                spinnerElement.style.display = "block";
+                console.log("Le spinner devrait être visible maintenant.");
+            });
+
+            window.addEventListener("load", function () {
+                spinnerElement.style.display = "none";
+                console.log("Le spinner ne devrait plus être visible maintenant.");
+            });
+        }
+    });
+</script>
+</body>
 {% endblock %}
+
