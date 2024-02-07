@@ -17,6 +17,8 @@
       <th>Page from</th>
       <th>Page to</th>
       <th>Review</th>
+      <th>Annotations</th>
+      <th>Comments</th>
     </tr>
   </thead>
   <tbody>
@@ -25,7 +27,9 @@
       <td>{{ pages_group.group_name }}</td>
       <td>{{ pages_group.page_from }}</td>
       <td>{{ pages_group.page_to }}</td>
-      <td><a class="btn btn-danger btn-sm" href="{% url 'reviewGroup' pages_group.pk 0 %}"}>Review</a></td>
+      <td><a class="btn btn-danger btn-sm" href="{% url 'reviewGroup' pages_group.pk 0 %}">Review</a></td>
+      <td>{{ pages_group.examPagesGroupMarkers.all| length }}</td>
+      <td>{{ pages_group.examPagesGroupComments.all| length }}</td>
     </tr>
     {% endfor %}
   </tbody>

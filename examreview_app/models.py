@@ -23,7 +23,7 @@ class Exam(models.Model):
     pages_by_copy = models.CharField(max_length=10000, blank=True)
 
     class Meta:
-        unique_together = ('code','semester','year')
+        unique_together = ('code', 'semester', 'year')
         ordering = ['-year', '-semester', 'code']
 
     def is_overall(self):
@@ -81,7 +81,7 @@ class ExamReviewer(models.Model):
 
 class ExamPagesGroupComment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examPagesGroupComments')
-    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments')
+    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments', blank=True)
     copy_no = models.CharField(max_length=10, default='0')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True, blank=True)
@@ -112,7 +112,7 @@ class ExamPagesGroupComment(models.Model):
 class ScanMarkers(models.Model):
     copie_no = models.CharField(max_length=10,default='0')
     page_no = models.CharField(max_length=10,default='0')
-    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupMarkers',default=None)
+    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupMarkers', blank=True)
     filename = models.CharField(max_length=100)
     markers = models.TextField(blank = True)
     comment = models.TextField(blank = True)

@@ -1,3 +1,5 @@
+
+
 </br>
 <h6>PAGES GROUPS</h6>
 {% load crispy_forms_tags %}
@@ -33,6 +35,7 @@
             {% endif %}
             {% endfor %}
             <td><a id="grading-help-bt" class="btn btn-outline-info btn-sm" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )">Grading Help</a></td>
+            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" onclick="openModal()">Corrector Boxes</a></td>
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
@@ -46,6 +49,7 @@
                 <td>{{ field }}</td>
             {% endif %}
             {% endfor %}
+            {% load static %}
         </tr>
       </tbody>
     </table>
@@ -73,6 +77,23 @@
       </div>
     </div>
   </div>
+</div>
+
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">Corrector boxes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <img id="modalImage" src="{% static '/images/copy_0001_05.jpeg' %}" class="img-fluid" alt="Image">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script type="text/javascript">
@@ -127,10 +148,28 @@ function saveGradingHelp(group_id){
             console.log(error);
         }
     });
+}
+function openModal(imageURL) {
+    var modalImage = document.getElementById('modalImage');
+    var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+    imageModal.show();
+    setMarkerArea(modalImage);
+    setSourceScan(imageURL);
+}
 
 
+function setMarkerArea(imageElement) {
+    markerArea = new markerjs2.MarkerArea(imageElement);
+    markerArea.targetRoot = imageElement.parentElement;
+    markerArea.show();
 
-
+    markerArea.addEventListener("render", (event) => {
+        var markedImage = document.getElementById('modalImage'); // Assuming markedImage is the target element to display marked image
+        markedImage.src = event.dataUrl;
+        // save the state of MarkerArea
+        //maState = event.state;
+        updateMarkers(markerArea, "{{ exam.pk }}", "{{ pages_group.pk }}");
+    });
 }
 
 </script>

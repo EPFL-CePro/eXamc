@@ -231,6 +231,21 @@ def get_pages_group_grading_help(request):
     return HttpResponse(pages_group.grading_help)
 
 @login_required
+def edit_pages_group_corrector_box(request):
+    pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
+    pages_group.correctorBoxMarked = request.POST['corrector_box']
+    pages_group.save()
+
+    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
+
+
+# @login_required
+# def get_pages_group_corrector_box(request):
+#     scan_markers = ScanMarkers.objects.get(pk=request.POST['pk'])
+#     return HttpResponse(scan_markers.correctorBoxMarked)
+
+
+@login_required
 def ldap_search_by_email(request):
     email = request.POST['email']
     user = ExamReviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
@@ -462,8 +477,8 @@ def get_common_list(exam):
 def saveMarkers(request):
 
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
-
-    scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], exam=exam)
+    pages_group = ExamPagesGroup.get(pk=request.POST['reviewGroup'])
+    scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], pages_group=pages_group, exam=exam)
     #scan_markers.pages_group = ExamPagesGroup.query.filters(exam=exam, page_from__gte=page_no)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')

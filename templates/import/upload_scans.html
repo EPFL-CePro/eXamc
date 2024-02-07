@@ -10,13 +10,15 @@
 
     <form id="uploadForm" method="post" action="{% url 'upload_scans' pk=exam.pk %}" enctype="multipart/form-data">
         {% csrf_token %}
-        <input type="file" name="exams_zip_file" accept=".zip" required>
-        <button type="submit" class="btn btn-dark">Upload</button>
+        <div class="mb-3">
+            <input class="form" type="file" name="exams_zip_file" accept=".zip" required>
+            <button type="submit" class="btn btn-dark">Upload</button>
+        </div>
     </form>
     <h6>{{ message }}</h6>
 </div>
 <div id="spinner" class="hidden">
-    <img src="{% static 'images/x.gif' %}" alt="Spinner">
+    <img src="{% static 'images/204.gif' %}" alt="Spinner" class="center">
 </div>
 <script async defer>
     document.addEventListener("DOMContentLoaded", function () {
