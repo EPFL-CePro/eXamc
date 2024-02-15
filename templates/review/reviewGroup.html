@@ -179,30 +179,6 @@ function initCopyPagesTableOnClickRowEvent(refresh){
         } );
     }
 }
- function saveComment(data){
-    copy_no = currSourceIdSplit[1];
-
-    // Convert pings to human readable format
-    $(Object.keys(data.pings)).each(function(index, userId) {
-        var fullname = data.pings[userId];
-        var pingText = '@' + fullname;
-        data.content = data.content.replace(new RegExp('@' + userId, 'g'), pingText);
-    });
-
-    $.ajax({
-        url : "{% url 'save_comment' %}",
-        async : false,
-        type : "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'comment' : JSON.stringify(data),
-            'group_id' : {{ pages_group.id }},
-            'copy_no' : copy_no
-        }
-    });
-
-    return data;
-}
 
 function updateMarkers(markerArea, exam_pk, pages_group_pk){
     imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
@@ -243,6 +219,31 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,comm
             $('#loadingModal').modal('hide');
         }
     });
+}
+
+function saveComment(data){
+    copy_no = currSourceIdSplit[1];
+
+    // Convert pings to human readable format
+    $(Object.keys(data.pings)).each(function(index, userId) {
+        var fullname = data.pings[userId];
+        var pingText = '@' + fullname;
+        data.content = data.content.replace(new RegExp('@' + userId, 'g'), pingText);
+    });
+
+    $.ajax({
+        url : "{% url 'save_comment' %}",
+        async : false,
+        type : "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'comment' : JSON.stringify(data),
+            'group_id' : {{ pages_group.id }},
+            'copy_no' : copy_no
+        }
+    });
+
+    return data;
 }
 
 function initComments(commentsArray){
