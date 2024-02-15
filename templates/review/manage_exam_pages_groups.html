@@ -6,6 +6,7 @@
 
 {% load custom_tags %}
 
+
 <form id="form-groups" method="POST">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
@@ -35,7 +36,7 @@
             {% endif %}
             {% endfor %}
             <td><a id="grading-help-bt" class="btn btn-outline-info btn-sm" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )">Grading Help</a></td>
-            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" onclick="openModalCorrectorBox()">Corrector Boxes</a></td>
+            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" data-image-path="{{ img_path }}" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})">Corrector Boxes</a></td>
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
@@ -87,7 +88,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
-                <img id="modalImage" src="{% static '/images/copy_0001_05.jpeg' %}" style="width:100%" alt="Image">
+                <img id="source_img"  style="width:100%;" alt="Image">
+<!--                <img id="marked_img" style="max-width:100%;min-width: 600px; position: absolute;">-->
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -97,6 +99,7 @@
 </div>
 
 <script type="text/javascript">
+
 tinymce.init({
     selector: 'textarea#grading-help',
     skin: 'bootstrap',
@@ -149,13 +152,10 @@ function saveGradingHelp(group_id){
     });
 }
 
-
 let sourceImage, targetRoot, maState;
-let rectangleCoordinates = null;
 // save references to the original image and its parent div (positioning root)
 function setSourceImage(source) {
   sourceImage = source;
-  targetRoot = source.parentElement;
 }
 
 function showMarkerArea(target) {
@@ -165,14 +165,11 @@ function showMarkerArea(target) {
   markerArea.targetRoot = targetRoot;
   markerArea.availableMarkerTypes = ["FrameMarker", markerjs2.ArrowMarker];
   markerArea.addEventListener("render", (event) => {
-    console.log("Coordonnées du rectangle dans l'événement render :", rectangleCoordinates);
     target.src = event.dataUrl;
-     rectangleCoordinates = event.rect;
     // save the state of MarkerArea
     maState = event.state;
 });
   markerArea.addEventListener("close", (event) => {
-    console.log("Coordonnées du rectangle :", maState.rect);
     showMarkerArea(target);
 });
   markerArea.show();
@@ -182,19 +179,39 @@ function showMarkerArea(target) {
   }
 }
 
-function openModalCorrectorBox(imageURL) {
-    var modalImage = document.getElementById('modalImage');
-    var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-    setSourceImage(modalImage);
-    imageModal.show();
-    showMarkerArea(modalImage);
+function openModalCorrectorBox(group_id) {
+    $.ajax({
+        type: 'POST',
+        url: "{% url 'get_group_path_image' %}",
+        data: {
+            'group_id': group_id,
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        success: (data) => {
+            console.log(data)
+            var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+            imageModal.show();
+        },
+        error: function(error) {
+            console.log(error);
+        }
+    });
 }
 
-    function closeAndRestoreMarkerArea() {
+function closeAndRestoreMarkerArea() {
     const markerArea = new markerjs2.MarkerArea(sourceImage);
     markerArea.show();
     if (rectangleCoordinates) {
         markerArea.restoreRect(rectangleCoordinates);
     }
 }
+
+$(window).on('shown.bs.modal', function() {
+    $('#imageModal').modal('show');
+    const modalImage = document.getElementById('modalImage');
+    setSourceImage(modalImage);
+    showMarkerArea(modalImage)
+});
+
+
 </script>

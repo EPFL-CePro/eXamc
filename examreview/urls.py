@@ -43,6 +43,7 @@ urlpatterns = [
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
     path('edit_pages_group_corrector_box', views.edit_pages_group_corrector_box, name="edit_pages_group_corrector_box"),
+    path('get_group_path_image', views.get_group_path_image, name='get_group_path_image'),
     # path('get_pages_group_corrector_box', views.get_pages_group_corrector_box, name="get_pages_group_corrector_box"),
     path('export_marked_files/<int:pk>', views.export_marked_files, name="export_marked_files"),
     #path('manageExamPagesGroups/<int:pk>',login_required(views.ManageExamPagesGroupsView.as_view()), name="manageExamPagesGroups"),

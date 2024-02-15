@@ -118,6 +118,20 @@ def user_allowed(exam, user_id):
     else:
         return False
 
+def get_scans_path_for_group(examPagesGroup):
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(examPagesGroup.exam.year) + "/" + str(examPagesGroup.exam.semester) + "/" + examPagesGroup.exam.code
+    scans_url = "../../scans/" + str(examPagesGroup.exam.year) + "/" + str(examPagesGroup.exam.semester) + "/" + examPagesGroup.exam.code
+
+    for dir in sorted(os.listdir(scans_dir)):
+        for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+            split_filename = filename.split('_')
+            page_no_real = split_filename[-1].split('.')[0].replace('x', '.')
+            # get only two first char to prevent extra pages with a,b,c suffixes
+            page_no_int = int(page_no_real[0:2])
+            if page_no_int == examPagesGroup.page_from:
+                return scans_url+"/"+dir+"/"+filename
+
+
 def get_scans_pathes_by_group(examPagesGroup):
 
     scans_dir = str(settings.SCANS_ROOT)+"/"+str(examPagesGroup.exam.year)+"/"+str(examPagesGroup.exam.semester)+"/"+examPagesGroup.exam.code
