@@ -9,6 +9,20 @@ from django.db.models import Count
 logger = logging.getLogger(__name__)
 
 User.__str__ = lambda user_instance: user_instance.first_name + " " + user_instance.last_name
+
+class LogOnUpdateDeleteMixin(models.Model):
+    pass
+
+    def delete(self, *args, **kwargs):
+        super(LogOnUpdateDeleteMixin, self).delete(*args, **kwargs)
+        logging.info("%s instance %s (pk %s) deleted" % (str(self._meta), str(self), str(self.pk),)) # or whatever you like
+
+    def save(self, *args, **kwargs):
+        super(LogOnUpdateDeleteMixin, self).save(*args, **kwargs)
+        logging.info("%s instance %s (pk %s) updated" % (str(self._meta), str(self), str(self.pk),)) # or whatever you like
+    class Meta:
+        abstract = True
+
 class Exam(models.Model):
     code = models.CharField(max_length=50)
     name = models.CharField(max_length=100)
@@ -66,7 +80,6 @@ class ExamPagesGroup(models.Model):
     grading_help = models.TextField(default='')
     correctorBoxes = models.TextField(blank=True)
 
-
     def __str__(self):
         return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
 
@@ -79,7 +92,7 @@ class ExamReviewer(models.Model):
         return self.exam.code + " - " + self.user.username
 
 
-class ExamPagesGroupComment(models.Model):
+class ExamPagesGroupComment(LogOnUpdateDeleteMixin,models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examPagesGroupComments')
     pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments', blank=True)
     copy_no = models.CharField(max_length=10, default='0')
