@@ -1,5 +1,5 @@
 
-
+<script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
 </br>
 <h6>PAGES GROUPS</h6>
 {% load crispy_forms_tags %}
@@ -35,7 +35,7 @@
             {% endif %}
             {% endfor %}
             <td><a id="grading-help-bt" class="btn btn-outline-info btn-sm" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )">Grading Help</a></td>
-            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" onclick="openModal()">Corrector Boxes</a></td>
+            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" onclick="openModalCorrectorBox()">Corrector Boxes</a></td>
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
@@ -86,8 +86,8 @@
                 <h5 class="modal-title" id="imageModalLabel">Corrector boxes</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <img id="modalImage" src="{% static '/images/copy_0001_05.jpeg' %}" class="img-fluid" alt="Image">
+            <div class="modal-body" style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
+                <img id="modalImage" src="{% static '/images/copy_0001_05.jpeg' %}" style="width:100%" alt="Image">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -131,7 +131,6 @@ function cancelGradingHelp(){
 }
 
 function saveGradingHelp(group_id){
-
     $.ajax({
         url: "{% url 'edit_pages_group_grading_help' %}",
         async : false,
@@ -149,27 +148,53 @@ function saveGradingHelp(group_id){
         }
     });
 }
-function openModal(imageURL) {
+
+
+let sourceImage, targetRoot, maState;
+let rectangleCoordinates = null;
+// save references to the original image and its parent div (positioning root)
+function setSourceImage(source) {
+  sourceImage = source;
+  targetRoot = source.parentElement;
+}
+
+function showMarkerArea(target) {
+  const markerArea = new markerjs2.MarkerArea(sourceImage);
+  // since the container div is set to position: relative it is now our positioning root
+  // end we have to let marker.js know that
+  markerArea.targetRoot = targetRoot;
+  markerArea.availableMarkerTypes = ["FrameMarker", markerjs2.ArrowMarker];
+  markerArea.addEventListener("render", (event) => {
+    console.log("Coordonnées du rectangle dans l'événement render :", rectangleCoordinates);
+    target.src = event.dataUrl;
+     rectangleCoordinates = event.rect;
+    // save the state of MarkerArea
+    maState = event.state;
+});
+  markerArea.addEventListener("close", (event) => {
+    console.log("Coordonnées du rectangle :", maState.rect);
+    showMarkerArea(target);
+});
+  markerArea.show();
+  // if previous state is present - restore it
+  if (maState) {
+    markerArea.restoreState(maState);
+  }
+}
+
+function openModalCorrectorBox(imageURL) {
     var modalImage = document.getElementById('modalImage');
     var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+    setSourceImage(modalImage);
     imageModal.show();
-    setMarkerArea(modalImage);
-    setSourceScan(imageURL);
+    showMarkerArea(modalImage);
 }
 
-
-function setMarkerArea(imageElement) {
-    markerArea = new markerjs2.MarkerArea(imageElement);
-    markerArea.targetRoot = imageElement.parentElement;
+    function closeAndRestoreMarkerArea() {
+    const markerArea = new markerjs2.MarkerArea(sourceImage);
     markerArea.show();
-
-    markerArea.addEventListener("render", (event) => {
-        var markedImage = document.getElementById('modalImage'); // Assuming markedImage is the target element to display marked image
-        markedImage.src = event.dataUrl;
-        // save the state of MarkerArea
-        //maState = event.state;
-        updateMarkers(markerArea, "{{ exam.pk }}", "{{ pages_group.pk }}");
-    });
+    if (rectangleCoordinates) {
+        markerArea.restoreRect(rectangleCoordinates);
+    }
 }
-
 </script>
