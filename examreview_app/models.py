@@ -132,5 +132,14 @@ class ScanMarkers(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scanMarkers')
     correctorBoxMarked = models.BooleanField(default=False)
 
+
     def __str__(self):
         return self.copie_no + " - " + self.filename + " " + self.exam.code
+
+
+class DrawnImage(models.Model):
+    image_data = models.IntegerField(default=False)
+    group_id = models.IntegerField(default=False)
+
+    def __str__(self):
+        return f'Image (ID: {self.id})'

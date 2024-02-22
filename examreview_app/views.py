@@ -4,7 +4,7 @@ import operator
 from django.core.serializers import serialize
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
-
+from .models import DrawnImage
 from examreview_app.utils.functions import *
 from .forms import *
 from django_tables2 import SingleTableView
@@ -249,6 +249,18 @@ def get_group_path_image(request):
         else:
             return HttpResponse(img_path)
 
+def save_drawn_image(request):
+    if request.method == 'POST':
+        image_data = request.POST.get('image_data')
+        group_id = request.POST.get('group_id')
+
+        # Enregistrez les données de l'image dans votre base de données
+        drawn_image = DrawnImage(image_data=image_data, group_id=group_id)
+        drawn_image.save()
+
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'success': False, 'error': 'error'})
 
 # @login_required
 # def get_pages_group_corrector_box(request):

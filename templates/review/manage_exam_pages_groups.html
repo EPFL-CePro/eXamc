@@ -36,7 +36,7 @@
             {% endif %}
             {% endfor %}
             <td><a id="grading-help-bt" class="btn btn-outline-info btn-sm" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )">Grading Help</a></td>
-            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" data-image-path="{{ img_path }}" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})">Corrector Boxes</a></td>
+            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})">Corrector Boxes</a></td>
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
@@ -88,7 +88,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
-                <img id="source_img"  style="width:100%;" alt="Image">
+                <img id="imgScan"  style="width:100%;" alt="Image">
 <!--                <img id="marked_img" style="max-width:100%;min-width: 600px; position: absolute;">-->
             </div>
             <div class="modal-footer">
@@ -156,6 +156,7 @@ let sourceImage, targetRoot, maState;
 // save references to the original image and its parent div (positioning root)
 function setSourceImage(source) {
   sourceImage = source;
+  targetRoot = source.parentElement;
 }
 
 function showMarkerArea(target) {
@@ -178,6 +179,12 @@ function showMarkerArea(target) {
     markerArea.restoreState(maState);
   }
 }
+$(window).on('shown.bs.modal', function() {
+    $('#imageModal').modal('show');
+    const modalImage = document.getElementById('modalImage');
+    setSourceImage(imgScan);
+    showMarkerArea(imgScan);
+});
 
 function openModalCorrectorBox(group_id) {
     $.ajax({
@@ -189,6 +196,8 @@ function openModalCorrectorBox(group_id) {
         },
         success: (data) => {
             console.log(data)
+            var imgScan = document.getElementById('imgScan');
+            imgScan.src = data;
             var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
             imageModal.show();
         },
@@ -206,12 +215,7 @@ function closeAndRestoreMarkerArea() {
     }
 }
 
-$(window).on('shown.bs.modal', function() {
-    $('#imageModal').modal('show');
-    const modalImage = document.getElementById('modalImage');
-    setSourceImage(modalImage);
-    showMarkerArea(modalImage)
-});
+
 
 
 </script>
