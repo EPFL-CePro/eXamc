@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django_tables2',
     'crispy_forms',
     'crispy_bootstrap4',
+    'simple_history',
 ]
 
 MIDDLEWARE = [
@@ -59,6 +60,7 @@ MIDDLEWARE = [
     # Le chargement de « https://localhost:8000/catalogPdf/1 » dans un cadre est refusé par la directive « X-Frame-Options » définie à « DENY ».
     #'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_tequila.middleware.TequilaMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'examreview.urls'
@@ -126,12 +128,16 @@ MARKED_SCANS_ROOT = BASE_DIR / 'marked_scans/'
 MARKED_SCANS_URL = '/marked_scans/'
 
 # Autoupload folder
-AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload'
+AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload/'
 AUTOUPLOAD_URL = '/autoupload/'
 
 # Export marked files folder tmp
-EXPORT_TMP_ROOT = BASE_DIR / 'export_tmp'
+EXPORT_TMP_ROOT = BASE_DIR / 'export_tmp/'
 EXPORT_TMP_URL = '/export_tmp/'
+
+# AMC projects folder
+AMC_PROJECTS_ROOT = BASE_DIR / 'amc_projects/'
+AMC_PROJECTS_URL = '/amc_projects/'
 
 # Django-tequila specifics
 AUTH_PROFILE_MODULE = "userprofile.UserProfile"

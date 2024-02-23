@@ -105,6 +105,7 @@ function setMarkerArea(target) {
     markerArea.uiStyleSettings.zoomOutButtonVisible = true;
     markerArea.uiStyleSettings.clearButtonVisible = true;
     markerArea.uiStyleSettings.resultButtonBlockVisible = true;
+    markerArea.settings.newFreehandMarkerOnPointerUp = true;
 
     // since the container div is set to position: relative it is now our positioning root
     // end we have to let marker.js know that
@@ -114,7 +115,7 @@ function setMarkerArea(target) {
         markedImage.src = event.dataUrl;
         // save the state of MarkerArea
         //maState = event.state;
-        updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
+        //updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
     });
 
     markerArea.addEventListener("close", (event) => {
@@ -132,6 +133,17 @@ function setMarkerArea(target) {
     if (maState) {
         markerArea.restoreState(maState);
     }
+
+    markerArea.addEventListener("markerdeselect", (event) => {
+        alert("deselect");
+        //updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
+    });
+    markerArea.addEventListener("focus", (event) => {
+        alert("foc");
+    });
+    markerArea.addEventListener("blur", (event) => {
+        alert("blur");
+    });
 }
 
 function getMarkersAndComments(pk,copy_no,page_no,filename){

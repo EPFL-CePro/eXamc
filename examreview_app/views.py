@@ -1,5 +1,6 @@
 import datetime
 import operator
+import sqlite3
 
 from django.core.serializers import serialize
 from django.shortcuts import render, redirect, get_object_or_404
@@ -549,3 +550,139 @@ def saveComment(request):
     print(comment)
 
     return HttpResponse("ok")
+
+
+
+
+
+
+
+
+
+##########################################
+# TESTING
+##########################################
+@login_required
+def amc_check_detection(request, pk):
+    exam = Exam.objects.get(pk=pk)
+
+    con = sqlite3.connect("/home/ludo/CEPRO/Workspace/GITHUB_KedroX/ExamReview/examreview/amc_projects/2024/1/CS-119h_final/data/capture.sqlite")
+    cur = con.cursor()
+    select_amc_pages_str = ("SELECT "
+                            "   student as copy,"
+                            "   page as page, "
+                            "   mse as mse, "
+                            "   REPLACE(src,'%PROJET','"+str(settings.AMC_PROJECTS_URL)+"2024/1/CS-119h_final') as source, "
+                            "   (SELECT 10*(0.007 - MIN(ABS(1.0 * cz.black / cz.total - 0.007))) / 0.007 FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page) as sensitivity " 
+                            "FROM capture_page cp "
+                            "ORDER BY copy, page")
+
+    query = cur.execute(select_amc_pages_str)
+
+    colname_pages = [d[0] for d in query.description]
+    data_pages = [dict(zip(colname_pages, r)) for r in query.fetchall()]
+
+    for data in data_pages:
+        query = cur.execute("SELECT DISTINCT(id_a) FROM capture_zone WHERE type = 4 AND student = "+ str(data['copy']) + " AND page = " + str(data['page']))
+        colname_questions_id = [d[0] for d in query.description]
+        data_questions_id = [dict(zip(colname_questions_id, r)) for r in query.fetchall()]
+        questions_ids=''
+        for qid in data_questions_id:
+            questions_ids+='%'+str(qid['id_a'])
+        data['questions_ids'] = questions_ids+'%'
+
+    cur.close()
+    cur.connection.close()
+
+    con = sqlite3.connect("/home/ludo/CEPRO/Workspace/GITHUB_KedroX/ExamReview/examreview/amc_projects/2024/1/CS-119h_final/data/layout.sqlite")
+    cur = con.cursor()
+    select_amc_questions_str = ("SELECT * FROM layout_question")
+
+    query = cur.execute(select_amc_questions_str)
+
+    colname_questions = [d[0] for d in query.description]
+    data_questions = [dict(zip(colname_questions, r)) for r in query.fetchall()]
+
+    cur.close()
+    cur.connection.close()
+
+    context = {}
+    if user_allowed(exam, request.user.id):
+        context['exam'] = exam
+        context['user_allowed'] = True
+        context['data_pages'] = data_pages
+        context['data_questions'] = data_questions
+    else:
+        context['user_allowed'] = False
+
+    return render(request, 'amc/amc_check_detection.html',  context)
+
+@login_required
+def get_amc_marks_positions(request):
+    copy = request.POST['copy']
+    page = request.POST['page']
+
+
+    con = sqlite3.connect("/home/ludo/CEPRO/Workspace/GITHUB_KedroX/ExamReview/examreview/amc_projects/2024/1/CS-119h_final/data/capture.sqlite")
+    cur = con.cursor()
+
+    # Attach scoring db
+    cur.execute("ATTACH DATABASE '/home/ludo/CEPRO/Workspace/GITHUB_KedroX/ExamReview/examreview/amc_projects/2024/1/CS-119h_final/data/scoring.sqlite' as scoring")
+
+    select_mark_position_str = ("SELECT cp.zoneid, "
+                                "cp.corner, "
+                                "cp.x, "
+                                "cp.y, "
+                                "cz.manual,"
+                                "cz.black, "
+                                "sc.why "
+                                "FROM capture_position cp "
+                                "INNER JOIN capture_zone cz ON cz.zoneid = cp.zoneid "
+                                "INNER JOIN scoring.scoring_score sc ON sc.student = "+str(copy)+" AND sc.question = cz.id_a "
+                                "WHERE cp.zoneid in "
+                                "   (SELECT cz2.zoneid from capture_zone cz2 WHERE cz2.student = "+str(copy)+" AND cz2.page = "+str(page)+") "
+                                "AND cp.type = 1 "
+                                "AND cz.type = 4 "
+                                "ORDER BY cp.zoneid, cp.corner ")
+
+    query = cur.execute(select_mark_position_str)
+
+    colname_positions = [d[0] for d in query.description]
+    data_positions = [dict(zip(colname_positions, r)) for r in query.fetchall()]
+
+    cur.close()
+    cur.connection.close()
+    return HttpResponse(json.dumps(data_positions))
+
+@login_required
+def update_amc_mark_zone(request):
+    zoneid = request.POST['zoneid']
+
+    con = sqlite3.connect("/home/ludo/CEPRO/Workspace/GITHUB_KedroX/ExamReview/examreview/amc_projects/2024/1/CS-119h_final/data/capture.sqlite")
+    cur = con.cursor()
+
+    select_mark_zone_str = ("SELECT manual FROM capture_zone WHERE zoneid = " + str(zoneid))
+
+    query = cur.execute(select_mark_zone_str)
+
+    colname_zones = [d[0] for d in query.description]
+    data_zones = [dict(zip(colname_zones, r)) for r in query.fetchall()]
+
+    print(data_zones)
+
+    manual = data_zones[0]
+    if manual == "-1.0" or "manual == 1.0":
+        manual = "0.0"
+    else:
+        manual = "1.0"
+
+    update_mark_zone_str = ("UPDATE capture_zone SET manual = " + manual + " WHERE zoneid = " + str(zoneid))
+
+    cur.execute(update_mark_zone_str)
+    con.commit()
+
+    cur.close()
+    con.close()
+
+    return HttpResponse('')
+

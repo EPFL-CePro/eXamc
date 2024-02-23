@@ -20,7 +20,9 @@
     <script src="{% static 'js/Chart.min.js' %}"></script>
     <script src="{% static 'js/palette.js' %}"></script>
 
-
+    <!-- bootstrap table -->
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.22.2/dist/bootstrap-table.min.css">
+    <script src="https://unpkg.com/bootstrap-table@1.22.2/dist/bootstrap-table.min.js"></script>
 
     <!-- testing -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
@@ -43,8 +45,9 @@
     <script src="https://cdn.tiny.cloud/1/kr9ouegwtqai2kg8nadg9x584jbqawgxkc832sts20ujsde9/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
     <!-- markerjs2 -->
-    <script src="{% static 'js/markerjs2.js' %}"></script>
-    <script src="{% static 'js/markerjs-live.js' %}"></script>
+    <script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+<!--    <script src="{% static 'js/markerjs2.js' %}"></script>-->
+<!--    <script src="{% static 'js/markerjs-live.js' %}"></script>-->
 
 
 
@@ -127,6 +130,9 @@
                   </li>
                   <li>
                     <a href="{% url 'testing' %}">TESTING</a>
+                  </li>
+                  <li>
+                    <a href="{% url 'amc_check_detection' exam.pk %}">AMC CHECK TESTING</a>
                   </li>
                   {% endif %}
               </ul>

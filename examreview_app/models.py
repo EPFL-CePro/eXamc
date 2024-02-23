@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from simple_history.models import HistoricalRecords
+from simple_history import register
 
 # Get an instance of a logger
 import logging
@@ -10,18 +12,8 @@ logger = logging.getLogger(__name__)
 
 User.__str__ = lambda user_instance: user_instance.first_name + " " + user_instance.last_name
 
-class LogOnUpdateDeleteMixin(models.Model):
-    pass
-
-    def delete(self, *args, **kwargs):
-        super(LogOnUpdateDeleteMixin, self).delete(*args, **kwargs)
-        logging.info("%s instance %s (pk %s) deleted" % (str(self._meta), str(self), str(self.pk),)) # or whatever you like
-
-    def save(self, *args, **kwargs):
-        super(LogOnUpdateDeleteMixin, self).save(*args, **kwargs)
-        logging.info("%s instance %s (pk %s) updated" % (str(self._meta), str(self), str(self.pk),)) # or whatever you like
-    class Meta:
-        abstract = True
+# history tracker for third-party model
+register(User)
 
 class Exam(models.Model):
     code = models.CharField(max_length=50)
@@ -35,6 +27,7 @@ class Exam(models.Model):
     overall = models.BooleanField(default=0)
     indiv_formula = models.CharField(max_length=100, blank=True)
     pages_by_copy = models.CharField(max_length=10000, blank=True)
+    history = HistoricalRecords()
 
     class Meta:
         unique_together = ('code', 'semester', 'year')
@@ -79,6 +72,7 @@ class ExamPagesGroup(models.Model):
     page_to = models.IntegerField(default=0)
     grading_help = models.TextField(default='')
     correctorBoxes = models.TextField(blank=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
@@ -87,12 +81,13 @@ class ExamReviewer(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='examReviewers')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examReviewers')
     pages_groups = models.ManyToManyField(ExamPagesGroup, blank=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.exam.code + " - " + self.user.username
 
 
-class ExamPagesGroupComment(LogOnUpdateDeleteMixin,models.Model):
+class ExamPagesGroupComment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examPagesGroupComments')
     pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments', blank=True)
     copy_no = models.CharField(max_length=10, default='0')
@@ -101,6 +96,7 @@ class ExamPagesGroupComment(LogOnUpdateDeleteMixin,models.Model):
     modified = models.DateTimeField(blank=True)
     content = models.TextField()
     is_new = models.BooleanField()
+    history = HistoricalRecords()
 
     def serialize(self, curr_user_id):
         modified_str = ""
@@ -125,12 +121,13 @@ class ExamPagesGroupComment(LogOnUpdateDeleteMixin,models.Model):
 class ScanMarkers(models.Model):
     copie_no = models.CharField(max_length=10,default='0')
     page_no = models.CharField(max_length=10,default='0')
-    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupMarkers', blank=True)
+    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupMarkers', blank=True,null=True)
     filename = models.CharField(max_length=100)
     markers = models.TextField(blank = True)
     comment = models.TextField(blank = True)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scanMarkers')
     correctorBoxMarked = models.BooleanField(default=False)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.copie_no + " - " + self.filename + " " + self.exam.code

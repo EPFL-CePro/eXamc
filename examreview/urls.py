@@ -45,8 +45,11 @@ urlpatterns = [
     path('edit_pages_group_corrector_box', views.edit_pages_group_corrector_box, name="edit_pages_group_corrector_box"),
     # path('get_pages_group_corrector_box', views.get_pages_group_corrector_box, name="get_pages_group_corrector_box"),
     path('export_marked_files/<int:pk>', views.export_marked_files, name="export_marked_files"),
+    path('amc_check_detection/<int:pk>', views.amc_check_detection, name="amc_check_detection"),
+    path('get_amc_marks_positions',views.get_amc_marks_positions, name="get_amc_marks_positions"),
+    path('update_amc_mark_zone',views.update_amc_mark_zone, name="update_amc_mark_zone"),
     #path('manageExamPagesGroups/<int:pk>',login_required(views.ManageExamPagesGroupsView.as_view()), name="manageExamPagesGroups"),
     #path('test_function>', views.test_function, name="test_function")
-] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
+] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT) + static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
 
 urlpatterns += django_tequila_urlpatterns

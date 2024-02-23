@@ -1,0 +1,327 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load render_table from django_tables2 %}
+
+{% block title %}AMC check detection {% endblock %}
+
+{% block scripts %}
+
+  {% endblock %}
+
+  {% block content %}
+
+    {% if user_allowed %}
+    <h4>AMC check detection</h4>
+    <div class="d-flex">
+        <div id="scan_page" style="height:100vh;">
+            <canvas id="canvasScan" style="border:1px solid lightgray;"></canvas>
+        </div>
+        <div class="list-group" style="width: 350px;margin-left:5px" >
+            <div class="btn-toolbar mb-3 justify-content-between">
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-dark btn-sm" style="width:100px;" onclick="go_to_previews();"><i class="fas fa-chevron-left fa-2x"></i></button>
+                </div>
+                <div class="btn-group me-2">
+                    <button id="btnGroupDropType" type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width:100px;">All</button>
+                    <div class="dropdown-menu" aria-labelledby="btnGroupDropType">
+                        <a class="dropdown-item" onclick="find_row_by_filters('all',question_filter_id, question_filter_name);">all</a>
+                        <a class="dropdown-item" onclick="find_row_by_filters('inv',question_filter_id, question_filter_name);" >inv</a>
+                        <a class="dropdown-item" onclick="find_row_by_filters('i&e',question_filter_id, question_filter_name);" >i&e</a>
+                    </div>
+                </div>
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-dark btn-sm" style="width:100px;" onclick="go_to_next();"><i class="fas fa-chevron-right fa-2x"></i></button>
+                </div>
+            </div>
+            <div class="btn-toolbar mb-3 justify-content-between">
+                <div class="btn-group me-2" role="group">
+                    Focus on question:
+                    <button id="btnGroupDropQuestions" type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="margin-left:15px;width:200px">All</button>
+                    <div class="dropdown-menu" aria-labelledby="btnGroupDropQuestions">
+                        <a class="dropdown-item" onclick="find_row_by_filters(0,'All');">All</a>
+                        {% for question in data_questions %}
+                        <a class="dropdown-item" onclick="find_row_by_filters(type_filter,{{ question.question }},'{{ question.name }}');">{{ question.name }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <table id="table-copies-pages" class="table table-sm table-striped">
+            <thead>
+              <tr>
+                <th data-sortable="true">Copy</th>
+                <th data-sortable="true">Page</th>
+                <th data-sortable="true">MSE</th>
+                <th data-sortable="true">Sensitivity</th>
+                <th style="display:none;width:0px;">source</th>
+                <th style="display:none;width:0px;">questions</th>
+              </tr>
+            </thead>
+            <tbody style="height:50%;">
+              {% for row in data_pages %}
+              <tr id="table-scan-row-{{ row.copy }}-{{ row.page }}">
+                <td>{{ row.copy }}</td>
+                <td> {{ row.page }}</td>
+                <td>{{ row.mse }}</td>
+                <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{{ row.sensitivity }}</td>
+                <td style="display:none;">{{ row.source }}</td>
+                <td style="display:none;">{{ row.questions_ids }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+    </div>
+{% endif %}
+
+<script>
+var table = $("#table-copies-pages").DataTable( {
+        scrollY: '72vh',
+            "dom": 'rtip',
+        "lengthChange": false,
+        "paging": false
+    } );
+
+var filtered_questions_list=[];
+var question_filter_id=0;
+var question_filter_name='All';
+var type_filter='All';
+var curr_selected_id = "table-scan-row-1-1";
+var canvasScan = document.getElementById("canvasScan");
+var imgScan = new Image();
+initCopyPagesTableOnClickRowEvent(true);
+find_row_by_filters('all',0, 'All');
+$("#table-copies-pages tbody tr:first").trigger('click');
+
+
+
+function setScanCanvas(data,scan_src,copy,page){
+
+    var data_obj = JSON.parse(data);
+    imgScan.src = scan_src;
+
+    //remove canvas element and recreate
+    canvasScan.remove();
+
+    canvasScan = document.createElement("canvas");
+    canvasScan.id = "CursorLayer";
+    canvasScan.style.border = "1px solid lightgray";
+
+    var canvasdiv = document.getElementById("scan_page");
+    canvasdiv.appendChild(canvasScan);
+
+    elements = [];
+    var ctxImg = canvasScan.getContext("2d");
+
+    ctxImg.canvas.width = imgScan.width/2.5;
+    ctxImg.canvas.height = imgScan.height/2.5;
+
+    //set sleep function to wait before drawing image otherwise new image is not updating
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    sleep(100).then(() => {
+
+    ctxImg.drawImage(imgScan, 0, 0,imgScan.width/2.5,imgScan.height/2.5);
+
+    for (let pos of data_obj){
+        switch(pos.corner){
+            case 1:
+                // Define a start Point-->
+                ctxImg.beginPath();
+                ctxImg.moveTo(pos.x/2.5,pos.y/2.5);
+                elemTop=pos.y/2.5;
+                elemLeft=pos.x/2.5;
+                c1=[pos.x/2.5,pos.y/2.5];
+                break;
+            case 2:
+                // Define second Point
+                ctxImg.lineTo(pos.x/2.5,pos.y/2.5);
+                c2=[pos.x/2.5,pos.y/2.5];
+                break;
+            case 3:
+                // Define third Point
+                ctxImg.lineTo(pos.x/2.5,pos.y/2.5);
+                elemRight=pos.x/2.5;
+                c3=[pos.x/2.5,pos.y/2.5];
+                break;
+            case 4:
+                // Define fourth Point, close path and stroke
+                ctxImg.lineTo(pos.x/2.5,pos.y/2.5);
+                ctxImg.closePath();
+                elemBottom=pos.y/2.5;
+                c4=[pos.x/2.5,pos.y/2.5];
+
+                if( (pos.black > 0 && pos.manual === -1) || pos.manual === 1){
+                    ctxImg.strokeStyle = '#ff0000';
+                    ctxImg.lineWidth = 3;
+                }else{
+                    ctxImg.strokeStyle = '#3342FF';
+                    ctxImg.lineWidth = 1;
+                }
+
+                ctxImg.stroke();
+                ctxImg.restore();
+
+                // draw yellow and blue lines for E and V (invalid and empty)
+                if(pos.why != ''){
+                    // Define a start Point-->
+                    ctxImg.beginPath();
+                    ctxImg.moveTo(c1[0]-5,c1[1]-5);
+                    ctxImg.lineTo(c2[0]+5,c2[1]-5);
+                    ctxImg.lineTo(c3[0]+5,c3[1]+5);
+                    ctxImg.lineTo(c4[0]-5,c4[1]+5);
+                    ctxImg.closePath();
+                    if(pos.why == 'E'){
+                        ctxImg.strokeStyle = '#FFFF33';
+                    }else{
+                        ctxImg.strokeStyle = '#00FFFF';
+                    };
+                    ctxImg.lineWidth = 5;
+                    ctxImg.stroke();
+                    ctxImg.restore();
+
+                    c1=[0,0];
+                    c2=[0,0];
+                    c3=[0,0];
+                    c4=[0,0];
+                }
+
+                // Add element.
+                elements.push({
+                    copy: copy,
+                    page: page,
+                    zoneid: pos.zoneid,
+                    corner: pos.corner,
+                    manual: pos.manual,
+                    black: pos.black,
+                    scan_src: scan_src,
+                    top: elemTop,
+                    left: elemLeft,
+                    width: elemRight-elemLeft,
+                    height: elemBottom-elemTop
+                });
+                break;
+        }
+    };
+    });
+
+    // Add canvas event listener for `click` events.
+    canvasScan.addEventListener('click', function(event) {
+        var x = event.offsetX,
+            y = event.offsetY;
+
+        // Collision detection between clicked offset and element.
+        elements.forEach(function(element) {
+            if (y > element.top && y < element.top + element.height
+                && x > element.left && x < element.left + element.width) {
+                update_amc_mark_zone(element);
+            }
+        });
+
+    }, false);
+
+}
+function initCopyPagesTableOnClickRowEvent(refresh){
+
+    $("#table-copies-pages tbody").on('click', 'tr', function () {
+        $(document.getElementById(curr_selected_id)).css('background','');
+        $(this).css('background', 'yellow');
+        get_amc_marks_positions(this.cells[0].innerText,this.cells[1].innerText,this.cells[4].innerText);
+        curr_selected_id=this.id;
+    });
+
+    if(!refresh){
+        var table = $("#table-copies-pages").DataTable( {
+            scrollY: '85vh',
+            "dom": 'rtip',
+            "lengthChange": false,
+            "paging": false
+        } );
+    }
+}
+
+function get_amc_marks_positions(copy,page,scan_src){
+    $.ajax({
+        url: "{% url 'get_amc_marks_positions' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'copy' : copy,
+            'page' : page
+        },
+        success: (data) => {
+            setScanCanvas(data,scan_src,copy,page);
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function update_amc_mark_zone(element){
+    $.ajax({
+        url: "{% url 'update_amc_mark_zone' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'zoneid' : element.zoneid,
+            'corner' : element.corner
+        },
+        success: (data) => {
+            get_amc_marks_positions(element.copy,element.page,element.scan_src);
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function find_row_by_filters(type,question_id,question_name){
+    filtered_questions_list = [];
+    rows = [];
+    if(question_id == 0 && type === 'all'){
+        rows = Array.from($("#table-copies-pages tbody tr"));
+    }else{
+        search_str='%'+question_id+'%'
+        rows = Array.from($("#table-copies-pages tbody tr:contains("+search_str+")"));
+    }
+    rows.forEach(function (row) {
+        filtered_questions_list.push(row.getAttribute('id'));
+    });
+
+    question_filter_id=question_id;
+    question_filter_name=question_name;
+    type_filter=type
+    document.getElementById('btnGroupDropQuestions').innerHTML=question_name;
+    document.getElementById('btnGroupDropType').innerHTML=type;
+}
+
+function go_to_next(){
+    next = filtered_questions_list[0];
+    curr_index = filtered_questions_list.indexOf(curr_selected_id);
+    if(curr_index > -1 && curr_index < filtered_questions_list.length-1){
+        next = filtered_questions_list[curr_index+1];
+    };
+    $("#"+next).trigger('click');
+    curr_selected_id = next;
+}
+
+function go_to_previews(){
+    previews = filtered_questions_list[0];
+    curr_index = filtered_questions_list.indexOf(curr_selected_id);
+    if(curr_index > 0){
+        previews = filtered_questions_list[curr_index-1];
+    };
+    $("#"+previews).trigger('click');
+    curr_selected_id = previews;
+}
+</script>
+
+
+
+
+
+
+{% endblock %}
