@@ -129,5 +129,14 @@ class ScanMarkers(models.Model):
     correctorBoxMarked = models.BooleanField(default=False)
     history = HistoricalRecords()
 
+
     def __str__(self):
         return self.copie_no + " - " + self.filename + " " + self.exam.code
+
+
+class DrawnImage(models.Model):
+    image_data = models.IntegerField(default=False)
+    group_id = models.IntegerField(default=False)
+
+    def __str__(self):
+        return f'Image (ID: {self.id})'

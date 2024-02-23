@@ -1,10 +1,11 @@
 
-
+<script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
 </br>
 <h6>PAGES GROUPS</h6>
 {% load crispy_forms_tags %}
 
 {% load custom_tags %}
+
 
 <form id="form-groups" method="POST">
     {% csrf_token %}
@@ -35,7 +36,7 @@
             {% endif %}
             {% endfor %}
             <td><a id="grading-help-bt" class="btn btn-outline-info btn-sm" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )">Grading Help</a></td>
-            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" onclick="openModal()">Corrector Boxes</a></td>
+            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})">Corrector Boxes</a></td>
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
@@ -86,8 +87,9 @@
                 <h5 class="modal-title" id="imageModalLabel">Corrector boxes</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <img id="modalImage" src="{% static '/images/copy_0001_05.jpeg' %}" class="img-fluid" alt="Image">
+            <div class="modal-body" style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
+                <img id="imgScan"  style="width:100%;" alt="Image">
+<!--                <img id="marked_img" style="max-width:100%;min-width: 600px; position: absolute;">-->
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -97,6 +99,7 @@
 </div>
 
 <script type="text/javascript">
+
 tinymce.init({
     selector: 'textarea#grading-help',
     skin: 'bootstrap',
@@ -131,7 +134,6 @@ function cancelGradingHelp(){
 }
 
 function saveGradingHelp(group_id){
-
     $.ajax({
         url: "{% url 'edit_pages_group_grading_help' %}",
         async : false,
@@ -149,27 +151,71 @@ function saveGradingHelp(group_id){
         }
     });
 }
-function openModal(imageURL) {
-    var modalImage = document.getElementById('modalImage');
-    var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-    imageModal.show();
-    setMarkerArea(modalImage);
-    setSourceScan(imageURL);
+
+let sourceImage, targetRoot, maState;
+// save references to the original image and its parent div (positioning root)
+function setSourceImage(source) {
+  sourceImage = source;
+  targetRoot = source.parentElement;
 }
 
+function showMarkerArea(target) {
+  const markerArea = new markerjs2.MarkerArea(sourceImage);
+  // since the container div is set to position: relative it is now our positioning root
+  // end we have to let marker.js know that
+  markerArea.targetRoot = targetRoot;
+  markerArea.availableMarkerTypes = ["FrameMarker", markerjs2.ArrowMarker];
+  markerArea.addEventListener("render", (event) => {
+    target.src = event.dataUrl;
+    // save the state of MarkerArea
+    maState = event.state;
+});
+  markerArea.addEventListener("close", (event) => {
+    showMarkerArea(target);
+});
+  markerArea.show();
+  // if previous state is present - restore it
+  if (maState) {
+    markerArea.restoreState(maState);
+  }
+}
+$(window).on('shown.bs.modal', function() {
+    $('#imageModal').modal('show');
+    const modalImage = document.getElementById('modalImage');
+    setSourceImage(imgScan);
+    showMarkerArea(imgScan);
+});
 
-function setMarkerArea(imageElement) {
-    markerArea = new markerjs2.MarkerArea(imageElement);
-    markerArea.targetRoot = imageElement.parentElement;
-    markerArea.show();
-
-    markerArea.addEventListener("render", (event) => {
-        var markedImage = document.getElementById('modalImage'); // Assuming markedImage is the target element to display marked image
-        markedImage.src = event.dataUrl;
-        // save the state of MarkerArea
-        //maState = event.state;
-        updateMarkers(markerArea, "{{ exam.pk }}", "{{ pages_group.pk }}");
+function openModalCorrectorBox(group_id) {
+    $.ajax({
+        type: 'POST',
+        url: "{% url 'get_group_path_image' %}",
+        data: {
+            'group_id': group_id,
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        success: (data) => {
+            console.log(data)
+            var imgScan = document.getElementById('imgScan');
+            imgScan.src = data;
+            var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+            imageModal.show();
+        },
+        error: function(error) {
+            console.log(error);
+        }
     });
 }
+
+function closeAndRestoreMarkerArea() {
+    const markerArea = new markerjs2.MarkerArea(sourceImage);
+    markerArea.show();
+    if (rectangleCoordinates) {
+        markerArea.restoreRect(rectangleCoordinates);
+    }
+}
+
+
+
 
 </script>

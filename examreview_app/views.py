@@ -5,7 +5,7 @@ import sqlite3
 from django.core.serializers import serialize
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
-
+from .models import DrawnImage
 from examreview_app.utils.functions import *
 from .forms import *
 from django_tables2 import SingleTableView
@@ -14,7 +14,7 @@ from .tables import ExamSelectTable
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, Http404, FileResponse, HttpRequest, HttpResponseRedirect, HttpResponseForbidden,HttpResponseBadRequest
+from django.http import HttpResponse, Http404, FileResponse, HttpRequest, HttpResponseRedirect, HttpResponseForbidden,HttpResponseBadRequest, JsonResponse
 from django.urls import reverse, reverse_lazy
 import zipfile
 import os
@@ -239,6 +239,29 @@ def edit_pages_group_corrector_box(request):
 
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
 
+@login_required
+def get_group_path_image(request):
+    if request.method == 'POST':
+        examPagesGroup = ExamPagesGroup.objects.get(pk=request.POST.get('group_id'))
+        img_path = get_scans_path_for_group(examPagesGroup)
+        print(img_path)
+        if img_path:
+            return HttpResponse(img_path)
+        else:
+            return HttpResponse(img_path)
+
+def save_drawn_image(request):
+    if request.method == 'POST':
+        image_data = request.POST.get('image_data')
+        group_id = request.POST.get('group_id')
+
+        # Enregistrez les données de l'image dans votre base de données
+        drawn_image = DrawnImage(image_data=image_data, group_id=group_id)
+        drawn_image.save()
+
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'success': False, 'error': 'error'})
 
 # @login_required
 # def get_pages_group_corrector_box(request):
