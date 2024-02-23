@@ -134,3 +134,6 @@ scans/*/
 
 !marked_scans/
 marked_scans/*/
+
+!amc_projects/
+amc_projects/*/

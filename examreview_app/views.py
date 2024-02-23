@@ -586,11 +586,15 @@ def saveComment(request):
 # TESTING
 ##########################################
 @login_required
-def amc_check_detection(request, pk):
+def amc_view(request, pk):
     exam = Exam.objects.get(pk=pk)
 
     con = sqlite3.connect("/home/ludo/CEPRO/Workspace/GITHUB_KedroX/ExamReview/examreview/amc_projects/2024/1/CS-119h_final/data/capture.sqlite")
     cur = con.cursor()
+
+    # Attach scoring db
+    cur.execute("ATTACH DATABASE '/home/ludo/CEPRO/Workspace/GITHUB_KedroX/ExamReview/examreview/amc_projects/2024/1/CS-119h_final/data/scoring.sqlite' as scoring")
+
     select_amc_pages_str = ("SELECT "
                             "   student as copy,"
                             "   page as page, "
@@ -606,12 +610,23 @@ def amc_check_detection(request, pk):
     data_pages = [dict(zip(colname_pages, r)) for r in query.fetchall()]
 
     for data in data_pages:
-        query = cur.execute("SELECT DISTINCT(id_a) FROM capture_zone WHERE type = 4 AND student = "+ str(data['copy']) + " AND page = " + str(data['page']))
+        query = cur.execute("SELECT DISTINCT(id_a), "
+                            "sc.why as why "
+                            "FROM capture_zone cz "
+                            "INNER JOIN scoring.scoring_score sc ON sc.student = "+str(data['copy'])+" AND sc.question = cz.id_a "
+                            "WHERE type = 4 "
+                            "AND cz.student = "+ str(data['copy']) +
+                            " AND cz.page = " + str(data['page']))
         colname_questions_id = [d[0] for d in query.description]
         data_questions_id = [dict(zip(colname_questions_id, r)) for r in query.fetchall()]
         questions_ids=''
         for qid in data_questions_id:
             questions_ids+='%'+str(qid['id_a'])
+            if qid['why'] == 'E':
+                questions_ids+='|INV|'
+            elif qid['why'] == 'V':
+                questions_ids+='|EMP|'
+
         data['questions_ids'] = questions_ids+'%'
 
     cur.close()
@@ -638,7 +653,7 @@ def amc_check_detection(request, pk):
     else:
         context['user_allowed'] = False
 
-    return render(request, 'amc/amc_check_detection.html',  context)
+    return render(request, 'amc/amc.html',  context)
 
 @login_required
 def get_amc_marks_positions(request):
@@ -693,8 +708,8 @@ def update_amc_mark_zone(request):
 
     print(data_zones)
 
-    manual = data_zones[0]
-    if manual == "-1.0" or "manual == 1.0":
+    manual = data_zones[0]['manual']
+    if manual == -1.0 or manual == 1.0:
         manual = "0.0"
     else:
         manual = "1.0"

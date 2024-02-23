@@ -1,17 +1,4 @@
-{% extends 'base.html' %}
-{% load static %}
-{% load render_table from django_tables2 %}
 
-{% block title %}AMC check detection {% endblock %}
-
-{% block scripts %}
-
-  {% endblock %}
-
-  {% block content %}
-
-    {% if user_allowed %}
-    <h4>AMC check detection</h4>
     <div class="d-flex">
         <div id="scan_page" style="height:100vh;">
             <canvas id="canvasScan" style="border:1px solid lightgray;"></canvas>
@@ -25,8 +12,8 @@
                     <button id="btnGroupDropType" type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width:100px;">All</button>
                     <div class="dropdown-menu" aria-labelledby="btnGroupDropType">
                         <a class="dropdown-item" onclick="find_row_by_filters('all',question_filter_id, question_filter_name);">all</a>
-                        <a class="dropdown-item" onclick="find_row_by_filters('inv',question_filter_id, question_filter_name);" >inv</a>
-                        <a class="dropdown-item" onclick="find_row_by_filters('i&e',question_filter_id, question_filter_name);" >i&e</a>
+                        <a class="dropdown-item" onclick="find_row_by_filters('invalid',question_filter_id, question_filter_name);" >invalid</a>
+                        <a class="dropdown-item" onclick="find_row_by_filters('empty',question_filter_id, question_filter_name);" >empty</a>
                     </div>
                 </div>
                 <div class="btn-group me-2">
@@ -72,7 +59,6 @@
           </table>
         </div>
     </div>
-{% endif %}
 
 <script>
 var table = $("#table-copies-pages").DataTable( {
@@ -284,7 +270,18 @@ function find_row_by_filters(type,question_id,question_name){
     if(question_id == 0 && type === 'all'){
         rows = Array.from($("#table-copies-pages tbody tr"));
     }else{
-        search_str='%'+question_id+'%'
+        search_str = '';
+        if(question_id > 0){
+            search_str = '%'+question_id;
+        }
+        if(type === 'invalid'){
+            search_str += '|INV|';
+        }
+        if(type === 'empty'){
+            search_str += '|EMP|';
+        }
+
+        search_str+='%'
         rows = Array.from($("#table-copies-pages tbody tr:contains("+search_str+")"));
     }
     rows.forEach(function (row) {
@@ -305,6 +302,11 @@ function go_to_next(){
         next = filtered_questions_list[curr_index+1];
     };
     $("#"+next).trigger('click');
+
+    tableContainer = $('#table-copies-pages')[0].parentNode;
+    row = document.getElementById(next);
+    offsetTop = row.offsetTop;
+    tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight/2;
     curr_selected_id = next;
 }
 
@@ -315,13 +317,14 @@ function go_to_previews(){
         previews = filtered_questions_list[curr_index-1];
     };
     $("#"+previews).trigger('click');
+
+    tableContainer = $('#table-copies-pages')[0].parentNode();
+    row = document.getElementById(preview);
+    offsetTop = row.offsetTop;
+    tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight/2;
     curr_selected_id = previews;
 }
 </script>
 
 
 
-
-
-
-{% endblock %}
