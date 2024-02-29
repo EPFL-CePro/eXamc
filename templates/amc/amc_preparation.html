@@ -1,0 +1,210 @@
+
+{% load custom_tags %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.css" integrity="sha512-A81ejcgve91dAWmCGseS60zjrAdohm7PTcAjjiDWtw3Tcj91PNMa1gJ/ImrhG+DbT5V+JQ5r26KT5+kgdVTb5w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<div style="padding:10px;width:800px;">
+    <div class="mb-3">
+        <button type="button" class="btn btn-dark btn-sm" onclick="openSelectSourceFileDialog();" ><i class="fas fa-pencil-alt"></i> Edit source files</button>
+    </div>
+    <hr/>
+    <div class="mb-3">
+        <label for="number_of_copies" class="form-label">Number of copies:</label>
+        <input type="number" class="form-control" id="number_of_copies" style="width:200px;" value="{{ number_of_copies }}">
+    </div>
+    <hr/>
+    <div class="mb-3">
+        <button type="button" class="btn btn-dark btn-sm" onclick="amcUpdateDocuments();"><i class="fas fa-sync-alt"></i> Update documents</button>
+        <div class="mb-3" style="text-align:right;">
+            <a href="{% url 'open_amc_exam_pdf' %}" target="_blank" class="btn btn-dark btn-sm" onclick="" style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
+            <a href="{% url 'open_amc_catalog_pdf' %}" target="_blank" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-file-pdf"></i> Catalog</a>
+        </div>
+        {% if update_documents_msg %}
+        <div class="alert alert-success" id="update-documents-msg" role="alert" style="margin-top:20px;text-align:center;">{{ update_documents_msg }}</div>
+        {% else %}
+        <div class="alert alert-warning" id="update-documents-msg" role="alert" style="margin-top:20px;text-align:center;"> Please Update documents !</div>
+        {% endif %}
+    </div>
+    <hr/>
+    <div class="mb-3">
+        <button type="button" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-ruler-combined"></i> Layout detection</button>
+        </br>
+        <div class="alert alert-success" role="alert" style="margin-top:20px;text-align:center;">
+            Processed xxxx pages.
+            <div style="text-align:right;margin-top:-25px;">
+                <button type="button" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-ruler-combined"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="select_source_file_modal" class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Source LaTeX files</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" style="height:75vh;">
+            <div class="row" style="height:100%;">
+                <div class="col col-sm-4" style="height:100%;">
+                    <h4>Folders</h4>
+                    <div id="amc-folder-treeview"></div>
+                </div>
+                <div class="col col-sm-6 border bg-light" style="height:100%">
+                    <h4>Files</h4>
+                    <div style="margin-left:50px;overflow-y: scroll;height:95%;">
+                        <div id="amc-folder-files"></div>
+                    </div>
+                </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <a type="button" class="btn btn-primary" onclick="">Save changes</a>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+  </div>
+</div>
+
+<div id="edit_source_modal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="edit_source_modal_title"></h5>
+        <span id="edit_source_modal_filepath" hidden></span>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+            <textarea class="form-control" id="amc_source_text" rows="50"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a type="button" class="btn btn-primary" onclick="saveEditedSourceFile();">Save changes</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js" integrity="sha512-Hyk+1XSRfagqzuSHE8M856g295mX1i5rfSV5yRugcYFlvQiE3BKgg5oFRfX45s7I8qzMYFa8gbFy9xMFbX7Lqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{{ project_dir_dict|json_script:"json_amc_proj_dir" }}
+<script>
+const amc_dir_json = JSON.parse(document.getElementById('json_amc_proj_dir').textContent);
+setAMCFolderFileListHTML('{{ project_dir_files_list.0.folder }}')
+
+$('#amc-folder-treeview').treeview({
+    data:[amc_dir_json],
+    collapseIcon:'fas fa-minus',
+    expandIcon:'fas fa-plus',
+    levels:2,
+    enableLinks: true,
+    onNodeSelected: function(event, data) {
+        setAMCFolderFileListHTML(data.text);
+    }
+});
+
+function setAMCFolderFileListHTML(dir_name){
+    files_list = '';
+    {% for dir in project_dir_files_list %}
+        dir_folder = '{{ dir.folder }}';
+        if(dir_folder == dir_name){
+            files_list = '<div class="tab-pane fade show active" id="pills-'+dir_folder+'">';
+            files_list += '<ul class="list-group list-group-flush">';
+            {% for file in dir.files %}
+                file_path = '{{ file.1 }}';
+                files_list += '<li class="list-group-item list-group-item-action" onclick="openEditSourceDialog(\''+file_path+'\');">{{ file.0 }}</li>';
+            {% endfor %}
+            files_list += '</ul>';
+            files_list += '</div>';
+            document.getElementById('amc-folder-files').innerHTML = files_list;
+            return true;
+        }
+    {% endfor %}
+
+}
+
+function openSelectSourceFileDialog(){
+    $('#select_source_file_modal').modal('show');
+}
+
+function openEditSourceDialog(filepath){
+    $('#select_source_file_modal').modal('hide');
+    $.ajax({
+        url: "{% url 'edit_amc_file' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'filepath' : filepath
+        },
+        success: (data) => {
+            document.getElementById('amc_source_text').value = data;
+            title = "Edit "+filepath.split("//").slice(-1)[0]
+            document.getElementById('edit_source_modal_title').innerText = title;
+            document.getElementById('edit_source_modal_filepath').innerText = filepath;
+            $('#edit_source_modal').modal('show');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function saveEditedSourceFile(){
+    data = document.getElementById('amc_source_text').value;
+    filepath = document.getElementById('edit_source_modal_filepath').innerText
+    $.ajax({
+        url: "{% url 'save_amc_edited_file' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'data' : data,
+            'filepath' : filepath
+        },
+        success: (data) => {
+            $('#edit_source_modal').modal('hide');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function amcUpdateDocuments(){
+    nb_copies = document.getElementById('number_of_copies').value;
+    $('#loadingModal').modal('show');
+    $.ajax({
+        url: "{% url 'call_amc_update_documents' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'nb_copies' : nb_copies
+        },
+        success: (data) => {
+            upd_doc_msg_el = document.getElementById('update-documents-msg');
+            if(data.includes('error')){
+                upd_doc_msg_el.innerText = data;
+                upd_doc_msg_el.className = "alert alert-danger";
+            }else{
+                upd_doc_msg_el.innerText = data;
+                upd_doc_msg_el.className = "alert alert-success";
+            }
+        },
+        error: (error) => {
+            console.log(error);
+        },
+        complete : function(){
+            $('#loadingModal').modal('hide');
+        }
+    });
+}
+
+
+
+
+
+
+</script>
