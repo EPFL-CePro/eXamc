@@ -197,7 +197,7 @@ def generate_marked_files_zip(exam, export_type):
   if int(export_type) > 1:
     generate_marked_pdfs(export_tmp_dir,export_type)
 
-    #remove subfolders with images
+    #remove subfolders with img
     for root, dirs, files in os.walk(export_tmp_dir):
       for name in dirs:
         shutil.rmtree(os.path.join(root,name))

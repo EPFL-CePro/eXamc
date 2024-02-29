@@ -61,23 +61,25 @@
     </div>
 
 <script>
-var table = $("#table-copies-pages").DataTable( {
-        scrollY: '72vh',
-            "dom": 'rtip',
-        "lengthChange": false,
-        "paging": false
-    } );
+{% if data_pages %}
+    var table = $("#table-copies-pages").DataTable( {
+            scrollY: '72vh',
+                "dom": 'rtip',
+            "lengthChange": false,
+            "paging": false
+        } );
 
-var filtered_questions_list=[];
-var question_filter_id=0;
-var question_filter_name='All';
-var type_filter='All';
-var curr_selected_id = "table-scan-row-1-1";
-var canvasScan = document.getElementById("canvasScan");
-var imgScan = new Image();
-initCopyPagesTableOnClickRowEvent(true);
-find_row_by_filters('all',0, 'All');
-$("#table-copies-pages tbody tr:first").trigger('click');
+    var filtered_questions_list=[];
+    var question_filter_id=0;
+    var question_filter_name='All';
+    var type_filter='All';
+    var curr_selected_id = "table-scan-row-1-1";
+    var canvasScan = document.getElementById("canvasScan");
+    var imgScan = new Image();
+    initCopyPagesTableOnClickRowEvent(true);
+    find_row_by_filters('all',0, 'All');
+    $("#table-copies-pages tbody tr:first").trigger('click');
+{% endif %}
 
 
 

@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from .models import DrawnImage
 from examreview_app.utils.functions import *
+from examreview_app.utils.amc_functions import *
 from .forms import *
 from django_tables2 import SingleTableView
 from django.views.generic import DetailView, ListView, TemplateView
@@ -644,12 +645,30 @@ def amc_view(request, pk):
     cur.close()
     cur.connection.close()
 
+    # get project dir list
+    project_dir_info = get_project_dir_info(exam)
+    project_dir_dict = project_dir_info[0]
+    project_dir_files_list = project_dir_info[1]
+
+    # get amc options and infos
+    amc_option_nb_copies = get_amc_option_by_key(exam,'nombre_copies')
+    amc_update_documents_msg = get_amc_update_document_info(exam)
+    amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
+    amc_catalog_pdf_path = get_amc_catalog_pdf_path(exam)
+
+
     context = {}
     if user_allowed(exam, request.user.id):
         context['exam'] = exam
         context['user_allowed'] = True
+        context['number_of_copies'] = amc_option_nb_copies
+        context['exam_pdf_path'] = amc_exam_pdf_path
+        context['catalog_pdf_path'] = amc_catalog_pdf_path
+        context['update_documents_msg'] = amc_update_documents_msg
         context['data_pages'] = data_pages
         context['data_questions'] = data_questions
+        context['project_dir_dict'] = project_dir_dict
+        context['project_dir_files_list'] = project_dir_files_list
     else:
         context['user_allowed'] = False
 
@@ -724,3 +743,42 @@ def update_amc_mark_zone(request):
 
     return HttpResponse('')
 
+@login_required
+def edit_amc_file(request):
+    f = open(request.POST['filepath'], 'r')
+    file_contents = f.read()
+    f.close()
+    return HttpResponse(file_contents)
+
+@login_required
+def save_amc_edited_file(request):
+    data = request.POST['data']
+    filepath = request.POST['filepath']
+    f = open(filepath, 'r+')
+    f.truncate(0)
+    f.write(data)
+    f.close()
+    return HttpResponse(True)
+
+@login_required
+def call_amc_update_documents(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    nb_copies = request.POST['nb_copies']
+    result = amc_update_documents(exam,nb_copies)
+    if not 'ERR:' in result:
+        result = get_amc_update_document_info(exam)
+    return HttpResponse(result)
+
+def open_amc_exam_pdf(request):
+    file_path = get_amc_exam_pdf_path(None)
+    try:
+        return FileResponse(open(file_path, 'rb'), content_type='application/pdf')
+    except FileNotFoundError:
+        raise Http404('not found')
+
+def open_amc_catalog_pdf(request):
+    file_path = get_amc_catalog_pdf_path(None)
+    try:
+        return FileResponse(open(file_path, 'rb'), content_type='application/pdf')
+    except FileNotFoundError:
+        raise Http404('not found')
