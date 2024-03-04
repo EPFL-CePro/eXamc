@@ -32,8 +32,9 @@ urlpatterns = [
     path('edit_amc_file',views.edit_amc_file, name="edit_amc_file"),
     path('save_amc_edited_file', views.save_amc_edited_file, name="save_amc_edited_file"),
     path('call_amc_update_documents', views.call_amc_update_documents, name="call_amc_update_documents"),
-    path('open_amc_exam_pdf', views.open_amc_exam_pdf, name="open_amc_exam_pdf"),
-    path('open_amc_catalog_pdf', views.open_amc_catalog_pdf, name="open_amc_catalog_pdf"),
+    path('call_amc_layout_detection', views.call_amc_layout_detection, name="call_amc_layout_detection"),
+    path('open_amc_exam_pdf/<int:pk>', views.open_amc_exam_pdf, name="open_amc_exam_pdf"),
+    path('open_amc_catalog_pdf/<int:pk>', views.open_amc_catalog_pdf, name="open_amc_catalog_pdf"),
     path('upload_amc_project/<int:pk>', views.upload_amc_project, name="upload_amc_project"),
     # testing
     path('testing', views.testing, name="testing"),

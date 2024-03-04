@@ -66,7 +66,7 @@ def amc_view(request, pk):
     amc_data_path = get_amc_project_path(exam,False)
 
     if amc_data_path:
-        amc_data_path += "data/"
+        amc_data_path += "/data/"
         amc_data_url = get_amc_project_url(exam)
         con = sqlite3.connect(amc_data_path+"capture.sqlite")
         cur = con.cursor()
@@ -79,7 +79,7 @@ def amc_view(request, pk):
                                 "   student as copy,"
                                 "   page as page, "
                                 "   mse as mse, "
-                                "   REPLACE(src,'%PROJET/','"+amc_data_url+"') as source, "
+                                "   REPLACE(src,'%PROJET','"+amc_data_url+"') as source, "
                                 "   (SELECT 10*(0.007 - MIN(ABS(1.0 * cz.black / cz.total - 0.007))) / 0.007 FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page) as sensitivity " 
                                 "FROM capture_page cp "
                                 "ORDER BY copy, page")
@@ -132,6 +132,7 @@ def amc_view(request, pk):
         # get amc options and infos
         amc_option_nb_copies = get_amc_option_by_key(exam,'nombre_copies')
         amc_update_documents_msg = get_amc_update_document_info(exam)
+        amc_layout_detection_msg = get_amc_layout_detection_info(exam)
         amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
         amc_catalog_pdf_path = get_amc_catalog_pdf_path(exam)
 
@@ -144,6 +145,7 @@ def amc_view(request, pk):
             context['exam_pdf_path'] = amc_exam_pdf_path
             context['catalog_pdf_path'] = amc_catalog_pdf_path
             context['update_documents_msg'] = amc_update_documents_msg
+            context['layout_detection_msg'] = amc_layout_detection_msg
             context['data_pages'] = data_pages
             context['data_questions'] = data_questions
             context['project_dir_dict'] = project_dir_dict
@@ -164,7 +166,7 @@ def get_amc_marks_positions(request):
     amc_data_path = get_amc_project_path(exam,False)
 
     if amc_data_path:
-        amc_data_path += "data/"
+        amc_data_path += "/data/"
         con = sqlite3.connect(amc_data_path+"capture.sqlite")
         cur = con.cursor()
 
@@ -206,7 +208,7 @@ def update_amc_mark_zone(request):
     amc_data_path = get_amc_project_path(exam,False)
 
     if amc_data_path:
-        amc_data_path += "data/"
+        amc_data_path += "/data/"
         con = sqlite3.connect(amc_data_path+"capture.sqlite")
         cur = con.cursor()
 
@@ -261,15 +263,26 @@ def call_amc_update_documents(request):
         result = get_amc_update_document_info(exam)
     return HttpResponse(result)
 
-def open_amc_exam_pdf(request):
-    file_path = get_amc_exam_pdf_path(None)
+@login_required
+def call_amc_layout_detection(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    result = amc_layout_detection(exam)
+    if not 'ERR:' in result:
+        result = get_amc_layout_detection_info(exam)
+    return HttpResponse(result)
+
+
+def open_amc_exam_pdf(request,pk):
+    exam = Exam.objects.get(pk=pk)
+    file_path = get_amc_exam_pdf_path(exam)
     try:
         return FileResponse(open(file_path, 'rb'), content_type='application/pdf')
     except FileNotFoundError:
         raise Http404('not found')
 
-def open_amc_catalog_pdf(request):
-    file_path = get_amc_catalog_pdf_path(None)
+def open_amc_catalog_pdf(request,pk):
+    exam = Exam.objects.get(pk=pk)
+    file_path = get_amc_catalog_pdf_path(exam)
     try:
         return FileResponse(open(file_path, 'rb'), content_type='application/pdf')
     except FileNotFoundError:

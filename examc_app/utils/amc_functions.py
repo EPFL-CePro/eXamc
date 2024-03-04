@@ -1,4 +1,6 @@
 import os
+import sqlite3
+
 import xmltodict
 import subprocess
 import xml.etree.ElementTree as xmlET
@@ -18,8 +20,31 @@ def get_amc_update_document_info(exam):
         info = "Working documents last update: "
         info += datetime_str
     return info
+
+def get_amc_layout_detection_info(exam):
+    info = 'No Layout'
+    amc_data_path = get_amc_project_path(exam, False)
+
+    if amc_data_path:
+        amc_data_path += "/data/"
+        con = sqlite3.connect(amc_data_path + "layout.sqlite")
+        cur = con.cursor()
+
+        select_count_layout_page = ("SELECT count(*) FROM layout_page")
+
+        query = cur.execute(select_count_layout_page)
+
+        nb_pages_detected = query.fetchall()[0][0]
+
+        if nb_pages_detected > 0:
+            info = "Processed "+str(nb_pages_detected)+" pages"
+
+        cur.close()
+        con.close()
+    return info
+
 def get_amc_option_by_key(exam,key):
-    options_xml_path = str(settings.AMC_PROJECTS_ROOT)+"/2024/1/CS-119h_final/options.xml"
+    options_xml_path = get_amc_project_path(exam, False)+"/options.xml"
     option_value = ''
     # Open the file and read the contents
     with open(options_xml_path, 'r', encoding='utf-8') as file:
@@ -83,7 +108,7 @@ def latex_files_to_list(path):
     file_list = []
     for file in sorted(os.listdir(path),key = lambda x:x.upper()):
         if os.path.isfile(os.path.join(path,file)) and file.endswith(extensions):
-            path_str = (path+file).replace('/','//')
+            path_str = path+"/"+file#(path+file).replace('/','//')
             file_list.append([os.path.basename(file),path_str])
 
     return file_list
@@ -107,6 +132,17 @@ def amc_update_documents(exam,nb_copies):
                             , text=True)
     return result.stdout
 
+
+def amc_layout_detection(exam):
+    project_path = get_amc_project_path(exam,False)
+    result = subprocess.run(['auto-multiple-choice meptex '
+                             '--src '+project_path+'/calage.xy '
+                             '--data '+project_path+'/data/']
+                            ,shell=True
+                            , capture_output=True
+                            , text=True)
+    return result.stdout
+
 def amc_update_options_xml_by_key(exam,key,value):
 
     # Open original file
@@ -120,20 +156,20 @@ def amc_update_options_xml_by_key(exam,key,value):
 
     # Write back to file
     # et.write('file.xml')
-    xml.write(get_amc_project_path(exam,False)+"options.xml")
+    xml.write(get_amc_project_path(exam,False)+"/options.xml")
 
 def get_amc_exam_pdf_path(exam):
     file_name = get_amc_option_by_key(exam,'doc_question')
-    file_path = get_amc_project_path(exam,False)+file_name
+    file_path = get_amc_project_path(exam,False)+"/"+file_name
     return file_path
 
 def get_amc_catalog_pdf_path(exam):
     file_name = get_amc_option_by_key(exam,'doc_solution')
-    file_path = str(settings.AMC_PROJECTS_ROOT) + '/2024/1/CS-119h_final/'+file_name
+    file_path = get_amc_project_path(exam,False)+"/"+file_name
     return file_path
 
 def get_amc_project_path(exam,even_if_not_exist):
-    amc_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"
+    amc_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
     if os.path.isdir(amc_project_path):
         return amc_project_path
     elif even_if_not_exist:
@@ -142,5 +178,5 @@ def get_amc_project_path(exam,even_if_not_exist):
         return None
 
 def get_amc_project_url(exam):
-    amc_project_url = str(settings.AMC_PROJECTS_URL)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"
+    amc_project_url = str(settings.AMC_PROJECTS_URL)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
     return amc_project_url

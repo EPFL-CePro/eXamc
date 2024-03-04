@@ -15,8 +15,8 @@
     <div class="mb-3">
         <button type="button" class="btn btn-dark btn-sm" onclick="amcUpdateDocuments();"><i class="fas fa-sync-alt"></i> Update documents</button>
         <div class="mb-3" style="text-align:right;">
-            <a href="{% url 'open_amc_exam_pdf' %}" target="_blank" class="btn btn-dark btn-sm" onclick="" style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
-            <a href="{% url 'open_amc_catalog_pdf' %}" target="_blank" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-file-pdf"></i> Catalog</a>
+            <a href="{% url 'open_amc_exam_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm" onclick="" style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
+            <a href="{% url 'open_amc_catalog_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-file-pdf"></i> Catalog</a>
         </div>
         {% if update_documents_msg %}
         <div class="alert alert-success" id="update-documents-msg" role="alert" style="margin-top:20px;text-align:center;">{{ update_documents_msg }}</div>
@@ -26,14 +26,18 @@
     </div>
     <hr/>
     <div class="mb-3">
-        <button type="button" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-ruler-combined"></i> Layout detection</button>
+        <button type="button" class="btn btn-dark btn-sm" onclick="amcLayoutDetection();"><i class="fas fa-ruler-combined"></i> Layout detection</button>
         </br>
-        <div class="alert alert-success" role="alert" style="margin-top:20px;text-align:center;">
-            Processed xxxx pages.
+        {%  if layout_detection_msg  %}
+        <div class="alert alert-success" id="layout-detection-msg" role="alert" style="margin-top:20px;text-align:center;">
+            {{ layout_detection_msg }}
             <div style="text-align:right;margin-top:-25px;">
                 <button type="button" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-ruler-combined"></i></button>
             </div>
         </div>
+        {%  else %}
+         <div class="alert alert-danger" id="layout-detection-msg" role="alert" style="margin-top:20px;text-align:center;">No Layout</div>   
+        {% endif %}
     </div>
 </div>
 
@@ -185,11 +189,10 @@ function amcUpdateDocuments(){
         },
         success: (data) => {
             upd_doc_msg_el = document.getElementById('update-documents-msg');
-            if(data.includes('error')){
                 upd_doc_msg_el.innerText = data;
+            if(data.includes('error')){
                 upd_doc_msg_el.className = "alert alert-danger";
             }else{
-                upd_doc_msg_el.innerText = data;
                 upd_doc_msg_el.className = "alert alert-success";
             }
         },
@@ -202,6 +205,32 @@ function amcUpdateDocuments(){
     });
 }
 
+function amcLayoutDetection(){
+    $('#loadingModal').modal('show');
+    $.ajax({
+        url: "{% url 'call_amc_layout_detection' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }}
+        },
+        success: (data) => {
+            upd_layout_det_msg_el = document.getElementById('layout-detection-msg');
+                upd_layout_det_msg_el.innerText = data;
+            if(data.includes('error')){
+                upd_layout_det_msg_el.className = "alert alert-danger";
+            }else{
+                upd_layout_det_msg_el.className = "alert alert-success";
+            }
+        },
+        error: (error) => {
+            console.log(error);
+        },
+        complete : function(){
+            $('#loadingModal').modal('hide');
+        }
+    });
+}
 
 
 
