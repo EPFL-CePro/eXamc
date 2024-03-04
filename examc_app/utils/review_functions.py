@@ -1,6 +1,6 @@
 # SCANS IMPORT functions
 from django.conf import settings
-from examreview_app.models import *
+from examc_app.models import *
 from django.core.files.storage import FileSystemStorage
 from PIL import Image
 import pyzbar.pyzbar as pyzbar

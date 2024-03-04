@@ -2,13 +2,13 @@ import datetime
 
 
 from django.shortcuts import render, redirect
-from examreview_app.utils.review_functions import *
-from examreview_app.utils.amc_functions import *
-from examreview_app.forms import *
-from examreview_app.models import *
+from examc_app.utils.review_functions import *
+from examc_app.utils.amc_functions import *
+from examc_app.forms import *
+from examc_app.models import *
 from django_tables2 import SingleTableView
 from django.views.generic import DetailView
-from examreview_app.tables import ExamSelectTable
+from examc_app.tables import ExamSelectTable
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
@@ -17,7 +17,7 @@ from django.urls import reverse
 import zipfile
 import os
 import json
-from examreview_app.utils.epflldap import ldap_search
+from examc_app.utils.epflldap import ldap_search
 import re
 import base64
 
@@ -110,7 +110,7 @@ class ReviewGroupView(DetailView):
 @method_decorator(login_required, name='dispatch')
 class ReviewSettingsView(DetailView):
     model = Exam
-    template_name = 'review/reviewSettings.html'
+    template_name = 'review/settings/reviewSettings.html'
 
     def get_context_data(self, **kwargs):
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
@@ -335,12 +335,12 @@ def export_marked_files(request,pk):
         # if a GET (or any other method) we'll create a blank form
         else:
           form = ExportMarkedFilesForm()
-          return render(request, 'export/export_marked_files.html', {"user_allowed":True,
+          return render(request, 'review/export/export_marked_files.html', {"user_allowed":True,
                                                         "form": form,
                                                         "exam" : exam,
                                                         "current_url": "export_marked_files"})
     else:
-        return render(request, 'export/export_marked_files.html', {"user_allowed":False,
+        return render(request, 'review/export/export_marked_files.html', {"user_allowed":False,
                                                       "form": None,
                                                       "exam" : exam,
                                                       "current_url": "export_marked_files"})
@@ -406,7 +406,7 @@ def upload_scans(request, pk):
 
         message = start_upload_scans(request, exam.pk, temp_file_path)
 
-        return render(request, 'import/upload_scans.html', {
+        return render(request, 'review/import/upload_scans.html', {
                  'exam': exam,
                  'files': [],
                  'message': message
@@ -414,7 +414,7 @@ def upload_scans(request, pk):
         # messages.success(request, message)
         # return redirect(f'/exams/{exam.pk}')
 
-    return render(request, 'import/upload_scans.html', {'exam': exam,
+    return render(request, 'review/import/upload_scans.html', {'exam': exam,
                                                         'files': []})
 
 @login_required

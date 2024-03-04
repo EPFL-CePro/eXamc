@@ -1,0 +1,40 @@
+
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Upload AMC project{% endblock %}
+
+{% block content %}
+<body>
+<div id="uploadAMCProjectDiv" style="padding:10px;width:100%;margin-top:100px;color:#000;">
+    <h3>Upload AMC projects .zip file</h3>
+
+    <form id="uploadAMCProjectForm" method="post" action="{% url 'upload_amc_project' pk=exam.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <div class="col-md-8">
+                <input type="file" name="amc_project_zip_file" id="amc_project_zip_file" required="True" class="custom-file-input form-control">
+                <label class="custom-file-label" for="amc_project_zip_file">Choose .zip file</label>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3" style="margin-bottom:10px;">
+                <button class="btn btn-primary" type="submit"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;">Start upload</span></button>
+            </div>
+        </div>
+    </form>
+    <h6>{{ message }}</h6>
+</div>
+<script>
+let uploadAMCProjectFrm = document.getElementById('uploadAMCProjectForm');
+
+uploadAMCProjectFrm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    $('#loadingModal').modal('show');
+    uploadAMCProjectFrm.submit();
+    $('#loadingModal').modal('hide');
+});
+</script>
+
+</body>
+{% endblock %}
+

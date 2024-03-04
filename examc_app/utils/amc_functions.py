@@ -47,7 +47,7 @@ def find_value_dict_by_key(dict,search_key):
 
 def get_project_dir_info(exam):
 
-    project_dir = str(settings.AMC_PROJECTS_ROOT)+"/2024/1/CS-119h_final"
+    project_dir = get_amc_project_path(exam,False)
 
     data = path_to_dict(project_dir,[])
     project_dir_dict = data[0]
@@ -83,7 +83,7 @@ def latex_files_to_list(path):
     file_list = []
     for file in sorted(os.listdir(path),key = lambda x:x.upper()):
         if os.path.isfile(os.path.join(path,file)) and file.endswith(extensions):
-            path_str = (path+"/"+file).replace('/','//')
+            path_str = (path+file).replace('/','//')
             file_list.append([os.path.basename(file),path_str])
 
     return file_list
@@ -97,9 +97,9 @@ def amc_update_documents(exam,nb_copies):
                              '--with pdflatex '
                              '--filter latex '
                              '--prefix '
-                             +str(settings.AMC_PROJECTS_ROOT)+'/2024/1/CS-119h_final/ '
-                             +str(settings.AMC_PROJECTS_ROOT)+'/2024/1/CS-119h_final/exam.tex '
-                             '--data '+str(settings.AMC_PROJECTS_ROOT)+'/2024/1/CS-119h_final/data/ '
+                             +get_amc_project_path(exam,False)+'/ '
+                             +get_amc_project_path(exam,False)+'/exam.tex '
+                             '--data '+get_amc_project_path(exam,False)+'/data/ '
                              '--out-sujet '+exam_file+' '
                              '--out-corrige '+correction_file+' ']
                             ,shell=True
@@ -110,7 +110,7 @@ def amc_update_documents(exam,nb_copies):
 def amc_update_options_xml_by_key(exam,key,value):
 
     # Open original file
-    options_xml_path = str(settings.AMC_PROJECTS_ROOT)+"/2024/1/CS-119h_final/options.xml"
+    options_xml_path = get_amc_project_path(exam,False)+"/options.xml"
     xml = xmlET.parse(options_xml_path)
     root = xml.getroot()
 
@@ -120,11 +120,11 @@ def amc_update_options_xml_by_key(exam,key,value):
 
     # Write back to file
     # et.write('file.xml')
-    xml.write(str(settings.AMC_PROJECTS_ROOT)+"/2024/1/CS-119h_final/options.xml")
+    xml.write(get_amc_project_path(exam,False)+"options.xml")
 
 def get_amc_exam_pdf_path(exam):
     file_name = get_amc_option_by_key(exam,'doc_question')
-    file_path = str(settings.AMC_PROJECTS_ROOT) + '/2024/1/CS-119h_final/'+file_name
+    file_path = get_amc_project_path(exam,False)+file_name
     return file_path
 
 def get_amc_catalog_pdf_path(exam):
@@ -132,3 +132,11 @@ def get_amc_catalog_pdf_path(exam):
     file_path = str(settings.AMC_PROJECTS_ROOT) + '/2024/1/CS-119h_final/'+file_name
     return file_path
 
+def get_amc_project_path(exam,even_if_not_exist):
+    amc_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"
+    if os.path.isdir(amc_project_path):
+        return amc_project_path
+    elif even_if_not_exist:
+        return amc_project_path
+    else:
+        return None

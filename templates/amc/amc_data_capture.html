@@ -236,6 +236,7 @@ function get_amc_marks_positions(copy,page,scan_src){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
             'copy' : copy,
             'page' : page
         },
@@ -254,6 +255,7 @@ function update_amc_mark_zone(element){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
             'zoneid' : element.zoneid,
             'corner' : element.corner
         },

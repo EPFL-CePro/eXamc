@@ -7,13 +7,13 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('examreview_app', '0001_initial'),
+        ('examc_app', '0001_initial'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='scanmarkers',
             name='pages_group',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='examPagesGroupMarkers', to='examreview_app.exampagesgroup'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='examPagesGroupMarkers', to='examc_app.exampagesgroup'),
         ),
     ]

@@ -6,7 +6,7 @@
 <head>
   <meta charset="utf-8">
 
-    <title>EXAM-REVIEW</title>
+    <title>eXamc</title>
 
     <!-- bootstrap script and stylesheet -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
@@ -112,27 +112,36 @@
             <!-- Sidebar -->
             <div id="sidebar-wrapper">
               <ul class="sidebar-nav">
-                  <li style="margin-bottom:150px">
-                      <a class="select-exam btn btn-outline-secondary" href="{% url 'examSelect' %}" style="width:180px;margin-left:5px;margin-top:0px;">Exams</a>
+                <li style="margin-bottom:50px;padding:25px;">
+                    <img id="examc_logo" src="{% static 'img/eXamc_bg_grey_100x100.png' %}"/>
+                </li>
+                  <li style="margin-bottom:25px;">
+                      <a href="{% url 'examSelect' %}"><i class="fas fa-folder-open" style="margin-right:5px;"></i>Exams</a>
                   </li>
+                  <hr class="border-bottom border-3 border-dark" style="margin:25px 15px 25px 10px;"/>
                   {% if exam %}
                   <li>
-                    <a href="{% url 'reviewView' exam.pk %}">Review</a>
+                    <a href="{% url 'reviewSettingsView' exam.pk 'groups' %}"><i class="fas fa-cogs" style="margin-right:5px;"></i>Review settings</a>
                   </li>
                   <li>
-                    <a href="{% url 'amc_view' exam.pk %}">AMC</a>
+                    <a href="{% url 'reviewView' exam.pk %}"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a>
                   </li>
                   <li>
-                    <a href="{% url 'reviewSettingsView' exam.pk 'groups' %}">Review settings</a>
+                    <a href="{% url 'upload_scans' exam.pk %}"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload scans</a>
                   </li>
                   <li>
-                    <a href="{% url 'upload_scans' exam.pk %}">Upload scans</a>
+                    <a href="{% url 'export_marked_files' exam.pk %}"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export marked files</a>
+                  </li>
+                  <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>
+                  <li>
+                    <a href="{% url 'amc_view' exam.pk %}"><img src="{% static 'img/amc.ico' %}" style="margin:0px 5px 0px 10px;">AMC</a>
                   </li>
                   <li>
-                    <a href="{% url 'export_marked_files' exam.pk %}">Export marked files</a>
+                    <a href="{% url 'upload_amc_project' exam.pk %}"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload AMC project</a>
                   </li>
+                  <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>
                   <li>
-                    <a href="{% url 'testing' %}">TESTING</a>
+                    <a href="{% url 'testing' %}"><i class="fas fa-hippo" style="color: #ff5ce9;margin-right:5px;"></i>TESTING</a>
                   </li>
                   {% endif %}
               </ul>

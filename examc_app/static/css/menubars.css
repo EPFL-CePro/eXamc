@@ -78,7 +78,7 @@
 .sidebar-nav {
   position: absolute;
   top: 0;
-  width: 250px;
+  width: 200px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -87,7 +87,7 @@
 
 
 .sidebar-nav li {
-  text-indent: 20px;
+  text-indent: 5px;
   line-height: 40px;
 }
 
