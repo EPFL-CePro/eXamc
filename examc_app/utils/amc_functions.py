@@ -140,3 +140,7 @@ def get_amc_project_path(exam,even_if_not_exist):
         return amc_project_path
     else:
         return None
+
+def get_amc_project_url(exam):
+    amc_project_url = str(settings.AMC_PROJECTS_URL)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"
+    return amc_project_url

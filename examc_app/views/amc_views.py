@@ -66,9 +66,11 @@ def amc_view(request, pk):
     amc_data_path = get_amc_project_path(exam,False)
 
     if amc_data_path:
-        amc_data_path+="data/"
+        amc_data_path += "data/"
+        amc_data_url = get_amc_project_url(exam)
         con = sqlite3.connect(amc_data_path+"capture.sqlite")
         cur = con.cursor()
+
 
         # Attach scoring db
         cur.execute("ATTACH DATABASE '"+amc_data_path+"scoring.sqlite' as scoring")
@@ -77,7 +79,7 @@ def amc_view(request, pk):
                                 "   student as copy,"
                                 "   page as page, "
                                 "   mse as mse, "
-                                "   REPLACE(src,'%PROJET/','"+amc_data_path+"') as source, "
+                                "   REPLACE(src,'%PROJET/','"+amc_data_url+"') as source, "
                                 "   (SELECT 10*(0.007 - MIN(ABS(1.0 * cz.black / cz.total - 0.007))) / 0.007 FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page) as sensitivity " 
                                 "FROM capture_page cp "
                                 "ORDER BY copy, page")
