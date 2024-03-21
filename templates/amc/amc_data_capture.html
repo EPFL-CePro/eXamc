@@ -1,45 +1,41 @@
 
-    <div class="d-flex">
-        <div id="scan_page" style="height:100vh;">
-            <canvas id="canvasScan" style="border:1px solid lightgray;"></canvas>
-        </div>
-        <div class="list-group" style="width: 350px;margin-left:5px" >
-            <div class="btn-toolbar mb-3 justify-content-between">
-                <div class="btn-group me-2">
-                    <button type="button" class="btn btn-dark btn-sm" style="width:100px;" onclick="go_to_previews();"><i class="fas fa-chevron-left fa-2x"></i></button>
-                </div>
-                <div class="btn-group me-2">
-                    <button id="btnGroupDropType" type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width:100px;">All</button>
-                    <div class="dropdown-menu" aria-labelledby="btnGroupDropType">
-                        <a class="dropdown-item" onclick="find_row_by_filters('all',question_filter_id, question_filter_name);">all</a>
-                        <a class="dropdown-item" onclick="find_row_by_filters('invalid',question_filter_id, question_filter_name);" >invalid</a>
-                        <a class="dropdown-item" onclick="find_row_by_filters('empty',question_filter_id, question_filter_name);" >empty</a>
-                    </div>
-                </div>
-                <div class="btn-group me-2">
-                    <button type="button" class="btn btn-dark btn-sm" style="width:100px;" onclick="go_to_next();"><i class="fas fa-chevron-right fa-2x"></i></button>
-                </div>
-            </div>
-            <div class="btn-toolbar mb-3 justify-content-between">
-                <div class="btn-group me-2" role="group">
-                    Focus on question:
-                    <button id="btnGroupDropQuestions" type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="margin-left:15px;width:200px">All</button>
-                    <div class="dropdown-menu" aria-labelledby="btnGroupDropQuestions">
-                        <a class="dropdown-item" onclick="find_row_by_filters(0,'All');">All</a>
-                        {% for question in data_questions %}
-                        <a class="dropdown-item" onclick="find_row_by_filters(type_filter,{{ question.question }},'{{ question.name }}');">{{ question.name }}</a>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+{% load static %}
 
+<div style="padding:20px;width:800px;">
+    <h6>Data capture after examination</h6>
+    <div class="mb-3" style="text-align: center;padding:20px;">
+        <button type="button" data-toggle="modal" data-target="#confirmAutomaticDataCaptureModal" class="btn btn-dark btn-sm" style="margin:0 50% 0 0;">
+            <img src="{% static 'img/amc_icons/amc-auto-capture.svg' %}" width="16px" height="16px" style="margin-right:10px;"/>
+            Automatic
+        </button>
+        <a href="{% url 'amc_data_capture_manual' exam.pk %}" class="btn btn-dark btn-sm">
+            <img src="{% static 'img/amc_icons/amc-manual-capture.svg' %}" width="16px" height="16px" style="margin-right:10px;"/>
+            Manual
+        </a>
+    </div>
+    <hr/>
+    <div class="mb-3">
+        {% if data_pages %}
+        <div class="alert alert-success" id="data-exist-msg" role="alert" style="margin-top:20px;text-align:center;">xxxxxxx</div>
+        {% else %}
+        <div class="alert alert-warning" id="data-exist_msg" role="alert" style="margin-top:20px;text-align:center;">No data</div>
+        {% endif %}
+        <hr/>
+        <div class="alert alert-warning" id="data-exist_msg" role="alert" style="margin-top:20px;text-align:center;">WARNING</div>
+    </div>
+    <hr/>
+    <div class="mb-3">
+        <h6>Diagnosis</h6>
+
+        <div class="mb-3" style="width:50%;">
             <table id="table-copies-pages" class="table table-sm table-striped">
-            <thead>
+            <thead style="width:100%;">
               <tr>
                 <th data-sortable="true">Copy</th>
                 <th data-sortable="true">Page</th>
                 <th data-sortable="true">MSE</th>
                 <th data-sortable="true">Sensitivity</th>
+                <th></th>
                 <th style="display:none;width:0px;">source</th>
                 <th style="display:none;width:0px;">questions</th>
               </tr>
@@ -51,6 +47,11 @@
                 <td> {{ row.page }}</td>
                 <td>{{ row.mse }}</td>
                 <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{{ row.sensitivity }}</td>
+                <td>
+                    <button type="button" data-toggle="modal" data-target="" class="btn btn-lg btn-sm">
+                        <i class="far fa-eye fa-lg"></i>
+                    </button>
+                </td>
                 <td style="display:none;">{{ row.source }}</td>
                 <td style="display:none;">{{ row.questions_ids }}</td>
               </tr>
@@ -58,171 +59,89 @@
             </tbody>
           </table>
         </div>
+</div>
+<div class="modal" id="confirmAutomaticDataCaptureModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Automatic Data Capture</h6>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <p>From where do you want to import scans ?</p>
+        <hr/>
+        <div style="margin-top:50px;">
+            <h6>Local file system</h6>
+            <p>(.jpeg, .jpg, .png, .pdf)</p>
+            <form id="amcScansFromLocalFrm" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group align-items-center">
+                    <div class="col-md-10">
+                        <label for="amc_scans" class="custom-file-label form-control-sm">Select scans</label>
+                        <input type="file" class="custom-file-input" name="amc_scans_zip_file" id="amc_scans_zip_file" accept=".zip" required/>
+                    </div>
+                </div>
+                <div class="form-group">
+                   <div class="col-md-8">
+                        <button class="btn btn-primary btn-sm" type="submit">Import</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+          <hr/>
+        <div style="margin-top:50px;">
+            <h6>eXamc Review (this app)</h6>
+            <div class="form-group">
+               <div class="col-md-8">
+                    <button class="btn btn-primary btn-sm">Import</button>
+                </div>
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+      </div>
     </div>
-
+  </div>
+</div>
 <script>
+$('#amc_scans_zip_file').on('change',function(){
+    filename = this.value.split("\\").slice(-1);
+    $(this).siblings(".custom-file-label").addClass("selected").html(filename);
+})
+
 {% if data_pages %}
     var table = $("#table-copies-pages").DataTable( {
-            scrollY: '72vh',
+            scrollY: '55vh',
                 "dom": 'rtip',
             "lengthChange": false,
             "paging": false
         } );
 
-    var filtered_questions_list=[];
-    var question_filter_id=0;
-    var question_filter_name='All';
-    var type_filter='All';
+    //var filtered_questions_list=[];
+    //var question_filter_id=0;
+    //var question_filter_name='All';
+    //var type_filter='All';
     var curr_selected_id = "table-scan-row-1-1";
-    var canvasScan = document.getElementById("canvasScan");
-    var imgScan = new Image();
+    //var canvasScan = document.getElementById("canvasScan");
+    //var imgScan = new Image();
     initCopyPagesTableOnClickRowEvent(true);
-    find_row_by_filters('all',0, 'All');
     $("#table-copies-pages tbody tr:first").trigger('click');
 {% endif %}
 
 
-
-function setScanCanvas(data,scan_src,copy,page){
-
-    var data_obj = JSON.parse(data);
-    imgScan.src = scan_src;
-
-    //remove canvas element and recreate
-    canvasScan.remove();
-
-    canvasScan = document.createElement("canvas");
-    canvasScan.id = "CursorLayer";
-    canvasScan.style.border = "1px solid lightgray";
-
-    var canvasdiv = document.getElementById("scan_page");
-    canvasdiv.appendChild(canvasScan);
-
-    elements = [];
-    var ctxImg = canvasScan.getContext("2d");
-
-    ctxImg.canvas.width = imgScan.width/2.5;
-    ctxImg.canvas.height = imgScan.height/2.5;
-
-    //set sleep function to wait before drawing image otherwise new image is not updating
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    sleep(100).then(() => {
-
-    ctxImg.drawImage(imgScan, 0, 0,imgScan.width/2.5,imgScan.height/2.5);
-
-    for (let pos of data_obj){
-        switch(pos.corner){
-            case 1:
-                // Define a start Point-->
-                ctxImg.beginPath();
-                ctxImg.moveTo(pos.x/2.5,pos.y/2.5);
-                elemTop=pos.y/2.5;
-                elemLeft=pos.x/2.5;
-                c1=[pos.x/2.5,pos.y/2.5];
-                break;
-            case 2:
-                // Define second Point
-                ctxImg.lineTo(pos.x/2.5,pos.y/2.5);
-                c2=[pos.x/2.5,pos.y/2.5];
-                break;
-            case 3:
-                // Define third Point
-                ctxImg.lineTo(pos.x/2.5,pos.y/2.5);
-                elemRight=pos.x/2.5;
-                c3=[pos.x/2.5,pos.y/2.5];
-                break;
-            case 4:
-                // Define fourth Point, close path and stroke
-                ctxImg.lineTo(pos.x/2.5,pos.y/2.5);
-                ctxImg.closePath();
-                elemBottom=pos.y/2.5;
-                c4=[pos.x/2.5,pos.y/2.5];
-
-                if( (pos.black > 0 && pos.manual === -1) || pos.manual === 1){
-                    ctxImg.strokeStyle = '#ff0000';
-                    ctxImg.lineWidth = 3;
-                }else{
-                    ctxImg.strokeStyle = '#3342FF';
-                    ctxImg.lineWidth = 1;
-                }
-
-                ctxImg.stroke();
-                ctxImg.restore();
-
-                // draw yellow and blue lines for E and V (invalid and empty)
-                if(pos.why != ''){
-                    // Define a start Point-->
-                    ctxImg.beginPath();
-                    ctxImg.moveTo(c1[0]-5,c1[1]-5);
-                    ctxImg.lineTo(c2[0]+5,c2[1]-5);
-                    ctxImg.lineTo(c3[0]+5,c3[1]+5);
-                    ctxImg.lineTo(c4[0]-5,c4[1]+5);
-                    ctxImg.closePath();
-                    if(pos.why == 'E'){
-                        ctxImg.strokeStyle = '#FFFF33';
-                    }else{
-                        ctxImg.strokeStyle = '#00FFFF';
-                    };
-                    ctxImg.lineWidth = 5;
-                    ctxImg.stroke();
-                    ctxImg.restore();
-
-                    c1=[0,0];
-                    c2=[0,0];
-                    c3=[0,0];
-                    c4=[0,0];
-                }
-
-                // Add element.
-                elements.push({
-                    copy: copy,
-                    page: page,
-                    zoneid: pos.zoneid,
-                    corner: pos.corner,
-                    manual: pos.manual,
-                    black: pos.black,
-                    scan_src: scan_src,
-                    top: elemTop,
-                    left: elemLeft,
-                    width: elemRight-elemLeft,
-                    height: elemBottom-elemTop
-                });
-                break;
-        }
-    };
-    });
-
-    // Add canvas event listener for `click` events.
-    canvasScan.addEventListener('click', function(event) {
-        var x = event.offsetX,
-            y = event.offsetY;
-
-        // Collision detection between clicked offset and element.
-        elements.forEach(function(element) {
-            if (y > element.top && y < element.top + element.height
-                && x > element.left && x < element.left + element.width) {
-                update_amc_mark_zone(element);
-            }
-        });
-
-    }, false);
-
-}
 function initCopyPagesTableOnClickRowEvent(refresh){
 
     $("#table-copies-pages tbody").on('click', 'tr', function () {
         $(document.getElementById(curr_selected_id)).css('background','');
         $(this).css('background', 'yellow');
-        get_amc_marks_positions(this.cells[0].innerText,this.cells[1].innerText,this.cells[4].innerText);
+        //get_amc_marks_positions(this.cells[0].innerText,this.cells[1].innerText,this.cells[4].innerText);
         curr_selected_id=this.id;
     });
 
     if(!refresh){
         var table = $("#table-copies-pages").DataTable( {
-            scrollY: '85vh',
+            scrollY: '40vh',
             "dom": 'rtip',
             "lengthChange": false,
             "paging": false
@@ -230,105 +149,40 @@ function initCopyPagesTableOnClickRowEvent(refresh){
     }
 }
 
-function get_amc_marks_positions(copy,page,scan_src){
+const amcScansFromLocalFrm = document.getElementById("amcScansFromLocalFrm");
+
+amcScansFromLocalFrm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    callAutomaticDataCapture();
+    $('#confirmAutomaticDataCaptureModal').modal('hide'); 
+    
+})
+
+function callAutomaticDataCapture(){
+    frmData = new FormData($("#amcScansFromLocalFrm")[0])
+    frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    frmData.append('exam_pk', {{ exam.pk }});
+    $('#loadingModal').modal('show');
     $.ajax({
-        url: "{% url 'get_amc_marks_positions' %}",
+        url: "{% url 'call_amc_automatic_data_capture' %}",
         type: "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
-            'copy' : copy,
-            'page' : page
-        },
-        success: (data) => {
-            setScanCanvas(data,scan_src,copy,page);
+        data : frmData,
+        contentType: false,
+        processData: false,
+        success: (data) => {    
+            //todo
         },
         error: (error) => {
             console.log(error);
-        }
-    });
-}
-
-function update_amc_mark_zone(element){
-    $.ajax({
-        url: "{% url 'update_amc_mark_zone' %}",
-        type: "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
-            'zoneid' : element.zoneid,
-            'corner' : element.corner
         },
-        success: (data) => {
-            get_amc_marks_positions(element.copy,element.page,element.scan_src);
-        },
-        error: (error) => {
-            console.log(error);
+        complete : function(){  
+            $('#loadingModal').modal('hide');
         }
-    });
+    });  
 }
 
-function find_row_by_filters(type,question_id,question_name){
-    filtered_questions_list = [];
-    rows = [];
-    if(question_id == 0 && type === 'all'){
-        rows = Array.from($("#table-copies-pages tbody tr"));
-    }else{
-        search_str = '';
-        if(question_id > 0){
-            search_str = '%'+question_id;
-        }
-        if(type === 'invalid'){
-            search_str += '|INV|';
-        }
-        if(type === 'empty'){
-            search_str += '|EMP|';
-        }
-
-        search_str+='%'
-        rows = Array.from($("#table-copies-pages tbody tr:contains("+search_str+")"));
-    }
-    rows.forEach(function (row) {
-        filtered_questions_list.push(row.getAttribute('id'));
-    });
-
-    question_filter_id=question_id;
-    question_filter_name=question_name;
-    type_filter=type
-    document.getElementById('btnGroupDropQuestions').innerHTML=question_name;
-    document.getElementById('btnGroupDropType').innerHTML=type;
-}
-
-function go_to_next(){
-    next = filtered_questions_list[0];
-    curr_index = filtered_questions_list.indexOf(curr_selected_id);
-    if(curr_index > -1 && curr_index < filtered_questions_list.length-1){
-        next = filtered_questions_list[curr_index+1];
-    };
-    $("#"+next).trigger('click');
-
-    tableContainer = $('#table-copies-pages')[0].parentNode;
-    row = document.getElementById(next);
-    offsetTop = row.offsetTop;
-    tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight/2;
-    curr_selected_id = next;
-}
-
-function go_to_previews(){
-    previews = filtered_questions_list[0];
-    curr_index = filtered_questions_list.indexOf(curr_selected_id);
-    if(curr_index > 0){
-        previews = filtered_questions_list[curr_index-1];
-    };
-    $("#"+previews).trigger('click');
-
-    tableContainer = $('#table-copies-pages')[0].parentNode();
-    row = document.getElementById(preview);
-    offsetTop = row.offsetTop;
-    tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight/2;
-    curr_selected_id = previews;
-}
 </script>
+
 
 
 

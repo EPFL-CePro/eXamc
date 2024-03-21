@@ -32,13 +32,14 @@ ALLOWED_HOSTS = ['127.0.0.1','localhost']
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.admindocs',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'examc_app',
+    'examc_app.apps.ExamcAppConfig',
     'django_tequila',
     'userprofile',
     'sslserver',
@@ -68,7 +69,7 @@ ROOT_URLCONF = 'examc.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR,'templates'),os.path.join(BASE_DIR, 'docs/build/html')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -138,6 +139,10 @@ EXPORT_TMP_URL = '/export_tmp/'
 # AMC projects folder
 AMC_PROJECTS_ROOT = BASE_DIR / 'amc_projects/'
 AMC_PROJECTS_URL = '/amc_projects/'
+
+# Documentation folder
+DOCUMENTATION_ROOT = BASE_DIR / 'docs/build/html/'
+DOCUMENTATION_URL = '/docs/build/html/'
 
 # Django-tequila specifics
 AUTH_PROFILE_MODULE = "userprofile.UserProfile"

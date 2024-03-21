@@ -27,15 +27,19 @@ urlpatterns = [
     path('export_marked_files/<int:pk>', views.export_marked_files, name="export_marked_files"),
     # AMC
     path('amc_view/<int:pk>', views.amc_view, name="amc_view"),
+    path('amc_view/<int:pk>/<int:active_tab>', views.amc_view, name="amc_view"),
+    path('amc_data_capture_manual/<int:pk>', views.amc_data_capture_manual, name="amc_data_capture_manual"),
     path('get_amc_marks_positions',views.get_amc_marks_positions, name="get_amc_marks_positions"),
     path('update_amc_mark_zone',views.update_amc_mark_zone, name="update_amc_mark_zone"),
     path('edit_amc_file',views.edit_amc_file, name="edit_amc_file"),
     path('save_amc_edited_file', views.save_amc_edited_file, name="save_amc_edited_file"),
     path('call_amc_update_documents', views.call_amc_update_documents, name="call_amc_update_documents"),
     path('call_amc_layout_detection', views.call_amc_layout_detection, name="call_amc_layout_detection"),
+    path('call_amc_automatic_data_capture', views.call_amc_automatic_data_capture, name="call_amc_automatic_data_capture"),
     path('open_amc_exam_pdf/<int:pk>', views.open_amc_exam_pdf, name="open_amc_exam_pdf"),
     path('open_amc_catalog_pdf/<int:pk>', views.open_amc_catalog_pdf, name="open_amc_catalog_pdf"),
     path('upload_amc_project/<int:pk>', views.upload_amc_project, name="upload_amc_project"),
+    path('view_amc_log_file/<int:pk>', views.view_amc_log_file, name="view_amc_log_file"),
     # testing
     path('testing', views.testing, name="testing"),
 ]

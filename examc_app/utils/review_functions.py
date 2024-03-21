@@ -28,14 +28,16 @@ def split_scans_by_copy(exam,tmp_extract_path):
 
     print("* Start splitting by copy")
 
-    copy_nr = 0;
+    copy_nr = 0
     page_nr = 0
     pages_by_copy = []
     extra_i = 0
     pages_count = 0
     last_copy_nr = 0
     last_page_nr = 0
-    for filename in sorted(os.listdir(tmp_extract_path)):
+    copy_count = 0
+    scans_files = sorted(os.listdir(tmp_extract_path))
+    for filename in scans_files:
         f = os.path.join(tmp_extract_path, filename)
         # checking if it is a jpeg file
         if imghdr.what(f) == 'jpeg':
@@ -58,7 +60,7 @@ def split_scans_by_copy(exam,tmp_extract_path):
             if not os.path.exists(subdir):
               os.mkdir(subdir)
 
-            page_nr_w_extra = page_nr
+            page_nr_w_extra = str(page_nr)
             page_nr_w_extra = page_nr_w_extra.zfill(2)
             if extra_i > 0:
               page_nr_w_extra+="x"+str(extra_i)
@@ -69,6 +71,7 @@ def split_scans_by_copy(exam,tmp_extract_path):
             if last_copy_nr != 0 and last_copy_nr != copy_nr:
               pages_by_copy.append([last_copy_nr,pages_count])
               pages_count=0
+              copy_count += 1
 
             if last_page_nr != page_nr:
               extra_i = 0
@@ -81,7 +84,8 @@ def split_scans_by_copy(exam,tmp_extract_path):
     exam.pages_by_copy = json_pages_by_copy
     exam.save()
 
-    return copy_nr
+    copy_count += 1
+    return copy_count
 
 def import_scans(exam, path):
     print("* Start importing scans")
@@ -144,7 +148,7 @@ def get_scans_pathes_by_group(examPagesGroup):
     for dir in sorted(os.listdir(scans_dir)):
         for filename in sorted(os.listdir(scans_dir+"/"+dir)):
             split_filename = filename.split('_')
-            copy_no = int(split_filename[-2])
+            copy_no = split_filename[-2]
             page_no_real = split_filename[-1].split('.')[0].replace('x','.')
             # get only two first char to prevent extra pages with a,b,c suffixes
             page_no_int = int(page_no_real[0:2])
