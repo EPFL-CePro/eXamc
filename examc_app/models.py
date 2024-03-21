@@ -33,6 +33,10 @@ class Exam(models.Model):
         unique_together = ('code', 'semester', 'year')
         ordering = ['-year', '-semester', 'code']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(args, kwargs)
+        self.questions = None
+
     def is_overall(self):
         return bool(self.overall)
 
