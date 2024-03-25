@@ -15,11 +15,11 @@
     <div class="mb-3">
         <button type="button" class="btn btn-dark btn-sm" onclick="amcUpdateDocuments();"><i class="fas fa-sync-alt"></i> Update documents</button>
         <div class="mb-3" style="text-align:right;">
-            <a href="{% url 'open_amc_exam_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm" onclick="" style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
-            <a href="{% url 'open_amc_catalog_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-file-pdf"></i> Catalog</a>
+            <a href="{% url 'open_amc_exam_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm" style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
+            <a href="{% url 'open_amc_catalog_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm"><i class="fas fa-file-pdf"></i> Catalog</a>
         </div>
         {% if update_documents_msg %}
-        <div class="alert alert-success" id="update-documents-msg" role="alert" style="margin-top:20px;text-align:center;">{{ update_documents_msg }}</div>
+        <div class="alert alert-success" id="update-documents-msg" role="alert" style="margin-top:20px;text-align:center;overflow-y: auto;max-height:200px;">{{ update_documents_msg }}</div>
         {% else %}
         <div class="alert alert-warning" id="update-documents-msg" role="alert" style="margin-top:20px;text-align:center;"> Please Update documents !</div>
         {% endif %}
@@ -29,12 +29,7 @@
         <button type="button" class="btn btn-dark btn-sm" onclick="amcLayoutDetection();"><i class="fas fa-ruler-combined"></i> Layout detection</button>
         </br>
         {%  if layout_detection_msg  %}
-        <div class="alert alert-success" id="layout-detection-msg" role="alert" style="margin-top:20px;text-align:center;">
-            {{ layout_detection_msg }}
-            <div style="text-align:right;margin-top:-25px;">
-                <button type="button" class="btn btn-dark btn-sm" onclick=""><i class="fas fa-ruler-combined"></i></button>
-            </div>
-        </div>
+        <div class="alert alert-success" id="layout-detection-msg" role="alert" style="margin-top:20px;text-align:center;">{{ layout_detection_msg }}</div>
         {%  else %}
          <div class="alert alert-danger" id="layout-detection-msg" role="alert" style="margin-top:20px;text-align:center;">No Layout</div>   
         {% endif %}
@@ -190,7 +185,7 @@ function amcUpdateDocuments(){
         success: (data) => {
             upd_doc_msg_el = document.getElementById('update-documents-msg');
                 upd_doc_msg_el.innerText = data;
-            if(data.includes('error')){
+            if(data.includes('ERR:')){
                 upd_doc_msg_el.className = "alert alert-danger";
             }else{
                 upd_doc_msg_el.className = "alert alert-success";
@@ -216,8 +211,8 @@ function amcLayoutDetection(){
         },
         success: (data) => {
             upd_layout_det_msg_el = document.getElementById('layout-detection-msg');
-                upd_layout_det_msg_el.innerText = data;
-            if(data.includes('error')){
+            upd_layout_det_msg_el.innerText = data;
+            if(data.includes('ERR:')){
                 upd_layout_det_msg_el.className = "alert alert-danger";
             }else{
                 upd_layout_det_msg_el.className = "alert alert-success";

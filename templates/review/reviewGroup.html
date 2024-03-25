@@ -4,20 +4,27 @@
 
 {% block extra_head %}
 
-<script type="text/javascript"
-        src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
+<script type="text/javascript"  src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
 <script type="text/javascript" src="{% static 'js/jquery-comments.js' %}"></script>
+<script type="text/javascript" src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+<script src="https://cdn.tiny.cloud/1/kr9ouegwtqai2kg8nadg9x584jbqawgxkc832sts20ujsde9/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
 <link rel="stylesheet" type="text/css" href="{% static 'css/jquery-comments.css' %}">
 
 {% endblock %}
 
 {% block title %}Review {{ pages_group }}{% endblock %}
-
 {% block scripts %}
+  
+    
 let sourceImage, markedImage, targetRoot, maState, currSourceElementId, currSourceIdSplit, markerArea;
 let group_pathes = JSON.parse('{{json_group_scans_pathes|safe }}');
 
+window.addEventListener('resize', function(event) {
+    
+    location.reload();    
+}, true);  
+    
 // save references to the original image and its parent div (positioning root)
 function setSourceImage(source) {
     sourceImage = source;
@@ -25,6 +32,9 @@ function setSourceImage(source) {
 }
 
 function createPagination(pages, page) {
+    
+    
+    
     let str = ''//'<ul class="list-group list-group-horizontal">';
 
     setSourceScan(group_pathes[page-1]["path"], "");
@@ -87,11 +97,11 @@ function setSourceScan(scan_path){
     // change current and last source element background color
     currSourceIdSplit = scan_path.split('/').pop().split('.').slice(-2)[0].split('_');
     currSourceElementId =
-    currSourceIdSplit[0]+"_"+parseFloat(currSourceIdSplit[1])+"_"+parseFloat(currSourceIdSplit[2].replace("x","."));
+    currSourceIdSplit[0]+"_"+currSourceIdSplit[1]+"_"+parseFloat(currSourceIdSplit[2].replace("x","."));
     if (old_source){
         lastSourceIdSplit = old_source.split('/').pop().split('.').slice(-2)[0].split('_');
         lastSourceElementId =
-        lastSourceIdSplit[0]+"_"+parseFloat(lastSourceIdSplit[1])+"_"+parseFloat(lastSourceIdSplit[2].replace("x","."));
+        lastSourceIdSplit[0]+"_"+lastSourceIdSplit[1]+"_"+parseFloat(lastSourceIdSplit[2].replace("x","."));
         document.getElementById(lastSourceElementId).style.backgroundColor = "";
     }
     document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
@@ -135,14 +145,7 @@ function setMarkerArea(target) {
     }
 
     markerArea.addEventListener("markerdeselect", (event) => {
-        alert("deselect");
-        //updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
-    });
-    markerArea.addEventListener("focus", (event) => {
-        alert("foc");
-    });
-    markerArea.addEventListener("blur", (event) => {
-        alert("blur");
+        updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
     });
 }
 
@@ -301,33 +304,26 @@ function initComments(commentsArray){
 $(window).on("load",function(){
     initCopyPagesTableOnClickRowEvent(false);
     {% if currpage > 0 %}
-    createPagination({{ scans_pathes_list|length }}, {{ currpage }})
+    createPagination({{ scans_pathes_list|length }}, {{ currpage }});
     {% else %}
     createPagination({{ scans_pathes_list|length }}, 1);
     {% endif %}
 
     //hide top and side bars
     var wrapper = document.getElementById("wrapper")
-    var topb = document.getElementById("topbar-wrapper");
     var sideb = document.getElementById("sidebar-wrapper");
     wrapper.style.paddingLeft = "20px";
-    topb.style.display = "none";
     sideb.style.display = "none";
-
-        console.log(document.activeElement);
-
-
-
 });
-
-
+ 
 {% endblock %}
 
 {% block content %}
+{%  if scans_pathes_list %}
 <h3>Review {{ pages_group.group_name }}<a style="margin-left:150px;" href="{% url 'reviewView' exam.pk %}"
                                           class="btn btn-outline-info btn-sm">Back to Summary</a></h3>
-<div class="d-flex">
-    <div id="pages_group_list" style="height:100vh;background-color:#f1f1f1;">
+<div class="d-flex" style="height:93vh;">
+    <div id="pages_group_list" style="background-color:#f1f1f1;">
         <table class="table table-striped table-sm" id="table-copies-pages">
             <thead>
             <tr>
@@ -356,12 +352,12 @@ $(window).on("load",function(){
             </tbody>
         </table>
     </div>
-    <div class="list-group" style="column;height:100vh;max-width: 1200px;min-width:600px;margin-left:5px" >
+    <div class="list-group" style="height:100%;margin-left:5px" >
         <div id="pagination" class="list-group list-group-horizontal"></div>
-        <div id="markerjs_div" style="height:87%;overflow-y: scroll;border:1px solid lightgrey;">
+        <div id="markerjs_div" style="height:98%;aspect-ratio:1/1.41;overflow-y: auto;border:1px solid lightgrey;">
             <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
-                <img id="source_img" style="max-width:100%;min-width: 600px"/>
-                <img id="marked_img" style="max-width:100%;min-width: 600px; position: absolute;"/>
+                <img id="source_img" style=""/>
+                <img id="marked_img" style="max-width:100%;position: absolute;"/>
             </div>
         </div>
     </div>
@@ -475,4 +471,7 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
     });
 
 </script>
+{% else %}
+<div class="alert alert-warning" role="alert" style="margin-top:20px;text-align:center;">There is no scans uploaded !</div>
+{% endif %}
 {% endblock %}

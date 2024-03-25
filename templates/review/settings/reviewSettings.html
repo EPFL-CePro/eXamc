@@ -2,6 +2,8 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% block extra_head %}
+    <!-- tinymce js -->
+    <script src="https://cdn.tiny.cloud/1/kr9ouegwtqai2kg8nadg9x584jbqawgxkc832sts20ujsde9/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 {% endblock %}
 
 {% block title %}Review Settings{% endblock %}
@@ -10,6 +12,9 @@
 {% endblock %}
 
 {% block content %}
+
+
+    
 <h3>Review Settings</h3>
 {{ curr_tab }}
 <ul class="nav nav-pills flex-column flex-sm-row border" id="review-settings-pills-tab" role="tablist">
@@ -30,3 +35,6 @@
   </div>
 </div>
 {% endblock %}
+
+
+

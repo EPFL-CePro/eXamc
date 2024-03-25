@@ -12,13 +12,13 @@
         {% csrf_token %}
         <div class="form-group">
             <div class="col-md-8">
-                <input type="file" name="amc_project_zip_file" id="amc_project_zip_file" required="True" class="custom-file-input form-control">
+                <input type="file" name="amc_project_zip_file" id="amc_project_zip_file" accept=".zip" required class="custom-file-input form-control">
                 <label class="custom-file-label" for="amc_project_zip_file">Choose .zip file</label>
             </div>
         </div>
         <div class="form-group">
             <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3" style="margin-bottom:10px;">
-                <button class="btn btn-primary" type="submit"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;">Start upload</span></button>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Start upload</button>
             </div>
         </div>
     </form>
