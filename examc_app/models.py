@@ -15,6 +15,7 @@ User.__str__ = lambda user_instance: user_instance.first_name + " " + user_insta
 # history tracker for third-party model
 register(User)
 
+
 class Exam(models.Model):
     code = models.CharField(max_length=50)
     name = models.CharField(max_length=100)
@@ -34,7 +35,7 @@ class Exam(models.Model):
         ordering = ['-year', '-semester', 'code']
 
     def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
+        super().__init__(*args, **kwargs)
         self.questions = None
 
     def is_overall(self):
@@ -56,8 +57,9 @@ class Exam(models.Model):
 
     def get_max_points(self):
         max_pts = 0
-        for question in self.questions.all():
-            max_pts += question.max_points
+        if self.questions is not None:
+            for question in self.questions.all():
+                max_pts += question.max_points
 
         return max_pts
 
@@ -69,9 +71,10 @@ class Exam(models.Model):
 
         return common_pts
 
+
 class ExamPagesGroup(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='examPagesGroup')
-    group_name = models.CharField(max_length=20,default='0')
+    group_name = models.CharField(max_length=20, default='0')
     page_from = models.IntegerField(default=0)
     page_to = models.IntegerField(default=0)
     grading_help = models.TextField(default='')
@@ -80,6 +83,7 @@ class ExamPagesGroup(models.Model):
 
     def __str__(self):
         return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
+
 
 class ExamReviewer(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='examReviewers')
@@ -93,7 +97,8 @@ class ExamReviewer(models.Model):
 
 class ExamPagesGroupComment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examPagesGroupComments')
-    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments', blank=True)
+    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments',
+                                    blank=True)
     copy_no = models.CharField(max_length=10, default='0')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True)
     created = models.DateTimeField(auto_now_add=True, blank=True)
@@ -116,23 +121,23 @@ class ExamPagesGroupComment(models.Model):
             "modified": modified_str,
             "content": self.content,
             "creator": self.user_id,
-            "fullname": self.user.first_name+" "+self.user.last_name,
+            "fullname": self.user.first_name + " " + self.user.last_name,
             "is_new": self.is_new,
             "profile_picture_url": profile_picture
         }
 
 
 class ScanMarkers(models.Model):
-    copie_no = models.CharField(max_length=10,default='0')
-    page_no = models.CharField(max_length=10,default='0')
-    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupMarkers', blank=True,null=True)
+    copie_no = models.CharField(max_length=10, default='0')
+    page_no = models.CharField(max_length=10, default='0')
+    pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupMarkers',
+                                    blank=True, null=True)
     filename = models.CharField(max_length=100)
-    markers = models.TextField(blank = True)
-    comment = models.TextField(blank = True)
+    markers = models.TextField(blank=True)
+    comment = models.TextField(blank=True)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scanMarkers')
     correctorBoxMarked = models.BooleanField(default=False)
     history = HistoricalRecords()
-
 
     def __str__(self):
         return self.copie_no + " - " + self.filename + " " + self.exam.code
