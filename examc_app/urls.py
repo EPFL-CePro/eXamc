@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from examc_app import views
 
 urlpatterns = [
-    # scans uplad
+    # scans upload
     path('upload_scans/<int:pk>', views.upload_scans, name="upload_scans"),
     path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),
     # Review Settings

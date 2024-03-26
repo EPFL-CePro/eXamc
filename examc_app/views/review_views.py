@@ -111,7 +111,7 @@ class ReviewGroupView(DetailView):
 class ReviewSettingsView(DetailView):
     model = Exam
     template_name = 'review/settings/reviewSettings.html'
-
+    error_msg = None
     def get_context_data(self, **kwargs):
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
 
@@ -165,14 +165,21 @@ class ReviewSettingsView(DetailView):
                 for form in formset:
                     print(form)
                     if form.is_valid() and form.cleaned_data :
-                        pagesGroup = form.save(commit=False)
-                        if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
-                            pagesGroup.exam = exam
-                            pagesGroup.save()
-                        if form.cleaned_data["DELETE"]:
-                            pagesGroup.delete()
+                        error_msg = None
+                        if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
+                            formsetGroups = formset
+                            error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
+                            break
+                        else:
+                            pagesGroup = form.save(commit=False)
+                            if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
+                                pagesGroup.exam = exam
+                                pagesGroup.save()
+                            if form.cleaned_data["DELETE"]:
+                                pagesGroup.delete()
 
-        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+                        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+
         formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
@@ -183,6 +190,7 @@ class ReviewSettingsView(DetailView):
             context['exam_pages_groups_formset'] = formsetGroups
             context['exam_reviewers_formset'] = formsetReviewers
             context['curr_tab'] = curr_tab
+            context['error_msg'] = error_msg
         else:
             context['user_allowed'] = False
             context['current_url'] = "reviewSettings"

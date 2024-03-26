@@ -56,6 +56,13 @@ def amc_view(request, pk, active_tab=0):
             # get data
             data = get_amc_data_capture_manual_data(exam)
             amc_data_capture_summary = get_automatic_data_capture_summary(exam)
+            number_of_copies = amc_data_capture_summary[0]
+            number_of_incomplete_copies = len(amc_data_capture_summary[1])
+            missing_pages = amc_data_capture_summary[1]
+            if number_of_incomplete_copies > 0:
+                data_capture_message = "Data capture from "+str(number_of_copies-number_of_incomplete_copies)+" complete and "+str(number_of_incomplete_copies)+" incomplete papers"
+            else:
+                data_capture_message = "Data capture from "+str(number_of_copies)
 
             context['number_of_copies'] = amc_option_nb_copies
             context['exam_pdf_path'] = amc_exam_pdf_path
@@ -67,6 +74,8 @@ def amc_view(request, pk, active_tab=0):
             context['data_pages'] = data[0]
             context['data_questions'] = data[1]
             context['active_tab'] = active_tab
+            context['data_capture_message'] = data_capture_message
+            context['missing_pages'] = missing_pages
 
     else:
         context['user_allowed'] = False

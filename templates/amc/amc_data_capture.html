@@ -16,7 +16,7 @@
     <hr/>
     <div class="mb-3">
         {% if data_pages %}
-        <div class="alert alert-success" id="data-exist-msg" role="alert" style="margin-top:20px;text-align:center;">xxxxxxx</div>
+        <div class="alert {% if missing_pages %} alert-danger {% else %} alert-success {% endif %}" id="data-exist-msg" role="alert" style="margin-top:20px;text-align:center;">{{ data_capture_message }}</div>
         {% else %}
         <div class="alert alert-warning" id="data-exist_msg" role="alert" style="margin-top:20px;text-align:center;">No data</div>
         {% endif %}

@@ -451,8 +451,7 @@ def get_automatic_data_capture_summary(exam):
 
         query = cur.execute(select_nb_copies_str)
 
-        nb_copies = query.fetchall()[0][0]
-
+        nb_copies = len(query.fetchall())
         select_missing_pages_str = ("SELECT enter.student AS student,enter.page AS page ,capture_page.copy AS copy "
                                     "FROM (SELECT student,page "
                                     "       FROM layout_box "

@@ -11,6 +11,9 @@
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
     <button type="submit" name="submit-groups" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save groups</button>
+    {% if error_msg %}
+        <div class="alert alert-danger " role="alert" style="margin:20px;text-align:center;">{{ error_msg }}</div>
+    {% endif %}
     <table class="table" style="max-width:500px">
       <thead>
         <tr>
