@@ -23,12 +23,15 @@ from django_tequila.urls import urlpatterns as django_tequila_urlpatterns
 
 from examc_app import views
 
+
 urlpatterns = ([
     path('admin/doc/', include('django.contrib.admindocs.urls')),
     path('admin/', admin.site.urls),
     path('', include('examc_app.urls')),
     path('', views.home, name='home'),
-    path('examSelect', login_required(views.ExamSelectView.as_view()), name="examSelect"),
+    path('login_form/', views.log_in, name='login_form'),
+    path('home',views.home, name='home'),
+    path('examSelect', login_required(views.ExamSelectView.as_view(),login_url='/'), name="examSelect"),
     path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view()), name="examInfo"),
     path('select_exam/<int:pk>', login_required(views.select_exam), name="select_exam"),
     path('documentation',login_required(views.documentation_view), name="documentation"),

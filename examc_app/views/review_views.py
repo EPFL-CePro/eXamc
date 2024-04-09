@@ -1,7 +1,9 @@
 import datetime
 
-
+from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect
+
+from examc_app.decorator import is_admin
 from examc_app.utils.review_functions import *
 from examc_app.utils.amc_functions import *
 from examc_app.forms import *
@@ -21,7 +23,7 @@ from examc_app.utils.epflldap import ldap_search
 import re
 import base64
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ExamSelectView(SingleTableView):
     model = Exam
     template_name = 'exam/exam_select.html'
@@ -31,7 +33,7 @@ class ExamSelectView(SingleTableView):
     def get_queryset(self):
         qs = Exam.objects.all()
         if not self.request.user.is_superuser:
-            qs = qs.filter(users__id=self.request.user.id)
+            qs = qs.filter(Q(users__id=self.request.user.id) | Q(examReviewers__user=self.request.user))
         return qs
 
 @method_decorator(login_required, name='dispatch')
@@ -293,7 +295,9 @@ def add_new_reviewers(request):
         user.first_name = user_list[1]
         user.last_name = user_list[2]
         user.email = user_list[3]
+        user.groups.add(Group.objects.get(id=1))
         user.save()
+
 
         examReviewer = ExamReviewer()
         examReviewer.user = user
@@ -353,7 +357,9 @@ def export_marked_files(request,pk):
                                                       "exam" : exam,
                                                       "current_url": "export_marked_files"})
 
-
+# def isReviewer(request):
+#     exam_reviewers = ExamReviewer.objects.filter(exam=exam)
+#     return render(request, 'base.html', {'exam_reviewers': exam_reviewers})
 
 
 # TESTING
@@ -368,14 +374,13 @@ def testing(request):
             'user_info': user_info,
     })
 
-@login_required
+
 def home(request):
     user_info = request.user.__dict__
-    if request.user.is_authenticated:
-        user_info.update(request.user.__dict__)
-        return render(request, 'home.html', {
-            'user': request.user,
-            'user_info': user_info,
+    user_info.update(request.user.__dict__)
+    return render(request, 'home.html', {
+        'user': request.user,
+        'user_info': user_info,
     })
 
 @login_required
@@ -389,9 +394,9 @@ def select_exam(request, pk, current_url=None):
 
     url_string = '../'
     if current_url is None:
-        return HttpResponseRedirect( reverse('examInfo', kwargs={'pk':str(pk)}))
+        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk':str(pk)}))
     else:
-        return HttpResponseRedirect( reverse(current_url, kwargs={'pk':str(pk)}) )
+        return HttpResponseRedirect(reverse(current_url, kwargs={'pk':str(pk)}) )
 
 @login_required
 def upload_scans(request, pk):

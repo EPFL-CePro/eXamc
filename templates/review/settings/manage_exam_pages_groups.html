@@ -7,7 +7,7 @@
 {% load custom_tags %}
 
 
-<form id="form-groups" method="POST">
+<form enctype= 'multipart/form-data' id="form-groups" method="POST">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
     <button type="submit" name="submit-groups" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save groups</button>

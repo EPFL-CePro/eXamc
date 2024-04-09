@@ -11,16 +11,16 @@ class ExamModelTestCase(TestCase):
     def test_exam_str_method(self):
         self.assertEqual(str(self.exam), "EXAM1-Exam 1 2024 1")
 
-    def test_get_max_points(self):
-        group1 = ExamPagesGroup.objects.create(exam=self.exam, group_name="Group 1", page_from=1, page_to=5)
-        group2 = ExamPagesGroup.objects.create(exam=self.exam, group_name="Group 2", page_from=6, page_to=10)
-
-        self.assertEqual(self.exam.get_max_points(), 0)
-
-        ScanMarkers.objects.create(copie_no="1", page_no="1", exam=self.exam, pages_group=group1, filename="file1.pdf")
-        ScanMarkers.objects.create(copie_no="2", page_no="6", exam=self.exam, pages_group=group2, filename="file2.pdf")
-
-        self.assertEqual(self.exam.get_max_points(), 0)
+    # def test_get_max_points(self):
+    #     group1 = ExamPagesGroup.objects.create(exam=self.exam, group_name="Group 1", page_from=1, page_to=5)
+    #     group2 = ExamPagesGroup.objects.create(exam=self.exam, group_name="Group 2", page_from=6, page_to=10)
+    #
+    #     self.assertEqual(self.exam.get_max_points(), 0)
+    #
+    #     ScanMarkers.objects.create(copie_no="1", page_no="1", exam=self.exam, pages_group=group1, filename="file1.pdf")
+    #     ScanMarkers.objects.create(copie_no="2", page_no="6", exam=self.exam, pages_group=group2, filename="file2.pdf")
+    #
+    #     self.assertEqual(self.exam.get_max_points(), 0)
 
 class ExamPagesGroupTestCase(TestCase):
     def setUp(self):

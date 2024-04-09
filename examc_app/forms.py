@@ -44,9 +44,7 @@ class ManageExamReviewersForm(forms.ModelForm):
             if fname == 'user':
                 f.disabled = True
 
-ExamReviewersFormSet = modelformset_factory(
-    ExamReviewer, form=ManageExamReviewersForm, can_delete=True, extra=0
-)
+ExamReviewersFormSet = modelformset_factory(ExamReviewer, form=ManageExamReviewersForm, can_delete=True, extra=0)
 
 class ExportMarkedFilesForm(forms.Form):
 
@@ -58,3 +56,8 @@ class ExportMarkedFilesForm(forms.Form):
         exam = kwargs.pop('exam', None)
 
         super(ExportMarkedFilesForm, self).__init__(*args, **kwargs)
+
+
+class LoginForm(forms.Form):
+    username = forms.CharField(max_length=65)
+    password = forms.CharField(max_length=65, widget=forms.PasswordInput)
