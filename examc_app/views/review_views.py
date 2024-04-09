@@ -143,6 +143,7 @@ class ReviewSettingsView(DetailView):
     def post(self, *args, **kwargs):
         self.object = self.get_object()
         exam = Exam.objects.get(pk=self.kwargs['pk'])
+        error_msg = ''
 
         if "submit-reviewers" in self.request.POST:
             curr_tab = "reviewers"
@@ -169,7 +170,7 @@ class ReviewSettingsView(DetailView):
                     if form.is_valid() and form.cleaned_data :
                         error_msg = None
                         if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
-                            formsetGroups = formset
+                            #formsetGroups = formset
                             error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
                             break
                         else:
@@ -180,16 +181,18 @@ class ReviewSettingsView(DetailView):
                             if form.cleaned_data["DELETE"]:
                                 pagesGroup.delete()
 
-                        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+                        #formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
 
         formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
+        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam), initial=[
+            {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
-            context['exam_pages_groups_formset'] = formsetGroups
+            context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
             context['curr_tab'] = curr_tab
             context['error_msg'] = error_msg
