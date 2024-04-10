@@ -215,6 +215,7 @@ class ReviewSettingsView(DetailView):
 
 
 @login_required
+@menu_access_required
 def add_new_pages_group(request, pk):
     exam = Exam.objects.get(pk=pk)
     new_group = ExamPagesGroup()
@@ -227,6 +228,7 @@ def add_new_pages_group(request, pk):
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups"}))
 
 @login_required
+@menu_access_required
 def edit_pages_group_grading_help(request):
     pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
     pages_group.grading_help = request.POST['grading_help']
@@ -235,11 +237,13 @@ def edit_pages_group_grading_help(request):
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
 
 @login_required
+@menu_access_required
 def get_pages_group_grading_help(request):
     pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
     return HttpResponse(pages_group.grading_help)
 
 @login_required
+@menu_access_required
 def edit_pages_group_corrector_box(request):
     pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
     pages_group.correctorBoxMarked = request.POST['corrector_box']
@@ -248,6 +252,7 @@ def edit_pages_group_corrector_box(request):
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
 
 @login_required
+@menu_access_required
 def get_group_path_image(request):
     if request.method == 'POST':
         examPagesGroup = ExamPagesGroup.objects.get(pk=request.POST.get('group_id'))
@@ -258,6 +263,7 @@ def get_group_path_image(request):
         else:
             return HttpResponse(img_path)
 
+@menu_access_required
 def save_drawn_image(request):
     if request.method == 'POST':
         image_data = request.POST.get('image_data')
@@ -278,6 +284,7 @@ def save_drawn_image(request):
 
 
 @login_required
+@menu_access_required
 def ldap_search_by_email(request):
     email = request.POST['email']
     user = ExamReviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
@@ -292,6 +299,7 @@ def ldap_search_by_email(request):
 
 
 @login_required
+@menu_access_required
 def add_new_reviewers(request):
     exam = Exam.objects.get(pk=request.POST.get('pk'))
     reviewers = request.POST.getlist('reviewer_list[]')
@@ -323,6 +331,7 @@ def add_new_reviewers(request):
 
 
 @login_required
+@menu_access_required
 def export_marked_files(request,pk):
     exam = Exam.objects.get(pk=pk)
 
