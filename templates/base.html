@@ -1,5 +1,6 @@
 <!-- templates/base.html -->
 {% load static %}
+{%  load custom_tags %}
 
 <!DOCTYPE html>
 <html>
@@ -121,16 +122,21 @@
                   <li style="margin-bottom:25px;">
                       <a href="{% url 'examSelect' %}"><i class="fas fa-folder-open" style="margin-right:5px;"></i>Exams</a>
                   </li>
+              
                   {% if exam %}
+                      
                   <li style="margin-left:5px;background-color: #4c1d1b;margin-bottom:10px;">
                       <a style="font-weight:bold">{{ exam.code }}</a>
                   </li>
+                      {% if not user|is_reviewer:exam %}
                   <li>
                     <a href="{% url 'reviewSettingsView' exam.pk 'groups' %}"><i class="fas fa-cogs" style="margin-right:5px;"></i>Review settings</a>
                   </li>
+                          {% endif %}
                   <li>
                     <a href="{% url 'reviewView' exam.pk %}"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a>
                   </li>
+                      {% if not user|is_reviewer:exam %}
                   <li>
                     <a href="{% url 'upload_scans' exam.pk %}"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload scans</a>
                   </li>
@@ -149,6 +155,7 @@
                     <a href="{% url 'testing' %}" style="color: #ff5ce9;"><i class="fas fa-hippo" style="color: #ff5ce9;margin-right:5px;"></i>TESTING</a>
                   </li>
                   <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>
+                          {% endif %}
                   <li>
                     <a href="{% static 'docs/html/index.html' %}" target="_blank" style="color:#CCA71CFF;"><i class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></i></i>Documentation</a>
                   </li>

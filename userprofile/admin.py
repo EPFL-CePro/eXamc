@@ -39,6 +39,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         return userprofile.user.is_superuser
     is_superuser.boolean = True
 
+
     list_display = UserAdmin.list_display + ('is_active', 'is_superuser', )
     search_fields = list(['user__' + f for f in UserAdmin.search_fields])
     fieldsets = (

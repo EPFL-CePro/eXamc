@@ -1,14 +1,15 @@
 from django.urls import path
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 from examc_app import views
+from examc_app.views import menu_access_required
 
 urlpatterns = [
     # scans upload
-    path('upload_scans/<int:pk>', views.upload_scans, name="upload_scans"),
+    path('upload_scans/<int:pk>', menu_access_required(views.upload_scans), name="upload_scans"),
     path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),
     # Review Settings
-    path('reviewSettings/<int:pk>/<str:curr_tab>',login_required(views.ReviewSettingsView.as_view()), name="reviewSettingsView"),
+    path('reviewSettings/<int:pk>/<str:curr_tab>',menu_access_required(views.ReviewSettingsView.as_view()) , name="reviewSettingsView"),
     path('add_new_reviewers', views.add_new_reviewers, name="add_new_reviewers"),
     path('add_new_pages_group/<int:pk>',views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),

@@ -6,7 +6,7 @@
 Welcome to eXamc's documentation!
 =================================
 
-**eXamc** is an WebApp that has been developed ... bla bla
+**eXamc** is an WebApp that has been developed by a EPFL team. This app allows multiple users to correct exams on the same platform. It also allows to use Auto-Multiple-Choice software.
 
 .. note::
 

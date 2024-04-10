@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-9mzfudteckhll88u%xaq4f-093i3n9xtx&$+ky=bv$@-v2bj#9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1','localhost']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -150,7 +150,7 @@ DOCUMENTATION_URL = '/docs/build/html/'
 # Django-tequila specifics
 AUTH_PROFILE_MODULE = "userprofile.UserProfile"
 
-AUTHENTICATION_BACKENDS = ('django_tequila.django_backend.TequilaBackend',)
+AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend','django_tequila.django_backend.TequilaBackend',)
 
 TEQUILA_SERVICE_NAME = "django_tequila_service"
 TEQUILA_SERVER_URL = "https://tequila.epfl.ch"

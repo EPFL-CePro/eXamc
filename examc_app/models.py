@@ -33,9 +33,8 @@ class Exam(models.Model):
         unique_together = ('code', 'semester', 'year')
         ordering = ['-year', '-semester', 'code']
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(args, kwargs)
-    #     self.questions = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def is_overall(self):
         return bool(self.overall)
@@ -54,12 +53,12 @@ class Exam(models.Model):
     def __str__(self):
         return self.code + "-" + self.name + " " + self.year + " " + str(self.semester)
 
-    def get_max_points(self):
-        max_pts = 0
-        for question in self.questions.all():
-            max_pts += question.max_points
-
-        return max_pts
+    # def get_max_points(self):
+    #     max_pts = 0
+    #     for question in self.questions.all():
+    #         max_pts += question.max_points
+    #
+    #     return max_pts
 
     def get_common_points(self):
         common_pts = 0
@@ -95,9 +94,9 @@ class ExamPagesGroupComment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='examPagesGroupComments')
     pages_group = models.ForeignKey(ExamPagesGroup, on_delete=models.CASCADE, related_name='examPagesGroupComments', blank=True)
     copy_no = models.CharField(max_length=10, default='0')
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, default=None, null=True)
     created = models.DateTimeField(auto_now_add=True, blank=True)
-    modified = models.DateTimeField(blank=True)
+    modified = models.DateTimeField(blank=True, null=True)
     content = models.TextField()
     is_new = models.BooleanField()
     history = HistoricalRecords()
@@ -144,3 +143,4 @@ class DrawnImage(models.Model):
 
     def __str__(self):
         return f'Image (ID: {self.id})'
+

@@ -1,7 +1,9 @@
 import datetime
 
-
+from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect
+
+from examc_app.decorator import is_admin
 from examc_app.utils.review_functions import *
 from examc_app.utils.amc_functions import *
 from examc_app.forms import *
@@ -12,7 +14,7 @@ from examc_app.tables import ExamSelectTable
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
 from django.urls import reverse
 import zipfile
 import os
@@ -21,7 +23,16 @@ from examc_app.utils.epflldap import ldap_search
 import re
 import base64
 
-@method_decorator(login_required, name='dispatch')
+
+def menu_access_required(view_func):
+    def wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
+            return HttpResponseForbidden("You don't have permission to access this page.")
+        return view_func(request, *args, **kwargs)
+    return wrapped_view
+
+
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ExamSelectView(SingleTableView):
     model = Exam
     template_name = 'exam/exam_select.html'
@@ -31,10 +42,10 @@ class ExamSelectView(SingleTableView):
     def get_queryset(self):
         qs = Exam.objects.all()
         if not self.request.user.is_superuser:
-            qs = qs.filter(users__id=self.request.user.id)
+            qs = qs.filter(Q(users__id=self.request.user.id) | Q(examReviewers__user=self.request.user))
         return qs
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ExamInfoView(DetailView):
     model = Exam
     template_name = 'exam/exam_info.html'
@@ -55,7 +66,7 @@ class ExamInfoView(DetailView):
             context['user_allowed'] = False
             return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewView(DetailView):
     model = Exam
     template_name = 'review/review.html'
@@ -77,7 +88,7 @@ class ReviewView(DetailView):
             context['exam'] = exam
             return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewGroupView(DetailView):
     model = ExamPagesGroup
     template_name = 'review/reviewGroup.html'
@@ -107,7 +118,7 @@ class ReviewGroupView(DetailView):
             context['pages_group'] = examPagesGroup
             return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewSettingsView(DetailView):
     model = Exam
     template_name = 'review/settings/reviewSettings.html'
@@ -141,6 +152,7 @@ class ReviewSettingsView(DetailView):
     def post(self, *args, **kwargs):
         self.object = self.get_object()
         exam = Exam.objects.get(pk=self.kwargs['pk'])
+        error_msg = ''
 
         if "submit-reviewers" in self.request.POST:
             curr_tab = "reviewers"
@@ -167,7 +179,7 @@ class ReviewSettingsView(DetailView):
                     if form.is_valid() and form.cleaned_data :
                         error_msg = None
                         if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
-                            formsetGroups = formset
+                            #formsetGroups = formset
                             error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
                             break
                         else:
@@ -178,16 +190,18 @@ class ReviewSettingsView(DetailView):
                             if form.cleaned_data["DELETE"]:
                                 pagesGroup.delete()
 
-                        formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+                        #formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
 
         formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
+        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam), initial=[
+            {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
-            context['exam_pages_groups_formset'] = formsetGroups
+            context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
             context['curr_tab'] = curr_tab
             context['error_msg'] = error_msg
@@ -201,6 +215,7 @@ class ReviewSettingsView(DetailView):
 
 
 @login_required
+@menu_access_required
 def add_new_pages_group(request, pk):
     exam = Exam.objects.get(pk=pk)
     new_group = ExamPagesGroup()
@@ -213,6 +228,7 @@ def add_new_pages_group(request, pk):
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups"}))
 
 @login_required
+@menu_access_required
 def edit_pages_group_grading_help(request):
     pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
     pages_group.grading_help = request.POST['grading_help']
@@ -221,11 +237,13 @@ def edit_pages_group_grading_help(request):
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
 
 @login_required
+@menu_access_required
 def get_pages_group_grading_help(request):
     pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
     return HttpResponse(pages_group.grading_help)
 
 @login_required
+@menu_access_required
 def edit_pages_group_corrector_box(request):
     pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
     pages_group.correctorBoxMarked = request.POST['corrector_box']
@@ -234,6 +252,7 @@ def edit_pages_group_corrector_box(request):
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
 
 @login_required
+@menu_access_required
 def get_group_path_image(request):
     if request.method == 'POST':
         examPagesGroup = ExamPagesGroup.objects.get(pk=request.POST.get('group_id'))
@@ -244,6 +263,7 @@ def get_group_path_image(request):
         else:
             return HttpResponse(img_path)
 
+@menu_access_required
 def save_drawn_image(request):
     if request.method == 'POST':
         image_data = request.POST.get('image_data')
@@ -264,6 +284,7 @@ def save_drawn_image(request):
 
 
 @login_required
+@menu_access_required
 def ldap_search_by_email(request):
     email = request.POST['email']
     user = ExamReviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
@@ -278,6 +299,7 @@ def ldap_search_by_email(request):
 
 
 @login_required
+@menu_access_required
 def add_new_reviewers(request):
     exam = Exam.objects.get(pk=request.POST.get('pk'))
     reviewers = request.POST.getlist('reviewer_list[]')
@@ -293,7 +315,9 @@ def add_new_reviewers(request):
         user.first_name = user_list[1]
         user.last_name = user_list[2]
         user.email = user_list[3]
+        user.groups.add(Group.objects.get(id=1))
         user.save()
+
 
         examReviewer = ExamReviewer()
         examReviewer.user = user
@@ -307,6 +331,7 @@ def add_new_reviewers(request):
 
 
 @login_required
+@menu_access_required
 def export_marked_files(request,pk):
     exam = Exam.objects.get(pk=pk)
 
@@ -353,7 +378,9 @@ def export_marked_files(request,pk):
                                                       "exam" : exam,
                                                       "current_url": "export_marked_files"})
 
-
+# def isReviewer(request):
+#     exam_reviewers = ExamReviewer.objects.filter(exam=exam)
+#     return render(request, 'base.html', {'exam_reviewers': exam_reviewers})
 
 
 # TESTING
@@ -368,14 +395,13 @@ def testing(request):
             'user_info': user_info,
     })
 
-@login_required
+
 def home(request):
     user_info = request.user.__dict__
-    if request.user.is_authenticated:
-        user_info.update(request.user.__dict__)
-        return render(request, 'home.html', {
-            'user': request.user,
-            'user_info': user_info,
+    user_info.update(request.user.__dict__)
+    return render(request, 'home.html', {
+        'user': request.user,
+        'user_info': user_info,
     })
 
 @login_required
@@ -389,9 +415,9 @@ def select_exam(request, pk, current_url=None):
 
     url_string = '../'
     if current_url is None:
-        return HttpResponseRedirect( reverse('examInfo', kwargs={'pk':str(pk)}))
+        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk':str(pk)}))
     else:
-        return HttpResponseRedirect( reverse(current_url, kwargs={'pk':str(pk)}) )
+        return HttpResponseRedirect(reverse(current_url, kwargs={'pk':str(pk)}) )
 
 @login_required
 def upload_scans(request, pk):
