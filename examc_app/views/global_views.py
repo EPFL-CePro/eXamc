@@ -1,9 +1,6 @@
-
-from urllib import request
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
 
 from examc_app.forms import LoginForm

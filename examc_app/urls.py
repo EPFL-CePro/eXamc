@@ -1,14 +1,15 @@
 from django.urls import path
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 from examc_app import views
+from examc_app.views import menu_access_required
 
 urlpatterns = [
     # scans upload
-    path('upload_scans/<int:pk>', views.upload_scans, name="upload_scans"),
+    path('upload_scans/<int:pk>', user_passes_test(lambda u: u.is_superuser)(views.upload_scans), name="upload_scans"),
     path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),
     # Review Settings
-    path('reviewSettings/<int:pk>/<str:curr_tab>',login_required(views.ReviewSettingsView.as_view()), name="reviewSettingsView"),
+    path('reviewSettings/<int:pk>/<str:curr_tab>', menu_access_required(views.ReviewView.as_view()), name="reviewSettingsView"),
     path('add_new_reviewers', views.add_new_reviewers, name="add_new_reviewers"),
     path('add_new_pages_group/<int:pk>',views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
@@ -18,8 +19,8 @@ urlpatterns = [
     # EPFL ldap
     path('search_ldap', views.ldap_search_by_email, name="search_ldap"),
     # Review
-    path('review/<int:pk>',login_required(views.ReviewView.as_view()), name="reviewView"),
-    path('reviewGroup/<int:pk>/<int:currpage>', login_required(views.ReviewGroupView.as_view()), name="reviewGroup"),
+    path('review/<int:pk>', menu_access_required(views.ReviewView.as_view()), name="reviewView"),
+    path('reviewGroup/<int:pk>/<int:currpage>', menu_access_required(views.ReviewView.as_view()), name="reviewGroup"),
     path('save_markers', views.saveMarkers, name="save_markers"),
     path('get_markers_and_comments', views.getMarkersAndComments, name="get_markers_and_comments"),
     path('save_comment', views.saveComment, name="save_comment"),

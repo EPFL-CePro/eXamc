@@ -14,7 +14,7 @@ from examc_app.tables import ExamSelectTable
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
 from django.urls import reverse
 import zipfile
 import os
@@ -22,6 +22,15 @@ import json
 from examc_app.utils.epflldap import ldap_search
 import re
 import base64
+
+
+def menu_access_required(view_func):
+    def wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
+            return HttpResponseForbidden("You don't have permission to access this page.")
+        return view_func(request, *args, **kwargs)
+    return wrapped_view
+
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ExamSelectView(SingleTableView):
@@ -36,7 +45,7 @@ class ExamSelectView(SingleTableView):
             qs = qs.filter(Q(users__id=self.request.user.id) | Q(examReviewers__user=self.request.user))
         return qs
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ExamInfoView(DetailView):
     model = Exam
     template_name = 'exam/exam_info.html'
@@ -57,7 +66,7 @@ class ExamInfoView(DetailView):
             context['user_allowed'] = False
             return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewView(DetailView):
     model = Exam
     template_name = 'review/review.html'
@@ -79,7 +88,7 @@ class ReviewView(DetailView):
             context['exam'] = exam
             return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewGroupView(DetailView):
     model = ExamPagesGroup
     template_name = 'review/reviewGroup.html'
@@ -109,7 +118,7 @@ class ReviewGroupView(DetailView):
             context['pages_group'] = examPagesGroup
             return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewSettingsView(DetailView):
     model = Exam
     template_name = 'review/settings/reviewSettings.html'
