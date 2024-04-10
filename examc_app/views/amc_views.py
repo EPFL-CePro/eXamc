@@ -62,7 +62,10 @@ def amc_view(request, pk, active_tab=0):
             if number_of_incomplete_copies > 0:
                 data_capture_message = "Data capture from "+str(number_of_copies-number_of_incomplete_copies)+" complete and "+str(number_of_incomplete_copies)+" incomplete papers"
             else:
-                data_capture_message = "Data capture from "+str(number_of_copies)
+                data_capture_message = "Data capture from "+str(number_of_copies)+" complete papers"
+            unrecognized_pages = amc_data_capture_summary[2]
+
+            overwritten_pages = amc_data_capture_summary[3]
 
             context['number_of_copies'] = amc_option_nb_copies
             context['exam_pdf_path'] = amc_exam_pdf_path
@@ -76,6 +79,8 @@ def amc_view(request, pk, active_tab=0):
             context['active_tab'] = active_tab
             context['data_capture_message'] = data_capture_message
             context['missing_pages'] = missing_pages
+            context['unrecognized_pages'] = unrecognized_pages
+            context['overwritten_pages'] = overwritten_pages
 
     else:
         context['user_allowed'] = False
@@ -193,3 +198,13 @@ def view_amc_log_file(request,pk):
     file_contents = f.read()
     f.close()
     return HttpResponse(file_contents)
+
+@login_required
+def get_amc_zooms(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    copy = request.POST['copy']
+    page = request.POST['page']
+
+    zooms_data = get_copy_page_zooms(exam,copy,page)
+
+    return HttpResponse(json.dumps(zooms_data))

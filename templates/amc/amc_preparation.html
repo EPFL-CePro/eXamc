@@ -139,7 +139,7 @@ function openEditSourceDialog(filepath){
         },
         success: (data) => {
             document.getElementById('amc_source_text').value = data;
-            title = "Edit "+filepath.split("//").slice(-1)[0]
+            title = "Edit "+filepath.split("/").slice(-1)[0]
             document.getElementById('edit_source_modal_title').innerText = title;
             document.getElementById('edit_source_modal_filepath').innerText = filepath;
             $('#edit_source_modal').modal('show');

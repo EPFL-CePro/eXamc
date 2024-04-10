@@ -140,6 +140,9 @@ EXPORT_TMP_URL = '/export_tmp/'
 AMC_PROJECTS_ROOT = BASE_DIR / 'amc_projects/'
 AMC_PROJECTS_URL = '/amc_projects/'
 
+# AMC config file
+AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
+
 # Documentation folder
 DOCUMENTATION_ROOT = BASE_DIR / 'docs/build/html/'
 DOCUMENTATION_URL = '/docs/build/html/'

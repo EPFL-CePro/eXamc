@@ -5,7 +5,7 @@
 {% block content %}
 {% if data_pages %}
     <h3>Review {{ pages_group.group_name }}<a style="margin-left:150px;" href="{% url 'amc_view' exam.pk 1 %}"
-                                          class="btn btn-outline-info btn-sm">Back to AMC Data Capture</a></h3>
+                                          class="btn btn-outline-dark btn-sm">Back to AMC Data Capture</a></h3>
     <div class="d-flex">
         <div id="scan_page" style="height:95vh;">
             <canvas id="canvasScan"></canvas>
@@ -49,6 +49,7 @@
                 <th data-sortable="true">Sensitivity</th>
                 <th style="display:none;width:0px;">source</th>
                 <th style="display:none;width:0px;">questions</th>
+                <th data-sortable="true">Manual</th>
               </tr>
             </thead>
             <tbody style="height:50%;">
@@ -60,6 +61,7 @@
                 <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{{ row.sensitivity }}</td>
                 <td style="display:none;">{{ row.source }}</td>
                 <td style="display:none;">{{ row.questions_ids }}</td>
+                <td>{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
               </tr>
               {% endfor %}
             </tbody>

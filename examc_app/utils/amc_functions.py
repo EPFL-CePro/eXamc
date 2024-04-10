@@ -1,3 +1,4 @@
+import base64
 import os
 import shutil
 import sqlite3
@@ -11,6 +12,10 @@ from datetime import datetime
 
 
 from django.conf import settings
+
+
+from examc_app.utils.amc_db_queries import *
+
 
 def get_amc_update_document_info(exam):
     info = ''
@@ -29,26 +34,18 @@ def get_amc_layout_detection_info(exam):
 
     if amc_data_path:
         amc_data_path += "/data/"
-        con = sqlite3.connect(amc_data_path + "layout.sqlite")
-        cur = con.cursor()
 
-        select_count_layout_page = ("SELECT count(*) FROM layout_page")
-
-        query = cur.execute(select_count_layout_page)
-
-        nb_pages_detected = query.fetchall()[0][0]
+        nb_pages_detected = select_count_layout_pages(amc_data_path)
 
         if nb_pages_detected > 0:
             info = "Processed "+str(nb_pages_detected)+" pages"
 
-        cur.close()
-        con.close()
     return info
 
 def get_amc_option_by_key(exam,key):
     options_xml_path = get_amc_project_path(exam, False)+"/options.xml"
-    option_value = ''
-    # Open the file and read the contents
+    option_value = None
+    # Open the project xml config and read the contents
     with open(options_xml_path, 'r', encoding='utf-8') as file:
         options_xml = file.read()
 
@@ -58,6 +55,19 @@ def get_amc_option_by_key(exam,key):
 
         # search by key
         option_value = find_value_dict_by_key(options_dict,key)
+
+    # if not found in project config, try in global amc config xml
+    if not option_value:
+        with open(settings.AMC_CONFIG_FILE, 'r', encoding='utf-8') as file:
+            config_xml = file.read()
+
+            # Use xmltodict to parse and convert
+            # the XML document
+            config_dict = xmltodict.parse(config_xml)
+
+            # search by key
+            option_value = find_value_dict_by_key(config_dict, key)
+
     return option_value
 
 def find_value_dict_by_key(dict,search_key):
@@ -212,8 +222,11 @@ def amc_automatic_data_capture(exam,zip_file):
         os.rename(file_list_path,file_list_path+".txt")
         file_list_path+=".txt"
 
+        box_prop = get_amc_option_by_key(exam, "box_size_proportion")
+
         # analyse scans
         result = subprocess.run(['auto-multiple-choice analyse '
+                             '--prop '+box_prop+' '
                              '--data "'+project_path+'/data/" '
                              '--projet "'+project_path+'" '
                              '--liste-fichiers "'+file_list_path+'" ']
@@ -264,7 +277,7 @@ def get_amc_project_path(exam,even_if_not_exist):
         return None
 
 def get_amc_project_url(exam):
-    amc_project_url = str(settings.AMC_PROJECTS_URL)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
+    amc_project_url = str(settings.AMC_PROJECTS_URL)+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
     return amc_project_url
 
 def get_amc_data_capture_manual_data(exam):
@@ -273,40 +286,14 @@ def get_amc_data_capture_manual_data(exam):
     if amc_data_path:
         amc_data_path += "/data/"
         amc_data_url = get_amc_project_url(exam)
-        con = sqlite3.connect(amc_data_path + "capture.sqlite")
-        cur = con.cursor()
-
-        # Attach scoring db
-        cur.execute("ATTACH DATABASE '" + amc_data_path + "scoring.sqlite' as scoring")
-
-        select_amc_pages_str = ("SELECT "
-                                "   student as copy,"
-                                "   page as page, "
-                                "   mse as mse, "
-                                "   REPLACE(src,'%PROJET','" + amc_data_url + "') as source, "
-                                                                              "   (SELECT ROUND(10*(0.007 - MIN(ABS(1.0 * cz.black / cz.total - 0.007))) / 0.007,2) FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page) as sensitivity "
-                                                                              "FROM capture_page cp "
-                                                                              "ORDER BY copy, page")
-
-        query = cur.execute(select_amc_pages_str)
-
-        colname_pages = [d[0] for d in query.description]
-        data_pages = [dict(zip(colname_pages, r)) for r in query.fetchall()]
+        amc_threshold = get_amc_option_by_key(exam,"seuil")
+        data_pages = select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold)
 
         for data in data_pages:
-            query = cur.execute("SELECT DISTINCT(id_a), "
-                                "sc.why as why "
-                                "FROM capture_zone cz "
-                                "INNER JOIN scoring.scoring_score sc ON sc.student = " + str(
-                data['copy']) + " AND sc.question = cz.id_a "
-                                "WHERE type = 4 "
-                                "AND cz.student = " + str(data['copy']) +
-                                " AND cz.page = " + str(data['page']))
-            colname_questions_id = [d[0] for d in query.description]
-            data_questions_id = [dict(zip(colname_questions_id, r)) for r in query.fetchall()]
+            data_questions_id = select_manual_datacapture_questions(amc_data_path,data)
             questions_ids = ''
             for qid in data_questions_id:
-                questions_ids += '%' + str(qid['id_a'])
+                questions_ids += '%' + str(qid['question_id'])
                 if qid['why'] == 'E':
                     questions_ids += '|INV|'
                 elif qid['why'] == 'V':
@@ -314,20 +301,7 @@ def get_amc_data_capture_manual_data(exam):
 
             data['questions_ids'] = questions_ids + '%'
 
-        cur.close()
-        cur.connection.close()
-
-        con = sqlite3.connect(amc_data_path + "layout.sqlite")
-        cur = con.cursor()
-        select_amc_questions_str = ("SELECT * FROM layout_question")
-
-        query = cur.execute(select_amc_questions_str)
-
-        colname_questions = [d[0] for d in query.description]
-        data_questions = [dict(zip(colname_questions, r)) for r in query.fetchall()]
-
-        cur.close()
-        cur.connection.close()
+        data_questions = select_questions(amc_data_path)
 
         return [data_pages, data_questions]
 
@@ -336,37 +310,7 @@ def get_amc_marks_positions_data(exam,copy,page):
 
     if amc_data_path:
         amc_data_path += "/data/"
-        con = sqlite3.connect(amc_data_path + "capture.sqlite")
-        cur = con.cursor()
-
-        # Attach scoring db
-        cur.execute("ATTACH DATABASE '" + amc_data_path + "scoring.sqlite' as scoring")
-
-        select_mark_position_str = ("SELECT cp.zoneid, "
-                                    "cp.corner, "
-                                    "cp.x, "
-                                    "cp.y, "
-                                    "cz.manual,"
-                                    "cz.black, "
-                                    "sc.why "
-                                    "FROM capture_position cp "
-                                    "INNER JOIN capture_zone cz ON cz.zoneid = cp.zoneid "
-                                    "LEFT OUTER JOIN scoring.scoring_score sc ON sc.student = " + str(
-            copy) + " AND sc.question = cz.id_a "
-                    "WHERE cp.zoneid in "
-                    "   (SELECT cz2.zoneid from capture_zone cz2 WHERE cz2.student = " + str(
-            copy) + " AND cz2.page = " + str(page) + ") "
-                                                     "AND cp.type = 1 "
-                                                     "AND cz.type = 4 "
-                                                     "ORDER BY cp.zoneid, cp.corner ")
-
-        query = cur.execute(select_mark_position_str)
-
-        colname_positions = [d[0] for d in query.description]
-        data_positions = [dict(zip(colname_positions, r)) for r in query.fetchall()]
-
-        cur.close()
-        cur.connection.close()
+        data_positions = select_marks_positions(amc_data_path,copy,page)
 
         return data_positions
 
@@ -378,14 +322,7 @@ def update_amc_mark_zone_data(exam,zoneid):
         con = sqlite3.connect(amc_data_path + "capture.sqlite")
         cur = con.cursor()
 
-        select_mark_zone_str = ("SELECT manual FROM capture_zone WHERE zoneid = " + str(zoneid))
-
-        query = cur.execute(select_mark_zone_str)
-
-        colname_zones = [d[0] for d in query.description]
-        data_zones = [dict(zip(colname_zones, r)) for r in query.fetchall()]
-
-        print(data_zones)
+        data_zones = select_data_zones(amc_data_path,zoneid)
 
         manual = data_zones[0]['manual']
         if manual == -1.0 or manual == 1.0:
@@ -393,13 +330,7 @@ def update_amc_mark_zone_data(exam,zoneid):
         else:
             manual = "1.0"
 
-        update_mark_zone_str = ("UPDATE capture_zone SET manual = " + manual + " WHERE zoneid = " + str(zoneid))
-
-        cur.execute(update_mark_zone_str)
-        con.commit()
-
-        cur.close()
-        con.close()
+        update_data_zone(amc_data_path,manual,zoneid)
 
 def create_amc_project_dir_from_zip(exam,zip_file):
     file_name = f"exam_{exam.pk}_amc_project.zip"
@@ -437,40 +368,12 @@ def get_automatic_data_capture_summary(exam):
 
     if amc_data_path:
         amc_data_path += "/data/"
-        con = sqlite3.connect(amc_data_path + "capture.sqlite")
-        cur = con.cursor()
 
-        # Attach scoring db
-        cur.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
+        nb_copies = select_nb_copies(amc_data_path)
 
-        select_nb_copies_str = ("SELECT COUNT(*) "
-                                    "FROM (SELECT student,copy "
-                                    "   FROM capture_page "
-                                    "   WHERE timestamp_auto>0 OR timestamp_manual>0)"
-                                    " GROUP BY student, copy")
+        data_missing_pages = select_missing_pages(amc_data_path)
 
-        query = cur.execute(select_nb_copies_str)
-
-        nb_copies = len(query.fetchall())
-        select_missing_pages_str = ("SELECT enter.student AS student,enter.page AS page ,capture_page.copy AS copy "
-                                    "FROM (SELECT student,page "
-                                    "       FROM layout_box "
-                                    "       WHERE role=1 "
-                                    "       UNION "
-                                    "       SELECT student,page "
-                                    "       FROM layout_namefield) AS enter, "
-                                    "       capture_page "
-                                    "ON enter.student=capture_page.student "
-                                    "EXCEPT SELECT student,page,copy FROM capture_page "
-                                    "ORDER BY student,copy,page")
-
-        query = cur.execute(select_missing_pages_str)
-
-        colname_missing_pages = [d[0] for d in query.description]
-        data_missing_pages = [dict(zip(colname_missing_pages, r)) for r in query.fetchall()]
-
-        cur.close()
-        cur.connection.close()
+        data_unrecognized_pages = select_unrecognized_pages(amc_data_path)
 
         prev_stud = None
         incomplete_copies = []
@@ -485,10 +388,26 @@ def get_automatic_data_capture_summary(exam):
             missing_pages.append(missing_page.get("page"))
             prev_stud = missing_page.get("student")
 
-        incomplete_copy = {"copy_no": prev_stud, "missing_pages": missing_pages}
-        incomplete_copies.append(incomplete_copy)
+        if missing_pages :
+            incomplete_copy = {"copy_no": prev_stud, "missing_pages": missing_pages}
+            incomplete_copies.append(incomplete_copy)
 
+        data_overwritten_pages = select_overwritten_pages(amc_data_path)
 
+    return [nb_copies, incomplete_copies,data_unrecognized_pages,data_overwritten_pages]
 
+def get_copy_page_zooms(exam,copy,page):
+    amc_data_path = get_amc_project_path(exam, False)
+    zooms_data = None
+    if amc_data_path:
+        amc_data_path += "/data/"
 
-    return [nb_copies, incomplete_copies]
+        zooms_data = select_copy_page_zooms(amc_data_path, copy, page)
+
+        #decode bytes imagedata to base64
+        for idx, item in enumerate(zooms_data):
+            imagedata = base64.b64encode(item["imagedata"])
+            item["imagedata"] = imagedata.decode()
+            zooms_data[idx] = item
+
+    return zooms_data

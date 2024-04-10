@@ -475,7 +475,6 @@ def saveMarkers(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     pages_group = ExamPagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
     scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], pages_group=pages_group, exam=exam)
-    #scan_markers.pages_group = ExamPagesGroup.query.filters(exam=exam, page_from__gte=page_no)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
     markers = json.loads(request.POST['markers'])
