@@ -1,9 +1,6 @@
-import datetime
-
 from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect
 
-from examc_app.decorator import is_admin
 from examc_app.utils.review_functions import *
 from examc_app.utils.amc_functions import *
 from examc_app.forms import *
@@ -13,7 +10,7 @@ from django.views.generic import DetailView
 from examc_app.tables import ExamSelectTable
 from django.contrib import messages
 from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
 from django.urls import reverse
 import zipfile
@@ -31,6 +28,18 @@ def menu_access_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapped_view
 
+def users_view(request):
+    users = User.objects.all()
+    return render(request, 'admin/users.html', {'users': users})
+@user_passes_test(lambda u: u.is_superuser)
+def staff_status(request, user_id):
+    user = User.objects.get(pk=user_id)
+    if request.POST.get('action') == 'add_staff':
+        user.is_staff = True
+    elif request.POST.get('action') == 'remove_staff':
+        user.is_staff = False
+    user.save()
+    return redirect('users')
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ExamSelectView(SingleTableView):
@@ -291,6 +300,12 @@ def ldap_search_by_email(request):
     if user:
         return HttpResponse("exist")
 
+    django_user = User.objects.filter(email=email).first()
+    if django_user:
+        entry_str = f"{django_user.username};{django_user.first_name};{django_user.last_name};{email}"
+        return HttpResponse(entry_str)
+    return HttpResponse("not_found")
+
     user_entry = ldap_search.get_entry(email, 'mail')
     entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][0] + ";" + email
 
@@ -303,6 +318,7 @@ def ldap_search_by_email(request):
 def add_new_reviewers(request):
     exam = Exam.objects.get(pk=request.POST.get('pk'))
     reviewers = request.POST.getlist('reviewer_list[]')
+    reviewer_group = Group.objects.get(name='reviewer')
     for reviewer in reviewers:
         user_list = reviewer.split(";")
         users = User.objects.filter(email=user_list[3]).all()
@@ -318,6 +334,8 @@ def add_new_reviewers(request):
         user.groups.add(Group.objects.get(id=1))
         user.save()
 
+        user.groups.add(reviewer_group)
+        user.save()
 
         examReviewer = ExamReviewer()
         examReviewer.user = user

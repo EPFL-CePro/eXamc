@@ -16,7 +16,6 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
@@ -27,7 +26,6 @@ SECRET_KEY = 'django-insecure-9mzfudteckhll88u%xaq4f-093i3n9xtx&$+ky=bv$@-v2bj#9
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-
 
 # Application definition
 
@@ -47,6 +45,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap4',
     'simple_history',
+    'import_export',
 ]
 
 MIDDLEWARE = [
@@ -69,7 +68,7 @@ ROOT_URLCONF = 'examc.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR,'templates'),os.path.join(BASE_DIR, 'docs/build/html')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'docs/build/html')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -84,7 +83,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'examc.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
@@ -95,7 +93,7 @@ DATABASES = {
         'USER': 'djangouser',
         'PASSWORD': 'CapeOuPasCape',
         'OPTIONS': {
-          'autocommit': True,
+            'autocommit': True,
         },
     }
 }
@@ -150,7 +148,7 @@ DOCUMENTATION_URL = '/docs/build/html/'
 # Django-tequila specifics
 AUTH_PROFILE_MODULE = "userprofile.UserProfile"
 
-AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend','django_tequila.django_backend.TequilaBackend',)
+AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 'django_tequila.django_backend.TequilaBackend',)
 
 TEQUILA_SERVICE_NAME = "django_tequila_service"
 TEQUILA_SERVER_URL = "https://tequila.epfl.ch"
@@ -194,3 +192,7 @@ LOGGING = {
         },
     },
 }
+
+from import_export.formats.base_formats import CSV, XLSX
+
+IMPORT_FORMATS = [CSV, XLSX]
