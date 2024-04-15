@@ -32,6 +32,7 @@ class Exam(models.Model):
     class Meta:
         unique_together = ('code', 'semester', 'year')
         ordering = ['-year', '-semester', 'code']
+        verbose_name = "Exam"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

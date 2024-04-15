@@ -31,3 +31,10 @@ def is_reviewer(user,exam):
                 return True
 
     return False
+
+@register.filter
+def is_admin(user):
+    auth_user = User.objects.get(username=user.username)
+
+    if auth_user.is_superuser:
+        return True

@@ -2,9 +2,11 @@ from django.urls import path
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 from examc_app import views
-from examc_app.views import menu_access_required
+from examc_app.views import menu_access_required, staff_status, users_view
 
 urlpatterns = [
+    path('users/', users_view, name='users'),
+    path('staff-status/<int:user_id>/', staff_status, name='staff_status'),
     # scans upload
     path('upload_scans/<int:pk>', menu_access_required(views.upload_scans), name="upload_scans"),
     path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),

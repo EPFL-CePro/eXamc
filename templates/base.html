@@ -154,7 +154,16 @@
                   <li>
                     <a href="{% url 'testing' %}" style="color: #ff5ce9;"><i class="fas fa-hippo" style="color: #ff5ce9;margin-right:5px;"></i>TESTING</a>
                   </li>
+                          <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>
+                          {% if user|is_admin  %}
+                              <li>
+                    <a href="{% url 'users' %}" style="color: #FF5733;"><i class="fas fa-bone" style="color: #FF5733;margin-right:5px;"></i>Users</a>
+                  </li>
+                  <li>
+                    <a href="{% url 'admin:index' %}" style="color: #10E6BC;"><i class="fas fa-carrot" style="color: #10E6BC;margin-right:5px;"></i>ADMIN</a>
+                  </li>
                   <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>
+                          {% endif %}
                           {% endif %}
                   <li>
                     <a href="{% static 'docs/html/index.html' %}" target="_blank" style="color:#CCA71CFF;"><i class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></i></i>Documentation</a>
