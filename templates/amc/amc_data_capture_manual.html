@@ -4,8 +4,14 @@
 {% block title %}AMC Manual Data Capture{% endblock %}
 {% block content %}
 {% if data_pages %}
-    <h3>Review {{ pages_group.group_name }}<a style="margin-left:150px;" href="{% url 'amc_view' exam.pk 1 %}"
-                                          class="btn btn-outline-dark btn-sm">Back to AMC Data Capture</a></h3>
+    <div style="width: 100%;">
+        <div style="width: 50%; height: 50px; float: left; "> 
+            <h3>Manual Data Capture</h3>
+        </div>
+        <div style="margin-left: 50%; height: 50px; text-align:right;"> 
+            <a style="margin-left:150px;" href="{% url 'amc_view' exam.pk 1 %}" class="btn btn-outline-dark btn-sm">Back to AMC Data Capture</a>
+        </div>
+    </div>
     <div class="d-flex">
         <div id="scan_page" style="height:95vh;">
             <canvas id="canvasScan"></canvas>
@@ -107,8 +113,6 @@ $(window).on("load",function(){
 
 
 function setScanCanvas(data,scan_src,copy,page){
-
-    var data_obj = JSON.parse(data);
     imgScan.src = scan_src;
 
     //remove canvas element and recreate
@@ -120,135 +124,148 @@ function setScanCanvas(data,scan_src,copy,page){
 
     var canvasdiv = document.getElementById("scan_page");
     canvasdiv.appendChild(canvasScan);
-
-    elements = [];
     var ctxImg = canvasScan.getContext("2d");
+    elements = [];
     
+    canvasHeight = window.innerHeight - 75;
+    canvasWidth = canvasHeight / (imgScan.height / imgScan.width)
     
-    canvasHeight = window.innerHeight-75;
-    canvasWidth = canvasHeight/(imgScan.height/imgScan.width)
+    if(canvasWidth > canvasHeight*75/100){
+        canvasWidth = canvasHeight*75/100;
+    }
+    canvasRatio = imgScan.height / canvasHeight
     
-    canvasRatio = imgScan.height/canvasHeight
+    //ratio = imgScan.naturalWidth / imgScan.naturalHeight
 
     ctxImg.canvas.width = canvasWidth;
     ctxImg.canvas.height = canvasHeight;
+
     
-    ratio = imgScan.naturalWidth / imgScan.naturalHeight
-    
+
 
     //set sleep function to wait before drawing image otherwise new image is not updating
     function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     sleep(100).then(() => {
 
-    ctxImg.drawImage(imgScan, 0, 0,canvasWidth,canvasHeight);
+        ctxImg.drawImage(imgScan, 0, 0, canvasWidth, canvasHeight);
+    
+        if(data) {
+            var data_obj = JSON.parse(data);
+            elements = [];
+            for (let pos of data_obj) {
+                switch (pos.corner) {
+                    case 1:
+                        // Define a start Point-->
+                        ctxImg.beginPath();
+                        ctxImg.moveTo(pos.x / canvasRatio, pos.y / canvasRatio);
+                        elemTop = pos.y / canvasRatio;
+                        elemLeft = pos.x / canvasRatio;
+                        c1 = [pos.x / canvasRatio, pos.y / canvasRatio];
+                        break;
+                    case 2:
+                        // Define second Point
+                        ctxImg.lineTo(pos.x / canvasRatio, pos.y / canvasRatio);
+                        c2 = [pos.x / canvasRatio, pos.y / canvasRatio];
+                        break;
+                    case 3:
+                        // Define third Point
+                        ctxImg.lineTo(pos.x / canvasRatio, pos.y / canvasRatio);
+                        elemRight = pos.x / canvasRatio;
+                        c3 = [pos.x / canvasRatio, pos.y / canvasRatio];
+                        break;
+                    case 4:
+                        // Define fourth Point, close path and stroke
+                        ctxImg.lineTo(pos.x / canvasRatio, pos.y / canvasRatio);
+                        ctxImg.closePath();
+                        elemBottom = pos.y / canvasRatio;
+                        c4 = [pos.x / canvasRatio, pos.y / canvasRatio];
 
-    for (let pos of data_obj){
-        switch(pos.corner){
-            case 1:
-                // Define a start Point-->
-                ctxImg.beginPath();
-                ctxImg.moveTo(pos.x/canvasRatio,pos.y/canvasRatio);
-                elemTop=pos.y/canvasRatio;
-                elemLeft=pos.x/canvasRatio;
-                c1=[pos.x/canvasRatio,pos.y/canvasRatio];
-                break;
-            case 2:
-                // Define second Point
-                ctxImg.lineTo(pos.x/canvasRatio,pos.y/canvasRatio);
-                c2=[pos.x/canvasRatio,pos.y/canvasRatio];
-                break;
-            case 3:
-                // Define third Point
-                ctxImg.lineTo(pos.x/canvasRatio,pos.y/canvasRatio);
-                elemRight=pos.x/canvasRatio;
-                c3=[pos.x/canvasRatio,pos.y/canvasRatio];
-                break;
-            case 4:
-                // Define fourth Point, close path and stroke
-                ctxImg.lineTo(pos.x/canvasRatio,pos.y/canvasRatio);
-                ctxImg.closePath();
-                elemBottom=pos.y/canvasRatio;
-                c4=[pos.x/canvasRatio,pos.y/canvasRatio];
+                        if ((pos.black > 0 && pos.manual === -1) || pos.manual === 1) {
+                            ctxImg.strokeStyle = '#ff0000';
+                            ctxImg.lineWidth = 3;
+                        } else {
+                            ctxImg.strokeStyle = '#3342FF';
+                            ctxImg.lineWidth = 1;
+                        }
 
-                if( (pos.black > 0 && pos.manual === -1) || pos.manual === 1){
-                    ctxImg.strokeStyle = '#ff0000';
-                    ctxImg.lineWidth = 3;
-                }else{
-                    ctxImg.strokeStyle = '#3342FF';
-                    ctxImg.lineWidth = 1;
+                        ctxImg.stroke();
+                        ctxImg.restore();
+
+                        // draw yellow and blue lines for E and V (invalid and empty)
+                        if (pos.why && pos.why !== '') {
+                            // Define a start Point-->
+                            ctxImg.beginPath();
+                            ctxImg.moveTo(c1[0] - 2, c1[1] - 2);
+                            ctxImg.lineTo(c2[0] + 2, c2[1] - 2);
+                            ctxImg.lineTo(c3[0] + 2, c3[1] + 2);
+                            ctxImg.lineTo(c4[0] - 2, c4[1] + 2);
+                            ctxImg.closePath();
+                            if (pos.why === 'E') {
+                                ctxImg.strokeStyle = '#FFFF33';
+                            } else {
+                                ctxImg.strokeStyle = '#00FFFF';
+                            }
+                            ;
+                            ctxImg.lineWidth = 3;
+                            ctxImg.stroke();
+                            ctxImg.restore();
+
+                            c1 = [0, 0];
+                            c2 = [0, 0];
+                            c3 = [0, 0];
+                            c4 = [0, 0];
+                        }
+
+                        // Add element.
+                        elements.push({
+                            copy: copy,
+                            page: page,
+                            zoneid: pos.zoneid,
+                            corner: pos.corner,
+                            manual: pos.manual,
+                            black: pos.black,
+                            scan_src: scan_src,
+                            top: elemTop,
+                            left: elemLeft,
+                            width: elemRight - elemLeft,
+                            height: elemBottom - elemTop
+                        });
+                        break;
                 }
-
-                ctxImg.stroke();
-                ctxImg.restore();
-
-                // draw yellow and blue lines for E and V (invalid and empty)
-                if(pos.why && pos.why !== ''){
-                    // Define a start Point-->
-                    ctxImg.beginPath();
-                    ctxImg.moveTo(c1[0]-2,c1[1]-2);
-                    ctxImg.lineTo(c2[0]+2,c2[1]-2);
-                    ctxImg.lineTo(c3[0]+2,c3[1]+2);
-                    ctxImg.lineTo(c4[0]-2,c4[1]+2);
-                    ctxImg.closePath();
-                    if(pos.why === 'E'){
-                        ctxImg.strokeStyle = '#FFFF33';
-                    }else{
-                        ctxImg.strokeStyle = '#00FFFF';
-                    };
-                    ctxImg.lineWidth = 3;
-                    ctxImg.stroke();
-                    ctxImg.restore();
-
-                    c1=[0,0];
-                    c2=[0,0];
-                    c3=[0,0];
-                    c4=[0,0];
-                }
-
-                // Add element.
-                elements.push({
-                    copy: copy,
-                    page: page,
-                    zoneid: pos.zoneid,
-                    corner: pos.corner,
-                    manual: pos.manual,
-                    black: pos.black,
-                    scan_src: scan_src,
-                    top: elemTop,
-                    left: elemLeft,
-                    width: elemRight-elemLeft,
-                    height: elemBottom-elemTop
+            }
+    
+            // Add canvas event listener for `click` events.
+            canvasScan.addEventListener('click', function (event) {
+                var x = event.offsetX,
+                    y = event.offsetY;
+    
+                // Collision detection between clicked offset and element.
+                elements.forEach(function (element) {
+                    if (y > element.top && y < element.top + element.height
+                        && x > element.left && x < element.left + element.width) {
+                        update_amc_mark_zone(element);
+                    }
                 });
-                break;
-        }
-    };
+    
+            }, false);
+        }  
     });
 
-    // Add canvas event listener for `click` events.
-    canvasScan.addEventListener('click', function(event) {
-        var x = event.offsetX,
-            y = event.offsetY;
-
-        // Collision detection between clicked offset and element.
-        elements.forEach(function(element) {
-            if (y > element.top && y < element.top + element.height
-                && x > element.left && x < element.left + element.width) {
-                update_amc_mark_zone(element);
-            }
-        });
-
-    }, false);
-
 }
+
 function initCopyPagesTableOnClickRowEvent(refresh){
 
     $("#table-copies-pages tbody").on('click', 'tr', function () {
         $(document.getElementById(curr_selected_id)).css('background','');
         $(this).css('background', 'yellow');
-        get_amc_marks_positions(this.cells[0].innerText,this.cells[1].innerText,this.cells[4].innerText);
+        if(!this.cells[4].innerText.includes("/scans/extra/")){
+            get_amc_marks_positions(this.cells[0].innerText,this.cells[1].innerText,this.cells[4].innerText);
+        }else{
+            setScanCanvas(null,this.cells[4].innerText,this.cells[0].innerText,this.cells[1].innerText);
+        }        
         curr_selected_id=this.id;
     });
 
@@ -289,7 +306,9 @@ function update_amc_mark_zone(element){
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
             'exam_pk' : {{ exam.pk }},
             'zoneid' : element.zoneid,
-            'corner' : element.corner
+            'corner' : element.corner,
+            'copy' : element.copy,
+            'page' : element.page
         },
         success: (data) => {
             get_amc_marks_positions(element.copy,element.page,element.scan_src);
@@ -336,8 +355,9 @@ function go_to_next(){
     curr_index = filtered_questions_list.indexOf(curr_selected_id);
     if(curr_index > -1 && curr_index < filtered_questions_list.length-1){
         next = filtered_questions_list[curr_index+1];
-    };
-    $("#"+next).trigger('click');
+    }
+    
+    $(document.getElementById(next)).trigger('click');
 
     tableContainer = $('#table-copies-pages')[0].parentNode;
     row = document.getElementById(next);

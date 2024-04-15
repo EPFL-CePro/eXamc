@@ -67,7 +67,8 @@ def amc_view(request, pk, active_tab=0):
 
             overwritten_pages = amc_data_capture_summary[3]
 
-            context['number_of_copies'] = amc_option_nb_copies
+            context['number_of_copies_param'] = amc_option_nb_copies
+            context['copy_count'] = number_of_copies
             context['exam_pdf_path'] = amc_exam_pdf_path
             context['catalog_pdf_path'] = amc_catalog_pdf_path
             context['update_documents_msg'] = amc_update_documents_msg
@@ -125,8 +126,10 @@ def get_amc_marks_positions(request):
 def update_amc_mark_zone(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     zoneid = request.POST['zoneid']
+    copy = request.POST['copy']
+    page = request.POST['page']
 
-    update_amc_mark_zone_data(exam, zoneid)
+    update_amc_mark_zone_data(exam, zoneid, copy, page)
 
     return HttpResponse('')
 
@@ -208,3 +211,14 @@ def get_amc_zooms(request):
     zooms_data = get_copy_page_zooms(exam,copy,page)
 
     return HttpResponse(json.dumps(zooms_data))
+
+@login_required
+def add_unrecognized_page(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    question = request.POST['question']
+    copy = request.POST['copy']
+    extra = request.POST['extra']
+    img_filename = request.POST['unrecognized_img_src'].split('/')[-1]
+    add_unrecognized_page_to_project(exam,copy,question,extra,img_filename)
+
+    return HttpResponse(True)

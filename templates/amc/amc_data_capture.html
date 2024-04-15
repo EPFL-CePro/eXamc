@@ -1,7 +1,6 @@
 
 {% load static %}
 {%  load custom_tags %}
-
 <div style="padding:20px;width:800px;">
     <h6>Data capture after examination</h6>
     <div class="mb-3" style="text-align: center;padding:10px;">
@@ -133,15 +132,17 @@
   </div>
 </div>
 <div class="modal" id="errorDataCaptureDialog" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
+  <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h6 class="modal-title">Automatic Data Capture</h6>
+        <h6 class="modal-title" id="errorDataCaptureDialogTitle"></h6>
       </div>
       <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
-        <h6 id="errorDataCaptureDialogTitle">Missing pages</h6>
-        <hr/>
-        <p id="errorDataCaptureDialogData"></p>
+        <table class="table table-sm table-striped">
+            <thead id="errorDataCaptureDialogTHead"></thead>
+          <tbody id="errorDataCaptureDialogTBody">
+          </tbody>
+        </table>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary btn-sm" onclick="$('#errorDataCaptureDialog').modal('hide');">Close</button>
@@ -149,17 +150,83 @@
     </div>
   </div>
 </div>
+<div class="modal" id="addUnrecognizedPageDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Add unrecognized page to...</h6>
+      </div>
+      <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
+        <form id="addUnrecognizedPageFrm" method="POST" action="{% url 'add_unrecognized_page' %}">
+            {% csrf_token %}
+            <div class="form-group align-items-center">
+                <div class="form-group">
+                    <label for="copy">Copy Nr.</label>
+                    <select class="form-control" size="5" data-live-search="true"  id="inputGroupSelectCopy" name="copy" id="copy" required>
+                        <option selected></option>
+                        {% for i in 'x'|ljust:copy_count %}
+                            <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="question">Question</label>
+                    <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="question" id="question" required">
+                        <option selected>
+                        {% for question in data_questions %}
+                            <option value="{{ question.name }}">{{ question.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="extra">add as extra page</label>
+                    <input type="checkbox" id="extra" name="extra">
+                </div>
+                <div class="form-group" hidden>
+                   <input type="text" id="unrecognized_img_src" name="unrecognized_img_src"/>
+                </div>
+                <div class="form-group" hidden>
+                   <input type="text" id="exam_pk" name="exam_pk" value="{{ exam.pk }}"/>
+                </div>
+            </div>
+            <div class="form-group" style="text-align:right;">
+                <button class="btn btn-primary btn-sm" type="submit">Validate</button>
+
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="$('#addUnrecognizedPageDialog').modal('hide');">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="scanImageDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Scan</h6>
+      </div>
+      <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
+          <img id="scanImage"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="$('#scanImageDialog').modal('hide');">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="modal" id="zoomDataCaptureDiagnosisDialog" tabindex="-1" role="dialog">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h6 class="modal-title">Zooms</h6>
       </div>
       <div class="modal-body" style="padding:20px;max-height:70vh;overflow-y: auto;">
           <div class="btn-group">
-              <button type="button" class="btn btn-dark btn-sm" style="width:100px;margin-right:50px;" onclick=""><i class="fas fa-chevron-left fa-2x"></i></button>
-              <h6 id="zoomDataCaptureDiagnosisDialogHeader" style="text-align: center;"></h6>
-              <button type="button" class="btn btn-dark btn-sm" style="width:100px;margin-left:50px;" onclick=""><i class="fas fa-chevron-right fa-2x"></i></button>
+              <button type="button" class="btn btn-dark btn-sm" style="margin-left:150px;max-width:50px;margin-right:50px;" onclick=""><i class="fas fa-chevron-left fa-2x"></i></button>
+              <h6 id="zoomDataCaptureDiagnosisDialogHeader" style="text-align: center;width:250px"></h6>
+              <button type="button" class="btn btn-dark btn-sm" style="max-width:50px;margin-left:50px;" onclick=""><i class="fas fa-chevron-right fa-2x"></i></button>
           </div>
           <div style="padding:20px;">
             <h6>Unchecked boxes</h6>
@@ -176,7 +243,7 @@
           </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk 1 %}">Close</a>
       </div>
     </div>
   </div>
@@ -259,39 +326,103 @@ function callAutomaticDataCapture(){
 
 function showErrorDataCaptureDialog(title){    
     data = '';
+    var tableHead = document.getElementById("errorDataCaptureDialogTHead")  ;
+    removeAllChildNodes(tableHead);
+    var tableBody = document.getElementById("errorDataCaptureDialogTBody")  ;
+    removeAllChildNodes(tableBody);
     switch (title) {
         case 'Missing pages':
         {
+            var tr = document.createElement('tr');
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Copy'));
+            tr.appendChild(td);
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Page'));
+            tr.appendChild(td);
+            tableHead.appendChild(tr);
             {% for copy in missing_pages %}
               {% for page in copy.missing_pages %}
-                  data += '{{ copy.copy_no }} / {{ page }}'
-                  data += '<br/>'
+                var tr = document.createElement('tr');
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ copy.copy_no }}'));
+                tr.appendChild(td);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page }}'));
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
               {% endfor %}
             {% endfor %}   
             break;         
         }
         case 'Unrecognized pages':
         {
+            var tr = document.createElement('tr');
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('File'));
+            tr.appendChild(th);
+            th.appendChild(document.createTextNode('Image'));
+            tr.appendChild(th);
+            tr.appendChild(document.createElement('th'));
+            tableHead.appendChild(tr);
             {% for page in unrecognized_pages %}
-              data += '{{ page }}'
-              data += '<br/>'
+                var scanSrc = "{{ page.filepath }}";
+                var tr = document.createElement('tr');
+                tr.setAttribute('id',scanSrc);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page.filename }}'));
+                tr.appendChild(td);
+                var td = document.createElement('td');
+                var img = document.createElement('img');
+                img.setAttribute('src', scanSrc);
+                img.setAttribute('onclick', 'window.open("'+scanSrc+'", "_blank");');
+                img.setAttribute('width', '500');                                                                                 
+                td.appendChild(img)
+                tr.appendChild(td)
+                var td = document.createElement('td');
+                var addBt = document.createElement('button');
+                addBt.setAttribute('class', 'btn btn-primary btn-sm');
+                addBt.setAttribute('type', 'button');
+                addBt.setAttribute('onclick', 'showAddUnrecognizedPageDialog("'+scanSrc+'")');
+                addBt.innerText="Add this page to...";
+                td.appendChild(addBt);
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
             {% endfor %}  
             break;            
         }
         case 'Overwritten pages':
         {
+            var tr = document.createElement('tr');
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Copy'));
+            tr.appendChild(th);
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Page'));
+            tr.appendChild(th);
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Modified'));
+            tr.appendChild(th);
+            tableHead.appendChild(tr);
             {% for page in overwritten_pages %}
-              data += 'Copy {{ page.student }} / Page {{ page.page }} / Modified : {{ page.timestamp_auto|print_timestamp }}'
-              data += '<br/>'
+                var tr = document.createElement('tr');
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page.student }}'));
+                tr.appendChild(td);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page.page }}'));
+                tr.appendChild(td);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page.timestamp_auto|print_timestamp }}'));
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
             {% endfor %}  
             break;           
         }
     }
     document.getElementById("errorDataCaptureDialogTitle").innerText =  title;
-    document.getElementById("errorDataCaptureDialogData").innerHTML = data;
     
     $('#errorDataCaptureDialog').modal('show');
-    
     
 }
 
@@ -308,7 +439,9 @@ function openCopyPageZoomsDialog(copy,page){
             var zoom_data = JSON.parse(data)
             //create table rows with 5 columns
             var tableBodyUnchecked = document.getElementById("ZoomUncheckedBoxesTBody");
+            removeAllChildNodes(tableBodyUnchecked);
             var tableBodyChecked = document.getElementById("ZoomCheckedBoxesTBody")
+            removeAllChildNodes(tableBodyChecked);
             colChecked = 0;
             colUnchecked = 0
             var trChecked = document.createElement('tr');
@@ -316,33 +449,35 @@ function openCopyPageZoomsDialog(copy,page){
             zoom_data.forEach(function (item) {
                 var image = new Image();
                 image.src = 'data:image/png;base64,'+item.imagedata;
+                msg=JSON.stringify(item)
+                image.setAttribute('onclick', 'update_amc_mark_zone('+item.zoneid+','+copy+','+page+')');
                 var td = document.createElement('td');
                 td.appendChild(image);
                 td.appendChild(document.createTextNode(item.bvalue.toFixed(3)));
 
                 if( (item.black > 0 && item.manual === -1) || item.manual === 1){
                     colChecked ++;
-                    if(colChecked > 5){
+                    if(colChecked > 8){
                         tableBodyChecked.appendChild(trChecked);
                         trChecked = document.createElement('tr');
-                        colChecked = 1
+                        colChecked = 1;
                     }
                     trChecked.appendChild(td)
                 }else{
                     colUnchecked ++;
-                    if(colUnchecked > 5){
+                    if(colUnchecked > 8){
                         tableBodyUnchecked.appendChild(trUnchecked);
                         trUnchecked = document.createElement('tr');
-                        colUnchecked = 1
-                    };
+                        colUnchecked = 1;
+                    }
                     trUnchecked.appendChild(td)
                 }
 
             });
-            if(colChecked<=5){
+            if(colChecked<=8){
                tableBodyChecked.appendChild(trChecked)
             }
-            if(colUnchecked<=5){
+            if(colUnchecked<=8){
                tableBodyUnchecked.appendChild(trUnchecked)
             }
             $('#zoomDataCaptureDiagnosisDialog').modal('show');
@@ -353,6 +488,62 @@ function openCopyPageZoomsDialog(copy,page){
             console.log(error);
         },
         complete : function(){
+        }
+    });
+}
+
+function showAddUnrecognizedPageDialog(img_src){
+    document.getElementById("unrecognized_img_src").value = img_src;
+    var frm = $('#addUnrecognizedPageFrm');
+
+    frm.submit(function (e) {    
+        e.preventDefault();
+    
+        $.ajax({
+            type: frm.attr('method'),
+            url: frm.attr('action'),
+            data: frm.serialize(),
+            success: function (data) {
+                var tr2remove = document.getElementById(img_src);
+                tr2remove.remove();
+                $('#addUnrecognizedPageDialog').modal('hide');
+                //$('#errorDataCaptureDialog').modal('hide');
+                //showErrorDataCaptureDialog('Unrecognized pages');
+            },
+            error: function (data) {
+                console.log('An error occurred.');
+                console.log(data);
+            },
+        });
+    });
+    $('#addUnrecognizedPageDialog').modal('show');
+}
+
+
+
+function removeAllChildNodes(parent) {
+    while (parent.firstChild) {
+        parent.removeChild(parent.firstChild);
+    }
+}
+
+function update_amc_mark_zone(zoneid,copy,page){
+    $.ajax({
+        url: "{% url 'update_amc_mark_zone' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'zoneid' : zoneid,
+            'copy' : copy,
+            'page' : page
+        },
+        success: (data) => {
+            $('#zoomDataCaptureDiagnosisDialog').modal('hide');
+            openCopyPageZoomsDialog(copy,page);
+        },
+        error: (error) => {
+            console.log(error);
         }
     });
 }
