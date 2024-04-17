@@ -47,6 +47,7 @@ urlpatterns = [
     path('view_amc_log_file/<int:pk>', views.view_amc_log_file, name="view_amc_log_file"),
     path('get_amc_zooms', views.get_amc_zooms, name="get_amc_zooms"),
     path('add_unrecognized_page', views.add_unrecognized_page, name="add_unrecognized_page"),
+    path('call_amc_mark', views.call_amc_mark, name="call_amc_mark"),
     # testing
     path('testing', views.testing, name="testing"),
 ]

@@ -67,6 +67,8 @@ def amc_view(request, pk, active_tab=0):
 
             overwritten_pages = amc_data_capture_summary[3]
 
+            students_list = get_amc_option_by_key(exam,"listeetudiants").replace("%PROJET/",'')
+
             context['number_of_copies_param'] = amc_option_nb_copies
             context['copy_count'] = number_of_copies
             context['exam_pdf_path'] = amc_exam_pdf_path
@@ -82,6 +84,11 @@ def amc_view(request, pk, active_tab=0):
             context['missing_pages'] = missing_pages
             context['unrecognized_pages'] = unrecognized_pages
             context['overwritten_pages'] = overwritten_pages
+            context['students_list'] = students_list
+            context['students_list_headers'] = get_students_csv_headers(exam)
+            context['auto_assoc_pk'] = get_amc_option_by_key(exam,'list_key')
+            context['auto_assoc_code'] = get_automatic_association_code(exam)
+            context['mean'] = get_amc_mean(exam)
 
     else:
         context['user_allowed'] = False
@@ -154,7 +161,7 @@ def save_amc_edited_file(request):
 def call_amc_update_documents(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     nb_copies = request.POST['nb_copies']
-    result = amc_update_documents(exam,nb_copies)
+    result = amc_update_documents(exam,nb_copies,False)
     if not 'ERR:' in result:
         result = get_amc_update_document_info(exam)
     return HttpResponse(result)
@@ -222,3 +229,15 @@ def add_unrecognized_page(request):
     add_unrecognized_page_to_project(exam,copy,question,extra,img_filename)
 
     return HttpResponse(True)
+
+@login_required
+def call_amc_mark(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    update_scoring_strategy = request.POST['update_scoring_strategy']
+
+    result = amc_mark(exam,update_scoring_strategy)
+
+    if not 'ERR:' in result:
+        return HttpResponse('yes')
+    else:
+        return HttpResponse(result)

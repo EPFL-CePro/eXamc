@@ -21,7 +21,7 @@
         <a class="flex-sm-fill text-sm-center nav-link {% if active_tab == 3 %} active {% endif %}" id="reports-tab" data-toggle="pill" href="#pills-reports" role="tab" aria-controls="pills-reports" aria-selected="false">Reports</a>
       </li>
       <li style="padding-left:200px;">
-          <button id="view_log_bt" type="button" class="btn btn-outline-secondary btn-sm" onclick="openEditSourceDialog();">log file</button>
+          <button id="view_log_bt" type="button" class="btn btn-outline-secondary btn-sm" onclick="openLogFileDialog();">log file</button>
       </li>
     </ul>
     <div class="tab-content" id="project-pills-tabContent">
@@ -32,7 +32,7 @@
         {% include "./amc_data_capture.html" %}
       </div>
       <div class="tab-pane fade {% if active_tab == 2 %} show active {% endif %}" id="pills-marking" role="tabpanel" aria-labelledby="pills-marking-tab">
-          MARKING
+        {% include "./amc_marking.html" %}
       </div>
       <div class="tab-pane fade {% if active_tab == 3 %} show active {% endif %}" id="pills-reports" role="tabpanel" aria-labelledby="pills-reports-tab">
           REPORTS
