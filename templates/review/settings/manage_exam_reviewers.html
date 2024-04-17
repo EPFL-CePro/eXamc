@@ -43,7 +43,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="exampleModalLabel">Add reviewer</h5>
-        <button type="button" class="close" onclick="cancelAddNewReviewers()" aria-label="Close">
+        <button type="button" class="close" onclick="cancelAddNewReviewers();" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -56,7 +56,7 @@
         <ul  class="list-group" id="newReviewerList"></ul>
     </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="cancelAddNewReviewers()">Cancel</button>
+        <button type="button" class="btn btn-secondary" onclick="cancelAddNewReviewers();">Cancel</button>
         <button type="button" class="btn btn-primary" onclick="addNewReviewers();">Add reviewers</button>
       </div>
     </div>
@@ -64,7 +64,7 @@
 </div>
 
 <script type="text/javascript">
-<!--  reviewerForm = document.querySelectorAll(".exam-reviewer-form")-->
+{% comment %}<!--  reviewerForm = document.querySelectorAll(".exam-reviewer-form")-->
 <!--  reviewerContainer = document.querySelector("#form-reviewer")-->
 <!--  reviewerAddButton = document.querySelector("#add-reviewer-form")-->
 <!--  reviewerTotalForms = document.querySelector("#id_form-TOTAL_FORMS")-->
@@ -84,7 +84,7 @@
 <!--    newReviewerForm.removeAttribute('hidden')-->
 <!--    reviewerContainer.insertBefore(newReviewerForm,reviewerAddButton)-->
 <!--    totalForms.setAttribute('value', `${formNum+1}`)-->
-<!--  }-->
+<!--  }-->{% endcomment %}
 
 document.getElementById("newReviewerEmail").addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
@@ -156,7 +156,7 @@ function addNewReviewers(){
     let reviewers = [];
     for(let i=0; i<reviewers_li.length;i++) {
       reviewers.push(reviewers_li[i].id);
-    };
+    }
 
     $.ajax({
         url: "{% url 'add_new_reviewers' %}",
@@ -185,13 +185,13 @@ function cancelAddNewReviewers(){
     let list = document.getElementById("newReviewerList");
     list.innerHTML = '';
     document.getElementById("newReviewerEmail").value = '';
-    var add_reviewer_error = document.getElementById("addReviewerError");
-    if (typeof(add_reviewer_error) != 'undefined' && add_reviewer_error != null)
-    {
-      add_reviewer_error.remove();
-    }
+    {#const add_reviewer_error = document.getElementById("addReviewerError");#}
+    {#if (typeof(add_reviewer_error) != 'undefined' && add_reviewer_error != null)#}
+    {#{#}
+    {#  add_reviewer_error.remove();#}
 
     $('#addReviewerModal').modal('hide');
+    location.reload();
 }
 
 </script>

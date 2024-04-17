@@ -1,4 +1,6 @@
 # SCANS IMPORT functions
+import csv
+
 from django.conf import settings
 from examc_app.models import *
 from django.core.files.storage import FileSystemStorage
@@ -242,3 +244,5 @@ def updateCorrectorBoxMarked(scanMarkers):
     markers = json.loads(scanMarkers.markers)['markers']
     for marker in markers:
         return None
+
+
