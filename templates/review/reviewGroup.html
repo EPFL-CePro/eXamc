@@ -241,39 +241,6 @@ async function updateMarkers(markerArea, exam_pk, pages_group_pk){
     }
 }
 
-function markedImageToDataURL(markedImage) {
-    const canvas = document.createElement('canvas');
-
-    canvas.width = markerImageCopy.width.baseVal.value;
-    canvas.height = markerImageCopy.height.baseVal.value;
-
-    const data = markerImageCopy.outerHTML;
-
-    const ctx = canvas.getContext("2d");
-{#    if (this.markersOnly !== true) { #}
-        ctx.drawImage(markerImage, 0, 0, canvas.width, canvas.height);
-{#    }#}
-
-{#    const DOMURL = window.URL; // || window.webkitURL || window;#}
-{##}
-{#    const img = new Image(canvas.width, canvas.height);#}
-{#    img.setAttribute("crossOrigin", "anonymous");#}
-{##}
-{#    const blob = new Blob([data], { type: "image/svg+xml" });#}
-{##}
-{#    const url = DOMURL.createObjectURL(blob);#}
-
-{#    img.onload = () => {#}
-{#        ctx.drawImage(img, 0, 0);#}
-{#        DOMURL.revokeObjectURL(url);#}
-{##}
-{#        const result = canvas.toDataURL(this.imageType, this.imageQuality);#}
-{#        resolve(result);#}
-{#    };#}
-
-    return canvas.toDataURL();
-}
-
 function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,comment,filename){
     $.ajax({
         url : "{% url 'save_markers' %}",
@@ -383,8 +350,14 @@ $(window).on("load",function(){
 
 {% block content %}
 {%  if scans_pathes_list %}
-<h3>Review {{ pages_group.group_name }}<a style="margin-left:150px;" href="{% url 'reviewView' exam.pk %}"
-                                          class="btn btn-outline-info btn-sm">Back to Summary</a></h3>
+<div style="width: 66%;">
+    <div style="width: 50%; height: 50px; float: left; "> 
+        <h3>Review {{ pages_group.group_name }}</h3>
+    </div>
+    <div style="margin-left: 50%; height: 50px; text-align:right;"> 
+        <a style="margin-left:150px;" href="{% url 'reviewView' exam.pk %}" class="btn btn-outline-dark btn-sm">Back to Summary</a>
+    </div>
+</div>
 <div class="d-flex" style="height:93vh;">
     <div id="pages_group_list" style="background-color:#f1f1f1;">
         <table class="table table-striped table-sm" id="table-copies-pages">

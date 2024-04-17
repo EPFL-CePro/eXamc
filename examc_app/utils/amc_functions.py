@@ -3,6 +3,7 @@ import os
 import shutil
 import sqlite3
 import zipfile
+from pathlib import Path
 
 import xmltodict
 import subprocess
@@ -283,27 +284,49 @@ def get_amc_project_url(exam):
 def get_amc_data_capture_manual_data(exam):
     amc_data_path = get_amc_project_path(exam, False)
 
+
     if amc_data_path:
+        amc_extra_pages_path = amc_data_path+"/scans/extra/"
         amc_data_path += "/data/"
         amc_data_url = get_amc_project_url(exam)
         amc_threshold = get_amc_option_by_key(exam,"seuil")
         data_pages = select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold)
 
+        # get extra_pages
+        extra_pages = get_extra_pages(amc_extra_pages_path,amc_data_url)
+        data_pages += extra_pages
+        data_pages = sorted(data_pages, key=lambda k: (float(k['copy']), float(k['page'])))
+
         for data in data_pages:
             data_questions_id = select_manual_datacapture_questions(amc_data_path,data)
             questions_ids = ''
-            for qid in data_questions_id:
-                questions_ids += '%' + str(qid['question_id'])
-                if qid['why'] == 'E':
-                    questions_ids += '|INV|'
-                elif qid['why'] == 'V':
-                    questions_ids += '|EMP|'
+            if data_questions_id:
+                for qid in data_questions_id:
+                    questions_ids += '%' + str(qid['question_id'])
+                    if qid['why'] == 'E':
+                        questions_ids += '|INV|'
+                    elif qid['why'] == 'V':
+                        questions_ids += '|EMP|'
 
             data['questions_ids'] = questions_ids + '%'
 
         data_questions = select_questions(amc_data_path)
 
         return [data_pages, data_questions]
+
+def get_extra_pages(amc_extra_pages_path,amc_data_url):
+    extra_pages_data = []
+    if os.path.exists(amc_extra_pages_path):
+        extra_subdirs = os.listdir(amc_extra_pages_path)
+        for subdir in extra_subdirs:
+            for file in os.listdir(amc_extra_pages_path+"/"+subdir):
+                filepath = amc_data_url+"/scans/extra/"+subdir+"/"+file
+                copy = file.split('_')[1].lstrip('0')
+                page = file.split('_')[2].split('.')[0].lstrip('0').replace('x','.')
+                extra_page = {'copy':copy,'mse':0.0,'page':page,'sensitivity':0.0,'source':filepath,'timestamp_auto':0}
+                extra_pages_data.append(extra_page)
+
+    return extra_pages_data;
 
 def get_amc_marks_positions_data(exam,copy,page):
     amc_data_path = get_amc_project_path(exam, False)
@@ -314,23 +337,22 @@ def get_amc_marks_positions_data(exam,copy,page):
 
         return data_positions
 
-def update_amc_mark_zone_data(exam,zoneid):
+def update_amc_mark_zone_data(exam,zoneid,copy,page):
     amc_data_path = get_amc_project_path(exam, False)
 
     if amc_data_path:
         amc_data_path += "/data/"
-        con = sqlite3.connect(amc_data_path + "capture.sqlite")
-        cur = con.cursor()
 
         data_zones = select_data_zones(amc_data_path,zoneid)
 
         manual = data_zones[0]['manual']
-        if manual == -1.0 or manual == 1.0:
+        black = data_zones[0]['black']
+        if (manual == -1.0 and black > 0) or manual == 1.0:
             manual = "0.0"
         else:
             manual = "1.0"
 
-        update_data_zone(amc_data_path,manual,zoneid)
+        update_data_zone(amc_data_path,manual,zoneid, copy, page)
 
 def create_amc_project_dir_from_zip(exam,zip_file):
     file_name = f"exam_{exam.pk}_amc_project.zip"
@@ -365,6 +387,7 @@ def create_amc_project_dir_from_zip(exam,zip_file):
 def get_automatic_data_capture_summary(exam):
 
     amc_data_path = get_amc_project_path(exam, False)
+    amc_data_url = get_amc_project_url(exam)
 
     if amc_data_path:
         amc_data_path += "/data/"
@@ -373,7 +396,7 @@ def get_automatic_data_capture_summary(exam):
 
         data_missing_pages = select_missing_pages(amc_data_path)
 
-        data_unrecognized_pages = select_unrecognized_pages(amc_data_path)
+        data_unrecognized_pages = select_unrecognized_pages(amc_data_path,amc_data_url)
 
         prev_stud = None
         incomplete_copies = []
@@ -411,3 +434,32 @@ def get_copy_page_zooms(exam,copy,page):
             zooms_data[idx] = item
 
     return zooms_data
+
+def add_unrecognized_page_to_project(exam,copy,question,extra,img_filename):
+    amc_data_path = get_amc_project_path(exam, False)
+    if amc_data_path:
+
+        if extra:
+
+            page = select_copy_question_page(amc_data_path+'/data/', copy, question)
+            copy_extra_folder_path = amc_data_path + "/scans/extra/" + copy.zfill(4)
+            #create extra folder for copy if not exist
+            Path(copy_extra_folder_path).mkdir(parents=True, exist_ok=True)
+
+            #list files and get last extraNumber
+            last_exNum = 0
+
+            for f in os.listdir(copy_extra_folder_path):
+                curr_page = int(f.split("/")[-1].split(".")[0].split("x")[0].split("_")[-1])
+                curr_exNum = int(f.split("/")[-1].split(".")[0].split("x")[1])
+                if curr_page == page and curr_exNum > last_exNum:
+                    last_exNum = curr_exNum
+
+            new_exNum = str(last_exNum + 1).zfill(2)
+            filename = "copy_"+str(copy).zfill(4)+"_"+str(page).zfill(2)+"x"+new_exNum+".jpg"
+
+            #move to extra folder
+            shutil.move(amc_data_path+'/scans/'+img_filename, copy_extra_folder_path+'/'+filename)
+
+            #remove as unrecognized page
+            delete_unrecognized_page(amc_data_path+'/data/',img_filename)

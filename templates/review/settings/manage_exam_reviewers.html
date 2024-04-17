@@ -114,7 +114,7 @@ function searchLdap(){
             'email' : email,
         },
         success: (data) => {
-            if(data=="exist"){
+            if(data==="exist"){
                 let add_reviewer_error = document.createElement('div');
                 add_reviewer_error.setAttribute("class","alert alert-warning");
                 add_reviewer_error.setAttribute("role","alert")

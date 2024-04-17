@@ -1,5 +1,9 @@
 # AMC sqlite connection and queries
 import sqlite3
+import sys
+import traceback
+import time
+
 
 class AMC_DB:
     def __init__(self, db_path: str) -> None:
@@ -22,7 +26,16 @@ class AMC_DB:
         self.conn.close()
 
     def execute_query(self, query):
-        return self.cur.execute(query)
+        try:
+            result = self.cur.execute(query)
+            self.conn.commit()
+            return result
+        except sqlite3.Error as er:
+            print('SQLite error: %s' % (' '.join(er.args)))
+            print("Exception class is: ", er.__class__)
+            print('SQLite traceback: ')
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            print(traceback.format_exception(exc_type, exc_value, exc_tb))
 
 def select_count_layout_pages(amc_data_path):
 
@@ -50,6 +63,7 @@ def select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold):
 
     colname_pages = [d[0] for d in response.description]
     data_pages = [dict(zip(colname_pages, r)) for r in response.fetchall()]
+    db.close()
     return data_pages
 
 def select_manual_datacapture_questions(amc_data_path, data):
@@ -78,10 +92,14 @@ def select_manual_datacapture_questions(amc_data_path, data):
 
         response = db.execute_query(query_str)
 
-    colname_questions_id = [d[0] for d in response.description]
-    data_questions_id = [dict(zip(colname_questions_id, r)) for r in response.fetchall()]
+    if not len(response.fetchall()) > 0:
+        return None
+    else:
+        colname_questions_id = [d[0] for d in response.description]
+        data_questions_id = [dict(zip(colname_questions_id, r)) for r in response.fetchall()]
+        db.close()
 
-    return data_questions_id
+        return data_questions_id
 
 def select_questions(amc_data_path):
     db = AMC_DB(amc_data_path + "layout.sqlite")
@@ -91,6 +109,7 @@ def select_questions(amc_data_path):
 
     colname_questions = [d[0] for d in response.description]
     data_questions = [dict(zip(colname_questions, r)) for r in response.fetchall()]
+    db.close()
 
     return data_questions
 
@@ -120,21 +139,29 @@ def select_marks_positions(amc_data_path,copy,page):
     response = db.execute_query(query_str)
     colname_positions = [d[0] for d in response.description]
     data_positions = [dict(zip(colname_positions, r)) for r in response.fetchall()]
+    db.close()
 
     return data_positions
 
 def select_data_zones(amc_data_path, zoneid):
     db = AMC_DB(amc_data_path + "capture.sqlite")
-    query_str = ("SELECT manual FROM capture_zone WHERE zoneid = " + str(zoneid))
+    query_str = ("SELECT * FROM capture_zone WHERE zoneid = " + str(zoneid))
     response = db.execute_query(query_str)
     colname_zones = [d[0] for d in response.description]
     data_zones = [dict(zip(colname_zones, r)) for r in response.fetchall()]
+    db.close()
     return data_zones
 
-def update_data_zone(amc_data_path, manual,zoneid):
+def update_data_zone(amc_data_path, manual,zoneid, copy, page):
     db = AMC_DB(amc_data_path + "capture.sqlite")
     query_str = ("UPDATE capture_zone SET manual = " + manual + " WHERE zoneid = " + str(zoneid))
     response = db.execute_query(query_str)
+
+    if manual != -1.0:
+        timestamp_updated= int(time.time())
+        query_str = ("UPDATE capture_page SET timestamp_manual = " + str(timestamp_updated) + " WHERE student = " + copy + " AND page = " + page)
+        response = db.execute_query(query_str)
+    db.close()
     return response
 
 def select_nb_copies(amc_data_path):
@@ -148,6 +175,7 @@ def select_nb_copies(amc_data_path):
     response = db.execute_query(query_str)
 
     nb_copies = len(response.fetchall())
+    db.close()
 
     return nb_copies
 
@@ -174,13 +202,14 @@ def select_missing_pages(amc_data_path):
 
     colname_missing_pages = [d[0] for d in response.description]
     data_missing_pages = [dict(zip(colname_missing_pages, r)) for r in response.fetchall()]
+    db.close()
 
     return data_missing_pages
 
-def select_unrecognized_pages(amc_data_path):
+def select_unrecognized_pages(amc_data_path,amc_data_url):
     db = AMC_DB(amc_data_path + "capture.sqlite")
 
-    query_str = ("SELECT filename FROM capture_failed")
+    query_str = ("SELECT REPLACE(filename,'%PROJET','" + amc_data_url + "') as filename FROM capture_failed")
 
     response = db.execute_query(query_str)
 
@@ -188,9 +217,10 @@ def select_unrecognized_pages(amc_data_path):
     data_unrecognized_pages = [dict(zip(colname_unrecognized_pages, r)) for r in response.fetchall()]
 
     data_unrecognized_pages_list = []
+    db.close()
 
     for p in data_unrecognized_pages:
-        data_unrecognized_pages_list.append(p["filename"].split('/')[-1])
+        data_unrecognized_pages_list.append({ "filename" : p["filename"].split('/')[-1], "filepath" : p["filename"]})
 
     return data_unrecognized_pages_list
 
@@ -205,6 +235,7 @@ def select_overwritten_pages(amc_data_path):
 
     colname_overwritten_pages = [d[0] for d in response.description]
     data_overwritten_pages = [dict(zip(colname_overwritten_pages, r)) for r in response.fetchall()]
+    db.close()
 
     return data_overwritten_pages
 
@@ -223,5 +254,29 @@ def select_copy_page_zooms(amc_data_path,copy,page):
 
     colname_zooms = [d[0] for d in response.description]
     data_zooms = [dict(zip(colname_zooms, r)) for r in response.fetchall()]
+    db.close()
 
     return data_zooms
+
+def select_copy_question_page(amc_data_path,copy,question):
+    db = AMC_DB(amc_data_path + "layout.sqlite")
+
+    query_str = ("SELECT DISTINCT lb.page "
+                 "FROM layout_box lb "
+                 "INNER JOIN layout_question lq ON lq.question = lb.question "
+                 "WHERE lb.student = " + copy + " AND lq.name = '" + question + "'")
+
+    response = db.execute_query(query_str)
+
+    page = response.fetchall()[0]['page']
+    db.close()
+    return page
+
+def delete_unrecognized_page(amc_data_path,img_filename):
+    db = AMC_DB(amc_data_path + "capture.sqlite")
+
+    query_str = ("DELETE FROM capture_failed "
+                 "WHERE filename LIKE '%"+img_filename+"'")
+
+    response = db.execute_query(query_str)
+    db.close()
