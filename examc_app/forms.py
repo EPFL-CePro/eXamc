@@ -8,10 +8,11 @@ from .models import ExamPagesGroup, ExamReviewer
 class UploadScansForm(forms.Form):
     files = forms.FileField(widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
 
+
 class ManageExamPagesGroupsForm(forms.ModelForm):
     class Meta:
         model = ExamPagesGroup
-        fields = ['group_name','page_from','page_to']
+        fields = ['group_name', 'page_from', 'page_to']
 
     def __init__(self, *args, **kwargs):
         super(ManageExamPagesGroupsForm, self).__init__(*args, **kwargs)
@@ -24,16 +25,15 @@ class ManageExamPagesGroupsForm(forms.ModelForm):
                 f.widget.attrs['style'] = 'width:100px;'
 
 
-
 ExamPagesGroupsFormSet = modelformset_factory(
     ExamPagesGroup, form=ManageExamPagesGroupsForm, can_delete=True, extra=0
 )
 
-class ManageExamReviewersForm(forms.ModelForm):
 
+class ManageExamReviewersForm(forms.ModelForm):
     class Meta:
         model = ExamReviewer
-        fields = ['user','pages_groups']
+        fields = ['user', 'pages_groups']
 
     def __init__(self, *args, **kwargs):
         super(ManageExamReviewersForm, self).__init__(*args, **kwargs)
@@ -44,15 +44,16 @@ class ManageExamReviewersForm(forms.ModelForm):
             if fname == 'user':
                 f.disabled = True
 
+
 ExamReviewersFormSet = modelformset_factory(ExamReviewer, form=ManageExamReviewersForm, can_delete=True, extra=0)
 
-class ExportMarkedFilesForm(forms.Form):
 
-    export_type = forms.ChoiceField(widget=forms.RadioSelect, choices=[(1,'JPGs (one per page)'),(2,'PDFs (one per student copy)')],
-                  required=True)
+class ExportMarkedFilesForm(forms.Form):
+    export_type = forms.ChoiceField(widget=forms.RadioSelect,
+                                    choices=[(1, 'JPGs (one per page)'), (2, 'PDFs (one per student copy)')],
+                                    required=True)
 
     def __init__(self, *args, **kwargs):
-
         exam = kwargs.pop('exam', None)
 
         super(ExportMarkedFilesForm, self).__init__(*args, **kwargs)
@@ -61,3 +62,7 @@ class ExportMarkedFilesForm(forms.Form):
 class LoginForm(forms.Form):
     username = forms.CharField(max_length=65)
     password = forms.CharField(max_length=65, widget=forms.PasswordInput)
+
+
+class CSVUploadForm(forms.Form):
+    csv_file = forms.FileField(label='Select a CSV file')
