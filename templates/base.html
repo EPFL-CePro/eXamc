@@ -115,16 +115,14 @@
             </div>
             <!-- Sidebar -->
             <div id="sidebar-wrapper">
-              <ul class="sidebar-nav">
+              <ul class="sidebar-nav" style="overflow: auto; max-height: 90vh;">
                 <li style="margin-bottom:50px;padding:5%;">
                     <img id="examc_logo" src="{% static 'img/eXamc_x_white_200.png' %}" style="width:90%;"/>
                 </li>
                   <li style="margin-bottom:25px;">
                       <a href="{% url 'examSelect' %}"><i class="fas fa-folder-open" style="margin-right:5px;"></i>Exams</a>
                   </li>
-              
                   {% if exam %}
-                      
                   <li style="margin-left:5px;background-color: #4c1d1b;margin-bottom:10px;">
                       <a style="font-weight:bold">{{ exam.code }}</a>
                   </li>
