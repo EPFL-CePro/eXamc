@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.urls import path
 from .models import *
 from simple_history.admin import SimpleHistoryAdmin
+from django.contrib.auth.models import User, Group
 from .models import Exam
 from import_export.admin import ImportExportModelAdmin
 from django.contrib import admin
@@ -51,12 +52,15 @@ class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
                         user_firstname = row[firstname_index]
                         user_lastname = row[lastname_index]
                         user_email = row[email_index]
-                        user, _ = User.objects.get_or_create(username=user_sciper, defaults={'first_name': user_firstname, 'last_name': user_lastname, 'email': user_email})
+                        user, created_user = User.objects.get_or_create(username=user_sciper, defaults={'first_name': user_firstname, 'last_name': user_lastname, 'email': user_email})
 
                         if row[reviewer_index] == '1':
-                            exam.reviewers.add(user)
+                            group_name = "reviewer"
+                            reviewer_group = Group.objects.get(name=group_name)
+                            reviewer_group.user_set.add(user)
+
                 except Exception as e:
-                    print("CSV error : {e}")
+                    print(f"CSV error : {e}")
         else:
             form = CsvImportForm()
         return render(request, "admin/import_exam.html", {"form": form})
