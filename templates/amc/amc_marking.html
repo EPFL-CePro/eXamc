@@ -1,0 +1,102 @@
+
+{% load custom_tags %}
+
+<div style="padding:20px;;width:800px;">
+    <h6>Marking</h6>
+    <div class="mb-3" style="text-align:center;padding:10px;">
+        <input class="form-check-input" type="checkbox" value="" id="update_marking_scale">
+        <label class="form-check-label" for="update_marking_scale">
+        Update Marking Scale
+        </label>
+        <button type="button" class="btn btn-dark btn-sm" onclick="amc_mark();" style="margin-left:10px;"><i class="fas fa-calculator fa-lg" style="color: #fb2323;margin-right:5px;"></i>Mark</button>
+    </div>
+    {%  if mean %}
+        <div class="alert alert-success" id="mean-msg" role="alert" style="text-align:center;">
+            <a type="button" onclick="showMarkingDetailsDialog();"  class="btn btn-sm">
+                Mean: {{ mean }}<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
+            </a>
+        </div>
+    {% endif %}
+    <hr/>
+    <h6>Student identification</h6>
+    <div class="form-group row">
+        <div class="col-sm-5">Students list : {{ students_list }}</div>
+        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick=""><i class="fas fa-file-csv fa-lg" style="margin-right:5px;"></i>Set file</button>
+        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="" style="margin-left:10px;"><i class="fas fa-pencil-alt fa-lg" style="margin-right:5px;"></i>Edit list</button>
+    </div>
+    <div class="form-group row">
+        <label class="col-sm-5" for="automatic_assoc_primary_key">Primary key from this list</label>
+        <select id="automatic_assoc_primary_key" class="form-control col-sm-4">
+            <option {% if not auto_assoc_pk %} }} selected {% endif %} }}>Choose...</option>
+            {% for key in students_list_headers %}
+            <option value="{{ key }}"  {% if key == auto_assoc_pk %} }} selected {% endif %} }}>{{ key }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group row">
+        <label class="col-sm-5" for="automatic_assoc_code">Code name for automatic association</label>
+        <input class="form-control col-sm-4" type="text" value="{{ auto_assoc_code }}" id="automatic_assoc_code" readonly>
+    </div>
+    <div class="form-group row">
+        <label class="col-sm-5">Papers/students association</label>
+        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick=""><i class="fas fa-file-csv fa-lg" style="margin-right:5px;"></i>Set file</button>
+        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="" style="margin-left:10px;"><i class="fas fa-pencil-alt fa-lg" style="margin-right:5px;"></i>Edit list</button>
+    </div>
+</div>
+<div class="modal" id="markingDetailsDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Marking details</h6>
+      </div>
+      <div class="modal-body" style="overflow:auto">
+          <table id="table-marking-details" class="table table-sm table-striped">
+            <thead>
+              <tr id="table-marking-details-tr-head">
+              </tr>
+            </thead>
+            <tbody id="table-marking-details-tbody">
+              
+            </tbody>
+          </table>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk 1 %}">Close</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function amc_mark() {
+    $('#loadingModal').modal('show');
+    update_scoring_strategy = document.getElementById('update_marking_scale').checked;
+    $.ajax({
+        url: "{% url 'call_amc_mark' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'update_scoring_strategy' : update_scoring_strategy,
+        },
+        success: (data) => {
+            document.getElementById('amc_marking_msg').innerHTML = "Marking done !"; 
+            $('#loadingModal').modal('hide');           
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function showMarkingDialogsDialog(){
+    var table = $("#table-copies-pages").DataTable( {
+            scrollY: '50%',
+                "dom": 'rtip',
+            "lengthChange": false,
+            "paging": false
+        } );
+    
+    
+}
+</script>

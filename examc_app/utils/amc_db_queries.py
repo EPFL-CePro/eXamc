@@ -85,21 +85,25 @@ def select_manual_datacapture_questions(amc_data_path, data):
 
     response = db.execute_query(query_str)
 
-    if not len(response.fetchall()) > 0:
+    colname_questions_id = [d[0] for d in response.description]
+    data_questions_id = [dict(zip(colname_questions_id, r)) for r in response.fetchall()]
+
+    if not len(data_questions_id) > 0:
         db = AMC_DB(amc_data_path + "layout.sqlite")
         query_str = ("SELECT DISTINCT(question) as question_id, '' AS why FROM layout_box WHERE student = " + str(data['copy']) + " "
                      "AND page = " + str(data['page']) + " ORDER BY question ASC")
 
         response = db.execute_query(query_str)
 
-    if not len(response.fetchall()) > 0:
-        return None
-    else:
         colname_questions_id = [d[0] for d in response.description]
         data_questions_id = [dict(zip(colname_questions_id, r)) for r in response.fetchall()]
-        db.close()
 
-        return data_questions_id
+        if not len(data_questions_id) > 0:
+            return None
+
+    db.close()
+
+    return data_questions_id
 
 def select_questions(amc_data_path):
     db = AMC_DB(amc_data_path + "layout.sqlite")
@@ -280,3 +284,46 @@ def delete_unrecognized_page(amc_data_path,img_filename):
 
     response = db.execute_query(query_str)
     db.close()
+
+def get_mean(amc_data_path):
+    db = AMC_DB(amc_data_path + "scoring.sqlite")
+
+    query_str = ("SELECT AVG(mark) as mean FROM scoring_mark")
+
+    response = db.execute_query(query_str)
+    mean = response.fetchall()[0]['mean']
+
+    db.close()
+
+    return mean
+
+def get_marks(amc_data_path):
+    db = AMC_DB(amc_data_path + "scoring.sqlite")
+
+    query_str = ("SELECT student, total, max, mark FROM scoring_mark")
+
+    response = db.execute_query(query_str)
+    colname_marks = [d[0] for d in response.description]
+    data_marks = [dict(zip(colname_marks, r)) for r in response.fetchall()]
+
+    db.close()
+
+    return data_marks
+def get_questions_scoring_details(amc_data_path):
+    db = AMC_DB(amc_data_path + "scoring.sqlite")
+    # Attach layout db
+    db.cur.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
+
+    query_str = ("SELECT sm.student,sm.total, sm.max as max_total, mark, lq.name, sq.score, sq.max as max_question "
+                 "FROM scoring_score sq "
+                 "INNER JOIN layout_question lq ON lq.question = lq.question "
+                 "INNER JOIN scoring_mark sm ON sm.student = sq.student "
+                 "ORDER BY sm.student, lq.name")
+
+    response = db.execute_query(query_str)
+    colname_marking = [d[0] for d in response.description]
+    marking_details = [dict(zip(colname_marking, r)) for r in response.fetchall()]
+
+    db.close()
+
+    return marking_details

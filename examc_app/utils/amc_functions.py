@@ -4,6 +4,7 @@ import shutil
 import sqlite3
 import zipfile
 from pathlib import Path
+import csv
 
 import xmltodict
 import subprocess
@@ -126,28 +127,41 @@ def latex_files_to_list(path):
 
     return file_list
 
-def amc_update_documents(exam,nb_copies):
-    amc_update_options_xml_by_key(exam,'nombre_copies',nb_copies)
-    exam_file = get_amc_option_by_key(exam,'doc_question')
-    correction_file = get_amc_option_by_key(exam,'doc_catalog')
-    doc_setting = get_amc_option_by_key(exam,'doc_setting')
-    result = subprocess.run(['auto-multiple-choice prepare '
-                             '--mode s '
-                             '--with pdflatex '
-                             '--filter latex '
-                             '--prefix "'
-                             +get_amc_project_path(exam,False)+'/" "'
-                             +get_amc_project_path(exam,False)+'/exam.tex" '
-                             '--data "'+get_amc_project_path(exam,False)+'/data/" '
-                             '--out-sujet "'+exam_file+'" '
-                             '--out-catalog "'+correction_file+'" '
-                             '--out-calage "'+doc_setting+'" ']
-                            ,shell=True
-                            , capture_output=True
-                            , text=True)
-    # if result.stderr:
-    #     return "ERR:"+result.stderr
-    # else:
+def amc_update_documents(exam,nb_copies,scoring_only):
+    if scoring_only:
+        result = subprocess.run(['auto-multiple-choice prepare '
+                                 '--mode b '
+                                 '--data "' + get_amc_project_path(exam,False) + '/data/" '
+                                 '--with pdflatex '
+                                 '--filter latex '
+                                 '--prefix "'
+                                 +get_amc_project_path(exam,False)+'/" "'
+                                 +get_amc_project_path(exam,False)+'/exam.tex" ']
+                                , shell=True
+                                , capture_output=True
+                                , text=True)
+    else:
+        amc_update_options_xml_by_key(exam,'nombre_copies',nb_copies)
+        exam_file = get_amc_option_by_key(exam,'doc_question')
+        correction_file = get_amc_option_by_key(exam,'doc_catalog')
+        doc_setting = get_amc_option_by_key(exam,'doc_setting')
+        result = subprocess.run(['auto-multiple-choice prepare '
+                                 '--mode s '
+                                 '--with pdflatex '
+                                 '--filter latex '
+                                 '--prefix "'
+                                 +get_amc_project_path(exam,False)+'/" "'
+                                 +get_amc_project_path(exam,False)+'/exam.tex" '
+                                 '--data "'+get_amc_project_path(exam,False)+'/data/" '
+                                 '--out-sujet "'+exam_file+'" '
+                                 '--out-catalog "'+correction_file+'" '
+                                 '--out-calage "'+doc_setting+'" ']
+                                ,shell=True
+                                , capture_output=True
+                                , text=True)
+        # if result.stderr:
+        #     return "ERR:"+result.stderr
+        # else:
     return result.stdout
 
 
@@ -302,7 +316,7 @@ def get_amc_data_capture_manual_data(exam):
             questions_ids = ''
             if data_questions_id:
                 for qid in data_questions_id:
-                    questions_ids += '%' + str(qid['question_id'])
+                    questions_ids += '%' + str(qid['question_id']) + '%'
                     if qid['why'] == 'E':
                         questions_ids += '|INV|'
                     elif qid['why'] == 'V':
@@ -463,3 +477,58 @@ def add_unrecognized_page_to_project(exam,copy,question,extra,img_filename):
 
             #remove as unrecognized page
             delete_unrecognized_page(amc_data_path+'/data/',img_filename)
+
+def get_students_csv_headers(exam):
+    amc_data_path = get_amc_project_path(exam, False)
+    if amc_data_path:
+
+        students_file = get_amc_option_by_key(exam,"listeetudiants").replace("%PROJET",amc_data_path)
+
+        with open(students_file) as csv_file:
+
+            csv_reader = csv.DictReader(csv_file)
+            dict_from_csv = dict(list(csv_reader)[0])
+            return list(dict_from_csv.keys())
+
+def get_automatic_association_code(exam):
+    amc_data_path = get_amc_project_path(exam, False)
+    if amc_data_path:
+        association_code = get_amc_option_by_key(exam, "assoc_code")
+        if association_code:
+            return association_code
+
+    return "Pre-association"
+
+def amc_mark(exam,update_scoring_strategy):
+    if update_scoring_strategy == 'true':
+        result = amc_update_documents(exam,None,True)
+
+    project_path = get_amc_project_path(exam, False)
+    threshold = get_amc_option_by_key(exam, "seuil")
+    threshold_up = get_amc_option_by_key(exam, 'seuil_up')
+    grain = get_amc_option_by_key(exam, "note_grain")
+    round = get_amc_option_by_key(exam, "note_arrondi")
+    notemin = get_amc_option_by_key(exam, "note_min")
+    notemax = get_amc_option_by_key(exam, "note_max")
+    plafond = get_amc_option_by_key(exam, "note_max_plafond")
+    result = subprocess.run(['auto-multiple-choice note '
+                             '--data "' + project_path + '/data/" '
+                             '--seuil ' + threshold + ' '
+                             '--seuil-up '  + threshold_up + ' '
+                             '--grain ' + grain + ' '
+                             '--arrondi ' + round + ' '
+                             '--notemin ' + notemin + ' '
+                             '--notemax ' + notemax + ' '
+                             '--plafond ' + plafond + ' ']
+                            , shell=True
+                            , capture_output=True
+                            , text=True)
+    if result.stderr:
+        return "ERR:" + result.stderr
+    else:
+        return result.stdout
+
+def get_amc_mean(exam):
+    amc_data_path = get_amc_project_path(exam, False)
+    if amc_data_path:
+        return get_mean(amc_data_path+"/data/")

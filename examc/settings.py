@@ -193,6 +193,3 @@ LOGGING = {
     },
 }
 
-from import_export.formats.base_formats import CSV, XLSX
-
-IMPORT_FORMATS = [CSV, XLSX]
