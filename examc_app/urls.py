@@ -41,6 +41,7 @@ urlpatterns = [
     path('call_amc_update_documents', views.call_amc_update_documents, name="call_amc_update_documents"),
     path('call_amc_layout_detection', views.call_amc_layout_detection, name="call_amc_layout_detection"),
     path('call_amc_automatic_data_capture', views.call_amc_automatic_data_capture, name="call_amc_automatic_data_capture"),
+    path('call_amc_annotate', views.call_amc_annotate, name="call_amc_annotate"),
     path('open_amc_exam_pdf/<int:pk>', views.open_amc_exam_pdf, name="open_amc_exam_pdf"),
     path('open_amc_catalog_pdf/<int:pk>', views.open_amc_catalog_pdf, name="open_amc_catalog_pdf"),
     path('upload_amc_project/<int:pk>', views.upload_amc_project, name="upload_amc_project"),
@@ -48,6 +49,10 @@ urlpatterns = [
     path('get_amc_zooms', views.get_amc_zooms, name="get_amc_zooms"),
     path('add_unrecognized_page', views.add_unrecognized_page, name="add_unrecognized_page"),
     path('call_amc_mark', views.call_amc_mark, name="call_amc_mark"),
+    path('call_amc_automatic_association', views.call_amc_automatic_association, name="call_amc_automatic_association"),
+    path('call_amc_generate_results',views.call_amc_generate_results, name="call_amc_generate_results"),
+    path('amc_update_students_file/<int:pk>', views.amc_update_students_file, name="amc_update_students_file"),
+    path('download_annotated_pdf/<int:pk>', views.download_annotated_pdf, name="download_annotated_pdf"),
     # testing
     path('testing', views.testing, name="testing"),
 ]

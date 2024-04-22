@@ -314,10 +314,10 @@ def get_questions_scoring_details(amc_data_path):
     # Attach layout db
     db.cur.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
 
-    query_str = ("SELECT sm.student,sm.total, sm.max as max_total, mark, lq.name, sq.score, sq.max as max_question "
-                 "FROM scoring_score sq "
-                 "INNER JOIN layout_question lq ON lq.question = lq.question "
-                 "INNER JOIN scoring_mark sm ON sm.student = sq.student "
+    query_str = ("SELECT sm.student as copy,sm.total, sm.max as max_total, mark, lq.name as question, ss.score, ss.max as max_question "
+                 "FROM scoring_score ss "
+                 "INNER JOIN layout_question lq ON lq.question = ss.question "
+                 "INNER JOIN scoring_mark sm ON sm.student = ss.student "
                  "ORDER BY sm.student, lq.name")
 
     response = db.execute_query(query_str)
@@ -327,3 +327,21 @@ def get_questions_scoring_details(amc_data_path):
     db.close()
 
     return marking_details
+
+def get_count_missing_associations(amc_data_path):
+    db = AMC_DB(amc_data_path + "capture.sqlite")
+    db.cur.execute("ATTACH DATABASE '" + amc_data_path + "association.sqlite' as association")
+
+    query_str = ("SELECT COUNT(*) as count FROM "
+                    "(SELECT student FROM capture_page"
+                    " EXCEPT SELECT student FROM association_association"
+                    " WHERE manual IS NOT NULL OR auto IS NOT NULL)")
+
+    response = db.execute_query(query_str)
+    count = 0
+    if response:
+        count = response.fetchall()[0]['count']
+
+    db.close()
+
+    return count

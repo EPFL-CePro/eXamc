@@ -135,6 +135,7 @@ function openEditSourceDialog(filepath){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
             'filepath' : filepath
         },
         success: (data) => {
@@ -159,6 +160,7 @@ function saveEditedSourceFile(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
             'data' : data,
             'filepath' : filepath
         },

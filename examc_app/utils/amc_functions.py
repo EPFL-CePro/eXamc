@@ -5,6 +5,8 @@ import sqlite3
 import zipfile
 from pathlib import Path
 import csv
+import chardet
+import pandas as pd
 
 import xmltodict
 import subprocess
@@ -532,3 +534,205 @@ def get_amc_mean(exam):
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:
         return get_mean(amc_data_path+"/data/")
+
+def get_questions_scoring_details_list(exam):
+    questions_scoring_details_list = []
+    amc_data_path = get_amc_project_path(exam, False)
+    if amc_data_path:
+        data = get_questions_scoring_details(amc_data_path + "/data/")
+
+        last_copy = 0
+        q_scoring_details_copy = {}
+        q_question_scoring = {}
+        q_question_scoring_list = []
+        new_copy = False;
+        for row in data:
+            for key,value in row.items():
+                if key == 'copy' and value != last_copy:
+                    if last_copy != 0:
+                        q_question_scoring_list.append(q_question_scoring)
+                        q_scoring_details_copy['questions'] = q_question_scoring_list
+                        q_question_scoring_list = []
+                        q_question_scoring = {}
+                        questions_scoring_details_list.append(q_scoring_details_copy)
+                    q_scoring_details_copy = {'copy':value}
+                    new_copy = True
+                    last_copy = value
+
+                if new_copy and key not in ['question','score','max_question']:
+                    q_scoring_details_copy[key] = value
+                    if key == 'mark':
+                        new_copy = False
+                elif not new_copy and key in ['question','score','max_question']:
+                    if key == 'question':
+                        if q_question_scoring:
+                            q_question_scoring_list.append(q_question_scoring)
+                            q_question_scoring = {}
+
+                    q_question_scoring[key] = value
+
+        q_question_scoring_list.append(q_question_scoring)
+        q_scoring_details_copy['questions'] = q_question_scoring_list
+        questions_scoring_details_list.append(q_scoring_details_copy)
+
+    return questions_scoring_details_list
+
+def amc_automatic_association(exam,assoc_primary_key):
+    project_path = get_amc_project_path(exam, False)
+    amc_update_options_xml_by_key(exam,'liste_key',assoc_primary_key)
+    students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
+    result = subprocess.run(['auto-multiple-choice association-auto '
+                                  '--data "' + project_path + '/data/" '
+                                  '--pre-association '
+                                  '--liste "' + students_list + '" '
+                                  '--liste-key ' + assoc_primary_key + ' ']
+                            , shell=True
+                            , capture_output=True
+                            , text=True)
+    if result.stderr:
+        return "ERR:" + result.stderr
+    else:
+        return result.stdout
+
+def check_students_csv_file(file):
+
+
+
+    with open(file,'rb') as csvfile:
+        data = csvfile.read()
+        #check encoding
+        encoding = chardet.detect(bytearray(data))['encoding']
+        if encoding.upper() != "UTF-8" and "ASCII" not in encoding.upper():
+            return "Wrong encoding : Encoding must be UTF-8 !"
+
+    with open(file, newline="") as csvfile:
+        data = csvfile.read()
+        # #check delimiter comma
+        try:
+            dialect = csv.Sniffer().sniff(data, delimiters=",")
+        except:
+            return "Wrong delimiter : Delimiter must be comma !"
+
+    #check data (ID,NAME unique)
+    df = pd.read_csv(file)
+    data_list = [list(row) for row in df.values]
+    id_list = []
+    name_list = []
+    for row in data_list:
+        if row[0] in id_list:
+            return "Duplicate ID : ID must be unique!"
+        id_list.append(row[0])
+
+        if row[1] in name_list:
+            return "Duplicate NAME : NAME must be unique!"
+        name_list.append(row[1])
+
+    return "ok"
+
+def amc_annotate(exam,single_file):
+    project_path = get_amc_project_path(exam, False)
+    assoc_primary_key = get_amc_option_by_key(exam,'liste_key')
+    students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
+    filename_model = get_amc_option_by_key(exam,'modele_regroupement')
+    verdict = get_amc_option_by_key(exam,'verdict').replace('\n','\r\n')
+    verdict_q = get_amc_option_by_key(exam,'verdict_q').replace('"','\\"')
+    verdict_qc = get_amc_option_by_key(exam,'verdict_qc').replace('"','\\"')
+    symbols = get_annotation_symbols(exam)
+    annote_position = get_amc_option_by_key(exam,'annote_position')
+    single_file_option = ''
+    if single_file:
+        single_file_option = '--single-output'
+
+    result = subprocess.run(['auto-multiple-choice annotate '
+                                  '--project "' + project_path + '" '
+                                  '--names-file "' + students_list + '" '
+                                  '--association-key "' + assoc_primary_key + '" '
+                                  '--filename-model "' + filename_model + '" '
+                                  ''+single_file_option + ' '
+                                  '--symbols "' + symbols + '" '
+                                  '--verdict "' + verdict + '" '
+                                  '--verdict-question "' + verdict_q + '" '
+                                  '--verdict-question-cancelled "' + verdict_qc + '" '
+                                  '--position "'+ annote_position + '" ']
+                            , shell=True
+                            , capture_output=True
+                            , text=True)
+    if result.stderr:
+        return "ERR:" + result.stderr
+    else:
+        return result.stdout
+
+def get_annotation_symbols(exam):
+    symb_0_0_color = get_amc_option_by_key(exam,'symbole_0_0_color')
+    symb_0_0_type = get_amc_option_by_key(exam, 'symbole_0_0_type')
+    symb_0_1_color = get_amc_option_by_key(exam, 'symbole_0_1_color')
+    symb_0_1_type = get_amc_option_by_key(exam, 'symbole_0_1_type')
+    symb_1_0_color = get_amc_option_by_key(exam, 'symbole_1_0_color')
+    symb_1_0_type = get_amc_option_by_key(exam, 'symbole_1_0_type')
+    symb_1_1_color = get_amc_option_by_key(exam, 'symbole_1_1_color')
+    symb_1_1_type = get_amc_option_by_key(exam, 'symbole_1_1_type')
+
+    symbols_string = "0-0:"+symb_0_0_type
+    if symb_0_0_type != 'none':
+        symbols_string += ":"+symb_0_0_color
+    symbols_string += ",0-1:" + symb_0_1_type
+    if symb_0_1_type != 'none':
+        symbols_string += ":" + symb_0_1_color
+    symbols_string += ",1-0:" + symb_1_0_type
+    if symb_1_0_type != 'none':
+        symbols_string += ":" + symb_1_0_color
+    symbols_string += ",1-1:" + symb_1_1_type
+    if symb_1_1_type != 'none':
+        symbols_string += ":" + symb_1_1_color
+
+    return symbols_string
+
+def check_annotated_papers_available(exam):
+    project_path = get_amc_project_path(exam,False)
+    annotated_path = project_path+"/cr/corrections/pdf/"
+    pdf_list = [os.path.join(annotated_path, f) for f in os.listdir(annotated_path) if f.endswith(".pdf")]
+    if len(pdf_list) > 0:
+        return True
+    else:
+        return False
+
+def create_annotated_zip(exam):
+    corrections_path = get_amc_project_path(exam,False)+'/cr/corrections/'
+    zip_filename = "annotated_pdfs_"+exam.code+"_"+exam.year+"_"+str(exam.semester)
+    # Creating the ZIP file
+    archived = shutil.make_archive(corrections_path+zip_filename, 'zip', corrections_path+'pdf')
+
+    if os.path.exists(corrections_path+zip_filename+".zip"):
+        return archived
+    else:
+        return False
+
+def amc_generate_results(exam):
+    project_path = get_amc_project_path(exam,False)
+    results_csv_path = project_path+"/exports/"+exam.code+"_amc_raw.csv"
+    students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
+
+    result = subprocess.run(['auto-multiple-choice export '
+                                '--data "' + project_path + '/data/" '
+                                '--module CSV '
+                                '--fich-noms "' + students_list + '" '
+                                '--o "' + results_csv_path + '" '
+                                '--sort l '
+                                '--useall 1 '
+                                '--option-out ticked=AB '
+                                '--option columns=ID,SCIPER,NAME,SECTION,EMAIL" ']
+                                , shell=True
+                                , capture_output=True
+                                , text=True)
+    if result.stderr:
+        return "ERR:" + result.stderr
+    else:
+        return result.stdout
+
+def get_amc_results_file_path(exam):
+    project_path = get_amc_project_path(exam, False)
+    results_csv_path = project_path + "/exports/" + exam.code + "_amc_raw.csv"
+    if os.path.exists(results_csv_path):
+        return results_csv_path
+
+    return None

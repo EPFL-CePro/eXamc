@@ -129,11 +129,9 @@ dmypy.json
 .pyre/
 
 # scans subfolders
-!scans/
-scans/*/
+scans/*
 
-!marked_scans/
-marked_scans/*/
+marked_scans/*
 
-!amc_projects/
 amc_projects/*/
+!amc_projects/config

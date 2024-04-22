@@ -1,0 +1,114 @@
+
+{% load custom_tags %}
+{% load static %}
+
+<div style="padding:20px;;width:800px;">
+    <h6>Results</h6>
+    <div class="mb-3" style="text-align:center;padding:10px;margin-bottom: 10px;">
+        <div class="alert alert-warning" id="generate_results_info" role="alert" style="text-align:center;">
+            <p>Before generating the results, please check that the following points have been completed:&nbsp;</p>
+            <ol style="text-align: left;">
+                <li>Pages with “sensitivity” bigger than zero have been checked.</li>
+                <li>Marking has been done, the first time with the "Update Marking Scale" box ticked in order to update the scale.</li>
+                <li>The "invalid" boxes have been checked.</li>
+                <li>The "blank" boxes of the open questions have been checked.</li>
+                <li>The marking has been done again after changes done in points 1-4.</li>
+                <li>The automatic/manual association has been made.</li>
+            </ol>
+        </div>
+        <button type="button" class="btn btn-dark btn-sm" onclick="generate_amc_results();" style="margin-left:10px;"><i class="fas fa-sync-alt fa-lg" style="margin-right:5px;"></i>Generate Results</button>
+    </div>
+    {%  if has_results %}
+    <div class="alert alert-success" id="info_generate_results_msg" role="alert" style="text-align:center;">
+        Results and statistics have been populated! You can access them by the 'Results|Statistics' left menu !
+    </div>
+    {% endif %}
+    <hr/>
+    <h6>Annotated papers</h6>
+    <div class="form-group row">
+        <form id="gen_annotated_papers_form" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="annotate_option" id="annotate_one_per_student" checked>
+              <label class="form-check-label" for="annotate_one_per_student">
+                One file per student
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="annotate_option" id="annotate_one_all_student" >
+              <label class="form-check-label" for="annotate_one_all_student">
+                One file for all students
+              </label>
+            </div>
+            <button  type="button" class="btn btn-dark btn-sm" onclick="call_amc_annotate();" style="margin-top:20px;"><img src="{% static 'img/amc_icons/amc-annotate.svg' %}" width="16px" height="16px" style="margin-right:5px;"/>Annotate</button>
+        </form>
+        {% if annotated_papers_available %}
+        <div class="form-group col" style="text-align: right;">
+            <a  type="button" href="{% url 'download_annotated_pdf' exam.pk %}" class="btn btn-dark btn-sm" target="_blank"><i class="fas fa-file-pdf fa-lg" style="margin-right:5px;"></i>Download annotated papers</a>
+        </div>
+        {% endif %}
+    </div>
+    
+</div>
+<div class="modal fade" id="annotate_info_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="annotate_info_title">Paper annotation</h5>
+        <button type="button" class="close" onclick="$('#annotate_info_modal').modal('hide');"  aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="annotate_info_msg">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="$('#annotate_info_modal').modal('hide');">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function call_amc_annotate() {
+    info_modal_msg = document.getElementById('annotate_info_msg')
+    info_modal_msg.innerHTML = "Generating annotated papers could take some time. A button to download the files will be available here when files are ready!"
+    $('#annotate_info_modal').modal('show')
+    single_file = Number(document.getElementById('annotate_one_all_student').checked);
+    $.ajax({
+        url: "{% url 'call_amc_annotate' %}",
+        async : true,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'single_file' : single_file,
+        },
+        success: (data) => {
+            info_modal_msg.innerHTML = "Annotated files have been generated!";
+            $('#annotate_info_modal').modal('show');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function generate_amc_results() {
+    $('#loadingModal').modal('show');
+    $.ajax({
+        url: "{% url 'call_amc_generate_results' %}",
+        async : true,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+        },
+        success: (data) => {
+            $('#loadingModal').modal('hide');
+            location.replace("{% url 'amc_view' exam.pk 3%}");
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+</script>
