@@ -58,6 +58,10 @@ class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
                             group_name = "reviewer"
                             reviewer_group = Group.objects.get(name=group_name)
                             reviewer_group.user_set.add(user)
+                        elif row[reviewer_index] == '0':
+                            group_name = "staff"
+                            staff_group = Group.objects.get(name=group_name)
+                            staff_group.user_set.add(user)
 
                 except Exception as e:
                     print(f"CSV error : {e}")
