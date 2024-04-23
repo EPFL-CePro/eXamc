@@ -1,5 +1,6 @@
 
 {% load custom_tags %}
+{% load static %}
 
 <div style="padding:20px;;width:800px;">
     <h6>Marking</h6>
@@ -12,17 +13,27 @@
     </div>
     {%  if mean %}
         <div class="alert alert-success" id="mean-msg" role="alert" style="text-align:center;">
-            <a type="button" onclick="showMarkingDetailsDialog();"  class="btn btn-sm">
+            <a type="button" onclick="$('#markingDetailsDialog').modal('show');"  class="btn btn-sm">
                 Mean: {{ mean }}<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
             </a>
+        </div>
+    {%  else %}
+        <div class="alert alert-warning" id="mean-msg" role="alert" style="text-align:center;">
+            No marks computed!
         </div>
     {% endif %}
     <hr/>
     <h6>Student identification</h6>
     <div class="form-group row">
         <div class="col-sm-5">Students list : {{ students_list }}</div>
-        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick=""><i class="fas fa-file-csv fa-lg" style="margin-right:5px;"></i>Set file</button>
-        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="" style="margin-left:10px;"><i class="fas fa-pencil-alt fa-lg" style="margin-right:5px;"></i>Edit list</button>
+        <form id="students_list_csv_form" method="POST" enctype="multipart/form-data" hidden>
+            {% csrf_token %}
+            <input type="file" name="students_list_csv" id="students_list_csv" accept=".csv">
+        </form>
+        <button class="btn btn-dark btn-sm col-sm-2" onclick="$('#students_list_csv').click();"><i class="fas fa-file-csv fa-lg" style="margin-right:5px;"></i>Set file</button>
+        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="openEditStudentsListDialog();" style="margin-left:10px;"><i class="fas fa-pencil-alt fa-lg" style="margin-right:5px;"></i>Edit list</button>
+    </div>
+    <div class="alert alert-danger" id="csv_import_error" role="alert" style="text-align:center;" hidden>
     </div>
     <div class="form-group row">
         <label class="col-sm-5" for="automatic_assoc_primary_key">Primary key from this list</label>
@@ -39,12 +50,22 @@
     </div>
     <div class="form-group row">
         <label class="col-sm-5">Papers/students association</label>
-        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick=""><i class="fas fa-file-csv fa-lg" style="margin-right:5px;"></i>Set file</button>
-        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="" style="margin-left:10px;"><i class="fas fa-pencil-alt fa-lg" style="margin-right:5px;"></i>Edit list</button>
+        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="amc_automatic_association();"><img src="{% static 'img/amc_icons/amc-auto-assoc.png' %}" width="16px" height="16px" style="margin-right:10px;"/>Automatic</button>
+        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="" style="margin-left:10px;"><img src="{% static 'img/amc_icons/amc-manual-assoc.png' %}" width="16px" height="16px" style="margin-right:10px;"/>Manual</button>
     </div>
+    <hr>
+    {%  if count_missing_assoc == 0 %}
+        <div class="alert alert-success" id="mean-msg" role="alert" style="text-align:center;">
+            All completed answer sheets are associated with a student name!
+        </div>
+    {%  else %}
+        <div class="alert alert-warning" id="mean-msg" role="alert" style="text-align:center;">
+            Missing identification for {{ count_missing_assoc }} copies!
+        </div>
+    {% endif %}
 </div>
 <div class="modal" id="markingDetailsDialog" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
         <h6 class="modal-title">Marking details</h6>
@@ -53,20 +74,95 @@
           <table id="table-marking-details" class="table table-sm table-striped">
             <thead>
               <tr id="table-marking-details-tr-head">
+                  {% for key, value in questions_scoring_details.0.items %}
+                      {% if key == 'questions' %}
+                          {% for question in value %}
+                              <th>{{ question.question }} (max={{ question.max_question }})</th>
+                          {% endfor %}
+                      {% else %}
+                        <th>{{ key }}</th>
+                      {% endif %}
+                  {% endfor %}
               </tr>
             </thead>
             <tbody id="table-marking-details-tbody">
-              
+                {% for row in questions_scoring_details %}
+                <tr>
+                  {% for key, value in row.items %}
+                      {% if key == 'questions' %}
+                          {% for question in value %}
+                              <td>{{ question.score }}</td>
+                          {% endfor %}
+                      {% else %}
+                        <td>{{ value }}</td>
+                      {% endif %}
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+
             </tbody>
           </table>
       </div>
       <div class="modal-footer">
-        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk 1 %}">Close</a>
+        <a class="btn btn-secondary btn-sm" onclick="$('#markingDetailsDialog').modal('hide');">Close</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="edit_students_list_modal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="edit_students_list_modal_title"></h5>
+        <span id="students_list_filepath" hidden></span>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+            <textarea class="form-control" id="students_list_source_text" rows="50"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a type="button" class="btn btn-primary" onclick="saveStudentsListFile();">Save changes</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
 </div>
 <script>
+$('#students_list_csv').change(amc_update_students_file);
+function amc_update_students_file (e) {
+    var files = e.target.files;
+    if (files.length === 1) {
+        $('#loadingModal').modal('show');
+        form = document.getElementById('students_list_csv_form');
+        formData = new FormData(form);
+        ok = 1;
+        $.ajax({
+            url: "{% url 'amc_update_students_file' exam.pk %}",
+            async : false,
+            type: "POST",
+            data : formData,
+            processData: false,
+            contentType: false,
+            success: (data) => {
+                error_div = document.getElementById('csv_import_error');
+                $('#loadingModal').modal('hide');
+                if(data!=='ok'){
+                    error_div.removeAttribute('hidden');
+                    error_div.innerHTML = data;
+                }else{
+                    error_div.setAttribute('hidden',"");
+                    location.replace("{% url 'amc_view' exam.pk 2 %}");
+                }               
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
+}
 function amc_mark() {
     $('#loadingModal').modal('show');
     update_scoring_strategy = document.getElementById('update_marking_scale').checked;
@@ -80,7 +176,6 @@ function amc_mark() {
             'update_scoring_strategy' : update_scoring_strategy,
         },
         success: (data) => {
-            document.getElementById('amc_marking_msg').innerHTML = "Marking done !"; 
             $('#loadingModal').modal('hide');           
         },
         error: (error) => {
@@ -88,15 +183,80 @@ function amc_mark() {
         }
     });
 }
+function amc_automatic_association() {
+    $('#loadingModal').modal('show');
+    assoc_primary_key = document.getElementById('automatic_assoc_primary_key').value;
+    $.ajax({
+        url: "{% url 'call_amc_automatic_association' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'assoc_primary_key' : assoc_primary_key,
+        },
+        success: (data) => {
+            $('#loadingModal').modal('hide');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+function openEditStudentsListDialog(){
+    $.ajax({
+        url: "{% url 'edit_amc_file' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'filepath' : 'students_list'
+        },
+        success: (data) => {
+            data = JSON.parse(data);
+            document.getElementById('students_list_source_text').value = data[1];
+            title = "Edit "+data[0].split("/").slice(-1)[0]
+            document.getElementById('edit_students_list_modal_title').innerText = title;
+            document.getElementById('students_list_filepath').innerText = data[0];
+            $('#edit_students_list_modal').modal('show');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
 
-function showMarkingDialogsDialog(){
-    var table = $("#table-copies-pages").DataTable( {
-            scrollY: '50%',
-                "dom": 'rtip',
-            "lengthChange": false,
-            "paging": false
-        } );
-    
-    
+function saveStudentsListFile(){
+    data = document.getElementById('students_list_source_text').value;
+    filepath = document.getElementById('students_list_filepath').innerText
+    $('#loadingModal').modal('show');
+    $.ajax({
+        url: "{% url 'save_amc_edited_file' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'data' : data,
+            'filepath' : filepath,
+            'is_students_list': true,
+        },
+        success: (data) => {
+            error_div = document.getElementById('csv_import_error');
+            $('#loadingModal').modal('hide');
+            if(data!=='ok'){
+                error_div.removeAttribute('hidden');
+                error_div.innerHTML = data;
+            }else{
+                error_div.setAttribute('hidden',"");
+                location.replace("{% url 'amc_view' exam.pk 2 %}");
+            }     
+            $('#edit_students_list_modal').modal('hide');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
 }
 </script>

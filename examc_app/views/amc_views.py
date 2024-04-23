@@ -1,3 +1,4 @@
+import os
 
 from django.shortcuts import render
 from examc_app.utils.review_functions import *
@@ -69,6 +70,8 @@ def amc_view(request, pk, active_tab=0):
 
             students_list = get_amc_option_by_key(exam,"listeetudiants").replace("%PROJET/",'')
 
+            has_results = get_amc_results_file_path(exam)
+
             context['number_of_copies_param'] = amc_option_nb_copies
             context['copy_count'] = number_of_copies
             context['exam_pdf_path'] = amc_exam_pdf_path
@@ -86,9 +89,13 @@ def amc_view(request, pk, active_tab=0):
             context['overwritten_pages'] = overwritten_pages
             context['students_list'] = students_list
             context['students_list_headers'] = get_students_csv_headers(exam)
-            context['auto_assoc_pk'] = get_amc_option_by_key(exam,'list_key')
+            context['auto_assoc_pk'] = get_amc_option_by_key(exam,'liste_key')
             context['auto_assoc_code'] = get_automatic_association_code(exam)
             context['mean'] = get_amc_mean(exam)
+            context['questions_scoring_details'] = get_questions_scoring_details_list(exam)
+            context['count_missing_assoc'] = get_count_missing_associations(amc_data_path+'/data/')
+            context['annotated_papers_available'] = check_annotated_papers_available(exam)
+            context['has_results'] = has_results
 
     else:
         context['user_allowed'] = False
@@ -142,20 +149,45 @@ def update_amc_mark_zone(request):
 
 @login_required
 def edit_amc_file(request):
-    f = open(request.POST['filepath'], 'r')
-    file_contents = f.read()
-    f.close()
-    return HttpResponse(file_contents)
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    filepath = request.POST['filepath']
+    if filepath == 'students_list':
+        filepath = get_amc_option_by_key(exam,'listeetudiants').replace("%PROJET",get_amc_project_path(exam,False))
+        f = open(filepath, 'r')
+        file_contents = f.read()
+        f.close()
+        return HttpResponse(json.dumps([filepath, file_contents]))
+    else:
+        f = open(request.POST['filepath'], 'r')
+        file_contents = f.read()
+        f.close()
+        return HttpResponse(file_contents)
 
 @login_required
 def save_amc_edited_file(request):
     data = request.POST['data']
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
     filepath = request.POST['filepath']
-    f = open(filepath, 'r+')
-    f.truncate(0)
-    f.write(data)
-    f.close()
-    return HttpResponse(True)
+    if 'is_students_list' in request.POST:
+        tmp_filepath = get_amc_project_path(exam,False)+'/_tmp_students.csv'
+        shutil.copyfile(filepath, tmp_filepath)
+        f = open(tmp_filepath, 'r+')
+        f.truncate(0)
+        f.write(data)
+        f.close()
+        check = check_students_csv_file(tmp_filepath)
+        if check == 'ok':
+            os.rename(tmp_filepath,filepath)
+        else:
+            os.remove(tmp_filepath)
+            check += " -- file not updated !"
+        return HttpResponse(check)
+    else:
+        f = open(filepath, 'r+')
+        f.truncate(0)
+        f.write(data)
+        f.close()
+        return HttpResponse('ok')
 
 @login_required
 def call_amc_update_documents(request):
@@ -241,3 +273,69 @@ def call_amc_mark(request):
         return HttpResponse('yes')
     else:
         return HttpResponse(result)
+
+@login_required
+def call_amc_automatic_association(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    assoc_primary_key = request.POST['assoc_primary_key']
+
+    result = amc_automatic_association(exam,assoc_primary_key)
+
+    if not 'ERR:' in result:
+        return amc_view(request,exam.pk,3)
+    else:
+        return HttpResponse(result)
+
+@login_required
+def amc_update_students_file(request,pk):
+    exam = Exam.objects.get(pk=pk)
+    students_list_csv = request.FILES['students_list_csv']
+    amc_project_dir = get_amc_project_path(exam,False)
+    if amc_project_dir :
+
+        #Register tmp for checking
+        FileSystemStorage(location=amc_project_dir).save('_tmp_students.csv',students_list_csv)
+        tmp_file = amc_project_dir+'/_tmp_students.csv'
+        check = check_students_csv_file(tmp_file)
+        if check == 'ok':
+            if os.path.exists(amc_project_dir+'/'+students_list_csv.name):
+                os.remove(amc_project_dir+'/'+students_list_csv.name)
+            os.rename(tmp_file,amc_project_dir+'/'+students_list_csv.name)
+            #FileSystemStorage(location=amc_project_dir).save(students_list_csv.name, students_list_csv)
+            amc_update_options_xml_by_key(exam,'listeetudiants','%PROJET/'+students_list_csv.name)
+        else:
+            os.remove(tmp_file)
+            return HttpResponse(check)
+
+    return HttpResponse('ok')
+
+@login_required
+def call_amc_annotate(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    single_file = request.POST['single_file']
+    if single_file == '1':
+        single_file = True
+    else:
+        single_file = False
+
+    result = amc_annotate(exam,single_file)
+
+    return HttpResponse(result)
+
+@login_required
+def download_annotated_pdf(request,pk):
+    exam = Exam.objects.get(pk=pk)
+    zip_file_path = create_annotated_zip(exam)
+
+    if zip_file_path:
+        zip_file = open(zip_file_path, 'rb')
+        return FileResponse(zip_file)
+    else:
+        return HttpResponse('ZIP file not created !')
+
+@login_required
+def call_amc_generate_results(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    result = amc_generate_results(exam)
+    return HttpResponse(result)
+
