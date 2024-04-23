@@ -58,7 +58,7 @@ class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
                             group_name = "reviewer"
                             reviewer_group = Group.objects.get(name=group_name)
                             reviewer_group.user_set.add(user)
-                        elif row[reviewer_index] == '0':
+                        else:
                             group_name = "staff"
                             staff_group = Group.objects.get(name=group_name)
                             staff_group.user_set.add(user)
