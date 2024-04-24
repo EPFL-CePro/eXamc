@@ -129,13 +129,14 @@ def get_scans_path_for_group(examPagesGroup):
     scans_url = "../../scans/" + str(examPagesGroup.exam.year) + "/" + str(examPagesGroup.exam.semester) + "/" + examPagesGroup.exam.code
 
     for dir in sorted(os.listdir(scans_dir)):
-        for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+        for filename in sorted(os.listdir(scans_dir + "/")):
             split_filename = filename.split('_')
             page_no_real = split_filename[-1].split('.')[0].replace('x', '.')
             # get only two first char to prevent extra pages with a,b,c suffixes
             page_no_int = int(page_no_real[0:2])
+            print(scans_url+"/"+dir)
             if page_no_int == examPagesGroup.page_from:
-                return scans_url+"/"+dir+"/"+filename
+                return scans_url+"/"+dir
 
 
 def get_scans_pathes_by_group(examPagesGroup):

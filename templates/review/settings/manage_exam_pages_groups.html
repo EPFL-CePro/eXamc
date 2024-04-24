@@ -172,6 +172,7 @@ function showMarkerArea(target) {
     target.src = event.dataUrl;
     // save the state of MarkerArea
     maState = event.state;
+    console.log(maState);
 });
   markerArea.addEventListener("close", (event) => {
     showMarkerArea(target);
@@ -209,16 +210,5 @@ function openModalCorrectorBox(group_id) {
         }
     });
 }
-
-function closeAndRestoreMarkerArea() {
-    const markerArea = new markerjs2.MarkerArea(sourceImage);
-    markerArea.show();
-    if (rectangleCoordinates) {
-        markerArea.restoreRect(rectangleCoordinates);
-    }
-}
-
-
-
 
 </script>

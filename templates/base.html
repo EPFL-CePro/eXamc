@@ -203,7 +203,7 @@
 
         <!-- Sidebar -->
     <div class="row" id="body-row">
-        <div id="sidebar-container" class="sidebar-expanded d-none d-md-block">
+        <div id="sidebar-container" class="sidebar-expanded d-none d-md-block" style="overflow:auto;">
             <ul class="list-group">
                 <li class="bg-dark list-group-item-action" >
                     <div class="d-flex w-100 " style="padding: 15px">
@@ -224,7 +224,6 @@
                     </li>
 
                     {% if not user|is_reviewer:exam %}
-                        <!-- d-* hiddens the Sidebar in smaller devices. Its itens can be kept on the Navbar 'Menu' -->
                         <a href="{% url 'reviewSettingsView' exam.pk 'groups' %}"
                            class="bg-dark list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-start align-items-center">
@@ -280,7 +279,7 @@
                     </a>
                         {% endif %}
                     {% endif %}
-                    <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action">
+                    <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action" target="_blank" >
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></span>
                             <span class="menu-collapsed" style="color:#CCA71CFF;margin-right:5px;">Documentation </span>
@@ -305,76 +304,7 @@
         </div><!-- sidebar-container END -->
 </div>
 
-        <!-- Sidebar -->
-
-{#        <div class="sidebar" id="sidebar-wrapper" hidden>#}
-{#            <ul class="sidebar-nav" style="overflow: auto; max-height: 90vh;">#}
-{#                <li style="margin-bottom:50px;padding:5%;">#}
-{#                    <img id="examc_logo" src="{% static 'img/eXamc_x_white_200.png' %}" style="width:90%;"/>#}
-{#                </li>#}
-{#                <li style="margin-bottom:25px;">#}
-{#                    <a href="{% url 'examSelect' %}"><i class="fas fa-folder-open"#}
-{#                                                        style="margin-right:5px;"></i>Exams</a>#}
-{#                </li>#}
-{#                {% if exam %}#}
-{#                    <li style="margin-left:5px;background-color: #4c1d1b;margin-bottom:10px;">#}
-{#                        <a style="font-weight:bold">{{ exam.code }}</a>#}
-{#                    </li>#}
-{#                    {% if not user|is_reviewer:exam %}#}
-{#                        <li>#}
-{#                            <a href="{% url 'reviewSettingsView' exam.pk 'groups' %}"><i class="fas fa-cogs"#}
-{#                                                                                         style="margin-right:5px;"></i>Review#}
-{#                                settings</a>#}
-{#                        </li>#}
-{#                    {% endif %}#}
-{#                    <li>#}
-{#                        <a href="{% url 'reviewView' exam.pk %}"><i class="fas fa-glasses"#}
-{#                                                                    style="margin-right:5px;"></i>Review</a>#}
-{#                    </li>#}
-{#                    {% if not user|is_reviewer:exam %}#}
-{#                        <li>#}
-{#                            <a href="{% url 'upload_scans' exam.pk %}"><i class="fas fa-cloud-upload-alt"#}
-{#                                                                          style="margin-right:5px;"></i>Upload scans</a>#}
-{#                        </li>#}
-{#                        <li>#}
-{#                            <a href="{% url 'export_marked_files' exam.pk %}"><i class="fas fa-cloud-download-alt"#}
-{#                                                                                 style="margin-right:5px;"></i>Export#}
-{#                                marked files</a>#}
-{#                        </li>#}
-{#                        <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                        <li>#}
-{#                            <a href="{% url 'amc_view' exam.pk %}"><img src="{% static 'img/amc.ico' %}"#}
-{#                                                                        style="margin:0px 5px 0px 10px;">AMC</a>#}
-{#                        </li>#}
-{#                        <li>#}
-{#                            <a href="{% url 'upload_amc_project' exam.pk %}"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload AMC project</a>#}
-{#                        </li>#}
-{#                        <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                        <li>#}
-{#                            <a href="{% url 'testing' %}" style="color: #ff5ce9;"><i class="fas fa-hippo fa-spin" style="color: #ff5ce9;margin-right:5px;"></i>TESTING</a>#}
-{#                        </li>#}
-{#                        <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                        {% if user|is_admin %}#}
-{#                            <li>#}
-{#                                <a href="{% url 'users' %}" style="color: #FF5733;"><i class="fas fa-bone fa-spin" style="color: #FF5733;margin-right:5px;"></i>Users</a>#}
-{#                            </li>#}
-{#                            <li>#}
-{#                                <a href="{% url 'admin:index' %}" style="color: #10E6BC;"><i class="fas fa-carrot fa-spin" style="color: #10E6BC;margin-right:5px;"></i>ADMIN</a>#}
-{#                            </li>#}
-{#                            <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                        {% endif %}#}
-{#                    {% endif %}#}
-{#                    <li>#}
-{#                        <a href="{% static 'docs/html/index.html' %}" target="_blank" style="color:#CCA71CFF;"><i class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></i>Documentation</a>#}
-{#                    </li>#}
-{#                {% endif %}#}
-{#                <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                <li>#}
-{#                    <a style="color:#387900FF"><i class="fas fa-grimace fa-lg" style="color: #387900FF;margin-right:5px;"></i>{{ user }}</a>#}
-{#                </li>#}
-{#            </ul>#}
-{##}
-{#        </div>#}
+   
         </div>
 </main>
         <div id="page-content-wrapper">
@@ -432,7 +362,7 @@ function SidebarCollapse () {
     // Collapse/Expand icon
     $('#collapse-icon').toggleClass('fa-angle-double-left fa-angle-double-right');
     if ($('#sidebar-container').hasClass('sidebar-collapsed')) {
-        $('#page-content-wrapper').css('margin-left', '-100px');
+        $('#page-content-wrapper').css('margin-left', '-150px');
     } else {
         $('#page-content-wrapper').css('margin-left', '0px');
     }

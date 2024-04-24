@@ -1,29 +1,25 @@
-import csv
-
 from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect
-from django.urls import path
-from examc_app.utils.review_functions import *
-
-
-from examc_app.utils.amc_functions import *
-from examc_app.forms import *
-from examc_app.models import *
 from django_tables2 import SingleTableView
 from django.views.generic import DetailView
-from examc_app.tables import ExamSelectTable
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
 from django.urls import reverse
+
+from examc_app.utils.review_functions import *
+from examc_app.utils.amc_functions import *
+from examc_app.forms import *
+from examc_app.models import *
+from examc_app.tables import ExamSelectTable
+from examc_app.utils.epflldap import ldap_search
+
 import zipfile
 import os
 import json
-from examc_app.utils.epflldap import ldap_search
 import re
 import base64
-from django.contrib import admin
 
 
 def menu_access_required(view_func):
@@ -67,6 +63,7 @@ class ExamInfoView(DetailView):
     def get_context_data(self, **kwargs):
         context = super(ExamInfoView, self).get_context_data(**kwargs)
 
+
         global EXAM
         EXAM = Exam.objects.get(pk=context.get("object").id)
 
@@ -82,6 +79,19 @@ class ExamInfoView(DetailView):
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewView(DetailView):
+    """
+          View for managing review for a specific exam.
+
+          This class-based view handles the display and management of review settings for a particular exam. It allows
+          staff to go on the review exercise page groups for the exam.
+
+          Attributes:
+              model (Exam): The model class associated with the view.
+              template_name : The name of the template used for rendering the view.
+
+          Methods:
+              get_context_data: Overrides the base class method to provide additional context data for rendering the view.
+  """
     model = Exam
     template_name = 'review/review.html'
 
@@ -104,6 +114,20 @@ class ReviewView(DetailView):
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewGroupView(DetailView):
+    """
+        View for managing review group for a specific exam.
+
+        This class-based view handles the display and management of review group settings for a particular exam. It allows
+        administrators to configure page groups for the exam.
+
+        Attributes:
+            model (ExamPagesGroup): The model class associated with the view.
+            template_name : The name of the template used for rendering the view.
+
+        Methods:
+            get_context_data: Overrides the base class method to provide additional context data for rendering the view.
+            post: Handles POST requests for updating review settings.
+"""
     model = ExamPagesGroup
     template_name = 'review/reviewGroup.html'
 
@@ -134,10 +158,33 @@ class ReviewGroupView(DetailView):
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewSettingsView(DetailView):
+    """
+    View for managing review settings for a specific exam.
+
+    This class-based view handles the display and management of review settings for a particular exam. It allows
+    administrators to configure reviewers and page groups for the exam.
+
+    Attributes:
+        model (Exam): The model class associated with the view.
+        template_name : The name of the template used for rendering the view.
+        error_msg : Error message to display if there are any issues.
+
+    Methods:
+        get_context_data: Overrides the base class method to provide additional context data for rendering the view.
+    """
     model = Exam
     template_name = 'review/settings/reviewSettings.html'
     error_msg = None
+
     def get_context_data(self, **kwargs):
+        """
+        Retrieves additional context data for rendering the view.
+
+        This method overrides the base class method to include context data such as formsets and current tab.
+
+        Returns:
+            dict: A dictionary containing context data for rendering the view.
+        """
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
 
         exam = Exam.objects.get(pk=context.get("object").id)
@@ -145,10 +192,12 @@ class ReviewSettingsView(DetailView):
         curr_tab = "groups"
         if "curr_tab" != '' in context:
             curr_tab = context.get("curr_tab")
-        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam),initial=[{'id':None,'group_name':'[New]','page_from':-1,'page_to':-1}])
+        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam),
+                                                    initial=[{'id': None, 'group_name': '[New]', 'page_from': -1,
+                                                              'page_to': -1}])
         formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
 
-        if user_allowed(exam,self.request.user.id):
+        if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
@@ -162,8 +211,15 @@ class ReviewSettingsView(DetailView):
             context['exam'] = exam
             return context
 
-    # Define method to handle POST request
     def post(self, *args, **kwargs):
+        """
+        Handles POST requests for updating review settings.
+
+        This method processes the form submissions for updating reviewers and page groups for the exam.
+
+        Returns:
+            HttpResponse: A response containing the updated view or an error message.
+        """
         self.object = self.get_object()
         exam = Exam.objects.get(pk=self.kwargs['pk'])
         error_msg = ''
@@ -190,10 +246,9 @@ class ReviewSettingsView(DetailView):
             if formset.is_valid():
                 for form in formset:
                     print(form)
-                    if form.is_valid() and form.cleaned_data :
+                    if form.is_valid() and form.cleaned_data:
                         error_msg = None
                         if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
-                            #formsetGroups = formset
                             error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
                             break
                         else:
@@ -204,11 +259,10 @@ class ReviewSettingsView(DetailView):
                             if form.cleaned_data["DELETE"]:
                                 pagesGroup.delete()
 
-                        #formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
-
         formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
-        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam), initial=[
-            {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
+        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam),
+                                                    initial=[{'id': None, 'group_name': '[New]', 'page_from': -1,
+                                                              'page_to': -1}])
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam, self.request.user.id):
@@ -226,6 +280,7 @@ class ReviewSettingsView(DetailView):
             return context
 
         return self.render_to_response(context=context)
+
 
 
 @login_required
@@ -283,7 +338,6 @@ def save_drawn_image(request):
         image_data = request.POST.get('image_data')
         group_id = request.POST.get('group_id')
 
-        # Enregistrez les données de l'image dans votre base de données
         drawn_image = DrawnImage(image_data=image_data, group_id=group_id)
         drawn_image.save()
 
@@ -300,6 +354,15 @@ def save_drawn_image(request):
 @login_required
 @menu_access_required
 def ldap_search_by_email(request):
+    """
+              Search in ldap database based on email.
+
+              This function is used to search a new reviewer in the ldap database. The email of the reviewer will
+              give the complete name of the user and his email.
+
+              :param request: The HTTP request object.
+              :return: A variable with information about the searched reviewer or a not found message.
+              """
     email = request.POST['email']
     user = ExamReviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
     if user:
@@ -321,6 +384,14 @@ def ldap_search_by_email(request):
 @login_required
 @menu_access_required
 def add_new_reviewers(request):
+    """
+           Add new reviewers to review group.
+
+           This function is used to add a new reviewers to review group and add to a specific question.
+
+           :param request: The HTTP request object.
+           :return: A rendered HTML page displaying the new reviewer.
+           """
     exam = Exam.objects.get(pk=request.POST.get('pk'))
     reviewers = request.POST.getlist('reviewer_list[]')
     reviewer_group = Group.objects.get(name='reviewer')
@@ -355,10 +426,19 @@ def add_new_reviewers(request):
 
 @login_required
 @menu_access_required
-def export_marked_files(request,pk):
+def export_marked_files(request, pk):
+    """
+       Export all the marked files.
+
+       This function is used to export all the marked files and will delete old folders and zips folder.
+
+       :param request: The HTTP request object.
+       :param pk: The primary key of the exam.
+       :return: A rendered HTML page and the zipped folder if the user is allowed to export the file.
+       """
     exam = Exam.objects.get(pk=pk)
 
-    if user_allowed(exam,request.user.id):
+    if user_allowed(exam, request.user.id):
 
         if request.method == 'POST':
 
@@ -402,12 +482,6 @@ def export_marked_files(request,pk):
                                                       "current_url": "export_marked_files"})
 
 
-
-# def isReviewer(request):
-#     exam_reviewers = ExamReviewer.objects.filter(exam=exam)
-#     return render(request, 'base.html', {'exam_reviewers': exam_reviewers})
-
-
 # TESTING
 # ------------------------------------------
 @login_required
@@ -446,6 +520,18 @@ def select_exam(request, pk, current_url=None):
 
 @login_required
 def upload_scans(request, pk):
+    """
+       Handles the upload of scanned files for a specific exam.
+
+       This function is responsible for processing the upload of scanned files for a particular exam. It receives a POST
+       request containing a zip file containing scanned images, extracts the images, and imports them into the system for
+       further processing.
+
+       :param request: The HTTP request object.
+       :param pk: The primary key of the exam.
+       :return: A rendered HTML page displaying the upload status and any error messages.
+       """
+
     exam = Exam.objects.get(pk=pk)
 
     if request.method == 'POST':
@@ -478,23 +564,38 @@ def upload_scans(request, pk):
 
 @login_required
 def start_upload_scans(request, pk, zip_file_path):
+    """
+    Extracts and imports scanned files for an exam upload.
+
+    This function is responsible for extracting scanned files from a zip archive and importing them into the system
+    for a specific exam upload process.
+
+    :param request: The HTTP request object.
+    :param pk: The primary key of the exam.
+    :param zip_file_path: The file path of the zip archive containing the scanned files.
+    :return: A message indicating the success or failure of the upload process.
+    """
     exam = Exam.objects.get(pk=pk)
 
+    # Define paths
     zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
     tmp_extract_path = zip_path + "/tmp_extract"
 
-    # extract zip file in tmp dir
+    # Extract zip file in tmp directory
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         print("start extraction")
         zip_ref.extractall(tmp_extract_path)
 
+    # Find extracted directory
     dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
 
     if dirs:
         tmp_extract_path = os.path.join(tmp_extract_path, dirs[0])
 
+    # Import scanned files
     result = import_scans(exam, tmp_extract_path)
 
+    # Process result
     if isinstance(result, tuple) and len(result) == 2:
         message, files = result
     elif isinstance(result, str):
@@ -502,7 +603,7 @@ def start_upload_scans(request, pk, zip_file_path):
     else:
         message, files = "An unexpected error occurred during the upload.", []
 
-    # remove imported Files (zip + extracted)
+    # Remove imported files (zip + extracted)
     for filename in os.listdir(zip_path):
         file_path = os.path.join(zip_path, filename)
         try:
@@ -520,8 +621,18 @@ def start_upload_scans(request, pk, zip_file_path):
     #     'message': message
     # })
 
+
+
 @login_required
 def saveMarkers(request):
+    """
+       Save the markers and comments for a given exam page group.
+
+       This function saves the markers and comments provided by the user for a specific exam page group.
+
+       :param request: The HTTP request object.
+       :return: A HTTP response indicating the success of the operation.
+       """
 
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     pages_group = ExamPagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])

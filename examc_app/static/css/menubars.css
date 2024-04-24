@@ -18,7 +18,7 @@
 
 }
 #sidebar-container {
-    min-height: 100vh;
+    min-height: 90vh;
     background-color: #000000;
     padding: 0;
     position: fixed;
@@ -27,10 +27,8 @@
 }
 .container-fluid {
     transition: margin-left .2s; /* If you want a transition effect */
-  /*padding: 230px;*/
      width: 100%;
-    /*padding-right: 15px;*/
-   padding-left: 230px;
+   padding-left: 240px;
     margin: 20px 0 20px 0;
 }
 
