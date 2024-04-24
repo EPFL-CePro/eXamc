@@ -2,9 +2,11 @@ from datetime import datetime
 
 from django import template
 from django.contrib.auth.models import User
-from django.utils.safestring import mark_safe
+from django.db.models.functions import Cast
+from django.db.models import FloatField, Sum
 
-
+from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
+from examc_app.models import ScaleDistribution, ComVsIndStatistic
 
 register = template.Library()
 
@@ -26,7 +28,7 @@ def is_reviewer(user,exam):
     if auth_user in exam.users.all() or auth_user.is_superuser:
         return False
     else:
-        for exam_reviewer in exam.examReviewers.all():
+        for exam_reviewer in exam.reviewers.all():
             if auth_user == exam_reviewer.user:
                 return True
 
@@ -38,3 +40,107 @@ def is_admin(user):
 
     if auth_user.is_superuser:
         return True
+
+@register.filter
+def get_scale_stats(exam_pk, scale_name):
+    result = ScaleStatistic.objects.get(exam__pk=exam_pk, scale__name=scale_name)
+    return result
+
+@register.filter
+def filter_scales_stats_by_scale(scales_stats,scale_name):
+    result = scales_stats.filter(scale__name=scale_name)
+    return result
+
+@register.filter
+def get_item_pos(qs,item):
+    return list(qs).index(item)
+
+@register.filter
+def substract(value, arg):
+    return value - arg
+
+@register.filter
+def add(value, arg):
+    return value + arg
+
+@register.filter
+def divide(value, arg):
+    return value / arg
+
+@register.filter
+def multiply(value, arg):
+    return value * arg
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
+
+@register.filter
+def get_sections_scaleStats_by_examScale(exam,scale):
+    return ScaleStatistic.objects.filter(exam=exam, scale=scale).exclude(section__isnull=True).exclude(section__exact='').exclude(section__exact='GLOBAL').order_by('scale__pk')
+
+@register.filter
+def get_section_students_count(exam,section):
+    print(exam)
+    stud_count = Student.objects.filter(exam=exam, section=section).count()
+    print(stud_count)
+    return stud_count
+
+@register.filter
+def get_sections_by_overall_exam(exam):
+    return Student.objects.filter(present=True,exam__in=exam.common_exams.all()).order_by().values('section').distinct().order_by('section')
+
+@register.filter
+def get_teachers_comVsInd_scaleStats_by_overall_examScale(overall_exam,scale):
+    return ComVsIndStatistic.objects.filter(exam__in=overall_exam.common_exams.all(), scale=scale, section='').order_by('exam__code')
+
+@register.filter
+def get_sections_comVsInd_scaleStats_by_overall_examScale(overall_exam,scale):
+    return ComVsIndStatistic.objects.filter(exam=overall_exam, scale=scale).exclude(section__isnull=True).exclude(section__exact='').order_by('section')
+
+@register.filter
+def get_open_question_stats_by_quarter(question):
+    quarter_list = []
+    quarter_points = question.max_points / 4
+
+    for i in range (1,5):
+        logger.info(quarter_points*i)
+        if i == 1:
+            students_count = sum(AnswerStatistic.objects.values_list('quantity',flat=True).annotate(answer_float=Cast('answer', FloatField())).filter(question=question,answer_float__lte=quarter_points))
+        else:
+            students_count = sum(AnswerStatistic.objects.values_list('quantity',flat=True).annotate(answer_float=Cast('answer', FloatField())).filter(question=question,answer_float__gt=float(quarter_points*(i-1))+0.00001,answer_float__lte=quarter_points*i))
+        quarter_list.append([i,float(quarter_points*i),students_count])
+
+    return quarter_list
+
+@register.filter
+def get_achievement_by_scalestat(scale_stat):
+    ach = ScaleDistribution.objects.filter(scale_statistic__id=scale_stat.id,grade__gte=4).values('quantity').aggregate(Sum('quantity')).get('quantity__sum')
+
+    if ach > 0:
+      if scale_stat.section == 'global':
+          ach = str(ach) + " ( " + str(round(100/scale_stat.exam.present_students*ach,2)) + "% )"
+      else:
+          tot_stud_section = ScaleDistribution.objects.filter(scale_statistic__id=scale_stat.id).values('quantity').aggregate(Sum('quantity')).get('quantity__sum')
+          ach = str(ach) + " ( " + str(round(100/tot_stud_section*ach,2)) + "% )"
+    return ach
+
+@register.filter
+def get_nonachievement_by_scalestat(scale_stat):
+    nonach = ScaleDistribution.objects.filter(scale_statistic__id=scale_stat.id,grade__lt=4).values('quantity').aggregate(Sum('quantity')).get('quantity__sum')
+    if nonach > 0:
+      if scale_stat.section == 'global':
+          nonach = str(nonach) + " ( " + str(round(100/scale_stat.exam.present_students*nonach,2)) + "% )"
+      else:
+          tot_stud_section = ScaleDistribution.objects.filter(scale_statistic__id=scale_stat.id).values('quantity').aggregate(Sum('quantity')).get('quantity__sum')
+          nonach = str(nonach) + " ( " + str(round(100/tot_stud_section*nonach,2)) + "% )"
+    return nonach
+
+@register.filter
+def divideMult100(value, arg):
+    if value <= 0 or arg <= 0:
+      return 0
+    try:
+        return int(value) / int(arg) * 100
+    except (ValueError, ZeroDivisionError):
+        return 0

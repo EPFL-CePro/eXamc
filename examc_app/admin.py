@@ -1,7 +1,9 @@
 import csv
 from django import forms
 from django.shortcuts import render
-from django.urls import path
+from django.urls import path, reverse
+from django.utils.html import format_html
+
 from .models import *
 from simple_history.admin import SimpleHistoryAdmin
 from django.contrib.auth.models import User, Group
@@ -16,7 +18,31 @@ class CsvImportForm(forms.Form):
 
 @admin.register(Exam)
 class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display = ("code", "name", "semester", "year")
+    list_display = ["code", "name", "semester", "year",'show_commons', 'get_common_exams_button']
+    filter_horizontal = ('common_exams',)
+
+    def show_commons(self, obj):
+            return_str = ''
+            commons = obj.common_exams.all()
+            if commons:
+                for common in commons:
+                    if return_str:
+                        return_str += ','
+                    return_str += common.code
+            return return_str
+
+    def getCommonExams(self, request, obj):
+        return obj.getCommonExams
+
+        pass
+
+    def get_common_exams_button(self, obj):
+        html_str = format_html('<a href="{0}">Get common exams</a>',reverse('getCommonExams', kwargs={'pk':obj.pk}))
+        logger.info(html_str)
+        return html_str
+
+    get_common_exams_button.short_description = 'Action'
+    get_common_exams_button.allow_tags = True
 
     def import_csv_data(self, request):
         if request.method == 'POST':
@@ -77,7 +103,10 @@ class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
         return my_urls + urls
 #admin.site.register(SimpleHistoryAdmin)
 
-admin.site.register(ExamPagesGroup, SimpleHistoryAdmin)
-admin.site.register(ExamPagesGroupComment, SimpleHistoryAdmin)
-admin.site.register(ExamReviewer, SimpleHistoryAdmin)
-admin.site.register(ScanMarkers, SimpleHistoryAdmin)
+admin.site.register(PagesGroup, SimpleHistoryAdmin)
+admin.site.register(PagesGroupComment, SimpleHistoryAdmin)
+admin.site.register(Reviewer, SimpleHistoryAdmin)
+admin.site.register(PageMarkers, SimpleHistoryAdmin)
+admin.site.register(Question)
+admin.site.register(Student)
+admin.site.register(Scale)

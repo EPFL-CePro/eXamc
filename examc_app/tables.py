@@ -12,17 +12,17 @@ class ExamSelectTable(tables.Table):
     commons = tables.Column(empty_values=())
     teachers = tables.Column(empty_values=())
 
-    # def render_commons(self, record):
-    #     return_str = ''
-    #     commons = record.common_exams.all()
-    #     if commons:
-    #         for common in commons:
-    #             if not common.overall:
-    #                 if return_str:
-    #                     return_str += ','
-    #                 return_str += common.code
-    #
-    #     return return_str
+    def render_commons(self, record):
+        return_str = ''
+        commons = record.common_exams.all()
+        if commons:
+            for common in commons:
+                if not common.overall:
+                    if return_str:
+                        return_str += ','
+                    return_str += common.code
+
+        return return_str
 
     def render_teachers(self, record):
         return_str = ''

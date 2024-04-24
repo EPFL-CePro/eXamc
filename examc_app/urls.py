@@ -53,6 +53,20 @@ urlpatterns = [
     path('call_amc_generate_results',views.call_amc_generate_results, name="call_amc_generate_results"),
     path('amc_update_students_file/<int:pk>', views.amc_update_students_file, name="amc_update_students_file"),
     path('download_annotated_pdf/<int:pk>', views.download_annotated_pdf, name="download_annotated_pdf"),
+    # Results & Statistics
+    path('create_scale', login_required(views.ScaleCreateView.as_view()), name="scaleCreate"),
+    path('set_final_scale/<int:pk>', views.set_final_scale, name="set_final_scale"),
+    path('catalogPdf/<int:pk>',views.display_catalog, name="catalogPdf"),
+    path('catalogPdf/<int:pk>/<slug:searchFor>',views.display_catalog, name="catalogPdf"),
+    path('update_question', views.update_question, name="update_question"),
+    path('update_student_present', views.update_student_present, name="update_student_present"),
+    path('generateStats/<int:pk>', views.generate_stats, name="generate_stats"),
+    path('generalStats/<int:pk>', views.general_statistics_view, name="generalStats"),
+    path('studentsStats/<int:pk>', views.students_statistics_view, name="studentsStats"),
+    path('questionsStats/<int:pk>', views.questions_statistics_view, name="questionsStats"),
+    path('export_data/<int:pk>', views.export_data, name="export_data"),
+    path('upload_amc_csv/<int:pk>', views.upload_amc_csv, name="upload_amc_csv"),
+    path('upload_catalog_pdf/<int:pk>', views.upload_catalog_pdf, name="upload_catalog_pdf"),
     # testing
     path('testing', views.testing, name="testing"),
 ]

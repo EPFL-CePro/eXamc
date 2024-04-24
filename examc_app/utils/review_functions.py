@@ -3,11 +3,7 @@ import csv
 
 from django.conf import settings
 from examc_app.models import *
-from django.core.files.storage import FileSystemStorage
-from PIL import Image
 import pyzbar.pyzbar as pyzbar
-from PIL import Image
-import numpy as np
 import cv2
 import os
 import imghdr
@@ -116,17 +112,11 @@ def delete_old_scans(exam):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-def user_allowed(exam, user_id):
-    exam_users = User.objects.filter(Q(exam=exam) | Q(exam__in=exam.common_exams.all()))
-    user = User.objects.get(pk=user_id)
-    if user in exam_users or user.is_superuser:
-        return True
-    else:
-        return False
 
-def get_scans_path_for_group(examPagesGroup):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(examPagesGroup.exam.year) + "/" + str(examPagesGroup.exam.semester) + "/" + examPagesGroup.exam.code
-    scans_url = "../../scans/" + str(examPagesGroup.exam.year) + "/" + str(examPagesGroup.exam.semester) + "/" + examPagesGroup.exam.code
+
+def get_scans_path_for_group(pagesGroup):
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year) + "/" + str(pagesGroup.exam.semester) + "/" + pagesGroup.exam.code
+    scans_url = "../../scans/" + str(pagesGroup.exam.year) + "/" + str(pagesGroup.exam.semester) + "/" + pagesGroup.exam.code
 
     for dir in sorted(os.listdir(scans_dir)):
         for filename in sorted(os.listdir(scans_dir + "/")):
@@ -135,18 +125,18 @@ def get_scans_path_for_group(examPagesGroup):
             # get only two first char to prevent extra pages with a,b,c suffixes
             page_no_int = int(page_no_real[0:2])
             print(scans_url+"/"+dir)
-            if page_no_int == examPagesGroup.page_from:
+            if page_no_int == pagesGroup.page_from:
                 return scans_url+"/"+dir
 
 
-def get_scans_pathes_by_group(examPagesGroup):
+def get_scans_pathes_by_group(pagesGroup):
 
-    scans_dir = str(settings.SCANS_ROOT)+"/"+str(examPagesGroup.exam.year)+"/"+str(examPagesGroup.exam.semester)+"/"+examPagesGroup.exam.code
-    scans_url = "../../scans/"+str(examPagesGroup.exam.year)+"/"+str(examPagesGroup.exam.semester)+"/"+examPagesGroup.exam.code
+    scans_dir = str(settings.SCANS_ROOT)+"/"+str(pagesGroup.exam.year)+"/"+str(pagesGroup.exam.semester)+"/"+pagesGroup.exam.code
+    scans_url = "../../scans/"+str(pagesGroup.exam.year)+"/"+str(pagesGroup.exam.semester)+"/"+pagesGroup.exam.code
 
     scans_pathes = []
 
-    scans_markers_qs = ScanMarkers.objects.filter(exam=examPagesGroup.exam)
+    scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
 
     for dir in sorted(os.listdir(scans_dir)):
         for filename in sorted(os.listdir(scans_dir+"/"+dir)):
@@ -155,14 +145,14 @@ def get_scans_pathes_by_group(examPagesGroup):
             page_no_real = split_filename[-1].split('.')[0].replace('x','.')
             # get only two first char to prevent extra pages with a,b,c suffixes
             page_no_int = int(page_no_real[0:2])
-            if page_no_int >= examPagesGroup.page_from and page_no_int <= examPagesGroup.page_to:
+            if page_no_int >= pagesGroup.page_from and page_no_int <= pagesGroup.page_to:
                 marked = False
                 comment = None
-                scanMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4), page_no=str(page_no_real).zfill(2).replace('.','x')).first()
-                if scanMarkers :
-                  if ExamPagesGroupComment.objects.filter(pages_group=examPagesGroup, copy_no=scanMarkers.copie_no).exists():
+                pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4), page_no=str(page_no_real).zfill(2).replace('.','x')).first()
+                if pageMarkers :
+                  if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=pageMarkers.copie_no).exists():
                     comment = True
-                  if scanMarkers.markers is not None:
+                  if pageMarkers.markers is not None:
                     marked = True
 
                 scans_path_dict = {}
@@ -241,8 +231,8 @@ def generate_marked_pdfs(files_path, export_type):
 
     pdf.output(files_path+"/copy_"+subdir+".pdf","F")
 
-def updateCorrectorBoxMarked(scanMarkers):
-    markers = json.loads(scanMarkers.markers)['markers']
+def updateCorrectorBoxMarked(pageMarkers):
+    markers = json.loads(pageMarkers.markers)['markers']
     for marker in markers:
         return None
 

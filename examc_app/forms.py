@@ -2,20 +2,20 @@ import logging
 
 from django import forms
 from django.forms import modelformset_factory
-from .models import ExamPagesGroup, ExamReviewer
+from .models import PagesGroup, Reviewer
 
 
 class UploadScansForm(forms.Form):
     files = forms.FileField(widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
 
 
-class ManageExamPagesGroupsForm(forms.ModelForm):
+class ManagePagesGroupsForm(forms.ModelForm):
     class Meta:
-        model = ExamPagesGroup
+        model = PagesGroup
         fields = ['group_name', 'page_from', 'page_to']
 
     def __init__(self, *args, **kwargs):
-        super(ManageExamPagesGroupsForm, self).__init__(*args, **kwargs)
+        super(ManagePagesGroupsForm, self).__init__(*args, **kwargs)
         # you can iterate all fields here
         for fname, f in self.fields.items():
             f.widget.attrs['class'] = 'form-control'
@@ -25,18 +25,18 @@ class ManageExamPagesGroupsForm(forms.ModelForm):
                 f.widget.attrs['style'] = 'width:100px;'
 
 
-ExamPagesGroupsFormSet = modelformset_factory(
-    ExamPagesGroup, form=ManageExamPagesGroupsForm, can_delete=True, extra=0
+PagesGroupsFormSet = modelformset_factory(
+    PagesGroup, form=ManagePagesGroupsForm, can_delete=True, extra=0
 )
 
 
-class ManageExamReviewersForm(forms.ModelForm):
+class ManageReviewersForm(forms.ModelForm):
     class Meta:
-        model = ExamReviewer
+        model = Reviewer
         fields = ['user', 'pages_groups']
 
     def __init__(self, *args, **kwargs):
-        super(ManageExamReviewersForm, self).__init__(*args, **kwargs)
+        super(ManageReviewersForm, self).__init__(*args, **kwargs)
         # you can iterate all fields here
         for fname, f in self.fields.items():
             f.widget.attrs['style'] = 'width:300px;'
@@ -45,7 +45,7 @@ class ManageExamReviewersForm(forms.ModelForm):
                 f.disabled = True
 
 
-ExamReviewersFormSet = modelformset_factory(ExamReviewer, form=ManageExamReviewersForm, can_delete=True, extra=0)
+ReviewersFormSet = modelformset_factory(Reviewer, form=ManageReviewersForm, can_delete=True, extra=0)
 
 
 class ExportMarkedFilesForm(forms.Form):
@@ -63,6 +63,26 @@ class LoginForm(forms.Form):
     username = forms.CharField(max_length=65)
     password = forms.CharField(max_length=65, widget=forms.PasswordInput)
 
+class ExportResultsForm(forms.Form):
 
-class CSVUploadForm(forms.Form):
-    csv_file = forms.FileField(label='Select a CSV file')
+    exportIsaCsv = forms.BooleanField(label='export ISA .csv', label_suffix=' ',initial=False, required=False, widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
+    exportExamScalePdf = forms.BooleanField(label='export Exam scale pdf', label_suffix=' ',initial=False, required=False,widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
+    exportStudentsDataCsv = forms.BooleanField(label='export Students data .csv', label_suffix=' ',initial=False, required=False,widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
+
+    def __init__(self, *args, **kwargs):
+
+        EXAM = kwargs.pop('exam', None)
+
+        super(ExportResultsForm, self).__init__(*args, **kwargs)
+
+        if EXAM and EXAM.scalesStatistics:
+
+            if EXAM.overall:
+                self.fields['common_exams'] = forms.MultipleChoiceField(
+                        widget=forms.CheckboxSelectMultiple(attrs={'class': "custom-radio-list form-check-inline"}),
+                        choices=[ (c.pk,c.code+" "+c.primary_user.last_name) for c in EXAM.common_exams.all()],required=False)
+
+            self.fields['scale'].choices=[ (s.pk, s.name) for s in EXAM.scales.all()]
+
+
+    scale = forms.ChoiceField(choices=(),widget=forms.RadioSelect(attrs={'class': "custom-radio-list form-check-inline"}),required=True)
