@@ -28,8 +28,8 @@
       <td>{{ pages_group.page_from }}</td>
       <td>{{ pages_group.page_to }}</td>
       <td><a class="btn btn-danger btn-sm" href="{% url 'reviewGroup' pages_group.pk 0 %}">Review</a></td>
-      <td>{{ pages_group.examPagesGroupMarkers.all| length }}</td>
-      <td>{{ pages_group.examPagesGroupComments.all| length }}</td>
+      <td>{{ pages_group.pagesGroupMarkers.all| length }}</td>
+      <td>{{ pages_group.pagesGroupComments.all| length }}</td>
     </tr>
     {% endfor %}
   </tbody>

@@ -1,5 +1,5 @@
 from django.test import TestCase
-from examc_app.forms import UploadScansForm, ManageExamPagesGroupsForm, ManageExamReviewersForm, ExportMarkedFilesForm
+from examc_app.forms import UploadScansForm, ManagePagesGroupsForm, ManageReviewersForm, ExportMarkedFilesForm
 from examc_app.models import *
 
 class FormsTestCase(TestCase):
@@ -8,16 +8,16 @@ class FormsTestCase(TestCase):
         self.assertTrue(form.fields['files'].widget.attrs.get('allow_multiple_selected'))
 
     def test_manage_exam_pages_groups_form(self):
-        form = ManageExamPagesGroupsForm()
-        self.assertEqual(form.Meta.model, ExamPagesGroup)
+        form = ManagePagesGroupsForm()
+        self.assertEqual(form.Meta.model, PagesGroup)
         self.assertEqual(form.Meta.fields, ['group_name', 'page_from', 'page_to'])
         self.assertEqual(form.fields['group_name'].widget.attrs.get('style'), 'width:300px;')
         self.assertEqual(form.fields['page_from'].widget.attrs.get('style'), 'width:100px;')
         self.assertEqual(form.fields['page_to'].widget.attrs.get('style'), 'width:100px;')
 
     def test_manage_exam_reviewers_form(self):
-        form = ManageExamReviewersForm()
-        self.assertEqual(form.Meta.model, ExamReviewer)
+        form = ManageReviewersForm()
+        self.assertEqual(form.Meta.model, Reviewer)
         self.assertEqual(form.Meta.fields, ['user', 'pages_groups'])
         self.assertEqual(form.fields['user'].disabled, True)
         self.assertEqual(form.fields['user'].widget.attrs.get('style'), 'width:300px;')

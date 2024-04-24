@@ -1,11 +1,142 @@
 {% extends 'base.html' %}
 {% load render_table from django_tables2 %}
 
+
 {% block title %}Exam info {% endblock %}
 
 {% block scripts %}
 
+$(window).on("load",function(){
 
+  $('#import-exam-data-bt').on('click',function() {
+      showImportExamDataDiv();
+  });
+
+  $('#close-import-exam-data-bt').on('click',function() {
+      closeImportExamDataDiv();
+  });
+
+  $("#importAMCCSVFile").on("change", function() {
+      var fileName = $(this).val().split("\\").pop();
+      $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+  });
+  $("#importCatalogPDFFile").on("change", function() {
+      var fileName = $(this).val().split("\\").pop();
+      $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+  });
+
+  <!--DISPLAY PDF CATALOG -->
+  $('#displayPdfModal').on('show.bs.modal', function (event) {
+    document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' exam.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:600px;\" frameborder=\"0\">";
+  })
+
+  <!--QUESTIONS EVENTS-->
+  <!--question-common checkboxes-->
+  {% for question in exam.questions.all %}
+  $('#common-{{question.pk}}-1').on('click', function() {
+    updateQuestion({{ question.pk }},'common', 1);
+  });
+  $('#common-{{question.pk}}-2').on('click', function() {
+    updateQuestion({{ question.pk }},'common', 0);
+  });
+  {% endfor %}
+
+  <!--question-type button-groups-->
+  {% for question in exam.questions.all %}
+  $('#type-{{question.pk}}-1').on('click', function() {
+    updateQuestion({{ question.pk }},'qtype', 1);
+  });
+  $('#type-{{question.pk}}-2').on('click', function() {
+    updateQuestion({{ question.pk }},'qtype', 2);
+  });
+  $('#type-{{question.pk}}-3').on('click', function() {
+    updateQuestion({{ question.pk }},'qtype', 3);
+  });
+  $('#type-{{question.pk}}-4').on('click', function() {
+    updateQuestion({{ question.pk }},'qtype', 4);
+  });
+  {% endfor %}
+
+  <!--question-answers button-groups-->
+  {% for question in exam.questions.all %}
+  {% if question.qtype < 3 %}
+  $('#answers-{{question.pk}}-1').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 1);
+  });
+  $('#answers-{{question.pk}}-2').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 2);
+  });
+  $('#answers-{{question.pk}}-3').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 3);
+  });
+  $('#answers-{{question.pk}}-4').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 4);
+  });
+  $('#answers-{{question.pk}}-5').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 5);
+  });
+  $('#answers-{{question.pk}}-6').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 6);
+  });
+  $('#answers-{{question.pk}}-7').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 7);
+  });
+  $('#answers-{{question.pk}}-8').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 8);
+  });
+  $('#answers-{{question.pk}}-9').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 9);
+  });
+  $('#answers-{{question.pk}}-10').on('click', function() {
+    updateQuestion({{ question.pk }},'answers', 10);
+  });
+  {% endif %}
+  {% endfor %}
+
+  <!--question-max-pts input-->
+  {% for question in exam.questions.all %}
+  $('#maxpts-{{question.pk}}').on('input', function() {
+    updateQuestion({{ question.pk }},'max_points', this.value);
+  });
+  {% endfor %}
+
+  <!-- UPLOAD DATA DIV -->
+  function showImportExamDataDiv() {
+      document.getElementById('importExamDataDiv').style.display = "block";
+      document.getElementById('accordionExamInfo').style.display = "none";
+  };
+
+  function closeImportExamDataDiv() {
+      document.getElementById('importExamDataDiv').style.display = "none";
+      document.getElementById('accordionExamInfo').style.display = "block";
+  };
+
+
+  <!--EXAM AJAX UPDATE FUNCTIONS-->
+
+  function updateQuestion(pk,field,value){
+    $.ajax({
+      url : "{% url 'update_question' %}",
+      type : "POST",
+      data : {
+        'csrfmiddlewaretoken' : "{{  csrf_token  }}",
+        'pk' : pk,
+        'field' : field,
+        'value' : value
+      },
+      beforeSend : function(){
+        $('#loadingModal').modal('show');
+      },
+      complete: function () {
+        $('#loadingModal').modal('hide');
+      },
+      success : function(result) {
+        window.location.href += "?dataUpdated=true";
+        window.location.reload();
+      }
+    });
+  }
+})
   {% endblock %}
 
   {% block content %}
@@ -13,16 +144,283 @@
 {% if user_allowed %}
   <h4>Exam Info</h4>
 
-  EXAM INFO
+  <div id="importExamDataDiv" style="display:none;padding:10px;width:100%;margin-top:50px;color:#000;">
+      <a id="close-import-exam-data-bt" } class="btn btn-outline-info btn-sm" href="#" style="margin-bottom:50px;">Close</a>
+      <h3>Import data</h3>
+      <form action="{% url 'upload_amc_csv' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+          {% csrf_token %}
+          <div class="form-group">
+              <div class="col-md-8">
+                  <input type="file" accept=".csv" name="amc_csv_file" id="importAMCCSVFile" class="custom-file-input form-control">
+                  <label class="custom-file-label" for="importAMCCSVFile">Choose AMC .csv file</label>
+              </div>
+          </div>
+          <div class="form-group">
+              <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3" style="margin-bottom:10px;">
+                  <button class="btn btn-primary"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;"></span>Upload csv </button>
+              </div>
+          </div>
+      </form>
+      <form action="{% url 'upload_catalog_pdf' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+          {% csrf_token %}
+          <div class="form-group">
+              <div class="col-md-8">
+                  <input type="file" accept=".pdf" name="catalog_pdf_file" id="importCatalogPDFFile" class="custom-file-input form-control">
+                  <label class="custom-file-label" for="importCatalogPDFFile">Choose Catalog PDF file</label>
+              </div>
+          </div>
+          <div class="form-group">
+              <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3" style="margin-bottom:10px;">
+                  <button class="btn btn-primary"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;"></span>Upload pdf </button>
+              </div>
+          </div>
+          <div class="border" style="background-color:#f4e3ce;margin-top:50px;padding:10px;">
+            <h4>AMC .csv file</h4>
+            <p>The CSV file must be generated from AMC with the following options:</p>
+            <ul>
+              <li>format : CSV</li>
+              <li>Sorting : line in students list</li>
+              <li>include absentees : yes</li>
+              <li>Separator : ";"</li>
+              <li>Ticked boxes : "Yes:AB"</li>
+              <li>Columns : ID,SCIPER,NAME,SECTION,EMAIL</li>
+            </ul>
+            <p>For your questions to be imported correctly, with the correct type, the questions IDs must be prefixed as follows:</p>
+            <table class="table-sm table-borderless" style="padding:10px;color:black;width:800px;">
+              <tbody>
+                <tr>
+                  <td>"SCQ-" for single choice questions.</td>
+                  <td>example : </td>
+                  <td>\begin{question}{SCQ-01}</td>
+                </tr>
+                <tr>
+                  <td>"MCQ-" for multiple choice questions.</td>
+                  <td>example : </td>
+                  <td> \begin{questionmult}{MCQ-01}</td>
+                </tr>
+                <tr>
+                  <td>"TF-" for True-False questions.</td>
+                  <td>example : </td>
+                  <td>\begin{question}{TF-01}</td>
+                </tr>
+                <tr>
+                  <td>"OPEN-" for open questions (optional).</td>
+                  <td>example : </td>
+                  <td>\correctorFour{OPEN-A}{~}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </form>
 
-  {{ exam }}
+  </div>
+
+  <div class="accordion" id="accordionExamInfo">
+    <div class="card z-depth-0 bordered">
+      <div class="card-header" id="headingOne">
+        <h5 class="mb-0">
+          <p style="text-align:left;margin-bottom:-5px;">
+            <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne"
+            aria-expanded="true" aria-controls="collapseOne">
+            Exam
+          </button>
+            <a id="regen-stats-bt" class="btn btn-outline-info btn-sm" href="{% url 'generate_stats' exam.pk %}">Regen stats</a>
+            <a id="import-exam-data-bt" } class="btn btn-outline-info btn-sm" href="#">Import exam data</a>
+          <span style="float:right;margin-top:7px;">
+            <a data-toggle="modal" data-target="#displayPdfModal" title="Show in pdf" style="font-size:12px;">catalog<i class="far fa-file-pdf" style="font-size:24px;color:red"></i></a>
+          </span>
+        </p>
+      </h5>
+    </div>
+    <div id="collapseOne" class="collapse show" aria-labelledby="headingOne">
+      <div class="card-body">
+        <table  class="table table-sm table-borderless">
+          <tr style="border-bottom:.5px solid lightgrey;">
+            <th>Code</th>
+            <th>Name</th>
+            <th>Year</th>
+            <th>Semester</th>
+            <th>Teacher(s)</th>
+            {% if exam.common_exams.all %}
+            <th>Common</th>
+            <th>Individual specific</th>
+            {% endif %}
+          </tr>
+          <tr>
+            <td>
+              {% if exam.is_overall %}
+                GLOBAL
+              {% else %}
+                {{ exam.code }}
+              {% endif %}
+            </td>
+            <td>{{ exam.name }}</td>
+            <td>{{ exam.year }}</td>
+            <td>{{ exam.semester }}</td>
+            <td>
+              <ul class="list-group">
+                <li class="list-group-item border-0" style="padding:0px;margin:0px;font-weight: bold;">{{ exam.primary_user.first_name }} {{ exam.primary_user.last_name }}</li>
+                {% for teacher in exam.users.all %}
+                <li class="list-group-item border-0" style="padding:0px;margin:0px;">{{ teacher.first_name }} {{ teacher.last_name }}</li>
+                {% endfor %}
+              </ul>
+            </td>
+            {% if exam.common_exams.all %}
+            <td>
+              <ul class="list-group">
+                {% for exam in exam.common_exams.all %}
+                  {% if not exam.is_overall %}
+                    <li class="list-group-item border-0" style="padding:0px;margin:0px;">{{ exam.code }} {{ exam.name }}</li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </td>
+            <td>
+              {{ exam.indiv_formula }}
+              <br>
+              <em>[indiv_max_points];[common_max_points];[formula]
+              <ul>
+              <li>IP - invid_max_points</li>
+              <li>CP - common_max_points</li>
+              <li>SCP - students common points</li>
+              <li>SIP - students indiv points</li>
+              </ul></em>
+            </td>
+            {% endif %}
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card z-depth-0 bordered">
+    <div class="card-header" id="headingTwo">
+      <h5 class="mb-0">
+        <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+        data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+        Scales
+      </button>
+    </h5>
+  </div>
+  <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo">
+    <div class="card-body">
+      <table class="table table-striped table-sm">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Total points</th>
+            <th>Points to add</th>
+            <th>Final</th>
+            {% if user.is_staff %}
+            <th>Delete</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for scale in exam.scales.all %}
+          <tr>
+            <td>{{ scale.name }}</td>
+            <td>{{ scale.total_points }}</td>
+            <td>{{ scale.points_to_add }}</td>
+            {% if scale.final %}
+            <td><a class="btn btn-success btn-sm" disabled>YES</a></td>
+            {% else %}
+            <td><a class="btn btn-outline-success btn-sm" href="{% url 'set_final_scale' scale.pk %}">set as final</a></td>
+            {% endif %}
+            {% if user.is_staff %}
+            <td><a class="btn btn-danger btn-sm" href="{% url 'delete_exam_scale' scale.pk exam.pk %}">delete</a></td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if user.is_staff %}
+      <a target="_blank" class="select-scale btn btn-outline-success btn-sm" type="button">Select</a>
+      <a target="_blank" class="create-scale btn btn-outline-info btn-sm" type="button">Create</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<div class="card z-depth-0 bordered">
+  <div class="card-header" id="headingThree">
+    <h5 class="mb-0">
+      <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+      data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+      Questions (Total points : {{ sum_questions_points.max_points__sum }})
+    </button>
+  </h5>
+</div>
+<div id="collapseThree" class="collapse show" aria-labelledby="headingThree">
+  <div id="questions_div" class="card-body">
+    <table id="questions_dt" class="table table-striped table-sm">
+      <thead>
+        <tr>
+          <th>Question</th>
+          <th>Type</th>
+          <th>Answers</th>
+          <th>Max Points</th>
+          <th>Common</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for question in exam.questions.all %}
+        <tr>
+          <td>{{ question.code }}</td>
+          <td>
+            <div class="btn-group-sm" role="group">
+              <button id="type-{{question.pk}}-1" type="button" {% if question.qtype == 1 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>SCQ</button>
+              <button id="type-{{question.pk}}-2" type="button" {% if question.qtype == 2 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>MCQ</button>
+              <button id="type-{{question.pk}}-3" type="button" {% if question.qtype == 3 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>TF</button>
+              <button id="type-{{question.pk}}-4" type="button" {% if question.qtype == 4 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>OTHER</button>
+            </div>
+          </td>
+          <td>
+            {% if question.qtype <= 2 %}
+            <div class="btn-group-sm" role="group">
+              <button id="answers-{{question.pk}}-1" type="button" {% if question.answers == 1 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>1</button>
+              <button id="answers-{{question.pk}}-2" type="button" {% if question.answers == 2 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>2</button>
+              <button id="answers-{{question.pk}}-3" type="button" {% if question.answers == 3 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>3</button>
+              <button id="answers-{{question.pk}}-4" type="button" {% if question.answers == 4 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>4</button>
+              <button id="answers-{{question.pk}}-5" type="button" {% if question.answers == 5 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>5</button>
+              <button id="answers-{{question.pk}}-6" type="button" {% if question.answers == 6 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>6</button>
+              <button id="answers-{{question.pk}}-7" type="button" {% if question.answers == 7 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>7</button>
+              <button id="answers-{{question.pk}}-8" type="button" {% if question.answers == 8 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>8</button>
+              <button id="answers-{{question.pk}}-9" type="button" {% if question.answers == 9 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>9</button>
+              <button id="answers-{{question.pk}}-10" type="button" {% if question.answers == 10 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>10</button>
+            </div>
+            {% endif %}
+          </td>
+          <td><input id="maxpts-{{question.pk}}" type="number" min="0" value="{{ question.max_points }}" step=".01" style="width:100px;" class="form-control" {% if not user.is_staff %} disabled {% endif %}></td>
+          <td>
+            <div class="btn-group-sm" role="group">
+              <button id="common-{{question.pk}}-1" type="button" {% if question.common %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>YES</button>
+              <button id="common-{{question.pk}}-2" type="button" {% if question.common %} class="btn btn-outline-info disabled" {% else %} class="btn btn-info focus"{% endif %} {% if not user.is_staff %} disabled {% endif %}>NO</button>
+            </div>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
 {% endif %}
+</div>
 
+<!-- MODAL -->
 
+<div class="modal fade" id="displayPdfModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content" style="width:1050px;height:650px;">
 
-
-
-
-
-
+      <div class="modal-body">
+        <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">CLOSE</button>
+      </br>
+        <div id="embedPdf"></div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

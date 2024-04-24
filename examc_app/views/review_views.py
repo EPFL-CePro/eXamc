@@ -2,20 +2,19 @@ import csv
 
 from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect
-from django.urls import path
+
+from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import *
 
 
 from examc_app.utils.amc_functions import *
 from examc_app.forms import *
 from examc_app.models import *
-from django_tables2 import SingleTableView
 from django.views.generic import DetailView
-from examc_app.tables import ExamSelectTable
 from django.contrib import messages
 from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 import zipfile
 import os
@@ -23,62 +22,9 @@ import json
 from examc_app.utils.epflldap import ldap_search
 import re
 import base64
-from django.contrib import admin
 
+from examc_app.views import menu_access_required
 
-def menu_access_required(view_func):
-    def wrapped_view(request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
-            return HttpResponseForbidden("You don't have permission to access this page.")
-        return view_func(request, *args, **kwargs)
-    return wrapped_view
-
-def users_view(request):
-    users = User.objects.all()
-    return render(request, 'admin/users.html', {'users': users})
-@user_passes_test(lambda u: u.is_superuser)
-def staff_status(request, user_id):
-    user = User.objects.get(pk=user_id)
-    if request.POST.get('action') == 'add_staff':
-        user.is_staff = True
-    elif request.POST.get('action') == 'remove_staff':
-        user.is_staff = False
-    user.save()
-    return redirect('users')
-
-@method_decorator(login_required(login_url='/'), name='dispatch')
-class ExamSelectView(SingleTableView):
-    model = Exam
-    template_name = 'exam/exam_select.html'
-    table_class = ExamSelectTable
-    table_pagination = False
-
-    def get_queryset(self):
-        qs = Exam.objects.all()
-        if not self.request.user.is_superuser:
-            qs = qs.filter(Q(users__id=self.request.user.id) | Q(examReviewers__user=self.request.user))
-        return qs
-
-@method_decorator(login_required(login_url='/'), name='dispatch')
-class ExamInfoView(DetailView):
-    model = Exam
-    template_name = 'exam/exam_info.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(ExamInfoView, self).get_context_data(**kwargs)
-
-        global EXAM
-        EXAM = Exam.objects.get(pk=context.get("object").id)
-
-        if user_allowed(EXAM,self.request.user.id):
-            context['user_allowed'] = True
-            context['common_list'] = None
-            context['current_url'] = "examInfo"
-            context['exam'] = EXAM
-            return context
-        else:
-            context['user_allowed'] = False
-            return context
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewView(DetailView):
@@ -94,7 +40,7 @@ class ReviewView(DetailView):
             context['user_allowed'] = True
             context['current_url'] = "review"
             context['exam'] = exam
-            context['exam_pages_group_list'] = exam.examPagesGroup.all()
+            context['exam_pages_group_list'] = exam.pagesGroup.all()
             return context
         else:
             context['user_allowed'] = False
@@ -104,23 +50,23 @@ class ReviewView(DetailView):
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewGroupView(DetailView):
-    model = ExamPagesGroup
+    model = PagesGroup
     template_name = 'review/reviewGroup.html'
 
     def get_context_data(self, **kwargs):
         context = super(ReviewGroupView, self).get_context_data(**kwargs)
 
-        examPagesGroup = ExamPagesGroup.objects.get(pk=context.get("object").id)
+        pagesGroup = PagesGroup.objects.get(pk=context.get("object").id)
 
         current_page = self.kwargs['currpage']
 
         # Get scans file path dict by pages groups
-        scans_pathes_list = get_scans_pathes_by_group(examPagesGroup)
-        if user_allowed(examPagesGroup.exam,self.request.user.id):
+        scans_pathes_list = get_scans_pathes_by_group(pagesGroup)
+        if user_allowed(pagesGroup.exam,self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewGroup"
-            context['exam'] = examPagesGroup.exam
-            context['pages_group'] = examPagesGroup
+            context['exam'] = pagesGroup.exam
+            context['pages_group'] = pagesGroup
             context['scans_pathes_list'] = scans_pathes_list
             context['currpage'] = current_page,
             context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
@@ -128,8 +74,8 @@ class ReviewGroupView(DetailView):
         else:
             context['user_allowed'] = False
             context['current_url'] = "review"
-            context['exam'] = examPagesGroup.exam
-            context['pages_group'] = examPagesGroup
+            context['exam'] = pagesGroup.exam
+            context['pages_group'] = pagesGroup
             return context
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
@@ -145,8 +91,8 @@ class ReviewSettingsView(DetailView):
         curr_tab = "groups"
         if "curr_tab" != '' in context:
             curr_tab = context.get("curr_tab")
-        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam),initial=[{'id':None,'group_name':'[New]','page_from':-1,'page_to':-1}])
-        formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
+        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[{'id':None, 'group_name': '[New]', 'page_from':-1, 'page_to':-1}])
+        formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
 
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
@@ -170,7 +116,7 @@ class ReviewSettingsView(DetailView):
 
         if "submit-reviewers" in self.request.POST:
             curr_tab = "reviewers"
-            formset = ExamReviewersFormSet(self.request.POST)
+            formset = ReviewersFormSet(self.request.POST)
             if formset.is_valid():
                 for form in formset:
                     print(form)
@@ -186,7 +132,7 @@ class ReviewSettingsView(DetailView):
                             form.save_m2m()
         else:
             curr_tab = "groups"
-            formset = ExamPagesGroupsFormSet(self.request.POST)
+            formset = PagesGroupsFormSet(self.request.POST)
             if formset.is_valid():
                 for form in formset:
                     print(form)
@@ -204,10 +150,10 @@ class ReviewSettingsView(DetailView):
                             if form.cleaned_data["DELETE"]:
                                 pagesGroup.delete()
 
-                        #formsetGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam))
+                        #formsetGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam))
 
-        formsetReviewers = ExamReviewersFormSet(queryset=ExamReviewer.objects.filter(exam=exam))
-        formsetPagesGroups = ExamPagesGroupsFormSet(queryset=ExamPagesGroup.objects.filter(exam=exam), initial=[
+        formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
+        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
             {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
@@ -232,7 +178,7 @@ class ReviewSettingsView(DetailView):
 @menu_access_required
 def add_new_pages_group(request, pk):
     exam = Exam.objects.get(pk=pk)
-    new_group = ExamPagesGroup()
+    new_group = PagesGroup()
     new_group.exam = exam
     new_group.group_name = '[NEW]'
     new_group.page_from = -1
@@ -244,7 +190,7 @@ def add_new_pages_group(request, pk):
 @login_required
 @menu_access_required
 def edit_pages_group_grading_help(request):
-    pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
+    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
     pages_group.grading_help = request.POST['grading_help']
     pages_group.save()
 
@@ -253,13 +199,13 @@ def edit_pages_group_grading_help(request):
 @login_required
 @menu_access_required
 def get_pages_group_grading_help(request):
-    pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
+    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
     return HttpResponse(pages_group.grading_help)
 
 @login_required
 @menu_access_required
 def edit_pages_group_corrector_box(request):
-    pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
+    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
     pages_group.correctorBoxMarked = request.POST['corrector_box']
     pages_group.save()
 
@@ -269,31 +215,31 @@ def edit_pages_group_corrector_box(request):
 @menu_access_required
 def get_group_path_image(request):
     if request.method == 'POST':
-        examPagesGroup = ExamPagesGroup.objects.get(pk=request.POST.get('group_id'))
-        img_path = get_scans_path_for_group(examPagesGroup)
+        pagesGroup = PagesGroup.objects.get(pk=request.POST.get('group_id'))
+        img_path = get_scans_path_for_group(pagesGroup)
         print(img_path)
         if img_path:
             return HttpResponse(img_path)
         else:
             return HttpResponse(img_path)
 
-@menu_access_required
-def save_drawn_image(request):
-    if request.method == 'POST':
-        image_data = request.POST.get('image_data')
-        group_id = request.POST.get('group_id')
-
-        # Enregistrez les données de l'image dans votre base de données
-        drawn_image = DrawnImage(image_data=image_data, group_id=group_id)
-        drawn_image.save()
-
-        return JsonResponse({'success': True})
-    else:
-        return JsonResponse({'success': False, 'error': 'error'})
+# @menu_access_required
+# def save_drawn_image(request):
+#     if request.method == 'POST':
+#         image_data = request.POST.get('image_data')
+#         group_id = request.POST.get('group_id')
+#
+#         # Enregistrez les données de l'image dans votre base de données
+#         drawn_image = DrawnImage(image_data=image_data, group_id=group_id)
+#         drawn_image.save()
+#
+#         return JsonResponse({'success': True})
+#     else:
+#         return JsonResponse({'success': False, 'error': 'error'})
 
 # @login_required
 # def get_pages_group_corrector_box(request):
-#     scan_markers = ScanMarkers.objects.get(pk=request.POST['pk'])
+#     scan_markers = PageMarkers.objects.get(pk=request.POST['pk'])
 #     return HttpResponse(scan_markers.correctorBoxMarked)
 
 
@@ -301,7 +247,7 @@ def save_drawn_image(request):
 @menu_access_required
 def ldap_search_by_email(request):
     email = request.POST['email']
-    user = ExamReviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
+    user = Reviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
     if user:
         return HttpResponse("exist")
 
@@ -342,11 +288,11 @@ def add_new_reviewers(request):
         user.groups.add(reviewer_group)
         user.save()
 
-        examReviewer = ExamReviewer()
+        examReviewer = Reviewer()
         examReviewer.user = user
         examReviewer.exam = exam
         examReviewer.save()
-        examReviewer.pages_groups.set(exam.examPagesGroup.all())
+        examReviewer.pages_groups.set(exam.pagesGroup.all())
         examReviewer.save()
         print(examReviewer)
 
@@ -404,7 +350,7 @@ def export_marked_files(request,pk):
 
 
 # def isReviewer(request):
-#     exam_reviewers = ExamReviewer.objects.filter(exam=exam)
+#     exam_reviewers = Reviewer.objects.filter(exam=exam)
 #     return render(request, 'base.html', {'exam_reviewers': exam_reviewers})
 
 
@@ -435,7 +381,7 @@ def select_exam(request, pk, current_url=None):
     #request.session['exam_pk'] = Exam.objects.get(pk=pk)
 
 
-    # if len(EXAM.scales_statistics.all()) == 0:
+    # if len(EXAM.scalesStatistics.all()) == 0:
     #     generate_statistics(EXAM)
 
     url_string = '../'
@@ -524,8 +470,8 @@ def start_upload_scans(request, pk, zip_file_path):
 def saveMarkers(request):
 
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
-    pages_group = ExamPagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
-    scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], pages_group=pages_group, exam=exam)
+    pages_group = PagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
+    scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], pages_group=pages_group, exam=exam)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
     markers = json.loads(request.POST['markers'])
@@ -559,14 +505,14 @@ def getMarkersAndComments(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     data_dict = {}
     try:
-        scan_markers = ScanMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], filename=request.POST['filename'],exam=exam)
+        scan_markers = PageMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], filename=request.POST['filename'], exam=exam)
         data_dict["markers"]=scan_markers.markers
-    except ScanMarkers.DoesNotExist:
+    except PageMarkers.DoesNotExist:
         json_string = None
         data_dict["markers"]=None
 
     # comments
-    comments = ExamPagesGroupComment.objects.filter(pages_group=request.POST['group_id'], copy_no=request.POST['copy_no']).all()
+    comments = PagesGroupComment.objects.filter(pages_group=request.POST['group_id'], copy_no=request.POST['copy_no']).all()
     data_dict["comments"] = [comment.serialize(request.user.id) for comment in comments]
 
     return HttpResponse(json.dumps(data_dict))
@@ -575,12 +521,12 @@ def getMarkersAndComments(request):
 def saveComment(request):
     comment_data = json.loads(request.POST['comment'])
     if not comment_data['id'].startswith('c') :
-        comment = ExamPagesGroupComment.objects.get(pk=comment_data['id'])
+        comment = PagesGroupComment.objects.get(pk=comment_data['id'])
         comment.content = comment_data['content']
         comment.modified = datetime.datetime.now()
         comment.save()
     else:
-        comment = ExamPagesGroupComment()
+        comment = PagesGroupComment()
         comment.is_new=True
         comment.content = comment_data['content']
         comment.created = datetime.datetime.now()

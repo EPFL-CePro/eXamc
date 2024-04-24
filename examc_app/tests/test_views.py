@@ -2,7 +2,7 @@
 
 from django.urls import reverse
 
-from examc_app.forms import UploadScansForm, ManageExamPagesGroupsForm, ManageExamReviewersForm, ExportMarkedFilesForm
+from examc_app.forms import UploadScansForm, ManagePagesGroupsForm, ManageReviewersForm, ExportMarkedFilesForm
 import logging
 from django.test import TestCase, Client, RequestFactory
 from django_tequila.django_backend import User
@@ -52,15 +52,15 @@ class TestForms(TestCase):
 
     def test_manage_exam_pages_groups_form_valid_data(self):
         form_data = {'group_name': 'NomDuGroupe', 'page_from': 1, 'page_to': 5}
-        form = ManageExamPagesGroupsForm(data=form_data)
+        form = ManagePagesGroupsForm(data=form_data)
         self.assertTrue(form.is_valid())
 
     def test_manage_exam_pages_groups_form_invalid_data(self):
-        form = ManageExamPagesGroupsForm(data={})
+        form = ManagePagesGroupsForm(data={})
         self.assertFalse(form.is_valid())
         logging.error(form.errors)
         invalid_data = {'group_name': 'NomDuGroupe', 'page_from': 5, 'page_to': 1}
-        form = ManageExamPagesGroupsForm(data=invalid_data)
+        form = ManagePagesGroupsForm(data=invalid_data)
         print(form.errors)
         self.assertFalse(form.is_valid())
 
@@ -69,15 +69,15 @@ class TestForms(TestCase):
 
     def test_manage_exam_reviewers_form_valid_data(self):
         form_data = {'user': 'user', 'pages_groups': 'Group1, Group2'}
-        form = ManageExamReviewersForm(data=form_data)
+        form = ManageReviewersForm(data=form_data)
         self.assertTrue(form.is_valid())
 
     def test_manage_exam_reviewers_form_invalid_data(self):
-        form = ManageExamReviewersForm(data={})
+        form = ManageReviewersForm(data={})
         self.assertFalse(form.is_valid())
 
         invalid_data = {'user': 'nonuser', 'pages_groups': 'Group1, Group2'}
-        form = ManageExamReviewersForm(data=invalid_data)
+        form = ManageReviewersForm(data=invalid_data)
         self.assertFalse(form.is_valid())
 
     def test_export_marked_files_form_valid_data(self):
