@@ -107,7 +107,7 @@
             <ul class="list-group">
                 <li class="bg-dark list-group-item-action" >
                     <div class="d-flex w-100 " style="padding: 15px">
-                        <img id="examc_logo_small" src="{% static 'favicon.ico' %}" style="width:30px;height: 30px;background-color: #1d2124; align-content: center"/>
+                        <img id="examc_logo_small" src="{% static 'favicon.ico' %}" style="width:30px;height: 30px;background-color: #adadad; align-content: center"/>
                         <span class="menu-collapsed" style="margin-right:5px;"><img id="examc_logo" src="{% static 'img/eXamc_x_white_200.png' %}" style="margin-left:-30px;width:100%;background-color: #000000"/></span>
                     </div>
                 </li>
@@ -294,7 +294,8 @@
 {#            </ul>#}
 {##}
 {#        </div>#}
-
+        </div>
+</main>
         <div id="page-content-wrapper">
 
             <div class="container-fluid">
@@ -305,8 +306,8 @@
 
             </div>
         </div>
-    </div>
-</main>
+
+
 
 </body>
 <div class="modal" id="loadingModal" tabindex="-1" role="dialog"
@@ -349,5 +350,12 @@ function SidebarCollapse () {
 
     // Collapse/Expand icon
     $('#collapse-icon').toggleClass('fa-angle-double-left fa-angle-double-right');
+    if ($('#sidebar-container').hasClass('sidebar-collapsed')) {
+        $('#page-content-wrapper').css('margin-left', '-100px');
+    } else {
+        $('#page-content-wrapper').css('margin-left', '0px');
+    }
 }
+
+ 
 </script>

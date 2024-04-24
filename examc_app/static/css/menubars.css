@@ -4,6 +4,10 @@
  * Licensed under MIT
 (https://github.com/BlackrockDigital/startbootstrap-simple-sidebar/blob/master/LICENSE)
  */
+/*#page-content-wrapper {*/
+/*    transition: margin-left 0.2s;*/
+/*}*/
+
 .bg-dark {
   background-color: #000000 !important;
 }
@@ -22,9 +26,11 @@
     bottom: 0;
 }
 .container-fluid {
+    transition: margin-left .2s; /* If you want a transition effect */
+  /*padding: 230px;*/
      width: 100%;
-    padding-right: 15px;
-    padding-left: 240px;
+    /*padding-right: 15px;*/
+   padding-left: 230px;
     margin: 20px 0 20px 0;
 }
 
