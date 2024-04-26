@@ -720,7 +720,8 @@ def amc_generate_results(exam):
                                 '--sort l '
                                 '--useall 1 '
                                 '--option-out ticked=AB '
-                                '--option columns=ID,SCIPER,NAME,SECTION,EMAIL" ']
+                                '--option columns=ID,SCIPER,NAME,SECTION,EMAIL '
+                                '--option separateur=";" ']
                                 , shell=True
                                 , capture_output=True
                                 , text=True)

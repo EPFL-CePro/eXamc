@@ -1,0 +1,543 @@
+{% extends 'base.html' %}
+{% load render_table from django_tables2 %}
+{#{% load bootstrap5 %}#}
+{% load custom_tags %}
+
+{% block title %}General statistics{% endblock %}
+
+
+{% block scripts %}
+
+/* define palette size */
+{% if exam.is_overall %}
+var paletteSize = {{ exam.common_exams.all|length }}+1;
+{% else %}
+var paletteSize = {{ exam.scales.all|length }}+1;
+{% endif %}
+
+var general_stats_chart_config = {
+  type: 'line',
+  data: {
+    labels: {{ grade_list }},
+    datasets: [
+    {% for scale_stat in exam.scalesStatistics.all %}
+    {% if scale_stat.section == 'global' %}
+    {
+      label: '{{ scale_stat.scale.name }}',
+      fill: false,
+      backgroundColor: palette('mpn65', paletteSize).map(function(hex) {
+        return '#' + hex;
+      })[{{ exam.scalesStatistics.all|get_item_pos:scale_stat }}],
+      borderColor: palette('mpn65', paletteSize).map(function(hex) {
+        return '#' + hex;
+      })[{{ exam.scalesStatistics.all|get_item_pos:scale_stat }}],
+      data: [
+      {% for distribution in scale_stat.scaleDistributions.all %}
+      {{ distribution.quantity }},
+      {% endfor %}
+      ],
+    },
+    {% endif %}
+    {% endfor %}
+    ]},
+    options: {
+      responsive: true,
+      title: {
+        display: true,
+        text: 'Grades distribution'
+      },
+      tooltips: {
+        mode: 'index',
+        intersect: false,
+      },
+      hover: {
+        mode: 'nearest',
+        intersect: true
+      },
+      scales: {
+        xAxes: [{
+          display: true,
+          scaleLabel: {
+            display: true,
+            labelString: 'Grades'
+          }
+        }],
+        yAxes: [{
+          display: true,
+          scaleLabel: {
+            display: true,
+            labelString: 'Count'
+          }
+        }]
+      }
+    },
+  };
+
+  {% if exam.is_overall %}
+
+  {% for scale in exam.scales.all %}
+  var general_stats_byTeacher_chart_config{{scale.pk}} = {
+    type: 'line',
+    data: {
+      labels: {{ grade_list }},
+      datasets: [
+      {% for comex in exam.common_exams.all %}
+      {% for scale_stat in comex.scalesStatistics.all|filter_scales_stats_by_scale:scale.name %}
+      {
+        label: '{{ comex.code }} {{ comex.primary_user.last_name }}',
+        fill: false,
+        backgroundColor: palette('mpn65', {{ exam.common_exams.all|length }}).map(function(hex) {
+          return '#' + hex;
+        })[{{ exam.common_exams.all|get_item_pos:comex }}],
+        borderColor : palette('mpn65', {{ exam.common_exams.all|length }}).map(function(hex) {
+          return '#' + hex;
+        })[{{ exam.common_exams.all|get_item_pos:comex }}],
+        data: [
+        {% for distribution in scale_stat.scaleDistributions.all %}
+        {{ distribution.quantity|divideMult100:comex.present_students }},
+        {% endfor %}
+        ],
+      },
+      {% endfor %}
+      {% endfor %}
+      ]},
+      options: {
+        responsive: true,
+        title: {
+          display: true,
+          text: 'Grades distribution'
+        },
+        tooltips: {
+          mode: 'index',
+          intersect: false,
+        },
+        hover: {
+          mode: 'nearest',
+          intersect: true
+        },
+        scales: {
+          xAxes: [{
+            display: true,
+            scaleLabel: {
+              display: true,
+              labelString: 'Grades'
+            }
+          }],
+          yAxes: [{
+            display: true,
+            scaleLabel: {
+              display: true,
+              labelString: '% normalized'
+            }
+          }]
+        }
+      }
+    };
+    {% endfor %}
+
+    {% for scale in exam.scales.all %}
+    var general_stats_bySection_chart_config{{scale.pk}} = {
+      type: 'line',
+      data: {
+        labels: {{ grade_list }},
+        datasets: [
+        {% for stat in exam|get_sections_scaleStats_by_examScale:scale %}
+        {
+          label: '{{ stat.section }}',
+          fill: false,
+          backgroundColor: palette('mpn65', {{ exam|get_sections_scaleStats_by_examScale:scale|length }}).map(function(hex) {
+            return '#' + hex;
+          })[{{ exam|get_sections_scaleStats_by_examScale:scale|get_item_pos:stat }}],
+          borderColor : palette('mpn65', {{ exam|get_sections_scaleStats_by_examScale:scale|length }}).map(function(hex) {
+            return '#' + hex;
+          })[{{ exam|get_sections_scaleStats_by_examScale:scale|get_item_pos:stat }}],
+          data: [
+          {% for dist in stat.scalesDistributions.all %}
+            {{ dist.quantity|divideMult100:stat.section_nb_students }},
+          {% endfor %}
+          ],
+        },
+        {% endfor %}
+        ]},
+        options: {
+          responsive: true,
+          title: {
+            display: true,
+            text: 'Grades distribution'
+          },
+          tooltips: {
+            mode: 'index',
+            intersect: false,
+          },
+          hover: {
+            mode: 'nearest',
+            intersect: true
+          },
+          scales: {
+            xAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                labelString: 'Grades'
+              }
+            }],
+            yAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                labelString: '% normalized'
+              }
+            }]
+          }
+        }
+      };
+      {% endfor %}
+
+      var comVsIndByTeacher_labels = [];
+      var comVsIndBySection_labels = [];
+      {% for comex in exam.common_exams.all %}
+        comVsIndByTeacher_labels.push('{{ comex.primary_user.last_name }}');
+      {% endfor %}
+      {% for section in exam|get_sections_by_overall_exam %}
+        comVsIndBySection_labels.push('{{ section.section }}');
+      {% endfor %}
+
+      {% for scale in exam.scales.all %}
+      {% with exam|get_teachers_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
+      var general_stats_comVsIndByTeacher{{ scale.pk }} = {
+        type: 'bar',
+        data:{
+          labels: comVsIndByTeacher_labels,
+          datasets:[
+            {
+              label: "Global",
+              fill: false,
+              backgroundColor: palette('mpn65', 3).map(function(hex) {
+                return '#' + hex;
+              })[0],
+              data: [
+                {% for stat in stats %}
+                {{ stat.glob_avg_grade }},
+                {% endfor %}
+              ]
+            },
+            {
+              label: "Common",
+              fill: false,
+              backgroundColor: palette('mpn65', 3).map(function(hex) {
+                return '#' + hex;
+              })[1],
+              data: [
+                {% for stat in stats %}
+                {{ stat.com_avg_grade }},
+                {% endfor %}
+              ]
+            },
+            {
+              label: "Individual",
+              fill: false,
+              backgroundColor: palette('mpn65', 3).map(function(hex) {
+                return '#' + hex;
+              })[2],
+              data: [
+                {% for stat in stats %}
+                {{ stat.ind_avg_grade }},
+                {% endfor %}
+              ]
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          "hover": {
+            "animationDuration": 0
+          },
+          scales: {
+              yAxes: [{
+                  ticks: {
+                    max:6,
+                    min:1
+                  }
+              }]
+          },
+          "animation": {
+            "duration": 1,
+            "onComplete": function() {
+              var chartInstance = this.chart,
+              ctx = chartInstance.ctx;
+
+              ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+              ctx.fillStyle = Chart.defaults.global.defaultFontColor;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+
+              this.data.datasets.forEach(function(dataset, i) {
+                var meta = chartInstance.controller.getDatasetMeta(i);
+                meta.data.forEach(function(bar, index) {
+                  var data = dataset.data[index];
+                  ctx.fillText(data, bar._model.x, bar._model.y - 5);
+                });
+              });
+            }
+          },
+          title: {
+            display: false,
+            text: ''
+          },
+        }
+      };
+      {% endwith %}
+
+      {% with exam|get_sections_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
+      var general_stats_comVsIndBySection{{ scale.pk }} = {
+        type: 'bar',
+        data:{
+          labels: comVsIndBySection_labels,
+          datasets:[
+            {
+              label: "Global",
+              fill: false,
+              backgroundColor: palette('mpn65', 3).map(function(hex) {
+                return '#' + hex;
+              })[0],
+              data: [
+                {% for stat in stats %}
+                {{ stat.glob_avg_grade }},
+                {% endfor %}
+              ]
+            },
+            {
+              label: "Common",
+              fill: false,
+              backgroundColor: palette('mpn65', 3).map(function(hex) {
+                return '#' + hex;
+              })[1],
+              data: [
+                {% for stat in stats %}
+                {{ stat.com_avg_grade }},
+                {% endfor %}
+              ]
+            },
+            {
+              label: "Individual",
+              fill: false,
+              backgroundColor: palette('mpn65', 3).map(function(hex) {
+                return '#' + hex;
+              })[2],
+              data: [
+                {% for stat in stats %}
+                {{ stat.ind_avg_grade }},
+                {% endfor %}
+              ]
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          "hover": {
+            "animationDuration": 0
+          },
+          scales: {
+              yAxes: [{
+                  ticks: {
+                    max:6,
+                    min:1
+                  }
+              }]
+          },
+          "animation": {
+            "duration": 1,
+            "onComplete": function() {
+              var chartInstance = this.chart,
+              ctx = chartInstance.ctx;
+
+              ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+              ctx.fillStyle = Chart.defaults.global.defaultFontColor;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+
+              this.data.datasets.forEach(function(dataset, i) {
+                var meta = chartInstance.controller.getDatasetMeta(i);
+                meta.data.forEach(function(bar, index) {
+                  var data = dataset.data[index];
+                  ctx.fillText(data, bar._model.x, bar._model.y - 5);
+                });
+              });
+            }
+          },
+          title: {
+            display: false,
+            text: ''
+          },
+        }
+      };
+      {% endwith %}
+      {% endfor %}
+
+      {% for corr in correlation_list %}
+      var general_stats_comVsIndCorr_chart_config{{corr.0.pk}} = {
+        type: 'scatter',
+        data:{
+          datasets:[{
+            label: 'Common vs Individual by students',
+            backgroundColor: palette('mpn65', 1).map(function(hex) {
+              return '#' + hex;
+            })[0],
+            data:[
+          {% for data in corr.4 %}
+            { x:{{ data.0}}, y:{{ data.1 }} },
+          {% endfor %}
+          ]}
+        ]},
+        options: {
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'bottom'
+            },
+            xAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                labelString: 'Common',
+              },
+            }],
+            yAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                labelString: 'Individual',
+              }
+            }]
+          }
+        }
+      };
+      {% endfor %}
+
+      {% endif %}
+
+    $(window).on("load",function(){
+
+      var ctx = document.getElementById('canvas');
+      if (typeof(ctx) != 'undefined' && ctx != null)
+      {
+        ctx = ctx.getContext('2d');
+        window.myLine = new Chart(ctx, general_stats_chart_config);
+      }
+
+      {% if exam.is_overall %}
+      {% for scale in exam.scales.all %}
+      var ctxByTeacher{{scale.pk}} = document.getElementById('canvas-byTeacher-{{scale.pk}}');
+      if (typeof(ctxByTeacher{{scale.pk}}) != 'undefined' && ctxByTeacher{{scale.pk}} != null)
+      {
+        ctxByTeacher{{scale.pk}} = ctxByTeacher{{scale.pk}}.getContext('2d');
+        window.myLine = new Chart(ctxByTeacher{{scale.pk}}, general_stats_byTeacher_chart_config{{scale.pk}});
+      }
+
+      var ctxBySection{{scale.pk}} = document.getElementById('canvas-bySection-{{scale.pk}}');
+      if (typeof(ctxBySection{{scale.pk}}) != 'undefined' && ctxBySection{{scale.pk}} != null)
+      {
+        ctxBySection{{scale.pk}} = ctxBySection{{scale.pk}}.getContext('2d');
+        window.myLine = new Chart(ctxBySection{{scale.pk}}, general_stats_bySection_chart_config{{scale.pk}});
+      }
+      {% endfor %}
+
+      {% for scale in exam.scales.all %}
+      var ctxComVsIndByTeacher{{ scale.pk }} = document.getElementById('canvas-comVsIndByTeacher-{{ scale.pk }}');
+      ctxComVsIndByTeacher{{ scale.pk }}.height = 100;
+      if (typeof(ctxComVsIndByTeacher{{ scale.pk }}) != 'undefined' && ctxComVsIndByTeacher{{ scale.pk }} != null)
+      {
+        ctxComVsIndByTeacher{{ scale.pk }} = ctxComVsIndByTeacher{{ scale.pk }}.getContext('2d');
+        window.myLine = new Chart(ctxComVsIndByTeacher{{ scale.pk }}, general_stats_comVsIndByTeacher{{ scale.pk }});
+      }
+      var ctxComVsIndBySection{{ scale.pk }} = document.getElementById('canvas-comVsIndBySection-{{ scale.pk }}');
+      ctxComVsIndBySection{{ scale.pk }}.height = 100;
+      if (typeof(ctxComVsIndBySection{{ scale.pk }}) != 'undefined' && ctxComVsIndBySection{{ scale.pk }} != null)
+      {
+        ctxComVsIndBySection{{ scale.pk }} = ctxComVsIndBySection{{ scale.pk }}.getContext('2d');
+        window.myLine = new Chart(ctxComVsIndBySection{{ scale.pk }}, general_stats_comVsIndBySection{{ scale.pk }});
+      }
+      {% endfor %}
+      {% endif %}
+
+      {% for corr in correlation_list %}
+      var ctxComVsIndCorr{{corr.0.pk}} = document.getElementById('canvas_correlation_{{ corr.0.pk }}');
+      if (typeof(ctxComVsIndCorr{{corr.0.pk}}) != 'undefined' && ctxComVsIndCorr{{corr.0.pk}} != null)
+      {
+        ctxComVsIndCorr{{corr.0.pk}} = ctxComVsIndCorr{{corr.0.pk}}.getContext('2d');
+        window.myLine = new Chart(ctxComVsIndCorr{{corr.0.pk}}, general_stats_comVsIndCorr_chart_config{{corr.0.pk}});
+      }
+      {% endfor %}
+
+    });
+
+
+
+    {% endblock %}
+
+    {% block content %}
+{% if user_allowed %}
+    <h4>General Statistics</h4>
+
+    {% if exam.scalesStatistics.all %}
+
+    {% if exam.is_overall %}
+    <ul class="nav nav-pills flex-column flex-sm-row border" id="general-statistics-pills-tab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link active" id="global-tab" data-toggle="pill" href="#pills-global" role="tab" aria-controls="pills-global" aria-selected="true">Global</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link" id="byTeacher-tab" data-toggle="pill" href="#pills-byTeacher" role="tab" aria-controls="pills-byTeacher" aria-selected="false">By Teacher</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link" id="bySection-tab" data-toggle="pill" href="#pills-bySection" role="tab" aria-controls="pills-bySection" aria-selected="false">By Section</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link" id="commVsInd-tab" data-toggle="pill" href="#pills-commVsIndiv" role="tab" aria-controls="pills-commVsIndiv" aria-selected="false">Common vs Individual</a>
+      </li>
+      {% if correlation_list %}
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link" id="correlation-tab" data-toggle="pill" href="#pills-correlation" role="tab" aria-controls="pills-correlation" aria-selected="false">Common vs Individual Correlation</a>
+      </li>
+      {% endif %}
+    </ul>
+    <div class="tab-content" id="general-statistics-pills-tabContent"">
+      <div class="tab-pane fade show active" id="pills-global" role="tabpanel" aria-labelledby="pills-global-tab">
+    {% endif %}
+
+        <!-- global statistics -->
+        {% include "./general_statistics_global.html" %}
+
+    {% else %}
+        <div class="alert alert-warning">
+          <h4 class="alert-heading">Warning!</h4>
+          <p class="mb-0">No data found for this exam. Please check there is minimum one scale defined in Exam Info !</a></p>
+        </div>
+    {% endif %}
+
+    {% if exam.is_overall %}
+      </div>
+      <div class="tab-pane fade" id="pills-byTeacher" role="tabpanel" aria-labelledby="pills-byTeacher-tab">
+        {% include "./general_statistics_byTeacher.html" %}
+      </div>
+      <div class="tab-pane fade" id="pills-bySection" role="tabpanel" aria-labelledby="pills-bySection-tab">
+        {% include "./general_statistics_bySection.html" %}
+      </div>
+      <div class="tab-pane fade" id="pills-commVsIndiv" role="tabpanel" aria-labelledby="pills-commVsIndiv-tab">
+        {% include "./general_statistics_comVsInd.html" %}
+      </div>
+      {% if correlation_list %}
+      <div class="tab-pane fade" id="pills-correlation" role="tabpanel" aria-labelledby="pills-correlation-tab">
+        {% include "./general_statistics_comVsInd_correlation.html" %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
+{% endif %}
+
+
+    {% endblock %}

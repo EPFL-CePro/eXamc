@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+<style>
+.content {
+  max-width: 500px;
+  margin: auto;
+  font-family: arial, sans-serif;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top:50px;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+</style>
+</head>
+<body style="background-color: #fff !important;">
+<div class="content">
+<h3 style="width:100%;text-align:center;margin-top:50px;">{{ EXAM.name }}</h3>
+<h4 style="width:100%;text-align:center;">Semester {{ EXAM.semester }} {{ EXAM.year }}</h4>
+
+<table>
+  <tr>
+    <th>Points</th>
+    <th>Grade</th>
+  </tr>
+  {% for key, value in SCALE.items %}
+  <tr>
+    <td>{{ value }}</td>
+    <td>{{ key }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+</body>
+</html>

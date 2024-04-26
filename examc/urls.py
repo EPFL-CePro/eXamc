@@ -36,6 +36,9 @@ urlpatterns = ([
     path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
     path('select_exam/<int:pk>', login_required(views.select_exam), name="select_exam"),
     path('getCommonExams/<int:pk>', views.getCommonExams, name="getCommonExams"),
+    path('create_scale/<int:pk>', login_required(views.ScaleCreateView.as_view()), name="create_scale"),
+    path('delete_exam_scale/<int:scale_pk><int:exam_pk>', views.delete_exam_scale, name="delete_exam_scale"),
+    path('set_final_scale/<int:pk>', views.set_final_scale, name="set_final_scale"),
     path('documentation',login_required(views.documentation_view), name="documentation"),
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
     + static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)

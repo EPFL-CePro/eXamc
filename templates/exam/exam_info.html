@@ -8,212 +8,118 @@
 
 $(window).on("load",function(){
 
-  $('#import-exam-data-bt').on('click',function() {
-      showImportExamDataDiv();
-  });
-
-  $('#close-import-exam-data-bt').on('click',function() {
-      closeImportExamDataDiv();
-  });
-
-  $("#importAMCCSVFile").on("change", function() {
-      var fileName = $(this).val().split("\\").pop();
-      $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
-  });
-  $("#importCatalogPDFFile").on("change", function() {
-      var fileName = $(this).val().split("\\").pop();
-      $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
-  });
-
-  <!--DISPLAY PDF CATALOG -->
-  $('#displayPdfModal').on('show.bs.modal', function (event) {
-    document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' exam.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:600px;\" frameborder=\"0\">";
-  })
-
-  <!--QUESTIONS EVENTS-->
-  <!--question-common checkboxes-->
-  {% for question in exam.questions.all %}
-  $('#common-{{question.pk}}-1').on('click', function() {
-    updateQuestion({{ question.pk }},'common', 1);
-  });
-  $('#common-{{question.pk}}-2').on('click', function() {
-    updateQuestion({{ question.pk }},'common', 0);
-  });
-  {% endfor %}
-
-  <!--question-type button-groups-->
-  {% for question in exam.questions.all %}
-  $('#type-{{question.pk}}-1').on('click', function() {
-    updateQuestion({{ question.pk }},'qtype', 1);
-  });
-  $('#type-{{question.pk}}-2').on('click', function() {
-    updateQuestion({{ question.pk }},'qtype', 2);
-  });
-  $('#type-{{question.pk}}-3').on('click', function() {
-    updateQuestion({{ question.pk }},'qtype', 3);
-  });
-  $('#type-{{question.pk}}-4').on('click', function() {
-    updateQuestion({{ question.pk }},'qtype', 4);
-  });
-  {% endfor %}
-
-  <!--question-answers button-groups-->
-  {% for question in exam.questions.all %}
-  {% if question.qtype < 3 %}
-  $('#answers-{{question.pk}}-1').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 1);
-  });
-  $('#answers-{{question.pk}}-2').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 2);
-  });
-  $('#answers-{{question.pk}}-3').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 3);
-  });
-  $('#answers-{{question.pk}}-4').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 4);
-  });
-  $('#answers-{{question.pk}}-5').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 5);
-  });
-  $('#answers-{{question.pk}}-6').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 6);
-  });
-  $('#answers-{{question.pk}}-7').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 7);
-  });
-  $('#answers-{{question.pk}}-8').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 8);
-  });
-  $('#answers-{{question.pk}}-9').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 9);
-  });
-  $('#answers-{{question.pk}}-10').on('click', function() {
-    updateQuestion({{ question.pk }},'answers', 10);
-  });
-  {% endif %}
-  {% endfor %}
-
-  <!--question-max-pts input-->
-  {% for question in exam.questions.all %}
-  $('#maxpts-{{question.pk}}').on('input', function() {
-    updateQuestion({{ question.pk }},'max_points', this.value);
-  });
-  {% endfor %}
-
-  <!-- UPLOAD DATA DIV -->
-  function showImportExamDataDiv() {
-      document.getElementById('importExamDataDiv').style.display = "block";
-      document.getElementById('accordionExamInfo').style.display = "none";
-  };
-
-  function closeImportExamDataDiv() {
-      document.getElementById('importExamDataDiv').style.display = "none";
-      document.getElementById('accordionExamInfo').style.display = "block";
-  };
-
-
-  <!--EXAM AJAX UPDATE FUNCTIONS-->
-
-  function updateQuestion(pk,field,value){
-    $.ajax({
-      url : "{% url 'update_question' %}",
-      type : "POST",
-      data : {
-        'csrfmiddlewaretoken' : "{{  csrf_token  }}",
-        'pk' : pk,
-        'field' : field,
-        'value' : value
-      },
-      beforeSend : function(){
-        $('#loadingModal').modal('show');
-      },
-      complete: function () {
-        $('#loadingModal').modal('hide');
-      },
-      success : function(result) {
-        window.location.href += "?dataUpdated=true";
-        window.location.reload();
-      }
+    $("#create-scale-button").modalForm({
+        formURL: "{% url 'create_scale' exam.pk %}"
     });
-  }
-})
+
+
+
+    <!--DISPLAY PDF CATALOG -->
+    $('#displayPdfModal').on('show.bs.modal', function (event) {
+        document.getElementById("embedPdf").innerHTML ="<embed src={% url 'catalogPdf' exam.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:600px;\" frameborder=\"0\">";
+    })
+
+    <!--QUESTIONS EVENTS-->
+    <!--question-common checkboxes-->
+    {% for question in exam.questions.all %}
+        $('#common-{{ question.pk }}-1').on('click', function() {
+        updateQuestion({{ question.pk }},'common', 1);
+        });
+        $('#common-{{ question.pk }}-2').on('click', function() {
+        updateQuestion({{ question.pk }},'common', 0);
+        });
+    {% endfor %}
+
+    <!--question-type button-groups-->
+    {% for question in exam.questions.all %}
+        $('#type-{{ question.pk }}-1').on('click', function() {
+        updateQuestion({{ question.pk }},'qtype', 1);
+        });
+        $('#type-{{ question.pk }}-2').on('click', function() {
+        updateQuestion({{ question.pk }},'qtype', 2);
+        });
+        $('#type-{{ question.pk }}-3').on('click', function() {
+        updateQuestion({{ question.pk }},'qtype', 3);
+        });
+        $('#type-{{ question.pk }}-4').on('click', function() {
+        updateQuestion({{ question.pk }},'qtype', 4);
+        });
+    {% endfor %}
+
+    <!--question-answers button-groups-->
+    {% for question in exam.questions.all %}
+        {% if question.qtype < 3 %}
+            $('#answers-{{ question.pk }}-1').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 1);
+            });
+            $('#answers-{{ question.pk }}-2').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 2);
+            });
+            $('#answers-{{ question.pk }}-3').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 3);
+            });
+            $('#answers-{{ question.pk }}-4').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 4);
+            });
+            $('#answers-{{ question.pk }}-5').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 5);
+            });
+            $('#answers-{{ question.pk }}-6').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 6);
+            });
+            $('#answers-{{ question.pk }}-7').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 7);
+            });
+            $('#answers-{{ question.pk }}-8').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 8);
+            });
+            $('#answers-{{ question.pk }}-9').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 9);
+            });
+            $('#answers-{{ question.pk }}-10').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 10);
+            });
+        {% endif %}
+    {% endfor %}
+
+    <!--question-max-pts input-->
+    {% for question in exam.questions.all %}
+        $('#maxpts-{{ question.pk }}').on('input', function() {
+        updateQuestion({{ question.pk }},'max_points', this.value);
+        });
+    {% endfor %}
+
+    <!--EXAM AJAX UPDATE FUNCTIONS-->
+
+    function updateQuestion(pk,field,value){
+    $.ajax({
+    url : "{% url 'update_question' %}",
+    type : "POST",
+    data : {
+    'csrfmiddlewaretoken' : "{{ csrf_token }}",
+    'pk' : pk,
+    'field' : field,
+    'value' : value
+    },
+    beforeSend : function(){
+    $('#loadingModal').modal('show');
+    },
+    complete: function () {
+    $('#loadingModal').modal('hide');
+    },
+    success : function(result) {
+    window.location.href += "?dataUpdated=true";
+    window.location.reload();
+    }
+    });
+    }
+    })
   {% endblock %}
 
   {% block content %}
 
 {% if user_allowed %}
   <h4>Exam Info</h4>
-
-  <div id="importExamDataDiv" style="display:none;padding:10px;width:100%;margin-top:50px;color:#000;">
-      <a id="close-import-exam-data-bt" } class="btn btn-outline-info btn-sm" href="#" style="margin-bottom:50px;">Close</a>
-      <h3>Import data</h3>
-      <form action="{% url 'upload_amc_csv' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
-          {% csrf_token %}
-          <div class="form-group">
-              <div class="col-md-8">
-                  <input type="file" accept=".csv" name="amc_csv_file" id="importAMCCSVFile" class="custom-file-input form-control">
-                  <label class="custom-file-label" for="importAMCCSVFile">Choose AMC .csv file</label>
-              </div>
-          </div>
-          <div class="form-group">
-              <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3" style="margin-bottom:10px;">
-                  <button class="btn btn-primary"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;"></span>Upload csv </button>
-              </div>
-          </div>
-      </form>
-      <form action="{% url 'upload_catalog_pdf' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
-          {% csrf_token %}
-          <div class="form-group">
-              <div class="col-md-8">
-                  <input type="file" accept=".pdf" name="catalog_pdf_file" id="importCatalogPDFFile" class="custom-file-input form-control">
-                  <label class="custom-file-label" for="importCatalogPDFFile">Choose Catalog PDF file</label>
-              </div>
-          </div>
-          <div class="form-group">
-              <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3" style="margin-bottom:10px;">
-                  <button class="btn btn-primary"> <span class="glyphicon glyphicon-upload" style="margin-right:5px;"></span>Upload pdf </button>
-              </div>
-          </div>
-          <div class="border" style="background-color:#f4e3ce;margin-top:50px;padding:10px;">
-            <h4>AMC .csv file</h4>
-            <p>The CSV file must be generated from AMC with the following options:</p>
-            <ul>
-              <li>format : CSV</li>
-              <li>Sorting : line in students list</li>
-              <li>include absentees : yes</li>
-              <li>Separator : ";"</li>
-              <li>Ticked boxes : "Yes:AB"</li>
-              <li>Columns : ID,SCIPER,NAME,SECTION,EMAIL</li>
-            </ul>
-            <p>For your questions to be imported correctly, with the correct type, the questions IDs must be prefixed as follows:</p>
-            <table class="table-sm table-borderless" style="padding:10px;color:black;width:800px;">
-              <tbody>
-                <tr>
-                  <td>"SCQ-" for single choice questions.</td>
-                  <td>example : </td>
-                  <td>\begin{question}{SCQ-01}</td>
-                </tr>
-                <tr>
-                  <td>"MCQ-" for multiple choice questions.</td>
-                  <td>example : </td>
-                  <td> \begin{questionmult}{MCQ-01}</td>
-                </tr>
-                <tr>
-                  <td>"TF-" for True-False questions.</td>
-                  <td>example : </td>
-                  <td>\begin{question}{TF-01}</td>
-                </tr>
-                <tr>
-                  <td>"OPEN-" for open questions (optional).</td>
-                  <td>example : </td>
-                  <td>\correctorFour{OPEN-A}{~}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-      </form>
-
-  </div>
 
   <div class="accordion" id="accordionExamInfo">
     <div class="card z-depth-0 bordered">
@@ -224,8 +130,7 @@ $(window).on("load",function(){
             aria-expanded="true" aria-controls="collapseOne">
             Exam
           </button>
-            <a id="regen-stats-bt" class="btn btn-outline-info btn-sm" href="{% url 'generate_stats' exam.pk %}">Regen stats</a>
-            <a id="import-exam-data-bt" } class="btn btn-outline-info btn-sm" href="#">Import exam data</a>
+            <a id="regen-stats-bt" class="btn btn-outline-dark btn-sm" href="{% url 'generate_stats' exam.pk %}">Regen stats</a>
           <span style="float:right;margin-top:7px;">
             <a data-toggle="modal" data-target="#displayPdfModal" title="Show in pdf" style="font-size:12px;">catalog<i class="far fa-file-pdf" style="font-size:24px;color:red"></i></a>
           </span>
@@ -334,8 +239,7 @@ $(window).on("load",function(){
         </tbody>
       </table>
       {% if user.is_staff %}
-      <a target="_blank" class="select-scale btn btn-outline-success btn-sm" type="button">Select</a>
-      <a target="_blank" class="create-scale btn btn-outline-info btn-sm" type="button">Create</a>
+      <a target="_blank" id="create-scale-button" class="btn btn-outline-info btn-sm"  type="button">Create</a>
       {% endif %}
     </div>
   </div>
@@ -407,11 +311,16 @@ $(window).on("load",function(){
 <h4>You are not allowed to view this page !</h4>
 
 {% endif %}
-</div>
 
 <!-- MODAL -->
+<div class="modal fade modal-lg" tabindex="-1" role="dialog" id="modal" style="left:25%;">
+  <div class="modal-dialog" role="document" style="max-width:80%;">
+      <div class="modal-content" style="flex-direction: row;">
 
-<div class="modal fade" id="displayPdfModal" tabindex="-1" role="dialog">
+      </div>
+  </div>
+</div>
+<div class="modal fade" id="displayPdfModal" tabindex="-1" role="dialog" style="left:25%;">
   <div class="modal-dialog" role="document">
     <div class="modal-content" style="width:1050px;height:650px;">
 
@@ -422,5 +331,6 @@ $(window).on("load",function(){
       </div>
     </div>
   </div>
+</div>
 </div>
 {% endblock %}

@@ -6080,13 +6080,14 @@ button.bg-primary:focus {
  background-color:#010000 !important
 }
 .bg-secondary {
- background-color:#fff !important
+ background-color:#404040 !important
 }
 a.bg-secondary:hover,
 a.bg-secondary:focus,
 button.bg-secondary:hover,
 button.bg-secondary:focus {
- background-color:#e6e5e5 !important
+ background-color:#e6e5e5 !important;
+ color:#000 !important;
 }
 .bg-success {
  background-color:#4BBF73 !important

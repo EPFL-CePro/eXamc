@@ -1,0 +1,69 @@
+{% load custom_tags %}
+</br>
+<h6>Scales :</h6>
+<ul class="nav nav-pills flex-column flex-sm-row border" id="stats-byTeacher-pills-tab" role="tablist">
+  {% for scale in exam.scales.all %}
+  {% if scale.pk == exam.scales.first.pk %}
+  <li class="nav-item" role="presentation">
+    <a class="flex-sm-fill text-sm-center nav-link active" id="byTeacher-{{ scale.pk }}-tab" data-toggle="pill" href="#pills-byTeacher-{{ scale.pk }}" role="tab" aria-controls="pills-byTeacher-{{ scale.pk }}" aria-selected="true">{{ scale.name }}</a>
+  </li>
+  {% else %}
+  <li class="nav-item" role="presentation">
+    <a class="flex-sm-fill text-sm-center nav-link" id="byTeacher-{{ scale.pk }}-tab" data-toggle="pill" href="#pills-byTeacher-{{ scale.pk }}" role="tab" aria-controls="pills-byTeacher-{{ scale.pk }}" aria-selected="false">{{ scale.name }}</a>
+  </li>
+  {% endif %}
+  {% endfor %}
+</ul>
+<div class="tab-content" id="stats-byTeacher-pills-tabContent">
+  {% for scale in exam.scales.all %}
+  {% if scale.pk == exam.scales.first.pk %}
+  <div class="tab-pane fade show active" id="pills-byTeacher-{{ scale.pk }}" role="tabpanel" aria-labelledby="pills-byTeacher-{{ scale.pk }}-tab">
+  {% else %}
+  <div class="tab-pane fade" id="pills-byTeacher-{{ scale.pk }}" role="tabpanel" aria-labelledby="pills-byTeacher-{{ scale.pk }}-tab">
+  {% endif %}
+    <div class="table-responsive">
+      <table id="byTeacher_distribution_dt{{scale.pk}}" class="table table-striped table-sm">
+        <thead>
+          <tr>
+            <th>Exam</th>
+            <th>Average</th>
+            <th>Median</th>
+            <th>Stddev</th>
+            <th>Students</th>
+            <th>Present</th>
+            <th>Absent</th>
+            {% for grade in grade_list %}
+            <th>{{ grade }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for exam in exam.common_exams.all %}
+          <tr>
+            <th>{{ exam.code }} {{ exam.primary_user.last_name }}</th>
+            {% with scale_stat=exam.pk|get_scale_stats:scale.name %}
+            <th>{{ scale_stat.average }}</th>
+            <th>{{ scale_stat.median }}</th>
+            <th>{{ scale_stat.stddev }}</th>
+            <th>{{ exam.students.all|length }}</th>
+            <th>{{ exam.present_students }}</th>
+            <th>{{ exam.students.all|length|substract:exam.present_students }}</th>
+            {% for distribution in scale_stat.scale_distributions.all %}
+            <th>{{ distribution.quantity }}</th>
+            {% endfor %}
+          </tr>
+          <tr>
+            <th colspan="7"/>
+            <th colspan="8">Achievement : {{ scale_stat|get_achievement_by_scalestat }} </th>
+            <th colspan="8">Non Achievement : {{ scale_stat|get_nonachievement_by_scalestat }}</th>
+            <th/>
+            {% endwith %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <canvas id="canvas-byTeacher-{{scale.pk}}" class="chartjs-render-monitor"></canvas>
+  </div>
+  {% endfor %}
+</div>

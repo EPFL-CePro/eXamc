@@ -30,6 +30,9 @@ class Exam(models.Model):
     overall = models.BooleanField(default=0)
     indiv_formula = models.CharField(max_length=100, blank=True)
     pages_by_copy = models.CharField(max_length=10000, blank=True)
+    review_option = models.BooleanField(default=0)
+    amc_option = models.BooleanField(default=0)
+    res_and_stats_option = models.BooleanField(default=0)
     history = HistoricalRecords()
 
     class Meta:
@@ -43,6 +46,18 @@ class Exam(models.Model):
     def is_overall(self):
         """ Overall exam is automatically generated for common exam to store common statistics."""
         return bool(self.overall)
+
+    def has_review_option(self):
+        """ Overall exam is automatically generated for common exam to store common statistics."""
+        return bool(self.review_option)
+
+    def has_amc_option(self):
+        """ Overall exam is automatically generated for common exam to store common statistics."""
+        return bool(self.amc_option)
+
+    def has_res_and_stats_option(self):
+        """ Overall exam is automatically generated for common exam to store common statistics."""
+        return bool(self.res_and_stats_option)
 
     def get_sum_common_students(self):
         """ Return the sum of all common students. """

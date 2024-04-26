@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block extra_head %}
+
+{% endblock %}
+
+{% block title %}Export{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}
+
+{% block content %}
+
+{% if user_allowed %}
+
+<h4>Export</h4>
+
+<style>
+.custom-radio-list {
+    list-style-type: none;
+    padding-top: 20px;
+    margin-left: 0px;
+}
+.custom-radio-list li {
+    margin-left: 20px;
+}
+</style>
+
+{% if exam.scalesanswerStatistics %}
+<div id="export_div" style="padding:20px">
+  </br>
+  </br>
+
+  </br>
+  </br>
+  <h6>Options :</h6>
+  <form action="{% url 'export_data' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal" style="margin-top:20px;">
+    {% csrf_token %}
+
+      <a>Select scale</a>
+      </br>
+      <div class="form-group form-check form-check-inline">
+        {{ form.scale }}
+      </div>
+      {% if exam.is_overall %}
+      </br>
+      <a>Select exams</a>
+      </br>
+      <div class="form-group form-check form-check-inline">
+        {{ form.common_exams }}
+      </div>
+      {% endif %}
+      </br>
+      <div class="form-group form-check">
+        {{ form.exportIsaCsv }}
+        <label class="form-check-label" for="{{ form.exportIsaCsv.value }}">{{ form.exportIsaCsv.label_tag }}</label>
+      </div>
+      <div class="form-group form-check">
+        {{ form.exportExamScalePdf }}
+        <label class="form-check-label" for="{{ form.exportExamScalePdf.value }}">{{ form.exportExamScalePdf.label_tag }}</label>
+      </div>
+      <div class="form-group form-check">
+        {{ form.exportStudentsDataCsv }}
+        <label class="form-check-label" for="{{ form.exportStudentsDataCsv.value }}">{{ form.exportStudentsDataCsv.label_tag }}</label>
+      </div>
+      <button type="submit" class="btn btn-primary">Export</button>
+  </form>
+
+</div>
+{% else %}
+<div class="alert alert-warning">
+  <h4 class="alert-heading">Warning!</h4>
+  <p class="mb-0">No data found for this exam. Please import data and generate statistics.</a>.</p>
+</div>
+{% endif %}
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
+{% endif %}
+
+{% endblock %}

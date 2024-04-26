@@ -339,23 +339,23 @@ $(window).on("load",function(){
     createPagination({{ scans_pathes_list|length }}, 1);
     {% endif %}
 
-    //hide top and side bars
-    var wrapper = document.getElementById("wrapper")
-    var sideb = document.getElementById("sidebar-wrapper");
-    wrapper.style.paddingLeft = "20px";
-    sideb.style.display = "none";
+{#    //hide top and side bars#}
+{#    var wrapper = document.getElementById("wrapper")#}
+{#    var sideb = document.getElementById("sidebar-wrapper");#}
+{#    wrapper.style.paddingLeft = "20px";#}
+{#    sideb.style.display = "none";#}
 });
  
 {% endblock %}
 
 {% block content %}
 {%  if scans_pathes_list %}
-<div style="width: 800px;">
-    <div style="width: 50%; height: 50px; float: left; "> 
-        <h3>Review {{ pages_group.group_name }}</h3>
+<div class="row" style="height:50px;">
+    <div class="column" style="width:300px;margin-left:15px;">
+        <a href="{% url 'reviewView' exam.pk %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
     </div>
-    <div style="margin-left: 50%; height: 50px; text-align:right;"> 
-        <a style="margin-left:150px;" href="{% url 'reviewView' exam.pk %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
+    <div class="column" style="margin-left:15px;">
+        <h3>Review {{ pages_group.group_name }}</h3>
     </div>
 </div>
 <div class="d-flex" style="height:93vh;">

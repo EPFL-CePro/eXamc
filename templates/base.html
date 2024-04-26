@@ -45,8 +45,9 @@
     <link rel="stylesheet" href="{% static 'css/menubars.css' %}">
 
     <!-- CSS fontawesome icons -->
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css"
-          integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{#    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css"#}
+{#          integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">#}
 
     <!-- favicon -->
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
@@ -61,45 +62,13 @@
 <main>
 
     <script type="text/javascript">
+        $(document).ready(function() {
 
+          });
         {% block scripts %}{% endblock %}
 
     </script>
     <div id="wrapper">
-
-        <!-- Topbar -->
-        <div id="topbar-wrapper" hidden="True">
-            <div id="topbar">
-                <div style="text-align:center;float:left;display:inline-block;width:70%;">
-                    <a style="font-weight:bolder">{{ exam.code }}</a>
-                </div>
-                <div style="text-align:right;float:right;display:inline-block;width:30%;">
-                    {% if user.is_superuser %}
-                        <a id="import-data-bt" class="btn btn-outline-info btn-sm" href="#">Import data</a>
-                    {% endif %}
-                    <a style="font-style: italic;margin-right:50px;">User : {{ user.username }}</a>
-                </div>
-            </div>
-            <div id="importDataDiv" style="display:none;padding:10px;width:100%;margin-top:100px;color:#000;">
-                <fieldset name="Multiple Files Upload">
-                    <h3>Upload scans</h3>
-                    <form method="POST" action="{% url 'upload_scans' 6 %}" enctype="multipart/form-data"
-                          class="form-horizontal">
-                        {% csrf_token %}
-                        <dl>
-                            <p>
-                                <label>Browse and select one or more files
-                                    <input type="file" name="files" autocomplete="off" required multiple></label>&nbsp;&nbsp;
-                            </p>
-                        </dl>
-                        <p>
-                            <input type="submit" value="Upload">
-                        </p>
-                    </form>
-                </fieldset>
-            </div>
-        </div>
-
 
         <!-- Sidebar -->
     <div class="row" id="body-row">
@@ -114,58 +83,55 @@
                 <a href="{% url 'examSelect' %}" class="bg-dark list-group-item list-group-item-action">
                     <div class="d-flex w-100 justify-content-start align-items-center">
                         <span class="fas fa-folder-open" style="margin-right:5px;"></span>
-                        <span class="menu-collapsed" style="margin-right:5px;">Exams</span>
+                        <span class="menu-collapsed" style="margin-right:5px;">Open exam</span>
                     </div>
                 </a>
-
                 {% if exam %}
-                    <li class="list-group-item sidebar-separator-title text-muted d-flex align-items-center menu-collapsed font-weight-bold" style="background-color: #1d2124;">
-                        {{ exam.code }}
-                    </li>
-
+                    <a href="{% url 'examInfo' exam.pk %}" class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="background-color: #1d2124;margin-top:20px;">
+                        <span title="{{ exam.code }}" class="fa-solid fa-book-open" style="margin-right: 5px;"></span>
+                        <span class="menu-collapsed" style="margin-right:5px;">{{ exam.code }}</span>
+                    </a>
                     {% if not user|is_reviewer:exam %}
-                        <!-- d-* hiddens the Sidebar in smaller devices. Its itens can be kept on the Navbar 'Menu' -->
-                        <a href="{% url 'reviewSettingsView' exam.pk 'groups' %}"
-                           class="bg-dark list-group-item list-group-item-action">
+                        {% if exam.has_review_option %}
+                         <li class="bg-dark list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-start align-items-center">
-                                <span class="fas fa-cogs" style="margin-right:5px;"></span>
-                                <span class="menu-collapsed" style="margin-right:5px;">Review settings</span>
+                                <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="fas fa-glasses" style="margin-right:5px;"></span>
+                                    <span class="menu-collapsed" style="margin-right:5px;">Review</span>
+                                </a>
+                                <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'reviewView' exam.pk %}" style="padding-top:15px;"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a></li>
+                                     <div class="bg-secondary dropdown-divider"></div>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'reviewSettingsView' exam.pk 'groups' %}" style="padding-top:15px;"><i class="fas fa-cogs" style="margin-right:5px;"></i>Settings</a></li>
+                                     <div class="bg-secondary dropdown-divider"></div>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'upload_scans' exam.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload scans</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'export_marked_files' exam.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export marked scans</a></li>
+                              </ul>
                             </div>
-                        </a>
+                        </li>
+                        {% endif %}
                     {% endif %}
-                    <a href="{% url 'reviewView' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
+                    <hr class="hr-sidebar">
+                    {% if exam.has_amc_option %}
+                    <li class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="fas fa-glasses" style="margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="margin-right:5px;">Review</span>
+                            <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="{% static 'img/amc.ico' %}" style="margin-right:5px;"/>
+                                <span class="menu-collapsed" style="margin-right:5px;">AMC</span>
+                            </a>
+                            <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+                                <li><a class="bg-secondary dropdown-item" href="{% url 'amc_view' exam.pk %}" style="padding-top:15px;">
+                                    <img src="{% static 'img/amc.ico' %}" style="margin-right:5px;"/>AMC</a></li>
+                                <div class="bg-secondary dropdown-divider"></div>
+                                <li><a class="bg-secondary dropdown-item" href="{% url 'upload_amc_project' exam.pk %}" style="padding-top:15px;">
+                                    <i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Import data</a></li>
+                            </ul>
                         </div>
-                    </a>
-                    {% if not user|is_reviewer:exam %}
-                    <a href="{% url 'upload_scans' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="fas fa-cloud-upload-alt" style="margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="margin-right:5px;">Upload scans </span>
-                        </div>
-                    </a>
-                    <a href="{% url 'export_marked_files' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="fas fa-cloud-download-alt" style="margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="margin-right:5px;">Export marked files </span>
-
-                        </div>
-                    </a>
-                    <a href="{% url 'amc_view' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-start align-items-center">
-                            <img src="{% static 'img/amc.ico' %}" style="margin-right:5px;"/>
-                            <span class="menu-collapsed" style="margin-right:5px;">AMC </span>
-                        </div>
-                    </a>
-                    <a href="{% url 'upload_amc_project' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="fas fa-cloud-upload-alt" style="margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="margin-right:5px;">Upload AMC project </span>
-                        </div>
-                    </a>
-                    <a href="" class="bg-dark list-group-item list-group-item-action">
+                    </li>
+                    {% endif %}
+                    <hr class="hr-sidebar">
+                    {% if exam.has_res_and_stats_option %}
+                    <a href="{% url 'studentsStats' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="fas fa-th-list" style="margin-right:5px;"></span>
                             <span class="menu-collapsed" style="margin-right:5px;">Results</span>
@@ -174,17 +140,26 @@
                     <li class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span class="fas fa-chart-bar" style="margin-right:5px;"></span>
+                                <span class="fas fa-chart-column" style="margin-right:5px;"></span>
                                 <span class="menu-collapsed" style="margin-right:5px;">Statistics</span>
                             </a>
-                            <ul class="bg-dark dropdown-menu" style="background-color: #2E2D2DFF!important;" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="#">Global</a></li>
-                                <li><a class="dropdown-item" href="#">Questions</a></li>
-                                <li><a class="dropdown-item" href="#">Com. VS Ind.</a></li>
+                            <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+                                {%  if exam.scales.all %}
+                                <li><a class="bg-secondary dropdown-item" href="{% url 'generalStats' exam.pk %}" style="padding-top:15px;"><i class="fas fa-chart-line" style="margin-right:5px;"></i>Global</a></li>
+                                <li><a class="bg-secondary dropdown-item" href="{% url 'questionsStats' exam.pk %}" style="padding-top:15px;"><i class="fas fa-chart-area" style="margin-right:5px;"></i>Questions</a></li>
+                                {% endif %}
                           </ul>
                         </div>
                     </li>
-                         {% if user|is_admin %}
+                     <a href="{% url 'import_data_4_stats' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-start align-items-center">
+                            <span class="fas fa-cloud-upload-alt" style="margin-right:5px;"></span>
+                            <span class="menu-collapsed" style="margin-right:5px;">Import data</span>
+                        </div>
+                    </a>
+                    {% endif %}
+                    <hr class="hr-sidebar">
+                    {% if user|is_admin %}
                     <a href="{% url 'users' %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="fas fa-bone fa-spin" style="color: #fc6a00;margin-right:5px;"></span>
@@ -197,7 +172,6 @@
                             <span class="menu-collapsed" style="color: #10E6BC;margin-right:5px;">Admin </span>
                         </div>
                     </a>
-                        {% endif %}
                     {% endif %}
                     <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
@@ -213,9 +187,10 @@
                         </div>
                     </a>
                     <a href="#top" data-toggle="sidebar-colapse"
-                       class="bg-dark list-group-item list-group-item-action d-flex align-items-center">
+                       class="bg-dark list-group-item list-group-item-action d-flex align-items-center"
+                        style="margin-top:50px;color:grey;">
                         <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span id="collapse-icon" class="fa fa-2x mr-3"></span>
+                            <span id="collapse-icon" class="fa mr-3"></span>
                             <span id="collapse-text" class="menu-collapsed">Collapse</span>
                         </div>
                     </a>
@@ -223,77 +198,6 @@
 
         </div><!-- sidebar-container END -->
 </div>
-
-        <!-- Sidebar -->
-
-{#        <div class="sidebar" id="sidebar-wrapper" hidden>#}
-{#            <ul class="sidebar-nav" style="overflow: auto; max-height: 90vh;">#}
-{#                <li style="margin-bottom:50px;padding:5%;">#}
-{#                    <img id="examc_logo" src="{% static 'img/eXamc_x_white_200.png' %}" style="width:90%;"/>#}
-{#                </li>#}
-{#                <li style="margin-bottom:25px;">#}
-{#                    <a href="{% url 'examSelect' %}"><i class="fas fa-folder-open"#}
-{#                                                        style="margin-right:5px;"></i>Exams</a>#}
-{#                </li>#}
-{#                {% if exam %}#}
-{#                    <li style="margin-left:5px;background-color: #4c1d1b;margin-bottom:10px;">#}
-{#                        <a style="font-weight:bold">{{ exam.code }}</a>#}
-{#                    </li>#}
-{#                    {% if not user|is_reviewer:exam %}#}
-{#                        <li>#}
-{#                            <a href="{% url 'reviewSettingsView' exam.pk 'groups' %}"><i class="fas fa-cogs"#}
-{#                                                                                         style="margin-right:5px;"></i>Review#}
-{#                                settings</a>#}
-{#                        </li>#}
-{#                    {% endif %}#}
-{#                    <li>#}
-{#                        <a href="{% url 'reviewView' exam.pk %}"><i class="fas fa-glasses"#}
-{#                                                                    style="margin-right:5px;"></i>Review</a>#}
-{#                    </li>#}
-{#                    {% if not user|is_reviewer:exam %}#}
-{#                        <li>#}
-{#                            <a href="{% url 'upload_scans' exam.pk %}"><i class="fas fa-cloud-upload-alt"#}
-{#                                                                          style="margin-right:5px;"></i>Upload scans</a>#}
-{#                        </li>#}
-{#                        <li>#}
-{#                            <a href="{% url 'export_marked_files' exam.pk %}"><i class="fas fa-cloud-download-alt"#}
-{#                                                                                 style="margin-right:5px;"></i>Export#}
-{#                                marked files</a>#}
-{#                        </li>#}
-{#                        <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                        <li>#}
-{#                            <a href="{% url 'amc_view' exam.pk %}"><img src="{% static 'img/amc.ico' %}"#}
-{#                                                                        style="margin:0px 5px 0px 10px;">AMC</a>#}
-{#                        </li>#}
-{#                        <li>#}
-{#                            <a href="{% url 'upload_amc_project' exam.pk %}"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload AMC project</a>#}
-{#                        </li>#}
-{#                        <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                        <li>#}
-{#                            <a href="{% url 'testing' %}" style="color: #ff5ce9;"><i class="fas fa-hippo fa-spin" style="color: #ff5ce9;margin-right:5px;"></i>TESTING</a>#}
-{#                        </li>#}
-{#                        <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                        {% if user|is_admin %}#}
-{#                            <li>#}
-{#                                <a href="{% url 'users' %}" style="color: #FF5733;"><i class="fas fa-bone fa-spin" style="color: #FF5733;margin-right:5px;"></i>Users</a>#}
-{#                            </li>#}
-{#                            <li>#}
-{#                                <a href="{% url 'admin:index' %}" style="color: #10E6BC;"><i class="fas fa-carrot fa-spin" style="color: #10E6BC;margin-right:5px;"></i>ADMIN</a>#}
-{#                            </li>#}
-{#                            <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                        {% endif %}#}
-{#                    {% endif %}#}
-{#                    <li>#}
-{#                        <a href="{% static 'docs/html/index.html' %}" target="_blank" style="color:#CCA71CFF;"><i class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></i>Documentation</a>#}
-{#                    </li>#}
-{#                {% endif %}#}
-{#                <hr class="border-bottom border-3 border-dark" style="margin:25px 10px 25px 10px;"/>#}
-{#                <li>#}
-{#                    <a style="color:#387900FF"><i class="fas fa-grimace fa-lg" style="color: #387900FF;margin-right:5px;"></i>{{ user }}</a>#}
-{#                </li>#}
-{#            </ul>#}
-{##}
-{#        </div>#}
         </div>
 </main>
         <div id="page-content-wrapper">
@@ -301,6 +205,7 @@
             <div class="container-fluid">
                 <!-- Page Content -->
                 {% block content %}
+
 
                 {% endblock %}
 
@@ -351,7 +256,7 @@ function SidebarCollapse () {
     // Collapse/Expand icon
     $('#collapse-icon').toggleClass('fa-angle-double-left fa-angle-double-right');
     if ($('#sidebar-container').hasClass('sidebar-collapsed')) {
-        $('#page-content-wrapper').css('margin-left', '-100px');
+        $('#page-content-wrapper').css('margin-left', '-170px');
     } else {
         $('#page-content-wrapper').css('margin-left', '0px');
     }

@@ -54,8 +54,6 @@ urlpatterns = [
     path('amc_update_students_file/<int:pk>', views.amc_update_students_file, name="amc_update_students_file"),
     path('download_annotated_pdf/<int:pk>', views.download_annotated_pdf, name="download_annotated_pdf"),
     # Results & Statistics
-    path('create_scale', login_required(views.ScaleCreateView.as_view()), name="scaleCreate"),
-    path('set_final_scale/<int:pk>', views.set_final_scale, name="set_final_scale"),
     path('catalogPdf/<int:pk>',views.display_catalog, name="catalogPdf"),
     path('catalogPdf/<int:pk>/<slug:searchFor>',views.display_catalog, name="catalogPdf"),
     path('update_question', views.update_question, name="update_question"),
@@ -65,6 +63,7 @@ urlpatterns = [
     path('studentsStats/<int:pk>', views.students_statistics_view, name="studentsStats"),
     path('questionsStats/<int:pk>', views.questions_statistics_view, name="questionsStats"),
     path('export_data/<int:pk>', views.export_data, name="export_data"),
+    path('import_data_4_stats/<int:pk>', views.import_data_4_stats, name="import_data_4_stats"),
     path('upload_amc_csv/<int:pk>', views.upload_amc_csv, name="upload_amc_csv"),
     path('upload_catalog_pdf/<int:pk>', views.upload_catalog_pdf, name="upload_catalog_pdf"),
     # testing
