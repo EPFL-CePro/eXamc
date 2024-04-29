@@ -583,7 +583,7 @@ def saveComment(request):
 #     print(data)
 # rectangle = Polygon(data)
 def update_page_group_markers(request):
-    global responce
+    global response
     if request.method == 'POST':
         pages_group_pk = request.POST.get('pages_group_pk')
         markers_json = request.POST.get('markers')
@@ -617,25 +617,10 @@ def update_page_group_markers(request):
         other_polygon = Polygon(points[1])
        
         if rectangle_polygon.intersects(other_polygon):
-            responce = "True"
+            response = "True"
         else:
-            responce = "False"
+            response = "False"
 
-    return HttpResponse(request, responce)
+    return HttpResponse(request, response)
 
-# def maState_data(request):
-#     if request.method == 'POST':
-#         maState_data = request.POST.get('maState_data')
-#         print(maState_data)
-#         rectangle_coordinates = [(1, 1), (2, 2), (4, 2), (3, 1)]
-#         rectangle_polygon = Polygon(rectangle_coordinates)
-#         other_polygon = Polygon([(1.5, 2), (3, 5), (5, 4), (3.5, 1)])
-#
-#         if rectangle_polygon.intersects(other_polygon):
-#             print("True")
-#         else:
-#             print("False")
-#
-#         return JsonResponse({'message': 'Success.'})
-#     else:
-#         return JsonResponse({'error': 'No data'})
+
