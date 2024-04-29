@@ -1,29 +1,27 @@
-import csv
-
+from shapely.geometry import Polygon
 from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect
-
-from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import *
-
-
-from examc_app.utils.amc_functions import *
-from examc_app.forms import *
-from examc_app.models import *
 from django.views.generic import DetailView
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
+
+from examc_app.utils.global_functions import user_allowed
+from examc_app.utils.review_functions import *
+from examc_app.utils.amc_functions import *
+from examc_app.utils.epflldap import ldap_search
+from examc_app.views import menu_access_required
+from examc_app.forms import *
+from examc_app.models import *
+
+import csv
 import zipfile
 import os
 import json
-from examc_app.utils.epflldap import ldap_search
 import re
 import base64
-
-from examc_app.views import menu_access_required
 
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
@@ -36,7 +34,7 @@ class ReviewView(DetailView):
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
-        if user_allowed(exam,self.request.user.id):
+        if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "review"
             context['exam'] = exam
@@ -50,6 +48,20 @@ class ReviewView(DetailView):
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewGroupView(DetailView):
+    """
+        View for managing review group for a specific exam.
+
+        This class-based view handles the display and management of review group settings for a particular exam. It allows
+        administrators to configure page groups for the exam.
+
+        Attributes:
+            model (ExamPagesGroup): The model class associated with the view.
+            template_name : The name of the template used for rendering the view.
+
+        Methods:
+            get_context_data: Overrides the base class method to provide additional context data for rendering the view.
+            post: Handles POST requests for updating review settings.
+"""
     model = PagesGroup
     template_name = 'review/reviewGroup.html'
 
@@ -62,7 +74,7 @@ class ReviewGroupView(DetailView):
 
         # Get scans file path dict by pages groups
         scans_pathes_list = get_scans_pathes_by_group(pagesGroup)
-        if user_allowed(pagesGroup.exam,self.request.user.id):
+        if user_allowed(pagesGroup.exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewGroup"
             context['exam'] = pagesGroup.exam
@@ -80,10 +92,33 @@ class ReviewGroupView(DetailView):
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewSettingsView(DetailView):
+    """
+    View for managing review settings for a specific exam.
+
+    This class-based view handles the display and management of review settings for a particular exam. It allows
+    administrators to configure reviewers and page groups for the exam.
+
+    Attributes:
+        model (Exam): The model class associated with the view.
+        template_name : The name of the template used for rendering the view.
+        error_msg : Error message to display if there are any issues.
+
+    Methods:
+        get_context_data: Overrides the base class method to provide additional context data for rendering the view.
+    """
     model = Exam
     template_name = 'review/settings/reviewSettings.html'
     error_msg = None
+
     def get_context_data(self, **kwargs):
+        """
+        Retrieves additional context data for rendering the view.
+
+        This method overrides the base class method to include context data such as formsets and current tab.
+
+        Returns:
+            dict: A dictionary containing context data for rendering the view.
+        """
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
 
         exam = Exam.objects.get(pk=context.get("object").id)
@@ -94,7 +129,7 @@ class ReviewSettingsView(DetailView):
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[{'id':None, 'group_name': '[New]', 'page_from':-1, 'page_to':-1}])
         formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
 
-        if user_allowed(exam,self.request.user.id):
+        if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
@@ -110,6 +145,14 @@ class ReviewSettingsView(DetailView):
 
     # Define method to handle POST request
     def post(self, *args, **kwargs):
+        """
+        Handles POST requests for updating review settings.
+
+        This method processes the form submissions for updating reviewers and page groups for the exam.
+
+        Returns:
+            HttpResponse: A response containing the updated view or an error message.
+        """
         self.object = self.get_object()
         exam = Exam.objects.get(pk=self.kwargs['pk'])
         error_msg = ''
@@ -133,7 +176,7 @@ class ReviewSettingsView(DetailView):
             if formset.is_valid():
                 for form in formset:
                     print(form)
-                    if form.is_valid() and form.cleaned_data :
+                    if form.is_valid() and form.cleaned_data:
                         error_msg = None
                         if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
                             error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
@@ -223,15 +266,17 @@ def edit_pages_group_corrector_box(request):
 
 @login_required
 @menu_access_required
-def get_group_path_image(request):
+def get_pages_group_rectangle_data(request):
     if request.method == 'POST':
         pagesGroup = PagesGroup.objects.get(pk=request.POST.get('group_id'))
         img_path = get_scans_path_for_group(pagesGroup)
-        print(img_path)
         if img_path:
-            return HttpResponse(img_path)
+            data_dict['img_path'] = img_path
+            data_dict['markers'] = pagesGroup.rectangle
+            return HttpResponse(json.dumps(data_dict))
         else:
             return HttpResponse(img_path)
+
 
 @login_required
 @menu_access_required
@@ -247,8 +292,8 @@ def ldap_search_by_email(request):
         return HttpResponse(entry_str)
 
     user_entry = ldap_search.get_entry(email, 'mail')
-    entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][0] + ";" + email
-
+    entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][
+        0] + ";" + email
 
     return HttpResponse(entry_str)
 
@@ -312,9 +357,8 @@ def export_marked_files(request,pk):
 
               generated_marked_files_zip_path = generate_marked_files_zip(exam, request.POST['export_type'])
 
-
-              zip_file = open(generated_marked_files_zip_path, 'rb')
-              return FileResponse(zip_file)
+                zip_file = open(generated_marked_files_zip_path, 'rb')
+                return FileResponse(zip_file)
 
             else:
               logger.info("INVALID")
@@ -335,12 +379,6 @@ def export_marked_files(request,pk):
                                                       "current_url": "export_marked_files"})
 
 
-
-# def isReviewer(request):
-#     exam_reviewers = Reviewer.objects.filter(exam=exam)
-#     return render(request, 'base.html', {'exam_reviewers': exam_reviewers})
-
-
 # TESTING
 # ------------------------------------------
 @login_required
@@ -351,7 +389,7 @@ def testing(request):
         return render(request, 'review/testing.html', {
             'user': request.user,
             'user_info': user_info,
-    })
+        })
 
 
 def home(request):
@@ -365,17 +403,13 @@ def home(request):
 @login_required
 def select_exam(request, pk, current_url=None):
 
-    #request.session['exam_pk'] = Exam.objects.get(pk=pk)
-
-
-    # if len(EXAM.scaleStatistics.all()) == 0:
-    #     generate_statistics(EXAM)
 
     url_string = '../'
     if current_url is None:
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk':str(pk)}))
+        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
     else:
-        return HttpResponseRedirect(reverse(current_url, kwargs={'pk':str(pk)}) )
+        return HttpResponseRedirect(reverse(current_url, kwargs={'pk': str(pk)}))
+
 
 @login_required
 def upload_scans(request, pk):
@@ -399,15 +433,13 @@ def upload_scans(request, pk):
         message = start_upload_scans(request, exam.pk, temp_file_path)
 
         return render(request, 'review/import/upload_scans.html', {
-                 'exam': exam,
-                 'files': [],
-                 'message': message
-             })
-        # messages.success(request, message)
-        # return redirect(f'/exams/{exam.pk}')
+            'exam': exam,
+            'files': [],
+            'message': message
+        })
 
     return render(request, 'review/import/upload_scans.html', {'exam': exam,
-                                                        'files': []})
+                                                               'files': []})
 
 @login_required
 def start_upload_scans(request, pk, zip_file_path):
@@ -455,7 +487,6 @@ def start_upload_scans(request, pk, zip_file_path):
 
 @login_required
 def saveMarkers(request):
-
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     pages_group = PagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], pages_group=pages_group, exam=exam)
@@ -524,7 +555,53 @@ def saveComment(request):
             comment.parent_id = int(comment_data['parent'])
         comment.save()
 
-
     print(comment)
 
     return HttpResponse("ok")
+
+
+# def rectangle_check(data):
+#     print(data)
+# rectangle = Polygon(data)
+def update_page_group_markers(request):
+    global response
+    if request.method == 'POST':
+        pages_group_pk = request.POST.get('pages_group_pk')
+        markers_json = request.POST.get('markers')
+
+        markers_data = json.loads(markers_json)
+        markers = markers_data.get('markers')
+
+        markers_with_properties = []
+        for marker in markers:
+            left = marker.get('left')
+            top = marker.get('top')
+            width = marker.get('width')
+            height = marker.get('height')
+            markers_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
+        print(markers_with_properties)
+
+        points = []
+        for marker in markers_with_properties:
+            left = marker['left']
+            top = marker['top']
+            width = marker['width']
+            height = marker['height']
+            a = (left, top)
+            b = (left + width, top)
+            c = (left + width, top + height)
+            d = (left, top + height)
+            points.append([a, b, c, d])
+        print(points)
+        rectangle_coordinates = points[0]
+        rectangle_polygon = Polygon(rectangle_coordinates)
+        other_polygon = Polygon(points[1])
+
+        if rectangle_polygon.intersects(other_polygon):
+            response = "True"
+        else:
+            response = "False"
+
+    return HttpResponse(request, response)
+
+

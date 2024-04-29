@@ -19,6 +19,7 @@ urlpatterns = [
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
     path('edit_pages_group_corrector_box', views.edit_pages_group_corrector_box, name="edit_pages_group_corrector_box"),
+    path('get_pages_group_rectangle_data', views.get_pages_group_rectangle_data, name='get_pages_group_rectangle_data'),
     path('delete_pages_group/<int:pages_group_pk>', views.delete_pages_group, name="delete_pages_group"),
     path('delete_reviewer/<int:reviewer_pk>', views.delete_reviewer, name="delete_reviewer"),
     path('get_group_path_image', views.get_group_path_image, name='get_group_path_image'),
@@ -30,6 +31,7 @@ urlpatterns = [
     path('save_markers', views.saveMarkers, name="save_markers"),
     path('get_markers_and_comments', views.getMarkersAndComments, name="get_markers_and_comments"),
     path('save_comment', views.saveComment, name="save_comment"),
+    path('update_page_group_markers', views.update_page_group_markers, name="update_page_group_markers"),
     # Export
     path('export_marked_files/<int:pk>', views.export_marked_files, name="export_marked_files"),
     # AMC
