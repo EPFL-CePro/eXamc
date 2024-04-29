@@ -9,8 +9,9 @@
 /*}*/
 
 .bg-dark {
-  background-color: #000000 !important;
+  background-color: #000 !important;
 }
+
 
  #body-row {
     margin-left:0;
@@ -18,17 +19,38 @@
 
 }
 #sidebar-container {
-    min-height: 90vh;
+    min-height: 100vh;
     background-color: #000000;
     padding: 0;
     position: fixed;
     top: 0;
     bottom: 0;
+    z-index: 1;
+}
+li.bg-dark.list-group-item{
+    padding: 0 1.25rem;
+}
+li.bg-dark.list-group-item:hover{
+   background-color: #1d2124 !important;
+}
+.hr-sidebar{
+    border-top: 1px solid #404040;
+    width:90%;
+    margin-top:1px;
+    margin-bottom: 1px;
+}
+.dropdown-divider {
+  height: 0;
+  margin: 0.5rem 10px;
+  overflow: hidden;
+  border-top: 1px solid grey;
 }
 .container-fluid {
     transition: margin-left .2s; /* If you want a transition effect */
+  /*padding: 230px;*/
      width: 100%;
-   padding-left: 240px;
+    /*padding-right: 15px;*/
+   padding-left: 250px;
     margin: 20px 0 20px 0;
 }
 
@@ -87,113 +109,3 @@
 }
 
 
-
-
-/*!* Sidebar Styles *!*/
-/*.sidebar {*/
-/*  height: 100%;*/
-/*  width: 250px;*/
-/*  position: fixed;*/
-/*  top: 0;*/
-/*  !*left: -250px;*!*/
-/*  background-color: #111;*/
-/*  overflow-x: hidden;*/
-/*  transition: 0.5s;*/
-/*}*/
-
-/*.sidebar ul {*/
-/*  list-style-type: none;*/
-/*  padding: 0;*/
-/*}*/
-
-/*.sidebar ul li {*/
-/*  padding: 10px;*/
-/*}*/
-
-/*.sidebar ul li a {*/
-/*  color: black;*/
-/*  text-decoration: none;*/
-/*}*/
-
-/*.content {*/
-/*  margin-left: 250px;*/
-/*  padding: 16px;*/
-/*}*/
-
-/*.collapse-btn {*/
-/*  position: absolute;*/
-/*  top: 10px;*/
-/*  left: 10px;*/
-/*  font-size: 20px;*/
-/*  background-color: transparent;*/
-/*  border: none;*/
-/*  color: white;*/
-/*  cursor: pointer;*/
-/*}*/
-
-/*.sidebar-nav {*/
-/*  position: absolute;*/
-/*  top: 0;*/
-/*  width: 200px;*/
-/*  margin: 0;*/
-/*  padding: 0;*/
-/*  list-style: none;*/
-/*  padding-top:5px;*/
-/*}*/
-
-
-/*.sidebar-nav li {*/
-/*  text-indent: 5px;*/
-/*  line-height: 40px;*/
-/*}*/
-
-
-/*.sidebar-nav li a {*/
-/*  display: block;*/
-/*  text-decoration: none;*/
-/*  color: #999999;*/
-/*}*/
-
-
-/*.sidebar-nav li a:hover {*/
-/*  text-decoration: none;*/
-/*  color: #fff;*/
-/*  background: rgba(255, 255, 255, 0.2);*/
-/*}*/
-
-
-/*.sidebar-nav li a:active, .sidebar-nav li a:focus {*/
-/*  text-decoration: none;*/
-/*}*/
-
-
-/*.sidebar-nav>.sidebar-brand {*/
-/*  height: 65px;*/
-/*  font-size: 18px;*/
-/*  line-height: 60px;*/
-/*}*/
-
-/*.sidebar-nav>.sidebar-brand a {*/
-/*  color: #999999;*/
-/*}*/
-
-
-/*.sidebar-nav>.sidebar-brand a:hover {*/
-/*  color: #fff;*/
-/*  background: none;*/
-/*}*/
-
-/*.footer {*/
-/*    position: fixed;*/
-/*    left: 0;*/
-/*    bottom: 0;*/
-/*    width: 100%;*/
-/*    background-color: black;*/
-/*    color: white;*/
-/*    text-align: center;*/
-/*}*/
-
-/*.row {*/
-/*    margin-right: 0px;*/
-/*    margin-left: 0px;*/
-/*} */
