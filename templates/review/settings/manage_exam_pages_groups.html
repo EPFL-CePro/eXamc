@@ -208,7 +208,9 @@ function openModalCorrectorBox(group_id) {
             var imgScan = document.getElementById('imgScan');
             imgScan.src = data_list.img_path;
             modalCorrectorBoxGroupPk = group_id;
-            maState = JSON.parse(data_list.markers);             
+            if(data_list.markers !== '') {
+                maState = JSON.parse(data_list.markers);
+            }
             var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
             imageModal.show();                
             

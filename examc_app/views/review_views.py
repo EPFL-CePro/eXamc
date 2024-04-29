@@ -268,6 +268,7 @@ def edit_pages_group_corrector_box(request):
 @menu_access_required
 def get_pages_group_rectangle_data(request):
     if request.method == 'POST':
+        data_dict = {}
         pagesGroup = PagesGroup.objects.get(pk=request.POST.get('group_id'))
         img_path = get_scans_path_for_group(pagesGroup)
         if img_path:
@@ -354,8 +355,7 @@ def export_marked_files(request,pk):
             form = ExportMarkedFilesForm(request.POST,exam=exam)
 
             if form.is_valid():
-
-              generated_marked_files_zip_path = generate_marked_files_zip(exam, request.POST['export_type'])
+                generated_marked_files_zip_path = generate_marked_files_zip(exam, request.POST['export_type'])
 
                 zip_file = open(generated_marked_files_zip_path, 'rb')
                 return FileResponse(zip_file)
