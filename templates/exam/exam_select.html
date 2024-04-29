@@ -2,7 +2,12 @@
 {% load django_tables2 %}
 {% block title %}Select Exam {% endblock %}
 {% block content %}
-<h4>Select Exam</h4>
+<style>
+.table-striped tbody tr:hover{
+    cursor:pointer;
+}
+</style>
+<h4><i class="fa-solid fa-folder-open fa-l" style="margin-right:5px;"></i>Select Exam</h4>
 <div id="examList"  style="padding:10px;">
     <div class="row">
         <div class="col-sm-10">
@@ -10,4 +15,12 @@
         </div>
     </div>
 </div>
+<script>
+$("tr").click(function() {
+    tr = this;
+    td = tr.childNodes[1];
+    url = td.childNodes[0].innerHTML;
+    window.location =  url;
+    });
+</script>
 {% endblock %}

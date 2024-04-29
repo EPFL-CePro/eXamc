@@ -1,5 +1,6 @@
 # RESULTS & STATISTICS FUNCTIONS
 #------------------------------------------
+import _io
 import datetime
 import csv
 import io
@@ -160,102 +161,16 @@ def delete_exam_data(exam):
     Question.objects.filter(exam=exam).delete()
     Student.objects.filter(exam=exam).delete()
 
-def import_data(zip_file):
-
-    #remove files in temp folder before
-    tmp_path = settings.TMP_FOLDER
-    for filename in os.listdir(tmp_path):
-        file_path = os.path.join(tmp_path, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
-
-    result = True;
-
-    exam_info = zip_file.name.replace(".zip","").split(sep='_')
-    logger.info('course code :'+exam_info[0])
-    logger.info('course name :'+exam_info[1])
-    logger.info('teacher sciper :'+exam_info[2])
-
-    # create user, user profile if not exist
-    # UserProfile will be created automatically on User create
-    user_profile = UserProfile.objects.filter(sciper=exam_info[2])
-
-    if not user_profile:
-        user = User()
-        user.username = exam_info[2]
-        user.first_name = exam_info[3]
-        user.last_name = exam_info[4]
-        user.is_staff = False
-        user.is_active = True
-        user.save()
-    else:
-        user = User.objects.get(pk=UserProfile.objects.get(sciper=exam_info[2]).user.id)
-
-    # update UserProfile
-    user_profile = UserProfile.objects.get(user=user)
-    user_profile.sciper = exam_info[2]
-    user_profile.save()
-
-    # create exam
-    year = datetime.datetime.now().year
-    semester = 2
-    if datetime.datetime.now().month > 8 or datetime.datetime.now().month < 3 :
-        semester = 1
-        if datetime.datetime.now().month > 8 :
-            year += 1
-
-    new_exam, created = Exam.objects.get_or_create(code = exam_info[0],year = year, semester = semester)
-
-    new_exam.name = exam_info[1]
-    new_exam.users.add(user)
-    new_exam.save()
-
-    # extrat zip files
-    logger.info(tmp_path)
-
-    with ZipFile(zip_file) as zip:
-        zip.extractall(tmp_path)
-
-    # list files
-
-    with os.scandir(tmp_path) as dir:
-        for file in dir:
-
-            # save catalog in pdfs dir with code_sciper_year_semester and set catalog name in exam
-            if file.name.endswith(".pdf") and file.is_file():
-                dest = str(settings.PDF_FOLDER)+'/'
-                filename = new_exam.code+'_'+str(user_profile.sciper)+'_'+str(new_exam.year)+'_'+str(new_exam.semester)+'.pdf'
-                dest += filename
-                logger.info(file.path)
-                logger.info(dest)
-                shutil.move(file.path, dest)
-                new_exam.pdf_catalog_name = filename
-                new_exam.save()
-
-            # read csv file and import data
-            if file.name.endswith(".csv") and file.is_file():
-                result = import_csv_data(file, new_exam)
-
-    return result
-
 def import_csv_data(csv_file, exam):
-
-    data = {}
 
     #delete old exam data
     delete_exam_data(exam)
 
-    #csv_file = open(csv_file_path, "r", encoding='utf-8')
-
-    decoded_file = csv_file.read().decode('utf-8')
-    io_csv_string = io.StringIO(decoded_file)
-
-    #lines = file_data.split("\n")
+    if type(csv_file) != _io.TextIOWrapper:
+        decoded_file = csv_file.read().decode('utf-8')
+        io_csv_string = io.StringIO(decoded_file)
+    else:
+        io_csv_string = csv_file
 
     #loop over the lines and save them in db. If error , store as string and then display
     line_nr = 0
@@ -367,11 +282,9 @@ def import_csv_data(csv_file, exam):
                                 question.save()
                                 update_question = False
 
-                    #print("Student count : "+str(line_nr)+" of "+str(len(lines)-1))
 
             print(student)
             if line_nr > 1:
-                # print(str(student.exam.id)+" / "+str(student.points)+" / "+str(student.present))
                 student.save()
 
     # update questions number of answers

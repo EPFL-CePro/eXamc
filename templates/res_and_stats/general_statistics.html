@@ -20,17 +20,17 @@ var general_stats_chart_config = {
   data: {
     labels: {{ grade_list }},
     datasets: [
-    {% for scale_stat in exam.scalesStatistics.all %}
+    {% for scale_stat in exam.scaleStatistics.all %}
     {% if scale_stat.section == 'global' %}
     {
       label: '{{ scale_stat.scale.name }}',
       fill: false,
       backgroundColor: palette('mpn65', paletteSize).map(function(hex) {
         return '#' + hex;
-      })[{{ exam.scalesStatistics.all|get_item_pos:scale_stat }}],
+      })[{{ exam.scaleStatistics.all|get_item_pos:scale_stat }}],
       borderColor: palette('mpn65', paletteSize).map(function(hex) {
         return '#' + hex;
-      })[{{ exam.scalesStatistics.all|get_item_pos:scale_stat }}],
+      })[{{ exam.scaleStatistics.all|get_item_pos:scale_stat }}],
       data: [
       {% for distribution in scale_stat.scaleDistributions.all %}
       {{ distribution.quantity }},
@@ -82,7 +82,7 @@ var general_stats_chart_config = {
       labels: {{ grade_list }},
       datasets: [
       {% for comex in exam.common_exams.all %}
-      {% for scale_stat in comex.scalesStatistics.all|filter_scales_stats_by_scale:scale.name %}
+      {% for scale_stat in comex.scaleStatistics.all|filter_scales_stats_by_scale:scale.name %}
       {
         label: '{{ comex.code }} {{ comex.primary_user.last_name }}',
         fill: false,
@@ -479,7 +479,7 @@ var general_stats_chart_config = {
 {% if user_allowed %}
     <h4>General Statistics</h4>
 
-    {% if exam.scalesStatistics.all %}
+    {% if exam.scaleStatistics.all %}
 
     {% if exam.is_overall %}
     <ul class="nav nav-pills flex-column flex-sm-row border" id="general-statistics-pills-tab" role="tablist">

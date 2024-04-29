@@ -174,15 +174,22 @@ def update_exam(request):
 
 @login_required
 def set_final_scale(request, pk):
-    scale = Scale.objects.get(id=pk)
-    scale.final = True
-    scale.save()
+    final_scale = Scale.objects.get(id=pk)
 
-    for comex in scale.exam.common_exams.all():
+    for scale in final_scale.exam.scales.all():
+        if scale == final_scale:
+            scale.final = True
+        else:
+            scale.final = False
+        scale.save()
+
+    for comex in final_scale.exam.common_exams.all():
         for comex_scale in comex.scales.all():
             if comex_scale.name == scale.name:
+                comex_scale.final = True
+            else:
                 comex_scale.final = False
-                comex_scale.save()
+            comex_scale.save()
 
     return redirect('../examInfo/' + str(scale.exam.pk))
 

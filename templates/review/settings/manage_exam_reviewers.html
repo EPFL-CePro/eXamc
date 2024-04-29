@@ -6,7 +6,7 @@
     {% csrf_token %}
     {{ exam_reviewers_formset.management_form }}
 
-    <button type="submit" name="submit-reviewers" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save reviewers</button>
+    <button type="submit" title="save reviewers" name="submit-reviewers" style="margin:20px;" class="btn btn-dark btn-sm"><i class="fas fa-floppy-disk fa-2xl" style="margin-right:10px;"></i>Save</button>
     <table class="table" style="max-width:500px">
       <thead>
         <tr>
@@ -15,6 +15,7 @@
             <th scope="col">{{ field.label }}</th>
             {% endif %}
             {% endfor %}
+            <th scope="col">Delete</th>
         </tr>
       </thead>
       <tbody id="group-tbody">
@@ -30,12 +31,13 @@
                 <td>{{ field }}</td>
             {% endif %}
             {% endfor %}
+            <td><a class="btn btn-light" href="{% url 'delete_reviewer' form.hidden_fields.0.value %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
         </tr>
         {% endfor %}
         </tr>
       </tbody>
     </table>
-    <button id="add-reviewer" type="button" style="margin-top:20px;" class="btn btn-outline-info btn-sm" data-toggle="modal" data-target="#addReviewerModal">Add Reviewer</button>
+    <button id="add-form" type="button" style="margin-top:20px;" class="btn btn-light" title="Add Reviewer" onclick="$('#addReviewerModal').modal('show');"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></button>
 </form>
 
 <div class="modal fade" id="addReviewerModal" tabindex="-1" role="dialog" aria-labelledby="addReviewerModalLabel" aria-hidden="true">
@@ -50,42 +52,20 @@
       <div id="addReviewerModalBody" class="modal-body">
         <input id="newReviewerEmail" class="form-control" type="text" placeholder="Email">
           </br>
-          <a class="btn btn-outline-info btn-sm" id="search_ldap_bt" onclick="searchLdap();" type="button">Search</a>
+          <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap();" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
       </div>
     <div>
         <ul  class="list-group" id="newReviewerList"></ul>
     </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="cancelAddNewReviewers();">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="addNewReviewers();">Add reviewers</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelAddNewReviewers();">Cancel</button>
+        <button type="button" class="btn btn-dark btn-sm" onclick="addNewReviewers();">Add reviewers</button>
       </div>
     </div>
   </div>
 </div>
 
 <script type="text/javascript">
-{% comment %}<!--  reviewerForm = document.querySelectorAll(".exam-reviewer-form")-->
-<!--  reviewerContainer = document.querySelector("#form-reviewer")-->
-<!--  reviewerAddButton = document.querySelector("#add-reviewer-form")-->
-<!--  reviewerTotalForms = document.querySelector("#id_form-TOTAL_FORMS")-->
-<!--  reviewerEmptyForm = document.querySelector(".exam_reviewers_formset_empty_form")-->
-
-<!--  reviewerFormNum = reviewerForm.length-1-->
-<!--  reviewerAddButton.addEventListener('click', addReviewerForm)-->
-
-<!--  function addReviewerForm(e){-->
-<!--    e.preventDefault()-->
-
-<!--    newReviewerForm = reviewerEmptyForm.cloneNode(true)-->
-<!--    formRegex = RegExp(`form-__prefix__-`,'g')-->
-
-<!--    formNum++-->
-<!--    newReviewerForm.innerHTML = newReviewerForm.innerHTML.replace(formRegex, `form-${formNum}-`)-->
-<!--    newReviewerForm.removeAttribute('hidden')-->
-<!--    reviewerContainer.insertBefore(newReviewerForm,reviewerAddButton)-->
-<!--    totalForms.setAttribute('value', `${formNum+1}`)-->
-<!--  }-->{% endcomment %}
-
 document.getElementById("newReviewerEmail").addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
     // Cancel the default action, if needed
@@ -125,11 +105,12 @@ function searchLdap(){
                 let li = document.createElement('li');
                 let remove_bt = document.createElement('button')
                 remove_bt.textContent = 'remove';
-                remove_bt.setAttribute("class","btn btn-outline-danger btn-sm");
+                remove_bt.setAttribute("class","btn btn-light btn-sm");
                 remove_bt.setAttribute("style","margin-right:10px;");
                 remove_bt.addEventListener('click', () => {
                     document.getElementById(data).remove();
                 });
+                remove_bt.innerHTML = '<i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>'
                 li.appendChild(remove_bt);
                 li_txt = data.replace(/;/g,' ');
                 li.appendChild(document.createTextNode(li_txt));
@@ -158,6 +139,10 @@ function addNewReviewers(){
       reviewers.push(reviewers_li[i].id);
     }
 
+    let list = document.getElementById("newReviewerList");
+    list.innerHTML = '';
+    document.getElementById("newReviewerEmail").value = '';
+    $('.modal').modal('hide');
     $.ajax({
         url: "{% url 'add_new_reviewers' %}",
         async : false,
@@ -169,10 +154,6 @@ function addNewReviewers(){
             'reviewer_list' : reviewers,
         },
         complete: function () {
-            let list = document.getElementById("newReviewerList");
-            list.innerHTML = '';
-            document.getElementById("newReviewerEmail").value = '';
-            $('#addReviewerModal').modal('hide');
             location.reload();
         },
         error: (error) => {
@@ -185,13 +166,7 @@ function cancelAddNewReviewers(){
     let list = document.getElementById("newReviewerList");
     list.innerHTML = '';
     document.getElementById("newReviewerEmail").value = '';
-    {#const add_reviewer_error = document.getElementById("addReviewerError");#}
-    {#if (typeof(add_reviewer_error) != 'undefined' && add_reviewer_error != null)#}
-    {#{#}
-    {#  add_reviewer_error.remove();#}
-
-    $('#addReviewerModal').modal('hide');
-    location.reload();
+    $('.modal').modal('hide');
 }
 
 </script>

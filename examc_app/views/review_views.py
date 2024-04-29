@@ -89,8 +89,8 @@ class ReviewSettingsView(DetailView):
         exam = Exam.objects.get(pk=context.get("object").id)
 
         curr_tab = "groups"
-        if "curr_tab" != '' in context:
-            curr_tab = context.get("curr_tab")
+        if self.kwargs.get("curr_tab") != '' :
+            curr_tab = self.kwargs.get("curr_tab")
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[{'id':None, 'group_name': '[New]', 'page_from':-1, 'page_to':-1}])
         formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
 
@@ -125,9 +125,6 @@ class ReviewSettingsView(DetailView):
                         examReviewer.exam = exam
                         if "pages_groups" in form.cleaned_data:
                             examReviewer.pages_groups.set(form.cleaned_data["pages_groups"])
-                        if form.cleaned_data["DELETE"]:
-                            examReviewer.delete()
-                        else:
                             examReviewer.save()
                             form.save_m2m()
         else:
@@ -139,7 +136,6 @@ class ReviewSettingsView(DetailView):
                     if form.is_valid() and form.cleaned_data :
                         error_msg = None
                         if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
-                            #formsetGroups = formset
                             error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
                             break
                         else:
@@ -147,10 +143,6 @@ class ReviewSettingsView(DetailView):
                             if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
                                 pagesGroup.exam = exam
                                 pagesGroup.save()
-                            if form.cleaned_data["DELETE"]:
-                                pagesGroup.delete()
-
-                        #formsetGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam))
 
         formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
@@ -189,6 +181,24 @@ def add_new_pages_group(request, pk):
 
 @login_required
 @menu_access_required
+def delete_pages_group(request, pages_group_pk):
+    pages_group = PagesGroup.objects.get(pk=pages_group_pk)
+    exam_pk = pages_group.exam.pk
+    pages_group.delete()
+
+    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam_pk), 'curr_tab': "groups"}))
+
+@login_required
+@menu_access_required
+def delete_reviewer(request, reviewer_pk):
+    reviewer = Reviewer.objects.get(pk=reviewer_pk)
+    exam_pk = reviewer.exam.pk
+    reviewer.delete()
+
+    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam_pk), 'curr_tab': "reviewers"}))
+
+@login_required
+@menu_access_required
 def edit_pages_group_grading_help(request):
     pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
     pages_group.grading_help = request.POST['grading_help']
@@ -223,26 +233,6 @@ def get_group_path_image(request):
         else:
             return HttpResponse(img_path)
 
-# @menu_access_required
-# def save_drawn_image(request):
-#     if request.method == 'POST':
-#         image_data = request.POST.get('image_data')
-#         group_id = request.POST.get('group_id')
-#
-#         # Enregistrez les données de l'image dans votre base de données
-#         drawn_image = DrawnImage(image_data=image_data, group_id=group_id)
-#         drawn_image.save()
-#
-#         return JsonResponse({'success': True})
-#     else:
-#         return JsonResponse({'success': False, 'error': 'error'})
-
-# @login_required
-# def get_pages_group_corrector_box(request):
-#     scan_markers = PageMarkers.objects.get(pk=request.POST['pk'])
-#     return HttpResponse(scan_markers.correctorBoxMarked)
-
-
 @login_required
 @menu_access_required
 def ldap_search_by_email(request):
@@ -255,7 +245,6 @@ def ldap_search_by_email(request):
     if django_user:
         entry_str = f"{django_user.username};{django_user.first_name};{django_user.last_name};{email}"
         return HttpResponse(entry_str)
-    return HttpResponse("not_found")
 
     user_entry = ldap_search.get_entry(email, 'mail')
     entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][0] + ";" + email
@@ -269,7 +258,7 @@ def ldap_search_by_email(request):
 def add_new_reviewers(request):
     exam = Exam.objects.get(pk=request.POST.get('pk'))
     reviewers = request.POST.getlist('reviewer_list[]')
-    reviewer_group = Group.objects.get(name='reviewer')
+    reviewer_group, created = Group.objects.get_or_create(name='reviewer')
     for reviewer in reviewers:
         user_list = reviewer.split(";")
         users = User.objects.filter(email=user_list[3]).all()
@@ -282,9 +271,7 @@ def add_new_reviewers(request):
         user.first_name = user_list[1]
         user.last_name = user_list[2]
         user.email = user_list[3]
-        user.groups.add(Group.objects.get(id=1))
         user.save()
-
         user.groups.add(reviewer_group)
         user.save()
 
@@ -381,7 +368,7 @@ def select_exam(request, pk, current_url=None):
     #request.session['exam_pk'] = Exam.objects.get(pk=pk)
 
 
-    # if len(EXAM.scalesStatistics.all()) == 0:
+    # if len(EXAM.scaleStatistics.all()) == 0:
     #     generate_statistics(EXAM)
 
     url_string = '../'

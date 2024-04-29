@@ -16,7 +16,7 @@ $(window).on("load",function(){
 
     <!--DISPLAY PDF CATALOG -->
     $('#displayPdfModal').on('show.bs.modal', function (event) {
-        document.getElementById("embedPdf").innerHTML ="<embed src={% url 'catalogPdf' exam.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:600px;\" frameborder=\"0\">";
+        document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' exam.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
     })
 
     <!--QUESTIONS EVENTS-->
@@ -119,7 +119,7 @@ $(window).on("load",function(){
   {% block content %}
 
 {% if user_allowed %}
-  <h4>Exam Info</h4>
+  <h4><i class="fa-solid fa-book-open fa-l" style="margin-right:5px;"></i>Exam Info</h4>
 
   <div class="accordion" id="accordionExamInfo">
     <div class="card z-depth-0 bordered">
@@ -130,7 +130,7 @@ $(window).on("load",function(){
             aria-expanded="true" aria-controls="collapseOne">
             Exam
           </button>
-            <a id="regen-stats-bt" class="btn btn-outline-dark btn-sm" href="{% url 'generate_stats' exam.pk %}">Regen stats</a>
+            <a id="regen-stats-bt" class="btn btn-dark btn-sm" href="{% url 'generate_stats' exam.pk %}"><i class="fa-solid fa-rotate-right" style="margin-right: 5px;"></i>Regen stats</a>
           <span style="float:right;margin-top:7px;">
             <a data-toggle="modal" data-target="#displayPdfModal" title="Show in pdf" style="font-size:12px;">catalog<i class="far fa-file-pdf" style="font-size:24px;color:red"></i></a>
           </span>
@@ -227,19 +227,19 @@ $(window).on("load",function(){
             <td>{{ scale.total_points }}</td>
             <td>{{ scale.points_to_add }}</td>
             {% if scale.final %}
-            <td><a class="btn btn-success btn-sm" disabled>YES</a></td>
+            <td><a class="btn btn-light btn-sm" disabled style="background-color: transparent;"><i class="fa-solid fa-circle-check fa-2xl"></i></a></td>
             {% else %}
-            <td><a class="btn btn-outline-success btn-sm" href="{% url 'set_final_scale' scale.pk %}">set as final</a></td>
+            <td><a class="btn btn-light btn-sm" href="{% url 'set_final_scale' scale.pk %}" style="background-color: transparent;"><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i></a></td>
             {% endif %}
             {% if user.is_staff %}
-            <td><a class="btn btn-danger btn-sm" href="{% url 'delete_exam_scale' scale.pk exam.pk %}">delete</a></td>
+            <td><a class="btn btn-light btn-sm" href="{% url 'delete_exam_scale' scale.pk exam.pk %}"><i class="fa-solid fa-circle-minus fa-2xl" style="margin-right:5px;color:red;"></i></a></td>
             {% endif %}
           </tr>
           {% endfor %}
         </tbody>
       </table>
       {% if user.is_staff %}
-      <a target="_blank" id="create-scale-button" class="btn btn-outline-info btn-sm"  type="button">Create</a>
+      <a target="_blank" id="create-scale-button" class="btn btn-light" style="background-color: transparent"  type="button"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>
       {% endif %}
     </div>
   </div>
@@ -271,33 +271,33 @@ $(window).on("load",function(){
           <td>{{ question.code }}</td>
           <td>
             <div class="btn-group-sm" role="group">
-              <button id="type-{{question.pk}}-1" type="button" {% if question.qtype == 1 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>SCQ</button>
-              <button id="type-{{question.pk}}-2" type="button" {% if question.qtype == 2 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>MCQ</button>
-              <button id="type-{{question.pk}}-3" type="button" {% if question.qtype == 3 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>TF</button>
-              <button id="type-{{question.pk}}-4" type="button" {% if question.qtype == 4 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>OTHER</button>
+              <button id="type-{{question.pk}}-1" type="button" {% if question.qtype == 1 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>SCQ</button>
+              <button id="type-{{question.pk}}-2" type="button" {% if question.qtype == 2 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>MCQ</button>
+              <button id="type-{{question.pk}}-3" type="button" {% if question.qtype == 3 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>TF</button>
+              <button id="type-{{question.pk}}-4" type="button" {% if question.qtype == 4 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>OTHER</button>
             </div>
           </td>
           <td>
             {% if question.qtype <= 2 %}
             <div class="btn-group-sm" role="group">
-              <button id="answers-{{question.pk}}-1" type="button" {% if question.answers == 1 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>1</button>
-              <button id="answers-{{question.pk}}-2" type="button" {% if question.answers == 2 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>2</button>
-              <button id="answers-{{question.pk}}-3" type="button" {% if question.answers == 3 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>3</button>
-              <button id="answers-{{question.pk}}-4" type="button" {% if question.answers == 4 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>4</button>
-              <button id="answers-{{question.pk}}-5" type="button" {% if question.answers == 5 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>5</button>
-              <button id="answers-{{question.pk}}-6" type="button" {% if question.answers == 6 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>6</button>
-              <button id="answers-{{question.pk}}-7" type="button" {% if question.answers == 7 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>7</button>
-              <button id="answers-{{question.pk}}-8" type="button" {% if question.answers == 8 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>8</button>
-              <button id="answers-{{question.pk}}-9" type="button" {% if question.answers == 9 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>9</button>
-              <button id="answers-{{question.pk}}-10" type="button" {% if question.answers == 10 %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>10</button>
+              <button id="answers-{{question.pk}}-1" type="button" {% if question.answers == 1 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>1</button>
+              <button id="answers-{{question.pk}}-2" type="button" {% if question.answers == 2 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>2</button>
+              <button id="answers-{{question.pk}}-3" type="button" {% if question.answers == 3 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>3</button>
+              <button id="answers-{{question.pk}}-4" type="button" {% if question.answers == 4 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>4</button>
+              <button id="answers-{{question.pk}}-5" type="button" {% if question.answers == 5 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>5</button>
+              <button id="answers-{{question.pk}}-6" type="button" {% if question.answers == 6 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>6</button>
+              <button id="answers-{{question.pk}}-7" type="button" {% if question.answers == 7 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>7</button>
+              <button id="answers-{{question.pk}}-8" type="button" {% if question.answers == 8 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>8</button>
+              <button id="answers-{{question.pk}}-9" type="button" {% if question.answers == 9 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>9</button>
+              <button id="answers-{{question.pk}}-10" type="button" {% if question.answers == 10 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>10</button>
             </div>
             {% endif %}
           </td>
           <td><input id="maxpts-{{question.pk}}" type="number" min="0" value="{{ question.max_points }}" step=".01" style="width:100px;" class="form-control" {% if not user.is_staff %} disabled {% endif %}></td>
           <td>
             <div class="btn-group-sm" role="group">
-              <button id="common-{{question.pk}}-1" type="button" {% if question.common %} class="btn btn-info focus" {% else %} class="btn btn-outline-info disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>YES</button>
-              <button id="common-{{question.pk}}-2" type="button" {% if question.common %} class="btn btn-outline-info disabled" {% else %} class="btn btn-info focus"{% endif %} {% if not user.is_staff %} disabled {% endif %}>NO</button>
+                <button id="common-{{question.pk}}-1" type="button" class="btn btn-light" style="background-color: transparent;"{% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl" {% if not question.common %}style="color:lightgray;"{% endif %}></i></button>
+                <button id="common-{{question.pk}}-2" type="button" class="btn btn-light" style="background-color: transparent;"{% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl" {% if question.common %}style="color:lightgray;"{% endif %}></i></button>
             </div>
           </tr>
           {% endfor %}
@@ -320,9 +320,9 @@ $(window).on("load",function(){
       </div>
   </div>
 </div>
-<div class="modal fade" id="displayPdfModal" tabindex="-1" role="dialog" style="left:25%;">
+<div class="modal fade" id="displayPdfModal" tabindex="-1" role="dialog" style="">
   <div class="modal-dialog" role="document">
-    <div class="modal-content" style="width:1050px;height:650px;">
+    <div class="modal-content" style="width:1050px;height:1050px;">
 
       <div class="modal-body">
         <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">CLOSE</button>

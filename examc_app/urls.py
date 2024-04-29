@@ -19,6 +19,8 @@ urlpatterns = [
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
     path('edit_pages_group_corrector_box', views.edit_pages_group_corrector_box, name="edit_pages_group_corrector_box"),
+    path('delete_pages_group/<int:pages_group_pk>', views.delete_pages_group, name="delete_pages_group"),
+    path('delete_reviewer/<int:reviewer_pk>', views.delete_reviewer, name="delete_reviewer"),
     path('get_group_path_image', views.get_group_path_image, name='get_group_path_image'),
     # EPFL ldap
     path('search_ldap', views.ldap_search_by_email, name="search_ldap"),

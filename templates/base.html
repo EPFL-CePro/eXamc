@@ -34,6 +34,8 @@
 
     <!-- JS datatables -->
     <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">
 
 
     <!-- CSS bootstrap -->
@@ -46,8 +48,6 @@
 
     <!-- CSS fontawesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-{#    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css"#}
-{#          integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">#}
 
     <!-- favicon -->
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
@@ -58,6 +58,7 @@
 
     </style>
 </head>
+
 <body>
 <main>
 
@@ -155,6 +156,12 @@
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="fas fa-cloud-upload-alt" style="margin-right:5px;"></span>
                             <span class="menu-collapsed" style="margin-right:5px;">Import data</span>
+                        </div>
+                    </a>
+                     <a href="{% url 'export_data' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-start align-items-center">
+                            <span class="fas fa-cloud-download-alt" style="margin-right:5px;"></span>
+                            <span class="menu-collapsed" style="margin-right:5px;">Export results</span>
                         </div>
                     </a>
                     {% endif %}

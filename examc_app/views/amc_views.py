@@ -4,6 +4,7 @@ from django.core.files.storage import FileSystemStorage
 from django.shortcuts import render
 
 from examc_app.utils.global_functions import user_allowed
+from examc_app.utils.results_statistics_functions import import_csv_data
 from examc_app.utils.review_functions import *
 from examc_app.utils.amc_functions import *
 from examc_app.forms import *
@@ -340,5 +341,14 @@ def download_annotated_pdf(request,pk):
 def call_amc_generate_results(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     result = amc_generate_results(exam)
-    return HttpResponse(result)
+
+    if not 'ERR:' in result:
+
+        project_path = get_amc_project_path(exam, False)
+        results_csv_path = project_path + "/exports/" + exam.code + "_amc_raw.csv"
+        file = open(results_csv_path, 'r', encoding='utf8')
+        result = import_csv_data(file, exam)
+        return HttpResponse(result)
+    else:
+        return HttpResponse(result)
 

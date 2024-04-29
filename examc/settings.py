@@ -27,6 +27,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -133,6 +136,10 @@ AUTOUPLOAD_URL = '/autoupload/'
 # Export marked files folder tmp
 EXPORT_TMP_ROOT = BASE_DIR / 'export_tmp/'
 EXPORT_TMP_URL = '/export_tmp/'
+
+# pdf catalogs folder
+CATALOG_ROOT = BASE_DIR / 'catalogs'
+CATALOG_URL = '/catalogs/'
 
 # AMC projects folder
 AMC_PROJECTS_ROOT = BASE_DIR / 'amc_projects/'

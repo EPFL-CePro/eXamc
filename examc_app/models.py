@@ -26,7 +26,6 @@ class Exam(models.Model):
     users = models.ManyToManyField(User, blank=True)
     present_students = models.IntegerField(default=0)
     common_exams = models.ManyToManyField("self", blank=True)
-    pdf_catalog_name = models.CharField(max_length=100, blank=True)
     overall = models.BooleanField(default=0)
     indiv_formula = models.CharField(max_length=100, blank=True)
     pages_by_copy = models.CharField(max_length=10000, blank=True)
@@ -242,7 +241,7 @@ class StudentQuestionAnswer(models.Model):
 ### Statistics
 class ScaleStatistic(models.Model):
     """ Stores scale statistic data for an exam, related to :model:`examc_app.Exam` and :model:`examc_app.Scale` """
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scalesStatistics')
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scaleStatistics')
     scale = models.ForeignKey(Scale, on_delete=models.CASCADE, related_name='scaleStatistics')
     average = models.DecimalField(max_digits=10,decimal_places=5,default=0.0)
     stddev = models.DecimalField(max_digits=10,decimal_places=5,default=0.0)

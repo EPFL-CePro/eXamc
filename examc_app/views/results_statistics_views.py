@@ -85,12 +85,9 @@ def upload_catalog_pdf(request, pk):
     exam = Exam.objects.get(pk=pk)
     catalog = request.FILES["catalog_pdf_file"]
 
-    dest = str(settings.PDF_FOLDER)+'/'
-    teacher = UserProfile.objects.get(user=exam.primary_user)
-    filename = exam.code+'_'+str(teacher.sciper)+'_'+str(exam.year)+'_'+str(exam.semester)+'.pdf'
+    filename = exam.code+'_'+str(exam.year)+'_'+str(exam.semester)+'_catalog.pdf'
+    dest = str(settings.CATALOG_ROOT)+'/'+str(exam.year)+"/"+str(exam.semester)+'/'+exam.code+'/'
     dest += filename
-    logger.info(catalog)
-    logger.info(dest)
     default_storage.delete(dest)
     default_storage.save(dest,ContentFile(catalog.read()))
     exam.pdf_catalog_name = filename
@@ -106,7 +103,7 @@ def export_data(request,pk):
 
         if request.method == 'POST':
 
-            if EXAM and EXAM.scalesStatistics:
+            if EXAM and EXAM.scaleStatistics:
 
                 # delete old tmp folders and zips
                 for filename in os.listdir(str(settings.EXPORT_FOLDER)):
@@ -172,7 +169,7 @@ def export_data(request,pk):
         # if a GET (or any other method) we'll create a blank form
         else:
             common_list = get_common_list(EXAM)
-            if EXAM and EXAM.scalesStatistics:
+            if EXAM and EXAM.scaleStatistics:
                 form = ExportResultsForm(exam=EXAM)
             else:
                 form = ExportResultsForm()
@@ -204,7 +201,7 @@ def general_statistics_view(request,pk):
 
     if user_allowed(exam,request.user.id):
 
-        if exam and exam.scalesStatistics:
+        if exam and exam.scaleStatistics:
             grade_list = [1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4, 4.25, 4.5, 4.75, 5, 5.25, 5.5,
                           5.75, 6]
 
@@ -231,7 +228,7 @@ def general_statistics_view(request,pk):
 
     else:
         return render(request, "res_and_stats/general_statistics.html",
-                      {"user_allowed":False,"scalesStatistics": None, "grade_list": None, "absent": 0})
+                      {"user_allowed":False,"scaleStatistics": None, "grade_list": None, "absent": 0})
 
 
 @login_required
@@ -239,7 +236,7 @@ def students_statistics_view(request,pk):
     EXAM = Exam.objects.get(pk=pk)
 
     if user_allowed(EXAM,request.user.id):
-        if EXAM and EXAM.scalesStatistics:
+        if EXAM and EXAM.scaleStatistics:
 
             common_list = get_common_list(EXAM)
             students = Exam.objects.none()
@@ -271,7 +268,7 @@ def questions_statistics_view(request,pk):
 
     if user_allowed(EXAM,request.user.id):
 
-        if EXAM and EXAM.scalesStatistics.all() and EXAM.questions.all():
+        if EXAM and EXAM.scaleStatistics.all() and EXAM.questions.all():
             discriminatory_factor = Question.objects.filter(exam=EXAM)[0].discriminatory_factor
             discriminatory_qty = round(EXAM.present_students * discriminatory_factor / 100)
 
@@ -299,9 +296,9 @@ def questions_statistics_view(request,pk):
 # ------------------------------------------
 @login_required
 def display_catalog(request, pk):
-
-    cat_name = Exam.objects.get(pk=pk).pdf_catalog_name
-    cat_path = str(Path(os.path.dirname(os.path.realpath(__file__))))+'/pdfs/'+cat_name
+    exam = Exam.objects.get(pk=pk)
+    cat_name = exam.code + '_' + str(exam.year) + '_' + str(exam.semester) + '_catalog.pdf'
+    cat_path = str(settings.CATALOG_ROOT)+'/'+str(exam.year)+"/"+str(exam.semester)+'/'+exam.code+'/'+cat_name
     try:
         return FileResponse(open(cat_path, 'rb'), content_type='application/pdf')
     except FileNotFoundError:

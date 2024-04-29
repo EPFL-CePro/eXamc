@@ -10,7 +10,7 @@
 <form enctype= 'multipart/form-data' id="form-groups" method="POST">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
-    <button type="submit" name="submit-groups" style="margin-top:20px;margin-bottom:20px;" class="btn btn-primary btn-sm">Save groups</button>
+    <button type="submit" title="Save groups" name="submit-groups" style="margin:20px;" class="btn btn-dark btn-sm"><i class="fas fa-floppy-disk fa-2xl" style="margin-right:10px;"></i>Save</button>
     {% if error_msg %}
         <div class="alert alert-danger " role="alert" style="margin:20px;text-align:center;">{{ error_msg }}</div>
     {% endif %}
@@ -22,7 +22,9 @@
             <th scope="col">{{ field.label }}</th>
             {% endif %}
             {% endfor %}
-            <th scope="col"></th>
+            <th scope="col">Delete</th>
+            <th scope="col">Grading Help</th>
+            <th scope="col">Corrector boxes</th>
         </tr>
       </thead>
       <tbody id="group-tbody">
@@ -32,14 +34,12 @@
                 {{ hidden }}
             {% endfor %}
             {% for field in form.visible_fields %}
-            {% if field.label == 'Delete' %}
-                <td style="text-align:center;padding-top:35px">{{ field }}</td>
-            {% else %}
                 <td>{{ field }}</td>
-            {% endif %}
             {% endfor %}
-            <td><a id="grading-help-bt" class="btn btn-outline-info btn-sm" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )">Grading Help</a></td>
-            <td><a id="corrector-box-bt" class="btn btn-outline-info btn-sm" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})">Corrector Boxes</a></td>
+            
+            <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
+            <td><button type="button" id="grading-help-bt" title="Grading Help" class="btn btn-light" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )"><i class="fas fa-question-circle fa-xl"></i></button></td>
+            <td><button type="button" id="corrector-box-bt" title="Corrector Boxes" class="btn btn-light" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})"><i class="fa-regular fa-square fa-2xl"><i class="fas fa-highlighter fa-xs" style="color:blueviolet;"></i></i></button></td>
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
@@ -57,7 +57,7 @@
         </tr>
       </tbody>
     </table>
-    <a id="add-form" style="margin-top:20px;" class="btn btn-outline-info btn-sm" href="{% url 'add_new_pages_group' exam.pk %}">Add Another Group</a>
+    <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' exam.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>
 </form>
 
 <div id="grading-help-modal" class="modal" tabindex="-1" role="dialog">

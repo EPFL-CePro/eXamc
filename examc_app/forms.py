@@ -26,7 +26,7 @@ class ManagePagesGroupsForm(forms.ModelForm):
 
 
 PagesGroupsFormSet = modelformset_factory(
-    PagesGroup, form=ManagePagesGroupsForm, can_delete=True, extra=0
+    PagesGroup, form=ManagePagesGroupsForm,  extra=0
 )
 
 
@@ -45,7 +45,7 @@ class ManageReviewersForm(forms.ModelForm):
                 f.disabled = True
 
 
-ReviewersFormSet = modelformset_factory(Reviewer, form=ManageReviewersForm, can_delete=True, extra=0)
+ReviewersFormSet = modelformset_factory(Reviewer, form=ManageReviewersForm, extra=0)
 
 
 class ExportMarkedFilesForm(forms.Form):
@@ -75,7 +75,7 @@ class ExportResultsForm(forms.Form):
 
         super(ExportResultsForm, self).__init__(*args, **kwargs)
 
-        if EXAM and EXAM.scalesStatistics:
+        if EXAM and EXAM.scaleStatistics:
 
             if EXAM.overall:
                 self.fields['common_exams'] = forms.MultipleChoiceField(
