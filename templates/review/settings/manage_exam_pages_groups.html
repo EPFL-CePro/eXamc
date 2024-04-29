@@ -155,7 +155,7 @@ function saveGradingHelp(group_id){
     });
 }
 
-let sourceImage, targetRoot, maState;
+let markerArea, sourceImage, targetRoot, maState, modalCorrectorBoxGroupPk;
 // save references to the original image and its parent div (positioning root)
 function setSourceImage(source) {
   sourceImage = source;
@@ -163,17 +163,21 @@ function setSourceImage(source) {
 }
 
 function showMarkerArea(target) {
-  const markerArea = new markerjs2.MarkerArea(sourceImage);
+  markerArea = new markerjs2.MarkerArea(sourceImage);
   // since the container div is set to position: relative it is now our positioning root
   // end we have to let marker.js know that
   markerArea.targetRoot = targetRoot;
   markerArea.availableMarkerTypes = ["FrameMarker", markerjs2.ArrowMarker];
+  markerArea.addEventListener("markerdeselect", (event) => {
+      maState = markerArea.getState();
+      updateMarkers();
+  });
   markerArea.addEventListener("render", (event) => {
     target.src = event.dataUrl;
     // save the state of MarkerArea
     maState = event.state;
     console.log(maState);
-});
+   });
   markerArea.addEventListener("close", (event) => {
     showMarkerArea(target);
 });
@@ -193,22 +197,70 @@ $(window).on('shown.bs.modal', function() {
 function openModalCorrectorBox(group_id) {
     $.ajax({
         type: 'POST',
-        url: "{% url 'get_group_path_image' %}",
+        url: "{% url 'get_pages_group_rectangle_data' %}",
         data: {
             'group_id': group_id,
             'csrfmiddlewaretoken': '{{ csrf_token }}'
         },
         success: (data) => {
+            data_list = JSON.parse(data)
             console.log(data)
             var imgScan = document.getElementById('imgScan');
-            imgScan.src = data;
+            imgScan.src = data_list.img_path;
+            modalCorrectorBoxGroupPk = group_id;
+            maState = JSON.parse(data_list.markers);             
             var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-            imageModal.show();
-        },
+            imageModal.show();                
+            
+        },      
         error: function(error) {
             console.log(error);
         }
     });
 }
+function updateMarkers(){
+    state = JSON.stringify(markerArea.getState());
+    $.ajax({
+        url : "{% url 'update_page_group_markers' %}",
+        async : false,
+        type : "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pages_group_pk' : modalCorrectorBoxGroupPk,
+            'markers' : state
+        },
+        beforeSend : function(){
+            $('#loadingModal').modal('show');
+        },
+        success: function (response) {
+            console.log(response);
+        },
+        error: function (error) {
+            console.log(error);
+        },
+        complete: function () {
+            $('#loadingModal').modal('hide');
+            markerArea.restoreState(maState);
+        }
+    });
+}
+
+{#const maStateData = JSON.stringify(maState);#}
+{#$.ajax({#}
+{#    type: 'POST',#}
+{#    url: '{% url 'maState_data' %}',#}
+{#    data: {#}
+{#        'maState_data': maStateData,#}
+{#        'csrfmiddlewaretoken': '{{ csrf_token }}' },#}
+{#    dataType: 'json',#}
+{#    success:(data) => {#}
+{#        console.log('success', data);#}
+{#    },#}
+{#    error: (error) => {#}
+{#        console.log('error:', error);#}
+{#    }#}
+{#}); #}
+
+
 
 </script>

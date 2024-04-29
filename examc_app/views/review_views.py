@@ -1,39 +1,27 @@
-import csv
-
+from shapely.geometry import Polygon
 from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect
-from django_tables2 import SingleTableView
-
-from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import *
-
-
-from examc_app.utils.amc_functions import *
-from examc_app.forms import *
-from examc_app.models import *
 from django.views.generic import DetailView
-from examc_app.tables import ExamSelectTable
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 
+from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import *
 from examc_app.utils.amc_functions import *
+from examc_app.utils.epflldap import ldap_search
+from examc_app.views import menu_access_required
 from examc_app.forms import *
 from examc_app.models import *
-from examc_app.tables import ExamSelectTable
-from examc_app.utils.epflldap import ldap_search
 
+import csv
 import zipfile
 import os
 import json
-from examc_app.utils.epflldap import ldap_search
 import re
 import base64
-
-from examc_app.views import menu_access_required
 
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
@@ -46,7 +34,7 @@ class ReviewView(DetailView):
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
-        if user_allowed(exam,self.request.user.id):
+        if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "review"
             context['exam'] = exam
@@ -58,9 +46,9 @@ class ReviewView(DetailView):
             context['exam'] = exam
             return context
 
+
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewGroupView(DetailView):
-    model = PagesGroup
     """
         View for managing review group for a specific exam.
 
@@ -75,7 +63,7 @@ class ReviewGroupView(DetailView):
             get_context_data: Overrides the base class method to provide additional context data for rendering the view.
             post: Handles POST requests for updating review settings.
 """
-    model = ExamPagesGroup
+    model = PagesGroup
     template_name = 'review/reviewGroup.html'
 
     def get_context_data(self, **kwargs):
@@ -87,7 +75,7 @@ class ReviewGroupView(DetailView):
 
         # Get scans file path dict by pages groups
         scans_pathes_list = get_scans_pathes_by_group(pagesGroup)
-        if user_allowed(pagesGroup.exam,self.request.user.id):
+        if user_allowed(pagesGroup.exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewGroup"
             context['exam'] = pagesGroup.exam
@@ -102,6 +90,7 @@ class ReviewGroupView(DetailView):
             context['exam'] = pagesGroup.exam
             context['pages_group'] = pagesGroup
             return context
+
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewSettingsView(DetailView):
@@ -122,6 +111,7 @@ class ReviewSettingsView(DetailView):
     model = Exam
     template_name = 'review/settings/reviewSettings.html'
     error_msg = None
+
     def get_context_data(self, **kwargs):
         """
         Retrieves additional context data for rendering the view.
@@ -138,10 +128,11 @@ class ReviewSettingsView(DetailView):
         curr_tab = "groups"
         if "curr_tab" != '' in context:
             curr_tab = context.get("curr_tab")
-        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[{'id':None, 'group_name': '[New]', 'page_from':-1, 'page_to':-1}])
+        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
+            {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
         formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
 
-        if user_allowed(exam,self.request.user.id):
+        if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
@@ -241,6 +232,7 @@ def add_new_pages_group(request, pk):
 
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups"}))
 
+
 @login_required
 @menu_access_required
 def edit_pages_group_grading_help(request):
@@ -250,58 +242,45 @@ def edit_pages_group_grading_help(request):
 
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
 
+
 @login_required
 @menu_access_required
 def get_pages_group_grading_help(request):
     pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
     return HttpResponse(pages_group.grading_help)
 
+
 @login_required
 @menu_access_required
 def edit_pages_group_corrector_box(request):
-    pages_group = ExamPagesGroup.objects.get(pk=request.POST['pk'])
+    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
     pages_group.correctorBoxMarked = request.POST['corrector_box']
     pages_group.save()
 
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
 
+
 @login_required
 @menu_access_required
-def get_group_path_image(request):
+def get_pages_group_rectangle_data(request):
     if request.method == 'POST':
-        examPagesGroup = ExamPagesGroup.objects.get(pk=request.POST.get('group_id'))
-        img_path = get_scans_path_for_group(examPagesGroup)
-        print(img_path)
+
+        data_dict = {}
+        pagesGroup = PagesGroup.objects.get(pk=request.POST.get('group_id'))
+        img_path = get_scans_path_for_group(pagesGroup)
         if img_path:
-            return HttpResponse(img_path)
+            data_dict['img_path'] = img_path
+            data_dict['markers'] = pagesGroup.rectangle
+            return HttpResponse(json.dumps(data_dict))
         else:
             return HttpResponse(img_path)
-
-@menu_access_required
-def save_drawn_image(request):
-    if request.method == 'POST':
-        image_data = request.POST.get('image_data')
-        group_id = request.POST.get('group_id')
-
-        # Enregistrez les données de l'image dans votre base de données
-        drawn_image = DrawnImage(image_data=image_data, group_id=group_id)
-        drawn_image.save()
-
-        return JsonResponse({'success': True})
-    else:
-        return JsonResponse({'success': False, 'error': 'error'})
-
-# @login_required
-# def get_pages_group_corrector_box(request):
-#     scan_markers = ScanMarkers.objects.get(pk=request.POST['pk'])
-#     return HttpResponse(scan_markers.correctorBoxMarked)
 
 
 @login_required
 @menu_access_required
 def ldap_search_by_email(request):
     email = request.POST['email']
-    user = ExamReviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
+    user = Reviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
     if user:
         return HttpResponse("exist")
 
@@ -312,8 +291,8 @@ def ldap_search_by_email(request):
     return HttpResponse("not_found")
 
     user_entry = ldap_search.get_entry(email, 'mail')
-    entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][0] + ";" + email
-
+    entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][
+        0] + ";" + email
 
     return HttpResponse(entry_str)
 
@@ -342,7 +321,7 @@ def add_new_reviewers(request):
         user.groups.add(reviewer_group)
         user.save()
 
-        examReviewer = ExamReviewer()
+        examReviewer = Reviewer()
         examReviewer.user = user
         examReviewer.exam = exam
         examReviewer.save()
@@ -350,15 +329,15 @@ def add_new_reviewers(request):
         examReviewer.save()
         print(examReviewer)
 
-    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk),'curr_tab': "reviewers"}))
+    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "reviewers"}))
 
 
 @login_required
 @menu_access_required
-def export_marked_files(request,pk):
+def export_marked_files(request, pk):
     exam = Exam.objects.get(pk=pk)
 
-    if user_allowed(exam,request.user.id):
+    if user_allowed(exam, request.user.id):
 
         if request.method == 'POST':
 
@@ -373,39 +352,32 @@ def export_marked_files(request,pk):
                 except Exception as e:
                     print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-            form = ExportMarkedFilesForm(request.POST,exam=exam)
+            form = ExportMarkedFilesForm(request.POST, exam=exam)
 
             if form.is_valid():
 
-              generated_marked_files_zip_path = generate_marked_files_zip(exam, request.POST['export_type'])
+                generated_marked_files_zip_path = generate_marked_files_zip(exam, request.POST['export_type'])
 
-
-              zip_file = open(generated_marked_files_zip_path, 'rb')
-              return FileResponse(zip_file)
+                zip_file = open(generated_marked_files_zip_path, 'rb')
+                return FileResponse(zip_file)
 
             else:
-              logger.info("INVALID")
-              logger.info(form.errors)
-              return HttpResponseRedirect(request.path_info)
+                logger.info("INVALID")
+                logger.info(form.errors)
+                return HttpResponseRedirect(request.path_info)
 
         # if a GET (or any other method) we'll create a blank form
         else:
-          form = ExportMarkedFilesForm()
-          return render(request, 'review/export/export_marked_files.html', {"user_allowed":True,
-                                                        "form": form,
-                                                        "exam" : exam,
-                                                        "current_url": "export_marked_files"})
+            form = ExportMarkedFilesForm()
+            return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
+                                                                              "form": form,
+                                                                              "exam": exam,
+                                                                              "current_url": "export_marked_files"})
     else:
-        return render(request, 'review/export/export_marked_files.html', {"user_allowed":False,
-                                                      "form": None,
-                                                      "exam" : exam,
-                                                      "current_url": "export_marked_files"})
-
-
-
-# def isReviewer(request):
-#     exam_reviewers = ExamReviewer.objects.filter(exam=exam)
-#     return render(request, 'base.html', {'exam_reviewers': exam_reviewers})
+        return render(request, 'review/export/export_marked_files.html', {"user_allowed": False,
+                                                                          "form": None,
+                                                                          "exam": exam,
+                                                                          "current_url": "export_marked_files"})
 
 
 # TESTING
@@ -418,7 +390,7 @@ def testing(request):
         return render(request, 'review/testing.html', {
             'user': request.user,
             'user_info': user_info,
-    })
+        })
 
 
 def home(request):
@@ -429,20 +401,20 @@ def home(request):
         'user_info': user_info,
     })
 
+
 @login_required
 def select_exam(request, pk, current_url=None):
-
     #request.session['exam_pk'] = Exam.objects.get(pk=pk)
-
 
     # if len(EXAM.scales_statistics.all()) == 0:
     #     generate_statistics(EXAM)
 
     url_string = '../'
     if current_url is None:
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk':str(pk)}))
+        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
     else:
-        return HttpResponseRedirect(reverse(current_url, kwargs={'pk':str(pk)}) )
+        return HttpResponseRedirect(reverse(current_url, kwargs={'pk': str(pk)}))
+
 
 @login_required
 def upload_scans(request, pk):
@@ -466,15 +438,16 @@ def upload_scans(request, pk):
         message = start_upload_scans(request, exam.pk, temp_file_path)
 
         return render(request, 'review/import/upload_scans.html', {
-                 'exam': exam,
-                 'files': [],
-                 'message': message
-             })
+            'exam': exam,
+            'files': [],
+            'message': message
+        })
         # messages.success(request, message)
         # return redirect(f'/exams/{exam.pk}')
 
     return render(request, 'review/import/upload_scans.html', {'exam': exam,
-                                                        'files': []})
+                                                               'files': []})
+
 
 @login_required
 def start_upload_scans(request, pk, zip_file_path):
@@ -520,12 +493,14 @@ def start_upload_scans(request, pk, zip_file_path):
     #     'message': message
     # })
 
+
 @login_required
 def saveMarkers(request):
-
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
-    pages_group = ExamPagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
-    scan_markers, created = ScanMarkers.objects.get_or_create(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], pages_group=pages_group, exam=exam)
+    pages_group = PagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
+    scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
+                                                              page_no=request.POST['page_no'], pages_group=pages_group,
+                                                              exam=exam)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
     markers = json.loads(request.POST['markers'])
@@ -534,54 +509,62 @@ def saveMarkers(request):
         scan_markers.comment = request.POST['comment']
         scan_markers.filename = request.POST['filename']
         if dataUrlPattern.match(ImageData):
-          ImageData = dataUrlPattern.match(ImageData).group(2)
-          # Decode the 64 bit string into 32 bit
-          ImageData = base64.b64decode(ImageData)
+            ImageData = dataUrlPattern.match(ImageData).group(2)
+            # Decode the 64 bit string into 32 bit
+            ImageData = base64.b64decode(ImageData)
 
-          marked_img_path = str(settings.MARKED_SCANS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code+"/"+scan_markers.copie_no+"/"+"marked_"+scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg','.png')
-          os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
+            marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year) + "/" + str(
+                exam.semester) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
+                              scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
+            os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
 
-          with open(marked_img_path,"wb") as marked_file:
-            marked_file.write(ImageData)
+            with open(marked_img_path, "wb") as marked_file:
+                marked_file.write(ImageData)
 
         scan_markers.save()
     else:
-        marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year) + "/" + str(exam.semester) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
+        marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year) + "/" + str(
+            exam.semester) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
+                          scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
         #os.remove(marked_img_path)
         scan_markers.delete()
 
-
     scan_markers.save()
-    return HttpResponseRedirect(reverse('reviewGroup', kwargs={'pk':request.POST['reviewGroup_pk'],'currpage':scan_markers.page_no}))
+    return HttpResponseRedirect(
+        reverse('reviewGroup', kwargs={'pk': request.POST['reviewGroup_pk'], 'currpage': scan_markers.page_no}))
+
 
 @login_required
 def getMarkersAndComments(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     data_dict = {}
     try:
-        scan_markers = ScanMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'], filename=request.POST['filename'],exam=exam)
-        data_dict["markers"]=scan_markers.markers
-    except ScanMarkers.DoesNotExist:
+        scan_markers = PageMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'],
+                                               filename=request.POST['filename'], exam=exam)
+        data_dict["markers"] = scan_markers.markers
+    except PageMarkers.DoesNotExist:
         json_string = None
-        data_dict["markers"]=None
+        data_dict["markers"] = None
 
     # comments
-    comments = ExamPagesGroupComment.objects.filter(pages_group=request.POST['group_id'], copy_no=request.POST['copy_no']).all()
+    comments = PagesGroupComment.objects.filter(pages_group=request.POST['group_id'],
+                                                copy_no=request.POST['copy_no']).all()
     data_dict["comments"] = [comment.serialize(request.user.id) for comment in comments]
 
     return HttpResponse(json.dumps(data_dict))
 
+
 @login_required
 def saveComment(request):
     comment_data = json.loads(request.POST['comment'])
-    if not comment_data['id'].startswith('c') :
-        comment = ExamPagesGroupComment.objects.get(pk=comment_data['id'])
+    if not comment_data['id'].startswith('c'):
+        comment = PagesGroupComment.objects.get(pk=comment_data['id'])
         comment.content = comment_data['content']
         comment.modified = datetime.datetime.now()
         comment.save()
     else:
-        comment = ExamPagesGroupComment()
-        comment.is_new=True
+        comment = PagesGroupComment()
+        comment.is_new = True
         comment.content = comment_data['content']
         comment.created = datetime.datetime.now()
         comment.user_id = request.user.id
@@ -591,7 +574,68 @@ def saveComment(request):
             comment.parent_id = int(comment_data['parent'])
         comment.save()
 
-
     print(comment)
 
     return HttpResponse("ok")
+
+
+# def rectangle_check(data):
+#     print(data)
+# rectangle = Polygon(data)
+def update_page_group_markers(request):
+    global responce
+    if request.method == 'POST':
+        pages_group_pk = request.POST.get('pages_group_pk')
+        markers_json = request.POST.get('markers')
+
+        markers_data = json.loads(markers_json)
+        markers = markers_data.get('markers')
+
+        markers_with_properties = []
+        for marker in markers:
+            left = marker.get('left')
+            top = marker.get('top')
+            width = marker.get('width')
+            height = marker.get('height')
+            markers_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
+        print(markers_with_properties)
+
+        points = []
+        for marker in markers_with_properties:
+            left = marker['left']
+            top = marker['top']
+            width = marker['width']
+            height = marker['height']
+            a = (left, top)
+            b = (left + width, top)
+            c = (left + width, top + height)
+            d = (left, top + height)
+            points.append([a, b, c, d])
+        print(points)
+        rectangle_coordinates = points[0]
+        rectangle_polygon = Polygon(rectangle_coordinates)
+        other_polygon = Polygon(points[1])
+       
+        if rectangle_polygon.intersects(other_polygon):
+            responce = "True"
+        else:
+            responce = "False"
+
+    return HttpResponse(request, responce)
+
+# def maState_data(request):
+#     if request.method == 'POST':
+#         maState_data = request.POST.get('maState_data')
+#         print(maState_data)
+#         rectangle_coordinates = [(1, 1), (2, 2), (4, 2), (3, 1)]
+#         rectangle_polygon = Polygon(rectangle_coordinates)
+#         other_polygon = Polygon([(1.5, 2), (3, 5), (5, 4), (3.5, 1)])
+#
+#         if rectangle_polygon.intersects(other_polygon):
+#             print("True")
+#         else:
+#             print("False")
+#
+#         return JsonResponse({'message': 'Success.'})
+#     else:
+#         return JsonResponse({'error': 'No data'})
