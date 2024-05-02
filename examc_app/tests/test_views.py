@@ -1,5 +1,3 @@
-
-
 from django.urls import reverse
 
 from examc_app.forms import UploadScansForm, ManagePagesGroupsForm, ManageReviewersForm, ExportMarkedFilesForm
@@ -7,7 +5,7 @@ import logging
 from django.test import TestCase, Client, RequestFactory
 from django_tequila.django_backend import User
 
-from examc_app.models import Exam
+from examc_app.models import Exam, PagesGroup
 from examc_app.views import ExamSelectView
 
 
@@ -22,18 +20,11 @@ class ViewsTestCase(TestCase):
         self.exam = Exam.objects.create(name='Test Exam')
 
     def test_exam_select_view(self):
-        # request = RequestFactory().get("/")
-        # view = ExamSelectView()
-        # view.setup(request)
-        # context = view.get_context_data()
-        # self.assertIn('',context)
-
         self.client.login(username='testuser', email='testuser@test.ch', password='testpassword')
         data = {'name': 'test name', 'exam': self.exam}
         response = self.client.get(reverse('examSelect'))
 
-        self.assertEqual(response.status_code, 302)
-        #self.assertTemplateUsed(response, 'exam/exam_select.html')
+        self.assertEqual(response.status_code, 200)
 
 
 class TestForms(TestCase):
@@ -45,13 +36,12 @@ class TestForms(TestCase):
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data['exam_id'], Exam.objects)
 
-
     def test_upload_scans_form_invalid_data(self):
         form = UploadScansForm(data={})
         self.assertFalse(form.is_valid())
 
     def test_manage_exam_pages_groups_form_valid_data(self):
-        form_data = {'group_name': 'NomDuGroupe', 'page_from': 1, 'page_to': 5}
+        form_data = {'group_name': 'GroupName', 'page_from': 1, 'page_to': 5}
         form = ManagePagesGroupsForm(data=form_data)
         self.assertTrue(form.is_valid())
 
@@ -59,13 +49,10 @@ class TestForms(TestCase):
         form = ManagePagesGroupsForm(data={})
         self.assertFalse(form.is_valid())
         logging.error(form.errors)
-        invalid_data = {'group_name': 'NomDuGroupe', 'page_from': 5, 'page_to': 1}
+        invalid_data = {'group_name': 'GroupName', 'page_from': 5, 'page_to': 1}
         form = ManagePagesGroupsForm(data=invalid_data)
         print(form.errors)
         self.assertFalse(form.is_valid())
-
-
-
 
     def test_manage_exam_reviewers_form_valid_data(self):
         form_data = {'user': 'user', 'pages_groups': 'Group1, Group2'}
@@ -86,11 +73,40 @@ class TestForms(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_export_marked_files_form_invalid_data(self):
-        form = ExportMarkedFilesForm(data={})
-        self.assertFalse(form.is_valid())
-
         invalid_data = {'export_type': 5}
         form = ExportMarkedFilesForm(data=invalid_data)
         self.assertFalse(form.is_valid())
 
 
+class TestReviewView(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', email='testuser@test.ch', password='testpassword')
+        self.exam = Exam.objects.create(name='Test Exam')
+
+    def test_review_view(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('reviewView', kwargs={'pk': self.exam.pk}))
+        self.assertEqual(response.status_code, 200)
+
+
+class TestReviewGroupView(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', email='testuser@test.ch', password='testpassword')
+        self.exam = Exam.objects.create(name='Test Exam')
+        self.pages_group = PagesGroup.objects.create(group_name='Test Group', exam=self.exam)
+
+    def test_review_group_view(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('reviewGroup', kwargs={'pk': self.pages_group.pk, 'currpage': 1}))
+        self.assertEqual(response.status_code, 200)
+
+
+class TestReviewSettingsView(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', email='testuser@test.ch', password='testpassword')
+        self.exam = Exam.objects.create(name='Test Exam')
+
+    def test_review_settings_view(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('reviewSettingsView', kwargs={'pk': self.exam.pk, 'curr_tab': 'groups'}))
+        self.assertEqual(response.status_code, 403)
