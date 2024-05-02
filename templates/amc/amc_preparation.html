@@ -174,7 +174,7 @@ function saveEditedSourceFile(){
 }
 
 function amcUpdateDocuments(){
-    nb_copies = document.getElementById('number_of_copies').value;
+    nb_copies = document.getElementById('number_of_copies_param').value;
     $('#loadingModal').modal('show');
     $.ajax({
         url: "{% url 'call_amc_update_documents' %}",
