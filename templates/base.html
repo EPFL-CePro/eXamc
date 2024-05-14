@@ -37,7 +37,7 @@
 <link href="https://cdn.datatables.net/2.0.7/css/dataTables.bootstrap4.min.css" rel="stylesheet">
 <link href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.bootstrap4.min.css" rel="stylesheet">
 <link href="https://cdn.datatables.net/select/2.0.1/css/select.bootstrap4.min.css" rel="stylesheet">
- 
+
 <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/2.0.7/js/dataTables.bootstrap4.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
@@ -99,6 +99,7 @@
                         <span class="menu-collapsed" style="margin-right:5px;"><img id="examc_logo" src="{% static 'img/eXamc_bg_transp_200.png' %}" style="margin-left:-30px;width:100%;background-color: #000000"/></span>
                     </div>
                 </li>
+                {% if user.is_authenticated %}
                 <a href="{% url 'examSelect' %}" class="bg-dark list-group-item list-group-item-action">
                     <div class="d-flex w-100 justify-content-start align-items-center">
                         <span class="fas fa-folder-open" style="margin-right:5px;"></span>
@@ -183,7 +184,7 @@
                         </div>
                     </a>
                     <hr class="hr-sidebar">
-                    {% endif %}                   
+                    {% endif %}
                     {% if user|is_admin %}
                     <a href="{% url 'users' %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
@@ -219,44 +220,42 @@
                             <span id="collapse-text" class="menu-collapsed">Collapse</span>
                         </div>
                     </a>
-                    </ul><!-- List Group END-->
+                {% endif %}
+                </ul><!-- List Group END-->
 
-        </div><!-- sidebar-container END -->
-</div>
+            </div><!-- sidebar-container END -->
         </div>
+    </div>
 </main>
-        <div id="page-content-wrapper">
+<div id="page-content-wrapper">
 
-            <div class="container-fluid">
-                <!-- Page Content -->
-                {% block content %}
-
-
-                {% endblock %}
-
-            </div>
+    <div class="container-fluid">
+        <!-- Page Content -->
+        {% block content %}
 
 
-            <div class="modal fade" id="ajax_info_modal" tabindex="-1" role="dialog" aria-labelledby="ajaxInfoModal" aria-hidden="true">
-              <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="ajax_info_modal_title">Process info</h5>
-                    <button type="button" class="close" onclick="$('#ajax_info_modal').modal('hide');"  aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
-                  </div>
-                  <div class="modal-body" id="ajax_info_modal_msg">
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="$('#ajax_info_modal').modal('hide');">OK</button>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {% endblock %}
+
+    </div>
+
+    <div class="modal fade" id="ajax_info_modal" tabindex="-1" role="dialog" aria-labelledby="ajaxInfoModal" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="ajax_info_modal_title">Process info</h5>
+            <button type="button" class="close" onclick="$('#ajax_info_modal').modal('hide');"  aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body" id="ajax_info_modal_msg">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="$('#ajax_info_modal').modal('hide');">OK</button>
+          </div>
         </div>
-
-
+      </div>
+    </div>
+</div>
 
 </body>
 <div class="modal" id="loadingModal" tabindex="-1" role="dialog"
@@ -272,39 +271,39 @@
 </html>
 
 <script>
-// Hide submenus
-$('#body-row .collapse').collapse('hide');
-
-// Collapse/Expand icon
-$('#collapse-icon').addClass('fa-angle-double-left');
-
-// Collapse click
-$('[data-toggle=sidebar-colapse]').click(function() {
-    SidebarCollapse();
-});
-
-function SidebarCollapse () {
-    $('.menu-collapsed').toggleClass('d-none');
-    $('.sidebar-submenu').toggleClass('d-none');
-    $('.submenu-icon').toggleClass('d-none');
-    $('#sidebar-container').toggleClass('sidebar-expanded sidebar-collapsed');
-
-    // Treating d-flex/d-none on separators with title
-    const SeparatorTitle = $('.sidebar-separator-title');
-    if ( SeparatorTitle.hasClass('d-flex') ) {
-        SeparatorTitle.removeClass('d-flex');
-    } else {
-        SeparatorTitle.addClass('d-flex');
-    }
+    // Hide submenus
+    $('#body-row .collapse').collapse('hide');
 
     // Collapse/Expand icon
-    $('#collapse-icon').toggleClass('fa-angle-double-left fa-angle-double-right');
-    if ($('#sidebar-container').hasClass('sidebar-collapsed')) {
-        $('#page-content-wrapper').css('margin-left', '-170px');
-    } else {
-        $('#page-content-wrapper').css('margin-left', '0px');
-    }
-}
+    $('#collapse-icon').addClass('fa-angle-double-left');
 
- 
+    // Collapse click
+    $('[data-toggle=sidebar-colapse]').click(function () {
+        SidebarCollapse();
+    });
+
+    function SidebarCollapse() {
+        $('.menu-collapsed').toggleClass('d-none');
+        $('.sidebar-submenu').toggleClass('d-none');
+        $('.submenu-icon').toggleClass('d-none');
+        $('#sidebar-container').toggleClass('sidebar-expanded sidebar-collapsed');
+
+        // Treating d-flex/d-none on separators with title
+        const SeparatorTitle = $('.sidebar-separator-title');
+        if (SeparatorTitle.hasClass('d-flex')) {
+            SeparatorTitle.removeClass('d-flex');
+        } else {
+            SeparatorTitle.addClass('d-flex');
+        }
+
+        // Collapse/Expand icon
+        $('#collapse-icon').toggleClass('fa-angle-double-left fa-angle-double-right');
+        if ($('#sidebar-container').hasClass('sidebar-collapsed')) {
+            $('#page-content-wrapper').css('margin-left', '-170px');
+        } else {
+            $('#page-content-wrapper').css('margin-left', '0px');
+        }
+    }
+
+
 </script>
