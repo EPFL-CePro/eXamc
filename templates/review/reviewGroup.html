@@ -16,6 +16,104 @@
 {% block scripts %}
   
     
+
+ 
+{% endblock %}
+
+{% block content %}
+{%  if scans_pathes_list %}
+<div class="row" style="height:50px;">
+    <div class="column" style="width:300px;margin-left:15px;">
+        <a href="{% url 'reviewView' exam.pk %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
+    </div>
+    <div class="column" style="margin-left:50px;">
+        <h3><i class="fas fa-glasses fa-l" style="margin-right:10px;"></i>Review {{ pages_group.group_name }}</h3>
+    </div>
+</div>
+<div class="d-flex" style="height:93vh;">
+    <div id="pages_group_list" style="background-color:#f1f1f1;">
+        <table class="table table-striped table-sm" id="table-copies-pages">
+            <thead>
+            <tr>
+                <th>id</th>
+                <th>Copy</th>
+                <th>Page</th>
+                <th>Annotated</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for page in scans_pathes_list %}
+            <tr id="copy_{{page.copy_no}}_{{page.page_no}}">
+                <td>{{ forloop.counter }}</td>
+                <td>{{ page.copy_no }}</td>
+                <td>{{ page.page_no }}</td>
+                <td id="copy_{{page.copy_no}}_{{page.page_no}}_marked" >{% if page.marked %}<i class="fa-solid fa-circle-check fa-lg"
+                                           style="padding-left:25px;">{% endif %}</i></td>
+                <td>
+                    {% if page.comment %}
+                    <i class="fas fa-comments fa-lg"></i>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="list-group" style="height:100%;margin-left:5px" >
+        <div id="pagination" class="list-group list-group-horizontal"></div>
+        <div id="markerjs_div" style="height:98%;aspect-ratio:1/1.41;overflow-y: auto;border:1px solid lightgrey;">
+            <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
+                <img id="source_img" style=""/>
+                <img id="marked_img" style="max-width:100%;position: absolute;"/>
+            </div>
+        </div>
+    </div>
+    <div style="background-color:#f1f1f1;padding:20px;max-width:615px;">
+        <div class="row">
+            <div style="float:right;">
+                <a title="Discussion" id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" style="float:right;"  data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
+                    <i id="comment-icon" class="fas fa-comments fa-lg" style="margin-left:10px;"></i>
+                    <i id="collapse-d-icon" class="fa mr-3" style="color:grey;"></i>
+                </a>
+                <div id="comments-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
+                    <div>
+                        <p class="table th">
+                            <i class="fas fa-comments fa-lg"></i>
+                            DISCUSSION
+                        </p>
+                    </div>
+                    <hr>
+                    <div id="comments-container" style="padding:5px;"></div>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div style="float:right">
+                <a title="Grading help" id="expandCollapseGradingHelpBt" type="button" data-bs-toggle="collapse" style="float:right;" data-bs-target="#grading-help-div" aria-expanded="false" aria-controls="grading-help-div">
+                    <i id="grading-help-icon" class="fas fa-question-circle fa-lg" style="margin-left:10px;"></i>
+                    <i id="collapse-gh-icon" class="fa mr-3" style="color:grey;"></i>
+                </a>
+                <div id="grading-help-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
+                    <div>
+                        <p class="table th">
+                            <i class="fas fa-question-circle fa-lg"></i>
+                            GRADING HELP
+                        </p>
+                    </div>
+                    <hr>
+                    <div id="grading-help" style="padding:10px;border:1px solide black;background-color: white;"><textarea id="grading-help-textarea"></textarea></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+
+<script>
 let sourceImage, markedImage, targetRoot, maState, currSourceElementId, currSourceIdSplit, markerArea;
 let group_pathes = JSON.parse('{{json_group_scans_pathes|safe }}');
 
@@ -344,103 +442,6 @@ $(window).on("load",function(){
 {#    wrapper.style.paddingLeft = "20px";#}
 {#    sideb.style.display = "none";#}
 });
- 
-{% endblock %}
-
-{% block content %}
-{%  if scans_pathes_list %}
-<div class="row" style="height:50px;">
-    <div class="column" style="width:300px;margin-left:15px;">
-        <a href="{% url 'reviewView' exam.pk %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
-    </div>
-    <div class="column" style="margin-left:50px;">
-        <h3><i class="fas fa-glasses fa-l" style="margin-right:10px;"></i>Review {{ pages_group.group_name }}</h3>
-    </div>
-</div>
-<div class="d-flex" style="height:93vh;">
-    <div id="pages_group_list" style="background-color:#f1f1f1;">
-        <table class="table table-striped table-sm" id="table-copies-pages">
-            <thead>
-            <tr>
-                <th>id</th>
-                <th>Copy</th>
-                <th>Page</th>
-                <th>Annotated</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for page in scans_pathes_list %}
-            <tr id="copy_{{page.copy_no}}_{{page.page_no}}">
-                <td>{{ forloop.counter }}</td>
-                <td>{{ page.copy_no }}</td>
-                <td>{{ page.page_no }}</td>
-                <td id="copy_{{page.copy_no}}_{{page.page_no}}_marked" >{% if page.marked %}<i class="fa-solid fa-circle-check fa-lg"
-                                           style="padding-left:25px;">{% endif %}</i></td>
-                <td>
-                    {% if page.comment %}
-                    <i class="fas fa-comments fa-lg"></i>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="list-group" style="height:100%;margin-left:5px" >
-        <div id="pagination" class="list-group list-group-horizontal"></div>
-        <div id="markerjs_div" style="height:98%;aspect-ratio:1/1.41;overflow-y: auto;border:1px solid lightgrey;">
-            <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
-                <img id="source_img" style=""/>
-                <img id="marked_img" style="max-width:100%;position: absolute;"/>
-            </div>
-        </div>
-    </div>
-    <div style="background-color:#f1f1f1;padding:20px;max-width:615px;">
-        <div class="row">
-            <div style="float:right;">
-                <a title="Discussion" id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" style="float:right;"  data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
-                    <i id="comment-icon" class="fas fa-comments fa-lg" style="margin-left:10px;"></i>
-                    <i id="collapse-d-icon" class="fa mr-3" style="color:grey;"></i>
-                </a>
-                <div id="comments-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
-                    <div>
-                        <p class="table th">
-                            <i class="fas fa-comments fa-lg"></i>
-                            DISCUSSION
-                        </p>
-                    </div>
-                    <hr>
-                    <div id="comments-container" style="padding:5px;"></div>
-                </div>
-            </div>
-        </div>
-        <hr>
-        <div class="row">
-            <div style="float:right">
-                <a title="Grading help" id="expandCollapseGradingHelpBt" type="button" data-bs-toggle="collapse" style="float:right;" data-bs-target="#grading-help-div" aria-expanded="false" aria-controls="grading-help-div">
-                    <i id="grading-help-icon" class="fas fa-question-circle fa-lg" style="margin-left:10px;"></i>
-                    <i id="collapse-gh-icon" class="fa mr-3" style="color:grey;"></i>
-                </a>
-                <div id="grading-help-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
-                    <div>
-                        <p class="table th">
-                            <i class="fas fa-question-circle fa-lg"></i>
-                            GRADING HELP
-                        </p>
-                    </div>
-                    <hr>
-                    <div id="grading-help" style="padding:10px;border:1px solide black;background-color: white;"><textarea id="grading-help-textarea"></textarea></div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-</div>
-
-
-<script>
 document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
     var commentIcon = $( "#comment-icon" );
     var collapseIcon = $( "#collapse-d-icon" );
