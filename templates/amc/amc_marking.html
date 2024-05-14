@@ -162,6 +162,7 @@
   </div>
 </div>
 <script>
+
 $('#students_list_csv').change(amc_update_students_file);
 function amc_update_students_file (e) {
     var files = e.target.files;
@@ -199,7 +200,6 @@ function amc_mark() {
     update_scoring_strategy = document.getElementById('update_marking_scale').checked;
     $.ajax({
         url: "{% url 'call_amc_mark' %}",
-        async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -219,102 +219,6 @@ function amc_automatic_association() {
     assoc_primary_key = document.getElementById('automatic_assoc_primary_key').value;
     $.ajax({
         url: "{% url 'call_amc_automatic_association' %}",
-        async : false,
-        type: "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
-            'assoc_primary_key' : assoc_primary_key,
-        },
-        success: (data) => {
-            $('#loadingModal').modal('hide');
-        },
-        error: (error) => {
-            console.log(error);
-        }
-    });
-}
-function openEditStudentsListDialog(){
-    $.ajax({
-        url: "{% url 'edit_amc_file' %}",
-        async : false,
-        type: "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
-            'filepath' : 'students_list'
-        },
-        success: (data) => {
-            data = JSON.parse(data);
-            document.getElementById('students_list_source_text').value = data[1];
-            title = "Edit "+data[0].split("/").slice(-1)[0]
-            document.getElementById('edit_students_list_modal_title').innerText = title;
-            document.getElementById('students_list_filepath').innerText = data[0];
-            $('#edit_students_list_modal').modal('show');
-        },
-        error: (error) => {
-            console.log(error);
-        }
-    });
-}
-$('#students_list_csv').change(amc_update_students_file);
-function amc_update_students_file (e) {
-    var files = e.target.files;
-    if (files.length === 1) {
-        $('#loadingModal').modal('show');
-        form = document.getElementById('students_list_csv_form');
-        formData = new FormData(form);
-        ok = 1;
-        $.ajax({
-            url: "{% url 'amc_update_students_file' exam.pk %}",
-            async : false,
-            type: "POST",
-            data : formData,
-            processData: false,
-            contentType: false,
-            success: (data) => {
-                error_div = document.getElementById('csv_import_error');
-                $('#loadingModal').modal('hide');
-                if(data!=='ok'){
-                    error_div.removeAttribute('hidden');
-                    error_div.innerHTML = data;
-                }else{
-                    error_div.setAttribute('hidden',"");
-                    location.replace("{% url 'amc_view' exam.pk 2 %}");
-                }               
-            },
-            error: (error) => {
-                console.log(error);
-            }
-        });
-    }
-}
-function amc_mark() {
-    $('#loadingModal').modal('show');
-    update_scoring_strategy = document.getElementById('update_marking_scale').checked;
-    $.ajax({
-        url: "{% url 'call_amc_mark' %}",
-        async : false,
-        type: "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
-            'update_scoring_strategy' : update_scoring_strategy,
-        },
-        success: (data) => {
-            $('#loadingModal').modal('hide');           
-        },
-        error: (error) => {
-            console.log(error);
-        }
-    });
-}
-function amc_automatic_association() {
-    $('#loadingModal').modal('show');
-    assoc_primary_key = document.getElementById('automatic_assoc_primary_key').value;
-    $.ajax({
-        url: "{% url 'call_amc_automatic_association' %}",
-        async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
