@@ -6,132 +6,6 @@
 
 {% block scripts %}
 
-$(window).on("load",function(){
-
-    $("#create-scale-button").modalForm({
-        formURL: "{% url 'create_scale' exam.pk %}"
-    });
-
-
-
-    <!--DISPLAY PDF CATALOG -->
-    $('#displayPdfModal').on('show.bs.modal', function (event) {
-        document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' exam.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
-    })
-
-    <!--QUESTIONS EVENTS-->
-    <!--question-common checkboxes-->
-    {% for question in exam.questions.all %}
-        $('#common-{{ question.pk }}-1').on('click', function() {
-        updateQuestion({{ question.pk }},'common', 1);
-        });
-        $('#common-{{ question.pk }}-2').on('click', function() {
-        updateQuestion({{ question.pk }},'common', 0);
-        });
-    {% endfor %}
-
-    <!--question-type button-groups-->
-    {% for question in exam.questions.all %}
-        $('#type-{{ question.pk }}-1').on('click', function() {
-        updateQuestion({{ question.pk }},'qtype', 1);
-        });
-        $('#type-{{ question.pk }}-2').on('click', function() {
-        updateQuestion({{ question.pk }},'qtype', 2);
-        });
-        $('#type-{{ question.pk }}-3').on('click', function() {
-        updateQuestion({{ question.pk }},'qtype', 3);
-        });
-        $('#type-{{ question.pk }}-4').on('click', function() {
-        updateQuestion({{ question.pk }},'qtype', 4);
-        });
-    {% endfor %}
-
-    <!--question-answers button-groups-->
-    {% for question in exam.questions.all %}
-        {% if question.qtype < 3 %}
-            $('#answers-{{ question.pk }}-1').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 1);
-            });
-            $('#answers-{{ question.pk }}-2').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 2);
-            });
-            $('#answers-{{ question.pk }}-3').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 3);
-            });
-            $('#answers-{{ question.pk }}-4').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 4);
-            });
-            $('#answers-{{ question.pk }}-5').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 5);
-            });
-            $('#answers-{{ question.pk }}-6').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 6);
-            });
-            $('#answers-{{ question.pk }}-7').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 7);
-            });
-            $('#answers-{{ question.pk }}-8').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 8);
-            });
-            $('#answers-{{ question.pk }}-9').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 9);
-            });
-            $('#answers-{{ question.pk }}-10').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 10);
-            });
-        {% endif %}
-    {% endfor %}
-
-    <!--question-max-pts input-->
-    {% for question in exam.questions.all %}
-        $('#maxpts-{{ question.pk }}').on('input', function() {
-        updateQuestion({{ question.pk }},'max_points', this.value);
-        });
-    {% endfor %}
-})
-    <!--EXAM AJAX UPDATE FUNCTIONS-->
-    function updateQuestion(pk,field,value){
-        $.ajax({
-                url : "{% url 'update_question' %}",
-                type : "POST",
-                data : {
-                    'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                    'pk' : pk,
-                    'field' : field,
-                    'value' : value
-                },
-                beforeSend : function(){
-                    $('#loadingModal').modal('show');
-                },
-                complete: function () {
-                    $('#loadingModal').modal('hide');
-                },
-                success : function(result) {
-                    window.location.href += "?dataUpdated=true";
-                    window.location.reload();
-                }
-        });
-    }
-
-    function updateExamOptions(){
-        data = $("#form-exam-options").serialize();
-        $.ajax({
-                url : "{% url 'update_exam_options' exam.pk %}",
-                type : "POST",
-                data : data,
-                beforeSend : function(){
-                    $('#loadingModal').modal('show');
-                },
-                complete: function () {
-                    location.replace("{% url 'examInfo' exam.pk %}");
-                },
-                success: (data) => {
-                    $('#loadingModal').modal('hide');
-                    $('examOptionsModal').modal('hide');
-                }
-            });
-    }
-
   {% endblock %}
 
   {% block content %}
@@ -386,4 +260,133 @@ $(window).on("load",function(){
         </div>
     </div>
 </div>
+<script>
+
+
+$(window).on("load",function(){
+
+    $("#create-scale-button").modalForm({
+        formURL: "{% url 'create_scale' exam.pk %}"
+    });
+
+
+
+    <!--DISPLAY PDF CATALOG -->
+    $('#displayPdfModal').on('show.bs.modal', function (event) {
+        document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' exam.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
+    })
+
+    <!--QUESTIONS EVENTS-->
+    <!--question-common checkboxes-->
+    {% for question in exam.questions.all %}
+        $('#common-{{ question.pk }}-1').on('click', function() {
+        updateQuestion({{ question.pk }},'common', 1);
+        });
+        $('#common-{{ question.pk }}-2').on('click', function() {
+        updateQuestion({{ question.pk }},'common', 0);
+        });
+    {% endfor %}
+
+    <!--question-type button-groups-->
+    {% for question in exam.questions.all %}
+        $('#type-{{ question.pk }}-1').on('click', function() {
+        updateQuestion({{ question.pk }},'qtype', 1);
+        });
+        $('#type-{{ question.pk }}-2').on('click', function() {
+        updateQuestion({{ question.pk }},'qtype', 2);
+        });
+        $('#type-{{ question.pk }}-3').on('click', function() {
+        updateQuestion({{ question.pk }},'qtype', 3);
+        });
+        $('#type-{{ question.pk }}-4').on('click', function() {
+        updateQuestion({{ question.pk }},'qtype', 4);
+        });
+    {% endfor %}
+
+    <!--question-answers button-groups-->
+    {% for question in exam.questions.all %}
+        {% if question.qtype < 3 %}
+            $('#answers-{{ question.pk }}-1').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 1);
+            });
+            $('#answers-{{ question.pk }}-2').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 2);
+            });
+            $('#answers-{{ question.pk }}-3').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 3);
+            });
+            $('#answers-{{ question.pk }}-4').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 4);
+            });
+            $('#answers-{{ question.pk }}-5').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 5);
+            });
+            $('#answers-{{ question.pk }}-6').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 6);
+            });
+            $('#answers-{{ question.pk }}-7').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 7);
+            });
+            $('#answers-{{ question.pk }}-8').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 8);
+            });
+            $('#answers-{{ question.pk }}-9').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 9);
+            });
+            $('#answers-{{ question.pk }}-10').on('click', function() {
+            updateQuestion({{ question.pk }},'answers', 10);
+            });
+        {% endif %}
+    {% endfor %}
+
+    <!--question-max-pts input-->
+    {% for question in exam.questions.all %}
+        $('#maxpts-{{ question.pk }}').on('input', function() {
+        updateQuestion({{ question.pk }},'max_points', this.value);
+        });
+    {% endfor %}
+})
+    <!--EXAM AJAX UPDATE FUNCTIONS-->
+    function updateQuestion(pk,field,value){
+        $.ajax({
+                url : "{% url 'update_question' %}",
+                type : "POST",
+                data : {
+                    'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                    'pk' : pk,
+                    'field' : field,
+                    'value' : value
+                },
+                beforeSend : function(){
+                    $('#loadingModal').modal('show');
+                },
+                complete: function () {
+                    $('#loadingModal').modal('hide');
+                },
+                success : function(result) {
+                    window.location.href += "?dataUpdated=true";
+                    window.location.reload();
+                }
+        });
+    }
+
+    function updateExamOptions(){
+        data = $("#form-exam-options").serialize();
+        $.ajax({
+                url : "{% url 'update_exam_options' exam.pk %}",
+                type : "POST",
+                data : data,
+                beforeSend : function(){
+                    $('#loadingModal').modal('show');
+                },
+                complete: function () {
+                    location.replace("{% url 'examInfo' exam.pk %}");
+                },
+                success: (data) => {
+                    $('#loadingModal').modal('hide');
+                    $('examOptionsModal').modal('hide');
+                }
+            });
+    }
+</script>
 {% endblock %}

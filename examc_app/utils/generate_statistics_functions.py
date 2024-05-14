@@ -1,5 +1,6 @@
 # FUNCTIONS AND CLASSES FOR GENERATING STATISTICS
 #------------------------------------------
+from decimal import Decimal
 from statistics import *
 import logging
 import datetime
@@ -10,7 +11,7 @@ from scipy import stats
 from django.db.models import Max, Sum, Count, Q, FloatField
 from django.db import IntegrityError, transaction
 
-#from examc_app.utils.results_statistics_functions import *
+from examc_app.utils.results_statistics_functions import *
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
