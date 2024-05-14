@@ -541,13 +541,13 @@ def saveComment(request):
     if not comment_data['id'].startswith('c') :
         comment = PagesGroupComment.objects.get(pk=comment_data['id'])
         comment.content = comment_data['content']
-        comment.modified = datetime.datetime.now()
+        comment.modified = datetime.now()
         comment.save()
     else:
         comment = PagesGroupComment()
         comment.is_new=True
         comment.content = comment_data['content']
-        comment.created = datetime.datetime.now()
+        comment.created = datetime.now()
         comment.user_id = request.user.id
         comment.pages_group_id = request.POST['group_id']
         comment.copy_no = request.POST['copy_no']

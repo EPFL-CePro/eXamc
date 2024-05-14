@@ -41,7 +41,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Source LaTeX files</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
           </div>
           <div class="modal-body" style="height:75vh;">
             <div class="row" style="height:100%;">
@@ -58,8 +58,8 @@
             </div>
           </div>
           <div class="modal-footer">
-            <a type="button" class="btn btn-primary" onclick="">Save changes</a>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <a type="button" class="btn btn-dark btn-sm" onclick="">Save changes</a>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
   </div>
@@ -71,7 +71,7 @@
       <div class="modal-header">
         <h5 class="modal-title" id="edit_source_modal_title"></h5>
         <span id="edit_source_modal_filepath" hidden></span>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -79,8 +79,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <a type="button" class="btn btn-primary" onclick="saveEditedSourceFile();">Save changes</a>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a type="button" class="btn btn-dark btn-sm" onclick="saveEditedSourceFile();">Save changes</a>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -174,8 +174,10 @@ function saveEditedSourceFile(){
 }
 
 function amcUpdateDocuments(){
-    nb_copies = document.getElementById('number_of_copies').value;
-    $('#loadingModal').modal('show');
+    ajax_info_modal_msg = document.getElementById('ajax_info_modal_msg');
+    ajax_info_modal_msg.innerHTML = "Preparation could take some time. A dialog info will display when done !";
+    $('#ajax_info_modal').modal('show');
+    nb_copies = document.getElementById('number_of_copies_param').value;
     $.ajax({
         url: "{% url 'call_amc_update_documents' %}",
         type: "POST",
@@ -197,7 +199,9 @@ function amcUpdateDocuments(){
             console.log(error);
         },
         complete : function(){
-            $('#loadingModal').modal('hide');
+            ajax_info_modal_msg.innerHTML = "Preparation has been done !";
+            $('#ajax_info_modal').modal('show');
+            
         }
     });
 }

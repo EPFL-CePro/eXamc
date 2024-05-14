@@ -50,8 +50,8 @@
         <h6>Diagnosis</h6>
 
         <div class="mb-3" style="width:60%;">
-            <table id="table-copies-pages" class="table table-sm table-striped">
-            <thead style="width:100%;">
+            <table id="table-copies-pages" class="table table-sm table-striped" style="width:100%;">
+            <thead >
               <tr>
 
                 <th data-sortable="true">Copy</th>
@@ -257,7 +257,7 @@ $('#amc_scans_zip_file').on('change',function(){
 {% if data_pages %}
     var table = $("#table-copies-pages").DataTable( {
             scrollY: '55vh',
-                "dom": 'rtip',
+            "dom": 'rtip',
             "lengthChange": false,
             "paging": false
         } );
@@ -305,7 +305,9 @@ function callAutomaticDataCapture(){
     frmData = new FormData($("#amcScansFromLocalFrm")[0])
     frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
     frmData.append('exam_pk', {{ exam.pk }});
-    $('#loadingModal').modal('show');
+    ajax_info_modal_msg = document.getElementById('ajax_info_modal_msg');
+    ajax_info_modal_msg.innerHTML = "Automatic data capture could take some time. A dialog info will display when done !";
+    $('#ajax_info_modal').modal('show');
     $.ajax({
         url: "{% url 'call_amc_automatic_data_capture' %}",
         type: "POST",
@@ -319,7 +321,8 @@ function callAutomaticDataCapture(){
             console.log(error);
         },
         complete : function(){  
-            $('#loadingModal').modal('hide');
+            ajax_info_modal_msg.innerHTML = "Automatic data done !";
+            $('#ajax_info_modal').modal('show');
         }
     });  
 }

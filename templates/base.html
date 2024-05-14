@@ -32,16 +32,34 @@
     <script src="{% static 'js/palette.js' %}"></script>
 
 
-    <!-- JS datatables -->
-    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap5.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">
+    <!-- datatables -->
+
+<link href="https://cdn.datatables.net/2.0.7/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.bootstrap4.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/select/2.0.1/css/select.bootstrap4.min.css" rel="stylesheet">
+ 
+<script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.0.7/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/select/2.0.1/js/dataTables.select.min.js"></script>
+
+
+{#    <link href="https://cdn.datatables.net/v/bs4-4.6.0/dt-2.0.7/datatables.min.css" rel="stylesheet">#}
+{#    <script src="https://cdn.datatables.net/v/bs4-4.6.0/dt-2.0.7/datatables.min.js"></script>#}
+{#    <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap5.min.js"></script>#}
+{#    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">#}
+{#    <script src="https://cdn.datatables.net/select/2.0.1/js/dataTables.select.min.js"></script>#}
+{#    <link href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.bootstrap4.min.css" rel="stylesheet">#}
+{#    <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.bootstrap4.min.js"></script>#}
 
 
     <!-- CSS bootstrap -->
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.22.2/dist/bootstrap-table.min.css">
 
+    <!-- bootstrap-select -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
 
     <!-- CSS menubars -->
     <link rel="stylesheet" href="{% static 'css/menubars.css' %}">
@@ -77,8 +95,8 @@
             <ul class="list-group">
                 <li class="bg-dark list-group-item-action" >
                     <div class="d-flex w-100 " style="padding: 15px">
-                        <img id="examc_logo_small" src="{% static 'favicon.ico' %}" style="width:30px;height: 30px;background-color: #adadad; align-content: center"/>
-                        <span class="menu-collapsed" style="margin-right:5px;"><img id="examc_logo" src="{% static 'img/eXamc_x_white_200.png' %}" style="margin-left:-30px;width:100%;background-color: #000000"/></span>
+                        <img id="examc_logo_small" src="{% static 'img/eXamc_bg_transp_square_72.png' %}" style="width:30px;height: 30px; align-content: center"/>
+                        <span class="menu-collapsed" style="margin-right:5px;"><img id="examc_logo" src="{% static 'img/eXamc_bg_transp_200.png' %}" style="margin-left:-30px;width:100%;background-color: #000000"/></span>
                     </div>
                 </li>
                 <a href="{% url 'examSelect' %}" class="bg-dark list-group-item list-group-item-action">
@@ -111,8 +129,8 @@
                             </div>
                         </li>
                         {% endif %}
-                    {% endif %}
                     <hr class="hr-sidebar">
+                    {% endif %}
                     {% if exam.has_amc_option %}
                     <li class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
@@ -129,8 +147,8 @@
                             </ul>
                         </div>
                     </li>
-                    {% endif %}
                     <hr class="hr-sidebar">
+                    {% endif %}
                     {% if exam.has_res_and_stats_option %}
                     <a href="{% url 'studentsStats' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
@@ -164,8 +182,8 @@
                             <span class="menu-collapsed" style="margin-right:5px;">Export results</span>
                         </div>
                     </a>
-                    {% endif %}
                     <hr class="hr-sidebar">
+                    {% endif %}                   
                     {% if user|is_admin %}
                     <a href="{% url 'users' %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
@@ -216,6 +234,25 @@
 
                 {% endblock %}
 
+            </div>
+
+
+            <div class="modal fade" id="ajax_info_modal" tabindex="-1" role="dialog" aria-labelledby="ajaxInfoModal" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="ajax_info_modal_title">Process info</h5>
+                    <button type="button" class="close" onclick="$('#ajax_info_modal').modal('hide');"  aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body" id="ajax_info_modal_msg">
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="$('#ajax_info_modal').modal('hide');">OK</button>
+                  </div>
+                </div>
+              </div>
             </div>
         </div>
 

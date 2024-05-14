@@ -56,6 +56,10 @@ urlpatterns = [
     path('call_amc_generate_results',views.call_amc_generate_results, name="call_amc_generate_results"),
     path('amc_update_students_file/<int:pk>', views.amc_update_students_file, name="amc_update_students_file"),
     path('download_annotated_pdf/<int:pk>', views.download_annotated_pdf, name="download_annotated_pdf"),
+    path('amc_manual_association_data', views.amc_manual_association_data, name="amc_manual_association_data"),
+    path('amc_set_manual_association',views.amc_set_manual_association, name="amc_set_manual_association"),
+    path('amc_send_annotated_papers_data',views.amc_send_annotated_papers_data, name="amc_send_annotated_papers_data"),
+    path('call_amc_send_annotated_papers/<int:pk>', views.call_amc_send_annotated_papers, name="call_amc_send_annotated_papers"),
     # Results & Statistics
     path('catalogPdf/<int:pk>',views.display_catalog, name="catalogPdf"),
     path('catalogPdf/<int:pk>/<slug:searchFor>',views.display_catalog, name="catalogPdf"),

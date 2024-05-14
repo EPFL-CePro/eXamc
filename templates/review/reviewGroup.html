@@ -7,8 +7,7 @@
 <script type="text/javascript"  src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
 <script type="text/javascript" src="{% static 'js/jquery-comments.js' %}"></script>
 <script type="text/javascript" src="https://unpkg.com/markerjs2/markerjs2.js"></script>
-<script src="https://cdn.tiny.cloud/1/kr9ouegwtqai2kg8nadg9x584jbqawgxkc832sts20ujsde9/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-
+    
 <link rel="stylesheet" type="text/css" href="{% static 'css/jquery-comments.css' %}">
 
 {% endblock %}
@@ -397,7 +396,7 @@ $(window).on("load",function(){
             </div>
         </div>
     </div>
-    <div style="background-color:#f1f1f1;padding:20px;">
+    <div style="background-color:#f1f1f1;padding:20px;max-width:615px;">
         <div class="row">
             <div style="float:right;">
                 <a title="Discussion" id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" style="float:right;"  data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
@@ -431,7 +430,7 @@ $(window).on("load",function(){
                         </p>
                     </div>
                     <hr>
-                    <div id="grading-help-container" style="padding:5px;"><textarea id="grading-help_textarea"></textarea></div>
+                    <div id="grading-help" style="padding:10px;border:1px solide black;background-color: white;"><textarea id="grading-help-textarea"></textarea></div>
                 </div>
             </div>
 
@@ -442,18 +441,6 @@ $(window).on("load",function(){
 
 
 <script>
-tinymce.init({
-    selector: 'textarea#grading-help_textarea',
-    skin: 'bootstrap',
-    plugins: '',
-    toolbar: '',
-    menubar: false,
-    readonly: 1,
-    height: "750",
-});
-
-
-
 document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
     var commentIcon = $( "#comment-icon" );
     var collapseIcon = $( "#collapse-d-icon" );
@@ -487,8 +474,7 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
                 'pk' : {{ pages_group.id }},
             },
             success: (data) => {
-                tinymce.get("grading-help_textarea").setContent(data);
-                tinymce.activeEditor.mode.set("readonly");
+                document.getElementById("grading-help").innerHTML = data;
             },
             error: (error) => {
                 console.log(error);

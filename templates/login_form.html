@@ -5,7 +5,7 @@
     <form method="POST">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-dark">Login</button>
+        <button type="submit" class="btn btn-dark btn-sm">Login</button>
     {% for message in messages %}
     <div class="alert alert-danger" role="alert">
         {{ message }}

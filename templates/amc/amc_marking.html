@@ -51,7 +51,7 @@
     <div class="form-group row">
         <label class="col-sm-5">Papers/students association</label>
         <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="amc_automatic_association();"><img src="{% static 'img/amc_icons/amc-auto-assoc.png' %}" width="16px" height="16px" style="margin-right:10px;"/>Automatic</button>
-        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="" style="margin-left:10px;"><img src="{% static 'img/amc_icons/amc-manual-assoc.png' %}" width="16px" height="16px" style="margin-right:10px;"/>Manual</button>
+        <button type="button" class="btn btn-dark btn-sm col-sm-2" onclick="openManualAssociationDialog();" style="margin-left:10px;"><img src="{% static 'img/amc_icons/amc-manual-assoc.png' %}" width="16px" height="16px" style="margin-right:10px;"/>Manual</button>
     </div>
     <hr>
     {%  if count_missing_assoc == 0 %}
@@ -116,7 +116,7 @@
       <div class="modal-header">
         <h5 class="modal-title" id="edit_students_list_modal_title"></h5>
         <span id="students_list_filepath" hidden></span>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -124,8 +124,39 @@
         </div>
       </div>
       <div class="modal-footer">
-        <a type="button" class="btn btn-primary" onclick="saveStudentsListFile();">Save changes</a>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a type="button" class="btn btn-dark btn-sm" onclick="saveStudentsListFile();">Save changes</a>
+        <button type="button" class="btn  btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="manualAssociationDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Manual association</h6>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+      <div class="modal-body">
+          <table id="manual-association-table" class="table table-sm table-striped" style="max-height:200px;">
+            <thead>
+              <tr id="manual-association-table-thead">
+                  <th>Copy Nr.</th>
+                  <th>Automatic</th>
+                  <th>Manual</th>
+                  <th>img</th>
+                  <th>Student</th>
+              </tr>
+            </thead>
+            <tbody id="manual-association-table-tbody">
+                
+            </tbody>
+          </table>
+      </div>
+      <div class="modal-footer">
+        <a type="button" class="btn btn-dark btn-sm" onclick="saveManualAssociation();">Save changes</a>
+        <a class="btn btn-secondary btn-sm" onclick="$('#manualAssociationDialog').modal('hide');">Close</a>
       </div>
     </div>
   </div>
@@ -225,6 +256,187 @@ function openEditStudentsListDialog(){
             console.log(error);
         }
     });
+}
+$('#students_list_csv').change(amc_update_students_file);
+function amc_update_students_file (e) {
+    var files = e.target.files;
+    if (files.length === 1) {
+        $('#loadingModal').modal('show');
+        form = document.getElementById('students_list_csv_form');
+        formData = new FormData(form);
+        ok = 1;
+        $.ajax({
+            url: "{% url 'amc_update_students_file' exam.pk %}",
+            async : false,
+            type: "POST",
+            data : formData,
+            processData: false,
+            contentType: false,
+            success: (data) => {
+                error_div = document.getElementById('csv_import_error');
+                $('#loadingModal').modal('hide');
+                if(data!=='ok'){
+                    error_div.removeAttribute('hidden');
+                    error_div.innerHTML = data;
+                }else{
+                    error_div.setAttribute('hidden',"");
+                    location.replace("{% url 'amc_view' exam.pk 2 %}");
+                }               
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
+}
+function amc_mark() {
+    $('#loadingModal').modal('show');
+    update_scoring_strategy = document.getElementById('update_marking_scale').checked;
+    $.ajax({
+        url: "{% url 'call_amc_mark' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'update_scoring_strategy' : update_scoring_strategy,
+        },
+        success: (data) => {
+            $('#loadingModal').modal('hide');           
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+function amc_automatic_association() {
+    $('#loadingModal').modal('show');
+    assoc_primary_key = document.getElementById('automatic_assoc_primary_key').value;
+    $.ajax({
+        url: "{% url 'call_amc_automatic_association' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'assoc_primary_key' : assoc_primary_key,
+        },
+        success: (data) => {
+            $('#loadingModal').modal('hide');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+function openManualAssociationDialog(){
+    var table_body = document.getElementById('manual-association-table-tbody')
+    removeAllChildNodes(table_body);
+    $.ajax({
+        url: "{% url 'amc_manual_association_data' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+        },
+        success: (data) => {
+            full_data = JSON.parse(data)
+            data_assoc_json = JSON.parse(full_data["data_assoc"]);
+            data_students_json = JSON.parse(full_data["data_students"])
+
+            students_options = [];
+            opt_first = document.createElement("option");
+            opt_first.value = 0;
+            opt_first.text = "Select...";
+            students_options.push(opt_first);
+            for (var i = 1; i < data_students_json.length; i++) {
+                row_stud = data_students_json[i];
+                var option = document.createElement("option");
+                option.value = row_stud[0];
+                option.text = row_stud[1]+" - " +row_stud[2];
+                students_options.push(option);
+            }
+
+            for(let i = 0; i < data_assoc_json.length; i++) {
+                let row = data_assoc_json[i];
+                var tr = document.createElement('tr');
+                var td = document.createElement('td');
+                td.appendChild(document.createTextNode(row.student));
+                tr.appendChild(td);
+                var td = document.createElement('td');
+                auto = '';
+                if(row.auto !== null){
+                    auto = row.auto;
+                    }
+                td.appendChild(document.createTextNode(auto));
+                tr.appendChild(td);
+                var td = document.createElement('td');
+                manual = '';
+                if(row.manual !== null) {
+                    manual = row.manual;
+                }
+                td.appendChild(document.createTextNode(manual));
+                tr.appendChild(td);
+                var td = document.createElement('td');
+                var img = document.createElement('img');
+                img.src = row.image_path;
+                td.appendChild(img);
+                tr.appendChild(td);
+                var td = document.createElement('td');
+
+                var student_select = document.createElement('select');
+                student_select.id = "students-select"+i;
+                student_select.setAttribute("class","selectpicker");
+                student_select.setAttribute("data-style","btn-dark btn-sm");
+                student_select.setAttribute("data-live-search","true");
+                student_select.setAttribute("onchange","setManualAssociation("+i+",event);");
+                student_select.setAttribute("data-container", "body");
+                students_options.forEach(stud => {
+                    opt = stud.cloneNode(true);
+                    opt.set
+                    student_select.appendChild(stud.cloneNode(true));
+                });
+                td.appendChild(student_select);
+                tr.appendChild(td);
+                if(manual === '' && auto === ''){
+                    tr.style.backgroundColor = "#ff00009e";
+                }
+                table_body.appendChild(tr);
+            };
+
+            $('#manualAssociationDialog').modal('show');
+            $('.selectpicker').selectpicker();
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function setManualAssociation(copy_nr, event){
+    alert(event.target.value);
+    $.ajax({
+        url: "{% url 'amc_set_manual_association' %}",
+        async : false,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'copy_nr' : copy_nr,
+            'student_id' : event.target.value,
+        },
+        success: (data) => {
+            target = event.target;
+            tr = target.parentElement;
+            manual_td = tr.children[1]
+            manual_td.children[0].innerText = target.value;
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+
 }
 
 function saveStudentsListFile(){

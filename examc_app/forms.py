@@ -1,8 +1,8 @@
 import logging
 
 from django import forms
-from django.forms import modelformset_factory
-from .models import PagesGroup, Reviewer
+from django.forms import modelformset_factory, ModelForm
+from .models import PagesGroup, Reviewer, Exam
 
 
 class UploadScansForm(forms.Form):
@@ -86,3 +86,4 @@ class ExportResultsForm(forms.Form):
 
 
     scale = forms.ChoiceField(choices=(),widget=forms.RadioSelect(attrs={'class': "custom-radio-list form-check-inline"}),required=True)
+

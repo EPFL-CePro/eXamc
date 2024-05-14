@@ -6,7 +6,9 @@ from django.contrib.sites import requests
 from django.db.models import Q, Sum
 from django.http import HttpResponseRedirect, HttpResponseForbidden, HttpResponse
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.generic import DetailView, CreateView
 from django_tables2 import SingleTableView
 from django_tequila.django_backend import User
@@ -171,7 +173,6 @@ def update_exam(request):
 
     return HttpResponse(1)
 
-
 @login_required
 def set_final_scale(request, pk):
     final_scale = Scale.objects.get(id=pk)
@@ -193,7 +194,7 @@ def set_final_scale(request, pk):
 
     return redirect('../examInfo/' + str(scale.exam.pk))
 
-
+@login_required
 def documentation_view(request):
     doc_index_content = open(str(settings.DOCUMENTATION_ROOT)+"/index.html")
     return render(request, 'index.html')
@@ -205,3 +206,20 @@ def user_allowed(exam, user_id):
         return True
     else:
         return False
+
+@login_required
+def update_exam_options(request,pk):
+    if request.method == 'POST':
+        exam = Exam.objects.get(pk=pk)
+        exam.review_option = False
+        exam.amc_option = False
+        exam.res_and_stats_option = False
+        if 'review_option' in request.POST:
+            exam.review_option = True
+        if 'amc_option' in request.POST:
+            exam.amc_option = True
+        if 'res_and_stats_option' in request.POST:
+            exam.res_and_stats_option = True
+
+        exam.save()
+        return HttpResponse('ok')

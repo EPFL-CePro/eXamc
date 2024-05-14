@@ -88,32 +88,50 @@ $(window).on("load",function(){
         updateQuestion({{ question.pk }},'max_points', this.value);
         });
     {% endfor %}
-
+})
     <!--EXAM AJAX UPDATE FUNCTIONS-->
-
     function updateQuestion(pk,field,value){
-    $.ajax({
-    url : "{% url 'update_question' %}",
-    type : "POST",
-    data : {
-    'csrfmiddlewaretoken' : "{{ csrf_token }}",
-    'pk' : pk,
-    'field' : field,
-    'value' : value
-    },
-    beforeSend : function(){
-    $('#loadingModal').modal('show');
-    },
-    complete: function () {
-    $('#loadingModal').modal('hide');
-    },
-    success : function(result) {
-    window.location.href += "?dataUpdated=true";
-    window.location.reload();
+        $.ajax({
+                url : "{% url 'update_question' %}",
+                type : "POST",
+                data : {
+                    'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                    'pk' : pk,
+                    'field' : field,
+                    'value' : value
+                },
+                beforeSend : function(){
+                    $('#loadingModal').modal('show');
+                },
+                complete: function () {
+                    $('#loadingModal').modal('hide');
+                },
+                success : function(result) {
+                    window.location.href += "?dataUpdated=true";
+                    window.location.reload();
+                }
+        });
     }
-    });
+
+    function updateExamOptions(){
+        data = $("#form-exam-options").serialize();
+        $.ajax({
+                url : "{% url 'update_exam_options' exam.pk %}",
+                type : "POST",
+                data : data,
+                beforeSend : function(){
+                    $('#loadingModal').modal('show');
+                },
+                complete: function () {
+                    location.replace("{% url 'examInfo' exam.pk %}");
+                },
+                success: (data) => {
+                    $('#loadingModal').modal('hide');
+                    $('examOptionsModal').modal('hide');
+                }
+            });
     }
-    })
+
   {% endblock %}
 
   {% block content %}
@@ -150,6 +168,7 @@ $(window).on("load",function(){
             <th>Common</th>
             <th>Individual specific</th>
             {% endif %}
+            <th></th>
           </tr>
           <tr>
             <td>
@@ -192,6 +211,7 @@ $(window).on("load",function(){
               </ul></em>
             </td>
             {% endif %}
+            <td><button type="button" class="btn btn-light btn-sm" style="background-color: transparent;" onclick="$('#examOptionsModal').modal('show');"><i class="fas fa-ellipsis-v fa-2xl"></i></button></td>
           </tr>
         </table>
       </div>
@@ -332,5 +352,38 @@ $(window).on("load",function(){
     </div>
   </div>
 </div>
+</div>
+
+<div class="modal fade" id="examOptionsModal" tabindex="-1" aria-labelledby="examOptionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">Exam options</h5>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
+            </div>
+            <div class="modal-body">{{ exam.amc_option }}
+                <form id="form-exam-options" method="post" style="padding:20px;">
+                    {% csrf_token %}
+                    <div class="custom-control custom-switch mb-3">
+                      <input class="custom-control-input" type="checkbox" name="review_option" id="review_option_check" {% if exam.review_option == 1 %} checked {% endif %}>
+                      <label class="custom-control-label" for="review_option_check">Review module</label>
+                    </div>
+                    <div class="custom-control custom-switch mb-3">
+                      <input class="custom-control-input" type="checkbox"  name="amc_option" id="amc_option" {% if exam.amc_option == 1 %} checked {% endif %}>
+                      <label class="custom-control-label" for="amc_option">AMC module</label>
+                    </div>
+                    <div class="custom-control custom-switch mb-3">
+                      <input class="custom-control-input" type="checkbox"  name="res_and_stats_option" id="res_and_stats_option" {% if exam.res_and_stats_option == 1 %} checked {% endif %}>
+                      <label class="custom-control-label" for="res_and_stats_option">Results & stats module</label>
+                    </div>
+                    <div style="text-align: right;">
+                        <button type="button" onclick="updateExamOptions();" class="btn btn-dark btn-sm">Validate</button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
