@@ -164,14 +164,14 @@ class SeatingForm(forms.Form):
     # image_file = forms.ChoiceField(choices=IMAGE_FILES, label='Image file name',
     #                                widget=forms.Select(attrs={'id': 'id_image_file'}))
     csv_file = forms.MultipleChoiceField(choices=CSV_FILES, label='Room',
-                                         widget=forms.SelectMultiple(attrs={'id': 'id_csv_file'}))
+                                         widget=forms.SelectMultiple(attrs={'id': 'id_csv_file', 'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}))
     # export_file = forms.CharField(label='Export file name', widget=forms.TextInput(attrs={'id': 'id_export_file'}))
     numbering_option = forms.ChoiceField(choices=[('continuous', 'continuous'), ('special', 'special')],
                                          label='Numbering option',
                                          widget=forms.RadioSelect(
                                              attrs={'onchange': "showHideSpecialFile(this.value);"}))
     skipping_option = forms.ChoiceField(choices=[('noskip', 'no skip'), ('skip', 'skip')], label='Skip option',
-                                        widget=forms.RadioSelect(attrs={'onchange': "showHideSkipOption(this.value)", 'id': 'id_skipping_option'}))
+                                        widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value)", 'id': 'id_skipping_option'}))
     first_seat_number = forms.IntegerField(label='First seat number',
                                            widget=forms.NumberInput(attrs={'id': 'id_first_seat_number'}))
     last_seat_number = forms.IntegerField(label='Last seat number',
