@@ -1,0 +1,111 @@
+/*!
+ * Start Bootstrap - Simple Sidebar (https://startbootstrap.com/template-overviews/simple-sidebar)
+ * Copyright 2013-2017 Start Bootstrap
+ * Licensed under MIT
+(https://github.com/BlackrockDigital/startbootstrap-simple-sidebar/blob/master/LICENSE)
+ */
+/*#page-content-wrapper {*/
+/*    transition: margin-left 0.2s;*/
+/*}*/
+
+.bg-dark {
+  background-color: #000 !important;
+}
+
+
+ #body-row {
+    margin-left:0;
+    margin-right:0;
+
+}
+#sidebar-container {
+    min-height: 100vh;
+    background-color: #000000;
+    padding: 0;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+}
+li.bg-dark.list-group-item{
+    padding: 0 1.25rem;
+}
+li.bg-dark.list-group-item:hover{
+   background-color: #1d2124 !important;
+}
+.hr-sidebar{
+    border-top: 1px solid #404040;
+    width:90%;
+    margin-top:1px;
+    margin-bottom: 1px;
+}
+.dropdown-divider {
+  height: 0;
+  margin: 0.5rem 10px;
+  overflow: hidden;
+  border-top: 1px solid grey;
+}
+.container-fluid {
+    transition: margin-left .2s; /* If you want a transition effect */
+  /*padding: 230px;*/
+     width: 100%;
+    /*padding-right: 15px;*/
+   padding-left: 250px;
+    margin: 20px 0 20px 0;
+}
+
+/* Sidebar sizes when expanded and expanded */
+.sidebar-expanded {
+    width: 230px;
+}
+.sidebar-collapsed {
+    width: 60px;
+}
+
+/* Menu item*/
+#sidebar-container .list-group a {
+    height: 50px;
+    color: white;
+}
+
+/* Submenu item*/
+#sidebar-container .list-group .sidebar-submenu a {
+    height: 45px;
+    padding-left: 30px;
+}
+.sidebar-submenu {
+    font-size: 0.9rem;
+}
+
+/* Separators */
+.sidebar-separator-title {
+    background-color: #000000;
+    height: 35px;
+}
+.sidebar-separator {
+    background-color: #000000;
+    height: 25px;
+}
+.logo-separator {
+    background-color: #000000;
+    height: 60px;
+}
+
+/* Closed submenu icon */
+#sidebar-container .list-group .list-group-item[aria-expanded="false"] .submenu-icon::after {
+  content: " \f0d7";
+  font-family: FontAwesome;
+  display: inline;
+  text-align: right;
+  padding-left: 10px;
+}
+/* Opened submenu icon */
+#sidebar-container .list-group .list-group-item[aria-expanded="true"] .submenu-icon::after {
+  content: " \f0da";
+  font-family: FontAwesome;
+  display: inline;
+  text-align: right;
+  padding-left: 10px;
+}
+
+
