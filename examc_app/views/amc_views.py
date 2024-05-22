@@ -1,8 +1,10 @@
 import os
+from urllib import request
 
 from django.core.files.storage import FileSystemStorage
 from django.shortcuts import render
 
+import examc_app.views
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import import_csv_data
 from examc_app.utils.review_functions import *
@@ -352,3 +354,38 @@ def call_amc_generate_results(request):
     else:
         return HttpResponse(result)
 
+@login_required
+def amc_manual_association_data(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    data = get_amc_manual_association_data(exam)
+
+    return HttpResponse(json.dumps(data))
+
+def amc_set_manual_association(requst):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    copy_nr = request.POST['copy_nr']
+    student_id = request.POST['student_id']
+
+    result = set_amc_manual_association(exam,copy_nr,student_id)
+
+    return HttpResponse(result)
+
+def amc_send_annotated_papers_data(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    data = get_amc_send_annotated_papers_data(exam)
+
+    return HttpResponse(json.dumps(data))
+
+@login_required
+def call_amc_send_annotated_papers(request,pk):
+    if request.method == 'POST':
+        exam = Exam.objects.get(pk=pk)
+        selected_students = json.loads(request.POST['selected-students'])
+        email_subject = request.POST['email-subject']
+        email_body = request.POST['email-body']
+        email_column = request.POST['email-column']
+
+        result = amc_send_annotated_papers(exam,selected_students,email_subject,email_body,email_column)
+
+
+        return HttpResponse(json.dumps(result))

@@ -27,7 +27,17 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['vpaavpvm0011.xaas.epfl.ch','10.95.16.25']
 
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+# SECURITY
+X_FRAME_OPTIONS = 'DENY'
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 15768000 #6mois
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_HSTS_PRELOAD = True
+SECURE_BROWSER_XSS_FILTER = True
 
 
 # Application definition
@@ -52,16 +62,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # if XFrameOptionsMiddleware activated, there is an error
-    # Le chargement de « https://localhost:8000/catalogPdf/1 » dans un cadre est refusé par la directive « X-Frame-Options » définie à « DENY ».
-    #'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_tequila.middleware.TequilaMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
 ]
@@ -169,6 +177,16 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_URL = "/logout"
 LOGIN_REDIRECT_IF_NOT_ALLOWED = "/not_allowed"
 LOGIN_REDIRECT_TEXT_IF_NOT_ALLOWED = "Not allowed : please contact your admin"
+
+# Email configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.epfl.ch'  # SMTP server host
+EMAIL_PORT = 587  # SMTP server port (587 for TLS, 465 for SSL)
+EMAIL_USE_TLS = True  # True for TLS, False for SSL
+EMAIL_HOST_USER = 'noreply-cepro-exams'  # SMTP server username
+EMAIL_HOST_PASSWORD = 'NP!Cpr0_X@2022'  # SMTP server password
+EMAIL_USE_SSL = False  # Set to True if using SSL
+DEFAULT_FROM_EMAIL = 'noreply-cepro-exams@epfl.ch'  # Default sender email address
 
 LOGGING = {
     'version': 1,

@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="script room map">
+      <change beforePath="$PROJECT_DIR$/examc_app/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/forms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/room/seating_script.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/room/seating_script.html" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager" show_ignored="true" />
+  <component name="DjangoConsoleOptions" custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)">
+    <option name="myCustomStartScript" value="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+        <option value="HTML File" />
+      </list>
+    </option>
+  </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="2g5ZmSA5TBa0zKzGyvhggAcZAat" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Django Server.eXamc.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form.executor": "Run",
+    "Django tests.Test: examc_app.tests.test_forms.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_models.StudentTestCase.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_models.executor": "Debug",
+    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.pycharm.django.structure.promotion.once.per.project": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "django.template.preview.state": "SHOW_EDITOR",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/lucile/eXamc/examc_app/scripts/csv_special_numbers",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/examc_app/scripts/csv_special_numbers" />
+      <recent name="$PROJECT_DIR$/examc_app/scripts" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/review/images" />
+      <recent name="$PROJECT_DIR$/docs/images" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/docs/source/_static" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/review" />
+      <recent name="$PROJECT_DIR$/docs/source/modules" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Django Server.eXamc">
+    <configuration name="Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="TARGET" value="examc_app.tests.test_forms.FormsTestCase.test_export_results_form" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="TARGET" value="examc_app.tests.test_forms.FormsTestCase.test_login_pages_form" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="TARGET" value="examc_app.tests.test_models.StudentQuestionAnswerTestCase" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Test: examc_app.tests.test_models.StudentTestCase" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="TARGET" value="examc_app.tests.test_models.StudentTestCase" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="eXamc" type="Python.DjangoServer" factoryName="Django server">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="DEBUG" value="1" />
+        <env name="PYDEVD_USE_CYTHON" value="NO" />
+        <env name="DJANGO_SETTINGS_MODULE" value="examc.settings" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.12 (eXamc)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <option name="port" value="8000" />
+      <option name="host" value="localhost" />
+      <option name="additionalOptions" value="" />
+      <option name="browserUrl" value="" />
+      <option name="runTestServer" value="false" />
+      <option name="runNoReload" value="false" />
+      <option name="useCustomRunCommand" value="true" />
+      <option name="customRunCommand" value="runsslserver" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Django Server.eXamc" />
+      <item itemvalue="Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form" />
+      <item itemvalue="Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form" />
+      <item itemvalue="Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase" />
+      <item itemvalue="Django tests.Test: examc_app.tests.test_models.StudentTestCase" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form" />
+        <item itemvalue="Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form" />
+        <item itemvalue="Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase" />
+        <item itemvalue="Django tests.Test: examc_app.tests.test_models.StudentTestCase" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-1d06a55b98c1-91d5c284f522-JavaScript-PY-241.15989.155" />
+        <option value="bundled-python-sdk-babbdf50b680-7c6932dee5e4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.15989.155" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="" />
+      <created>1714989558341</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1714989558341</updated>
+      <workItem from="1714989559408" duration="16320000" />
+      <workItem from="1715073577976" duration="10877000" />
+      <workItem from="1715152023539" duration="24517000" />
+      <workItem from="1715599989760" duration="18709000" />
+      <workItem from="1715680890209" duration="80144000" />
+    </task>
+    <task id="LOCAL-00001" summary="test models">
+      <option name="closed" value="true" />
+      <created>1715073801179</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1715073801179</updated>
+    </task>
+    <task id="LOCAL-00002" summary="test and doc">
+      <option name="closed" value="true" />
+      <created>1715172133307</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1715172133307</updated>
+    </task>
+    <task id="LOCAL-00003" summary="minor changes">
+      <option name="closed" value="true" />
+      <created>1715172223956</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1715172223956</updated>
+    </task>
+    <task id="LOCAL-00004" summary="review documentation">
+      <option name="closed" value="true" />
+      <created>1715610189761</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1715610189761</updated>
+    </task>
+    <task id="LOCAL-00005" summary="upd">
+      <option name="closed" value="true" />
+      <created>1715679504301</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1715679504301</updated>
+    </task>
+    <task id="LOCAL-00006" summary="script room map">
+      <option name="closed" value="true" />
+      <created>1716360504218</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1716360504218</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="test models" />
+    <MESSAGE value="test and doc" />
+    <MESSAGE value="minor changes" />
+    <MESSAGE value="review documentation" />
+    <MESSAGE value="upd" />
+    <MESSAGE value="script room map" />
+    <option name="LAST_COMMIT_MESSAGE" value="script room map" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/examc_app/views/review_views.py</url>
+          <line>757</line>
+          <option name="timeStamp" value="17" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_forms_FormsTestCase_test_login_pages_form.coverage" NAME="Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form Coverage Results" MODIFIED="1715079979913" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_models_StudentTestCase.coverage" NAME="Test: examc_app.tests.test_models.StudentTestCase Coverage Results" MODIFIED="1715064306148" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_forms_FormsTestCase_test_export_results_form.coverage" NAME="Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form Coverage Results" MODIFIED="1715165789871" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_models_StudentQuestionAnswerTestCase.coverage" NAME="Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase Coverage Results" MODIFIED="1715073614632" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_models.coverage" NAME="Test: examc_app.tests.test_models Coverage Results" MODIFIED="1715073197790" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_forms.coverage" NAME="Test: examc_app.tests.test_forms Coverage Results" MODIFIED="1715165414051" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+  </component>
+</project>

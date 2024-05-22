@@ -3,17 +3,29 @@ Review
 
 The Review module is dedicated to reviewing open questions in an exam.
 
-Review Settings
----------------
+**Select question**
 
-The settings allow you to define the page groups for each open question, and the assignment of reviewers for the questions.
+The "review" menu display the the open question that be corrected.
 
-Review Summary
-~~~~~~~~~~~~~~
+.. image:: images/review_select_question.png
+   :width: 800
 
-This section provides a summary of the review process.
+**Selected question**
+
+Once the question has been selected, many correction tools are available. On the left, the information about the copy being corrected
+such as the number, page and whether or not the copy is annotated.
+
+In the centre are the markers tools for drawing and writing to correct the question.
+
+On the right is the discussion area and the "grading help".
+
+.. image:: images/review_correction_question.png
+   :width: 800
+
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    review-settings
-
+   review-upload
+   review-export

@@ -1,12 +1,13 @@
 import base64
+import json
 import os
 import shutil
-import sqlite3
 import zipfile
 from pathlib import Path
 import csv
 import chardet
 import pandas as pd
+import logging
 
 import xmltodict
 import subprocess
@@ -16,10 +17,15 @@ from datetime import datetime
 
 
 from django.conf import settings
-
+from django.core.exceptions import ValidationError
+from django.core.mail import EmailMessage
+from django.core.validators import validate_email
+from setuptools import glob
 
 from examc_app.utils.amc_db_queries import *
 
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 def get_amc_update_document_info(exam):
     info = ''
@@ -184,8 +190,14 @@ def amc_layout_detection(exam):
 def amc_automatic_data_capture(exam,zip_file):
     project_path = get_amc_project_path(exam, False)
     tmp_dir_path = project_path+"/tmp"
-    if not os.path.exists(tmp_dir_path):
-        os.mkdir(tmp_dir_path)
+
+    if os.path.exists(tmp_dir_path):
+        try:
+            shutil.rmtree(tmp_dir_path)
+        except Exception as e:
+            t = ''
+
+    os.mkdir(tmp_dir_path)
 
     file_list_path = tmp_dir_path+"/list-file"
     tmp_file_list = open(file_list_path, "a")
@@ -205,14 +217,9 @@ def amc_automatic_data_capture(exam,zip_file):
         zip_ref.extractall(tmp_extract_path)
 
     i = 0
-    for file in os.listdir(tmp_extract_path):
-        if os.path.isdir(file):
-            for file in os.listdir(file):
-                i += 1
-                tmp_file_list.write(tmp_extract_path+file+"\n")
-        else:
-            i += 1
-            tmp_file_list.write(tmp_extract_path + "/" + file + "\n")
+    files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
+    for file in files:
+        tmp_file_list.write(file + "\n")
 
     tmp_file_list.close()
 
@@ -246,7 +253,8 @@ def amc_automatic_data_capture(exam,zip_file):
                              '--prop '+box_prop+' '
                              '--data "'+project_path+'/data/" '
                              '--projet "'+project_path+'" '
-                             '--liste-fichiers "'+file_list_path+'" ']
+                             '--liste-fichiers "'+file_list_path+'" '
+                             '--try-three ']
                             , shell=True
                             , capture_output=True
                             , text=True)
@@ -737,3 +745,104 @@ def get_amc_results_file_path(exam):
         return results_csv_path
 
     return None
+
+def get_amc_manual_association_data(exam):
+    project_path = get_amc_project_path(exam, False)
+    amc_assoc_img_path = get_amc_project_url(exam) + "/cr/"
+
+    if project_path:
+        amc_data_path = project_path+"/data/"
+        data_assoc = select_associations(amc_data_path,amc_assoc_img_path)
+
+        students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
+        file = open(students_list, "r")
+        students_data = list(csv.reader(file, delimiter=","))
+
+        return {"data_assoc":json.dumps(data_assoc),"data_students":json.dumps(students_data)}
+
+    return ''
+def set_amc_manual_association(exam,copy_nr,student_id):
+    project_path = get_amc_project_path(exam, False)
+    result = ''
+    if project_path:
+        amc_data_path = project_path + "/data/"
+        result = update_association(amc_data_path, copy_nr, student_id)
+
+    return result
+
+def get_amc_send_annotated_papers_data(exam):
+    project_path = get_amc_project_path(exam, False)
+
+    if project_path:
+        amc_data_path = project_path + "/data/"
+        data = select_students_report(amc_data_path)
+
+        students_list_file = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
+        students_list = None
+        with open(students_list_file, 'r') as f:
+            dict_reader = csv.DictReader(f)
+            students_list = list(dict_reader)
+
+        students_data = []
+        assoc_key = get_amc_option_by_key(exam, 'liste_key')
+        for copy in data:
+            for student in students_list:
+                if student[assoc_key] == copy['copy']:
+                    merged_dict = copy.copy()
+                    for key, value in student.items():
+                        if key != assoc_key:
+                            merged_dict[key] = value
+                    students_data.append(merged_dict)
+
+
+        return students_data
+
+    return ''
+
+def amc_send_annotated_papers(exam,selected_students,email_subject,email_body,email_column):
+
+    result = 'ok'
+    project_path = get_amc_project_path(exam, False)
+    amc_data_path = project_path+"/data/"
+    result_list = []
+    count_sent = 0
+    count_error = 0
+    for student in selected_students:
+        student_send_result = student["copy"] + " - " + student["email"] + " : "
+        try:
+            validate_email(student['email'])
+        except ValidationError as e:
+            student_send_result += "Failed to send email: " + repr(e)
+            logger.error(result)
+            count_error += 1
+            update_report_student(amc_data_path, student["id"], time.time(), 100, repr(e))
+            result_list.append(student_send_result)
+        else:
+            # Create EmailMessage object
+            email = EmailMessage(
+                email_subject,  # Subject
+                email_body,  # HTML content
+                'noreply-cepro-exams@epfl.ch',  # From email address
+                [student['email']]  # To email addresses
+            )
+
+            annotated_pdf_path = get_annotated_pdf_path(amc_data_path,student["id"])
+
+            # Set content type to HTML
+            email.content_subtype = "html"
+            email.attach_file(project_path+"/cr/corrections/pdf/"+annotated_pdf_path)
+
+            try:
+                # Send email
+                email.send()
+                student_send_result += "email sent !"
+                count_sent += 1
+                update_report_student(amc_data_path, student["id"], time.time(), 1,'')
+            except Exception as e:
+                student_send_result += "Failed to send email: "+repr(e)
+                logger.error(result)
+                count_error += 1
+                update_report_student(amc_data_path,student["id"],time.time(),100,repr(e))
+                result_list.append(student_send_result)
+
+    return [count_sent, count_error, result_list]

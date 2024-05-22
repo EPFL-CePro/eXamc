@@ -1,5 +1,6 @@
 # FUNCTIONS AND CLASSES FOR GENERATING STATISTICS
 #------------------------------------------
+from decimal import Decimal
 from statistics import *
 import logging
 import datetime

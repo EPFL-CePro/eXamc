@@ -13,6 +13,7 @@ from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirec
 from django.contrib import messages
 from django.shortcuts import render
 from django.shortcuts import redirect
+from django.views.decorators.clickjacking import xframe_options_exempt
 
 from examc_app.forms import ExportResultsForm
 
@@ -294,6 +295,7 @@ def questions_statistics_view(request,pk):
 
 # PDF
 # ------------------------------------------
+@xframe_options_exempt
 @login_required
 def display_catalog(request, pk):
     exam = Exam.objects.get(pk=pk)

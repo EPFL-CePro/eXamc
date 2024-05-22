@@ -34,6 +34,7 @@ urlpatterns = ([
     path('home',views.home, name='home'),
     path('examSelect', login_required(views.ExamSelectView.as_view(), login_url='/'), name="examSelect"),
     path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
+    path('update_exam_options/<int:pk>', views.update_exam_options, name='update_exam_options'),
     path('select_exam/<int:pk>', login_required(views.select_exam), name="select_exam"),
     path('getCommonExams/<int:pk>', views.getCommonExams, name="getCommonExams"),
     path('create_scale/<int:pk>', login_required(views.ScaleCreateView.as_view()), name="create_scale"),

@@ -8,6 +8,72 @@
 
 {% block scripts %}
 
+
+
+    {% endblock %}
+
+    {% block content %}
+{% if user_allowed %}
+    <h4>General Statistics</h4>
+
+    {% if exam.scaleStatistics.all %}
+
+    {% if exam.is_overall %}
+    <ul class="nav nav-pills flex-column flex-sm-row border" id="general-statistics-pills-tab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link active" id="global-tab" data-toggle="pill" href="#pills-global" role="tab" aria-controls="pills-global" aria-selected="true">Global</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link" id="byTeacher-tab" data-toggle="pill" href="#pills-byTeacher" role="tab" aria-controls="pills-byTeacher" aria-selected="false">By Teacher</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link" id="bySection-tab" data-toggle="pill" href="#pills-bySection" role="tab" aria-controls="pills-bySection" aria-selected="false">By Section</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link" id="commVsInd-tab" data-toggle="pill" href="#pills-commVsIndiv" role="tab" aria-controls="pills-commVsIndiv" aria-selected="false">Common vs Individual</a>
+      </li>
+      {% if correlation_list %}
+      <li class="nav-item" role="presentation">
+        <a class="flex-sm-fill text-sm-center nav-link" id="correlation-tab" data-toggle="pill" href="#pills-correlation" role="tab" aria-controls="pills-correlation" aria-selected="false">Common vs Individual Correlation</a>
+      </li>
+      {% endif %}
+    </ul>
+    <div class="tab-content" id="general-statistics-pills-tabContent"">
+      <div class="tab-pane fade show active" id="pills-global" role="tabpanel" aria-labelledby="pills-global-tab">
+    {% endif %}
+
+        <!-- global statistics -->
+        {% include "./general_statistics_global.html" %}
+
+    {% else %}
+        <div class="alert alert-warning">
+          <h4 class="alert-heading">Warning!</h4>
+          <p class="mb-0">No data found for this exam. Please check there is minimum one scale defined in Exam Info !</a></p>
+        </div>
+    {% endif %}
+
+    {% if exam.is_overall %}
+      </div>
+      <div class="tab-pane fade" id="pills-byTeacher" role="tabpanel" aria-labelledby="pills-byTeacher-tab">
+        {% include "./general_statistics_byTeacher.html" %}
+      </div>
+      <div class="tab-pane fade" id="pills-bySection" role="tabpanel" aria-labelledby="pills-bySection-tab">
+        {% include "./general_statistics_bySection.html" %}
+      </div>
+      <div class="tab-pane fade" id="pills-commVsIndiv" role="tabpanel" aria-labelledby="pills-commVsIndiv-tab">
+        {% include "./general_statistics_comVsInd.html" %}
+      </div>
+      {% if correlation_list %}
+      <div class="tab-pane fade" id="pills-correlation" role="tabpanel" aria-labelledby="pills-correlation-tab">
+        {% include "./general_statistics_comVsInd_correlation.html" %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    
+<script>
+
+
 /* define palette size */
 {% if exam.is_overall %}
 var paletteSize = {{ exam.common_exams.all|length }}+1;
@@ -470,69 +536,7 @@ var general_stats_chart_config = {
       {% endfor %}
 
     });
-
-
-
-    {% endblock %}
-
-    {% block content %}
-{% if user_allowed %}
-    <h4>General Statistics</h4>
-
-    {% if exam.scaleStatistics.all %}
-
-    {% if exam.is_overall %}
-    <ul class="nav nav-pills flex-column flex-sm-row border" id="general-statistics-pills-tab" role="tablist">
-      <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link active" id="global-tab" data-toggle="pill" href="#pills-global" role="tab" aria-controls="pills-global" aria-selected="true">Global</a>
-      </li>
-      <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link" id="byTeacher-tab" data-toggle="pill" href="#pills-byTeacher" role="tab" aria-controls="pills-byTeacher" aria-selected="false">By Teacher</a>
-      </li>
-      <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link" id="bySection-tab" data-toggle="pill" href="#pills-bySection" role="tab" aria-controls="pills-bySection" aria-selected="false">By Section</a>
-      </li>
-      <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link" id="commVsInd-tab" data-toggle="pill" href="#pills-commVsIndiv" role="tab" aria-controls="pills-commVsIndiv" aria-selected="false">Common vs Individual</a>
-      </li>
-      {% if correlation_list %}
-      <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link" id="correlation-tab" data-toggle="pill" href="#pills-correlation" role="tab" aria-controls="pills-correlation" aria-selected="false">Common vs Individual Correlation</a>
-      </li>
-      {% endif %}
-    </ul>
-    <div class="tab-content" id="general-statistics-pills-tabContent"">
-      <div class="tab-pane fade show active" id="pills-global" role="tabpanel" aria-labelledby="pills-global-tab">
-    {% endif %}
-
-        <!-- global statistics -->
-        {% include "./general_statistics_global.html" %}
-
-    {% else %}
-        <div class="alert alert-warning">
-          <h4 class="alert-heading">Warning!</h4>
-          <p class="mb-0">No data found for this exam. Please check there is minimum one scale defined in Exam Info !</a></p>
-        </div>
-    {% endif %}
-
-    {% if exam.is_overall %}
-      </div>
-      <div class="tab-pane fade" id="pills-byTeacher" role="tabpanel" aria-labelledby="pills-byTeacher-tab">
-        {% include "./general_statistics_byTeacher.html" %}
-      </div>
-      <div class="tab-pane fade" id="pills-bySection" role="tabpanel" aria-labelledby="pills-bySection-tab">
-        {% include "./general_statistics_bySection.html" %}
-      </div>
-      <div class="tab-pane fade" id="pills-commVsIndiv" role="tabpanel" aria-labelledby="pills-commVsIndiv-tab">
-        {% include "./general_statistics_comVsInd.html" %}
-      </div>
-      {% if correlation_list %}
-      <div class="tab-pane fade" id="pills-correlation" role="tabpanel" aria-labelledby="pills-correlation-tab">
-        {% include "./general_statistics_comVsInd_correlation.html" %}
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
+</script>
 {% else %}
 
 <h4>You are not allowed to view this page !</h4>

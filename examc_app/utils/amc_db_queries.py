@@ -345,3 +345,75 @@ def get_count_missing_associations(amc_data_path):
     db.close()
 
     return count
+
+def select_associations(amc_data_path,amc_assoc_img_path):
+    db = AMC_DB(amc_data_path + "association.sqlite")
+    db.cur.execute("ATTACH DATABASE '" + amc_data_path + "capture.sqlite' as capture")
+    query_str = ("SELECT aa.*, '"+amc_assoc_img_path+"' || cz.image as image_path "
+                 "FROM association_association aa "
+                 "INNER JOIN capture_zone cz ON cz.student = aa.student "
+                 "WHERE cz.type = 2")
+
+    response = db.execute_query(query_str)
+    colname_assoc = [d[0] for d in response.description]
+    assoc_details = [dict(zip(colname_assoc, r)) for r in response.fetchall()]
+
+    db.close()
+
+    return assoc_details
+
+def update_association(amc_data_path, copy_nr, student_id):
+    db = AMC_DB(amc_data_path + "association.sqlite")
+    query_str = ("UPDATE association_association "
+                 "SET manual = '"+student_id+"' "
+                 "WHERE student = "+copy_nr)
+
+    response = db.execute_query(query_str)
+
+    db.close()
+
+    return response
+
+def select_students_report(amc_data_path):
+    db = AMC_DB(amc_data_path + "report.sqlite")
+    db.cur.execute("ATTACH DATABASE '" + amc_data_path + "association.sqlite' as association")
+    query_str = ("SELECT rs.student as id, coalesce(aa.auto,aa.manual) as copy, "
+                 "rs.mail_status as status, rs.mail_message as error, rs.mail_timestamp as date "
+                 "FROM report_student rs "
+                 "INNER JOIN association_association aa "
+                 "WHERE rs.student = aa.student")
+
+    response = db.execute_query(query_str)
+    colname_rep = [d[0] for d in response.description]
+    rep_details = [dict(zip(colname_rep, r)) for r in response.fetchall()]
+
+    db.close()
+
+    return rep_details
+
+def get_annotated_pdf_path(amc_data_path,student_id):
+    db = AMC_DB(amc_data_path + "report.sqlite")
+    query_str = ("SELECT file FROM report_student WHERE student = "+student_id)
+
+    response = db.execute_query(query_str)
+    file = None
+    if response:
+        file = response.fetchall()[0]['file']
+
+    db.close()
+
+    return file
+
+def update_report_student(amc_data_path,student,mail_timestamp,mail_status,mail_message=''):
+    db = AMC_DB(amc_data_path + "report.sqlite")
+    query_str = ("UPDATE report_student "
+                 "SET mail_status = "+str(mail_status)+", "
+                 "mail_timestamp = "+str(int(mail_timestamp))+", "
+                 "mail_message = '"+mail_message.replace("'","''") + "' "
+                 "WHERE student = " + student)
+
+    response = db.execute_query(query_str)
+
+    db.close()
+
+    return response

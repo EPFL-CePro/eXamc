@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% block extra_head %}
+
+{% endblock %}
+
+{% block title %}Seating plan{% endblock %}
+
+{% block content %}
+    <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
+
+    <form id="special-form" method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="fieldWrapper row" id="DIV-{{ field.name }}"
+                 style="padding: 10px;{% if field.name == 'special_file' %}display:none;{% endif %}">
+{#                {{ field.errors }}#}
+                <div class="col col-sm-2" >
+                    {{ field.label_tag }}
+                </div>
+                <div class="col col-sm-4">
+                    {{ field }}
+                </div>
+
+            </div>
+        {% endfor %}
+
+        <button class="btn btn-dark btn-sm" type="submit">Download Seat Map</button>
+    </form>
+
+    <script>
+       function showHideSpecialFile(value) {
+           specials = ['special','skip'];
+           skip_opt = $("input[name='skipping_option']:checked").val()
+           num_opt = $("input[name='numbering_option']:checked").val()
+            el = $("#DIV-special_file")
+            if (specials.includes(skip_opt) || specials.includes(num_opt)) {
+                el.css("display", "");
+            } else {
+                el.css("display", "none");
+            }
+           // el.load(window.location.href+" #special_file");
+        }
+
+
+    </script>
+{% endblock %}
