@@ -3,6 +3,8 @@ import os
 
 from django import forms
 from django.forms import modelformset_factory, ModelForm
+
+from examc import settings
 from .models import PagesGroup, Reviewer, Exam
 
 
@@ -154,8 +156,8 @@ class ExportResultsForm(forms.Form):
 #     ('CE_1515_bas.csv', 'CE_1515_bas.csv'),
 #     ('BS_160.csv', 'BS_160.csv'),
 # ]
-CSV_DIR = 'examc_app/scripts/csv/'
-JPG_DIR = 'examc_app/scripts/map/'
+CSV_DIR = str(settings.ROOMS_PLANS_ROOT)+"/csv/"
+JPG_DIR = str(settings.ROOMS_PLANS_ROOT)+"/map/"
 CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
 IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
 
@@ -164,12 +166,12 @@ class SeatingForm(forms.Form):
     # image_file = forms.ChoiceField(choices=IMAGE_FILES, label='Image file name',
     #                                widget=forms.Select(attrs={'id': 'id_image_file'}))
     csv_file = forms.MultipleChoiceField(choices=CSV_FILES, label='Room',
-                                         widget=forms.SelectMultiple(attrs={'id': 'id_csv_file', 'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}))
+                                         widget=forms.SelectMultiple(attrs={"data-tooltip": "test", "data-tooltip-location":"top",'id': 'id_csv_file', 'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}))
     # export_file = forms.CharField(label='Export file name', widget=forms.TextInput(attrs={'id': 'id_export_file'}))
     numbering_option = forms.ChoiceField(choices=[('continuous', 'continuous'), ('special', 'special')],
                                          label='Numbering option',
                                          widget=forms.RadioSelect(
-                                             attrs={'onchange': "showHideSpecialFile(this.value);"}))
+                                             attrs={"data-tooltip": "text info", 'onchange': "showHideSpecialFile(this.value);"}))
     skipping_option = forms.ChoiceField(choices=[('noskip', 'no skip'), ('skip', 'skip')], label='Skip option',
                                         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value)", 'id': 'id_skipping_option'}))
     first_seat_number = forms.IntegerField(label='First seat number',

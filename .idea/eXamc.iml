@@ -14,6 +14,9 @@
   </component>
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/amc_projects/2024" />
+      <excludeFolder url="file://$MODULE_DIR$/marked_scans/2024" />
+      <excludeFolder url="file://$MODULE_DIR$/scans/2024" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
     </content>
     <orderEntry type="inheritedJdk" />
