@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% block extra_head %}
+
+{% endblock %}
+
+{% block title %}Seating plan{% endblock %}
+
+{% block content %}
+    <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
+
+    <form id="special-form" method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="fieldWrapper" id="DIV-{{ field.name }}"
+                 {% if field.name == 'special_file' %}style="display:none;"{% endif %}>
+{#                {{ field.errors }}#}
+                {{ field.label_tag }} {{ field }}
+            </div>
+        {% endfor %}
+
+        <button class="btn btn-success" type="submit">Download Seat Map</button>
+    </form>
+
+    <script>
+       function showHideSpecialFile(value) {
+            el = $("#DIV-special_file")
+            if (value === 'special') {
+                el.css("display", "block");
+            } else {
+                el.css("display", "none");
+            }
+           // el.load(window.location.href+" #special_file");
+        }
+         function showHideSkipOption(value) {
+            el = $("#DIV-special_file")
+            if (value === 'skip') {
+                el.css("display", "block");
+            } else {
+                el.css("display", "none");
+            }
+            //el.load(window.location.href+" #special_file");
+        }
+       
+    </script>
+{% endblock %}

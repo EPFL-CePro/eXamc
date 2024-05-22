@@ -44,6 +44,10 @@ Contents
 
    modules/review/review
    modules/amc/amc
+   modules/statistic/statistics
+   modules/admin/users
+   modules/admin/admin
+
 
 Indices and tables
 ------------------

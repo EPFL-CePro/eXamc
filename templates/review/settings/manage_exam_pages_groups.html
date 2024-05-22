@@ -274,7 +274,7 @@ function openModalCorrectorBox(group_id) {
     });
 }
 function updateMarkers(){
-    state = JSON.stringify(markerArea.getState());
+    var state = JSON.stringify(markerArea.getState());
     $.ajax({
         url : "{% url 'update_page_group_markers' %}",
         async : false,
