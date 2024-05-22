@@ -188,6 +188,10 @@ EMAIL_HOST_PASSWORD = 'NP!Cpr0_X@2022'  # SMTP server password
 EMAIL_USE_SSL = False  # Set to True if using SSL
 DEFAULT_FROM_EMAIL = 'noreply-cepro-exams@epfl.ch'  # Default sender email address
 
+# Rooms plans pathes
+ROOMS_PLANS_ROOT = BASE_DIR / 'rooms_plans'
+ROOMS_PLANS_URL = '/rooms_plans/'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

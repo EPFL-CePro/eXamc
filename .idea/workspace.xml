@@ -4,9 +4,134 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="script room map">
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="script room map v1">
+      <change afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/export/AAC_120_export.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/export/BS_160_export.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/export/CE_1_1_export.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/eXamc.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/eXamc.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/room/seating_script.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/room/seating_script.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/AAC_120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/AAC_132.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/AAC_137.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/AAC_231.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/BCH_2201.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/BS_150.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/BS_150_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_150_soft.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/BS_160.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_160.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/BS_170.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_170.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/BS_260.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_260.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/BS_270.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_270.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1100.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1100.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1104.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1104.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1105.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1105.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1106.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1106.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1515_bas.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_bas.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1515_haut.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_haut.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1_1.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_1.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1_2.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_2.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1_3.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_3.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1_4.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_4.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1_5.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_5.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1_6.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_6.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_1_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_soft.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CE_3_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_3_soft.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CH_B3_30.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CH_B3_30.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CM_1106.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1106.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CM_1120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1120.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CM_1121.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1121.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CM_1_1.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_1.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CM_1_2.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_2.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CM_1_3.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_3.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CM_1_4.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_4.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CM_1_5.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_5.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CO_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_01.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CO_02.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_02.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/CO_03.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_03.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/INJ_218.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/INJ_218.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/MA_A1_10.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_10.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/MA_A1_12.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_12.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/PO_01_exam.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_exam.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/PO_01_old.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/PO_01_old_exam.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old_exam.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/SG_0211.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_0211.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/SG_0213.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_0213.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/SG_1138.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_1138.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/STCC_A.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_A.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/STCC_B.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_B.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/STCC_C.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_C.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/STCC_D.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_D.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/STCC_E.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_E.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/STCC_F.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_F.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/STCC_G.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_G.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/csv/STCC_H.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_H.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/export/AAC_120.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/export/AAC_132.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/export/AAC_137.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/export/AAC_231.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/export/CE_1106.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/export/CE_1_2.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/export/test.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/generate_seating.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/utils/rooms_plans_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/AAC_120.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/AAC_120.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/AAC_132.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/AAC_132.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/AAC_137.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/AAC_137.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/AAC_231.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/AAC_231.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/BCH_2201.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BCH_2201.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/BS_150.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_150.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/BS_160.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_160.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/BS_170.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_170.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/BS_260.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_260.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/BS_270.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_270.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1100.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1100.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1101.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1101.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1104.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1104.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1105.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1105.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1106.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1106.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1515_bas.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1515_bas.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1515_haut.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1515_haut.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1_1.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_1.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1_2.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_2.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1_3.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_3.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1_4.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_4.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1_5.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_5.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CE_1_6.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_6.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CH_B3_30.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CH_B3_30.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CM_1106.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1106.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CM_1120.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1120.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CM_1121.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1121.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CM_1_1.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_1.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CM_1_2.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_2.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CM_1_3.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_3.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CM_1_4.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_4.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CM_1_5.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_5.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CO_01.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CO_01.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CO_02.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CO_02.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/CO_03.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CO_03.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/INJ_218.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/INJ_218.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/MA_A1_10.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_A1_10.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/MA_A1_12.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_A1_12.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/MA_A3_30.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_A3_30.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/MA_A3_31.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_A3_31.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/MA_B1_11.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_B1_11.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/PO_01_exam.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/PO_01_exam.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/PO_01_old.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/PO_01_old.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/SG_0211.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/SG_0211.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/SG_0213.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/SG_0213.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/SG_1138.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/SG_1138.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/STCC.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/map/STCC_mark.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_mark.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/scripts/param.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/views/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/views/seating_script_views.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/room/seating_script.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,9 +211,11 @@
       <recent name="$PROJECT_DIR$/docs/images" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/examc_app/rooms_plans" />
+      <recent name="$PROJECT_DIR$/examc_app/utils" />
       <recent name="$PROJECT_DIR$/docs/source/_static" />
       <recent name="$PROJECT_DIR$/docs/source/modules/review" />
-      <recent name="$PROJECT_DIR$/docs/source/modules" />
     </key>
   </component>
   <component name="RunManager" selected="Django Server.eXamc">
@@ -240,7 +367,7 @@
       <workItem from="1715073577976" duration="10877000" />
       <workItem from="1715152023539" duration="24517000" />
       <workItem from="1715599989760" duration="18709000" />
-      <workItem from="1715680890209" duration="80144000" />
+      <workItem from="1715680890209" duration="89658000" />
     </task>
     <task id="LOCAL-00001" summary="test models">
       <option name="closed" value="true" />
@@ -290,7 +417,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716360504218</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="script room map v1">
+      <option name="closed" value="true" />
+      <created>1716363934723</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1716363934723</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -304,7 +439,8 @@
     <MESSAGE value="review documentation" />
     <MESSAGE value="upd" />
     <MESSAGE value="script room map" />
-    <option name="LAST_COMMIT_MESSAGE" value="script room map" />
+    <MESSAGE value="script room map v1" />
+    <option name="LAST_COMMIT_MESSAGE" value="script room map v1" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -313,6 +449,11 @@
           <url>file://$PROJECT_DIR$/examc_app/views/review_views.py</url>
           <line>757</line>
           <option name="timeStamp" value="17" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/examc_app/views/rooms_plans_views.py</url>
+          <line>106</line>
+          <option name="timeStamp" value="34" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
