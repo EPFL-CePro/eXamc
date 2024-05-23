@@ -175,11 +175,11 @@ class SeatingForm(forms.Form):
     skipping_option = forms.ChoiceField(choices=[('noskip', 'no skip'), ('skip', 'skip')], label='Skip option',
                                         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value)", 'id': 'id_skipping_option'}))
     first_seat_number = forms.IntegerField(label='First seat number',
-                                           widget=forms.NumberInput(attrs={'id': 'id_first_seat_number'}))
+                                           widget=forms.NumberInput(attrs={'id': 'id_first_seat_number'}), required=False)
     last_seat_number = forms.IntegerField(label='Last seat number',
-                                          widget=forms.NumberInput(attrs={'id': 'id_last_seat_number'}))
-    special_file = forms.CharField(label='File name for special number to add or to skip', required=False,
-                                   widget=forms.TextInput(attrs={'id': 'id_special_file'}))
-    shape_to_draw = forms.ChoiceField(choices=[('circle', 'circle'), ('square', 'square'), ('other', 'other')],
+                                          widget=forms.NumberInput(attrs={'id': 'id_last_seat_number'}), required=False)
+    special_file = forms.FileField(label='File name for special number to add or to skip', required=False)
+    shape_to_draw = forms.ChoiceField(choices=[('circle', 'circle'), ('square', 'square')],
                                       label='Shape to draw',
                                       widget=forms.RadioSelect(attrs={'id': 'id_shape_to_draw'}))
+    fill_all_seats = forms.BooleanField(required=False)
