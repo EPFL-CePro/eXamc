@@ -16,7 +16,7 @@ def generate_plan(image_file,csv_file,export_file,numbering_option,skipping_opti
     last_seat_number, special_file,shape_to_draw):
     try:
     #set font
-        font = ImageFont.truetype("Tests/fonts/NotoSans-Bold.ttf", 10)
+        font = ImageFont.truetype(str(settings.ROOMS_PLANS_ROOT)+"/NotoSans-Bold.ttf", 10)
 
         with open(str(settings.ROOMS_PLANS_ROOT)+"/param.csv") as paramfile:
             for map, coord_file, export, number_option, skip_option, start, end, special_case, draw_option in csv.reader(
