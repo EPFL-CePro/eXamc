@@ -174,6 +174,8 @@ class SeatingForm(forms.Form):
                                              attrs={"data-tooltip": "text info", 'onchange': "showHideSpecialFile(this.value);"}))
     skipping_option = forms.ChoiceField(choices=[('noskip', 'no skip'), ('skip', 'skip')], label='Skip option',
                                         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value)", 'id': 'id_skipping_option'}))
+    fill_all_seats = forms.BooleanField(required=False,widget=forms.CheckboxInput(
+                                            attrs={'id': 'id_fill_all_seats', 'onchange': "showHideLastNumber(this.checked)"}))
     first_seat_number = forms.IntegerField(label='First seat number',
                                            widget=forms.NumberInput(attrs={'id': 'id_first_seat_number'}), required=False)
     last_seat_number = forms.IntegerField(label='Last seat number',
@@ -182,4 +184,4 @@ class SeatingForm(forms.Form):
     shape_to_draw = forms.ChoiceField(choices=[('circle', 'circle'), ('square', 'square')],
                                       label='Shape to draw',
                                       widget=forms.RadioSelect(attrs={'id': 'id_shape_to_draw'}))
-    fill_all_seats = forms.BooleanField(required=False)
+

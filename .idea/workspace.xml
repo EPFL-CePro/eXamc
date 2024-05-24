@@ -4,14 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="script room map v1.1">
-      <change afterPath="$PROJECT_DIR$/rooms_plans/NotoSans-Bold.ttf" afterDir="false" />
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="added font">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/forms.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/utils/rooms_plans_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/utils/rooms_plans_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -248,7 +254,7 @@
       <workItem from="1715073577976" duration="10877000" />
       <workItem from="1715152023539" duration="24517000" />
       <workItem from="1715599989760" duration="18709000" />
-      <workItem from="1715680890209" duration="101246000" />
+      <workItem from="1715680890209" duration="117966000" />
     </task>
     <task id="LOCAL-00001" summary="test models">
       <option name="closed" value="true" />
@@ -314,7 +320,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716382514081</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="added font">
+      <option name="closed" value="true" />
+      <created>1716451772687</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1716451772687</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -330,7 +344,8 @@
     <MESSAGE value="script room map" />
     <MESSAGE value="script room map v1" />
     <MESSAGE value="script room map v1.1" />
-    <option name="LAST_COMMIT_MESSAGE" value="script room map v1.1" />
+    <MESSAGE value="added font" />
+    <option name="LAST_COMMIT_MESSAGE" value="added font" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -339,16 +354,6 @@
           <url>file://$PROJECT_DIR$/examc_app/views/review_views.py</url>
           <line>757</line>
           <option name="timeStamp" value="17" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/examc_app/views/rooms_plans_views.py</url>
-          <line>130</line>
-          <option name="timeStamp" value="44" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/examc_app/views/rooms_plans_views.py</url>
-          <line>139</line>
-          <option name="timeStamp" value="45" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

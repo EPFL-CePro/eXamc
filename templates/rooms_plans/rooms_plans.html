@@ -12,6 +12,7 @@
     <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
 
     <form id="special-form" method="post">
+    <div class="form-group">
         {% csrf_token %}
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
@@ -28,22 +29,39 @@
         {% endfor %}
 
         <button class="btn btn-dark btn-sm" type="submit">Download Seat Map</button>
+    </div>
     </form>
 
     <script>
        function showHideSpecialFile(value) {
-           specials = ['special','skip'];
-           skip_opt = $("input[name='skipping_option']:checked").val()
-           num_opt = $("input[name='numbering_option']:checked").val()
+           {#specials = ['special','skip'];#}
+           opt = value
+           {#num_opt = $("input[name='numbering_option']:checked").val()#}
+           
+           console.log("skip_opt: ", opt);
+           {#console.log("num_opt: ", num_opt);#}
+       
             el = $("#DIV-special_file")
-            if (specials.includes(skip_opt) || specials.includes(num_opt)) {
+            if ((opt === 'skip') || (opt === 'special')) {
                 el.css("display", "");
             } else {
                 el.css("display", "none");
             }
            // el.load(window.location.href+" #special_file");
         }
-
+   
+        function showHideLastNumber(value) {
+           {#specials = ['fill_all_seats'];#}
+           num_opt = value
+            console.log("num_opt: ", num_opt);
+            el = $("#DIV-last_seat_number")
+            if (num_opt) {
+                el.css("display", "none");
+            } else {
+                el.css("display", "");
+            }
+           // el.load(window.location.href+" #special_file");
+        }
 
     </script>
 {% endblock %}

@@ -4,6 +4,8 @@ import PIL
 import numpy as np
 import csv
 
+# import module
+import traceback
 from examc import settings
 
 #to import image
@@ -89,7 +91,7 @@ def generate_plan(image_file,csv_file,export_file,numbering_option,skipping_opti
                 print("...export image " + export_name + "...")
                 image.save(export_name)
 
-    except Exception as e:
-        return repr(e)
+    except :# Exceptionas e:
+        return traceback.format_exc()#.repr(e)
 
     return 'ok'
