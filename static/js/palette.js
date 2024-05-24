@@ -1,6 +1,6 @@
 /** @license
  *
- *     Colour Palette Generator script.
+ *     Colour Palette Generator scripts.
  *     Copyright (c) 2014 Google Inc.
  *
  *     Licensed under the Apache License, Version 2.0 (the "License"); you may

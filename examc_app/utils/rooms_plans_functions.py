@@ -4,6 +4,8 @@ import PIL
 import numpy as np
 import csv
 
+import traceback
+
 from examc import settings
 
 #to import image
@@ -16,6 +18,7 @@ def generate_plan(image_file,csv_file,export_file,numbering_option,skipping_opti
     last_seat_number, special_file,shape_to_draw):
     try:
     #set font
+
         font = ImageFont.truetype(str(settings.ROOMS_PLANS_ROOT)+"/NotoSans-Bold.ttf", 10)
 
         with open(str(settings.ROOMS_PLANS_ROOT)+"/param.csv") as paramfile:
@@ -89,7 +92,7 @@ def generate_plan(image_file,csv_file,export_file,numbering_option,skipping_opti
                 print("...export image " + export_name + "...")
                 image.save(export_name)
 
-    except Exception as e:
-        return repr(e)
+    except :#Exception as e:
+        return traceback.format_exc()#repr(e)
 
     return 'ok'
