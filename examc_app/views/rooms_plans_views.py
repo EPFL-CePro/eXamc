@@ -123,23 +123,33 @@ class GenerateRoomPlanView(FormView):
                 image_file = image_files[i]
                 csv_file = csv_files[i]
                 export_file = image_file.replace('.jpg', '_export.jpg')
+
+                # Calculate total seats in the current CSV file
+                total_seats = count_csv_lines(str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file)
+                if total_seats is None:
+                    return HttpResponse(f"Error reading CSV file: {csv_file}", status=500)
+
                 if fill_all_seats:
-                    total_seats = count_csv_lines(str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file)
-                    if total_seats is None:
-                        return HttpResponse(f"Error reading CSV file: {csv_file}", status=500)
+                    # Fill all seats based on the CSV content
                     first_seat_number = current_seat_number
                     last_seat_number = current_seat_number + total_seats - 1
                 else:
-                    # If not filling all seats, use provided first and last seat numbers
-                    first_seat_number = form.cleaned_data['first_seat_number']
-                    last_seat_number = form.cleaned_data['last_seat_number']
+                    # Use provided first and last seat numbers
+                    if i == 0:
+                        # For the first file, use provided first and last seat numbers
+                        first_seat_number = form.cleaned_data['first_seat_number']
+                        last_seat_number = form.cleaned_data['last_seat_number']
+                    else:
+                        first_seat_number = form.cleaned_data['first_seat_number'] + total_seats - 1
+                        if current_seat_number + total_seats - 1 > last_seat_number:
+                            total_seats = last_seat_number - current_seat_number + 1
+                        last_seat_number = current_seat_number + total_seats - 1
 
                 writer.writerow([image_file, csv_file, export_file, numbering_option, skipping_option,
                                  first_seat_number, last_seat_number, special_file, shape_to_draw])
 
                 # Update current_seat_number for the next file
-                if fill_all_seats:
-                    current_seat_number = last_seat_number + 1
+                current_seat_number = last_seat_number + 1
 
         responses = []
         export_files = []
@@ -157,7 +167,6 @@ class GenerateRoomPlanView(FormView):
                                    str(last_seat_number),
                                    special_file,
                                    shape_to_draw)
-
             if result == 'ok':
 
                 export_file_path = str(settings.ROOMS_PLANS_ROOT) + "/export/" + export_file

@@ -3,7 +3,13 @@
 {% load custom_tags %}
 
 {% block extra_head %}
-
+    <style>
+        .tooltip-icon {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
+    </style>
 {% endblock %}
 
 {% block title %}Seating plan{% endblock %}
@@ -17,14 +23,15 @@
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
                  style="padding: 10px;{% if field.name == 'special_file' %}display:none;{% endif %}">
-{#                {{ field.errors }}#}
-                <div class="col col-sm-2" >
+                <div class="col col-sm-2">
                     {{ field.label_tag }}
+                    {% if field.help_text %}
+                        <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
+                    {% endif %}
                 </div>
                 <div class="col col-sm-4">
-                    {{ field }}  {{field.help_text}}
+                    {{ field }}
                 </div>
-
             </div>
         {% endfor %}
 
@@ -34,34 +41,35 @@
 
     <script>
        function showHideSpecialFile(value) {
-           {#specials = ['special','skip'];#}
-           opt = value
-           {#num_opt = $("input[name='numbering_option']:checked").val()#}
-           
+           opt = value;
            console.log("skip_opt: ", opt);
-           {#console.log("num_opt: ", num_opt);#}
-       
-            el = $("#DIV-special_file")
+            el = $("#DIV-special_file");
             if ((opt === 'skip') || (opt === 'special')) {
                 el.css("display", "");
             } else {
                 el.css("display", "none");
             }
-           // el.load(window.location.href+" #special_file");
         }
-   
+
         function showHideLastNumber(value) {
-           {#specials = ['fill_all_seats'];#}
-           num_opt = value
+            num_opt = value;
             console.log("num_opt: ", num_opt);
-            el = $("#DIV-last_seat_number")
+            el = $("#DIV-last_seat_number");
             if (num_opt) {
                 el.css("display", "none");
             } else {
                 el.css("display", "");
             }
-           // el.load(window.location.href+" #special_file");
         }
+        $(function () {
+            $('[data-toggle="popover"]').popover({
+                trigger: 'focus',
+                placement: 'top'
+            });
+        });
 
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
     </script>
 {% endblock %}

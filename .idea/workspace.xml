@@ -4,17 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="added font">
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="seating map v1.2">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/utils/rooms_plans_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/utils/rooms_plans_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" afterDir="false" />
@@ -254,7 +247,7 @@
       <workItem from="1715073577976" duration="10877000" />
       <workItem from="1715152023539" duration="24517000" />
       <workItem from="1715599989760" duration="18709000" />
-      <workItem from="1715680890209" duration="117966000" />
+      <workItem from="1715680890209" duration="134315000" />
     </task>
     <task id="LOCAL-00001" summary="test models">
       <option name="closed" value="true" />
@@ -328,7 +321,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716451772687</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="seating map v1.2">
+      <option name="closed" value="true" />
+      <created>1716536859256</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1716536859256</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -345,7 +346,8 @@
     <MESSAGE value="script room map v1" />
     <MESSAGE value="script room map v1.1" />
     <MESSAGE value="added font" />
-    <option name="LAST_COMMIT_MESSAGE" value="added font" />
+    <MESSAGE value="seating map v1.2" />
+    <option name="LAST_COMMIT_MESSAGE" value="seating map v1.2" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
