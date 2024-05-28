@@ -17,8 +17,8 @@
 {% block content %}
     <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
 
-    <form id="special-form" method="post">
-    <div class="form-group">
+    <form id="special-form" method="post" enctype="multipart/form-data">
+    
         {% csrf_token %}
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
@@ -36,7 +36,7 @@
         {% endfor %}
 
         <button class="btn btn-dark btn-sm" type="submit">Download Seat Map</button>
-    </div>
+    
     </form>
 
     <script>

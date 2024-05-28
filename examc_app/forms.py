@@ -98,64 +98,6 @@ class ExportResultsForm(forms.Form):
                               required=True)
 
 
-# IMAGE_CHOICES = [
-#     ('AAC_120.jpg', 'AAC_120.jpg'),
-#     ('AAC_132.jpg', 'AAC_132.jpg'),
-#     ('AAC_137.jpg', 'AAC_137.jpg'),
-#     ('AAC_231.jpg', 'AAC_231.jpg'),
-#     ('BCH_2201.jpg', 'AAC_120.jpg'),
-#     ('BS_150.jpg', 'BS_150.jpg'),
-#     ('BS_160.jpg', 'BS_160.jpg'),
-#     ('BS_170.jpg', 'BS_170.jpg'),
-#     ('BS_260.jpg', 'BS_260.jpg'),
-#     ('BS_270.jpg', 'BS_270.jpg'),
-#     ('CE_1_1.jpg', 'CE_1_1.jpg'),
-#     ('CE_1_2.jpg', 'CE_1_2.jpg'),
-#     ('CE_1_3.jpg', 'CE_1_3.jpg'),
-#     ('CE_1_4.jpg', 'CE_1_4.jpg'),
-#     ('CE_1_5.jpg', 'CE_1_5.jpg'),
-#     ('CE_1_6.jpg', 'CE_1_6.jpg'),
-#     ('CE_1100.jpg', 'CE_1100.jpg'),
-#     ('CE_1101.jpg', 'CE_1101.jpg'),
-#     ('CE_1104.jpg', 'CE_1104.jpg'),
-#     ('CE_1105.jpg', 'CE_1105.jpg'),
-#     ('CE_1106.jpg', 'CE_1106.jpg'),
-#     ('CE_1515_haut.jpg', 'CE_1515_haut.jpg'),
-#     ('CE_1515_bas.jpg', 'CE_1515_bas.jpg'),
-#     ('CH_B3_30.jpg', 'CH_B3_30.jpg'),
-#     ('CM_1_1.jpg', 'CM_1_1.jpg'),
-#     ('CM_1_2.jpg', 'CM_1_2.jpg'),
-#     ('CM_1_3.jpg', 'CM_1_3.jpg'),
-#     ('CM_1_4.jpg', 'CM_1_4.jpg'),
-#     ('CM_1_5.jpg', 'CM_1_5.jpg'),
-#     ('CM_1106.jpg', 'CM_1106.jpg'),
-#     ('CM_1120.jpg', 'CM_1120.jpg'),
-#     ('CM_1121.jpg', 'CM_1121.jpg'),
-#     ('CO_01.jpg', 'CO_01.jpg'),
-#     ('CO_02.jpg', 'CO_02.jpg'),
-#     ('CO_03.jpg', 'CO_03.jpg'),
-#     ('INJ_218.jpg', 'INJ_218.jpg'),
-#     ('MA_A1_10.jpg', 'MA_A1_10.jpg'),
-#     ('MA_A1_12.jpg', 'MA_A1_12.jpg'),
-#     ('MA_A3_30.jpg', 'MA_A3_30.jpg'),
-#     ('MA_A3_31.jpg', 'MA_A3_31.jpg'),
-#     ('MA_B1_11.jpg', 'MA_B1_11.jpg'),
-#     ('PO_01_exam.jpg', 'PO_01_exam.jpg'),
-#     ('PO_01_old.jpg', 'PO_01_old.jpg'),
-#     ('SG_0211.jpg', 'SG_0211.jpg'),
-#     ('SG_0213.jpg', 'SG_0213.jpg'),
-#     ('SG_1138.jpg', 'SG_1138.jpg'),
-#     ('STCC.jpg', 'STCC.jpg'),
-#     ('STCC_mark.jpg', 'STCC_mark.jpg'),
-# ]
-
-
-# CSV_CHOICES = [
-#     ('CE_1_1.csv', 'CE_1_1.csv'),
-#     ('CE_1_3.csv', 'CE_1_3.csv'),
-#     ('CE_1515_bas.csv', 'CE_1515_bas.csv'),
-#     ('BS_160.csv', 'BS_160.csv'),
-# ]
 CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
 JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
 CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
@@ -165,23 +107,32 @@ IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')]
 class SeatingForm(forms.Form):
     # image_file = forms.ChoiceField(choices=IMAGE_FILES, label='Image file name',
     #                                widget=forms.Select(attrs={'id': 'id_image_file'}))
-    csv_file = forms.MultipleChoiceField(choices=CSV_FILES, label='Room', help_text= "Select one or more rooms.",
+    csv_file = forms.MultipleChoiceField(choices=CSV_FILES, label='Room',
+                                         help_text="Select one or more rooms. The room order is the alphabetic one",
                                          widget=forms.SelectMultiple(
                                              attrs={"data-tooltip-location": "top", 'id': 'id_csv_file',
                                                     'class': "selectpicker form-control", 'size': 5,
                                                     'data-live-search': "true"}))
     numbering_option = forms.ChoiceField(choices=[('continuous', 'Continuous'), ('special', 'Special')],
-                                         label='Numbering Option',help_text= "Choose how seats are numbered.",
-                                         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value);"}))
-    skipping_option = forms.ChoiceField(choices=[('noskip', 'No skip'), ('skip', 'Skip')], label='Skip Option', help_text= "Choose whether to skip seats.",
+                                         label='Numbering Option', help_text="Choose how seats are numbered.",
+                                         widget=forms.RadioSelect(
+                                             attrs={'onchange': "showHideSpecialFile(this.value);"}))
+    skipping_option = forms.ChoiceField(choices=[('noskip', 'No skip'), ('skip', 'Skip')], label='Skip Option',
+                                        help_text="Choose whether to skip seats.",
                                         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value)",
                                                                         'id': 'id_skipping_option'}))
-    fill_all_seats = forms.BooleanField(required=False, help_text="Fill all seats based on CSV content.", widget=forms.CheckboxInput(
-                                        attrs={'id': 'id_fill_all_seats', 'onchange': "showHideLastNumber(this.checked)"}))
+    fill_all_seats = forms.BooleanField(required=False, help_text="Fill all seats of the plans.",
+                                        widget=forms.CheckboxInput(
+                                            attrs={'id': 'id_fill_all_seats',
+                                                   'onchange': "showHideLastNumber(this.checked)"}))
     first_seat_number = forms.IntegerField(label='First Seat Number', help_text="Enter the starting seat number.",
-                                           widget=forms.NumberInput(attrs={'id': 'id_first_seat_number'}), required=False)
+                                           widget=forms.NumberInput(attrs={'id': 'id_first_seat_number'}),
+                                           required=False)
     last_seat_number = forms.IntegerField(label='Last Seat Number', help_text="Enter the last seat number.",
-                                          widget=forms.NumberInput(attrs={'id': 'id_last_seat_number'}),required=False)
-    special_file = forms.FileField(label='Special File', required=False, help_text="Upload a file for special seat numbers or skipping. A CSV file with all the numbers you want to skip or add")
-    shape_to_draw = forms.ChoiceField(choices=[('circle', 'Circle'), ('square', 'Square')],label='Shape to Draw', help_text="Choose the shape to numbering.",
+                                          widget=forms.NumberInput(attrs={'id': 'id_last_seat_number'}), required=False)
+    special_file = forms.FileField(label='Special File', required=False,
+                                   help_text="Upload a file for special seat numbers or skipping. A CSV file with all the numbers you want to skip or add"
+                                   , widget=forms.ClearableFileInput(attrs={'id': 'id_special_file'}))
+    shape_to_draw = forms.ChoiceField(choices=[('circle', 'Circle'), ('square', 'Square')], label='Shape to Draw',
+                                      help_text="Choose the shape to numbering.",
                                       widget=forms.RadioSelect(attrs={'data-tooltip': "Choose the shape to draw."}))
