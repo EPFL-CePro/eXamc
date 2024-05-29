@@ -1,0 +1,11 @@
+Usage
+=====
+
+Installation
+------------
+
+To use eXamc, first ask for an account to ...:
+
+.. code-block:: console
+
+   test code block
