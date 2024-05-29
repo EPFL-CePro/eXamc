@@ -4,10 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="seating map v1.4">
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="seating map v1.5">
       <change afterPath="$PROJECT_DIR$/rooms_plans/export/BS_260_export.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/map/BS_150_soft.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_B.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_C.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_D.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_E.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_Fjpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_G.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_H.jpg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/forms.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
@@ -249,7 +256,7 @@
       <workItem from="1715599989760" duration="18709000" />
       <workItem from="1715680890209" duration="141101000" />
       <workItem from="1716813148301" duration="14326000" />
-      <workItem from="1716877800553" duration="27701000" />
+      <workItem from="1716877800553" duration="30717000" />
     </task>
     <task id="LOCAL-00001" summary="test models">
       <option name="closed" value="true" />
@@ -347,7 +354,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716906510859</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="seating map v1.5">
+      <option name="closed" value="true" />
+      <created>1716963649257</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1716963649257</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -378,7 +393,8 @@
     <MESSAGE value="seating map v1.2" />
     <MESSAGE value="seating map v1.3" />
     <MESSAGE value="seating map v1.4" />
-    <option name="LAST_COMMIT_MESSAGE" value="seating map v1.4" />
+    <MESSAGE value="seating map v1.5" />
+    <option name="LAST_COMMIT_MESSAGE" value="seating map v1.5" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -392,11 +408,6 @@
           <url>file://$PROJECT_DIR$/examc_app/views/rooms_plans_views.py</url>
           <line>247</line>
           <option name="timeStamp" value="54" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/examc_app/views/rooms_plans_views.py</url>
-          <line>173</line>
-          <option name="timeStamp" value="55" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
