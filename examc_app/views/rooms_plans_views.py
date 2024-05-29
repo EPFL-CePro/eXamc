@@ -123,20 +123,6 @@ class GenerateRoomPlanView(FormView):
     form_class = SeatingForm
     success_url = reverse_lazy('success')
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['form'] = SeatingForm()
-        return context
-
-    def post(self, request, *args, **kwargs):
-        if request.method == 'POST':
-            form = SeatingForm(request.POST, request.FILES, prefix='form')
-            if form.is_valid():
-                return self.form_valid(form)
-            else:
-                print("Form errors:", form.errors)
-                return self.form_invalid(form)
-
     def form_valid(self, form):
 
         csv_files = form.cleaned_data['csv_file']

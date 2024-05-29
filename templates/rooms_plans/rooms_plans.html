@@ -7,7 +7,7 @@
         .tooltip-icon {
             margin-left: 5px;
             cursor: pointer;
-            color: #ff003b;
+            color: #0048ff;
         }
     </style>
 {% endblock %}
@@ -23,11 +23,12 @@
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
                  style="padding: 10px;{% if field.name == 'special_file' %}display:none;{% endif %}">
-                <div class="col col-sm-2">
-                    {{ field.label_tag }}
-                    {% if field.help_text %}
+             {% if field.help_text %}
                         <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
                     {% endif %}
+                <div class="col col-sm-2">
+                    {{ field.label_tag }}
+                   
                 </div>
                 <div class="col col-sm-4">
                     {{ field }}
