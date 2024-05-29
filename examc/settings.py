@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-9mzfudteckhll88u%xaq4f-093i3n9xtx&$+ky=bv$@-v2bj#9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['vpaavpvm0011.xaas.epfl.ch','10.95.16.25']
+ALLOWED_HOSTS = ['vpaavpvm0011.xaas.epfl.ch','10.95.16.25','localhost']
 
 # SECURITY
 X_FRAME_OPTIONS = 'DENY'

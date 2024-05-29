@@ -125,16 +125,17 @@ class GenerateRoomPlanView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form2'] = SeatingForm()
+        context['form'] = SeatingForm()
         return context
 
     def post(self, request, *args, **kwargs):
-        form = SeatingForm(request.POST, request.FILES, prefix='form')
-        if form.is_valid():
-            return self.form_valid(form)
-        else:
-            print("Form errors:", form.errors)
-            return self.form_invalid(form)
+        if request.method == 'POST':
+            form = SeatingForm(request.POST, request.FILES, prefix='form')
+            if form.is_valid():
+                return self.form_valid(form)
+            else:
+                print("Form errors:", form.errors)
+                return self.form_invalid(form)
 
     def form_valid(self, form):
 
@@ -164,7 +165,7 @@ class GenerateRoomPlanView(FormView):
         F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
                                                                                                   for f in
                                                                                                   csv_file_paths]),
-                                      count_csv_lines)
+                                                                                                  count_csv_lines)
 
         with open(str(settings.ROOMS_PLANS_ROOT) + "/param.csv", mode='w', newline='') as file:
             writer = csv.writer(file)
