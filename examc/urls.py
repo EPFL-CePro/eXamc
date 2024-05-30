@@ -22,7 +22,7 @@ from django.views.generic import TemplateView
 from django_tequila.urls import urlpatterns as django_tequila_urlpatterns
 
 from examc_app import views
-
+from examc_app.views import preview_image
 
 urlpatterns = ([
     path('admin/doc/', include('django.contrib.admindocs.urls')),
@@ -41,6 +41,7 @@ urlpatterns = ([
     path('delete_exam_scale/<int:scale_pk><int:exam_pk>', views.delete_exam_scale, name="delete_exam_scale"),
     path('set_final_scale/<int:pk>', views.set_final_scale, name="set_final_scale"),
     path('documentation',login_required(views.documentation_view), name="documentation"),
+    path('rooms_plans/map/<str:image_name>/', preview_image, name='preview_image'),
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
     + static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
    + static(settings.DOCUMENTATION_URL, document_root=settings.DOCUMENTATION_ROOT)

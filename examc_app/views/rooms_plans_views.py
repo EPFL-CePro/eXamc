@@ -134,7 +134,16 @@ def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count
         return None, None
 
 
-# @method_decorator(login_required(login_url='/'), name='dispatch')
+def preview_image(request, image_name):
+    image_path = os.path.join(str(settings.ROOMS_PLANS_ROOT) + '/map/', image_name)
+    print(image_path)
+    if os.path.exists(image_path):
+        with open(image_path, 'rb') as f:
+            return HttpResponse(f.read(), content_type="image/jpeg")
+
+
+
+@method_decorator(login_required(login_url='/'), name='dispatch')
 class GenerateRoomPlanView(FormView):
     template_name = 'rooms_plans/rooms_plans.html'
     form_class = SeatingForm
@@ -148,7 +157,6 @@ class GenerateRoomPlanView(FormView):
 
                Returns: HttpResponse: A response containing the generated files.
                """
-
         csv_files = form.cleaned_data['csv_file']
         image_files = [CSV_TO_JPG_MAP[csv_file] for csv_file in csv_files]
         numbering_option = form.cleaned_data['numbering_option']
@@ -158,6 +166,15 @@ class GenerateRoomPlanView(FormView):
         special_file = form.cleaned_data['special_file']
         shape_to_draw = form.cleaned_data['shape_to_draw']
         fill_all_seats = form.cleaned_data['fill_all_seats']
+
+        previews = []
+        if 'preview' in self.request.POST:
+            for csv_file in csv_files:
+                preview_image = CSV_TO_JPG_MAP.get(csv_file)
+                if preview_image:
+                    previews.append(preview_image)
+
+            return render(self.request, self.template_name, {'form': form, 'previews': previews})
 
         total_seats = []
         special_files_paths = []
@@ -175,7 +192,7 @@ class GenerateRoomPlanView(FormView):
         F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
                                                                                                   for f in
                                                                                                   csv_file_paths]),
-                                                                                                  count_csv_lines)
+                                      count_csv_lines)
 
         with open(str(settings.ROOMS_PLANS_ROOT) + "/param.csv", mode='w', newline='') as file:
             writer = csv.writer(file)

@@ -4,15 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="minor changes">
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="button room plan added">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/AAC_231_export.jpg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/BS_160_export.jpg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/home.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/home.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/login_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/login_form.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -252,7 +254,7 @@
       <workItem from="1715680890209" duration="141101000" />
       <workItem from="1716813148301" duration="14326000" />
       <workItem from="1716877800553" duration="44145000" />
-      <workItem from="1717043576151" duration="7723000" />
+      <workItem from="1717043576151" duration="12657000" />
     </task>
     <task id="LOCAL-00001" summary="test models">
       <option name="closed" value="true" />
@@ -390,7 +392,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717052402849</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="button room plan added">
+      <option name="closed" value="true" />
+      <created>1717054917109</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1717054917109</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -425,7 +435,8 @@
     <MESSAGE value="seating map v1.7" />
     <MESSAGE value="seating map v1.8" />
     <MESSAGE value="minor changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="minor changes" />
+    <MESSAGE value="button room plan added" />
+    <option name="LAST_COMMIT_MESSAGE" value="button room plan added" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
