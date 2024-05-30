@@ -134,7 +134,7 @@ def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count
         return None, None
 
 
-@method_decorator(login_required(login_url='/'), name='dispatch')
+# @method_decorator(login_required(login_url='/'), name='dispatch')
 class GenerateRoomPlanView(FormView):
     template_name = 'rooms_plans/rooms_plans.html'
     form_class = SeatingForm
