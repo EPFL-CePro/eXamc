@@ -4,12 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="seating map v1.7">
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="seating map v1.8">
       <change afterPath="$PROJECT_DIR$/rooms_plans/export/BS_260_export.jpg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/forms.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/review/settings/manage_exam_pages_groups.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/review/settings/manage_exam_pages_groups.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -54,34 +57,34 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "DefaultHtmlFileTemplate": "HTML File",
-    "Django Server.eXamc.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form.executor": "Run",
-    "Django tests.Test: examc_app.tests.test_forms.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_models.StudentTestCase.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_models.executor": "Debug",
-    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.pycharm.django.structure.promotion.once.per.project": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "django.template.preview.state": "SHOW_EDITOR",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/lucile/eXamc/rooms_plans/csv_special_numbers",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Django Server.eXamc.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form.executor&quot;: &quot;Run&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.StudentTestCase.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.pycharm.django.structure.promotion.once.per.project&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;django.template.preview.state&quot;: &quot;SHOW_EDITOR&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/lucile/eXamc/rooms_plans/csv_special_numbers&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/rooms_plans/csv_special_numbers" />
@@ -249,7 +252,8 @@
       <workItem from="1715599989760" duration="18709000" />
       <workItem from="1715680890209" duration="141101000" />
       <workItem from="1716813148301" duration="14326000" />
-      <workItem from="1716877800553" duration="37549000" />
+      <workItem from="1716877800553" duration="44145000" />
+      <workItem from="1717043576151" duration="5146000" />
     </task>
     <task id="LOCAL-00001" summary="test models">
       <option name="closed" value="true" />
@@ -371,7 +375,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716971130088</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="seating map v1.8">
+      <option name="closed" value="true" />
+      <created>1716975265782</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1716975265782</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -405,7 +417,8 @@
     <MESSAGE value="seating map v1.5" />
     <MESSAGE value="seating map v1.6" />
     <MESSAGE value="seating map v1.7" />
-    <option name="LAST_COMMIT_MESSAGE" value="seating map v1.7" />
+    <MESSAGE value="seating map v1.8" />
+    <option name="LAST_COMMIT_MESSAGE" value="seating map v1.8" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -414,11 +427,6 @@
           <url>file://$PROJECT_DIR$/examc_app/views/review_views.py</url>
           <line>757</line>
           <option name="timeStamp" value="17" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/examc_app/views/rooms_plans_views.py</url>
-          <line>127</line>
-          <option name="timeStamp" value="60" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

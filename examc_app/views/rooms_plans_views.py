@@ -1,18 +1,15 @@
 import csv
 import math
-
-from django.contrib.auth.decorators import login_required
 import shutil
 import zipfile
+from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.utils.decorators import method_decorator
-
-from examc_app.utils.review_functions import *
 from django.views.generic.edit import FormView
 from django.urls import reverse_lazy
 from django.http import FileResponse, HttpResponse
+from examc_app.utils.review_functions import *
 from examc import settings
-
 from examc_app.forms import SeatingForm
 from examc_app.utils.rooms_plans_functions import generate_plan
 
@@ -75,6 +72,15 @@ CSV_TO_JPG_MAP = {
 
 
 def count_csv_lines(file_path):
+    """
+       Counts the number of non-empty lines in a CSV file.
+
+       Args:
+           file_path (str): Path to the CSV file.
+
+       Returns:
+           int: Number of non-empty lines in the CSV file.
+       """
     try:
         with open(file_path, 'r', newline='') as file:
             reader = csv.reader(file)
@@ -86,6 +92,17 @@ def count_csv_lines(file_path):
 
 
 def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count_csv_lines):
+    """
+        Calculates the first and last seat numbers for each CSV file.
+
+        Args:
+            csv_files (list): List of paths to CSV files.
+            first_seat_number (int): The first seat number.
+            last_seat_number (int): The last seat number.
+            count_csv_lines (function): Function to count lines in a CSV file.
+
+        Returns: tuple: Two lists representing the first and last seat numbers for each file.
+        """
     try:
         N = [0] * len(csv_files)
         F = [0] * len(csv_files)
@@ -124,6 +141,13 @@ class GenerateRoomPlanView(FormView):
     success_url = reverse_lazy('success')
 
     def form_valid(self, form):
+        """
+               Processes the form when data are submitted.
+
+               Args: form: The form with valid data.
+
+               Returns: HttpResponse: A response containing the generated files.
+               """
 
         csv_files = form.cleaned_data['csv_file']
         image_files = [CSV_TO_JPG_MAP[csv_file] for csv_file in csv_files]
@@ -169,10 +193,10 @@ class GenerateRoomPlanView(FormView):
                     if fill_all_seats:
                         if i == 0:
                             first_seat_number = form.cleaned_data['first_seat_number']
-                            last_seat_number = first_seat_number + total_seats - 1
+                            last_seat_number = first_seat_number + total_seats + len(special_files_paths) - 1
                         else:
                             first_seat_number = last_seat_number + 1
-                            last_seat_number = last_seat_number + total_seats - 1
+                            last_seat_number = last_seat_number + total_seats + len(special_files_paths) - 1
                     else:
                         first_seat_number = F[i]
                         last_seat_number = L[i]

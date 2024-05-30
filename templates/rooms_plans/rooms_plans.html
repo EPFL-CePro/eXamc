@@ -15,35 +15,51 @@
 {% block title %}Seating plan{% endblock %}
 
 {% block content %}
-    <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
+    <h3><i class="fa-solid fa-location-dot" style="margin-right:5px;"></i>Seating map</h3>
 
     <form id="special-form" method="post" enctype="multipart/form-data">
-    
+
         {% csrf_token %}
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
                  style="padding: 10px;{% if field.name == 'special_file' %}display:none;{% endif %}">
-             {% if field.help_text %}
-                        <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
-                    {% endif %}
+                {% if field.help_text %}
+                    <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top"
+                       title="{{ field.help_text }}"></i>
+                {% endif %}
+
+
                 <div class="col col-sm-2">
                     {{ field.label_tag }}
-                   
+
                 </div>
                 <div class="col col-sm-4">
                     {{ field }}
+                    {% if field.name == 'special_file' %}
+                        <label class="custom-file-label custom-file-label small">Choose a csv file
+                        
+                            <input class="custom-file-input form-control" accept='text/csv'>
+                        </label>
+
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}
 
         <button class="btn btn-dark btn-sm" type="submit">Download Seat Map</button>
-    
-    </form>
 
-    <script>
-       function showHideSpecialFile(value) {
-           opt = value;
-           console.log("skip_opt: ", opt);
+    </form>
+ <div id="previews">
+    {% for preview in previews %}
+      <img src="{{ preview }}" alt="Preview" style="max-width: 200px;">
+    {% endfor %}
+  </div>
+
+  <script>
+  
+        function showHideSpecialFile(value) {
+            opt = value;
+            console.log("skip_opt: ", opt);
             el = $("#DIV-special_file");
             if ((opt === 'skip') || (opt === 'special')) {
                 el.css("display", "");
@@ -62,6 +78,7 @@
                 el.css("display", "");
             }
         }
+
         $(function () {
             $('[data-toggle="popover"]').popover({
                 trigger: 'focus',

@@ -153,6 +153,7 @@
 
 <script type="text/javascript">
 
+// Quill configuration remains the same
 const quill = new Quill('#grading-help', {
     theme: 'snow',
     modules: {
@@ -160,6 +161,7 @@ const quill = new Quill('#grading-help', {
     },
 });
 
+// Open Grading Help Modal
 function openGradingHelpDialog(group_id){
      $.ajax({
         url: "{% url 'get_pages_group_grading_help' %}",
@@ -171,7 +173,6 @@ function openGradingHelpDialog(group_id){
         },
         success: (data) => {
             quill.container.firstChild.innerHTML = data
-
             $('#grading-help-group-id').val(group_id)
             $('#grading-help-modal').modal('show');
         },
@@ -204,8 +205,9 @@ function saveGradingHelp(group_id){
     });
 }
 
+// Marker.js configuration remains the same
 let markerArea, sourceImage, targetRoot, maState, modalCorrectorBoxGroupPk;
-// save references to the original image and its parent div (positioning root)
+
 function setSourceImage(source) {
   sourceImage = source;
   targetRoot = source.parentElement;
@@ -213,8 +215,6 @@ function setSourceImage(source) {
 
 function showMarkerArea(target) {
   markerArea = new markerjs2.MarkerArea(sourceImage);
-  // since the container div is set to position: relative it is now our positioning root
-  // end we have to let marker.js know that
   markerArea.targetRoot = targetRoot;
   markerArea.availableMarkerTypes = ["HighlightMarker"];
   markerArea.settings.defaultHighlightColor = 'purple';
@@ -227,24 +227,23 @@ function showMarkerArea(target) {
   });
   markerArea.addEventListener("render", (event) => {
     target.src = event.dataUrl;
-    // save the state of MarkerArea
     maState = event.state;
     console.log(maState);
    });
   markerArea.addEventListener("close", (event) => {
     showMarkerArea(target);
-});
+  });
   markerArea.show();
-  // if previous state is present - restore it
   if (maState) {
     markerArea.restoreState(maState);
   }
 }
-$(window).on('shown.bs.modal', function() {
-    $('#imageModal').modal('show');
-    const modalImage = document.getElementById('modalImage');
-    setSourceImage(imgScan);
-    showMarkerArea(imgScan);
+
+// Attach shown event listener specifically to image modal
+$('#imageModal').on('shown.bs.modal', function() {
+    const modalImage = document.getElementById('imgScan');
+    setSourceImage(modalImage);
+    showMarkerArea(modalImage);
 });
 
 function openModalCorrectorBox(group_id) {
@@ -257,7 +256,6 @@ function openModalCorrectorBox(group_id) {
         },
         success: (data) => {
             data_list = JSON.parse(data)
-            console.log(data)
             var imgScan = document.getElementById('imgScan');
             imgScan.src = data_list.img_path;
             modalCorrectorBoxGroupPk = group_id;
@@ -266,13 +264,13 @@ function openModalCorrectorBox(group_id) {
             }
             var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
             imageModal.show();                
-            
         },      
         error: function(error) {
             console.log(error);
         }
     });
 }
+
 function updateMarkers(){
     var state = JSON.stringify(markerArea.getState());
     $.ajax({
@@ -299,7 +297,6 @@ function updateMarkers(){
         }
     });
 }
-
 {#const maStateData = JSON.stringify(maState);#}
 {#$.ajax({#}
 {#    type: 'POST',#}

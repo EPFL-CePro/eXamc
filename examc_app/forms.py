@@ -123,7 +123,7 @@ class SeatingForm(forms.Form):
     numbering_option = forms.ChoiceField(
         choices=[('continuous', 'Continuous'), ('special', 'Special')],
         label='Numbering Option',
-        help_text="Choose how seats are numbered.",
+        help_text="Choose how seats are numbered. The special option is used for students needs",
         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value);"}),
         initial='continuous'
     )
@@ -159,8 +159,8 @@ class SeatingForm(forms.Form):
     special_file = forms.FileField(
         label='Special File',
         required=False,
-        help_text="Upload a file for special seat numbers or skipping. A CSV file with all the numbers you want to skip or add",
-        widget=forms.ClearableFileInput(attrs={'id': 'id_special_file'})
+        help_text="Upload a file for special seat numbers or skipping. A CSV file with all the numbers you want to skip or add.",
+        widget=forms.ClearableFileInput(attrs={'id': 'id_special_file','class':'custom-file-input form-control'})
     )
 
     shape_to_draw = forms.ChoiceField(
