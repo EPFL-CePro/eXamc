@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load custom_tags %}
-
 {% block extra_head %}
     <style>
         .tooltip-icon {
@@ -11,27 +10,25 @@
         }
     </style>
 {% endblock %}
-
 {% block title %}Seating plan{% endblock %}
-
 {% block content %}
-    <h3><i class="fa-solid fa-location-dot" style="margin-right:5px;"></i>Seating map</h3>
-
+    <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
     <form id="special-form" method="post" enctype="multipart/form-data">
+    
         {% csrf_token %}
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
                  style="padding: 10px;{% if field.name == 'special_file' %}display:none;{% endif %}">
-                {% if field.help_text %}
-                    <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top"
-                       title="{{ field.help_text }}"></i>
-                {% endif %}
+             {% if field.help_text %}
+                        <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
+                    {% endif %}
                 <div class="col col-sm-2">
                     {{ field.label_tag }}
+
                 </div>
                 <div class="col col-sm-4">
                     {{ field }}
-                    {% if field.name == 'special_file' %}
+                     {% if field.name == 'special_file' %}
                         <label class="custom-file-label custom-file-label small">Choose a csv file
                             <input class="custom-file-input form-control" accept='text/csv'>
                         </label>
@@ -39,25 +36,17 @@
                 </div>
             </div>
         {% endfor %}
-
         <button class="btn btn-dark btn-sm" type="submit">Download Seat Map</button>
-        <button class="btn btn-dark btn-sm" type="submit" name="preview">Preview</button>
     </form>
     <br>
+    <a href="{% static '/exemple_csv.csv' %}" class="btn btn-primary btn-sm" download>Download Example .csv File</a>
     <br>
-    <div id="previews">
-        {% if previews %}
-            <h4>Preview Images:</h4>
-            {% for preview in previews %}
-                <img src="{% url 'preview_image' preview %}" alt="Preview" style="max-width: 600px;">
-            {% endfor %}
-        {% endif %}
-    </div>
-
+    <br>
+    <a href="https://docs.google.com/forms/d/1Bu_SiV5ckfGGeA3h-SLQ36WsCe7P_9QG8wSvmlMIXzs/edit" class="btn btn-primary btn-sm">survey</a>
     <script>
-        function showHideSpecialFile(value) {
-            opt = value;
-            console.log("skip_opt: ", opt);
+       function showHideSpecialFile(value) {
+           opt = value;
+           console.log("skip_opt: ", opt);
             el = $("#DIV-special_file");
             if ((opt === 'skip') || (opt === 'special')) {
                 el.css("display", "");
@@ -65,7 +54,6 @@
                 el.css("display", "none");
             }
         }
-
         function showHideLastNumber(value) {
             num_opt = value;
             console.log("num_opt: ", num_opt);
@@ -76,42 +64,14 @@
                 el.css("display", "");
             }
         }
-
         $(function () {
             $('[data-toggle="popover"]').popover({
                 trigger: 'focus',
                 placement: 'top'
             });
         });
-
         $(function () {
             $('[data-toggle="tooltip"]').tooltip();
-        });
-
-        
-        document.addEventListener('DOMContentLoaded', function () {
-            const csvInput = document.getElementById('id_csv_file');
-            const previewsDiv = document.getElementById('previews');
-
-            csvInput.addEventListener('change', function (event) {
-                previewsDiv.innerHTML = '';  // Clear previous previews
-                const files = event.target.files;
-
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    const reader = new FileReader();
-
-                    reader.onload = function (e) {
-                        const img = document.createElement('img');
-                        img.src = e.target.result.replace('.csv', '.jpg');
-                        img.alt = file.name;
-                        img.style.maxWidth = '200px';
-                        previewsDiv.appendChild(img);
-                    };
-
-                    reader.readAsDataURL(file);
-                }
-            });
         });
     </script>
 {% endblock %}

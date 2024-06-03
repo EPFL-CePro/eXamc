@@ -150,13 +150,7 @@ class GenerateRoomPlanView(FormView):
     success_url = reverse_lazy('success')
 
     def form_valid(self, form):
-        """
-               Processes the form when data are submitted.
 
-               Args: form: The form with valid data.
-
-               Returns: HttpResponse: A response containing the generated files.
-               """
         csv_files = form.cleaned_data['csv_file']
         image_files = [CSV_TO_JPG_MAP[csv_file] for csv_file in csv_files]
         numbering_option = form.cleaned_data['numbering_option']
@@ -166,16 +160,6 @@ class GenerateRoomPlanView(FormView):
         special_file = form.cleaned_data['special_file']
         shape_to_draw = form.cleaned_data['shape_to_draw']
         fill_all_seats = form.cleaned_data['fill_all_seats']
-
-        previews = []
-        if 'preview' in self.request.POST:
-            for csv_file in csv_files:
-                preview_image = CSV_TO_JPG_MAP.get(csv_file)
-                if preview_image:
-                    previews.append(preview_image)
-
-            return render(self.request, self.template_name, {'form': form, 'previews': previews})
-
         total_seats = []
         special_files_paths = []
         current_seat_number = first_seat_number
@@ -186,34 +170,28 @@ class GenerateRoomPlanView(FormView):
             special_files_paths.append(special_file_path)
         else:
             special_file_path = None
-
         csv_file_paths = [str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file for csv_file in csv_files]
-
         F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
                                                                                                   for f in
                                                                                                   csv_file_paths]),
                                       count_csv_lines)
-
         with open(str(settings.ROOMS_PLANS_ROOT) + "/param.csv", mode='w', newline='') as file:
             writer = csv.writer(file)
-
             for i in range(len(csv_files)):
                 image_file = image_files[i]
                 csv_file = csv_files[i]
                 export_file = image_file.replace('.jpg', '_export.jpg')
                 total_seats = count_csv_lines(str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file)
-
                 if total_seats is None:
                     return HttpResponse(f"Error reading CSV file: {csv_file}", status=500)
-
                 if skipping_option == 'skip':
                     if fill_all_seats:
                         if i == 0:
                             first_seat_number = form.cleaned_data['first_seat_number']
-                            last_seat_number = first_seat_number + total_seats + len(special_files_paths) - 1
+                            last_seat_number = first_seat_number + total_seats - 1
                         else:
                             first_seat_number = last_seat_number + 1
-                            last_seat_number = last_seat_number + total_seats + len(special_files_paths) - 1
+                            last_seat_number = last_seat_number + total_seats - 1
                     else:
                         first_seat_number = F[i]
                         last_seat_number = L[i]
@@ -223,7 +201,6 @@ class GenerateRoomPlanView(FormView):
                         last_seat_number = first_seat_number + total_seats - 1
                     else:
                         last_seat_number = form.cleaned_data['last_seat_number']
-
                 else:
                     if fill_all_seats:
                         first_seat_number = current_seat_number
@@ -231,19 +208,15 @@ class GenerateRoomPlanView(FormView):
                     else:
                         first_seat_number = F[i]
                         last_seat_number = L[i]
-
                 current_seat_number = last_seat_number + 1
-
                 writer.writerow([image_file, csv_file, export_file, numbering_option, skipping_option,
                                  first_seat_number, last_seat_number, special_file, shape_to_draw])
-
         responses = []
         export_files = []
         for i in range(len(csv_files)):
             image_file = image_files[i]
             csv_file = csv_files[i]
             export_file = image_file.replace('.jpg', '_export.jpg')
-
             result = generate_plan(image_file,
                                    csv_file,
                                    export_file,
@@ -254,7 +227,6 @@ class GenerateRoomPlanView(FormView):
                                    special_file,
                                    shape_to_draw)
             if result == 'ok':
-
                 export_file_path = str(settings.ROOMS_PLANS_ROOT) + "/export/" + export_file
                 if os.path.exists(export_file_path):
                     export_files.append(export_file_path)
@@ -263,20 +235,16 @@ class GenerateRoomPlanView(FormView):
                     return HttpResponse(f"No export file found for {export_file}.", status=404)
             else:
                 return HttpResponse("Error during plan generation : " + result)
-
         zip_filename = 'exported_seating_maps.zip'
         zip_filepath = str(settings.ROOMS_PLANS_ROOT) + "/export/" + zip_filename
         with zipfile.ZipFile(zip_filepath, 'w') as zipf:
             for export_file in export_files:
                 zipf.write(export_file, os.path.basename(export_file))
-
         for export_file in export_files:
             os.remove(export_file)
-
         for special_file_path in special_files_paths:
             # if os.path.exists(special_file_path):
             os.remove(special_file_path)
-
         if os.path.exists(zip_filepath):
             f = open(zip_filepath, 'rb')
             response = FileResponse(f)

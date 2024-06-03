@@ -160,7 +160,7 @@ class SeatingForm(forms.Form):
         label='Special File',
         required=False,
         help_text="Upload a file for special seat numbers or skipping. A CSV file with all the numbers you want to skip or add.",
-        widget=forms.ClearableFileInput(attrs={'id': 'id_special_file','class':'custom-file-input form-control'})
+        widget=forms.ClearableFileInput(attrs={'id': 'id_special_file'})
     )
 
     shape_to_draw = forms.ChoiceField(
@@ -170,3 +170,4 @@ class SeatingForm(forms.Form):
         widget=forms.RadioSelect(attrs={'data-tooltip': "Choose the shape to draw."}),
         initial='circle'
     )
+    # preview = forms.BooleanField(required=False, initial=False, widget=forms.HiddenInput())
