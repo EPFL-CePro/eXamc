@@ -36,13 +36,24 @@
                 </div>
             </div>
         {% endfor %}
-        <button class="btn btn-dark btn-sm" type="submit">Download Seat Map</button>
+        <button class="btn btn-dark btn-sm" type="submit" name="action" value="download">Download Seat Map</button>
+        <button class="btn btn-dark btn-sm" type="submit" name="action" value="preview">Preview Seat Map</button>
     </form>
     <br>
-    <a href="{% static '/exemple_csv.csv' %}" class="btn btn-primary btn-sm" download>Download Example .csv File</a>
+    <a href="{% static '/exemple_csv.csv' %}" class="btn btn-dark btn-sm" download target="blank">Download Example .csv File</a>
     <br>
     <br>
-    <a href="https://docs.google.com/forms/d/1Bu_SiV5ckfGGeA3h-SLQ36WsCe7P_9QG8wSvmlMIXzs/edit" class="btn btn-primary btn-sm">survey</a>
+    <a href="https://docs.google.com/forms/d/1Bu_SiV5ckfGGeA3h-SLQ36WsCe7P_9QG8wSvmlMIXzs/edit" class="btn btn-dark btn-sm">survey</a>
+    
+     <br>
+    <br>
+    <div class="row">
+        {% for export_file in export_files %}
+            <div class="col-md-4">
+                <img src="{{ export_file }}" class="img-fluid" alt="Seating Map">
+            </div>
+        {% endfor %}
+    </div>
     <script>
        function showHideSpecialFile(value) {
            opt = value;

@@ -123,7 +123,8 @@ class SeatingForm(forms.Form):
     numbering_option = forms.ChoiceField(
         choices=[('continuous', 'Continuous'), ('special', 'Special')],
         label='Numbering Option',
-        help_text="Choose how seats are numbered. The special option is used for students needs",
+        help_text="Select how seats are numbered. The special option is used for student needs. Upload a .csv with "
+                  "the special numbers. Fill in the first and last number then download.",
         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value);"}),
         initial='continuous'
     )
@@ -131,14 +132,14 @@ class SeatingForm(forms.Form):
     skipping_option = forms.ChoiceField(
         choices=[('noskip', 'No skip'), ('skip', 'Skip')],
         label='Skip Option',
-        help_text="Choose whether to skip seats.",
+        help_text="Choose whether to skip seats. Upload a .csv with the numbers to skip.",
         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value)", 'id': 'id_skipping_option'}),
         initial='noskip'
     )
 
     fill_all_seats = forms.BooleanField(
         required=False,
-        help_text="Fill all seats of the plans.",
+        help_text="Fill all seats of the plans from the first number to the end of the plan.",
         widget=forms.CheckboxInput(attrs={'id': 'id_fill_all_seats', 'onchange': "showHideLastNumber(this.checked)"})
     )
 

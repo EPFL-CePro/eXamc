@@ -4,14 +4,12 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from examc_app.admin import ExamAdmin
 from examc_app import views
 from examc_app.views import menu_access_required, staff_status, users_view
-from examc_app.views.rooms_plans_views import GenerateRoomPlanView, preview_image
-
+from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 urlpatterns = [
     path('users/', users_view, name='users'),
     path('staff-status/<int:user_id>/', staff_status, name='staff_status'),
     path('admin/exam/import/', ExamAdmin.import_csv_data),
     path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
-
     # scans upload
     path('upload_scans/<int:pk>', menu_access_required(views.upload_scans), name="upload_scans"),
     path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),
