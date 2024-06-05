@@ -137,6 +137,7 @@ def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count
         print(f"Error calculating seat numbers: {e}")
         return None, None
 
+
 # @method_decorator(login_required(login_url='/'), name='dispatch')
 class GenerateRoomPlanView(FormView):
     template_name = 'rooms_plans/rooms_plans.html'
@@ -272,6 +273,3 @@ class GenerateRoomPlanView(FormView):
 
             else:
                 return HttpResponse("No ZIP file found.", status=404)
-
-
-

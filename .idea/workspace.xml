@@ -5,13 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="survey and csv">
-      <change afterPath="$PROJECT_DIR$/rooms_plans/export/AAC_120_export.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/rooms_plans/export/AAC_132_export.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/rooms_plans/export/BS_260_export.jpg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" afterDir="false" />
@@ -68,64 +62,8 @@
       <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_G.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_G.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_H.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_H.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/AAC_231_export.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/export/BS_160_export.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/BS_160_export.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/export/BS_160_export.jpg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/AAC_120.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/AAC_120.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/AAC_132.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/AAC_132.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/AAC_137.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/AAC_137.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/AAC_231.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/AAC_231.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/BCH_2201.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BCH_2201.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/BS_150.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_150.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/BS_150_soft.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_150_soft.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/BS_160.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_160.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/BS_170.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_170.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/BS_260.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_260.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/BS_270.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/BS_270.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1100.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1100.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1101.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1101.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1104.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1104.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1105.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1105.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1106.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1106.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1515_bas.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1515_bas.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1515_haut.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1515_haut.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1_1.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_1.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1_2.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_2.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1_3.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_3.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1_4.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_4.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1_5.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_5.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CE_1_6.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CE_1_6.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CH_B3_30.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CH_B3_30.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CM_1106.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1106.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CM_1120.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1120.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CM_1121.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1121.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CM_1_1.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_1.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CM_1_2.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_2.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CM_1_3.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_3.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CM_1_4.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_4.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CM_1_5.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CM_1_5.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CO_01.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CO_01.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CO_02.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CO_02.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/CO_03.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/CO_03.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/INJ_218.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/INJ_218.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/MA_A1_10.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_A1_10.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/MA_A1_12.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_A1_12.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/MA_A3_30.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_A3_30.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/MA_A3_31.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_A3_31.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/MA_B1_11.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/MA_B1_11.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/PO_01_exam.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/PO_01_exam.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/PO_01_old.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/PO_01_old.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/SG_0211.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/SG_0211.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/SG_0213.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/SG_0213.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/SG_1138.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/SG_1138.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC_B.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_B.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC_C.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_C.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC_D.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_D.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC_E.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_E.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC_Fjpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_Fjpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC_G.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_G.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC_H.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_H.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/map/STCC_mark.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/map/STCC_mark.jpg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" afterDir="false" />
     </list>

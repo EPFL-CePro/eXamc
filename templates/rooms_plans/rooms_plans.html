@@ -19,18 +19,17 @@
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
                  style="padding: 10px;{% if field.name == 'special_file' %}display:none;{% endif %}">
-             {% if field.help_text %}
-                        <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
-                    {% endif %}
+                {% if field.help_text %}
+                    <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
+                {% endif %}
                 <div class="col col-sm-2">
                     {{ field.label_tag }}
-
                 </div>
                 <div class="col col-sm-4">
                     {{ field }}
-                     {% if field.name == 'special_file' %}
+                    {% if field.name == 'special_file' %}
                         <label class="custom-file-label custom-file-label small">Choose a csv file
-                            <input class="custom-file-input form-control" accept='text/csv'>
+                            <input class="custom-file-input form-control" type="file" name="{{ field.name }}" accept="text/csv">
                         </label>
                     {% endif %}
                 </div>
@@ -43,9 +42,9 @@
     <a href="{% static '/exemple_csv.csv' %}" class="btn btn-dark btn-sm" download target="blank">Download Example .csv File</a>
     <br>
     <br>
-    <a href="https://docs.google.com/forms/d/1Bu_SiV5ckfGGeA3h-SLQ36WsCe7P_9QG8wSvmlMIXzs/edit" class="btn btn-dark btn-sm">survey</a>
+    <a href="https://docs.google.com/forms/d/1Bu_SiV5ckfGGeA3h-SLQ36WsCe7P_9QG8wSvmlMIXzs/edit" class="btn btn-dark btn-sm">Survey</a>
     
-     <br>
+    <br>
     <br>
     <div class="row">
         {% for export_file in export_files %}
@@ -55,9 +54,9 @@
         {% endfor %}
     </div>
     <script>
-       function showHideSpecialFile(value) {
-           opt = value;
-           console.log("skip_opt: ", opt);
+        function showHideSpecialFile(value) {
+            opt = value;
+            console.log("skip_opt: ", opt);
             el = $("#DIV-special_file");
             if ((opt === 'skip') || (opt === 'special')) {
                 el.css("display", "");
