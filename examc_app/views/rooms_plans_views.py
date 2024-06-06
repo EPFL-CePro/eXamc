@@ -10,7 +10,8 @@ from django.views import View
 from django.views.generic.edit import FormView
 from django.urls import reverse_lazy
 from django.http import FileResponse, HttpResponse
-from self import self
+from django.shortcuts import get_object_or_404
+import secrets
 
 from examc_app.utils.review_functions import *
 from examc import settings
@@ -56,6 +57,10 @@ CSV_TO_JPG_MAP = {
     'CO_02.csv': 'CO_02.jpg',
     'CO_03.csv': 'CO_03.jpg',
     'INJ_218.csv': 'INJ_218.jpg',
+    'INM_10.csv': 'INM_10.jpg',
+    'INM_11.csv': 'INM_11.jpg',
+    'INM_200.csv': 'INM_200.jpg',
+    'INM_202.csv': 'INM_202.jpg',
     'MA_A1_10.csv': 'MA_A1_10.jpg',
     'MA_A1_12.csv': 'MA_A1_12.jpg',
     'PO_01_exam.csv': 'PO_01_exam.jpg',
@@ -76,15 +81,6 @@ CSV_TO_JPG_MAP = {
 
 
 def count_csv_lines(file_path):
-    """
-       Counts the number of non-empty lines in a CSV file.
-
-       Args:
-           file_path (str): Path to the CSV file.
-
-       Returns:
-           int: Number of non-empty lines in the CSV file.
-       """
     try:
         with open(file_path, 'r', newline='') as file:
             reader = csv.reader(file)
@@ -96,17 +92,6 @@ def count_csv_lines(file_path):
 
 
 def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count_csv_lines):
-    """
-        Calculates the first and last seat numbers for each CSV file.
-
-        Args:
-            csv_files (list): List of paths to CSV files.
-            first_seat_number (int): The first seat number.
-            last_seat_number (int): The last seat number.
-            count_csv_lines (function): Function to count lines in a CSV file.
-
-        Returns: tuple: Two lists representing the first and last seat numbers for each file.
-        """
     try:
         N = [0] * len(csv_files)
         F = [0] * len(csv_files)
@@ -138,14 +123,18 @@ def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count
         return None, None
 
 
-# @method_decorator(login_required(login_url='/'), name='dispatch')
+def get_user_token(request):
+    if 'user_token' not in request.session:
+        request.session['user_token'] = secrets.token_hex(16)
+    return request.session['user_token']
+
+
 class GenerateRoomPlanView(FormView):
     template_name = 'rooms_plans/rooms_plans.html'
     form_class = SeatingForm
     success_url = reverse_lazy('success')
 
     def form_valid(self, form):
-
         csv_files = form.cleaned_data['csv_file']
         image_files = [CSV_TO_JPG_MAP[csv_file] for csv_file in csv_files]
         numbering_option = form.cleaned_data['numbering_option']
@@ -159,6 +148,9 @@ class GenerateRoomPlanView(FormView):
         total_seats = []
         special_files_paths = []
         current_seat_number = first_seat_number
+        responses = []
+        export_files = []
+        export_files_url = []
 
         if special_file:
             fs = FileSystemStorage(location=str(settings.ROOMS_PLANS_ROOT) + '/csv_special_numbers')
@@ -168,9 +160,8 @@ class GenerateRoomPlanView(FormView):
         else:
             special_file_path = None
         csv_file_paths = [str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file for csv_file in csv_files]
-        F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
-                                                                                                  for f in
-                                                                                                  csv_file_paths]),
+        F, L = calculate_seat_numbers(csv_file_paths, first_seat_number,
+                                      last_seat_number or sum([count_csv_lines(f) for f in csv_file_paths]),
                                       count_csv_lines)
 
         with open(str(settings.ROOMS_PLANS_ROOT) + "/param.csv", mode='w', newline='') as file:
@@ -211,24 +202,16 @@ class GenerateRoomPlanView(FormView):
                         last_seat_number = L[i]
 
                 current_seat_number = last_seat_number + 1
-                writer.writerow([image_file, csv_file, export_file, numbering_option, skipping_option,
-                                 first_seat_number, last_seat_number, special_file, shape_to_draw])
-        responses = []
-        export_files = []
-        export_files_url = []
+                writer.writerow(
+                    [image_file, csv_file, export_file, numbering_option, skipping_option, first_seat_number,
+                     last_seat_number, special_file, shape_to_draw])
+
         for i in range(len(csv_files)):
             image_file = image_files[i]
             csv_file = csv_files[i]
             export_file = image_file.replace('.jpg', '_export.jpg')
-            result = generate_plan(image_file,
-                                   csv_file,
-                                   export_file,
-                                   numbering_option,
-                                   skipping_option,
-                                   str(first_seat_number),
-                                   str(last_seat_number),
-                                   special_file,
-                                   shape_to_draw)
+            result = generate_plan(image_file, csv_file, export_file, numbering_option, skipping_option,
+                                   str(first_seat_number), str(last_seat_number), special_file, shape_to_draw)
 
             if result == 'ok':
                 export_file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
@@ -256,8 +239,13 @@ class GenerateRoomPlanView(FormView):
                 return HttpResponse("No export files found.", status=404)
 
         elif self.request.POST.get('action') == 'download':
-            zip_filename = 'exported_seating_maps.zip'
+            user_token = get_user_token(self.request)
+            zip_filename = f'{user_token}_export.zip'
             zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
+
+            with zipfile.ZipFile(zip_filepath, 'w') as zipf:
+                for export_file in export_files:
+                    zipf.write(export_file, os.path.basename(export_file))
 
             for export_file in export_files:
                 os.remove(export_file)
@@ -273,3 +261,10 @@ class GenerateRoomPlanView(FormView):
 
             else:
                 return HttpResponse("No ZIP file found.", status=404)
+
+    for export_file in os.listdir(os.path.join(settings.ROOMS_PLANS_ROOT, "export")):
+        file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+
+
