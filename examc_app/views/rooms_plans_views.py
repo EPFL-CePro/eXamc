@@ -39,6 +39,7 @@ CSV_TO_JPG_MAP = {
     'CE_1_soft.csv': 'CE_1_1.jpg',
     'CE_3_soft.csv': 'CE_1_1.jpg',
     'CE_1100.csv': 'CE_1100.jpg',
+    'CE_1101.csv': 'CE_1101.jpg',
     'CE_1104.csv': 'CE_1104.jpg',
     'CE_1105.csv': 'CE_1105.jpg',
     'CE_1106.csv': 'CE_1106.jpg',
@@ -145,12 +146,11 @@ class GenerateRoomPlanView(FormView):
         shape_to_draw = form.cleaned_data['shape_to_draw']
         fill_all_seats = form.cleaned_data['fill_all_seats']
 
-        total_seats = []
         special_files_paths = []
         current_seat_number = first_seat_number
-        responses = []
         export_files = []
         export_files_url = []
+        user_token = get_user_token(self.request)
 
         if special_file:
             fs = FileSystemStorage(location=str(settings.ROOMS_PLANS_ROOT) + '/csv_special_numbers')
@@ -159,9 +159,11 @@ class GenerateRoomPlanView(FormView):
             special_files_paths.append(special_file_path)
         else:
             special_file_path = None
+
         csv_file_paths = [str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file for csv_file in csv_files]
-        F, L = calculate_seat_numbers(csv_file_paths, first_seat_number,
-                                      last_seat_number or sum([count_csv_lines(f) for f in csv_file_paths]),
+        F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
+                                                                                                  for f in
+                                                                                                  csv_file_paths]),
                                       count_csv_lines)
 
         with open(str(settings.ROOMS_PLANS_ROOT) + "/param.csv", mode='w', newline='') as file:
@@ -169,7 +171,7 @@ class GenerateRoomPlanView(FormView):
             for i in range(len(csv_files)):
                 image_file = image_files[i]
                 csv_file = csv_files[i]
-                export_file = image_file.replace('.jpg', '_export.jpg')
+                export_file = f"{image_file.replace('.jpg', '_export')}_{user_token}.jpg"
                 total_seats = count_csv_lines(str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file)
                 if total_seats is None:
                     return HttpResponse(f"Error reading CSV file: {csv_file}", status=500)
@@ -209,7 +211,7 @@ class GenerateRoomPlanView(FormView):
         for i in range(len(csv_files)):
             image_file = image_files[i]
             csv_file = csv_files[i]
-            export_file = image_file.replace('.jpg', '_export.jpg')
+            export_file = f"{image_file.replace('.jpg', '_export')}_{user_token}.jpg"
             result = generate_plan(image_file, csv_file, export_file, numbering_option, skipping_option,
                                    str(first_seat_number), str(last_seat_number), special_file, shape_to_draw)
 
@@ -225,22 +227,15 @@ class GenerateRoomPlanView(FormView):
             else:
                 return HttpResponse("Error during plan generation : " + result)
 
-        zip_filename = 'exported_seating_maps.zip'
-        zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
-
-        with zipfile.ZipFile(zip_filepath, 'w') as zipf:
-            for export_file in export_files:
-                zipf.write(export_file, os.path.basename(export_file))
-
         if self.request.POST.get('action') == 'preview':
             if export_files:
-                return render(self.request, 'rooms_plans/rooms_plans.html', {'export_files': export_files_url})
+                return render(self.request, 'rooms_plans/rooms_plans.html',
+                              {'export_files': export_files_url, 'form': form})
             else:
                 return HttpResponse("No export files found.", status=404)
 
         elif self.request.POST.get('action') == 'download':
-            user_token = get_user_token(self.request)
-            zip_filename = f'{user_token}_export.zip'
+            zip_filename = f'seat_map_{user_token}_export.zip'
             zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
 
             with zipfile.ZipFile(zip_filepath, 'w') as zipf:
@@ -266,5 +261,3 @@ class GenerateRoomPlanView(FormView):
         file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
         if os.path.isfile(file_path):
             os.remove(file_path)
-
-

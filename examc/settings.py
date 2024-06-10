@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-9mzfudteckhll88u%xaq4f-093i3n9xtx&$+ky=bv$@-v2bj#9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['vpaavpvm0011.xaas.epfl.ch','10.95.16.25','localhost']
+ALLOWED_HOSTS = ['vpaavpvm0011.xaas.epfl.ch', '10.95.16.25', 'localhost']
 
 # SECURITY
 X_FRAME_OPTIONS = 'DENY'
@@ -33,12 +33,11 @@ SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 15768000 #6mois
+SECURE_HSTS_SECONDS = 15768000  #6mois
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_HSTS_PRELOAD = True
 SECURE_BROWSER_XSS_FILTER = True
-
 
 # Application definition
 
@@ -51,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'django_tequila',
     'userprofile',
     'sslserver',
