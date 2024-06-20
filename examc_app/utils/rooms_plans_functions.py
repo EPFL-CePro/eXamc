@@ -97,7 +97,6 @@ def generate_plan(image_file,csv_file,export_file,numbering_option,skipping_opti
                 print("...export image " + export_name + "...")
                 image.save(export_name)
 
-
     except Exception as e:
         return repr(e)
 

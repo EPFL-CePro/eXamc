@@ -124,7 +124,8 @@ class SeatingForm(forms.Form):
         choices=[('continuous', 'Continuous'), ('special', 'Special')],
         label='Numbering Option',
         help_text="Select how seats are numbered. The special option is used for student needs. Upload a .csv with "
-                  "the special numbers. Fill in the first and last number then download.",
+                  "the special numbers. Fill in the first and last number then download. The numbers will be the one "
+                  "that are in the special file.",
         widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value);"}),
         initial='continuous'
     )

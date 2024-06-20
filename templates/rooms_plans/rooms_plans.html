@@ -56,10 +56,12 @@
     </div>
     <script>
         function showHideSpecialFile(value) {
+            skip_option = document.querySelector('input[name="skipping_option"]:checked').value
+            numbering_option = document.querySelector('input[name="numbering_option"]:checked').value
             var opt = value;
             console.log("skip_opt: ", opt);
             var el = $("#DIV-special_file");
-            if (opt === 'skip' || opt === 'special') {
+            if (skip_option === 'skip' || numbering_option === 'special') {
                 el.show();
             } else {
                 el.hide();
@@ -83,6 +85,7 @@
                 placement: 'top'
             });
             $('[data-toggle="tooltip"]').tooltip();
+            showHideSpecialFile('');
             
         });
     </script>

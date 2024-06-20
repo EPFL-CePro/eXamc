@@ -37,7 +37,7 @@ CSV_TO_JPG_MAP = {
     'CE_1_5.csv': 'CE_1_5.jpg',
     'CE_1_6.csv': 'CE_1_6.jpg',
     'CE_1_soft.csv': 'CE_1_1.jpg',
-    'CE_3_soft.csv': 'CE_1_1.jpg',
+    'CE_3_soft.csv': 'CE_1_3.jpg',
     'CE_1100.csv': 'CE_1100.jpg',
     'CE_1101.csv': 'CE_1101.jpg',
     'CE_1104.csv': 'CE_1104.jpg',
@@ -51,6 +51,7 @@ CSV_TO_JPG_MAP = {
     'CM_1_3.csv': 'CM_1_3.jpg',
     'CM_1_4.csv': 'CM_1_4.jpg',
     'CM_1_5.csv': 'CM_1_5.jpg',
+    'CM_1105.csv': 'CM_1105.jpg',
     'CM_1106.csv': 'CM_1106.jpg',
     'CM_1120.csv': 'CM_1120.jpg',
     'CM_1121.csv': 'CM_1121.jpg',
@@ -152,87 +153,108 @@ class GenerateRoomPlanView(FormView):
         export_files_url = []
         user_token = get_user_token(self.request)
 
-        if special_file:
-            fs = FileSystemStorage(location=str(settings.ROOMS_PLANS_ROOT) + '/csv_special_numbers')
-            filename = fs.save(special_file.name, special_file)
-            special_file_path = fs.path(filename)
-            special_files_paths.append(special_file_path)
-        else:
-            special_file_path = None
+        zip_filename = f'seat_map_{user_token}_export.zip'
+        zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
+        if not self.request.POST.get('action') == 'download' or not os.path.exists(zip_filepath):
 
-        csv_file_paths = [str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file for csv_file in csv_files]
-        F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
-                                                                                                  for f in
-                                                                                                  csv_file_paths]),
-                                      count_csv_lines)
+            for export_file in os.listdir(os.path.join(settings.ROOMS_PLANS_ROOT, "export")):
+                file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
 
-        with open(str(settings.ROOMS_PLANS_ROOT) + "/param.csv", mode='w', newline='') as file:
-            writer = csv.writer(file)
+            for special_file_path in os.listdir(os.path.join(settings.ROOMS_PLANS_ROOT, "csv_special_numbers")):
+                file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "csv_special_numbers", special_file_path)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+
+            if special_file:
+                fs = FileSystemStorage(location=str(settings.ROOMS_PLANS_ROOT) + '/csv_special_numbers')
+                filename = fs.save(special_file.name, special_file)
+                special_file_path = fs.path(filename)
+                special_files_paths.append(special_file_path)
+                self.request.session['special_file_path'] = special_file_path
+            else:
+                special_file_path = self.request.session.get('special_file_path')
+
+            csv_file_paths = [str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file for csv_file in csv_files]
+            F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
+                                                                                                      for f in
+                                                                                                      csv_file_paths]),
+                                          count_csv_lines)
+
+            with open(str(settings.ROOMS_PLANS_ROOT) + "/param.csv", mode='w', newline='') as file:
+                writer = csv.writer(file)
+                for i in range(len(csv_files)):
+                    image_file = image_files[i]
+                    csv_file = csv_files[i]
+                    export_file = f"{image_file.replace('.jpg', '_export')}_{user_token}.jpg"
+                    total_seats = count_csv_lines(str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file)
+                    if total_seats is None:
+                        return HttpResponse(f"Error reading CSV file: {csv_file}", status=500)
+
+                    if skipping_option == 'skip':
+                        if fill_all_seats:
+                            if i == 0:
+                                first_seat_number = form.cleaned_data['first_seat_number']
+                                last_seat_number = first_seat_number + total_seats - 1
+                            else:
+                                first_seat_number = last_seat_number + 1
+                                last_seat_number = last_seat_number + total_seats - 1
+                        else:
+                            first_seat_number = F[i]
+                            last_seat_number = L[i]
+
+                    elif numbering_option == 'special':
+                        first_seat_number = 1
+                        if fill_all_seats:
+                            last_seat_number = first_seat_number + total_seats - 1
+                        else:
+                            last_seat_number = form.cleaned_data['last_seat_number']
+
+                    else:
+                        if fill_all_seats:
+                            first_seat_number = current_seat_number
+                            last_seat_number = current_seat_number + total_seats - 1
+                        else:
+                            first_seat_number = F[i]
+                            last_seat_number = L[i]
+
+                    current_seat_number = last_seat_number + 1
+                    writer.writerow(
+                        [image_file, csv_file, export_file, numbering_option, skipping_option, first_seat_number,
+                         last_seat_number, special_file, shape_to_draw])
+
             for i in range(len(csv_files)):
                 image_file = image_files[i]
                 csv_file = csv_files[i]
                 export_file = f"{image_file.replace('.jpg', '_export')}_{user_token}.jpg"
-                total_seats = count_csv_lines(str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file)
-                if total_seats is None:
-                    return HttpResponse(f"Error reading CSV file: {csv_file}", status=500)
+                result = generate_plan(image_file, csv_file, export_file, numbering_option, skipping_option,
+                                       str(first_seat_number), str(last_seat_number), special_file, shape_to_draw)
 
-                if skipping_option == 'skip':
-                    if fill_all_seats:
-                        if i == 0:
-                            first_seat_number = form.cleaned_data['first_seat_number']
-                            last_seat_number = first_seat_number + total_seats - 1
-                        else:
-                            first_seat_number = last_seat_number + 1
-                            last_seat_number = last_seat_number + total_seats - 1
+                if result == 'ok':
+                    export_file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
+                    if os.path.exists(export_file_path):
+                        export_files.append(export_file_path)
+                        export_file_url = os.path.join(settings.ROOMS_PLANS_URL, "export", export_file)
+                        export_files_url.append(export_file_url)
+
+                        zip_filename = f'seat_map_{user_token}_export.zip'
+                        zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
+
+                        with zipfile.ZipFile(zip_filepath, 'w') as zipf:
+                            for export_file in export_files:
+                                zipf.write(export_file, os.path.basename(export_file))
                     else:
-                        first_seat_number = F[i]
-                        last_seat_number = L[i]
-
-                elif numbering_option == 'special':
-                    first_seat_number = 1
-                    if fill_all_seats:
-                        last_seat_number = first_seat_number + total_seats - 1
-                    else:
-                        last_seat_number = form.cleaned_data['last_seat_number']
-
+                        return HttpResponse(f"No export file found for {export_file}.", status=404)
                 else:
-                    if fill_all_seats:
-                        first_seat_number = current_seat_number
-                        last_seat_number = current_seat_number + total_seats - 1
-                    else:
-                        first_seat_number = F[i]
-                        last_seat_number = L[i]
+                    return HttpResponse("Error during plan generation : " + result, status=404)
 
-                current_seat_number = last_seat_number + 1
-                writer.writerow(
-                    [image_file, csv_file, export_file, numbering_option, skipping_option, first_seat_number,
-                     last_seat_number, special_file, shape_to_draw])
-
-        for i in range(len(csv_files)):
-            image_file = image_files[i]
-            csv_file = csv_files[i]
-            export_file = f"{image_file.replace('.jpg', '_export')}_{user_token}.jpg"
-            result = generate_plan(image_file, csv_file, export_file, numbering_option, skipping_option,
-                                   str(first_seat_number), str(last_seat_number), special_file, shape_to_draw)
-
-            if result == 'ok':
-                export_file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
-                if os.path.exists(export_file_path):
-                    export_files.append(export_file_path)
-                    export_file_url = os.path.join(settings.ROOMS_PLANS_URL, "export", export_file)
-                    export_files_url.append(export_file_url)
+            if self.request.POST.get('action') == 'preview':
+                if export_files:
+                    return render(self.request, 'rooms_plans/rooms_plans.html',
+                                  {'export_files': export_files_url, 'form': form, 'special_file': special_file})
                 else:
-                    logger.error(f"No export file found for {export_file}.")
-                    return HttpResponse(f"No export file found for {export_file}.", status=404)
-            else:
-                return HttpResponse("Error during plan generation : " + result)
-
-        if self.request.POST.get('action') == 'preview':
-            if export_files:
-                return render(self.request, 'rooms_plans/rooms_plans.html',
-                              {'export_files': export_files_url, 'form': form})
-            else:
-                return HttpResponse("No export files found.", status=404)
+                    return HttpResponse("No export files found.", status=404)
 
         elif self.request.POST.get('action') == 'download':
             zip_filename = f'seat_map_{user_token}_export.zip'
@@ -241,12 +263,6 @@ class GenerateRoomPlanView(FormView):
             with zipfile.ZipFile(zip_filepath, 'w') as zipf:
                 for export_file in export_files:
                     zipf.write(export_file, os.path.basename(export_file))
-
-            for export_file in export_files:
-                os.remove(export_file)
-
-            for special_file_path in special_files_paths:
-                os.remove(special_file_path)
 
             if os.path.exists(zip_filepath):
                 f = open(zip_filepath, 'rb')
@@ -257,7 +273,5 @@ class GenerateRoomPlanView(FormView):
             else:
                 return HttpResponse("No ZIP file found.", status=404)
 
-    for export_file in os.listdir(os.path.join(settings.ROOMS_PLANS_ROOT, "export")):
-        file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
+
+
