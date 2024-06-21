@@ -260,16 +260,11 @@ class GenerateRoomPlanView(FormView):
             zip_filename = f'seat_map_{user_token}_export.zip'
             zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
 
-            with zipfile.ZipFile(zip_filepath, 'w') as zipf:
-                for export_file in export_files:
-                    zipf.write(export_file, os.path.basename(export_file))
-
             if os.path.exists(zip_filepath):
                 f = open(zip_filepath, 'rb')
                 response = FileResponse(f)
                 response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
                 return response
-
             else:
                 return HttpResponse("No ZIP file found.", status=404)
 
