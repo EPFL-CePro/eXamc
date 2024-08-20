@@ -131,9 +131,8 @@ class CreateExamProjectForm(forms.Form):
         return cd
 
 class CreateQuestionForm(forms.Form):
-    QUESTION_TYPES_CHOICES = [(qt.pk, qt.code+" - "+qt.name) for qt in QuestionType.objects.all()]
 
-    question_type = forms.ChoiceField(label='Question Type', widget=forms.RadioSelect(attrs={'class': "custom-radio-list",'id':"question_type_choice_create"}), choices=QUESTION_TYPES_CHOICES, required=True,initial=1)
+    question_type = forms.ChoiceField(label='Question Type', widget=forms.RadioSelect(attrs={'class': "custom-radio-list",'id':"question_type_choice_create"}), choices=[], required=True,initial=1)
     nb_answers = forms.IntegerField(label='Answers', widget=forms.NumberInput(attrs={'class': "form-control",'id':"nb_answers_create"}),required=False,min_value=1)
     open_max_points = forms.DecimalField(label='Open Max Points', widget=forms.NumberInput(attrs={'class': "form-control",'id':"open_max_points_create"}),required=False,min_value=0.5,initial=1,step_size=0.5)
     open_points_increment = forms.ChoiceField(label='Increment for open points', widget=forms.RadioSelect(attrs={'class': "custom-radio-list",'id':"open_points_increment_create"}), choices=[(0.5,"0.5pt"),(1,"1pt")], required=False,initial=1)
@@ -142,6 +141,7 @@ class CreateQuestionForm(forms.Form):
     def __init__(self, *args, section_pk=None, **kwargs):
         super(CreateQuestionForm, self).__init__(*args, **kwargs)
         self.fields['section_pk'].initial = section_pk
+        self.fields['question_type'].choices = [(qt.pk, qt.code+" - "+qt.name) for qt in QuestionType.objects.all()]
 
 class ckeditorForm(forms.Form):
     ckeditor_txt = forms.CharField(widget=CKEditor5Widget(attrs={'class':'django_ckeditor_5','width': '100%'}))
