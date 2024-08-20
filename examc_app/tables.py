@@ -2,8 +2,6 @@ import django_tables2 as tables
 from django.urls import reverse
 from django.utils.html import format_html
 
-from django_tables2.utils import A  # alias for Accessor
-
 from .models import Exam
 
 
@@ -42,6 +40,12 @@ class ExamSelectTable(tables.Table):
                     return_str += ','
                 return_str += teacher.first_name + " " + teacher.last_name
         return return_str
+
+    def render_semester(self, record):
+        return record.semester.code
+
+    def render_year(self, record):
+        return record.year.code
 
     def before_render(self, request):
         self.columns.hide('id')

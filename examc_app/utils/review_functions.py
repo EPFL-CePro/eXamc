@@ -1,27 +1,26 @@
 # SCANS IMPORT functions
-import csv
 
-from django.conf import settings
-from examc_app.models import *
-import pyzbar.pyzbar as pyzbar
-import cv2
-import os
+import datetime
 import imghdr
 import json
-import shutil
+import os
 import pathlib
-import datetime
+import shutil
 import zipfile
+
+import cv2
+import pyzbar.pyzbar as pyzbar
+from django.conf import settings
 from fpdf import FPDF
 
-from django.db.models import Q
+from examc_app.models import *
 
 
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
 def split_scans_by_copy(exam, tmp_extract_path):
     #extra_letters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','t','u','v','w','x','y','z']
 
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year) + "/" + str(exam.semester) + "/" + exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
 
     print("* Start splitting by copy")
 
@@ -88,7 +87,7 @@ def split_scans_by_copy(exam, tmp_extract_path):
 
 def import_scans(exam, path):
     print("* Start importing scans")
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year) + "/" + str(exam.semester) + "/" + exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
     os.makedirs(scans_dir, exist_ok=True)
     delete_old_scans(exam)
     count = 0
@@ -103,7 +102,7 @@ def import_scans(exam, path):
 
 
 def delete_old_scans(exam):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year) + "/" + str(exam.semester) + "/" + exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
     for filename in os.listdir(scans_dir):
         file_path = os.path.join(scans_dir, filename)
         try:
@@ -116,10 +115,10 @@ def delete_old_scans(exam):
 
 
 def get_scans_path_for_group(pagesGroup):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year) + "/" + str(
-        pagesGroup.exam.semester) + "/" + pagesGroup.exam.code
-    scans_url = "../../scans/" + str(pagesGroup.exam.year) + "/" + str(
-        pagesGroup.exam.semester) + "/" + pagesGroup.exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
+        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code
+    scans_url = "../../scans/" + str(pagesGroup.exam.year.code) + "/" + str(
+        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code
 
     for dir in sorted(os.listdir(scans_dir)):
         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
@@ -132,10 +131,10 @@ def get_scans_path_for_group(pagesGroup):
 
 
 def get_scans_pathes_by_group(pagesGroup):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year) + "/" + str(
-        pagesGroup.exam.semester) + "/" + pagesGroup.exam.code
-    scans_url = "../../scans/" + str(pagesGroup.exam.year) + "/" + str(
-        pagesGroup.exam.semester) + "/" + pagesGroup.exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
+        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code
+    scans_url = "../../scans/" + str(pagesGroup.exam.year.code) + "/" + str(
+        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code
 
     scans_pathes = []
 
@@ -171,10 +170,10 @@ def get_scans_pathes_by_group(pagesGroup):
 
 
 def generate_marked_files_zip(exam, export_type):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year) + "/" + str(exam.semester) + "/" + exam.code
-    marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year) + "/" + str(exam.semester) + "/" + exam.code
-    export_tmp_dir = str(settings.EXPORT_TMP_ROOT) + "/" + str(exam.year) + "_" + str(
-        exam.semester) + "_" + exam.code + "_" + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    export_tmp_dir = str(settings.EXPORT_TMP_ROOT) + "/" + str(exam.year.code) + "_" + str(
+        exam.semester.code) + "_" + exam.code + "_" + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
 
     if not os.path.exists(export_tmp_dir):
         os.mkdir(export_tmp_dir)

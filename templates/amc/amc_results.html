@@ -113,7 +113,6 @@ function call_amc_annotate() {
     single_file = Number(document.getElementById('annotate_one_all_student').checked);
     $.ajax({
         url: "{% url 'call_amc_annotate' %}",
-        async : true,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -134,7 +133,6 @@ function generate_amc_results() {
     $('#loadingModal').modal('show');
     $.ajax({
         url: "{% url 'call_amc_generate_results' %}",
-        async : true,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -160,7 +158,6 @@ function openSendAnnotatedPapersDialog(){
     removeAllChildNodes(table_head);
     $.ajax({
         url: "{% url 'amc_send_annotated_papers_data' %}",
-        async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -282,12 +279,6 @@ function call_amc_send_annotated_papers(){
                 url : "{% url 'call_amc_send_annotated_papers' exam.pk %}",
                 type : "POST",
                 data : data,
-                beforeSend : function(){
-
-                },
-                complete: function () {
-                    $('#send-annotated-papers-dialog').modal('hide');
-                },
                 success: (data) => {
                     data_json = JSON.parse(data);
                     info_modal_msg = document.getElementById('ajax_info_modal_msg');
@@ -301,7 +292,11 @@ function call_amc_send_annotated_papers(){
                     }
                     info_modal_msg.appendChild(ul);
                     $('#ajax_info_modal').modal('show');
+                    $('#send-annotated-papers-dialog').modal('hide');
 
+                },
+                error: (error) => {
+                    console.log(error);
                 }
             });
     }else{

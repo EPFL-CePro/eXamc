@@ -282,6 +282,35 @@ input[type="checkbox"] {
  box-sizing:border-box;
  padding:0
 }
+
+input[type="radio"] {
+  /* remove standard background appearance */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* create custom radiobutton appearance */
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  padding: 2px;
+  /* background-color only for content */
+  background-clip: content-box;
+  border: 2px solid #bbbbbb;
+  background-color: #e7e6e7;
+  border-radius: 50%;
+}
+
+/* appearance for checked radiobutton */
+input[type="radio"]:checked {
+  background-color: #000;
+}
+
+/* optional styles, I'm using this for centering radiobuttons */
+.flex {
+  display: flex;
+  align-items: center;
+}
+
 input[type="date"],
 input[type="time"],
 input[type="datetime-local"],

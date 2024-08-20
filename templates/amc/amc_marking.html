@@ -173,7 +173,6 @@ function amc_update_students_file (e) {
         ok = 1;
         $.ajax({
             url: "{% url 'amc_update_students_file' exam.pk %}",
-            async : false,
             type: "POST",
             data : formData,
             processData: false,
@@ -238,7 +237,6 @@ function openManualAssociationDialog(){
     removeAllChildNodes(table_body);
     $.ajax({
         url: "{% url 'amc_manual_association_data' %}",
-        async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -319,7 +317,6 @@ function openManualAssociationDialog(){
 }
 
 function setManualAssociation(copy_nr, event){
-    alert(event.target.value);
     $.ajax({
         url: "{% url 'amc_set_manual_association' %}",
         async : false,
@@ -341,6 +338,28 @@ function setManualAssociation(copy_nr, event){
         }
     });
 
+}
+function openEditStudentsListDialog(){
+    $.ajax({
+        url: "{% url 'edit_amc_file' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
+            'filepath' : 'students_list'
+        },
+        success: (data) => {
+            data = JSON.parse(data);
+            document.getElementById('students_list_source_text').value = data[1];
+            title = "Edit "+data[0].split("/").slice(-1)[0]
+            document.getElementById('edit_students_list_modal_title').innerText = title;
+            document.getElementById('students_list_filepath').innerText = data[0];
+            $('#edit_students_list_modal').modal('show');
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
 }
 
 function saveStudentsListFile(){

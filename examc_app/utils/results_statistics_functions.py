@@ -1,22 +1,18 @@
 # RESULTS & STATISTICS FUNCTIONS
 #------------------------------------------
 import _io
-import datetime
 import csv
 import io
-import shutil
-from zipfile import ZipFile
-
-import pdfkit
-import numpy as np
 import os
+from decimal import *
+
+import numpy as np
+import pdfkit
+from django.conf import settings
+from django.db.models import Sum
+from django.template.loader import get_template
 
 from examc_app.models import *
-from decimal import *
-from django.conf import settings
-from django.template.loader import get_template
-from django.db.models import Q, Sum
-
 from userprofile.models import UserProfile
 
 
@@ -24,7 +20,7 @@ def update_common_exams(pk):
 
     exam = Exam.objects.get(pk=pk)
     exam.common_exams.clear()
-    commons = Exam.objects.filter(name=exam.name,year=exam.year,semester=exam.semester)
+    commons = Exam.objects.filter(name=exam.name,year__code=exam.year.code,semester__code=exam.semester.code)
     if commons:
         commons2 = commons
         for common in commons:
@@ -203,17 +199,17 @@ def import_csv_data(csv_file, exam):
                     question.code = field
                     question.common = False
                     if field.upper().find('SCQ') >= 0:
-                        question.qtype = 1
-                        question.answers = 0
+                        question.question_type = 1
+                        question.nb_answers = 0
                     elif field.upper().find('MCQ') >= 0:
-                        question.qtype = 2
-                        question.answers = 0
+                        question.question_type = 2
+                        question.nb_answers = 0
                     elif field.upper().find('TF') >= 0:
-                        question.qtype = 3
-                        question.answers = 2
+                        question.question_type = 3
+                        question.nb_answers = 2
                     else:
-                        question.qtype = 4
-                        question.answers = 0
+                        question.question_type = 4
+                        question.nb_answers = 0
                     question.exam = exam
                     question.save()
                     question_list.append(question)
@@ -262,7 +258,7 @@ def import_csv_data(csv_file, exam):
                             student_data_list.append(student_data)
 
                             # add answer to question MCQ/SCQ dictionary
-                            if question.qtype <= 2 and field not in (None, "") and len(field) == 1:
+                            if question.question_type <= 2 and field not in (None, "") and len(field) == 1:
                                 if question.code not in question_answers:
                                     question_answers[question.code] = field.split()
                                 else:
@@ -274,7 +270,7 @@ def import_csv_data(csv_file, exam):
 
                                     question_answers[question.code] = answers
 
-                            if student_data.ticked and not (question.qtype == 4 and student_data.points == 0):
+                            if student_data.ticked and not (question.question_type == 4 and student_data.points == 0):
                                 student.present = True
 
                             if update_question:
@@ -290,7 +286,7 @@ def import_csv_data(csv_file, exam):
     # update questions number of answers
     for key, value in question_answers.items():
         question = Question.objects.get(code=key,exam=exam)
-        question.answers = len(value)
+        question.nb_answers = len(value)
         question.save()
 
     StudentQuestionAnswer.objects.bulk_create(student_data_list)
@@ -367,8 +363,8 @@ def import_exams_csv(csv_file):
             exam = Exam()
             exam.code = fields[0]
             exam.name = fields[1]
-            exam.year = fields[2]
-            exam.semester = fields[3]
+            exam.year.code = fields[2]
+            exam.semester.code = fields[3]
             exam.primary_user = primary_user
             exam.save()
             exam.users.add(*users)

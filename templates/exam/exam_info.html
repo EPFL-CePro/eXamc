@@ -2,14 +2,16 @@
 {% load render_table from django_tables2 %}
 
 
+  
 {% block title %}Exam info {% endblock %}
 
+
 {% block scripts %}
+{% endblock %}
 
-  {% endblock %}
+{% block content %}
 
-  {% block content %}
-
+    
 {% if user_allowed %}
   <h4><i class="fa-solid fa-book-open fa-l" style="margin-right:5px;"></i>Exam Info</h4>
 
@@ -53,8 +55,8 @@
               {% endif %}
             </td>
             <td>{{ exam.name }}</td>
-            <td>{{ exam.year }}</td>
-            <td>{{ exam.semester }}</td>
+            <td>{{ exam.year.code }}</td>
+            <td>{{ exam.semester.code }}</td>
             <td>
               <ul class="list-group">
                 <li class="list-group-item border-0" style="padding:0px;margin:0px;font-weight: bold;">{{ exam.primary_user.first_name }} {{ exam.primary_user.last_name }}</li>
@@ -165,33 +167,24 @@
           <td>{{ question.code }}</td>
           <td>
             <div class="btn-group-sm" role="group">
-              <button id="type-{{question.pk}}-1" type="button" {% if question.qtype == 1 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>SCQ</button>
-              <button id="type-{{question.pk}}-2" type="button" {% if question.qtype == 2 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>MCQ</button>
-              <button id="type-{{question.pk}}-3" type="button" {% if question.qtype == 3 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>TF</button>
-              <button id="type-{{question.pk}}-4" type="button" {% if question.qtype == 4 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>OTHER</button>
+            {% for question_type in question_types.all %}
+              <button id="type-{{question.pk}}-{{ question_type.pk }}" type="button" {% if question.question_type.pk == question_type.pk %} class="btn btn-dark btn-sm focus" {% else %} class="btn btn-outline-dark btn-sm disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>
+                  {{ question_type.code }}</button>
+            {% endfor %}
             </div>
           </td>
           <td>
-            {% if question.qtype <= 2 %}
-            <div class="btn-group-sm" role="group">
-              <button id="answers-{{question.pk}}-1" type="button" {% if question.answers == 1 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>1</button>
-              <button id="answers-{{question.pk}}-2" type="button" {% if question.answers == 2 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>2</button>
-              <button id="answers-{{question.pk}}-3" type="button" {% if question.answers == 3 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>3</button>
-              <button id="answers-{{question.pk}}-4" type="button" {% if question.answers == 4 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>4</button>
-              <button id="answers-{{question.pk}}-5" type="button" {% if question.answers == 5 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>5</button>
-              <button id="answers-{{question.pk}}-6" type="button" {% if question.answers == 6 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>6</button>
-              <button id="answers-{{question.pk}}-7" type="button" {% if question.answers == 7 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>7</button>
-              <button id="answers-{{question.pk}}-8" type="button" {% if question.answers == 8 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>8</button>
-              <button id="answers-{{question.pk}}-9" type="button" {% if question.answers == 9 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>9</button>
-              <button id="answers-{{question.pk}}-10" type="button" {% if question.answers == 10 %} class="btn btn-dark focus" {% else %} class="btn btn-outline-dark disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>10</button>
+            {% if question.question_type.id <= 2 %}
+            <div class="form-group-sm" role="group">
+                <input id="nb-answers-slider-{{ question.pk }}" data-slider-id='nb-answers-{{ question.pk }}' type="text" data-slider-value="{{ question.nb_answers }}" style="width:500px;"/>
             </div>
             {% endif %}
           </td>
-          <td><input id="maxpts-{{question.pk}}" type="number" min="0" value="{{ question.max_points }}" step=".01" style="width:100px;" class="form-control" {% if not user.is_staff %} disabled {% endif %}></td>
+          <td><input id="maxpts-{{question.pk}}" type="number" min="0" value="{{ question.max_points }}" step=".01" style="width:100px;" class="form-control form-control-sm" {% if not user.is_staff %} disabled {% endif %}></td>
           <td>
             <div class="btn-group-sm" role="group">
-                <button id="common-{{question.pk}}-1" type="button" class="btn btn-light" style="background-color: transparent;"{% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl" {% if not question.common %}style="color:lightgray;"{% endif %}></i></button>
-                <button id="common-{{question.pk}}-2" type="button" class="btn btn-light" style="background-color: transparent;"{% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl" {% if question.common %}style="color:lightgray;"{% endif %}></i></button>
+                <button id="common-{{question.pk}}-1" type="button" class="btn btn-light btn-sm" style="background-color: transparent;"{% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl" {% if not question.common %}style="color:lightgray;"{% endif %}></i></button>
+                <button id="common-{{question.pk}}-2" type="button" class="btn btn-light btn-sm" style="background-color: transparent;"{% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl" {% if question.common %}style="color:lightgray;"{% endif %}></i></button>
             </div>
           </tr>
           {% endfor %}
@@ -250,6 +243,10 @@
                       <input class="custom-control-input" type="checkbox"  name="res_and_stats_option" id="res_and_stats_option" {% if exam.res_and_stats_option == 1 %} checked {% endif %}>
                       <label class="custom-control-label" for="res_and_stats_option">Results & stats module</label>
                     </div>
+                    <div class="custom-control custom-switch mb-3">
+                      <input class="custom-control-input" type="checkbox"  name="prep_option" id="prep_option" {% if exam.prep_option == 1 %} checked {% endif %}>
+                      <label class="custom-control-label" for="prep_option">Preparation module</label>
+                    </div>
                     <div style="text-align: right;">
                         <button type="button" onclick="updateExamOptions();" class="btn btn-dark btn-sm">Validate</button>
                     </div>
@@ -260,6 +257,16 @@
         </div>
     </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js" integrity="sha512-f0VlzJbcEB6KiW8ZVtL+5HWPDyW1+nJEjguZ5IVnSQkvZbwBt2RfCBY0CBO1PsMAqxxrG4Di6TfsCPP3ZRwKpA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css" integrity="sha512-3q8fi8M0VS+X/3n64Ndpp6Bit7oXSiyCnzmlx6IDBLGlY5euFySyJ46RUlqIVs0DPCGOypqP8IRk/EyPvU28mQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+.slider-selection.tick-slider-selection, .slider-tick.in-selection {
+	background: #989898;
+}
+.slider-handle {
+	background: #000;
+}
+</style>
 <script>
 
 
@@ -268,8 +275,6 @@ $(window).on("load",function(){
     $("#create-scale-button").modalForm({
         formURL: "{% url 'create_scale' exam.pk %}"
     });
-
-
 
     <!--DISPLAY PDF CATALOG -->
     $('#displayPdfModal').on('show.bs.modal', function (event) {
@@ -289,52 +294,25 @@ $(window).on("load",function(){
 
     <!--question-type button-groups-->
     {% for question in exam.questions.all %}
-        $('#type-{{ question.pk }}-1').on('click', function() {
-        updateQuestion({{ question.pk }},'qtype', 1);
+        {% for question_type in question_types %}
+            $('#type-{{ question.pk }}-{{ question_type.pk }}').on('click', function() {
+            updateQuestion({{ question.pk }},'question_type_id', {{ question_type.pk }});
         });
-        $('#type-{{ question.pk }}-2').on('click', function() {
-        updateQuestion({{ question.pk }},'qtype', 2);
-        });
-        $('#type-{{ question.pk }}-3').on('click', function() {
-        updateQuestion({{ question.pk }},'qtype', 3);
-        });
-        $('#type-{{ question.pk }}-4').on('click', function() {
-        updateQuestion({{ question.pk }},'qtype', 4);
-        });
+        {% endfor %}
     {% endfor %}
 
-    <!--question-answers button-groups-->
+    <!--question-answers button-groups-->    
     {% for question in exam.questions.all %}
-        {% if question.qtype < 3 %}
-            $('#answers-{{ question.pk }}-1').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 1);
+        {% if question.question_type.id <= 2 %}
+            answers_range = Array.from({ length: {{ question.nb_answers }}+3 }, (value, index) => 1 + index);
+            $('#nb-answers-slider-{{ question.pk }}').bootstrapSlider({
+                ticks: answers_range,
+                ticks_labels: answers_range,
+                ticks_snap_bounds: 1
             });
-            $('#answers-{{ question.pk }}-2').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 2);
-            });
-            $('#answers-{{ question.pk }}-3').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 3);
-            });
-            $('#answers-{{ question.pk }}-4').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 4);
-            });
-            $('#answers-{{ question.pk }}-5').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 5);
-            });
-            $('#answers-{{ question.pk }}-6').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 6);
-            });
-            $('#answers-{{ question.pk }}-7').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 7);
-            });
-            $('#answers-{{ question.pk }}-8').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 8);
-            });
-            $('#answers-{{ question.pk }}-9').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 9);
-            });
-            $('#answers-{{ question.pk }}-10').on('click', function() {
-            updateQuestion({{ question.pk }},'answers', 10);
+            $('#nb-answers-{{ question.pk }}').on('mouseup',function(el){
+                updateQuestion({{ question.pk }},'nb_answers',el.target.ariaValueNow);
+
             });
         {% endif %}
     {% endfor %}
@@ -346,47 +324,53 @@ $(window).on("load",function(){
         });
     {% endfor %}
 })
-    <!--EXAM AJAX UPDATE FUNCTIONS-->
-    function updateQuestion(pk,field,value){
-        $.ajax({
-                url : "{% url 'update_question' %}",
-                type : "POST",
-                data : {
-                    'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                    'pk' : pk,
-                    'field' : field,
-                    'value' : value
-                },
-                beforeSend : function(){
-                    $('#loadingModal').modal('show');
-                },
-                complete: function () {
-                    $('#loadingModal').modal('hide');
-                },
-                success : function(result) {
-                    window.location.href += "?dataUpdated=true";
-                    window.location.reload();
-                }
-        });
-    }
+<!--EXAM AJAX UPDATE FUNCTIONS-->
+function updateQuestion(pk,field,value){
+    $.ajax({
+            url : "{% url 'update_question' %}",
+            type : "POST",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'pk' : pk,
+                'field' : field,
+                'value' : value
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#loadingModal').modal('hide');
+            },
+            success : function(result) {
+                window.location.href += "?dataUpdated=true";
+                window.location.reload();
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+}
 
-    function updateExamOptions(){
-        data = $("#form-exam-options").serialize();
-        $.ajax({
-                url : "{% url 'update_exam_options' exam.pk %}",
-                type : "POST",
-                data : data,
-                beforeSend : function(){
-                    $('#loadingModal').modal('show');
-                },
-                complete: function () {
-                    location.replace("{% url 'examInfo' exam.pk %}");
-                },
-                success: (data) => {
-                    $('#loadingModal').modal('hide');
-                    $('examOptionsModal').modal('hide');
-                }
-            });
-    }
+function updateExamOptions(){
+    data = $("#form-exam-options").serialize();
+    $.ajax({
+            url : "{% url 'update_exam_options' exam.pk %}",
+            type : "POST",
+            data : data,
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                location.replace("{% url 'examInfo' exam.pk %}");
+            },
+            success: (data) => {
+                $('#loadingModal').modal('hide');
+                $('examOptionsModal').modal('hide');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+}
 </script>
 {% endblock %}

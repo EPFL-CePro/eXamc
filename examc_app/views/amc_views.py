@@ -1,21 +1,17 @@
-import os
+import json
 from urllib import request
 
+from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
+from django.http import HttpResponse, Http404, FileResponse
 from django.shortcuts import render
 
-import examc_app.views
+from examc_app.models import *
+from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import import_csv_data
 from examc_app.utils.review_functions import *
-from examc_app.utils.amc_functions import *
-from examc_app.forms import *
-from examc_app.models import *
 
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, Http404, FileResponse
-
-import json
 
 @login_required
 def upload_amc_project(request, pk):
@@ -216,11 +212,23 @@ def call_amc_automatic_data_capture(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     zip_file = request.FILES['amc_scans_zip_file']
 
-    result = amc_automatic_data_capture(exam,zip_file)
+    result = amc_automatic_data_capture(exam,zip_file,False)
     if not 'ERR:' in result:
         return HttpResponse('yes')
     else:
         return HttpResponse(result)
+
+def import_scans_from_review(request,pk):
+    exam = Exam.objects.get(pk=pk)
+
+    scans_zip_path = generate_marked_files_zip(exam, 1)
+    result = amc_automatic_data_capture(exam,scans_zip_path,True)
+
+    if not 'ERR:' in result:
+        return HttpResponse('yes')
+    else:
+        return HttpResponse(result)
+
 
 def open_amc_exam_pdf(request,pk):
     exam = Exam.objects.get(pk=pk)
@@ -389,3 +397,6 @@ def call_amc_send_annotated_papers(request,pk):
 
 
         return HttpResponse(json.dumps(result))
+
+
+

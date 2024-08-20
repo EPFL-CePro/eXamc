@@ -1,8 +1,8 @@
 # AMC sqlite connection and queries
 import sqlite3
 import sys
-import traceback
 import time
+import traceback
 
 
 class AMC_DB:
@@ -403,6 +403,18 @@ def get_annotated_pdf_path(amc_data_path,student_id):
     db.close()
 
     return file
+
+def get_student_report_data(amc_data_path):
+    db = AMC_DB(amc_data_path + "report.sqlite")
+    query_str = ("SELECT * FROM report_student")
+
+    response = db.execute_query(query_str)
+    colname_rep = [d[0] for d in response.description]
+    rep_details = [dict(zip(colname_rep, r)) for r in response.fetchall()]
+
+    db.close()
+
+    return rep_details
 
 def update_report_student(amc_data_path,student,mail_timestamp,mail_status,mail_message=''):
     db = AMC_DB(amc_data_path + "report.sqlite")

@@ -7,7 +7,10 @@
 <script type="text/javascript"  src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
 <script type="text/javascript" src="{% static 'js/jquery-comments.js' %}"></script>
 <script type="text/javascript" src="https://unpkg.com/markerjs2/markerjs2.js"></script>
-    
+<!-- MathJax -->
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js">
+</script>
 <link rel="stylesheet" type="text/css" href="{% static 'css/jquery-comments.css' %}">
 
 {% endblock %}
@@ -103,7 +106,7 @@
                         </p>
                     </div>
                     <hr>
-                    <div id="grading-help" style="padding:10px;border:1px solide black;background-color: white;"><textarea id="grading-help-textarea"></textarea></div>
+                    <div id="grading-help" style="padding:10px;border:1px solid lightgray;background-color: white;"></div>
                 </div>
             </div>
 
@@ -114,14 +117,21 @@
 
 
 <script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$$', '$$'], ['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+
+  }
+};
 let sourceImage, markedImage, targetRoot, maState, currSourceElementId, currSourceIdSplit, markerArea;
 let group_pathes = JSON.parse('{{json_group_scans_pathes|safe }}');
 
 window.addEventListener('resize', function(event) {
-    
-    location.reload();    
-}, true);  
-    
+
+    location.reload();
+}, true);
+
 // save references to the original image and its parent div (positioning root)
 function setSourceImage(source) {
     sourceImage = source;
@@ -129,9 +139,9 @@ function setSourceImage(source) {
 }
 
 function createPagination(pages, page) {
-    
-    
-    
+
+
+
     let str = ''//'<ul class="list-group list-group-horizontal">';
 
     setSourceScan(group_pathes[page-1]["path"], "");
@@ -233,7 +243,7 @@ function setMarkerArea(target) {
     imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
     copy_no = currSourceIdSplit[1];
     page_no = currSourceIdSplit[2];
-    maState = getMarkersAndComments("{{ exam.pk }}",copy_no,page_no,sourceImage.getAttribute("src"));
+    getMarkersAndComments("{{ exam.pk }}",copy_no,page_no,sourceImage.getAttribute("src"));
 
     markerArea.show();
     // if previous state is present - restore it
@@ -246,7 +256,7 @@ function setMarkerArea(target) {
     });
 
 }
-    
+
 function markerDeselect(){
     svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
     svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));
@@ -254,7 +264,7 @@ function markerDeselect(){
 
     addMarkersImageProcess(svgDataUrl).then(img => {
         var canvas = document.createElement('canvas')
-    
+
         canvas.setAttribute('width', markerArea.target.naturalWidth)
         canvas.setAttribute('height', markerArea.target.naturalHeight)
 
@@ -263,10 +273,10 @@ function markerDeselect(){
         context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
         var dataUrl = canvas.toDataURL('image/png')
         markedImage.src = dataUrl;
-        updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}"); 
+        updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
     });
 }
-    
+
 function addMarkersImageProcess(src){
   return new Promise((resolve, reject) => {
     let img = new Image()
@@ -274,13 +284,13 @@ function addMarkersImageProcess(src){
     img.onerror = reject
     img.src = src
   })
-}  
-    
+}
+
 function getMarkersAndComments(pk,copy_no,page_no,filename){
     var markers;
     $.ajax({
         url: "{% url 'get_markers_and_comments' %}",
-        async : false,
+        async:false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -294,7 +304,7 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
             markers="None";
             if(data!="None"){
                 data_full = JSON.parse(data);
-                state=JSON.parse(data_full.markers);
+                maState=JSON.parse(data_full.markers);
                 comments=data_full.comments;
                 initComments(comments);
             }
@@ -303,7 +313,6 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
             console.log(error);
         }
     });
-    return state;
 }
 
 function initCopyPagesTableOnClickRowEvent(refresh){
@@ -322,7 +331,7 @@ function initCopyPagesTableOnClickRowEvent(refresh){
     }
 }
 
-async function updateMarkers(markerArea, exam_pk, pages_group_pk){
+function updateMarkers(markerArea, exam_pk, pages_group_pk){
     imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
     copy_no = currSourceIdSplit[1];
     page_no = currSourceIdSplit[2];
@@ -341,7 +350,6 @@ async function updateMarkers(markerArea, exam_pk, pages_group_pk){
 function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,comment,filename){
     $.ajax({
         url : "{% url 'save_markers' %}",
-        async : false,
         type : "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -355,10 +363,8 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,comm
             'filename' : filename
         },
         beforeSend : function(){
-            $('#loadingModal').modal('show');
         },
         complete: function () {
-            $('#loadingModal').modal('hide');
         }
     });
 }
@@ -375,7 +381,6 @@ function saveComment(data){
 
     $.ajax({
         url : "{% url 'save_comment' %}",
-        async : false,
         type : "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -468,7 +473,6 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
 
         $.ajax({
             url: "{% url 'get_pages_group_grading_help' %}",
-            async : false,
             type: "POST",
             data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -476,6 +480,7 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
             },
             success: (data) => {
                 document.getElementById("grading-help").innerHTML = data;
+                window.MathJax.typeset();
             },
             error: (error) => {
                 console.log(error);

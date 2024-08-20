@@ -86,7 +86,6 @@ function searchLdap(){
 
     $.ajax({
         url: "{% url 'search_ldap' %}",
-        async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -145,7 +144,6 @@ function addNewReviewers(){
     $('.modal').modal('hide');
     $.ajax({
         url: "{% url 'add_new_reviewers' %}",
-        async : false,
         type: "POST",
         dataType: "json",
         data : {

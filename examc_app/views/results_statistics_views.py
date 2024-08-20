@@ -1,24 +1,18 @@
-import zipfile
-from pathlib import Path
-
-import requests
 import shutil
-
+import zipfile
 from datetime import datetime
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect
 from django.contrib import messages
-from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.db.models.functions import Cast
+from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect
 from django.shortcuts import redirect
+from django.shortcuts import render
 from django.views.decorators.clickjacking import xframe_options_exempt
 
 from examc_app.forms import ExportResultsForm
-
-from django.db.models.functions import Cast
-
 from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import *
@@ -35,8 +29,10 @@ def update_question(request):
     question = Question.objects.get(pk=request.POST['pk'])
     field_name = request.POST['field']
     value = request.POST['value']
-
-    setattr(question, field_name, value)
+    if field_name == 'answers':
+        yo = 1
+    else:
+        setattr(question, field_name, value)
     question.save()
 
     return HttpResponse(1)
@@ -86,8 +82,8 @@ def upload_catalog_pdf(request, pk):
     exam = Exam.objects.get(pk=pk)
     catalog = request.FILES["catalog_pdf_file"]
 
-    filename = exam.code+'_'+str(exam.year)+'_'+str(exam.semester)+'_catalog.pdf'
-    dest = str(settings.CATALOG_ROOT)+'/'+str(exam.year)+"/"+str(exam.semester)+'/'+exam.code+'/'
+    filename = exam.code+'_'+str(exam.year.code)+'_'+str(exam.semester.code)+'_catalog.pdf'
+    dest = str(settings.CATALOG_ROOT)+'/'+str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'/'
     dest += filename
     default_storage.delete(dest)
     default_storage.save(dest,ContentFile(catalog.read()))
@@ -280,8 +276,8 @@ def questions_statistics_view(request,pk):
 
             return render(request, "res_and_stats/questions_statistics.html",
                           {"user_allowed":True,"exam": EXAM,"discriminatory_factor": discriminatory_factor, "discriminatory_qty": discriminatory_qty,
-                           "mcq_questions": Question.objects.filter(exam=EXAM).exclude(qtype=4),
-                           "open_questions": Question.objects.filter(exam=EXAM,qtype=4),
+                           "mcq_questions": Question.objects.filter(exam=EXAM).exclude(question_type__id=4),
+                           "open_questions": Question.objects.filter(exam=EXAM,question_type__id=4),
                            "questionsStatsByTeacher": question_stat_by_teacher_list,
                            "common_list" : get_common_list(EXAM),
                            "current_url": "questionsStats"})
@@ -299,8 +295,8 @@ def questions_statistics_view(request,pk):
 @login_required
 def display_catalog(request, pk):
     exam = Exam.objects.get(pk=pk)
-    cat_name = exam.code + '_' + str(exam.year) + '_' + str(exam.semester) + '_catalog.pdf'
-    cat_path = str(settings.CATALOG_ROOT)+'/'+str(exam.year)+"/"+str(exam.semester)+'/'+exam.code+'/'+cat_name
+    cat_name = exam.code + '_' + str(exam.year.code) + '_' + str(exam.semester.code) + '_catalog.pdf'
+    cat_path = str(settings.CATALOG_ROOT)+'/'+str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'/'+cat_name
     try:
         return FileResponse(open(cat_path, 'rb'), content_type='application/pdf')
     except FileNotFoundError:
@@ -338,7 +334,7 @@ def get_questions_stats_by_teacher(exam):
             na_answers = 0
             new_answer_list = []
             for answer in answer_list.iterator():
-                if answer.get('ticked') == '' or (question.qtype == 1 and len(answer.get('ticked')) > 1):
+                if answer.get('ticked') == '' or (question.question_type == 1 and len(answer.get('ticked')) > 1):
                     na_answers += comex.present_students*answer.get('percent')/100
                 else:
                     new_answer_list.append({'ticked':answer.get('ticked'),'percent':answer.get('percent')})

@@ -1,27 +1,26 @@
-from shapely.geometry import Polygon
-from django.contrib.auth.models import Group
-from django.shortcuts import render, redirect
-from django.views.generic import DetailView
-from django.contrib import messages
-from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect, JsonResponse
-from django.urls import reverse
+import base64
+import json
+import os
+import re
+import zipfile
 
-from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import *
-from examc_app.utils.amc_functions import *
-from examc_app.utils.epflldap import ldap_search
-from examc_app.views import menu_access_required
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
+from django.http import HttpResponse, FileResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.views.generic import DetailView
+from shapely.geometry import Polygon
+
 from examc_app.forms import *
 from examc_app.models import *
-
-import csv
-import zipfile
-import os
-import json
-import re
-import base64
+from examc_app.utils.amc_functions import *
+from examc_app.utils.epflldap import ldap_search
+from examc_app.utils.global_functions import user_allowed
+from examc_app.utils.review_functions import *
+from examc_app.views import menu_access_required
 
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
@@ -132,6 +131,9 @@ class ReviewSettingsView(DetailView):
             {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
         formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
 
+        grading_help_group_form = ckeditorForm()
+        grading_help_group_form.initial['ckeditor_txt'] = ''
+
         if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
@@ -139,6 +141,7 @@ class ReviewSettingsView(DetailView):
             context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
             context['curr_tab'] = curr_tab
+            context['gh_group_form'] = grading_help_group_form
             return context
         else:
             context['user_allowed'] = False
@@ -321,7 +324,12 @@ def get_pages_group_grading_help(request):
       Returns:
           HttpResponse: An HTTP response containing the grading help for the pages group.
       """
+
     pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
+    # grading_help_group_form = ckeditorForm()
+    # grading_help_group_form.initial['ckeditor_txt'] = pages_group.grading_help
+
+
     return HttpResponse(pages_group.grading_help)
 
 
@@ -613,7 +621,7 @@ def start_upload_scans(request, pk, zip_file_path):
     """
     exam = Exam.objects.get(pk=pk)
 
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
+    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code
     tmp_extract_path = zip_path + "/tmp_extract"
 
     # extract zip file in tmp dir
@@ -684,8 +692,8 @@ def saveMarkers(request):
             # Decode the 64 bit string into 32 bit
             ImageData = base64.b64decode(ImageData)
 
-            marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year) + "/" + str(
-                exam.semester) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
+            marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+                exam.semester.code) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
                               scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
             os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
 
@@ -694,8 +702,8 @@ def saveMarkers(request):
 
         scan_markers.save()
     else:
-        marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year) + "/" + str(
-            exam.semester) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
+        marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+            exam.semester.code) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
                           scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
         #os.remove(marked_img_path)
         scan_markers.delete()

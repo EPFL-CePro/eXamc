@@ -1,21 +1,22 @@
 # (╯°□°）╯︵ ┻━┻
-from django.test import TestCase
-from examc_app.models import *
 from django.contrib.auth.models import User
+from django.test import TestCase
+
+from examc_app.models import *
 
 
 class ExamModelTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create(username='test_user', first_name='Test', last_name='User')
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
 
     def test_exam_str_method(self):
-        self.assertEqual(str(self.exam), "EXAM1-Exam 1 2024 1")
+        self.assertEqual(str(self.exam), "EXAM1-Exam 1 2023-2023-2023-2024 1")
 
 
 class PagesGroupTestCase(TestCase):
     def setUp(self):
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
 
     def test_exam_pages_group_str_method(self):
         group = PagesGroup.objects.create(exam=self.exam, group_name="Group 1", page_from=1, page_to=5)
@@ -25,7 +26,7 @@ class PagesGroupTestCase(TestCase):
 class ReviewerTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create(username='test_user', first_name='Test', last_name='User')
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
 
     def test_exam_reviewer_str_method(self):
         reviewer = Reviewer.objects.create(exam=self.exam, user=self.user)
@@ -35,7 +36,7 @@ class ReviewerTestCase(TestCase):
 class PagesGroupCommentTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create(username='test_user', first_name='Test', last_name='User')
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
         self.group = PagesGroup.objects.create(exam=self.exam, group_name="Group 1", page_from=1, page_to=5)
 
     def test_exam_pages_group_comment(self):
@@ -48,7 +49,7 @@ class PagesGroupCommentTestCase(TestCase):
 
 class PageMarkersTestCase(TestCase):
     def setUp(self):
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
         self.group = PagesGroup.objects.create(exam=self.exam, group_name="Group 1", page_from=1, page_to=5)
 
     def test_scan_markers_str_method(self):
@@ -59,18 +60,18 @@ class PageMarkersTestCase(TestCase):
 
 class ScaleTestCase(TestCase):
     def setUp(self):
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
         self.scale = Scale.objects.create(name="Test Scale", total_points=100, points_to_add=10, formula="Some Formula",
                                           final=True, exam=self.exam)
 
     def test_scale_str_method(self):
-        self.assertEqual(str(self.scale), "Test Scale(100, 10, Some Formula, True)EXAM1 - Exam 1 2024 1")
+        self.assertEqual(str(self.scale), "Test Scale(100, 10, Some Formula, True)EXAM1 - Exam 1 2023-2023-2023-2024 1")
 
 
 class QuestionTestCase(TestCase):
     def setUp(self):
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
-        self.question = Question.objects.create(code="Q1", common=False, qtype=1, max_points=10.0, answers=4,
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
+        self.question = Question.objects.create(code="Q1", common=False, question_type__id=1, max_points=10.0, answers=4,
                                                 correct_answer="A",
                                                 discriminatory_factor=1, upper_correct=5, lower_correct=2,
                                                 di_calculation=0.5,
@@ -83,7 +84,7 @@ class QuestionTestCase(TestCase):
 
 class StudentTestCase(TestCase):
     def setUp(self):
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
 
     def test_student_str_method(self):
         student = Student.objects.create(copie_no="1", sciper="123456", name="Test User", section="Section A",
@@ -93,11 +94,11 @@ class StudentTestCase(TestCase):
 
 class StudentQuestionAnswerTestCase(TestCase):
     def setUp(self):
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
         self.student = Student.objects.create(copie_no="1", sciper="123456", name="John Doe", section="Section A",
                                               exam=self.exam)
 
-        self.question = Question.objects.create(code="Q1", common=False, qtype=1, max_points=10.0, answers=4,
+        self.question = Question.objects.create(code="Q1", common=False, question_type__id=1, max_points=10.0, answers=4,
                                                 correct_answer="A",
                                                 discriminatory_factor=1, upper_correct=5, lower_correct=2,
                                                 di_calculation=0.5,
@@ -119,7 +120,7 @@ class StudentQuestionAnswerTestCase(TestCase):
 
 class StudentScaleGradeTestCase(TestCase):
     def setUp(self):
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
         self.student = Student.objects.create(copie_no="1", sciper="123456", name="John Doe", section="Section A",
                                               exam=self.exam)
         self.scale = Scale.objects.create(name="Test Scale", total_points=100, points_to_add=10, min_grade=1.0,
@@ -147,7 +148,7 @@ class ScaleDistributionTestCase(TestCase):
 
 class ComVsIndStatisticTestCase(TestCase):
     def setUp(self):
-        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2024")
+        self.exam = Exam.objects.create(code="EXAM1", name="Exam 1", semester=1, year="2023-2023-2023-2024")
         self.scale = Scale.objects.create(name="Test Scale", total_points=100, points_to_add=10, min_grade=1.0, max_grade=6.0, exam=self.exam)
 
     def test_com_vs_ind_statistic_creation(self):

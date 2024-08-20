@@ -2,11 +2,11 @@ from datetime import datetime
 
 from django import template
 from django.contrib.auth.models import User
-from django.db.models.functions import Cast
 from django.db.models import FloatField, Sum
+from django.db.models.functions import Cast
 
-from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
 from examc_app.models import ScaleDistribution, ComVsIndStatistic
+from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
 
 register = template.Library()
 
@@ -144,3 +144,10 @@ def divideMult100(value, arg):
         return int(value) / int(arg) * 100
     except (ValueError, ZeroDivisionError):
         return 0
+
+@register.filter
+def get_frm_by_id(l, i):
+    try:
+        return l[i]
+    except:
+        return None

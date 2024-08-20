@@ -28,6 +28,9 @@ def LDAP_search(pattern_search):
     )
     return connection.response
 
+def ldap_search_by_sciper(sciper):
+    user_entry = get_entry(sciper,'uniqueidentifier')
+    return user_entry
 
 def get_attribute(response, attribute):
     return response[0]['attributes'][attribute][0]

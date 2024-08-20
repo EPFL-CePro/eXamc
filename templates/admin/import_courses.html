@@ -1,0 +1,15 @@
+{% extends 'admin/base_site.html' %} {% load static %} {% block content %}
+<html>
+<head>
+    <title>Import courses</title>
+</head>
+<body>
+    <h1>Import courses</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Import</button>
+    </form>
+</body>
+</html>
+{% endblock %}

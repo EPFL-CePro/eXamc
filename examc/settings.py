@@ -28,7 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # SECURITY
-X_FRAME_OPTIONS = 'DENY'
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -59,6 +59,9 @@ INSTALLED_APPS = [
     'crispy_bootstrap4',
     'simple_history',
     'import_export',
+    # test
+    'django_quill',
+    'django_ckeditor_5'
 ]
 
 MIDDLEWARE = [
@@ -188,6 +191,9 @@ EMAIL_HOST_PASSWORD = 'NP!Cpr0_X@2022'  # SMTP server password
 EMAIL_USE_SSL = False  # Set to True if using SSL
 DEFAULT_FROM_EMAIL = 'noreply-cepro-exams@epfl.ch'  # Default sender email address
 
+# Pandoc filters
+PANDOC_UTILS_DIR = BASE_DIR / 'examc_app/utils/pandoc'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -216,4 +222,60 @@ LOGGING = {
             'level': 'INFO',
         },
     },
+}
+
+## CKEDITOR Configuration
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'blockToolbar': [
+            'heading1', 'heading2', 'heading3',
+            '|',
+            'bulletedList', 'numberedList',
+            '|',
+            'blockQuote',
+        ],
+        'toolbar': ['heading', '|', 'fontSize', 'fontColor', 'bold', 'italic', 'underline', 'strikethrough',
+                    'code','subscript', 'superscript','|','bulletedList', 'numberedList', '|', 'alignment', 'outdent', 'indent',
+                    '|', 'insertImage','insertTable', '|','codeBlock', 'sourceEditing'],
+        'image': {
+            'toolbar': ['imageStyle:alignLeft','imageStyle:alignRight', 'imageStyle:alignCenter'],
+            'styles': [
+                'full',
+                'side',
+                'alignLeft',
+                'alignRight',
+                'alignCenter',
+            ]
+
+        },
+        'alignment': {
+            'options': [ 'left', 'right' ]
+        },
+        'table': {
+            'contentToolbar': [ 'tableColumn', 'tableRow', 'mergeTableCells',
+            'tableProperties', 'tableCellProperties' ],
+        },
+        'heading' : {
+            'options': [
+                { 'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph' },
+                { 'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1' },
+                { 'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2' },
+                { 'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3' },
+                { 'model': 'heading4', 'view': 'h4', 'title': 'Heading 4', 'class': 'ck-heading_heading4' },
+                { 'model': 'heading5', 'view': 'h5', 'title': 'Heading 5', 'class': 'ck-heading_heading5' }
+            ]
+        },
+        'codeBlock':{
+            'languages': [
+                { 'language': 'latex', 'label': 'LaTeX' }, # The default 'language'.
+            ]
+        },
+    },
+    'list': {
+        'properties': {
+            'styles': 'true',
+            'startIndex': 'true',
+            'reversed': 'true',
+        }
+    }
 }

@@ -1,5 +1,6 @@
 """(c) All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, VPSI, 2017"""
 import re
+
 import ldap3
 
 from .utils import get_optional_env

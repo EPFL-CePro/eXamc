@@ -1,15 +1,12 @@
 # FUNCTIONS AND CLASSES FOR GENERATING STATISTICS
 #------------------------------------------
-from decimal import Decimal
-from statistics import *
-import logging
 import datetime
-import operator
 import math
-from scipy import stats
+from statistics import *
 
-from django.db.models import Max, Sum, Count, Q, FloatField
 from django.db import IntegrityError, transaction
+from django.db.models import Max, Q, FloatField
+from scipy import stats
 
 from examc_app.utils.results_statistics_functions import *
 
@@ -43,11 +40,11 @@ def generate_statistics(exam):
 
 def update_overall_common_exam(exam):
     if not exam.overall:
-        overall_exam, created = Exam.objects.get_or_create(code = '000-'+exam.name+'-'+exam.year+'-'+str(exam.semester))
+        overall_exam, created = Exam.objects.get_or_create(code = '000-'+exam.name+'-'+exam.year.code+'-'+str(exam.semester.code))
         if created:
             overall_exam.name = exam.name
-            overall_exam.year = exam.year
-            overall_exam.semester = exam.semester
+            overall_exam.year.code = exam.year.code
+            overall_exam.semester.code = exam.semester.code
             overall_exam.pdf_catalog_name = exam.pdf_catalog_name
             overall_exam.overall = True
             overall_exam.save()
@@ -100,8 +97,8 @@ def update_overall_common_exam(exam):
                 # logger.info(question.code)
                 # logger.info(comex.pk)
                 question.common = True
-                question.qtype = overall_question.qtype
-                question.answers = overall_question.answers
+                question.question_type = overall_question.question_type
+                question.nb_answers = overall_question.nb_answers
                 question.max_points = overall_question.max_points
             else:
                 question.common = False
@@ -270,7 +267,7 @@ def generate_exam_stats(exam):
             for question in question_list:
                 answer_statistic_list = []
                 #print(question.code+" - max points:"+str(question.max_points))
-                if question.qtype == 4:
+                if question.question_type == 4:
                     #print(" XXXXX ")
                     # print(question)
                     # print(str(discriminatory_count))
@@ -314,12 +311,12 @@ def generate_exam_stats(exam):
                         if comex.questions.all():
                             q = Question.objects.get(code=question.code,exam=comex)
                             q_list.append(q)
-                    if q_list[0].qtype == 4:
+                    if q_list[0].question_type == 4:
                         answers_stats.extend(StudentQuestionAnswer.objects.filter(question__in=q_list, student__present=True).values('ticked', 'points').annotate(qty=Count('ticked')))
                     else:
                         answers_stats.extend(StudentQuestionAnswer.objects.filter(question__in=q_list, student__present=True).values('ticked').annotate(qty=Count('ticked'), points=Sum('points')))
                 else:
-                    if question.qtype == 4:
+                    if question.question_type == 4:
                         answers_stats = StudentQuestionAnswer.objects.filter(question=question, student__present=True).values('ticked', 'points').annotate(qty=Count('ticked'))
                     else:
                         answers_stats = StudentQuestionAnswer.objects.filter(question=question, student__present=True).values('ticked').annotate(qty=Count('ticked'), points=Sum('points'))
@@ -328,7 +325,7 @@ def generate_exam_stats(exam):
                 for values in answers_stats:
                     #print(values)
                     answer_stat = AnswerStatistic()
-                    if question.qtype == 4:
+                    if question.question_type == 4:
                         if not values['ticked']:
                             answer_stat.answer = 'NONE'
                         else:
@@ -356,7 +353,7 @@ def generate_exam_stats(exam):
 def get_answer_remark_html(question, di_ref):
     upp_percent = 0;
     di = (question.upper_correct - question.lower_correct) / di_ref
-    if question.qtype == 4:
+    if question.question_type == 4:
         max_answer_stat = AnswerStatistic.objects.filter(question=question).exclude(answer__exact='NONE').aggregate(max=Max('answer'))['max']
         if max_answer_stat is not None:
             max_answer_stat = float(max_answer_stat)

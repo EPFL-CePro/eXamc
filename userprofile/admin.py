@@ -3,9 +3,10 @@
 """(c) All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, VPSI, 2021"""
 
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.contrib.auth.admin import UserAdmin
 from django.db import models
+
 from .models import UserProfile
 
 

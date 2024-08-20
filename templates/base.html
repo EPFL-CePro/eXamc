@@ -95,11 +95,31 @@
                         <span class="menu-collapsed" style="margin-right:5px;">Open exam</span>
                     </div>
                 </a>
+                {% if user.username == 'bonivent' %}
+                <a class="bg-dark list-group-item list-group-item-action" href="{% url 'create_exam_project' %}">
+                    <div class="d-flex w-100 justify-content-start align-items-center">
+                        <span class="fas fa-plus" style="margin-right:5px;"></span>
+                        <span class="menu-collapsed" style="margin-right:5px;">Create exam</span>
+                    </div>
+                {% endif %}
                 {% if exam %}
                     <a href="{% url 'examInfo' exam.pk %}" class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="background-color: #1d2124;margin-top:20px;">
                         <span title="{{ exam.code }}" class="fa-solid fa-book-open" style="margin-right: 5px;"></span>
                         <span class="menu-collapsed" style="margin-right:5px;">{{ exam.code }}</span>
                     </a>
+                    {% if user.username == 'bonivent' %}
+                    {% if not user|is_reviewer:exam %}
+                        {% if exam.has_prep_option %}
+                        <a href="{% url 'exam_preparation' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <span class="fas fa-edit" style="margin-right:5px;"></span>
+                                <span class="menu-collapsed" style="margin-right:5px;">Preparation</span>
+                            </div>
+                        </a>
+                        <hr class="hr-sidebar">
+                        {% endif %}
+                    {% endif %}
+                    {% endif %}
                     {% if not user|is_reviewer:exam %}
                         {% if exam.has_review_option %}
                          <li class="bg-dark list-group-item list-group-item-action">
@@ -129,6 +149,7 @@
                                 <span class="menu-collapsed" style="margin-right:5px;">AMC</span>
                             </a>
                             <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+
                                 <li><a class="bg-secondary dropdown-item" href="{% url 'amc_view' exam.pk %}" style="padding-top:15px;">
                                     <img src="{% static 'img/amc_icons/amc.ico' %}" style="margin-right:5px;"/>AMC</a></li>
                                 <div class="bg-secondary dropdown-divider"></div>
@@ -188,7 +209,7 @@
                         </div>
                     </a>
                     {% endif %}
-                    <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action">
+                    <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action" target="_blank">
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></span>
                             <span class="menu-collapsed" style="color:#CCA71CFF;margin-right:5px;">Documentation </span>

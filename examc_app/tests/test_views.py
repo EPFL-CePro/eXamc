@@ -1,12 +1,11 @@
-from django.urls import reverse
-
-from examc_app.forms import UploadScansForm, ManagePagesGroupsForm, ManageReviewersForm, ExportMarkedFilesForm
 import logging
-from django.test import TestCase, Client, RequestFactory
+
+from django.test import TestCase, Client
+from django.urls import reverse
 from django_tequila.django_backend import User
 
+from examc_app.forms import UploadScansForm, ManagePagesGroupsForm, ManageReviewersForm, ExportMarkedFilesForm
 from examc_app.models import Exam, PagesGroup
-from examc_app.views import ExamSelectView
 
 
 class ViewsTestCase(TestCase):

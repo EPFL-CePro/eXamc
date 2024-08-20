@@ -120,7 +120,7 @@
             <h6>eXamc Review (this app)</h6>
             <div class="form-group">
                <div class="col-md-8">
-                    <button class="btn btn-primary btn-sm">Import</button>
+                    <a href="{% url 'import_scans_from_review' exam.pk %}" class="btn btn-primary btn-sm">Import</a>
                 </div>
             </div>
         </div>
@@ -315,14 +315,12 @@ function callAutomaticDataCapture(){
         contentType: false,
         processData: false,
         success: (data) => { 
-            alert('auto datacapture done');
-            //todo
+            ajax_info_modal_msg.innerHTML = "Automatic data done !";
+            $('#ajax_info_modal').modal('show');
         },
         error: (error) => {
-            console.log(error);
-        },
-        complete : function(){  
-            ajax_info_modal_msg.innerHTML = "Automatic data done !";
+            ajax_info_modal_msg.innerHTML = "Problem during Automatic Data Capture ! </br></br>" +
+                "error";
             $('#ajax_info_modal').modal('show');
         }
     });  
@@ -490,8 +488,6 @@ function openCopyPageZoomsDialog(copy,page){
         },
         error: (error) => {
             console.log(error);
-        },
-        complete : function(){
         }
     });
 }

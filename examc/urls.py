@@ -13,16 +13,16 @@
 #     1. Import the include() function: from django.urls import include, path
 #     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 # """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-from django.views.generic import TemplateView
 from django_tequila.urls import urlpatterns as django_tequila_urlpatterns
 
 from examc_app import views
-
+from examc_app.admin import ExamAdmin, CourseAdmin
+from examc_app.views import staff_status, users_view
 
 urlpatterns = ([
     path('admin/doc/', include('django.contrib.admindocs.urls')),
@@ -32,6 +32,10 @@ urlpatterns = ([
     path('login_form/', views.log_in, name='login_form'),
     path('logout', views.logout,name='logout'),
     path('home',views.home, name='home'),
+    path('users/', users_view, name='users'),
+    path('staff-status/<int:user_id>/', staff_status, name='staff_status'),
+    path('admin/exam/import_exams_data/', ExamAdmin.import_exams_csv_data),
+    path('admin/course/import_courses_data/', CourseAdmin.import_courses_json_data),
     path('examSelect', login_required(views.ExamSelectView.as_view(), login_url='/'), name="examSelect"),
     path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
     path('update_exam_options/<int:pk>', views.update_exam_options, name='update_exam_options'),

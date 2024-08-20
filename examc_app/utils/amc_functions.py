@@ -1,21 +1,21 @@
 import base64
+import csv
 import json
+import logging
 import os
 import shutil
-import zipfile
-from pathlib import Path
-import csv
-import chardet
-import pandas as pd
-import logging
-
-import xmltodict
 import subprocess
 import xml.etree.ElementTree as xmlET
+import zipfile
 from datetime import datetime
+from pathlib import Path
 
-
-
+import chardet
+import img2pdf
+import pandas as pd
+import xmltodict
+from PIL import Image
+from PyPDF2 import PdfReader, PdfWriter
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
@@ -135,16 +135,21 @@ def latex_files_to_list(path):
 
     return file_list
 
-def amc_update_documents(exam,nb_copies,scoring_only):
+def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
+    amc_project_path = get_amc_project_path(exam,False)
+    if preview:
+        os.rename(amc_project_path+"/students.csv",amc_project_path+"/students.bck")
+        os.rename(amc_project_path+"/sample.csv",amc_project_path+"/students.csv")
+
     if scoring_only:
         result = subprocess.run(['auto-multiple-choice prepare '
                                  '--mode b '
-                                 '--data "' + get_amc_project_path(exam,False) + '/data/" '
+                                 '--data "' + amc_project_path+ '/data/" '
                                  '--with pdflatex '
                                  '--filter latex '
                                  '--prefix "'
-                                 +get_amc_project_path(exam,False)+'/" "'
-                                 +get_amc_project_path(exam,False)+'/exam.tex" ']
+                                 +amc_project_path+'/" "'
+                                 +amc_project_path+'/exam.tex" ']
                                 , shell=True
                                 , capture_output=True
                                 , text=True)
@@ -170,6 +175,10 @@ def amc_update_documents(exam,nb_copies,scoring_only):
         # if result.stderr:
         #     return "ERR:"+result.stderr
         # else:
+    if preview:
+        os.rename(amc_project_path+"/students.csv",amc_project_path+"/sample.csv")
+        os.rename(amc_project_path+"/students.bck",amc_project_path+"/students.csv")
+
     return result.stdout
 
 
@@ -187,7 +196,7 @@ def amc_layout_detection(exam):
     else:
         return result.stdout
 
-def amc_automatic_data_capture(exam,zip_file):
+def amc_automatic_data_capture(exam,zip_file,from_review):
     project_path = get_amc_project_path(exam, False)
     tmp_dir_path = project_path+"/tmp"
 
@@ -202,14 +211,16 @@ def amc_automatic_data_capture(exam,zip_file):
     file_list_path = tmp_dir_path+"/list-file"
     tmp_file_list = open(file_list_path, "a")
 
-    file_name = f"exam_{exam.pk}_amc_scans.zip"
-    tmp_file_path = tmp_dir_path+"/"+file_name
-
-    with open(tmp_file_path, 'wb') as temp_file:
-        for chunk in zip_file.chunks():
-            temp_file.write(chunk)
-
     tmp_extract_path = tmp_dir_path + "/tmp_extract"
+
+    if not from_review:
+        file_name = f"exam_{exam.pk}_amc_scans.zip"
+        tmp_file_path = tmp_dir_path + "/" + file_name
+        with open(tmp_file_path, 'wb') as temp_file:
+            for chunk in zip_file.chunks():
+                temp_file.write(chunk)
+    else:
+        tmp_file_path = zip_file
 
     # extract zip file in tmp dir
     with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
@@ -287,13 +298,18 @@ def get_amc_exam_pdf_path(exam):
     file_path = get_amc_project_path(exam,False)+"/"+file_name
     return file_path
 
+def get_amc_exam_pdf_url(exam):
+    file_name = get_amc_option_by_key(exam, 'doc_question')
+    file_url = get_amc_project_url(exam) + "/" + file_name
+    return file_url
+
 def get_amc_catalog_pdf_path(exam):
     file_name = get_amc_option_by_key(exam,'doc_catalog')
     file_path = get_amc_project_path(exam,False)+"/"+file_name
     return file_path
 
 def get_amc_project_path(exam,even_if_not_exist):
-    amc_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
+    amc_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+str(exam.year.code)+"/"+str(exam.semester.code)+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")
     if os.path.isdir(amc_project_path):
         return amc_project_path
     elif even_if_not_exist:
@@ -302,22 +318,22 @@ def get_amc_project_path(exam,even_if_not_exist):
         return None
 
 def get_amc_project_url(exam):
-    amc_project_url = str(settings.AMC_PROJECTS_URL)+str(exam.year)+"/"+str(exam.semester)+"/"+exam.code
+    amc_project_url = str(settings.AMC_PROJECTS_URL)+str(exam.year.code)+"/"+str(exam.semester.code)+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")
     return amc_project_url
 
 def get_amc_data_capture_manual_data(exam):
-    amc_data_path = get_amc_project_path(exam, False)
+    amc_project_path = get_amc_project_path(exam, False)
 
 
-    if amc_data_path:
-        amc_extra_pages_path = amc_data_path+"/scans/extra/"
-        amc_data_path += "/data/"
-        amc_data_url = get_amc_project_url(exam)
+    if amc_project_path:
+        amc_extra_pages_path = amc_project_path+"/scans/extra/"
+        amc_data_path = amc_project_path+"/data/"
+        amc_project_url = get_amc_project_url(exam)
         amc_threshold = get_amc_option_by_key(exam,"seuil")
-        data_pages = select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold)
+        data_pages = select_manual_datacapture_pages(amc_data_path,amc_project_url,amc_threshold)
 
         # get extra_pages
-        extra_pages = get_extra_pages(amc_extra_pages_path,amc_data_url)
+        extra_pages = get_extra_pages(amc_extra_pages_path,amc_project_url+"/scans/extra/")
         data_pages += extra_pages
         data_pages = sorted(data_pages, key=lambda k: (float(k['copy']), float(k['page'])))
 
@@ -338,19 +354,22 @@ def get_amc_data_capture_manual_data(exam):
 
         return [data_pages, data_questions]
 
-def get_extra_pages(amc_extra_pages_path,amc_data_url):
+def get_extra_pages(amc_extra_pages_path,amc_extra_pages_url=None,student=None):
     extra_pages_data = []
+    if not amc_extra_pages_url:
+        amc_extra_pages_url = amc_extra_pages_path
     if os.path.exists(amc_extra_pages_path):
         extra_subdirs = os.listdir(amc_extra_pages_path)
         for subdir in extra_subdirs:
-            for file in os.listdir(amc_extra_pages_path+"/"+subdir):
-                filepath = amc_data_url+"/scans/extra/"+subdir+"/"+file
-                copy = file.split('_')[1].lstrip('0')
-                page = file.split('_')[2].split('.')[0].lstrip('0').replace('x','.')
-                extra_page = {'copy':copy,'mse':0.0,'page':page,'sensitivity':0.0,'source':filepath,'timestamp_auto':0}
-                extra_pages_data.append(extra_page)
+            if not student or (str(student) == subdir.lstrip("0") ):
+                for file in os.listdir(amc_extra_pages_path+subdir):
+                    filepath = amc_extra_pages_url+subdir+"/"+file
+                    copy = file.split('_')[1].lstrip('0')
+                    page = file.split('_')[2].split('.')[0].lstrip('0').replace('x','.')
+                    extra_page = {'copy':copy,'mse':0.0,'page':page,'sensitivity':0.0,'source':filepath,'timestamp_auto':0}
+                    extra_pages_data.append(extra_page)
 
-    return extra_pages_data;
+    return extra_pages_data
 
 def get_amc_marks_positions_data(exam,copy,page):
     amc_data_path = get_amc_project_path(exam, False)
@@ -388,7 +407,7 @@ def create_amc_project_dir_from_zip(exam,zip_file):
         for chunk in zip_file.chunks():
             temp_file.write(chunk)
 
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year) + "_" + str(exam.semester) + "_" + exam.code
+    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code
     tmp_extract_path = zip_path + "/tmp_extract"
 
     # extract zip file in tmp dir
@@ -661,14 +680,60 @@ def amc_annotate(exam,single_file):
                                   '--verdict "' + verdict + '" '
                                   '--verdict-question "' + verdict_q + '" '
                                   '--verdict-question-cancelled "' + verdict_qc + '" '
-                                  '--position "'+ annote_position + '" ']
+                                  '--position "'+ annote_position + '" '
+                                  '--compose 0']
                             , shell=True
                             , capture_output=True
                             , text=True)
     if result.stderr:
         return "ERR:" + result.stderr
     else:
+
+        student_report_data = get_student_report_data(project_path+"/data/")
+        for st_rep in student_report_data:
+            add_extra_to_annotated_pdf(st_rep['student'], st_rep['file'], project_path)
+
         return result.stdout
+
+def add_extra_to_annotated_pdf(student, annotated_file, amc_project_path):
+    amc_extra_pages_path = amc_project_path+"/scans/extra/"
+    amc_annoted_pdfs_path = amc_project_path+"/cr/corrections/pdf/"
+    extra_pdf_tmp_path = amc_extra_pages_path+str(student).zfill(4)+"/"
+    extra_pages = get_extra_pages(amc_extra_pages_path,None,student)
+    extra_pages = sorted(extra_pages, key=lambda d: int(d['page'].split('.')[0]))
+
+    #set A4 for img conversion to pdf page
+    a4inpt = (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))
+    layout_fun = img2pdf.get_layout_fun(a4inpt)
+
+    if extra_pages:
+        added_pages = 0
+        for extra_page in extra_pages:
+            with Image.open(extra_page['source']) as img:
+                pdf = img2pdf.convert(extra_page['source'],layout_fun=layout_fun)
+                with open(extra_pdf_tmp_path+"tmp_extra.pdf","wb") as file:
+                    file.write(pdf)
+                    file.close()
+
+            extra_pdf = PdfReader(extra_pdf_tmp_path+"tmp_extra.pdf", 'rb')
+            annotated_pdf = PdfReader(amc_annoted_pdfs_path+annotated_file, 'rb')
+            final_annotated_pdf = PdfWriter()
+
+            page_to_add = extra_pdf.pages[0]
+
+            page_added = False
+            for i in range(len(annotated_pdf.pages)):
+                final_annotated_pdf.add_page(annotated_pdf.pages[i])
+                if not page_added and i+1 == int(extra_page['page'].split(".")[0])+added_pages:
+                    final_annotated_pdf.add_page(page_to_add)
+                    added_pages += 1
+                    page_added = True
+
+
+            with open(amc_annoted_pdfs_path+annotated_file, 'wb') as f:
+                final_annotated_pdf.write(f)
+
+            os.remove(extra_pdf_tmp_path+"tmp_extra.pdf")
 
 def get_annotation_symbols(exam):
     symb_0_0_color = get_amc_option_by_key(exam,'symbole_0_0_color')
@@ -706,7 +771,7 @@ def check_annotated_papers_available(exam):
 
 def create_annotated_zip(exam):
     corrections_path = get_amc_project_path(exam,False)+'/cr/corrections/'
-    zip_filename = "annotated_pdfs_"+exam.code+"_"+exam.year+"_"+str(exam.semester)
+    zip_filename = "annotated_pdfs_"+exam.code+"_"+exam.year.code+"_"+str(exam.semester.code)
     # Creating the ZIP file
     archived = shutil.make_archive(corrections_path+zip_filename, 'zip', corrections_path+'pdf')
 

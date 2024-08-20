@@ -1,14 +1,10 @@
-from django.urls import path
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
+from django.urls import path, include
 
-from examc_app.admin import ExamAdmin
 from examc_app import views
-from examc_app.views import menu_access_required, staff_status, users_view
+from examc_app.views import menu_access_required
 
 urlpatterns = [
-    path('users/', users_view, name='users'),
-    path('staff-status/<int:user_id>/', staff_status, name='staff_status'),
-    path('admin/exam/import/', ExamAdmin.import_csv_data),
     # scans upload
     path('upload_scans/<int:pk>', menu_access_required(views.upload_scans), name="upload_scans"),
     path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),
@@ -26,7 +22,7 @@ urlpatterns = [
     path('search_ldap', views.ldap_search_by_email, name="search_ldap"),
     # Review
     path('review/<int:pk>', login_required(views.ReviewView.as_view()), name="reviewView"),
-    path('reviewGroup/<int:pk>/<int:currpage>', login_required(views.ReviewGroupView.as_view()), name="reviewGroup"),
+    path('reviewGroup/<int:pk>/<str:currpage>', login_required(views.ReviewGroupView.as_view()), name="reviewGroup"),
     path('save_markers', views.saveMarkers, name="save_markers"),
     path('get_markers_and_comments', views.getMarkersAndComments, name="get_markers_and_comments"),
     path('save_comment', views.saveComment, name="save_comment"),
@@ -44,6 +40,7 @@ urlpatterns = [
     path('call_amc_update_documents', views.call_amc_update_documents, name="call_amc_update_documents"),
     path('call_amc_layout_detection', views.call_amc_layout_detection, name="call_amc_layout_detection"),
     path('call_amc_automatic_data_capture', views.call_amc_automatic_data_capture, name="call_amc_automatic_data_capture"),
+    path('import_scans_from_review/<int:pk>', views.import_scans_from_review, name="import_scans_from_review"),
     path('call_amc_annotate', views.call_amc_annotate, name="call_amc_annotate"),
     path('open_amc_exam_pdf/<int:pk>', views.open_amc_exam_pdf, name="open_amc_exam_pdf"),
     path('open_amc_catalog_pdf/<int:pk>', views.open_amc_catalog_pdf, name="open_amc_catalog_pdf"),
@@ -73,6 +70,22 @@ urlpatterns = [
     path('import_data_4_stats/<int:pk>', views.import_data_4_stats, name="import_data_4_stats"),
     path('upload_amc_csv/<int:pk>', views.upload_amc_csv, name="upload_amc_csv"),
     path('upload_catalog_pdf/<int:pk>', views.upload_catalog_pdf, name="upload_catalog_pdf"),
+    # Exam
+    path('create_exam_project', views.create_exam_project, name="create_exam_project"),
+    path('exam_preparation/<int:pk>', views.exam_preparation_view,name="exam_preparation"),
+    path('exam_add_section/<int:exam_pk>', views.exam_add_section,name="exam_add_section"),
+    path('exam_add_section_question', views.exam_add_section_question, name="exam_add_section_question"),
+    path('exam_update_section', views.exam_update_section, name="exam_update_section"),
+    path('exam_update_question', views.exam_update_question, name="exam_update_question"),
+    path('exam_update_answers', views.exam_update_answers, name="exam_update_answers"),
+    path('exam_remove_answer',views.exam_remove_answer,name="exam_remove_answer"),
+    path('exam_remove_question',views.exam_remove_question,name="exam_remove_question"),
+    path('exam_remove_section',views.exam_remove_section,name="exam_remove_section"),
+    path('exam_add_answer',views.exam_add_answer,name="exam_add_answer"),
+    path('exam_update_first_page',views.exam_update_first_page,name="exam_update_first_page"),
+    path('exam_preview_pdf/<int:exam_pk>', views.exam_preview_pdf, name="exam_preview_pdf"),
+    path('get_header_section_txt', views.get_header_section_txt, name="get_header_section_txt"),
+    path("ckeditor5/", include('django_ckeditor_5.urls')),
     # testing
     path('testing', views.testing, name="testing"),
 ]
