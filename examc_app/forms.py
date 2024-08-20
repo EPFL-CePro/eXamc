@@ -1,10 +1,16 @@
 from django import forms
+import logging
+import os
+
 from django.core.exceptions import ValidationError
-from django.forms import modelformset_factory
+from django.forms import modelformset_factory, ModelForm
 from django_ckeditor_5.widgets import CKEditor5Widget
 
 from .models import PagesGroup, Reviewer, Exam, AcademicYear, Semester, Course, QuestionType
 from .utils.global_functions import get_course_teachers_string
+
+from examc import settings
+from .models import PagesGroup, Reviewer, Exam
 
 
 class UploadScansForm(forms.Form):
@@ -86,7 +92,10 @@ class ExportResultsForm(forms.Form):
 
             self.fields['scale'].choices=[ (s.pk, s.name) for s in exam.scales.all()]
 
-    scale = forms.ChoiceField(choices=(),widget=forms.RadioSelect(attrs={'class': "custom-radio-list form-check-inline"}),required=True)
+CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
+JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
+CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
+IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
 
 class CreateExamProjectForm(forms.Form):
     # courses to init from new table like ceproexamsmgt!
@@ -130,3 +139,73 @@ class CreateQuestionForm(forms.Form):
 
 class ckeditorForm(forms.Form):
     ckeditor_txt = forms.CharField(widget=CKEditor5Widget(attrs={'class':'django_ckeditor_5','width': '100%'}))
+
+class SeatingForm(forms.Form):
+    csv_file = forms.MultipleChoiceField(
+        choices=CSV_FILES,
+        label='Room',
+        help_text="Select one or more rooms. The room order is the alphabetic one",
+        widget=forms.SelectMultiple(
+            attrs={
+                "data-tooltip-location": "top",
+                'id': 'id_csv_file',
+                'class': "selectpicker form-control",
+                'size': 5,
+                'data-live-search': "true"
+            }
+        )
+    )
+
+    numbering_option = forms.ChoiceField(
+        choices=[('continuous', 'Continuous'), ('special', 'Special')],
+        label='Numbering Option',
+        help_text="Select how seats are numbered. The special option is used for student needs. Upload a .csv with "
+                  "the special numbers. Fill in the first and last number then download. The numbers will be the one "
+                  "that are in the special file.",
+        widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value);"}),
+        initial='continuous'
+    )
+
+    skipping_option = forms.ChoiceField(
+        choices=[('noskip', 'No skip'), ('skip', 'Skip')],
+        label='Skip Option',
+        help_text="Choose whether to skip seats. Upload a .csv with the numbers to skip.",
+        widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value)", 'id': 'id_skipping_option'}),
+        initial='noskip'
+    )
+
+    fill_all_seats = forms.BooleanField(
+        required=False,
+        help_text="Fill all seats of the plans from the first number to the end of the plan.",
+        widget=forms.CheckboxInput(attrs={'id': 'id_fill_all_seats', 'onchange': "showHideLastNumber(this.checked)"})
+    )
+
+    first_seat_number = forms.IntegerField(
+        label='First Seat Number',
+        help_text="Enter the starting seat number.",
+        widget=forms.NumberInput(attrs={'id': 'id_first_seat_number'}),
+        required=False
+    )
+
+    last_seat_number = forms.IntegerField(
+        label='Last Seat Number',
+        help_text="Enter the last seat number.",
+        widget=forms.NumberInput(attrs={'id': 'id_last_seat_number'}),
+        required=False
+    )
+
+    special_file = forms.FileField(
+        label='Special File',
+        required=False,
+        help_text="Upload a file for special seat numbers or skipping. A CSV file with all the numbers you want to skip or add.",
+        widget=forms.ClearableFileInput(attrs={'id': 'id_special_file'})
+    )
+
+    shape_to_draw = forms.ChoiceField(
+        choices=[('circle', 'Circle'), ('square', 'Square')],
+        label='Shape to Draw',
+        help_text="Choose the shape to numbering.",
+        widget=forms.RadioSelect(attrs={'data-tooltip': "Choose the shape to draw."}),
+        initial='circle'
+    )
+    # preview = forms.BooleanField(required=False, initial=False, widget=forms.HiddenInput())

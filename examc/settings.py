@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-9mzfudteckhll88u%xaq4f-093i3n9xtx&$+ky=bv$@-v2bj#9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['vpaavpvm0011.xaas.epfl.ch', '10.95.16.25', 'localhost','127.0.0.1']
 
 # SECURITY
 X_FRAME_OPTIONS = 'SAMEORIGIN'
@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'django_tequila',
     'userprofile',
     'sslserver',
@@ -193,6 +194,10 @@ DEFAULT_FROM_EMAIL = 'noreply-cepro-exams@epfl.ch'  # Default sender email addre
 
 # Pandoc filters
 PANDOC_UTILS_DIR = BASE_DIR / 'examc_app/utils/pandoc'
+
+# Rooms plans pathes
+ROOMS_PLANS_ROOT = BASE_DIR / 'rooms_plans'
+ROOMS_PLANS_URL = '/rooms_plans/'
 
 LOGGING = {
     'version': 1,

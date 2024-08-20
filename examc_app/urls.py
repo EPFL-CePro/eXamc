@@ -4,7 +4,13 @@ from django.urls import path, include
 from examc_app import views
 from examc_app.views import menu_access_required
 
+from examc_app.views import menu_access_required, staff_status, users_view
+from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 urlpatterns = [
+    path('users/', users_view, name='users'),
+    path('staff-status/<int:user_id>/', staff_status, name='staff_status'),
+    path('admin/exam/import/', ExamAdmin.import_csv_data),
+    path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
     # scans upload
     path('upload_scans/<int:pk>', menu_access_required(views.upload_scans), name="upload_scans"),
     path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),
@@ -27,6 +33,7 @@ urlpatterns = [
     path('get_markers_and_comments', views.getMarkersAndComments, name="get_markers_and_comments"),
     path('save_comment', views.saveComment, name="save_comment"),
     path('update_page_group_markers', views.update_page_group_markers, name="update_page_group_markers"),
+    path('check_if_markers_intersect', views.check_if_markers_intersect, name="check_if_markers_intersect"),
     # Export
     path('export_marked_files/<int:pk>', views.export_marked_files, name="export_marked_files"),
     # AMC

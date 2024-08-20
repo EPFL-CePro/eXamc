@@ -193,6 +193,14 @@
                             <span class="menu-collapsed" style="margin-right:5px;">Export results</span>
                         </div>
                     </a>
+
+                    <a href="{% url 'generate_room_plan' %}"
+                           class="bg-dark list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <span class="fa-solid fa-meteor" style="margin-right:5px;color:#fdfdfd;"></span>
+                                <span class="menu-collapsed" style="margin-right:5px;color:#ffffff;">Room plan</span>
+                            </div>
+                        </a>
                     <hr class="hr-sidebar">
                     {% endif %}
                     {% if user|is_admin %}

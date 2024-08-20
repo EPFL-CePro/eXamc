@@ -758,46 +758,69 @@ def saveComment(request):
     return HttpResponse("ok")
 
 
-# def rectangle_check(data):
-#     print(data)
-# rectangle = Polygon(data)
 def update_page_group_markers(request):
-    global response
     if request.method == 'POST':
-        pages_group_pk = request.POST.get('pages_group_pk')
         markers_json = request.POST.get('markers')
+        pages_group_pk = request.POST.get('pages_group_pk')
 
         markers_data = json.loads(markers_json)
         markers = markers_data.get('markers')
 
-        markers_with_properties = []
-        for marker in markers:
-            left = marker.get('left')
-            top = marker.get('top')
-            width = marker.get('width')
-            height = marker.get('height')
-            markers_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
-        print(markers_with_properties)
+        page_markers_instance = PageMarkers.objects.get(pk=pages_group_pk)
 
-        points = []
-        for marker in markers_with_properties:
-            left = marker['left']
-            top = marker['top']
-            width = marker['width']
-            height = marker['height']
-            a = (left, top)
-            b = (left + width, top)
-            c = (left + width, top + height)
-            d = (left, top + height)
-            points.append([a, b, c, d])
-        print(points)
-        rectangle_coordinates = points[0]
-        rectangle_polygon = Polygon(rectangle_coordinates)
-        other_polygon = Polygon(points[1])
+        page_markers_instance.markers = markers_json
+        page_markers_instance.save()
 
-        if rectangle_polygon.intersects(other_polygon):
-            response = "True"
-        else:
-            response = "False"
+        return HttpResponse("Markers updated successfully")
+    else:
+        return HttpResponse("Invalid request method", status=405)
 
-    return HttpResponse(request, response)
+
+def check_if_markers_intersect(marker_set1, marker_set2):
+    markers1_with_properties = []
+    for marker in marker_set1:
+        left = marker.get('left')
+        top = marker.get('top')
+        width = marker.get('width')
+        height = marker.get('height')
+        markers1_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
+
+    markers2_with_properties = []
+    for marker in marker_set2:
+        left = marker.get('left')
+        top = marker.get('top')
+        width = marker.get('width')
+        height = marker.get('height')
+        markers2_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
+
+    points1 = []
+    for marker in marker_set1:
+        left = marker.get('left')
+        top = marker.get('top')
+        width = marker.get('width')
+        height = marker.get('height')
+        a = (left, top)
+        b = (left + width, top)
+        c = (left + width, top + height)
+        d = (left, top + height)
+        points1.append([a, b, c, d])
+
+    points2 = []
+    for marker in marker_set2:
+        left = marker.get('left')
+        top = marker.get('top')
+        width = marker.get('width')
+        height = marker.get('height')
+        a = (left, top)
+        b = (left + width, top)
+        c = (left + width, top + height)
+        d = (left, top + height)
+        points2.append([a, b, c, d])
+
+    rectangle_polygon = Polygon(points1[0])
+    other_polygon = Polygon(points2[0])
+
+    if rectangle_polygon.intersects(other_polygon):
+        return True
+    else:
+        return False

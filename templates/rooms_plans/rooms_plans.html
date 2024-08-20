@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+{% block extra_head %}
+    <style>
+        .tooltip-icon {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #0048ff;
+        }
+    </style>
+{% endblock %}
+{% block title %}Seating plan{% endblock %}
+{% block content %}
+    <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
+    <p>This website is under development, please fill the survey or contact lucile.pinard@epfl.ch in case of issue</p>
+    <form id="special-form" method="post" enctype="multipart/form-data">
+    
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="fieldWrapper row" id="DIV-{{ field.name }}"
+                 style="padding: 10px;{% if field.name == 'special_file' and not form.initial.special_file %}display:none;{% endif %}">
+                {% if field.help_text %}
+                    <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
+                {% endif %}
+                <div class="col col-sm-2">
+                    {{ field.label_tag }}
+                </div>
+                <div class="col col-sm-4">
+                    {{ field }}
+                    {% if field.name == 'special_file' %}
+                        <label class="custom-file-label custom-file-label small">Choose a csv file
+                            <input class="custom-file-input form-control" type="file" name="{{ field.name }}" accept="text/csv">
+                        </label>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        <button class="btn btn-dark btn-sm" type="submit" name="action" value="download">Download Seat Map</button>
+        <button class="btn btn-dark btn-sm" type="submit" name="action" value="preview">Preview Seat Map</button>
+    </form>
+    <br>
+    <a href="{% static '/exemple_csv.csv' %}" class="btn btn-dark btn-sm" download target="blank">Download Example .csv special file{{ special_file }}</a>
+    <br>
+    <br>
+    <a href="https://docs.google.com/forms/d/1Bu_SiV5ckfGGeA3h-SLQ36WsCe7P_9QG8wSvmlMIXzs/edit" class="btn btn-dark btn-sm" target="blank">Survey</a>
+    
+    <br>
+    <br>
+    <div class="row">
+        {% for export_file in export_files %}
+            <div class="col-md-4">
+                <img src="{{ export_file }}" class="img-fluid" alt="Seating Map">
+            </div>
+        {% endfor %}
+    </div>
+    <script>
+        function showHideSpecialFile() {
+            skip_option = document.querySelector('input[name="skipping_option"]:checked').value;
+            numbering_option = document.querySelector('input[name="numbering_option"]:checked').value;
+            var el = $("#DIV-special_file");
+            if (skip_option === 'skip' || numbering_option === 'special') {
+                el.show();
+            } else {
+                el.hide();
+            }
+        }
+
+        function showHideLastNumber() {
+            
+            num_option = document.querySelector('input[name="fill_all_seats"]:checked').value;
+            console.log("num_opt: ", num_option);
+            var el = $("#DIV-last_seat_number");
+            if (num_option === 'on') {
+                el.hide();
+            } else {
+                el.show();
+            }
+        }
+
+        $(document).ready(function () {
+            $('[data-toggle="popover"]').popover({
+                trigger: 'focus',
+                placement: 'top'
+            });
+            $('[data-toggle="tooltip"]').tooltip();
+            showHideSpecialFile('');
+            
+        });
+    </script>
+{% endblock %}

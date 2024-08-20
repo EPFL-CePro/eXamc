@@ -48,6 +48,7 @@ urlpatterns = ([
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
     + static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
    + static(settings.DOCUMENTATION_URL, document_root=settings.DOCUMENTATION_ROOT)
+   + static(settings.ROOMS_PLANS_URL, document_root=settings.ROOMS_PLANS_ROOT)
 )
 
 urlpatterns += django_tequila_urlpatterns

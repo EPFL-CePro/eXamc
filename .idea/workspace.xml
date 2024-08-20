@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="survey and csv">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_150_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_150_soft.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_160.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_160.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_170.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_170.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_260.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_260.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_270.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_270.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1100.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1100.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1104.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1104.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1105.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1105.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1106.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1106.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_bas.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_bas.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_haut.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_haut.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_1.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_1.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_2.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_2.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_3.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_3.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_4.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_4.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_5.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_5.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_6.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_6.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_soft.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_3_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_3_soft.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CH_B3_30.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CH_B3_30.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1106.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1106.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1120.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1121.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1121.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_1.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_1.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_2.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_2.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_3.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_3.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_4.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_4.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_5.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_5.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CO_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_01.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CO_02.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_02.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CO_03.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_03.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/INJ_218.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/INJ_218.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_10.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_10.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_12.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_12.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/PO_01_exam.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_exam.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old_exam.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old_exam.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/SG_0211.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_0211.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/SG_0213.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_0213.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/SG_1138.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_1138.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_A.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_A.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_B.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_B.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_C.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_C.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_D.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_D.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_E.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_E.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_F.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_F.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_G.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_G.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_H.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_H.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/export/AAC_231_export.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/export/BS_160_export.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager" show_ignored="true" />
+  <component name="DjangoConsoleOptions" custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)">
+    <option name="myCustomStartScript" value="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+        <option value="HTML File" />
+      </list>
+    </option>
+  </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="2g5ZmSA5TBa0zKzGyvhggAcZAat" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Django Server.eXamc.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form.executor&quot;: &quot;Run&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.StudentTestCase.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.pycharm.django.structure.promotion.once.per.project&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;django.template.preview.state&quot;: &quot;SHOW_EDITOR&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/lucile/eXamc/rooms_plans/csv_special_numbers&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/rooms_plans/csv_special_numbers" />
+      <recent name="$PROJECT_DIR$/rooms_plans" />
+      <recent name="$PROJECT_DIR$/examc_app/scripts/csv_special_numbers" />
+      <recent name="$PROJECT_DIR$/examc_app/scripts" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/review/images" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/rooms_plans" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/examc_app/rooms_plans" />
+      <recent name="$PROJECT_DIR$/examc_app/utils" />
+      <recent name="$PROJECT_DIR$/docs/source/_static" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Django Server.eXamc">
+    <configuration name="Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="TARGET" value="examc_app.tests.test_forms.FormsTestCase.test_export_results_form" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="TARGET" value="examc_app.tests.test_forms.FormsTestCase.test_login_pages_form" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="TARGET" value="examc_app.tests.test_models.StudentQuestionAnswerTestCase" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Test: examc_app.tests.test_models.StudentTestCase" type="DjangoTestsConfigurationType" temporary="true">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="TARGET" value="examc_app.tests.test_models.StudentTestCase" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="eXamc" type="Python.DjangoServer" factoryName="Django server">
+      <module name="eXamc" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="DEBUG" value="1" />
+        <env name="PYDEVD_USE_CYTHON" value="NO" />
+        <env name="DJANGO_SETTINGS_MODULE" value="examc.settings" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.12 (eXamc)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <option name="port" value="8000" />
+      <option name="host" value="localhost" />
+      <option name="additionalOptions" value="" />
+      <option name="browserUrl" value="" />
+      <option name="runTestServer" value="false" />
+      <option name="runNoReload" value="false" />
+      <option name="useCustomRunCommand" value="true" />
+      <option name="customRunCommand" value="runsslserver" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Django Server.eXamc" />
+      <item itemvalue="Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form" />
+      <item itemvalue="Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form" />
+      <item itemvalue="Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase" />
+      <item itemvalue="Django tests.Test: examc_app.tests.test_models.StudentTestCase" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form" />
+        <item itemvalue="Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form" />
+        <item itemvalue="Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase" />
+        <item itemvalue="Django tests.Test: examc_app.tests.test_models.StudentTestCase" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PY-241.17011.127" />
+        <option value="bundled-python-sdk-48aec45f0201-7e9c3bbb6e34-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.17011.127" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="" />
+      <created>1714989558341</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1714989558341</updated>
+      <workItem from="1714989559408" duration="16320000" />
+      <workItem from="1715073577976" duration="10877000" />
+      <workItem from="1715152023539" duration="24517000" />
+      <workItem from="1715599989760" duration="18709000" />
+      <workItem from="1715680890209" duration="141101000" />
+      <workItem from="1716813148301" duration="14326000" />
+      <workItem from="1716877800553" duration="44145000" />
+      <workItem from="1717043576151" duration="21070000" />
+      <workItem from="1717145886100" duration="35981000" />
+      <workItem from="1717499307591" duration="5494000" />
+    </task>
+    <task id="LOCAL-00001" summary="test models">
+      <option name="closed" value="true" />
+      <created>1715073801179</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1715073801179</updated>
+    </task>
+    <task id="LOCAL-00002" summary="test and doc">
+      <option name="closed" value="true" />
+      <created>1715172133307</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1715172133307</updated>
+    </task>
+    <task id="LOCAL-00003" summary="minor changes">
+      <option name="closed" value="true" />
+      <created>1715172223956</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1715172223956</updated>
+    </task>
+    <task id="LOCAL-00004" summary="review documentation">
+      <option name="closed" value="true" />
+      <created>1715610189761</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1715610189761</updated>
+    </task>
+    <task id="LOCAL-00005" summary="upd">
+      <option name="closed" value="true" />
+      <created>1715679504301</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1715679504301</updated>
+    </task>
+    <task id="LOCAL-00006" summary="script room map">
+      <option name="closed" value="true" />
+      <created>1716360504218</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1716360504218</updated>
+    </task>
+    <task id="LOCAL-00007" summary="script room map v1">
+      <option name="closed" value="true" />
+      <created>1716363934723</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1716363934723</updated>
+    </task>
+    <task id="LOCAL-00008" summary="script room map v1.1">
+      <option name="closed" value="true" />
+      <created>1716382514081</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1716382514081</updated>
+    </task>
+    <task id="LOCAL-00009" summary="added font">
+      <option name="closed" value="true" />
+      <created>1716451772687</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1716451772687</updated>
+    </task>
+    <task id="LOCAL-00010" summary="seating map v1.2">
+      <option name="closed" value="true" />
+      <created>1716536859256</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1716536859256</updated>
+    </task>
+    <task id="LOCAL-00011" summary="seating map v1.3">
+      <option name="closed" value="true" />
+      <created>1716796699969</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1716796699969</updated>
+    </task>
+    <task id="LOCAL-00012" summary="seating map v1.4">
+      <option name="closed" value="true" />
+      <created>1716906510859</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1716906510859</updated>
+    </task>
+    <task id="LOCAL-00013" summary="seating map v1.5">
+      <option name="closed" value="true" />
+      <created>1716963649257</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1716963649257</updated>
+    </task>
+    <task id="LOCAL-00014" summary="seating map v1.6">
+      <option name="closed" value="true" />
+      <created>1716966672869</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1716966672869</updated>
+    </task>
+    <task id="LOCAL-00015" summary="seating map v1.7">
+      <option name="closed" value="true" />
+      <created>1716971130088</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1716971130088</updated>
+    </task>
+    <task id="LOCAL-00016" summary="seating map v1.8">
+      <option name="closed" value="true" />
+      <created>1716975265782</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1716975265782</updated>
+    </task>
+    <task id="LOCAL-00017" summary="minor changes">
+      <option name="closed" value="true" />
+      <created>1717052402849</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1717052402849</updated>
+    </task>
+    <task id="LOCAL-00018" summary="button room plan added">
+      <option name="closed" value="true" />
+      <created>1717054917109</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1717054917109</updated>
+    </task>
+    <task id="LOCAL-00019" summary="preview images">
+      <option name="closed" value="true" />
+      <created>1717067993933</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1717067993933</updated>
+    </task>
+    <task id="LOCAL-00020" summary="survey and csv">
+      <option name="closed" value="true" />
+      <created>1717406223609</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1717406223609</updated>
+    </task>
+    <task id="LOCAL-00021" summary="survey and csv">
+      <option name="closed" value="true" />
+      <created>1717406233521</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1717406233521</updated>
+    </task>
+    <task id="LOCAL-00022" summary="survey and csv">
+      <option name="closed" value="true" />
+      <created>1717406246780</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1717406246780</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="test models" />
+    <MESSAGE value="test and doc" />
+    <MESSAGE value="review documentation" />
+    <MESSAGE value="upd" />
+    <MESSAGE value="script room map" />
+    <MESSAGE value="script room map v1" />
+    <MESSAGE value="script room map v1.1" />
+    <MESSAGE value="added font" />
+    <MESSAGE value="seating map v1.2" />
+    <MESSAGE value="seating map v1.3" />
+    <MESSAGE value="seating map v1.4" />
+    <MESSAGE value="seating map v1.5" />
+    <MESSAGE value="seating map v1.6" />
+    <MESSAGE value="seating map v1.7" />
+    <MESSAGE value="seating map v1.8" />
+    <MESSAGE value="minor changes" />
+    <MESSAGE value="button room plan added" />
+    <MESSAGE value="preview images" />
+    <MESSAGE value="survey and csv" />
+    <option name="LAST_COMMIT_MESSAGE" value="survey and csv" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/examc_app/views/review_views.py</url>
+          <line>757</line>
+          <option name="timeStamp" value="17" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_forms_FormsTestCase_test_login_pages_form.coverage" NAME="Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form Coverage Results" MODIFIED="1715079979913" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_models_StudentTestCase.coverage" NAME="Test: examc_app.tests.test_models.StudentTestCase Coverage Results" MODIFIED="1715064306148" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_forms_FormsTestCase_test_export_results_form.coverage" NAME="Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form Coverage Results" MODIFIED="1715165789871" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_models_StudentQuestionAnswerTestCase.coverage" NAME="Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase Coverage Results" MODIFIED="1715073614632" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_models.coverage" NAME="Test: examc_app.tests.test_models Coverage Results" MODIFIED="1715073197790" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/eXamc$Test__examc_app_tests_test_forms.coverage" NAME="Test: examc_app.tests.test_forms Coverage Results" MODIFIED="1715165414051" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+  </component>
+</project>

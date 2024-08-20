@@ -1,6 +1,13 @@
 # SCANS IMPORT functions
 
 import datetime
+from django.conf import settings
+from shapely import Polygon
+
+from examc_app.models import *
+import pyzbar.pyzbar as pyzbar
+import cv2
+import os
 import imghdr
 import json
 import os
@@ -8,12 +15,11 @@ import pathlib
 import shutil
 import zipfile
 
-import cv2
-import pyzbar.pyzbar as pyzbar
-from django.conf import settings
 from fpdf import FPDF
 
 from examc_app.models import *
+
+from examc_app.views import *
 
 
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
@@ -140,6 +146,9 @@ def get_scans_pathes_by_group(pagesGroup):
 
     scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
 
+    # récupérer ici le marker qui définit la zone corrector box
+    markers_box = []
+
     for dir in sorted(os.listdir(scans_dir)):
         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
             split_filename = filename.split('_')
@@ -152,11 +161,16 @@ def get_scans_pathes_by_group(pagesGroup):
                 comment = None
                 pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
                                                       page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
+                # corrector_box = False
                 if pageMarkers:
                     if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=pageMarkers.copie_no).exists():
                         comment = True
                     if pageMarkers.markers is not None:
                         marked = True
+                        if pageMarkers.markers is not markers_box:
+                            corrector_box = check_if_markers_intersect(pageMarkers.markers, markers_box)
+                            print(corrector_box)
+                        # check ici Polygone si corrector_box false et uniquement si marker actuel n'est pas le marqueur du corrector box
 
                 scans_path_dict = {}
                 scans_path_dict["copy_no"] = copy_no
