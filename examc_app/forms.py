@@ -1,5 +1,4 @@
 from django import forms
-import logging
 import os
 
 from django.core.exceptions import ValidationError
@@ -10,7 +9,7 @@ from .models import PagesGroup, Reviewer, Exam, AcademicYear, Semester, Course, 
 from .utils.global_functions import get_course_teachers_string
 
 from examc import settings
-from .models import PagesGroup, Reviewer, Exam
+
 
 
 class UploadScansForm(forms.Form):
@@ -98,19 +97,26 @@ CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
 IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
 
 class CreateExamProjectForm(forms.Form):
-    # courses to init from new table like ceproexamsmgt!
-    COURSES_CHOICES =[(course.pk, course.code+" - "+course.name+" ("+get_course_teachers_string(course.teachers)+")") for course in Course.objects.all().order_by("code")]
-    SEMESTER_CHOICES = [ (semester.pk, semester.code) for semester in Semester.objects.all()]
-    YEAR_CHOICES = [ (year.pk, year.code) for year in AcademicYear.objects.all().order_by("-code")]
-
-    course = forms.ChoiceField(label='Course',choices=COURSES_CHOICES,widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}),required=True)
-    semester = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}), choices=SEMESTER_CHOICES, required=True)
-    year = forms.ChoiceField(label='Year', choices=YEAR_CHOICES,widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}),required=True)
+    course = forms.ChoiceField(label='Course',choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}),required=True)
+    semester = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}), choices=[], required=True)
+    year = forms.ChoiceField(label='Year', choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}),required=True)
     date = forms.DateField(label='Date',widget=forms.DateInput(format=('%d-%m-%Y'), attrs={'id':'dateAndTime','type': 'date','class':'form-control'}),required=True)
     durationText = forms.CharField(label='DurationTxt', widget=forms.TextInput(attrs={'class':'form-control'}),required=True)
     language = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
                       choices=[('fr','FR'),('en','EN')],
                       required=True)
+
+    def __init__(self, *args, **kwargs):
+        super(CreateExamProjectForm, self).__init__(*args, **kwargs)
+
+        COURSES_CHOICES = [(course.pk, course.code + " - " + course.name + " (" + get_course_teachers_string(course.teachers) + ")") for course in Course.objects.all().order_by("code")]
+        SEMESTER_CHOICES = [(semester.pk, semester.code) for semester in Semester.objects.all()]
+        YEAR_CHOICES = [(year.pk, year.code) for year in AcademicYear.objects.all().order_by("-code")]
+
+        # Load choices here so db calls are not made during migrations.
+        self.fields['course'].choices = COURSES_CHOICES
+        self.fields['semester'].choices = SEMESTER_CHOICES
+        self.fields['year'].choices = YEAR_CHOICES
 
     def clean(self):
         cd = self.cleaned_data
