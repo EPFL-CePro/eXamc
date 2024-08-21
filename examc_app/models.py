@@ -44,7 +44,7 @@ class Exam(models.Model):
     overall = models.BooleanField(default=0)
     indiv_formula = models.CharField(max_length=100, blank=True,null=True)
     pages_by_copy = models.CharField(max_length=10000, blank=True,null=True)
-    first_page_text = CKEditor5Field('Text', config_name='extends',default='')#models.TextField(default='')
+    first_page_text = CKEditor5Field('Text', config_name='extends',default='',null=True,blank=True)#models.TextField(default='')
     review_option = models.BooleanField(default=0)
     amc_option = models.BooleanField(default=0)
     res_and_stats_option = models.BooleanField(default=0)
