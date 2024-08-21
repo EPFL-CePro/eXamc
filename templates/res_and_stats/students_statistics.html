@@ -12,6 +12,11 @@ $(document).ready(function() {
 {% endblock %}
 
 {% block scripts %}
+
+{% endblock %}
+
+{% block content %}
+<script>
 $(window).on("load",function(){
 {% if students %}
 
@@ -52,10 +57,7 @@ function updateStudentPresent(pk,value){
 }
 {% endif %}
 })
-{% endblock %}
-
-{% block content %}
-
+</script>
 {% if user_allowed %}
 
 <h4><i class="fas fa-th-list fa-l" style="margin-right:5px;"></i>Results</h4>

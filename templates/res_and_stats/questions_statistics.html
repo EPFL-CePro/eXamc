@@ -4,9 +4,14 @@
 {% block title %}Questions statistics{% endblock %}
 
 
-{% block scripts %}
+{% block scripts %} 
 
-  {% if mcq_questions or open_questions %}
+{% endblock %}
+
+{% block content %}
+{% if user_allowed %}
+<script>
+{% if mcq_questions or open_questions %}
     {% for question in mcq_questions %}
 
       {% if question.answerStatistics.all|length <= 65 %}
@@ -211,9 +216,7 @@
     {% endfor %}
   {% endif %}
 
-
-
-  $(window).on("load",function(){
+$(window).on("load",function(){
     <!-- allow moving modal -->
     $(".modal-dialog").draggable({
         handle: ".modal-header"
@@ -263,11 +266,7 @@
       {% endfor %}
     {% endif %}
   });
-
-{% endblock %}
-
-{% block content %}
-{% if user_allowed %}
+</script>
 <h4>Questions Statistics</h4>
 
 {% if mcq_questions or open_questions %}
