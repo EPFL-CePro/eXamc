@@ -37,7 +37,7 @@ class Exam(models.Model):
     name = models.CharField(max_length=100)
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT,related_name='exams',)
     year = models.ForeignKey(AcademicYear, on_delete=models.RESTRICT,related_name='exams')
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=timezone.now, blank=True,null=True)
     users = models.ManyToManyField(User, blank=True)
     present_students = models.IntegerField(default=0)
     common_exams = models.ManyToManyField("self", blank=True)
