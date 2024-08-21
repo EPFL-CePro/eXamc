@@ -33,7 +33,7 @@ class Exam(models.Model):
     """
     Stores exam data, related to :model:`auth.User` and :model:`examc_app.Exam`
     """
-    code = models.CharField(max_length=50)
+    code = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT,related_name='exams',)
     year = models.ForeignKey(AcademicYear, on_delete=models.RESTRICT,related_name='exams')
@@ -137,12 +137,12 @@ class Question(models.Model):
     lower_correct = models.IntegerField(default=0)
     di_calculation = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     tot_answers = models.IntegerField(default=0)
-    remark = models.CharField(max_length=1000, default='')
+    remark = models.CharField(max_length=1000, blank=True,null=True)
     upper_avg = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     lower_avg = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField(blank=False,default='')
-    formula = models.TextField(default='')
+    formula = models.TextField(blank=True,null=True,default='')
     history = HistoricalRecords()
 
     def is_common(self):
