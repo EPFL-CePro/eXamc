@@ -96,7 +96,7 @@ class ExamSelectView(SingleTableView):
     table_pagination = False
 
     def get_queryset(self):
-        qs = Exam.objects.all()
+        qs = Exam.objects.filter(overall=False).all()
         if not self.request.user.is_superuser:
             qs = qs.filter(Q(users__id=self.request.user.id) | Q(reviewers__user=self.request.user))
         return qs

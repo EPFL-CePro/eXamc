@@ -42,8 +42,8 @@ class Exam(models.Model):
     present_students = models.IntegerField(default=0)
     common_exams = models.ManyToManyField("self", blank=True)
     overall = models.BooleanField(default=0)
-    indiv_formula = models.CharField(max_length=100, blank=True)
-    pages_by_copy = models.CharField(max_length=10000, blank=True)
+    indiv_formula = models.CharField(max_length=100, blank=True,null=True)
+    pages_by_copy = models.CharField(max_length=10000, blank=True,null=True)
     first_page_text = CKEditor5Field('Text', config_name='extends',default='')#models.TextField(default='')
     review_option = models.BooleanField(default=0)
     amc_option = models.BooleanField(default=0)
@@ -141,7 +141,7 @@ class Question(models.Model):
     upper_avg = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     lower_avg = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='questions')
-    question_text = models.TextField(blank=False,default='')
+    question_text = models.TextField(blank=True,null=True,default='')
     formula = models.TextField(blank=True,null=True,default='')
     history = HistoricalRecords()
 
@@ -175,8 +175,8 @@ class QuestionAnswer(models.Model):
     """ Stores question answer data for questions """
     code = models.CharField(max_length=10,blank=False)
     question = models.ForeignKey(Question, on_delete=models.CASCADE,related_name='answers',blank=False,null=True)
-    answer_text = models.TextField(blank=False)
-    formula = models.TextField(default='')
+    answer_text = models.TextField(default='',blank=True,null=True)
+    formula = models.TextField(default='', blank=True,null=True)
     is_correct = models.BooleanField(default=0)
     history = HistoricalRecords()
 
