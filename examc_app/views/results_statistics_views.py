@@ -1,3 +1,4 @@
+import operator
 import shutil
 import zipfile
 from datetime import datetime

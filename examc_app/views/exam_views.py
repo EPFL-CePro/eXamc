@@ -111,6 +111,12 @@ class ExamInfoView(DetailView):
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
             context['common_list'] = None

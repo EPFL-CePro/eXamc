@@ -107,6 +107,14 @@ class Exam(models.Model):
 
         return common_pts
 
+    def get_common_exams_yc_common(self):
+        """ Return all common exams including the common (000-) """
+        exam_list = [self]
+        for comex in self.common_exams.all():
+            exam_list.append(comex)
+
+        return exam_list
+
 class ExamSection(models.Model):
     """ Stores section data for an exam, related to :model:`examc_app.Exam` """
     section_number = models.IntegerField(blank=False,null=True)

@@ -105,7 +105,7 @@
                 {% if exam %}
                     <a href="{% url 'examInfo' exam.pk %}" class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="background-color: #1d2124;margin-top:20px;">
                         <span title="{{ exam.code }}" class="fa-solid fa-book-open" style="margin-right: 5px;"></span>
-                        <span class="menu-collapsed" style="margin-right:5px;">{{ exam.code }}</span>
+                        <span class="menu-collapsed" style="margin-right:5px;">{% if exam.is_overall %}{{ exam.name }}{% else %}{{ exam.code }}{% endif %}</span>
                     </a>
                     {% if user.username == 'bonivent' %}
                     {% if not user|is_reviewer:exam %}
