@@ -230,34 +230,31 @@ def general_statistics_view(request,pk):
 
 
 @login_required
-def students_statistics_view(request,pk):
-    EXAM = Exam.objects.get(pk=pk)
+def students_results_view(request, pk):
+    exam = Exam.objects.get(pk=pk)
+    currexam = exam
 
-    if user_allowed(EXAM,request.user.id):
-        if EXAM and EXAM.scaleStatistics:
+    if user_allowed(exam,request.user.id):
+        if exam and exam.scaleStatistics:
+            common_list = get_common_list(exam)
 
-            common_list = get_common_list(EXAM)
-            students = Exam.objects.none()
+            if exam.is_overall():
+                currexam = common_list[0]
+            elif common_list:
+                currexam = exam
+                exam = common_list[0]
+                common_list.remove(exam)
 
-            if EXAM.overall:
-                for com_exam in EXAM.common_exams.all():
-
-                    students = students | com_exam.students.all()
-
-                students = sorted(students, key=operator.attrgetter('name'))
-            else:
-                students = EXAM.students.all()
-
-            return render(request, "res_and_stats/students_statistics.html",
+            return render(request, "res_and_stats/students_results.html",
                           {"user_allowed":True,
-                           "exam" : EXAM,
-                           "students" : students,
+                           "exam" : exam,
                            "common_list": common_list,
-                           "current_url": "studentsStats"})
+                           "currselected_exam" : currexam,
+                           "current_url": "studentsResults"})
         else:
-            return render(request, "res_and_stats/students_statistics.html", {"user_allowed":True,"scales": None, "students": None})
+            return render(request, "res_and_stats/students_results.html", {"user_allowed":True, "scales": None, "students": None})
     else:
-        return render(request, "res_and_stats/students_statistics.html", {"user_allowed":False,"scales": None, "students": None})
+        return render(request, "res_and_stats/students_results.html", {"user_allowed":False, "scales": None, "students": None})
 
 
 @login_required

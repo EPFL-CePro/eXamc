@@ -1,3 +1,4 @@
+import operator
 from datetime import datetime
 
 from django import template
@@ -5,7 +6,7 @@ from django.contrib.auth.models import User
 from django.db.models import FloatField, Sum
 from django.db.models.functions import Cast
 
-from examc_app.models import ScaleDistribution, ComVsIndStatistic
+from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam
 from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
 
 register = template.Library()
@@ -151,3 +152,60 @@ def get_frm_by_id(l, i):
         return l[i]
     except:
         return None
+
+# @register.filter
+# def get_students_results_tbody(exam,user):
+#     inner_html = ''
+#     for student in exam.students.all():
+#         inner_html += ('<tr>'
+#                       '<td>{{ student.copie_no }}</td>'
+#                       '<td>{{ student.sciper }}</td>'
+#                       '<td>{{ student.name }}</td>'
+#                       '<td><a hidden>'+str(student.present)+'</a>'
+#                       '<div class="btn-group btn-group-toggle" data-toggle="buttons" style="margin-left:-20px;">')
+#
+#         if student.present:
+#             inner_html += ('<label class="btn btn-light btn-sm active" style="background-color: transparent;">'
+#                           '<input type="radio" name="options" id="present-'+str(student.id)+'-1" checked')
+#             if not user.is_staff:
+#                 inner_html += ' disabled'
+#
+#             inner_html += ('><i class="fa-solid fa-circle-check fa-2xl"></i>'
+#                           '</label>'
+#                           '<label class="btn btn-light btn-sm" style="background-color: transparent;">'
+#                           '<input type="radio" name="options" id="present-{{student.pk}}-0"')
+#             if not user.is_staff :
+#                 inner_html += ' disabled'
+#             inner_html += ('><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i>'
+#                           '</label>')
+#         else:
+#             inner_html += ('<label class="btn btn-light btn-sm" style="background-color: transparent;">'
+#                            '<input type="radio" name="options" id="present-' + str(student.id) + '-1" checked')
+#             if not user.is_staff:
+#                 inner_html += ' disabled'
+#
+#             inner_html += ('><i class="fa-solid fa-circle-check fa-2xl"></i>'
+#                            '</label>'
+#                            '<label class="btn btn-light btn-sm" style="background-color: transparent;">'
+#                            '<input type="radio" name="options" id="present-{{student.pk}}-0"')
+#             if not user.is_staff:
+#                 inner_html += ' disabled'
+#             inner_html += ('><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i>'
+#                            '</label>')
+#
+#         inner_html += ('</div>'
+#                       '</td>'
+#                       '<td>'+str(student.points)+'</td>')
+#
+#         if student.scaleGrades:
+#             scale_grades = sorted(student.scaleGrades.all(), key=operator.attrgetter('scale.name'))
+#             for scale_grade in scale_grades:
+#                 inner_html += '<td>'+str(scale_grade.grade)+'</td>'
+#         else:
+#             scales = student.exam.scales.all()
+#             for scale in scales:
+#                 inner_html += '<td>abs</td>'
+#
+#         inner_html += '</tr>'
+#
+#     return inner_html

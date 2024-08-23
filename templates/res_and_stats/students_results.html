@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Results{% endblock %}
+
+{% block extra_head %}
+<script type="text/javascript" charset="utf-8">
+$(document).ready(function() {
+   $('#students_dt').DataTable( {
+        "paging":   false,
+       scrollY: '79vh',
+       order:[],
+    } );
+
+} );
+</script>
+{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}
+
+{% block content %}
+<script>
+$(window).on("load",function(){
+    <!--student-present buttons-->
+    {% if currselected_exam.students %}
+        {% for student in exam.students.all %}
+            $('#present-{{student.pk}}-1').on('click', function() {
+              updateStudentPresent({{ student.pk }}, 1);
+            });
+            $('#present-{{student.pk}}-0').on('click', function() {
+              updateStudentPresent({{ student.pk }}, 0);
+            });
+        {% endfor %}
+    {% endif %}
+
+})
+
+
+function updateStudentPresent(pk,value){
+  $.ajax({
+    url : "{% url 'update_student_present' %}",
+    type : "POST",
+    data : {
+      'csrfmiddlewaretoken' : "{{  csrf_token  }}",
+      'pk' : pk,
+      'value' : value
+    },
+    beforeSend : function(){
+      $('#loadingModal').modal('show');
+    },
+    complete: function () {
+      $('#loadingModal').modal('hide');
+    },
+    success : function(result) {
+      window.location.href += "?dataUpdated=true";
+      window.location.reload();
+    },              
+    error: (error) => {
+        console.log(error);
+    }
+  });
+}
+</script>
+{% if user_allowed %}
+    <ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="students-results-nav" style="margin-bottom:10px;">
+        {% for comex in common_list %}
+            <li class="nav-item" role="presentation">
+                <a class="flex-sm-fill text-sm-center nav-link {% if comex == currselected_exam %}active{% endif %}"
+                   id="{{ comex.id }}-tab"  href="{% url 'studentsResults' comex.pk %}" >
+                    {{ comex.code }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+     <div class="tab-content" id="students-results-tabContent">
+        <h4><i class="fas fa-th-list fa-l" style="margin-right:5px;"></i>Results</h4>
+
+        {% if currselected_exam.students %}
+            <div id="students_table_div">
+                <table id="students_dt" class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>Copie Nr.</th>
+                            <th>Sciper</th>
+                            <th>Name</th>
+                            <th>Present</th>
+                            <th>Points</th>
+                            {% for scale in currselected_exam.scales.all|dictsort:"name" %}
+                                <th>{{ scale.name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody id="students_dt_tbody">
+                        {% for student in currselected_exam.students.all %}
+                            <tr>
+                                <td>{{ student.copie_no }}</td>
+                                <td>{{ student.sciper }}</td>
+                                <td>{{ student.name }}</td>
+                                <td><a hidden>{{student.present}}</a>
+                                  <div class="btn-group btn-group-toggle" data-toggle="buttons" style="margin-left:-20px;">
+                                  {% if student.present %}
+                                    <label class="btn btn-light btn-sm active" style="background-color: transparent;">
+                                      <input type="radio" name="options" id="present-{{student.pk}}-1" checked {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl"></i>
+                                    </label>
+                                    <label class="btn btn-light btn-sm" style="background-color: transparent;">
+                                        <input type="radio" name="options" id="present-{{student.pk}}-0" {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i>
+                                    </label>
+                                  {% else %}
+                                    <label class="btn btn-light btn-sm" style="background-color: transparent;">
+                                      <input type="radio" name="options" id="present-{{student.pk}}-1" {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl" style="color:lightgray;"></i>
+                                    </label>
+                                    <label class="btn btn-light btn-sm active" style="background-color: transparent;">
+                                        <input type="radio" name="options" id="present-{{student.pk}}-0" checked {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl"></i>
+                                    </label>
+                                  {% endif %}
+                                  </div>
+                                </td>
+                                <td>{{ student.points }}</td>
+                                {% if student.scaleGrades.all %}
+                                    {% for scale_grade in student.scaleGrades.all|dictsort:"scale.name" %}
+                                        <td>{{ scale_grade.grade }}</td>
+                                    {% endfor %}
+                                {% else %}
+                                    {% for scale_grade in student.exam.scales.all %}
+                                        <td>abs</td>
+                                    {% endfor %}
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+        
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <h4 class="alert-heading">Warning!</h4>
+                <p class="mb-0">No data found for this exam. Please import data and generate statistics.</a>.</p>
+            </div>
+        {% endif %}
+     </div>
+
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
+{% endif %}
+
+{% endblock %}

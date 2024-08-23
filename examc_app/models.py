@@ -115,6 +115,15 @@ class Exam(models.Model):
 
         return exam_list
 
+    def get_students_results_exams(self):
+        """ Return all exams for students results (without global one) """
+        exam_list = []
+        if not self.is_overall():
+            exam_list.append(self)
+        for comex in self.common_exams.all():
+            exam_list.append(comex)
+        return exam_list
+
 class ExamSection(models.Model):
     """ Stores section data for an exam, related to :model:`examc_app.Exam` """
     section_number = models.IntegerField(blank=False,null=True)
