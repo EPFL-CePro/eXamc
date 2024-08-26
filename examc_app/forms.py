@@ -75,7 +75,7 @@ class ExportResultsForm(forms.Form):
     exportIsaCsv = forms.BooleanField(label='export ISA .csv', label_suffix=' ',initial=False, required=False, widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
     exportExamScalePdf = forms.BooleanField(label='export Exam scale pdf', label_suffix=' ',initial=False, required=False,widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
     exportStudentsDataCsv = forms.BooleanField(label='export Students data .csv', label_suffix=' ',initial=False, required=False,widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
-
+    scale = forms.ChoiceField(choices=(), widget=forms.RadioSelect(attrs={'class': "custom-radio-list form-check-inline"}), required=True)
     def __init__(self, *args, **kwargs):
 
         exam = kwargs.pop('exam', None)
@@ -87,14 +87,11 @@ class ExportResultsForm(forms.Form):
             if exam.overall:
                 self.fields['common_exams'] = forms.MultipleChoiceField(
                         widget=forms.CheckboxSelectMultiple(attrs={'class': "custom-radio-list form-check-inline"}),
-                        choices=[ (c.pk,c.code+" "+c.primary_user.last_name) for c in exam.common_exams.all()],required=False)
+                        choices=[ (c.pk,c.code+" "+c.exam_users.first().user.last_name) for c in exam.common_exams.all()],required=False)
 
             self.fields['scale'].choices=[ (s.pk, s.name) for s in exam.scales.all()]
 
-CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
-JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
-CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
-IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
+
 
 class CreateExamProjectForm(forms.Form):
     course = forms.ChoiceField(label='Course',choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}),required=True)
@@ -146,6 +143,10 @@ class CreateQuestionForm(forms.Form):
 class ckeditorForm(forms.Form):
     ckeditor_txt = forms.CharField(widget=CKEditor5Widget(attrs={'class':'django_ckeditor_5','width': '100%'}))
 
+CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
+JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
+CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
+IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
 class SeatingForm(forms.Form):
     csv_file = forms.MultipleChoiceField(
         choices=CSV_FILES,

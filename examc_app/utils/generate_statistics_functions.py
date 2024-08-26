@@ -267,7 +267,7 @@ def generate_exam_stats(exam):
             for question in question_list:
                 answer_statistic_list = []
                 #print(question.code+" - max points:"+str(question.max_points))
-                if question.question_type == 4:
+                if question.question_type.id == 4:
                     #print(" XXXXX ")
                     # print(question)
                     # print(str(discriminatory_count))
@@ -311,12 +311,12 @@ def generate_exam_stats(exam):
                         if comex.questions.all():
                             q = Question.objects.get(code=question.code,exam=comex)
                             q_list.append(q)
-                    if q_list[0].question_type == 4:
+                    if q_list[0].question_type.id == 4:
                         answers_stats.extend(StudentQuestionAnswer.objects.filter(question__in=q_list, student__present=True).values('ticked', 'points').annotate(qty=Count('ticked')))
                     else:
                         answers_stats.extend(StudentQuestionAnswer.objects.filter(question__in=q_list, student__present=True).values('ticked').annotate(qty=Count('ticked'), points=Sum('points')))
                 else:
-                    if question.question_type == 4:
+                    if question.question_type.id == 4:
                         answers_stats = StudentQuestionAnswer.objects.filter(question=question, student__present=True).values('ticked', 'points').annotate(qty=Count('ticked'))
                     else:
                         answers_stats = StudentQuestionAnswer.objects.filter(question=question, student__present=True).values('ticked').annotate(qty=Count('ticked'), points=Sum('points'))
@@ -325,7 +325,7 @@ def generate_exam_stats(exam):
                 for values in answers_stats:
                     #print(values)
                     answer_stat = AnswerStatistic()
-                    if question.question_type == 4:
+                    if question.question_type.id == 4:
                         if not values['ticked']:
                             answer_stat.answer = 'NONE'
                         else:
@@ -353,7 +353,7 @@ def generate_exam_stats(exam):
 def get_answer_remark_html(question, di_ref):
     upp_percent = 0;
     di = (question.upper_correct - question.lower_correct) / di_ref
-    if question.question_type == 4:
+    if question.question_type.id == 4:
         max_answer_stat = AnswerStatistic.objects.filter(question=question).exclude(answer__exact='NONE').aggregate(max=Max('answer'))['max']
         if max_answer_stat is not None:
             max_answer_stat = float(max_answer_stat)

@@ -3,6 +3,24 @@
 
 {% block title %}Questions statistics{% endblock %}
 
+{% block extra_head %}
+<script type="text/javascript" charset="utf-8">
+$(document).ready(function() {
+   $('#questions_statistics_mcq_dt').DataTable( {
+       scrollY: '70vh',
+       paging:   false,
+       searching: false,
+       info:false
+    } );
+   $('#questions_statistics_open_dt').DataTable( {
+       scrollY: '70vh',
+       paging:   false,
+       searching: false,
+       info:false
+    } );
+} );
+</script>
+{% endblock %}
 
 {% block scripts %} 
 
@@ -11,7 +29,9 @@
 {% block content %}
 {% if user_allowed %}
 <script>
+
 {% if mcq_questions or open_questions %}
+    
     {% for question in mcq_questions %}
 
       {% if question.answerStatistics.all|length <= 65 %}
@@ -136,7 +156,7 @@
                 xAxes: [{
                     stacked: true,
                     ticks: {
-                      max:{{ exam.present_students}}
+                      max:{{ currselected_exam.present_students}}
                     }
                 }],
                 yAxes: [{
@@ -225,7 +245,7 @@ $(window).on("load",function(){
     $('#displayPdfModal').on('show.bs.modal', function (event) {
       let questionCode = $(event.relatedTarget).data('questioncode')
 
-      document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' exam.pk %}#search="+questionCode+" toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:600px;\" frameborder=\"0\">";
+      document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' currselected_exam.pk %}#search="+questionCode+" toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:600px;\" frameborder=\"0\">";
 
     })
 
@@ -265,12 +285,56 @@ $(window).on("load",function(){
         {% endfor %}
       {% endfor %}
     {% endif %}
-  });
-</script>
-<h4>Questions Statistics</h4>
 
+    function showMCQs(){
+        $('#collapseOpens').collapse('hide');
+        $('#accordion_mcq_bt').removeClass('btn-light');
+        $('#accordion_mcq_bt').addClass('btn-dark');
+        $('#accordion_open_bt').removeClass('btn-dark');
+        $('#accordion_open_bt').addClass('btn-light');
+    }
+    
+    function showOpens(){
+        $('#collapseMCQs').collapse('hide');
+        $('#accordion_open_bt').removeClass('btn-light');
+        $('#accordion_open_bt').addClass('btn-dark');
+        $('#accordion_mcq_bt').removeClass('btn-dark');
+        $('#accordion_mcq_bt').addClass('btn-light');
+    }
+       
+    $('#accordion_mcq_bt').click( function(e) {
+        showMCQs();
+    });
+    $('#accordion_open_bt').click( function(e) {
+        showOpens();
+    });
+
+    {% if mcq_questions %}
+        showMCQs();
+    {% elif open_questions %}
+        showOpens();
+    {% endif %}
+  });
+
+</script>
+
+<ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="students-results-nav" style="margin-bottom:10px;">
+    {% for comex in common_list %}
+        <li class="nav-item" role="presentation">
+            <a class="flex-sm-fill text-sm-center nav-link {% if comex == currselected_exam %}active{% endif %}"
+               id="{{ comex.id }}-tab"  href="{% url 'questionsStats' comex.pk %}" >
+                {% if comex.is_overall %}
+                COMMON
+                {% else %}
+                {{ comex.code }}
+                {% endif %}
+            </a>
+        </li>
+    {% endfor %}
+</ul>
+<h4><i class="fas fa-chart-area" style="margin-right:5px;"></i>Questions Statistics</h4>
 {% if mcq_questions or open_questions %}
-{% if exam.is_overall %}
+{% if currselected_exam.is_overall %}
 <ul class="nav nav-pills flex-column flex-sm-row border" id="stats-questionsGlobal-pills-tab" role="tablist">
   <li class="nav-item" role="presentation">
     <a class="flex-sm-fill text-sm-center nav-link active" id="questionsGlobal-tab" data-toggle="pill" href="#pills-questionsGlobal" role="tab" aria-controls="pills-questionsGlobal" aria-selected="true">Global</a>
@@ -283,108 +347,134 @@ $(window).on("load",function(){
 <div class="tab-content" id="stats-questions-pills-tabContent">
   <div class="tab-pane fade show active" id="pills-questionsGlobal" role="tabpanel" aria-labelledby="pills-questionsGlobal-tab">
 {% endif %}
-    <div id="questions_statistics_table_div">
-      <i class="fas fa-circle" style="font-size:18px;color:green"></i> Discriminatory question.
-      <i class="fas fa-circle" style="font-size:18px;color:orange;margin-left:10px;"></i> Success rate less than 60% for the best students.
-      <i class="fas fa-circle" style="font-size:18px;color:red;margin-left:10px;"></i> Best students have been less successful than worse students.
+    <div id="accordion_questions_stats" class="accordion" style="">
+        <h6>
+          <i class="fas fa-circle" style="font-size:18px;color:green"></i> Discriminatory question.
+          <i class="fas fa-circle" style="font-size:18px;color:orange;margin-left:10px;"></i> Success rate less than 60% for the best students.
+          <i class="fas fa-circle" style="font-size:18px;color:red;margin-left:10px;"></i> Best students have been less successful than worse students.
 
-      {% if mcq_questions %}
-      <table id="questions_statistics_dt" class="table table-striped table-sm">
-        <thead>
-          <tr>
-            <th colspan="8">discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} students)</th>
-          </tr>
-          <tr>
-            <th/>
-            <th>Question</th>
-            <th></th>
-            <th class="text-center">Upper</th>
-            <th class="text-center">Lower</th>
-            <th class="text-center">DI</th>
-            <th class="text-center">Tot. Answers</th>
-            <th class="text-center">Correct</th>
-            <th class="text-center">Answers distribution</th>
-            <th/>
-          </tr>
-        </thead>
-        <tbody>
-          {% for question in mcq_questions %}
-          <tr>
-            <td class="align-middle " style="padding:0px 0px 0px 5px!important;">{{ question.remark |safe  }}</td>
-            <td class="align-middle" style="padding:0px 0px 0px 5px!important;">{{ question.code }}</td>
-            <td class="align-middle"><a
-              data-toggle="modal"
-              data-target="#displayPdfModal"
-              data-questioncode="{{ question.code }}"
-              title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
-            </td>
-            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.upper_correct }}</td>
-            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.lower_correct }}</td>
-            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.di_calculation }}</td>
-            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.tot_answers }}</td>
-            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.correct_answer }}</td>
-            <td class="align-middle text-center" style="padding:10px 10px 10px 5px!important;width:30%;">
-              {% if question.answerStatistics.all|length <= 65 %}
-                <canvas id="canvas-{{ question.pk }}" class="chartjs-render-monitor"></canvas>
-              {% else %}
-                To much answers combinations
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-      {% if open_questions %}
-      <table id="questions_statistics_dt" class="table table-striped table-sm">
-        <thead>
-          <tr>
-            <th colspan="8">discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} students)</th>
-          </tr>
-          <tr>
-            <th/>
-            <th>Question</th>
-            <th></th>
-            <th class="text-center">Upper mean</th>
-            <th class="text-center">Lower mean</th>
-            <th class="text-center">DI</th>
-            <th class="text-center">Points distribution</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for question in open_questions %}
-          <tr>
-            <td class="align-middle " style="padding:0px 0px 0px 5px!important;">{{ question.remark |safe  }}</td>
-            <td class="align-middle" style="padding:0px 0px 0px 5px!important;">{{ question.code }}</td>
-            <td class="align-middle"><a
-              data-toggle="modal"
-              data-target="#displayPdfModal"
-              data-questioncode="{{ question.code }}"
-              title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
-            </td>
-            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.upper_avg }}</td>
-            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.lower_avg }}</td>
-            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.di_calculation }}</td>
-            <td class="align-middle text-center" style="padding:10px 10px 10px 5px!important;width:40%;">
-              <canvas id="canvas-{{ question.pk }}" class="chartjs-render-monitor"></canvas>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-
-
-
+            <p style="margin-top:20px;">
+            discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ currselected_exam.students.all|length }} students)
+            </p>
+        </h6>
+        {% if mcq_questions or open_questions %}
+        <div id="questions_statistics_mcq_item" class="card z-depth bordered">
+            <div class="card-header" id="headingMCQs">
+                <h6 class="mb-0">
+                    <p style="text-align:left;margin-bottom:-5px;">
+                        {% if mcq_questions %}
+                        <button id="accordion_mcq_bt" class="btn btn-dark btn-sm" type="button" data-toggle="collapse" data-target="#collapseMCQs" aria-expanded="true" aria-controls="collapseMCQs">
+                            Multiple-choice & True/False questions
+                        </button>
+                        {% endif %}
+                        {% if open_questions %}
+                        <button id="accordion_open_bt" class="btn btn-light btn-sm" type="button" data-toggle="collapse" data-target="#collapseOpens" aria-expanded="true" aria-controls="headingOpens">
+                            Open questions
+                        </button>
+                       {% endif %}
+                    </p>
+                </h6>
+            </div>
+            {% if mcq_questions %}
+            <div id="collapseMCQs" class="accordion-collapse collapse show" aria-labelledby="headingMCQs" data-bs-parent="#accordion_questions_stats">
+                <div class="card-body">
+                    <table id="questions_statistics_mcq_dt" class="table table-striped table-sm">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Question</th>
+                        <th></th>
+                        <th class="text-center">Upper</th>
+                        <th class="text-center">Lower</th>
+                        <th class="text-center">DI</th>
+                        <th class="text-center">Tot. Answers</th>
+                        <th class="text-center">Correct</th>
+                        <th class="text-center">Answers distribution</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for question in mcq_questions %}
+                      <tr>
+                        <td class="align-middle " style="padding:0px 0px 0px 5px!important;">{{ question.remark |safe  }}</td>
+                        <td class="align-middle" style="padding:0px 0px 0px 5px!important;">{{ question.code }}</td>
+                        <td class="align-middle"><a
+                          data-toggle="modal"
+                          data-target="#displayPdfModal"
+                          data-questioncode="{{ question.code }}"
+                          title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
+                        </td>
+                        <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.upper_correct }}</td>
+                        <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.lower_correct }}</td>
+                        <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.di_calculation }}</td>
+                        <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.tot_answers }} / {{ currselected_exam.students.all|length }}</td>
+                        <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.correct_answer }}</td>
+                        <td class="align-middle text-center" style="padding:10px 10px 10px 5px!important;width:30%;">
+                          {% if question.answerStatistics.all|length <= 65 %}
+                            <canvas id="canvas-{{ question.pk }}" class="chartjs-render-monitor"></canvas>
+                          {% else %}
+                            To much answers combinations
+                          {% endif %}
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% if open_questions %}
+            <div id="collapseOpens" class="accordion-collapse collapse show" aria-labelledby="headingOpens" data-bs-parent="#accordion_questions_stats">
+                    <div class="card-body">
+                        <table id="questions_statistics_open_dt" class="table table-striped table-sm">
+                        <thead>
+                          <tr>
+                            <th colspan="7">discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ currselected_exam.students.all|length }} students)</th>
+                          </tr>
+                          <tr>
+                            <th></th>
+                            <th>Question</th>
+                            <th></th>
+                            <th class="text-center">Upper mean</th>
+                            <th class="text-center">Lower mean</th>
+                            <th class="text-center">DI</th>
+                            <th class="text-center">Points distribution</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for question in open_questions %}
+                          <tr>
+                            <td class="align-middle " style="padding:0px 0px 0px 5px!important;">{{ question.remark |safe  }}</td>
+                            <td class="align-middle" style="padding:0px 0px 0px 5px!important;">{{ question.code }}</td>
+                            <td class="align-middle"><a
+                              data-toggle="modal"
+                              data-target="#displayPdfModal"
+                              data-questioncode="{{ question.code }}"
+                              title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
+                            </td>
+                            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.upper_avg }}</td>
+                            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.lower_avg }}</td>
+                            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.di_calculation }}</td>
+                            <td class="align-middle text-center" style="padding:10px 10px 10px 5px!important;width:40%;">
+                              <canvas id="canvas-{{ question.pk }}" class="chartjs-render-monitor"></canvas>
+                            </td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
-  {% if exam.is_overall %}
+  {% if currselected_exam.is_overall %}
   </div>
-  <div class="tab-pane fade" id="pills-questionsByTeacher" role="tabpanel" aria-labelledby="pills-questionsByTeacher-tab">
+  <div class="tab-pane fade" id="pills-questionsByTeacher" role="tabpanel" aria-labelledby="pills-questionsByTeacher-tab" style="height:85vh;overflow-y:scroll;">
     <div id="questions_statistics_by_teacher_table_div">
       <table id="questions_statistics_by_teacher_dt" class="table table-striped table-sm table-borderless">
         <tbody>
           {% for qstat in questionsStatsByTeacher %}
-          <thead>
           <tr>
             <th class="text-center" colspan="{{ qstat.teachers|length }}" style="padding:50px 0px 0px 0px;">
               <h6>
@@ -396,8 +486,6 @@ $(window).on("load",function(){
               </h6>
             </th>
           </tr>
-          </thead>
-          <tbody>
           <tr>
             {% for teacher in qstat.teachers %}
             <th class="text-center">
@@ -417,8 +505,8 @@ $(window).on("load",function(){
             </th>
             {% endfor %}
           </tr>
-        </tbody>
         {% endfor %}
+        </tbody>
       </table>
     </div>
   </div>

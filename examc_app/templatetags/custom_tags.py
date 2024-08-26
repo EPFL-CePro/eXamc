@@ -78,8 +78,8 @@ def get_item(dictionary, key):
 
 @register.filter
 def get_sections_scaleStats_by_examScale(exam,scale):
-    return ScaleStatistic.objects.filter(exam=exam, scale=scale).exclude(section__isnull=True).exclude(section__exact='').exclude(section__exact='GLOBAL').order_by('scale__pk')
-
+    results = ScaleStatistic.objects.filter(exam=exam, scale=scale).exclude(section__isnull=True).exclude(section__exact='').exclude(section__exact='GLOBAL').order_by('scale__pk')
+    return results
 @register.filter
 def get_section_students_count(exam,section):
     print(exam)

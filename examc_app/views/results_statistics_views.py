@@ -65,8 +65,24 @@ def update_student_present(request):
 @login_required
 def import_data_4_stats(request,pk):
     exam = Exam.objects.get(pk=pk)
+    currexam = exam
+
+    common_list = get_common_list(exam)
+
+    if exam.is_overall():
+        currexam = common_list[1]
+        common_list.remove(exam)
+    elif common_list:
+        currexam = exam
+        exam = common_list[0]
+        if len(common_list) > 1:
+            common_list.remove(exam)
+
     return render(request, 'res_and_stats/import_data.html',
-                  {"user_allowed": user_allowed(exam,request.user.id),"exam":exam })
+                  {"user_allowed": user_allowed(exam,request.user.id),
+                   "exam":exam,
+                   "currselected_exam":currexam,
+                   "common_list":common_list})
 
 @login_required
 def upload_amc_csv(request, pk):
@@ -196,6 +212,7 @@ def generate_stats(request, pk):
 @login_required
 def general_statistics_view(request,pk):
     exam = Exam.objects.get(pk=pk)
+    currexam = exam
 
     if user_allowed(exam,request.user.id):
 
@@ -205,18 +222,23 @@ def general_statistics_view(request,pk):
 
             common_list = get_common_list(exam)
 
-            sum_all_students = len(exam.students.all())
+            if common_list:
+                currexam = exam
+                exam = common_list[0]
+
+            sum_all_students = len(currexam.students.all())
             correlation_list = []
 
-            if exam.overall:
-                sum_all_students = exam.get_sum_common_students()
-                correlation_list = get_comVsInd_correlation(exam)
+            if currexam.overall:
+                sum_all_students = currexam.get_sum_common_students()
+                correlation_list = get_comVsInd_correlation(currexam)
 
             return render(request, "res_and_stats/general_statistics.html",
                           {"user_allowed":True,
                            "exam" : exam,
+                           "currselected_exam": currexam,
                            "grade_list": grade_list,
-                           "absent": sum_all_students - exam.present_students,
+                           "absent": sum_all_students - currexam.present_students,
                            "common_list": common_list,
                            "correlation_list":correlation_list,
                            "current_url": "generalStats"})
@@ -239,11 +261,13 @@ def students_results_view(request, pk):
             common_list = get_common_list(exam)
 
             if exam.is_overall():
-                currexam = common_list[0]
+                currexam = common_list[1]
+                common_list.remove(exam)
             elif common_list:
                 currexam = exam
                 exam = common_list[0]
-                common_list.remove(exam)
+                if len(common_list) > 1:
+                    common_list.remove(exam)
 
             return render(request, "res_and_stats/students_results.html",
                           {"user_allowed":True,
@@ -259,32 +283,49 @@ def students_results_view(request, pk):
 
 @login_required
 def questions_statistics_view(request,pk):
-    EXAM = Exam.objects.get(pk=pk)
+    exam = Exam.objects.get(pk=pk)
+    currexam = exam
 
-    if user_allowed(EXAM,request.user.id):
+    if user_allowed(exam,request.user.id):
 
-        if EXAM and EXAM.scaleStatistics.all() and EXAM.questions.all():
-            discriminatory_factor = Question.objects.filter(exam=EXAM)[0].discriminatory_factor
-            discriminatory_qty = round(EXAM.present_students * discriminatory_factor / 100)
+        if exam and exam.scaleStatistics.all() and exam.questions.all():
+
+            common_list = get_common_list(exam)
+
+            if common_list:
+                currexam = exam
+                exam = common_list[0]
+
+            discriminatory_factor = Question.objects.filter(exam=currexam)[0].discriminatory_factor
+            discriminatory_qty = round(currexam.present_students * discriminatory_factor / 100)
 
             question_stat_by_teacher_list = []
 
-            if EXAM.overall:
-                question_stat_by_teacher_list = get_questions_stats_by_teacher(EXAM)
+            if currexam.overall:
+                question_stat_by_teacher_list = get_questions_stats_by_teacher(currexam)
+
+            mcq_questions = Question.objects.filter(exam=currexam).exclude(question_type__id=4)
+            open_questions = Question.objects.filter(exam=currexam,question_type__id=4)
+
+            for question in open_questions.all():
+                print(question)
 
             return render(request, "res_and_stats/questions_statistics.html",
-                          {"user_allowed":True,"exam": EXAM,"discriminatory_factor": discriminatory_factor, "discriminatory_qty": discriminatory_qty,
-                           "mcq_questions": Question.objects.filter(exam=EXAM).exclude(question_type__id=4),
-                           "open_questions": Question.objects.filter(exam=EXAM,question_type__id=4),
+                          {"user_allowed":True,
+                           "exam": exam,
+                           "currselected_exam" : currexam,
+                           "discriminatory_factor": discriminatory_factor, "discriminatory_qty": discriminatory_qty,
+                           "mcq_questions": mcq_questions,
+                           "open_questions": open_questions,
                            "questionsStatsByTeacher": question_stat_by_teacher_list,
-                           "common_list" : get_common_list(EXAM),
+                           "common_list" : common_list,
                            "current_url": "questionsStats"})
         else:
             return render(request, "res_and_stats/questions_statistics.html",
-                          {"user_allowed":True,"exam": EXAM,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
+                          {"user_allowed":True,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
     else:
         return render(request, "res_and_stats/questions_statistics.html",
-                      {"user_allowed":False,"exam": EXAM,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
+                      {"user_allowed":False,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
 
 
 # PDF
@@ -322,12 +363,14 @@ def get_questions_stats_by_teacher(exam):
         teacher_list = []
 
         for comex in exam.common_exams.all():
-            teacher = {'teacher':comex.primary_user.last_name.replace("-","_")}
+            exam_user = ExamUser.objects.filter(exam=comex,group__id=2).first()
+            teacher = {'teacher':exam_user.user.last_name.replace("-","_")}
 
             section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
             teacher.update({'sections':section_list})
 
-            answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / comex.present_students * Count('ticked'), FloatField()))
+            present_students = comex.present_students if comex.present_students > 0 else 1
+            answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
 
             na_answers = 0
             new_answer_list = []
@@ -336,8 +379,8 @@ def get_questions_stats_by_teacher(exam):
                     na_answers += comex.present_students*answer.get('percent')/100
                 else:
                     new_answer_list.append({'ticked':answer.get('ticked'),'percent':answer.get('percent')})
-
-            new_answer_list.append({'ticked':'NA','percent':100/comex.present_students*na_answers})
+            na_answers = na_answers if na_answers > 0 else 1
+            new_answer_list.append({'ticked':'NA','percent':100/present_students*na_answers})
 
 
             teacher.update({'answers':new_answer_list})

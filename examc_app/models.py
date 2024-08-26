@@ -2,7 +2,7 @@ import json
 # Get an instance of a logger
 import logging
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.db import models
 from django.db.models import Count
 from django.utils import timezone
@@ -50,6 +50,7 @@ class Exam(models.Model):
     res_and_stats_option = models.BooleanField(default=0)
     prep_option = models.BooleanField(default=0)
     history = HistoricalRecords()
+    pdf_catalog_name = models.CharField(max_length=200, blank=True,null=True)
 
     class Meta:
         unique_together = ('code', 'semester', 'year')
@@ -123,6 +124,11 @@ class Exam(models.Model):
         for comex in self.common_exams.all():
             exam_list.append(comex)
         return exam_list
+
+class ExamUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_exams')
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE,related_name='exam_users')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE,related_name='user_groups', null=True,default=None)
 
 class ExamSection(models.Model):
     """ Stores section data for an exam, related to :model:`examc_app.Exam` """

@@ -16,6 +16,11 @@
     </div>
 </div>
 <script>
+$('#select_exam_table_id').DataTable( {
+        paging:   false,
+       scrollY: '79vh',
+       order:[],
+    } );
 $("tr").click(function() {
     tr = this;
     td = tr.childNodes[1];

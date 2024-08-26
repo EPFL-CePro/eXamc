@@ -199,16 +199,16 @@ def import_csv_data(csv_file, exam):
                     question.code = field
                     question.common = False
                     if field.upper().find('SCQ') >= 0:
-                        question.question_type = 1
+                        question.question_type.id = 1
                         question.nb_answers = 0
                     elif field.upper().find('MCQ') >= 0:
-                        question.question_type = 2
+                        question.question_type.id = 2
                         question.nb_answers = 0
                     elif field.upper().find('TF') >= 0:
-                        question.question_type = 3
+                        question.question_type.id = 3
                         question.nb_answers = 2
                     else:
-                        question.question_type = 4
+                        question.question_type.id = 4
                         question.nb_answers = 0
                     question.exam = exam
                     question.save()
@@ -270,7 +270,7 @@ def import_csv_data(csv_file, exam):
 
                                     question_answers[question.code] = answers
 
-                            if student_data.ticked and not (question.question_type == 4 and student_data.points == 0):
+                            if student_data.ticked and not (question.question_type.id == 4 and student_data.points == 0):
                                 student.present = True
 
                             if update_question:
