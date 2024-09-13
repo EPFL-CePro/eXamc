@@ -41,7 +41,7 @@
                 <th>id</th>
                 <th>Copy</th>
                 <th>Page</th>
-                <th>Annotated</th>
+                <th>Graded</th>
                 <th></th>
             </tr>
             </thead>
@@ -65,7 +65,7 @@
     </div>
     <div class="list-group" style="height:100%;margin-left:5px" >
         <div id="pagination" class="list-group list-group-horizontal"></div>
-        <div id="markerjs_div" style="height:98%;aspect-ratio:1/1.41;overflow-y: auto;border:1px solid lightgrey;">
+        <div id="markerjs_div" style="height:98%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;">
             <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
                 <img id="source_img" style=""/>
                 <img id="marked_img" style="max-width:100%;position: absolute;"/>
@@ -222,7 +222,11 @@ function setMarkerArea(target) {
     markerArea.uiStyleSettings.zoomOutButtonVisible = true;
     markerArea.uiStyleSettings.clearButtonVisible = true;
     markerArea.uiStyleSettings.resultButtonBlockVisible = false;
+    markerArea.uiStyleSettings.notesButtonVisible = false;
+    markerArea.settings.defaultFillColor = 'red';
+    markerArea.settings.defaultStrokeColor = 'red';
     markerArea.settings.newFreehandMarkerOnPointerUp = true;
+    markerArea.availableMarkerTypes = ['LineMarker','RectangleMarker','EllipseMarker','CoverMarker','EllipseFrameMarker',...markerArea.BASIC_MARKER_TYPES,'CalloutMarker',];
 
     // since the container div is set to position: relative it is now our positioning root
     // end we have to let marker.js know that
@@ -253,6 +257,14 @@ function setMarkerArea(target) {
 
     markerArea.addEventListener("markerdeselect", (event) => {
         markerDeselect();
+    });
+
+    markerArea.addEventListener("markerdelete", (event) => {
+        updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
+    });
+
+    markerArea.addEventListener("markerchange", (event) => {
+        updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
     });
 
 }
@@ -336,7 +348,7 @@ function updateMarkers(markerArea, exam_pk, pages_group_pk){
     copy_no = currSourceIdSplit[1];
     page_no = currSourceIdSplit[2];
 
-    saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,"None",sourceImage.getAttribute("src"));
+    saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,sourceImage.getAttribute("src"));
 
     initCopyPagesTableOnClickRowEvent(true);
     document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
@@ -347,7 +359,7 @@ function updateMarkers(markerArea, exam_pk, pages_group_pk){
     }
 }
 
-function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,comment,filename){
+function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,filename){
     $.ajax({
         url : "{% url 'save_markers' %}",
         type : "POST",
@@ -359,7 +371,6 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,comm
             'page_no' : ""+page_no,
             'markers' : markers,
             'marked_img_dataUrl' : marked_img_dataUrl,
-            'comment' : comment,
             'filename' : filename
         },
         beforeSend : function(){
@@ -395,8 +406,8 @@ function saveComment(data){
 
 function initComments(commentsArray){
     $('#comments-container').comments({
-        profilePictureURL: 'fa fa-user-circle fa-sm',
-        currentUserId: 1,
+        profilePictureURL: 'fa-solid fa-circle-user fa-2xs',
+        currentUserId: {{ user.id }},
         roundProfilePictures: true,
         textareaRows: 1,
         enableAttachments: false,
@@ -405,15 +416,15 @@ function initComments(commentsArray){
         enableEditing: true,
         enableDeleting: true,
         scrollContainer: $(window),
-        searchUsers: function(term, success, error) {
-            setTimeout(function() {
-                success(usersArray.filter(function(user) {
-                    var containsSearchTerm = user.fullname.toLowerCase().indexOf(term.toLowerCase()) != -1;
-                    var isNotSelf = user.id != {{ user.id }};
-                    return containsSearchTerm && isNotSelf;
-                }));
-            }, 500);
-        },
+        {#searchUsers: function(term, success, error) {#}
+        {#    setTimeout(function() {#}
+        {#        success(usersArray.filter(function(user) {#}
+        {#            var containsSearchTerm = user.fullname.toLowerCase().indexOf(term.toLowerCase()) != -1;#}
+        {#            var isNotSelf = user.id !== {{ user.id }};#}
+        {#            return containsSearchTerm && isNotSelf;#}
+        {#        }));#}
+        {#    }, 500);#}
+        {#},#}
         getComments: function(success, error) {
             setTimeout(function() {
                 success(commentsArray);
@@ -493,10 +504,10 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
 
 });
 
-    // add event listener focusout to markerjs_div to update markers
-    document.getElementById("markerjs_div").addEventListener('focusout', e => {
-        alert('out');
-    });
+    {#// add event listener focusout to markerjs_div to update markers#}
+    {#document.getElementById("markerjs_div").addEventListener('focusout', e => {#}
+    {#    alert('out');#}
+    {#});#}
 
 </script>
 {% else %}

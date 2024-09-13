@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
-from django.urls import path, include
+from django.urls import path, include, re_path
 
-from examc_app import views
+from examc_app import views, tasks
 from examc_app.admin import ExamAdmin
 from examc_app.views import menu_access_required
 
@@ -14,19 +14,18 @@ urlpatterns = [
     path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
     # scans upload
     path('upload_scans/<int:pk>', menu_access_required(views.upload_scans), name="upload_scans"),
-    path('start_upload_scans/<int:pk>', views.start_upload_scans, name="start_upload_scans"),
     # Review Settings
     path('reviewSettings/<int:pk>/<str:curr_tab>', menu_access_required(views.ReviewSettingsView.as_view()), name="reviewSettingsView"),
-    path('add_new_reviewers', views.add_new_reviewers, name="add_new_reviewers"),
+    #path('add_new_reviewers', views.add_new_reviewers, name="add_new_reviewers"),
     path('add_new_pages_group/<int:pk>', views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
     path('edit_pages_group_corrector_box', views.edit_pages_group_corrector_box, name="edit_pages_group_corrector_box"),
     path('get_pages_group_rectangle_data', views.get_pages_group_rectangle_data, name='get_pages_group_rectangle_data'),
     path('delete_pages_group/<int:pages_group_pk>', views.delete_pages_group, name="delete_pages_group"),
-    path('delete_reviewer/<int:reviewer_pk>', views.delete_reviewer, name="delete_reviewer"),
+    #path('remove_exam_user/<int:user_pk>/<int:exam_pk>', views.remove_exam_user, name="remove_exam_user"),
     # EPFL ldap
-    path('search_ldap', views.ldap_search_by_email, name="search_ldap"),
+    path('ldap_search_exam_user_by_email', views.ldap_search_exam_user_by_email, name="ldap_search_exam_user_by_email"),
     # Review
     path('review/<int:pk>', login_required(views.ReviewView.as_view()), name="reviewView"),
     path('reviewGroup/<int:pk>/<str:currpage>', login_required(views.ReviewGroupView.as_view()), name="reviewGroup"),
@@ -79,6 +78,7 @@ urlpatterns = [
     path('upload_amc_csv/<int:pk>', views.upload_amc_csv, name="upload_amc_csv"),
     path('upload_catalog_pdf/<int:pk>', views.upload_catalog_pdf, name="upload_catalog_pdf"),
     # Exam
+    path('update_exam_users', views.update_exam_users, name="update_exam_users"),
     path('create_exam_project', views.create_exam_project, name="create_exam_project"),
     path('exam_preparation/<int:pk>', views.exam_preparation_view,name="exam_preparation"),
     path('exam_add_section/<int:exam_pk>', views.exam_add_section,name="exam_add_section"),
@@ -96,4 +96,9 @@ urlpatterns = [
     path("ckeditor5/", include('django_ckeditor_5.urls')),
     # testing
     path('testing', views.testing, name="testing"),
+    # Celery progress
+    path('celery-progress/', include('celery_progress.urls')),
+
+
+
 ]

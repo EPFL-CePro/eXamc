@@ -21,9 +21,8 @@ from examc_app.models import *
 
 from examc_app.views import *
 
-
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
-def split_scans_by_copy(exam, tmp_extract_path):
+def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,process_number):
     #extra_letters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','t','u','v','w','x','y','z']
 
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
@@ -39,7 +38,14 @@ def split_scans_by_copy(exam, tmp_extract_path):
     last_page_nr = 0
     copy_count = 0
     scans_files = sorted(os.listdir(tmp_extract_path))
+
+
     for filename in scans_files:
+
+        process_number += 1
+        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+            process_count) + ' - Splitting scans by copy :'+ filename)
+
         f = os.path.join(tmp_extract_path, filename)
         # checking if it is a jpeg file
         if imghdr.what(f) == 'jpeg':
@@ -88,26 +94,31 @@ def split_scans_by_copy(exam, tmp_extract_path):
     exam.save()
 
     copy_count += 1
-    return copy_count
+    return [copy_count,process_number]
 
 
-def import_scans(exam, path):
+def import_scans(exam, path,progress_recorder,process_count,process_number):
     print("* Start importing scans")
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
     os.makedirs(scans_dir, exist_ok=True)
-    delete_old_scans(exam)
+    progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+        process_count) + ' - Deleting old scans...')
+    process_number += 1
+    delete_old_scans(exam,progress_recorder)
     count = 0
     for tmp_scan in os.listdir(path):
         count += 1
 
     print(str(count) + " scans imported")
+    process_number += 1
+    progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+        process_count) + ' - Splitting scans by copy...')
+    result = split_scans_by_copy(exam, path,progress_recorder,process_count,process_number)
 
-    nb_copies = split_scans_by_copy(exam, path)
-
-    return "Imported " + str(nb_copies) + " copies (" + str(count) + " scans)"
+    return result
 
 
-def delete_old_scans(exam):
+def delete_old_scans(exam,progress_recorder):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
     for filename in os.listdir(scans_dir):
         file_path = os.path.join(scans_dir, filename)
@@ -146,8 +157,7 @@ def get_scans_pathes_by_group(pagesGroup):
 
     scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
 
-    # récupérer ici le marker qui définit la zone corrector box
-    markers_box = []
+
 
     for dir in sorted(os.listdir(scans_dir)):
         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
@@ -159,18 +169,16 @@ def get_scans_pathes_by_group(pagesGroup):
             if page_no_int >= pagesGroup.page_from and page_no_int <= pagesGroup.page_to:
                 marked = False
                 comment = None
+                #marked_by = ''
                 pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
                                                       page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
-                # corrector_box = False
                 if pageMarkers:
                     if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=pageMarkers.copie_no).exists():
                         comment = True
-                    if pageMarkers.markers is not None:
+                    if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
                         marked = True
-                        if pageMarkers.markers is not markers_box:
-                            corrector_box = check_if_markers_intersect(pageMarkers.markers, markers_box)
-                            print(corrector_box)
-                        # check ici Polygone si corrector_box false et uniquement si marker actuel n'est pas le marqueur du corrector box
+
+                    #marked_by = pageMarkers.get_users_with_date()
 
                 scans_path_dict = {}
                 scans_path_dict["copy_no"] = copy_no
@@ -178,6 +186,7 @@ def get_scans_pathes_by_group(pagesGroup):
                 scans_path_dict["path"] = scans_url + "/" + dir + "/" + filename
                 scans_path_dict["marked"] = marked
                 scans_path_dict["comment"] = comment
+                #scans_path_dict["marked_by"] = marked_by
                 scans_pathes.append(scans_path_dict)
 
     return scans_pathes
@@ -233,8 +242,7 @@ def zipdir(path, ziph):
     for root, dirs, files in os.walk(path):
         for file in files:
             ziph.write(os.path.join(root, file),
-                       os.path.relpath(os.path.join(root, file),
-                                       os.path.join(path, '..')))
+                       os.path.relpath(os.path.join(root, file),os.path.join(path, '..')))
 
 
 def generate_marked_pdfs(files_path, export_type):
@@ -253,3 +261,60 @@ def updateCorrectorBoxMarked(pageMarkers):
     markers = json.loads(pageMarkers.markers)['markers']
     for marker in markers:
         return None
+
+
+
+
+def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
+    corr_box_marker_data = json.loads(corrector_box_marker_set)['markers']
+    other_markers_data = json.loads(other_marker_set)['markers']
+
+    # markers1_with_properties = []
+    # for marker in markers1_data:
+    #     left = marker['left']
+    #     top = marker['top']
+    #     width = marker['width']
+    #     height = marker['height']
+    #     markers1_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
+    #
+    # markers2_with_properties = []
+    # for marker in markers2_data:
+    #     left = marker['left']
+    #     top = marker['top']
+    #     width = marker['width']
+    #     height = marker['height']
+    #     markers2_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
+
+    corr_box_coords = None
+    for marker in corr_box_marker_data:
+        left = marker['left']
+        top = marker['top']
+        width = marker['width']
+        height = marker['height']
+        a = (left, top)
+        b = (left + width, top)
+        c = (left + width, top + height)
+        d = (left, top + height)
+        corr_box_coords = [a, b, c, d]
+
+    other_coords = []
+    for marker in other_markers_data:
+        left = marker['left']
+        top = marker['top']
+        width = marker['width']
+        height = marker['height']
+        a = (left, top)
+        b = (left + width, top)
+        c = (left + width, top + height)
+        d = (left, top + height)
+        other_coords.append([a, b, c, d])
+
+    corr_box_polygon = Polygon(corr_box_coords)
+
+    for other_coord in other_coords:
+        other_polygon = Polygon(other_coord)
+
+        if other_polygon.intersects(corr_box_polygon):
+            return True
+
+    return False

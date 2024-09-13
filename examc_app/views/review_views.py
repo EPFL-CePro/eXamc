@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import re
+import sys
 import zipfile
 
 from django.contrib import messages
@@ -16,6 +17,7 @@ from shapely.geometry import Polygon
 
 from examc_app.forms import *
 from examc_app.models import *
+from examc_app.tasks import import_exam_scans
 from examc_app.utils.amc_functions import *
 from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import user_allowed
@@ -30,14 +32,21 @@ class ReviewView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(ReviewView, self).get_context_data(**kwargs)
-
         exam = Exam.objects.get(pk=context.get("object").id)
 
         if user_allowed(exam, self.request.user.id):
+            pages_groups = None
+            if self.request.user.is_superuser:
+                pages_groups = exam.pagesGroup.all()
+            else:
+                user_exam = ExamUser.objects.filter(exam=exam,user=self.request.user)
+                if user_exam:
+                    pages_groups = user_exam.first().pages_groups.all()
+
             context['user_allowed'] = True
             context['current_url'] = "review"
             context['exam'] = exam
-            context['exam_pages_group_list'] = exam.pagesGroup.all()
+            context['exam_pages_group_list'] = pages_groups
             return context
         else:
             context['user_allowed'] = False
@@ -129,7 +138,7 @@ class ReviewSettingsView(DetailView):
             curr_tab = self.kwargs.get("curr_tab")
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
             {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
-        formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
+        formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam,group__pk__in=[2,3,4]))
 
         grading_help_group_form = ckeditorForm()
         grading_help_group_form.initial['ckeditor_txt'] = ''
@@ -193,7 +202,7 @@ class ReviewSettingsView(DetailView):
                                 pagesGroup.exam = exam
                                 pagesGroup.save()
 
-        formsetReviewers = ReviewersFormSet(queryset=Reviewer.objects.filter(exam=exam))
+        formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam))
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
             {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
 
@@ -264,27 +273,6 @@ def delete_pages_group(request, pages_group_pk):
 
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam_pk), 'curr_tab': "groups"}))
 
-
-@login_required
-@menu_access_required
-def delete_reviewer(request, reviewer_pk):
-    """
-    Delete a reviewer.
-
-    This view function deletes a reviewer by its primary key. After, it redirects the user back to the review settings page.
-
-    Args:
-        request: The HTTP request object.
-        reviewer_pk: The primary key of the reviewer to delete.
-
-    Returns:
-        HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
-    """
-    reviewer = Reviewer.objects.get(pk=reviewer_pk)
-    exam_pk = reviewer.exam.pk
-    reviewer.delete()
-
-    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam_pk), 'curr_tab': "reviewers"}))
 
 
 @login_required
@@ -376,93 +364,65 @@ def get_pages_group_rectangle_data(request):
     if request.method == 'POST':
         data_dict = {}
         pagesGroup = PagesGroup.objects.get(pk=request.POST.get('group_id'))
+        marker_corr_box_qs = PageMarkers.objects.filter(exam=pagesGroup.exam, pages_group=pagesGroup,copie_no='CORR-BOX')
+        marker_corr_box = None
+        if marker_corr_box_qs:
+            marker_corr_box = marker_corr_box_qs.first().markers
         img_path = get_scans_path_for_group(pagesGroup)
         if img_path:
             data_dict['img_path'] = img_path
-            data_dict['markers'] = pagesGroup.rectangle
+            data_dict['markers'] = marker_corr_box
             return HttpResponse(json.dumps(data_dict))
         else:
             return HttpResponse(img_path)
 
-
-@login_required
-@menu_access_required
-def ldap_search_by_email(request):
-    """
-    Search in LDAP by email.
-
-    This function is used to search a new reviewer in the ldap database. The email of the reviewer will
-    give the complete name of the user and his email.
-
-    Args:
-        request: The HTTP request object containing the email address ('email') and the exam ID ('pk').
-
-    Returns:
-        HttpResponse: A response string containing user information or an indication of existence.
-    """
-    email = request.POST['email']
-    user = Reviewer.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
-    if user:
-        return HttpResponse("exist")
-
-    django_user = User.objects.filter(email=email).first()
-    if django_user:
-        entry_str = f"{django_user.username};{django_user.first_name};{django_user.last_name};{email}"
-        return HttpResponse(entry_str)
-
-    user_entry = ldap_search.get_entry(email, 'mail')
-    entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][
-        0] + ";" + email
-
-    return HttpResponse(entry_str)
-
-
-@login_required
-@menu_access_required
-def add_new_reviewers(request):
-    """
-           Add new reviewers to review group.
-
-           This function is used to add a new reviewers to review group and add to a specific question. After adding reviewers,
-            it redirects the user back to the review settings view.
-
-           :param request: The HTTP request object.
-           :return: A rendered HTML page displaying the new reviewer.
-
-               Args:
-                    request: The HTTP request object.
-
-                Returns:
-                    return: A rendered HTML page displaying the new reviewer.
-           """
-    exam = Exam.objects.get(pk=request.POST.get('pk'))
-    reviewers = request.POST.getlist('reviewer_list[]')
-    reviewer_group, created = Group.objects.get_or_create(name='reviewer')
-    for reviewer in reviewers:
-        user_list = reviewer.split(";")
-        users = User.objects.filter(email=user_list[3]).all()
-        if users:
-            user = users.first()
-        else:
-            user = User()
-
-        user.username = user_list[0]
-        user.first_name = user_list[1]
-        user.last_name = user_list[2]
-        user.email = user_list[3]
-        user.save()
-        user.groups.add(reviewer_group)
-        user.save()
-
-        examReviewer = Reviewer()
-        examReviewer.user = user
-        examReviewer.exam = exam
-        examReviewer.save()
-        examReviewer.pages_groups.set(exam.pagesGroup.all())
-        examReviewer.save()
-        print(examReviewer)
-
-    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "reviewers"}))
+#
+# @login_required
+# @menu_access_required
+# def add_new_reviewers(request):
+#     """
+#            Add new reviewers to review group.
+#
+#            This function is used to add a new reviewers to review group and add to a specific question. After adding reviewers,
+#             it redirects the user back to the review settings view.
+#
+#            :param request: The HTTP request object.
+#            :return: A rendered HTML page displaying the new reviewer.
+#
+#                Args:
+#                     request: The HTTP request object.
+#
+#                 Returns:
+#                     return: A rendered HTML page displaying the new reviewer.
+#            """
+#     exam = Exam.objects.get(pk=request.POST.get('pk'))
+#     reviewers = request.POST.getlist('reviewer_list[]')
+#     reviewer_group, created = Group.objects.get_or_create(name='reviewer')
+#     for reviewer in reviewers:
+#         user_list = reviewer.split(";")
+#         users = User.objects.filter(email=user_list[3]).all()
+#         if users:
+#             user = users.first()
+#         else:
+#             user = User()
+#
+#         user.username = user_list[0]
+#         user.first_name = user_list[1]
+#         user.last_name = user_list[2]
+#         user.email = user_list[3]
+#         user.save()
+#         user.groups.add(reviewer_group)
+#         user.save()
+#
+#         examReviewer = Reviewer()
+#         examReviewer.user = user
+#         examReviewer.exam = exam
+#         examReviewer.save()
+#         examReviewer.pages_groups.set(exam.pagesGroup.all())
+#         examReviewer.save()
+#         print(examReviewer)
+#
+#     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "reviewers"}))
 
 
 @login_required
@@ -558,7 +518,7 @@ def select_exam(request, pk, current_url=None):
 
 
 @login_required
-def upload_scans(request, pk):
+def upload_scans(request, pk, task_id=None):
     """
            Handles the upload of scanned files for a specific exam.
 
@@ -591,90 +551,89 @@ def upload_scans(request, pk):
             for chunk in zip_file.chunks():
                 temp_file.write(chunk)
 
-        message = start_upload_scans(request, exam.pk, temp_file_path)
+        task = import_exam_scans.delay(temp_file_path, pk)
+        task_id = task.task_id
+       # message = start_upload_scans(request, exam.pk, temp_file_path)
 
         return render(request, 'review/import/upload_scans.html', {
             'exam': exam,
             'files': [],
-            'message': message
+            'message': '',
+            'task_id':task_id
         })
 
     return render(request, 'review/import/upload_scans.html', {'exam': exam,
                                                                'files': []})
 
 
-@login_required
-def start_upload_scans(request, pk, zip_file_path):
-    """
-    Extracts and imports scanned files for an exam upload.
-
-    This function is responsible for extracting scanned files from a zip archive and importing them into the system
-    for a specific exam upload process.
-
-    Args:
-        request: TThe HTTP request object.
-        pk: The primary key of the exam.
-        zip_file_path: The file path of the zip archive containing the scanned files.
-
-    Returns:
-        return: A message indicating the success or failure of the upload process.
-    """
-    exam = Exam.objects.get(pk=pk)
-
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code
-    tmp_extract_path = zip_path + "/tmp_extract"
-
-    # extract zip file in tmp dir
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-        print("start extraction")
-        zip_ref.extractall(tmp_extract_path)
-
-    dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
-
-    if dirs:
-        tmp_extract_path = os.path.join(tmp_extract_path, dirs[0])
-
-    result = import_scans(exam, tmp_extract_path)
-
-    if isinstance(result, tuple) and len(result) == 2:
-        message, files = result
-    elif isinstance(result, str):
-        message, files = result, []
-    else:
-        message, files = "An unexpected error occurred during the upload.", []
-
-    # remove imported Files (zip + extracted)
-    for filename in os.listdir(zip_path):
-        file_path = os.path.join(zip_path, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
-
-    return message
-    # return render(request, 'import/upload_scans.html', {
-    #     'exam': exam,
-    #     'files': files,
-    #     'message': message
-    # })
+# @login_required
+# def start_upload_scans(request, pk, zip_file_path):
+#     """
+#     Extracts and imports scanned files for an exam upload.
+#
+#     This function is responsible for extracting scanned files from a zip archive and importing them into the system
+#     for a specific exam upload process.
+#
+#     Args:
+#         request: TThe HTTP request object.
+#         pk: The primary key of the exam.
+#         zip_file_path: The file path of the zip archive containing the scanned files.
+#
+#     Returns:
+#         return: A message indicating the success or failure of the upload process.
+#     """
+#     exam = Exam.objects.get(pk=pk)
+#
+#     zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code
+#     tmp_extract_path = zip_path + "/tmp_extract"
+#
+#     # extract zip file in tmp dir
+#     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+#         print("start extraction")
+#         zip_ref.extractall(tmp_extract_path)
+#
+#     dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
+#
+#     if dirs:
+#         tmp_extract_path = os.path.join(tmp_extract_path, dirs[0])
+#
+#     result = import_scans(exam, tmp_extract_path)
+#
+#     if isinstance(result, tuple) and len(result) == 2:
+#         message, files = result
+#     elif isinstance(result, str):
+#         message, files = result, []
+#     else:
+#         message, files = "An unexpected error occurred during the upload.", []
+#
+#     # remove imported Files (zip + extracted)
+#     for filename in os.listdir(zip_path):
+#         file_path = os.path.join(zip_path, filename)
+#         try:
+#             if os.path.isfile(file_path) or os.path.islink(file_path):
+#                 os.unlink(file_path)
+#             elif os.path.isdir(file_path):
+#                 shutil.rmtree(file_path)
+#         except Exception as e:
+#             print('Failed to delete %s. Reason: %s' % (file_path, e))
+#
+#     return message
+#     # return render(request, 'import/upload_scans.html', {
+#     #     'exam': exam,
+#     #     'files': files,
+#     #     'message': message
+#     # })
 
 
 @login_required
 def saveMarkers(request):
-    """
-           Save the markers and comments for a given exam page group.
-
-           This function saves the markers and comments provided by the user for a specific exam page group.
-
+    """  Save the markers and comments for a given exam page group.
+        This function saves the markers and comments provided by the user for a specific exam page group.
         Args:
             request: The HTTP request object.
-
         Returns:
             return: A HTTP response indicating the success of the operation.
-           """
+    """
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     pages_group = PagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
@@ -682,10 +641,11 @@ def saveMarkers(request):
                                                               exam=exam)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
+    print("imageData : "+str(sys.getsizeof(ImageData)))
     markers = json.loads(request.POST['markers'])
+    print("markers : "+str(sys.getsizeof(markers)))
     if markers["markers"]:
         scan_markers.markers = request.POST['markers']
-        scan_markers.comment = request.POST['comment']
         scan_markers.filename = request.POST['filename']
         if dataUrlPattern.match(ImageData):
             ImageData = dataUrlPattern.match(ImageData).group(2)
@@ -701,6 +661,24 @@ def saveMarkers(request):
                 marked_file.write(ImageData)
 
         scan_markers.save()
+
+        # check if marker in corrector box marker
+        marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,
+                                                         copie_no='CORR-BOX').first()
+
+        marked = False
+        if marker_corrector_box:
+            corrector_box_checked = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
+            if corrector_box_checked:
+                marked = True
+
+        scan_markers.correctorBoxMarked = marked
+        scan_markers.save()
+
+        # update page markers users entry
+        page_markers_user, created = PageMarkersUser.objects.get_or_create(pageMarkers=scan_markers,user=request.user)
+        page_markers_user.modified = datetime.datetime.now()
+        page_markers_user.save()
     else:
         marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
             exam.semester.code) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
@@ -739,13 +717,13 @@ def saveComment(request):
     if not comment_data['id'].startswith('c'):
         comment = PagesGroupComment.objects.get(pk=comment_data['id'])
         comment.content = comment_data['content']
-        comment.modified = datetime.now()
+        comment.modified = datetime.datetime.now()
         comment.save()
     else:
         comment = PagesGroupComment()
         comment.is_new = True
         comment.content = comment_data['content']
-        comment.created = datetime.now()
+        comment.created = datetime.datetime.now()
         comment.user_id = request.user.id
         comment.pages_group_id = request.POST['group_id']
         comment.copy_no = request.POST['copy_no']
@@ -760,67 +738,20 @@ def saveComment(request):
 
 def update_page_group_markers(request):
     if request.method == 'POST':
-        markers_json = request.POST.get('markers')
-        pages_group_pk = request.POST.get('pages_group_pk')
 
-        markers_data = json.loads(markers_json)
-        markers = markers_data.get('markers')
-
-        page_markers_instance = PageMarkers.objects.get(pk=pages_group_pk)
-
-        page_markers_instance.markers = markers_json
-        page_markers_instance.save()
+        exam = Exam.objects.get(pk=request.POST['exam_pk'])
+        pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_pk'])
+        scan_markers, created = PageMarkers.objects.get_or_create(copie_no='CORR-BOX',
+                                                                  pages_group=pages_group,
+                                                                  exam=exam)
+        markers = json.loads(request.POST['markers'])
+        if markers["markers"]:
+            scan_markers.markers = request.POST['markers']
+            scan_markers.filename = request.POST['filename']
+            scan_markers.save()
+        else:
+            scan_markers.delete()
 
         return HttpResponse("Markers updated successfully")
     else:
         return HttpResponse("Invalid request method", status=405)
-
-
-def check_if_markers_intersect(marker_set1, marker_set2):
-    markers1_with_properties = []
-    for marker in marker_set1:
-        left = marker.get('left')
-        top = marker.get('top')
-        width = marker.get('width')
-        height = marker.get('height')
-        markers1_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
-
-    markers2_with_properties = []
-    for marker in marker_set2:
-        left = marker.get('left')
-        top = marker.get('top')
-        width = marker.get('width')
-        height = marker.get('height')
-        markers2_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
-
-    points1 = []
-    for marker in marker_set1:
-        left = marker.get('left')
-        top = marker.get('top')
-        width = marker.get('width')
-        height = marker.get('height')
-        a = (left, top)
-        b = (left + width, top)
-        c = (left + width, top + height)
-        d = (left, top + height)
-        points1.append([a, b, c, d])
-
-    points2 = []
-    for marker in marker_set2:
-        left = marker.get('left')
-        top = marker.get('top')
-        width = marker.get('width')
-        height = marker.get('height')
-        a = (left, top)
-        b = (left + width, top)
-        c = (left + width, top + height)
-        d = (left, top + height)
-        points2.append([a, b, c, d])
-
-    rectangle_polygon = Polygon(points1[0])
-    other_polygon = Polygon(points2[0])
-
-    if rectangle_polygon.intersects(other_polygon):
-        return True
-    else:
-        return False

@@ -2,9 +2,11 @@ import shutil
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
 from django.db.models import Sum, Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, DetailView
 from django_tables2 import SingleTableView
@@ -12,8 +14,9 @@ from django_tables2 import SingleTableView
 from examc import settings
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, ckeditorForm
 from examc_app.models import *
-from examc_app.models import Semester, AcademicYear, Course, Exam
+#from examc_app.models import Semester, AcademicYear, Course, Exam
 from examc_app.tables import ExamSelectTable
+from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.generate_statistics_functions import generate_statistics
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
 from examc_app.views.global_views import menu_access_required
@@ -111,6 +114,8 @@ class ExamInfoView(DetailView):
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
+        users_groups_add = Group.objects.filter(pk__in=[2,3,4])
+
         if exam.common_exams:
             for common_exam in exam.common_exams.all():
                 if common_exam.is_overall():
@@ -124,11 +129,79 @@ class ExamInfoView(DetailView):
             context['exam'] = exam
             context['question_types'] = QuestionType.objects.all()
             context['sum_questions_points'] = exam.questions.all().aggregate(Sum('max_points'))
+            context['users_groups_add'] = users_groups_add
             return context
         else:
             context['user_allowed'] = False
             return context
 
+@login_required
+@menu_access_required
+def ldap_search_exam_user_by_email(request):
+    """
+    Search in LDAP by email.
+
+    This function is used to search a new reviewer in the ldap database. The email of the reviewer will
+    give the complete name of the user and his email.
+
+    Args:
+        request: The HTTP request object containing the email address ('email') and the exam ID ('pk').
+
+    Returns:
+        HttpResponse: A response string containing user information or an indication of existence.
+    """
+    email = request.POST['email']
+    user = ExamUser.objects.filter(user__email=email, exam__id=request.POST['pk']).all()
+    if user:
+        return HttpResponse("exist")
+
+    django_user = User.objects.filter(email=email).first()
+    if django_user:
+        entry_str = f"{django_user.username};{django_user.first_name};{django_user.last_name};{email}"
+        return HttpResponse(entry_str)
+
+    user_entry = ldap_search.get_entry(email, 'mail')
+    entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][
+        0] + ";" + email
+
+    return HttpResponse(entry_str)
+
+@login_required
+@menu_access_required
+def update_exam_users(request):
+    """
+           Add new users to exam.
+
+           This function is used to add a new users to exam
+
+           :param request: The HTTP request object.
+
+               Args:
+                    request: The HTTP request object.
+           """
+    exam = Exam.objects.get(pk=request.POST.get('pk'))
+    users = request.POST.getlist('users_list[]')
+    #reviewer_group, created = Group.objects.get_or_create(name='Reviewer')
+    for user_in in users:
+        user_list = user_in.split(";")
+        users = User.objects.filter(email=user_list[3]).all()
+        if users:
+            user = users.first()
+        else:
+            user = User()
+            user.username = user_list[0]
+            user.first_name = user_list[1]
+            user.last_name = user_list[2]
+            user.email = user_list[3]
+            user.save()
+
+        exam_user, created = ExamUser.objects.get_or_create(user=user, exam=exam)
+        exam_user.group = Group.objects.get(pk=user_list[4])
+        if exam_user.group.id in [2,3,4] and not exam_user.pages_groups:
+            exam_user.pages_groups.set(PagesGroup.objects.filter(exam=exam).all())
+            exam_user.save()
+
+    return redirect('examInfo', pk=exam.pk)
 
 @method_decorator(login_required, name='dispatch')
 class ScaleCreateView(CreateView):

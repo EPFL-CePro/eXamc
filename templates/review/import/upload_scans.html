@@ -23,15 +23,12 @@
     <h6>{{ message }}</h6>
 </div>
 
-<script async defer>
-let uploadScansFrm = document.getElementById('uploadScansForm');
+<script>
+$("#exams_zip_file").on("change", function () {
+        var fileName = $(this).val().split("\\").pop();
+        $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+    });
 
-uploadScansFrm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    $('#loadingModal').modal('show');
-    uploadScansFrm.submit();
-    $('#loadingModal').modal('hide');
-});
 </script>
 </body>
 {% endblock %}
