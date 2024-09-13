@@ -203,9 +203,10 @@ def select_missing_pages(amc_data_path):
                  "ORDER BY student,copy,page")
 
     response = db.execute_query(query_str)
-
-    colname_missing_pages = [d[0] for d in response.description]
-    data_missing_pages = [dict(zip(colname_missing_pages, r)) for r in response.fetchall()]
+    data_missing_pages = []
+    if response:
+        colname_missing_pages = [d[0] for d in response.description]
+        data_missing_pages = [dict(zip(colname_missing_pages, r)) for r in response.fetchall()]
     db.close()
 
     return data_missing_pages

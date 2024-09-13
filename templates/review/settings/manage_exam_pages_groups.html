@@ -221,10 +221,7 @@ function showMarkerArea(target) {
   markerArea.settings.defaultHighlightOpacity = 0.45;
   markerArea.uiStyleSettings.resultButtonBlockVisible = false;
   markerArea.uiStyleSettings.hideToolbox = true;
-  markerArea.addEventListener("markerdeselect", (event) => {
-      maState = markerArea.getState();
-      updateMarkers();
-  });
+  
   markerArea.addEventListener("render", (event) => {
     target.src = event.dataUrl;
     maState = event.state;
@@ -232,11 +229,54 @@ function showMarkerArea(target) {
    });
   markerArea.addEventListener("close", (event) => {
     showMarkerArea(target);
-  });
+  }); 
+      
+    markerArea.addEventListener("markerdeselect", (event) => {
+        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));
+    });
+    
+    markerArea.addEventListener("markerdelete", (event) => {
+        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));
+    });
+    
+    markerArea.addEventListener("markerchange", (event) => {
+        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));
+    });
+    
   markerArea.show();
   if (maState) {
     markerArea.restoreState(maState);
   }
+}
+
+
+function markerDeselect(){
+    svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
+    svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));
+    svgDataUrl = `data:image/svg+xml;charset=utf-8;base64,${svgDataBase64}`;
+
+    addMarkersImageProcess(svgDataUrl).then(img => {
+        var canvas = document.createElement('canvas')
+
+        canvas.setAttribute('width', markerArea.target.naturalWidth)
+        canvas.setAttribute('height', markerArea.target.naturalHeight)
+
+        var context = canvas.getContext('2d')
+        context.drawImage(markerArea.target, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
+        context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
+        var dataUrl = canvas.toDataURL('image/png')
+        markedImage.src = dataUrl;
+        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));
+    });
+}
+
+function addMarkersImageProcess(src){
+  return new Promise((resolve, reject) => {
+    let img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
 }
 
 // Attach shown event listener specifically to image modal
@@ -259,9 +299,9 @@ function openModalCorrectorBox(group_id) {
             var imgScan = document.getElementById('imgScan');
             imgScan.src = data_list.img_path;
             modalCorrectorBoxGroupPk = group_id;
-            if(data_list.markers !== '') {
+            //if(data_list.markers !== '') {
                 maState = JSON.parse(data_list.markers);
-            }
+            //}
             var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
             imageModal.show();                
         },      
@@ -271,16 +311,19 @@ function openModalCorrectorBox(group_id) {
     });
 }
 
-function updateMarkers(){
+function updateMarkers(markers,filename){
     var state = JSON.stringify(markerArea.getState());
     $.ajax({
         url : "{% url 'update_page_group_markers' %}",
         async : false,
         type : "POST",
         data : {
+            
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : {{ exam.pk }},
             'pages_group_pk' : modalCorrectorBoxGroupPk,
-            'markers' : state
+            'markers' : markers,
+            'filename' : filename
         },
         beforeSend : function(){
             $('#loadingModal').modal('show');
@@ -293,7 +336,7 @@ function updateMarkers(){
         },
         complete: function () {
             $('#loadingModal').modal('hide');
-            markerArea.restoreState(maState);
+            //markerArea.restoreState(maState);
         }
     });
 }

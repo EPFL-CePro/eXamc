@@ -9,7 +9,6 @@ from django.shortcuts import render
 from examc_app.models import *
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.results_statistics_functions import import_csv_data
 from examc_app.utils.review_functions import *
 
 

@@ -3,12 +3,11 @@ import shutil
 import zipfile
 from datetime import datetime
 
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db.models.functions import Cast
-from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect
+from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.views.decorators.clickjacking import xframe_options_exempt
@@ -18,6 +17,9 @@ from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import *
 from userprofile.models import *
+
+## testing
+from examc_app.tasks import import_csv_data
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -63,7 +65,7 @@ def update_student_present(request):
 
     return HttpResponse(1)
 @login_required
-def import_data_4_stats(request,pk):
+def import_data_4_stats(request,pk,task_id=None):
     exam = Exam.objects.get(pk=pk)
     currexam = exam
 
@@ -82,17 +84,28 @@ def import_data_4_stats(request,pk):
                   {"user_allowed": user_allowed(exam,request.user.id),
                    "exam":exam,
                    "currselected_exam":currexam,
-                   "common_list":common_list})
+                   "common_list":common_list,
+                   "task_id":task_id})
 
 @login_required
 def upload_amc_csv(request, pk):
-    exam = Exam.objects.get(pk=pk)
-    result = import_csv_data(request.FILES["amc_csv_file"], exam)
+    csv_file = request.FILES["amc_csv_file"]
+    temp_csv_file_name = "tmp_upload_amc_csv_"+datetime.datetime.now().strftime("%Y%m%d%H%M%S")+".csv"
+    temp_csv_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, temp_csv_file_name)
 
-    if not result == True:
-        messages.error(request, "Unable to upload file. " + result)
+    os.makedirs(os.path.dirname(temp_csv_file_path), exist_ok=True)
 
-    return redirect('../examInfo/' + str(exam.pk))
+    with open(temp_csv_file_path, 'wb') as temp_file:
+        for chunk in csv_file.chunks():
+            temp_file.write(chunk)
+
+    task = import_csv_data.delay(temp_csv_file_path, pk)
+    task_id = task.task_id
+
+    # if not result == True:
+    #     messages.error(request, "Unable to upload file. " + result)
+
+    return import_data_4_stats(request,pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk))
 
 @login_required
 def upload_catalog_pdf(request, pk):
@@ -107,7 +120,7 @@ def upload_catalog_pdf(request, pk):
     exam.pdf_catalog_name = filename
     exam.save()
 
-    return redirect('../examInfo/' + str(exam.pk))
+    return redirect('../import_data_4_stats/' + str(exam.pk))
 
 @login_required
 def export_data(request,pk):
@@ -391,3 +404,7 @@ def get_questions_stats_by_teacher(exam):
         question_stat_list.append(question_stat)
 
     return question_stat_list
+
+
+
+## TESTING

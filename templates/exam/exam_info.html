@@ -64,11 +64,14 @@
                                         <th>Name</th>
                                         <th>Year</th>
                                         <th>Semester</th>
-                                        <th>Teacher(s)</th>
+                                        <th>Users
+                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>
+                                        </th>
                                         {% if comex.common_exams.all %}
                                             <th>Common</th>
                                             <th>Individual specific</th>
                                         {% endif %}
+                                        <th></th>
                                         <th></th>
                                     </tr>
                                     <tr>
@@ -84,11 +87,11 @@
                                         <td>{{ comex.semester.code }}</td>
                                         <td>
                                             <ul class="list-group">
-                                                <li class="list-group-item border-0"
-                                                    style="padding:0px;margin:0px;font-weight: bold;">{{ comex.primary_user.first_name }} {{ comex.primary_user.last_name }}</li>
-                                                {% for teacher in comex.users.all %}
+{#                                                <li class="list-group-item border-0"#}
+{#                                                    style="padding:0px;margin:0px;font-weight: bold;">{{ comex.primary_user.first_name }} {{ comex.primary_user.last_name }}</li>#}
+                                                {% for exam_user in comex.exam_users.all %}
                                                     <li class="list-group-item border-0"
-                                                        style="padding:0px;margin:0px;">{{ teacher.first_name }} {{ teacher.last_name }}</li>
+                                                        style="padding:0px;margin:0px;">{{ exam_user.user.first_name }} {{ exam_user.user.last_name }} ({{ exam_user.group.name }})</li>
                                                 {% endfor %}
                                             </ul>
                                         </td>
@@ -327,6 +330,53 @@
             </div>
         {% endfor %}
     </div>
+    
+    <div class="modal fade" id="manageUsersModal" tabindex="-1" role="dialog" aria-labelledby="manageUsersModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="manageUsersModalLabel">Manage Users</h5>
+            <button type="button" class="close" onclick="cancelAddUsers();" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="manageUsersModalBody" class="modal-body">
+            <h6>Users</h6>
+            <ul class="list-group" id="currUsersList">
+                {% for exam_user in exam.exam_users.all %}
+                    <li id="{{ exam_user.user.username }};{{ exam_user.user.first_name }};{{ exam_user.user.last_name }};{{ exam_user.user.email }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;">
+                        <div>
+                            <button class="btn btn-light btn-sm" style="margin-right:10px;"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
+                            {{ exam_user.user.username }} - {{ exam_user.user.first_name }} {{ exam_user.user.last_name }} - {{ exam_user.user.email }}
+                        </div>
+                        <div>
+                            {% for user_group in users_groups_add.all %}
+                                <div class="form-check form-check-inline" style="margin-top:5px;">
+                                    <input class="form-check-input" type="radio" name="user_group_radio_{{ exam_user.user.username }}" id="user_group_radio_{{ exam_user.user.id }}_{{ user_group.id }}" value="{{ user_group.id }}"
+                                        {% if exam_user.group.id == user_group.id %} checked {% endif %}>
+                                    <label class="form-check-label" for="user_group_radio_{{ exam_user.user.id }}_{{ user_group.id }}">{{ user_group.name }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+            <hr>
+            <div>
+                <h6>Add Users</h6>
+                <input id="newUserEmail" class="form-control" type="text" placeholder="Email">
+              </br>
+              <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap();" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
+            </div>
+            <ul  class="list-group" id="newUsersList"></ul>
+        </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers();">Cancel</button>
+            <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers();">Validate</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
 
 {% else %}
@@ -347,7 +397,139 @@
 }
 </style>
 <script>
+document.getElementById("newUserEmail").addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("search_ldap_bt").click();
+  }
+});
 
+function searchLdap(){
+    var email = document.getElementById("newUserEmail").value;
+
+    var add_User_error = document.getElementById("addUserError");
+    if (typeof(add_User_error) != 'undefined' && add_User_error != null)
+    {
+      add_User_error.remove();
+    }
+
+    $.ajax({
+        url: "{% url 'ldap_search_exam_user_by_email' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : {{ exam.pk }},
+            'email' : email,
+        },
+        success: (data) => {
+            if(data==="exist"){
+                let add_User_error = document.createElement('div');
+                add_User_error.setAttribute("class","alert alert-warning");
+                add_User_error.setAttribute("role","alert")
+                add_User_error.innerHTML = "User already present as a User for this exam !";
+                document.getElementById("manageUsersModalBody").appendChild(add_User_error);
+            }else{
+                let list = document.getElementById("newUsersList");
+                let li = document.createElement('li');
+                let remove_bt = document.createElement('button')
+                let user_info = document.createElement('div')
+                remove_bt.textContent = 'remove';
+                remove_bt.setAttribute("class","btn btn-light btn-sm");
+                remove_bt.setAttribute("style","margin-right:10px;");
+                remove_bt.addEventListener('click', () => {
+                    document.getElementById(data).remove();
+                });
+                remove_bt.innerHTML = '<i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>'
+                user_info.appendChild(remove_bt);
+                li_txt = data.replace(/;/g,' ');
+                user_info.appendChild(document.createTextNode(li_txt));
+                li.appendChild(user_info);
+                users_groups_div = document.createElement('div');
+                users_groups_div.setAttribute("style","margin-top:5px;")
+                {% for user_group in users_groups_add.all %}
+                    username = li_txt.split(" ")[0]
+                    users_groups_radios_div = document.createElement('div')
+                    users_groups_radios_div.setAttribute("class","form-check form-check-inline");
+                    users_groups_radios_div.innerHTML = '<input class="form-check-input" type="radio" name="user_group_radio_'+username+'" id="user_group_radio_'+username+'_{{ user_group.id }}" value="{{ user_group.id }}" {% if user_group.id == 2 %}checked{% endif %}>'+
+                                                '<label class="form-check-label" for="user_group_radio_'+username+'_{{ user_group.id }}">{{ user_group.name }}</label>'
+                    users_groups_div.appendChild(users_groups_radios_div);
+                {% endfor %}
+                li.appendChild(users_groups_div);
+                
+                li.setAttribute("id",data);
+                li.setAttribute("class","list-group-item");
+                li.setAttribute("style","display: flex;justify-content: space-between;padding:5px;");
+                list.appendChild(li);
+                document.getElementById("newUserEmail").value = "";
+             }
+        },
+        error: (error) => {
+            let add_User_error = document.createElement('div');
+            add_User_error.setAttribute("class","alert alert-warning");
+            add_User_error.setAttribute("role","alert")
+            add_User_error.innerHTML = "Cannot find user with this email address in EPFL LDAP !";
+            document.getElementById("manageUsersModalBody").appendChild(add_User_error);
+            console.log(error);
+        }
+    });
+}
+
+function validateUsers(){
+    var new_users_li = document.getElementById("newUsersList").querySelectorAll("li");
+    var curr_users_li = document.getElementById("currUsersList").querySelectorAll("li");
+
+    let users = [];
+    for(let i=0; i<curr_users_li.length;i++) {
+        user = curr_users_li[i].id;
+        user_split = user.split(";")
+        username = user_split[0]
+        firstname = user_split[1]
+        lastname = user_split[2]
+        useremail = user_split[3]
+        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+username+']:checked').value;
+        users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+    }
+    for(let i=0; i<new_users_li.length;i++) {
+        user = new_users_li[i].id;
+        user_split = user.split(";")
+        username = user_split[0]
+        firstname = user_split[1]
+        lastname = user_split[2]
+        useremail = user_split[3]
+        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+username+']:checked').value;
+        users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+    }
+
+    let list = document.getElementById("newUsersList");
+    list.innerHTML = '';
+    document.getElementById("newUserEmail").value = '';
+    $('.modal').modal('hide');
+    $.ajax({
+        url: "{% url 'update_exam_users' %}",
+        type: "POST",
+        dataType: "json",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : {{ exam.pk }},
+            'users_list' : users,
+        },
+        complete: function () {
+            location.reload();
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function cancelUsers(){
+    let list = document.getElementById("newUsersList");
+    list.innerHTML = '';
+    document.getElementById("newUserEmail").value = '';
+    $('.modal').modal('hide');
+}
 
 $(window).on("load",function(){
     {% for comex in exam.get_common_exams_yc_common %}

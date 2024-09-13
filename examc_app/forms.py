@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, ModelForm
 from django_ckeditor_5.widgets import CKEditor5Widget
 
-from .models import PagesGroup, Reviewer, Exam, AcademicYear, Semester, Course, QuestionType
+from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser
 from .utils.global_functions import get_course_teachers_string
 
 from examc import settings
@@ -39,7 +39,7 @@ PagesGroupsFormSet = modelformset_factory(
 
 class ManageReviewersForm(forms.ModelForm):
     class Meta:
-        model = Reviewer
+        model = ExamUser
         fields = ['user', 'pages_groups']
 
     def __init__(self, *args, **kwargs):
@@ -52,7 +52,7 @@ class ManageReviewersForm(forms.ModelForm):
                 f.disabled = True
 
 
-ReviewersFormSet = modelformset_factory(Reviewer, form=ManageReviewersForm, extra=0)
+ReviewersFormSet = modelformset_factory(ExamUser, form=ManageReviewersForm, extra=0)
 
 
 class ExportMarkedFilesForm(forms.Form):

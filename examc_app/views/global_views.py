@@ -41,7 +41,7 @@ def staff_status(request, user_id):
     user.save()
     return redirect('users')
 
-def log_in(request):
+def log_in(request, my_task=None):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -74,3 +74,4 @@ def user_allowed(exam, user_id):
         return True
     else:
         return False
+

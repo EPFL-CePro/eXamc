@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% load crispy_forms_tags %}
 {% block title %}Import{% endblock %}
@@ -21,7 +22,7 @@
         <div id="importExamDataDiv" style="padding:10px;max-width:80%;">
             <h5>Exam catalog</h5>
             <form action="{% url 'upload_catalog_pdf' currselected_exam.pk %}" method="POST" enctype="multipart/form-data"
-                  class="form-horizontal">
+                  class="form-horizontal" on>
                 {% csrf_token %}
                 <div class="form-group row">
                     <div class="col-md-8">
@@ -39,7 +40,7 @@
             </form>
             <hr style="margin:20px 0 20px 0;">
             <h5>AMC .csv file</h5>
-            <form action="{% url 'upload_amc_csv' currselected_exam.pk %}" method="POST" enctype="multipart/form-data"
+            <form id="upload_amc_csv_frm" action="{% url 'upload_amc_csv' currselected_exam.pk %}" method="POST" enctype="multipart/form-data"
                   class="form-horizontal">
                 {% csrf_token %}
                 <div class="form-group row">
@@ -102,6 +103,7 @@
 
 {% endif %}
 <script>
+    
     $("#importAMCCSVFile").on("change", function () {
         var fileName = $(this).val().split("\\").pop();
         $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
