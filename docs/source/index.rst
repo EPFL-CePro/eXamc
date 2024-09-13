@@ -42,9 +42,14 @@ Contents
 .. toctree::
    :maxdepth: 4
 
+   modules/open_exam/open_exam
    modules/review/review
    modules/amc/amc
+   modules/results/results
    modules/statistic/statistics
+   modules/import_data/import_data
+   modules/export_data/export_data
+   modules/room_plan/room_plan
    modules/admin/users
    modules/admin/admin
 

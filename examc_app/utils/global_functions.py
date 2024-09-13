@@ -13,9 +13,9 @@ from examc_app.utils.epflldap.ldap_search import ldap_search_by_sciper
 
 
 def user_allowed(exam, user_id):
-    exam_users = ExamUser.objects.filter(Q(exam=exam) | Q(exam__in=exam.common_exams.all()))
     user = User.objects.get(pk=user_id)
-    if user in exam_users or user.is_superuser:
+    exam_users = ExamUser.objects.filter(Q(user=user) & (Q(exam=exam) | Q(exam__in=exam.common_exams.all())))
+    if exam_users or user.is_superuser:
         return True
     else:
         return False

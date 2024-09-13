@@ -44,11 +44,13 @@ def is_allowed(_user_exam,option):
         group_ids_allowed = [2,4]
     elif option =='res_and_stats':
         group_ids_allowed = [2,4]
+    elif option =='review':
+        group_ids_allowed = [2,3,4]
 
-    exam_user = ExamUser.objects.get(exam=exam, user=auth_user, pages_groups__in=group_ids_allowed)
-    if exam_user:
+    try:
+        exam_user = ExamUser.objects.get(exam=exam, user=auth_user, group__in=group_ids_allowed)
         return True
-    else:
+    except ExamUser.DoesNotExist:
         return False
 
 @register.filter

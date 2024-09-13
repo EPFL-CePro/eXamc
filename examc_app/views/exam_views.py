@@ -101,7 +101,7 @@ class ExamSelectView(SingleTableView):
     def get_queryset(self):
         qs = Exam.objects.filter(overall=False).all()
         if not self.request.user.is_superuser:
-            qs = qs.filter(Q(users__id=self.request.user.id) | Q(reviewers__user=self.request.user))
+            qs = qs.filter(Q(exam_users__user_id=self.request.user.id) )#| Q(reviewers__user=self.request.user))
         return qs
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
@@ -180,9 +180,9 @@ def update_exam_users(request):
                     request: The HTTP request object.
            """
     exam = Exam.objects.get(pk=request.POST.get('pk'))
-    users = request.POST.getlist('users_list[]')
+    users_list = request.POST.getlist('users_list[]')
     #reviewer_group, created = Group.objects.get_or_create(name='Reviewer')
-    for user_in in users:
+    for user_in in users_list:
         user_list = user_in.split(";")
         users = User.objects.filter(email=user_list[3]).all()
         if users:
@@ -199,7 +199,7 @@ def update_exam_users(request):
         exam_user.group = Group.objects.get(pk=user_list[4])
         if exam_user.group.id in [2,3,4] and not exam_user.pages_groups:
             exam_user.pages_groups.set(PagesGroup.objects.filter(exam=exam).all())
-            exam_user.save()
+        exam_user.save()
 
     return redirect('examInfo', pk=exam.pk)
 
