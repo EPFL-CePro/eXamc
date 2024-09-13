@@ -45,7 +45,7 @@ def is_allowed(_user_exam,option):
     elif option =='res_and_stats':
         group_ids_allowed = [2,4]
     elif option =='review':
-        group_ids_allowed = [2,3,4]
+        group_ids_allowed = [2,4]
 
     try:
         exam_user = ExamUser.objects.get(exam=exam, user=auth_user, group__in=group_ids_allowed)

@@ -91,22 +91,50 @@
                         <span class="menu-collapsed" style="margin-right:5px;"><img id="examc_logo" src="{% static 'img/eXamc_bg_transp_200.png' %}" style="margin-left:-30px;width:100%;background-color: #000000"/></span>
                     </div>
                 </li>
-                {% if user.is_authenticated %}
-                <a href="{% url 'examSelect' %}" class="bg-dark list-group-item list-group-item-action">
+                {% if user.is_authenticated %}                    
+                <li class="bg-secondary list-group-item list-group-item-action" style="background-color: #191919!important;">
                     <div class="d-flex w-100 justify-content-start align-items-center">
-                        <span class="fas fa-folder-open" style="margin-right:5px;"></span>
-                        <span class="menu-collapsed" style="margin-right:5px;">Open exam</span>
+                        <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                            style="color:#b1b1b1!important;">
+                            <span class="fa-solid fa-bars fa-xl" style="margin-right:5px;"></span>
+                            <span class="menu-collapsed" style="margin-right:5px;">MENU</span>
+                        </a>
+                        <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+                            <li>
+                                <a href="{% url 'examSelect' %}" class="bg-secondary list-group-item list-group-item-action">
+                                        <i class="fas fa-folder-open" style="margin-right:5px;"></i>Open exam</a>
+                            </li>
+                            <div class="bg-secondary dropdown-divider"></div>
+                            {% if user|more_arg:exam|is_allowed:'preparation' %}
+                            <li>
+                                <a class="bg-secondary list-group-item list-group-item-action" href="{% url 'create_exam_project' %}">
+                                    <i class="fas fa-plus" style="margin-right:5px;"></i>Create exam</a>
+                            </li>
+                            {% endif %}
+                            <div class="bg-secondary dropdown-divider"></div>
+                            <li>
+                                <a href="{% url 'generate_room_plan' %}" class="bg-secondary list-group-item list-group-item-action">
+                                    <i class="fa-solid fa-meteor" style="margin-right:5px;color:#fdfdfd;"></i>Room plan</a>       
+                            </li>
+                      </ul>
                     </div>
-                </a>
-                {% if user|more_arg:exam|is_allowed:'preparation' %}
-                <a class="bg-dark list-group-item list-group-item-action" href="{% url 'create_exam_project' %}">
-                    <div class="d-flex w-100 justify-content-start align-items-center">
-                        <span class="fas fa-plus" style="margin-right:5px;"></span>
-                        <span class="menu-collapsed" style="margin-right:5px;">Create exam</span>
-                    </div>
-                {% endif %}
+                </li>                    
+                    
+{#                <a href="{% url 'examSelect' %}" class="bg-dark list-group-item list-group-item-action" style="color:lightgray;background-color: #1c1c1c !important">#}
+{#                    <div class="d-flex w-100 justify-content-start align-items-center">#}
+{#                        <span class="fas fa-folder-open" style="margin-right:5px;"></span>#}
+{#                        <span class="menu-collapsed" style="margin-right:5px;">Open exam</span>#}
+{#                    </div>#}
+{#                </a>#}
+{#                {% if user|more_arg:exam|is_allowed:'preparation' %}#}
+{#                <a class="bg-dark list-group-item list-group-item-action" href="{% url 'create_exam_project' %}" style="color: lightgray;background-color: #1c1c1c !important">#}
+{#                    <div class="d-flex w-100 justify-content-start align-items-center">#}
+{#                        <span class="fas fa-plus" style="margin-right:5px;"></span>#}
+{#                        <span class="menu-collapsed" style="margin-right:5px;">Create exam</span>#}
+{#                    </div>#}
+{#                {% endif %}#}
                 {% if exam %}
-                    <a href="{% url 'examInfo' exam.pk %}" class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="background-color: #1d2124;margin-top:20px;">
+                    <a {% if user.user_exams.first.group.id != 3 %} href="{% url 'examInfo' exam.pk %}" {% endif %}class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="height:auto;background-color: #1d2124;margin-top:20px;">
                         <span title="{{ exam.code }}" class="fa-solid fa-book-open" style="margin-right: 5px;"></span>
                         <span class="menu-collapsed" style="margin-right:5px;">{% if exam.is_overall %}{{ exam.name }}{% else %}{{ exam.code }}{% endif %}</span>
                     </a>
@@ -124,7 +152,7 @@
                     {% endif %}
                     {% if user|more_arg:exam|is_allowed:'review'  %}
                         {% if exam.has_review_option %}
-                         <li class="bg-dark list-group-item list-group-item-action">
+                         <li class="bg-dark list-group-item list-group-item-action" >
                             <div class="d-flex w-100 justify-content-start align-items-center">
                                 <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <span class="fas fa-glasses" style="margin-right:5px;"></span>
@@ -198,17 +226,17 @@
                                 <span class="menu-collapsed" style="margin-right:5px;">Export results</span>
                             </div>
                         </a>
-
-                        <a href="{% url 'generate_room_plan' %}"
-                               class="bg-dark list-group-item list-group-item-action">
-                                <div class="d-flex w-100 justify-content-start align-items-center">
-                                    <span class="fa-solid fa-meteor" style="margin-right:5px;color:#fdfdfd;"></span>
-                                    <span class="menu-collapsed" style="margin-right:5px;color:#ffffff;">Room plan</span>
-                                </div>
-                            </a>
                         <hr class="hr-sidebar">
                         {% endif %}
                     {% endif %}
+{#                    <a href="{% url 'generate_room_plan' %}"#}
+{#                           class="bg-dark list-group-item list-group-item-action">#}
+{#                            <div class="d-flex w-100 justify-content-start align-items-center">#}
+{#                                <span class="fa-solid fa-meteor" style="margin-right:5px;color:#fdfdfd;"></span>#}
+{#                                <span class="menu-collapsed" style="margin-right:5px;color:#ffffff;">Room plan</span>#}
+{#                            </div>#}
+{#                        </a>#}
+{#                        <hr class="hr-sidebar">#}
                     {% if user|is_admin %}
                     <a href="{% url 'users' %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
@@ -223,7 +251,7 @@
                         </div>
                     </a>
                     {% endif %}
-                    <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action" target="_blank">
+                    <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action" target="_blank" style="margin-top:10px;">
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></span>
                             <span class="menu-collapsed" style="color:#CCA71CFF;margin-right:5px;">Documentation </span>
