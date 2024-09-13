@@ -2,7 +2,7 @@ import django_tables2 as tables
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import Exam
+from .models import Exam, ExamUser
 
 
 class ExamSelectTable(tables.Table):
@@ -33,12 +33,12 @@ class ExamSelectTable(tables.Table):
 
     def render_teachers(self, record):
         return_str = ''
-        teachers = record.users.all()
-        if teachers:
-            for teacher in teachers:
+        exam_users = ExamUser.objects.filter(exam=record,group__pk=2)
+        if exam_users:
+            for exam_user in exam_users.all():
                 if return_str:
                     return_str += ','
-                return_str += teacher.first_name + " " + teacher.last_name
+                return_str += exam_user.user.first_name + " " + exam_user.user.last_name
         return return_str
 
     def render_semester(self, record):
