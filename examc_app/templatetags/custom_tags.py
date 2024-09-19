@@ -37,9 +37,14 @@ def is_allowed(_user_exam,option):
         return True
 
     group_ids_allowed = []
+
     if option == 'preparation':
         group_ids_allowed = [2,4]
-
+    elif option == 'creation':
+        if user.groups.filter(pk__in=[1,2,4,5]).exists():
+            return True
+        else:
+            return False
     elif option == 'amc':
         group_ids_allowed = [2,4]
     elif option =='res_and_stats':

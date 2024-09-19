@@ -35,7 +35,8 @@ urlpatterns = [
     path('update_page_group_markers', views.update_page_group_markers, name="update_page_group_markers"),
     path('check_if_markers_intersect', views.check_if_markers_intersect, name="check_if_markers_intersect"),
     # Export
-    path('export_marked_files/<int:pk>', views.export_marked_files, name="export_marked_files"),
+    path('generate_marked_files/<int:pk>', views.generate_marked_files, name="generate_marked_files"),
+    path('download_marked_files/<str:filename>', views.download_marked_files,name="download_marked_files"),
     # AMC
     path('amc_view/<int:pk>', views.amc_view, name="amc_view"),
     path('amc_view/<int:pk>/<int:active_tab>', views.amc_view, name="amc_view"),

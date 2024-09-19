@@ -1,18 +1,23 @@
 import csv
+import json
 import os
+import pathlib
 import shutil
 import time
 import zipfile
 from contextlib import closing
+from datetime import datetime
 
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
+from django.http import FileResponse
+from fpdf import FPDF
 
 from examc import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
-from examc_app.utils.review_functions import import_scans
+from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
 
 
 @shared_task(bind=True)
@@ -192,6 +197,7 @@ def import_csv_data(self, temp_csv_file_path, exam_pk):
 
     return ' Process finished.'
 
+
 @shared_task(bind=True)
 def import_exam_scans(self, zip_file_path, exam_pk):
     """
@@ -208,6 +214,7 @@ def import_exam_scans(self, zip_file_path, exam_pk):
     Returns:
         return: A message indicating the success or failure of the upload process.
     """
+
     try:
         progress_recorder = ProgressRecorder(self)
 
@@ -273,3 +280,72 @@ def import_exam_scans(self, zip_file_path, exam_pk):
         raise exception
 
     return ' Process finished. '+str(nb_copies)+' copies.'
+
+
+@shared_task(bind=True)
+def TASK_TESTING(self, a, b):
+    """
+   TESTING TASK
+    """
+    time.sleep(10)
+
+    return ' Process finished. '
+
+
+@shared_task(bind=True)
+def generate_marked_files_zip(self,exam_pk, export_type):
+    try:
+        exam = Exam.objects.get(pk=exam_pk)
+        scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+        marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+        export_subdir = 'marked_'+str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
+        export_subdir = export_subdir.replace(" ","_")
+        export_tmp_dir = (str(settings.EXPORT_TMP_ROOT) + "/" + export_subdir)
+
+        progress_recorder = ProgressRecorder(self)
+
+        if not os.path.exists(export_tmp_dir):
+            os.mkdir(export_tmp_dir)
+
+        # list files from scans dir
+        dir_list = [x for x in os.listdir(scans_dir) if x != '0000']
+        for dir in sorted(dir_list):
+
+            copy_export_subdir = export_tmp_dir + "/" + dir
+
+            if not os.path.exists(copy_export_subdir):
+                os.mkdir(copy_export_subdir)
+
+            for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+                # check if a marked file exist, if yes copy it, or copy original scans
+
+                marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
+                if os.path.exists(marked_file_path):
+                    shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
+                else:
+                    shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
+
+        if int(export_type) > 1:
+            generate_marked_pdfs(export_tmp_dir, export_type, progress_recorder)
+
+            #remove subfolders with img
+            for root, dirs, files in os.walk(export_tmp_dir):
+                for name in dirs:
+                    shutil.rmtree(os.path.join(root, name))
+
+        # zip folder
+        zipf = zipfile.ZipFile(export_tmp_dir + ".zip", 'w', zipfile.ZIP_DEFLATED)
+        zipdir(export_tmp_dir, zipf)
+        zipf.close()
+
+        #remove tmp folder not zipped
+        shutil.rmtree(export_tmp_dir)
+
+        return export_subdir+'.zip'
+
+    except Exception as exception:
+        self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during export "+str(exception)})
+        print(exception)
+        raise exception
+
+

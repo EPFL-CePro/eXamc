@@ -31,7 +31,7 @@
 
 <div id="export_marked_files_div" style="padding:20px">
   <h6>Options :</h6>
-  <form action="{% url 'export_marked_files' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal" style="margin-top:20px;">
+  <form action="{% url 'generate_marked_files' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal" style="margin-top:20px;">
     {% csrf_token %}
     {% for radio in form.export_type %}
       <div>

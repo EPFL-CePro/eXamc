@@ -17,7 +17,7 @@ from shapely.geometry import Polygon
 
 from examc_app.forms import *
 from examc_app.models import *
-from examc_app.tasks import import_exam_scans
+from examc_app.tasks import import_exam_scans, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
 from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import user_allowed
@@ -427,7 +427,7 @@ def get_pages_group_rectangle_data(request):
 
 @login_required
 @menu_access_required
-def export_marked_files(request, pk):
+def generate_marked_files(request, pk, task_id=None):
     """
           Export all the marked files.
 
@@ -460,10 +460,19 @@ def export_marked_files(request, pk):
             form = ExportMarkedFilesForm(request.POST, exam=exam)
 
             if form.is_valid():
-                generated_marked_files_zip_path = generate_marked_files_zip(exam, request.POST['export_type'])
+                task = generate_marked_files_zip.delay(exam.pk, request.POST['export_type'])
+                task_id = task.task_id
 
-                zip_file = open(generated_marked_files_zip_path, 'rb')
-                return FileResponse(zip_file)
+                form = ExportMarkedFilesForm()
+                return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
+                    "form": form,
+                    "exam": exam,
+                    "current_url": "generate_marked_files",
+                    "task_id": task_id})
+
+
+                # zip_file = open(generated_marked_files_zip_path, 'rb')
+                # return FileResponse(zip_file)
 
             else:
                 logger.info("INVALID")
@@ -476,13 +485,17 @@ def export_marked_files(request, pk):
             return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                                                                               "form": form,
                                                                               "exam": exam,
-                                                                              "current_url": "export_marked_files"})
+                                                                              "current_url": "generate_marked_files"})
     else:
         return render(request, 'review/export/export_marked_files.html', {"user_allowed": False,
                                                                           "form": None,
                                                                           "exam": exam,
-                                                                          "current_url": "export_marked_files"})
+                                                                          "current_url": "generate_marked_files"})
 
+@login_required
+def download_marked_files(request,filename):
+    zip_file = open(str(settings.EXPORT_TMP_ROOT)+"/"+filename, 'rb')
+    return FileResponse(zip_file)
 
 # TESTING
 # ------------------------------------------
@@ -644,6 +657,7 @@ def saveMarkers(request):
     print("imageData : "+str(sys.getsizeof(ImageData)))
     markers = json.loads(request.POST['markers'])
     print("markers : "+str(sys.getsizeof(markers)))
+    marked = False
     if markers["markers"]:
         scan_markers.markers = request.POST['markers']
         scan_markers.filename = request.POST['filename']
@@ -668,9 +682,10 @@ def saveMarkers(request):
 
         marked = False
         if marker_corrector_box:
-            corrector_box_checked = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
-            if corrector_box_checked:
-                marked = True
+            if marker_corrector_box.page_no == scan_markers.page_no:
+                corrector_box_checked = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
+                if corrector_box_checked:
+                    marked = True
 
         scan_markers.correctorBoxMarked = marked
         scan_markers.save()
@@ -687,8 +702,9 @@ def saveMarkers(request):
         scan_markers.delete()
 
     scan_markers.save()
-    return HttpResponseRedirect(
-        reverse('reviewGroup', kwargs={'pk': request.POST['reviewGroup_pk'], 'currpage': scan_markers.page_no}))
+    return HttpResponse(marked)
+    # return HttpResponseRedirect(
+    #     reverse('reviewGroup', kwargs={'pk': request.POST['reviewGroup_pk'], 'currpage': request.POST['curr_row']}))
 
 
 @login_required

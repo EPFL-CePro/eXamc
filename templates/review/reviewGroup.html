@@ -205,6 +205,8 @@ function setSourceScan(scan_path){
     currSourceIdSplit = scan_path.split('/').pop().split('.').slice(-2)[0].split('_');
     currSourceElementId =
     currSourceIdSplit[0]+"_"+currSourceIdSplit[1]+"_"+parseFloat(currSourceIdSplit[2].replace("x","."));
+    
+    currSourceIdSplit.push(document.getElementById(currSourceElementId).cells[0].innerText);
     if (old_source){
         lastSourceIdSplit = old_source.split('/').pop().split('.').slice(-2)[0].split('_');
         lastSourceElementId =
@@ -347,19 +349,21 @@ function updateMarkers(markerArea, exam_pk, pages_group_pk){
     imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
     copy_no = currSourceIdSplit[1];
     page_no = currSourceIdSplit[2];
+    id_no = currSourceIdSplit[3]
 
-    saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,sourceImage.getAttribute("src"));
+    marked = saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,sourceImage.getAttribute("src"),id_no);
 
     initCopyPagesTableOnClickRowEvent(true);
     document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
-    marked_info_element = document.getElementById(currSourceElementId+"_marked")
-    marked_info_element.innerHTML = ""
-    if(markerArea.markers.length > 0){
-        marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">'
-    }
+    //createPagination({{ scans_pathes_list|length }}, id_no);
+    {#marked_info_element = document.getElementById(currSourceElementId+"_marked")#}
+    {#marked_info_element.innerHTML = ""#}
+    {#if(markerArea.markers.length > 0){#}
+    {#    marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">'#}
+    {#}#}
 }
 
-function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,filename){
+function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,filename,curr_row){
     $.ajax({
         url : "{% url 'save_markers' %}",
         type : "POST",
@@ -367,6 +371,7 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,file
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
             'exam_pk' : pk,
             'reviewGroup_pk' : group_pk,
+            'curr_row': curr_row,
             'copy_no' : copy_no,
             'page_no' : ""+page_no,
             'markers' : markers,
@@ -375,8 +380,13 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,file
         },
         beforeSend : function(){
         },
-        complete: function () {
-        }
+        success: (data) => {
+            marked_info_element = document.getElementById(currSourceElementId+"_marked");
+            marked_info_element.innerHTML = "";
+            if(data==='True'){
+                marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
+            }          
+        },
     });
 }
 

@@ -103,9 +103,9 @@
                             <li>
                                 <a href="{% url 'examSelect' %}" class="bg-secondary list-group-item list-group-item-action">
                                         <i class="fas fa-folder-open" style="margin-right:5px;"></i>Open exam</a>
-                            </li>
-                            <div class="bg-secondary dropdown-divider"></div>
-                            {% if user|more_arg:exam|is_allowed:'preparation' %}
+                            </li>                           
+                            {% if user|more_arg:None|is_allowed:'creation' %}
+                             <div class="bg-secondary dropdown-divider"></div>
                             <li>
                                 <a class="bg-secondary list-group-item list-group-item-action" href="{% url 'create_exam_project' %}">
                                     <i class="fas fa-plus" style="margin-right:5px;"></i>Create exam</a>
@@ -164,7 +164,7 @@
                                     <li><a class="bg-secondary dropdown-item" href="{% url 'reviewSettingsView' exam.pk 'groups' %}" style="padding-top:15px;"><i class="fas fa-cogs" style="margin-right:5px;"></i>Settings</a></li>
                                      <div class="bg-secondary dropdown-divider"></div>
                                     <li><a class="bg-secondary dropdown-item" href="{% url 'upload_scans' exam.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload scans</a></li>
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'export_marked_files' exam.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export marked scans</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'generate_marked_files' exam.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export marked scans</a></li>
                               </ul>
                             </div>
                         </li>
@@ -347,18 +347,54 @@
 //TESTING
 {% if task_id %}
 function processProgress(progressBarElement, progressBarMessageElement, progress) {
-        progressBarElement.style.width = progress.percent + "%";
-        var description = progress.description || "Starting import...";
-        progressBarMessageElement.innerHTML = description;
-        progressBarElement.innerText = progress.percent + "%";
-    }
+    progressBarElement.style.width = progress.percent + "%";
+    var description = progress.description || "Starting import...";
+    progressBarMessageElement.innerHTML = description;
+    progressBarElement.innerText = progress.percent + "%";
+}
 
 function processResult(resultElement, result) {
-    if(result.includes("Process finished")) {
+    if (result.includes("Process finished")) {
         setTimeout(() => {
             $('#celeryProgressBarModal').modal('hide');
         }, 1000);
+    }else if(result.startsWith('marked_') && result.endsWith(".zip")){        
+        var link = document.createElement('a');
+        link.href = "/download_marked_files/"+result;
+        link.download = 'Click to download marked files';
+        link.innerText = 'Click to download marked files';
+        progressBarElement = document.getElementById('progress-bar-message');
+        progressBarElement.innerHTML = 'Success ! <br/>'
+        progressBarElement.appendChild(link);    }
+}
+    
+function processError(progressBarElement, progressBarMessageElement, excMessage) {
+    progressBarElement.style.backgroundColor = this.barColors.error;
+    excMessage = excMessage || '';
+    progressBarMessageElement.textContent = "Uh-Oh, something went wrong! " + excMessage;
+}
+function processTaskError(progressBarElement, progressBarMessageElement, excMessage, data) {
+    let message = this.getMessageDetails(excMessage);
+    this.onError(progressBarElement, progressBarMessageElement, message);
+}
+
+function base64ToArrayBuffer(base64) {
+    var binaryString = window.atob(base64);
+    var binaryLen = binaryString.length;
+    var bytes = new Uint8Array(binaryLen);
+    for (var i = 0; i < binaryLen; i++) {
+       var ascii = binaryString.charCodeAt(i);
+       bytes[i] = ascii;
     }
+    return bytes;
+ }
+ 
+function downloadZip(fileName, byte) {
+    var blob = new Blob([byte], {type: "application/zip"});
+    var link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
 }
 
 $(function () {
@@ -367,6 +403,8 @@ $(function () {
     CeleryProgressBar.initProgressBar(progressUrl, {
             onProgress: processProgress,
             onResult: processResult,
+            onError : processError,
+            onTaskError : processTaskError
         })
 });
 
