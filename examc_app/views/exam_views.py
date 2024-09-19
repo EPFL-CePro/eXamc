@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, DetailView
 from django_tables2 import SingleTableView
+from urllib3 import request
 
 from examc import settings
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, ckeditorForm
@@ -108,6 +109,18 @@ class ExamSelectView(SingleTableView):
 class ExamInfoView(DetailView):
     model = Exam
     template_name = 'exam/exam_info.html'
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = self.get_context_data(object=self.object)
+        exam = Exam.objects.get(pk=context.get("object").id)
+        exam_user = ExamUser.objects.filter(exam=exam, user=self.request.user).first()
+
+        # redirect to review if reviewer
+        if not self.request.user.is_superuser and exam_user.group.pk == 3:
+            return redirect(reverse('reviewView', kwargs={'pk': exam.pk}))
+
+        return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
         context = super(ExamInfoView, self).get_context_data(**kwargs)

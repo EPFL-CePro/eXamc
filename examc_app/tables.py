@@ -15,8 +15,7 @@ class ExamSelectTable(tables.Table):
 
 
     def render_id(self, value):
-        text = format_html('<a hidden>{url}</a>',
-                           url=reverse('examInfo', kwargs={'pk':str(value)}))
+        text = format_html('<a hidden>{url}</a>',url=reverse('examInfo', kwargs={'pk':str(value)}))
         return text
 
     def render_commons(self, record):

@@ -1,25 +1,23 @@
-# SCANS IMPORT functions
+import imghdr
+import pathlib
+import os
+import shutil
+import time
 
-import datetime
+import cv2
+from PIL import Image, ImageStat
 from django.conf import settings
+from fpdf import FPDF
 from shapely import Polygon
 
 from examc_app.models import *
 import pyzbar.pyzbar as pyzbar
-import cv2
-import os
-import imghdr
-import json
-import os
-import pathlib
-import shutil
-import zipfile
+from datetime import datetime
 
-from fpdf import FPDF
 
-from examc_app.models import *
 
-from examc_app.views import *
+
+# from examc_app.views import *
 
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
 def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,process_number):
@@ -191,51 +189,101 @@ def get_scans_pathes_by_group(pagesGroup):
 
     return scans_pathes
 
+#
+# def generate_marked_files_zip(exam, export_type):
+#     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+#     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+#     export_tmp_dir = str(settings.EXPORT_TMP_ROOT) + "/" + str(exam.year.code) + "_" + str(
+#         exam.semester.code) + "_" + exam.code + "_" + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
+#
+#     task_id = None
+#
+#     if not os.path.exists(export_tmp_dir):
+#         os.mkdir(export_tmp_dir)
+#
+#     # list files from scans dir
+#     for dir in sorted(os.listdir(scans_dir)):
+#
+#         copy_export_subdir = export_tmp_dir + "/" + dir
+#
+#         if not os.path.exists(copy_export_subdir):
+#             os.mkdir(copy_export_subdir)
+#
+#         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+#             # check if a marked file exist, if yes copy it, or copy original scans
+#
+#             marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
+#             if os.path.exists(marked_file_path):
+#                 shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
+#             else:
+#                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
+#
+#     if int(export_type) > 1:
+#         task = generate_marked_pdfs.delay(export_tmp_dir, export_type)
+#         task_id = task.task_id
+#         #generate_marked_pdfs(export_tmp_dir, export_type)
+#
+#         #remove subfolders with img
+#         for root, dirs, files in os.walk(export_tmp_dir):
+#             for name in dirs:
+#                 shutil.rmtree(os.path.join(root, name))
+#
+#     # zip folder
+#     zipf = zipfile.ZipFile(export_tmp_dir + ".zip", 'w', zipfile.ZIP_DEFLATED)
+#     zipdir(export_tmp_dir, zipf)
+#     zipf.close()
+#
+#     #remove tmp folder not zipped
+#     shutil.rmtree(export_tmp_dir)
+#
+#     return [task_id,export_tmp_dir + ".zip"]
 
-def generate_marked_files_zip(exam, export_type):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
-    marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
-    export_tmp_dir = str(settings.EXPORT_TMP_ROOT) + "/" + str(exam.year.code) + "_" + str(
-        exam.semester.code) + "_" + exam.code + "_" + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
 
-    if not os.path.exists(export_tmp_dir):
-        os.mkdir(export_tmp_dir)
+def generate_marked_pdfs(files_path, export_type,progress_recorder):
+    scans_count = len(os.listdir(files_path))
 
-    # list files from scans dir
-    for dir in sorted(os.listdir(scans_dir)):
+    process_count = scans_count
+    process_number = 1
+    progress_recorder.set_progress(0, process_count, description='')
+    time.sleep(2)
+    progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+        process_count) + ' - Extracting zip files...')
 
-        copy_export_subdir = export_tmp_dir + "/" + dir
+    for subdir in sorted(os.listdir(files_path)):
+        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+            process_count) + ' - Generating pdfs files...')
 
-        if not os.path.exists(copy_export_subdir):
-            os.mkdir(copy_export_subdir)
+        pdf = FPDF(orientation='P', unit='mm', format='A4')
+        pdf.set_auto_page_break(0)
+        pdf.set_margins(0,0,0)
+        for image in sorted(os.listdir(files_path + "/" + subdir)):
+            pdf.add_page()
 
-        for filename in sorted(os.listdir(scans_dir + "/" + dir)):
-            # check if a marked file exist, if yes copy it, or copy original scans
+            # force image to sRGB if grayscale
+            img_path = files_path + "/" + subdir + "/" + image
+            if is_grayscale(img_path):
 
-            marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
-            if os.path.exists(marked_file_path):
-                shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
-            else:
-                shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
+                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                img_path = files_path + "/" + subdir + "/rgb" + image
+                img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+                cv2.imwrite(img_path, img_rgb)
+                pdf.image(img_path, 0,0,pdf.epw)
 
-    if int(export_type) > 1:
-        generate_marked_pdfs(export_tmp_dir, export_type)
+            pdf.image(img_path,w=pdf.epw)
 
-        #remove subfolders with img
-        for root, dirs, files in os.walk(export_tmp_dir):
-            for name in dirs:
-                shutil.rmtree(os.path.join(root, name))
+        pdf.output(files_path + "/copy_" + subdir + ".pdf", "F")
 
-    # zip folder
-    zipf = zipfile.ZipFile(export_tmp_dir + ".zip", 'w', zipfile.ZIP_DEFLATED)
-    zipdir(export_tmp_dir, zipf)
-    zipf.close()
+        process_number += 1
 
-    #remove tmp folder not zipped
-    shutil.rmtree(export_tmp_dir)
+    return ' Process finished. '
 
-    return export_tmp_dir + ".zip"
-
+def is_grayscale(path):
+    im = Image.open(path).convert("RGB")
+    stat = ImageStat.Stat(im)
+    if sum(stat.sum)/3 == stat.sum[0]: #check the avg with any element value
+        return True #if grayscale
+    else:
+        return False #else its colour
 
 def zipdir(path, ziph):
     # ziph is zipfile handle
@@ -245,16 +293,16 @@ def zipdir(path, ziph):
                        os.path.relpath(os.path.join(root, file),os.path.join(path, '..')))
 
 
-def generate_marked_pdfs(files_path, export_type):
-    for subdir in os.listdir(files_path):
-        pdf = FPDF(orientation='P', unit='mm', format='A4')
-        pdf.set_auto_page_break(0)
-
-        for image in os.listdir(files_path + "/" + subdir):
-            pdf.add_page()
-            pdf.image(files_path + "/" + subdir + "/" + image, 0, 0, 210)
-
-        pdf.output(files_path + "/copy_" + subdir + ".pdf", "F")
+# def generate_marked_pdfs(files_path, export_type):
+#     for subdir in os.listdir(files_path):
+#         pdf = FPDF(orientation='P', unit='mm', format='A4')
+#         pdf.set_auto_page_break(0)
+#
+#         for image in os.listdir(files_path + "/" + subdir):
+#             pdf.add_page()
+#             pdf.image(files_path + "/" + subdir + "/" + image, 0, 0, 210)
+#
+#         pdf.output(files_path + "/copy_" + subdir + ".pdf", "F")
 
 
 def updateCorrectorBoxMarked(pageMarkers):
