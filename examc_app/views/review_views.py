@@ -460,7 +460,7 @@ def generate_marked_files(request, pk, task_id=None):
             form = ExportMarkedFilesForm(request.POST, exam=exam)
 
             if form.is_valid():
-                task = generate_marked_files_zip.delay(exam.pk, request.POST['export_type'])
+                task = generate_marked_files_zip.delay(exam.pk, request.POST['export_type'],request.POST['with_comments'])
                 task_id = task.task_id
 
                 form = ExportMarkedFilesForm()
@@ -682,7 +682,7 @@ def saveMarkers(request):
 
         marked = False
         if marker_corrector_box:
-            if marker_corrector_box.page_no == scan_markers.page_no:
+            if int(marker_corrector_box.page_no) == int(scan_markers.page_no):
                 corrector_box_checked = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
                 if corrector_box_checked:
                     marked = True
@@ -692,7 +692,7 @@ def saveMarkers(request):
 
         # update page markers users entry
         page_markers_user, created = PageMarkersUser.objects.get_or_create(pageMarkers=scan_markers,user=request.user)
-        page_markers_user.modified = datetime.datetime.now()
+        page_markers_user.modified = datetime.now()
         page_markers_user.save()
     else:
         marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
@@ -733,13 +733,13 @@ def saveComment(request):
     if not comment_data['id'].startswith('c'):
         comment = PagesGroupComment.objects.get(pk=comment_data['id'])
         comment.content = comment_data['content']
-        comment.modified = datetime.datetime.now()
+        comment.modified = datetime.now()
         comment.save()
     else:
         comment = PagesGroupComment()
         comment.is_new = True
         comment.content = comment_data['content']
-        comment.created = datetime.datetime.now()
+        comment.created = datetime.now()
         comment.user_id = request.user.id
         comment.pages_group_id = request.POST['group_id']
         comment.copy_no = request.POST['copy_no']
@@ -759,6 +759,7 @@ def update_page_group_markers(request):
         pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_pk'])
         scan_markers, created = PageMarkers.objects.get_or_create(copie_no='CORR-BOX',
                                                                   pages_group=pages_group,
+                                                                  page_no=pages_group.page_from,
                                                                   exam=exam)
         markers = json.loads(request.POST['markers'])
         if markers["markers"]:

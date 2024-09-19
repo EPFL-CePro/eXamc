@@ -224,10 +224,12 @@ def import_exam_scans(self, zip_file_path, exam_pk):
             scans_count = len(archive.infolist())
         print(scans_count)
 
-        process_count = scans_count+4
+        process_count = scans_count+6
         process_number = 1
         progress_recorder.set_progress(0, process_count, description='')
         time.sleep(2)
+
+        # remove
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
             process_count) + ' - Extracting zip files...')
 
@@ -293,7 +295,7 @@ def TASK_TESTING(self, a, b):
 
 
 @shared_task(bind=True)
-def generate_marked_files_zip(self,exam_pk, export_type):
+def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
     try:
         exam = Exam.objects.get(pk=exam_pk)
         scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
@@ -326,7 +328,7 @@ def generate_marked_files_zip(self,exam_pk, export_type):
                     shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
         if int(export_type) > 1:
-            generate_marked_pdfs(export_tmp_dir, export_type, progress_recorder)
+            generate_marked_pdfs(exam,export_tmp_dir, with_comments, progress_recorder)
 
             #remove subfolders with img
             for root, dirs, files in os.walk(export_tmp_dir):

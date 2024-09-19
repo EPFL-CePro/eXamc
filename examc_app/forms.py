@@ -1,3 +1,5 @@
+from email.policy import default
+
 from django import forms
 import os
 
@@ -57,8 +59,14 @@ ReviewersFormSet = modelformset_factory(ExamUser, form=ManageReviewersForm, extr
 
 class ExportMarkedFilesForm(forms.Form):
     export_type = forms.ChoiceField(widget=forms.RadioSelect,
-                                    choices=[(1, 'JPGs (one per page)'), (2, 'PDFs (one per student copy)')],
+                                    choices=[(2, 'PDFs (one per student copy)'),(1, 'JPGs (one per page)')],
+                                    initial=2,
                                     required=True)
+
+    with_comments = forms.ChoiceField(widget=forms.RadioSelect,
+                                      choices=[(1,'Yes'),(2,'No')],
+                                      initial=1,
+                                      required=True)
 
     def __init__(self, *args, **kwargs):
         exam = kwargs.pop('exam', None)

@@ -6,6 +6,13 @@
 {% block content %}
 <h4><i class="fas fa-cloud-upload-alt fa-l" style="margin-right:5px;"></i>Upload scans</h4>
 <div id="uploadScansDiv" style="padding:10px;width:100%;color:#000;">
+    <div class="alert alert-danger" role="alert" style="padding:20px;">
+        <h4 style="color:darkred;margin-bottom:20px;">
+            <i class="fa-solid fa-skull-crossbones fa-2xl" style="color:darkred"></i>Warning
+        </h4>
+        Importing scans will automatically deleting old scans. Any annotations and comments relating to them will also be deleted! <br/><br/>
+        If you want to keep a record of these data, you can export them (before importing them again!) via the ‘Review -> Export marked scans’ menu.
+    </div>
     <form id="uploadScansForm" method="post" action="{% url 'upload_scans' pk=exam.pk %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-group">

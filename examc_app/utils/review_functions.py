@@ -8,6 +8,7 @@ import cv2
 from PIL import Image, ImageStat
 from django.conf import settings
 from fpdf import FPDF
+from ldap3.extend import paged_search_accumulator
 from shapely import Polygon
 
 from examc_app.models import *
@@ -102,7 +103,15 @@ def import_scans(exam, path,progress_recorder,process_count,process_number):
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Deleting old scans...')
     process_number += 1
-    delete_old_scans(exam,progress_recorder)
+    delete_old_scans(exam)
+    progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+        process_count) + ' - Deleting old annotations...')
+    process_number += 1
+    PageMarkers.objects.filter(exam=exam).delete()
+    progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+        process_count) + ' - Deleting old comments...')
+    process_number += 1
+    PagesGroupComment.objects.filter(pages_group__exam=exam).delete()
     count = 0
     for tmp_scan in os.listdir(path):
         count += 1
@@ -116,7 +125,7 @@ def import_scans(exam, path,progress_recorder,process_count,process_number):
     return result
 
 
-def delete_old_scans(exam,progress_recorder):
+def delete_old_scans(exam):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
     for filename in os.listdir(scans_dir):
         file_path = os.path.join(scans_dir, filename)
@@ -128,6 +137,16 @@ def delete_old_scans(exam,progress_recorder):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
+    marked_scans_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    for filename in os.listdir(marked_scans_dir):
+        file_path = os.path.join(scans_dir, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 def get_scans_path_for_group(pagesGroup):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
@@ -167,12 +186,11 @@ def get_scans_pathes_by_group(pagesGroup):
             if page_no_int >= pagesGroup.page_from and page_no_int <= pagesGroup.page_to:
                 marked = False
                 comment = None
-                #marked_by = ''
+                if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
+                    comment = True
                 pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
                                                       page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
                 if pageMarkers:
-                    if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=pageMarkers.copie_no).exists():
-                        comment = True
                     if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
                         marked = True
 
@@ -239,7 +257,7 @@ def get_scans_pathes_by_group(pagesGroup):
 #     return [task_id,export_tmp_dir + ".zip"]
 
 
-def generate_marked_pdfs(files_path, export_type,progress_recorder):
+def generate_marked_pdfs(exam,files_path, with_comments,progress_recorder):
     scans_count = len(os.listdir(files_path))
 
     process_count = scans_count
@@ -271,11 +289,59 @@ def generate_marked_pdfs(files_path, export_type,progress_recorder):
 
             pdf.image(img_path,w=pdf.epw)
 
+
+        if with_comments == '1':
+
+            pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam,copy_no=subdir).order_by('copy_no','pages_group__page_from','parent_id')
+            if pages_comments:
+                pdf.add_page()
+
+            pdf.set_font("Helvetica", "", 8)
+            generate_comments_pdf_pages(exam,None,subdir,pdf)
+
         pdf.output(files_path + "/copy_" + subdir + ".pdf", "F")
 
         process_number += 1
 
     return ' Process finished. '
+
+def generate_comments_pdf_pages(exam,parent,copy_no,pdf,margin_left=10):
+    pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam, copy_no=copy_no, parent=parent).order_by('pages_group_id')
+    last_pages_group_id = None
+    for comment in pages_comments.all():
+        pdf.ln()
+        pdf.ln()
+        pdf.set_margins(margin_left, 10, 10)
+
+        if not parent and (last_pages_group_id is None or last_pages_group_id != comment.pages_group_id):
+            pdf.multi_cell(new_x="LEFT", w=190, txt='', fill=True)
+            pdf.set_font(style="B")
+            pdf.set_text_color(255,255,255)
+            pdf.multi_cell(new_x="LEFT", w=190, txt=comment.pages_group.group_name,fill=True)
+            pdf.multi_cell(new_x="LEFT", w=190, txt='', fill=True)
+            pdf.ln()
+            pdf.set_text_color(0,0,0)
+
+
+        date_str = comment.created.strftime('%Y-%m-%d %H:%M:%S')
+        if comment.modified:
+            date_str = comment.modified.strftime('%Y-%m-%d %H:%M:%S')
+        text = comment.user.first_name + ' ' + comment.user.last_name
+        text += '( ' + date_str + ' )'
+        pdf.set_font(style="I")
+        pdf.set_fill_color(215, 215, 215)
+        pdf.multi_cell(new_x="LEFT", w=100, txt='', fill=True)
+        pdf.multi_cell(new_x="LEFT", w=100, txt=text, fill=True)
+        pdf.multi_cell(new_x="LEFT", w=100, txt='', fill=True)
+        pdf.set_fill_color(245, 245, 245)
+        pdf.set_font(style="")
+        pdf.multi_cell(new_x="LEFT", w=100, txt='', fill=True)
+        pdf.multi_cell(new_x="LEFT", w=100, txt=comment.content, fill=True)
+        pdf.multi_cell(new_x="LEFT", w=100, txt='', fill=True)
+        if comment.children.all():
+            generate_comments_pdf_pages(exam,comment,copy_no,pdf,margin_left+10)
+
+        last_pages_group_id = comment.pages_group_id
 
 def is_grayscale(path):
     im = Image.open(path).convert("RGB")
