@@ -403,12 +403,17 @@ function saveComment(data){
     $.ajax({
         url : "{% url 'save_comment' %}",
         type : "POST",
+        async:false,
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
             'comment' : JSON.stringify(data),
             'group_id' : {{ pages_group.id }},
             'copy_no' : copy_no
-        }
+        },
+        success: (comment_id) => {
+            comments.slice(-1).id = comment_id;
+            data.id = comment_id;
+        },
     });
 
     return data;
@@ -426,15 +431,6 @@ function initComments(commentsArray){
         enableEditing: true,
         enableDeleting: true,
         scrollContainer: $(window),
-        {#searchUsers: function(term, success, error) {#}
-        {#    setTimeout(function() {#}
-        {#        success(usersArray.filter(function(user) {#}
-        {#            var containsSearchTerm = user.fullname.toLowerCase().indexOf(term.toLowerCase()) != -1;#}
-        {#            var isNotSelf = user.id !== {{ user.id }};#}
-        {#            return containsSearchTerm && isNotSelf;#}
-        {#        }));#}
-        {#    }, 500);#}
-        {#},#}
         getComments: function(success, error) {
             setTimeout(function() {
                 success(commentsArray);
@@ -443,6 +439,7 @@ function initComments(commentsArray){
         postComment: function(data, success, error) {
             setTimeout(function() {
                 success(saveComment(data));
+                
             }, 500);
         },
         putComment: function(data, success, error) {
@@ -455,7 +452,7 @@ function initComments(commentsArray){
 
 
 $(window).on("load",function(){
-    initCopyPagesTableOnClickRowEvent(false);
+    initCopyPagesTableOnClickRowEvent(true);
     {% if currpage > 0 %}
     createPagination({{ scans_pathes_list|length }}, {{ currpage }});
     {% else %}

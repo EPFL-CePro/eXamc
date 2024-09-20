@@ -297,6 +297,7 @@ def generate_marked_pdfs(exam,files_path, with_comments,progress_recorder):
                 pdf.add_page()
 
             pdf.set_font("Helvetica", "", 8)
+            pdf.set_auto_page_break(1)
             generate_comments_pdf_pages(exam,None,subdir,pdf)
 
         pdf.output(files_path + "/copy_" + subdir + ".pdf", "F")
@@ -413,14 +414,24 @@ def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
 
     other_coords = []
     for marker in other_markers_data:
-        left = marker['left']
-        top = marker['top']
-        width = marker['width']
-        height = marker['height']
-        a = (left, top)
-        b = (left + width, top)
-        c = (left + width, top + height)
-        d = (left, top + height)
+        if marker['typeName'] == 'ArrowMarker':
+            left = marker['x1']
+            top = marker['y1']
+            width = marker['x2']-left
+            height = marker['y2']-top
+            a = (left, top)
+            b = (left + width, top)
+            c = (left + width, top + height)
+            d = (left, top + height)
+        else:
+            left = marker['left']
+            top = marker['top']
+            width = marker['width']
+            height = marker['height']
+            a = (left, top)
+            b = (left + width, top)
+            c = (left + width, top + height)
+            d = (left, top + height)
         other_coords.append([a, b, c, d])
 
     corr_box_polygon = Polygon(corr_box_coords)

@@ -749,7 +749,7 @@ def saveComment(request):
 
     print(comment)
 
-    return HttpResponse("ok")
+    return HttpResponse(comment.id)
 
 
 def update_page_group_markers(request):
