@@ -7,7 +7,11 @@ import os
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examc.settings')
 
-app = Celery('examc') # backend='redis://localhost:6379', broker='redis://localhost:6379')
+
+
+
+app = Celery('examc') #, backend='redis://localhost:6379', broker='redis://localhost:6379')
+
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
