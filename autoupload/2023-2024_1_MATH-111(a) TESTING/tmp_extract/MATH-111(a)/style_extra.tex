@@ -1,0 +1,1316 @@
+%%Package for tabular in openquestion
+\usepackage{array}
+
+%% redefine header code by adding QRCode
+\renewcommand\AMCIDBoxesABC{\hbox{\vbox{\noindent\AMCIDBoxesA\\\noindent\AMCIDBoxesB\AMCIDBoxesC}\vspace{-.5cm}\qrcode[height=15mm]{CePROExamsQRC,\ID,\thepage}}}%
+
+%% Default values for open questions:
+\AMCopenOpts{lines=10,lineheight=2ex,framerulecol=black,dots=false}
+
+\newcommand{\letter}{A}
+
+\makeatletter
+\renewcommand{\theenumi}{\alph{enumi}}
+\renewcommand{\labelenumi}{(\theenumi)}
+\makeatother
+
+%% OpenBox commands ============================
+\newcommand{\OpenBox}[1]{
+\bigskip\par\noindent
+  \fbox{
+    \centering
+    \begin{minipage}{.97\textwidth}
+~
+    \vspace{#1}
+~
+    \end{minipage}
+  }\par
+}
+
+\newcommand{\FullPageOpenBox}{
+  \clearpage
+  \OpenBox{25cm}%
+%  \vspace{-5mm}
+}
+\newcommand{\FullPageOpenBoxMessage}{
+  \clearpage
+  \OpenBox{24.5cm}%
+%  \vspace{-5mm}
+}
+
+
+\newcommand{\FullPageOpenBoxForever}{
+	\loop \ifnum \thepage < \totalPages  \FullPageOpenBox \repeat
+}
+
+%% OpenGrid commands ============================
+\newcommand{\OpenGrid}[1]{
+\bigskip\par\noindent
+\begin{tikzpicture}
+\draw[step=.5cm,lightgray]
+(0cm,0cm) grid (16.5cm,#1);
+\end{tikzpicture}\par
+}
+
+\newcommand{\FullPageOpenGrid}{
+  \clearpage
+  \OpenGrid{25cm}%
+ %\vspace{-5mm}
+}
+\newcommand{\FullPageOpenGridMessage}{
+  \clearpage
+  \OpenGrid{24.5cm}%
+ %\vspace{-5mm}
+}
+
+\newcommand{\FullPageOpenGridForever}{
+	\loop \ifnum \thepage < \totalPages  \FullPageOpenGrid \repeat
+}
+
+%% Extra sheets message
+\newcommand{\ExtraSheet}{\mbox{}\hfil\smash{\fbox{\scriptsize\quad Si vous avez besoin de place supplémentaire, demandez une feuille quadrillée à l'un des surveillants\quad}}}%
+\newcommand{\SuiteQuestion}{\nopagebreak {\mbox{}\hfil\fbox{\scriptsize\qquad En cas de besoin de place supplémentaire, utiliser les pages blanches à la fin du cahier\qquad}\vspace{-1cm}}}%}%\begin{tikzpicture}\path(0,0) node \fbox{\scriptsize\quad Si vous avez besoin de place suppl\'ementaire, demandez une feuille quadrill\'ee \`a un des surveillants\quad};\end{tikzpicture}}
+%% 5 boxes correctors (0,1/4,1/2,3/4 and 1 * openquestionmax) ====================
+
+\newcommand{\openquestionmax}{1}
+
+\newcommand{\correctorPointsPerGroup}[1]{
+\renewcommand{\openquestionmax}{#1}
+}
+
+\newcommand{\correctorChoices}{\correctchoice[0]{}\scoring{b=0}\correctchoice[Y]{}\scoring{b=\openquestionmax/4}\correctchoice[X]{}\scoring{b=\openquestionmax/2}\correctchoice[W]{}\scoring{b=\openquestionmax*3/4}\correctchoice[V]{\qquad}\scoring{b=\openquestionmax}}
+
+
+\newcommand{\correctorOneFive}[3][0]{
+\par
+\noindent
+\begin{questionmultx}{#2}\bareme{MAX=\openquestionmax}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{\correctorChoices\makebox[218.6pt][c]{}}
+\end{questionmultx}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorTwoFive}[3][0]{
+\par
+\noindent\begin{questionmultx}{#2}\bareme{MAX=\openquestionmax*2}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{\correctorChoices\correctorChoices\makebox[109.8pt][c]{}}
+\end{questionmultx}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorThreeFive}[3][0]{
+\par
+\noindent
+\begin{questionmultx}{#2}\bareme{MAX=\openquestionmax*3}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{\correctorChoices\correctorChoices\correctorChoices\makebox[1pt][c]{}}
+\end{questionmultx}
+\vspace{-55pt}~
+\par
+}
+
+%% 3 boxes correctors (0,1/2,and 1 * openquestionmax) ====================
+
+\newcommand{\correctorChoicesSimple}{\correctchoice[0]{}\scoring{b=0}\correctchoice[Y]{}\scoring{b=\openquestionmax/2}\correctchoice[X]{}{\qquad}\scoring{b=\openquestionmax}}
+
+\newcommand{\correctorOneThree}[3][0]{
+\par
+\noindent
+\begin{questionmultx}{#2}\bareme{MAX=\openquestionmax}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{\correctorChoicesSimple\makebox[340pt][c]{}}
+\end{questionmultx}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorTwoThree}[3][0]{
+\par
+\noindent
+\begin{questionmultx}{#2}\bareme{MAX=\openquestionmax*2}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{\correctorChoicesSimple\correctorChoicesSimple\makebox[260pt][c]{}}
+\end{questionmultx}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorThreeThree}[3][0]{
+\par
+\noindent
+\begin{questionmultx}{#2}\bareme{MAX=\openquestionmax*3}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{\correctorChoicesSimple\correctorChoicesSimple\correctorChoicesSimple\makebox[180pt][c]{}}
+\end{questionmultx}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorFourThree}[3][0]{
+\par
+\noindent
+\begin{questionmultx}{#2}\bareme{MAX=\openquestionmax*4}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{\correctorChoicesSimple\correctorChoicesSimple\correctorChoicesSimple\correctorChoicesSimple\makebox[100pt][c]{}}
+\end{questionmultx}
+\vspace{-55pt}~
+\par
+}
+
+
+% Standard points correctors boxes ===================================
+\newcommand{\correctorChoicesOne}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}
+\correctchoice[Y]{\tiny{1}\qquad}\scoring{1}}
+\newcommand{\correctorOne}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=1}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesOne}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesTwo}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}
+\correctchoice[X]{\tiny{2}\qquad}\scoring{2}}
+\newcommand{\correctorTwo}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=2}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesTwo}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesThree}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}
+\wrongchoice[X]{\tiny{2}}\scoring{2}
+\correctchoice[W]{\tiny{3}\qquad}\scoring{3}}
+\newcommand{\correctorThree}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=3}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesThree}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesFour}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}
+\wrongchoice[X]{\tiny{2}}\scoring{2}
+\wrongchoice[W]{\tiny{3}}\scoring{3}
+\correctchoice[V]{\tiny{4}\qquad}\scoring{4}}
+\newcommand{\correctorFour}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=4}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesFour}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesFive}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}
+\wrongchoice[X]{\tiny{2}}\scoring{2}
+\wrongchoice[W]{\tiny{3}}\scoring{3}
+\wrongchoice[V]{\tiny{4}}\scoring{4}
+\correctchoice[U]{\tiny{5}\qquad}\scoring{5}}
+\newcommand{\correctorFive}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=5}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesFive}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesSix}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}
+\wrongchoice[X]{\tiny{2}}\scoring{2}
+\wrongchoice[W]{\tiny{3}}\scoring{3}
+\wrongchoice[V]{\tiny{4}}\scoring{4}
+\wrongchoice[U]{\tiny{5}}\scoring{5}
+\correctchoice[T]{\tiny{6}\qquad}\scoring{6}}
+\newcommand{\correctorSix}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=6}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesSix}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesSeven}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}
+\wrongchoice[X]{\tiny{2}}\scoring{2}
+\wrongchoice[W]{\tiny{3}}\scoring{3}
+\wrongchoice[V]{\tiny{4}}\scoring{4}
+\wrongchoice[U]{\tiny{5}}\scoring{5}
+\wrongchoice[T]{\tiny{6}}\scoring{6}
+\correctchoice[S]{\tiny{7}\qquad}\scoring{7}}
+\newcommand{\correctorSeven}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=7}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesSeven}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesEight}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}\hspace{-0.5ex}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}\hspace{-0.5ex}
+\wrongchoice[X]{\tiny{2}}\scoring{2}\hspace{-0.5ex}
+\wrongchoice[W]{\tiny{3}}\scoring{3}\hspace{-0.5ex}
+\wrongchoice[V]{\tiny{4}}\scoring{4}\hspace{-0.5ex}
+\wrongchoice[U]{\tiny{5}}\scoring{5}\hspace{-0.5ex}
+\wrongchoice[T]{\tiny{6}}\scoring{6}\hspace{-0.5ex}
+\wrongchoice[S]{\tiny{7}}\scoring{7}\hspace{-0.5ex}
+\correctchoice[R]{\tiny{8}\qquad}\scoring{8}}
+\newcommand{\correctorEight}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=8}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+%{\makebox[100ex][l]{\correctorChoicesEight}}
+{\makebox[0.9\linewidth][l]{\correctorChoicesEight}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesNine}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}\hspace{-0.5ex}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}\hspace{-0.5ex}
+\wrongchoice[X]{\tiny{2}}\scoring{2}\hspace{-0.5ex}
+\wrongchoice[W]{\tiny{3}}\scoring{3}\hspace{-0.5ex}
+\wrongchoice[V]{\tiny{4}}\scoring{4}\hspace{-0.5ex}
+\wrongchoice[U]{\tiny{5}}\scoring{5}\hspace{-0.5ex}
+\wrongchoice[T]{\tiny{6}}\scoring{6}\hspace{-0.5ex}
+\wrongchoice[S]{\tiny{7}}\scoring{7}\hspace{-0.5ex}
+\wrongchoice[R]{\tiny{8}}\scoring{8}\hspace{-0.5ex}
+\correctchoice[Q]{\tiny{9}\qquad}\scoring{9}}
+\newcommand{\correctorNine}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=9}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesNine}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesTen}{
+\wrongchoice[0]{\tiny{0}}\scoring{0}\hspace{-0.5ex}
+\wrongchoice[Y]{\tiny{1}}\scoring{1}\hspace{-0.5ex}
+\wrongchoice[X]{\tiny{2}}\scoring{2}\hspace{-0.5ex}
+\wrongchoice[W]{\tiny{3}}\scoring{3}\hspace{-0.5ex}
+\wrongchoice[V]{\tiny{4}}\scoring{4}\hspace{-0.5ex}
+\wrongchoice[U]{\tiny{5}}\scoring{5}\hspace{-0.5ex}
+\wrongchoice[T]{\tiny{6}}\scoring{6}\hspace{-0.5ex}
+\wrongchoice[S]{\tiny{7}}\scoring{7}\hspace{-0.5ex}
+\wrongchoice[R]{\tiny{8}}\scoring{8}\hspace{-0.5ex}
+\wrongchoice[Q]{\tiny{9}}\scoring{9}\hspace{-0.5ex}
+\correctchoice[P]{\tiny{10}\qquad}\scoring{10}}
+\newcommand{\correctorTen}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=10}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesTen}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesEleven}{
+\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\hspace{.2cm}\begin{tabular}{llllll}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+\wrongchoice[X]{\tiny{2}}\scoring{2} &
+\wrongchoice[W]{\tiny{3}}\scoring{3} &
+\wrongchoice[V]{\tiny{4}}\scoring{4} &
+\wrongchoice[U]{\tiny{5}}\scoring{5}
+\\
+\wrongchoice[T]{\tiny{6}}\scoring{6} &
+\wrongchoice[S]{\tiny{7}}\scoring{7} &
+\wrongchoice[R]{\tiny{8}}\scoring{8} &
+\wrongchoice[Q]{\tiny{9}}\scoring{9} &
+\wrongchoice[P]{\tiny{10}}\scoring{10} &
+\correctchoice[O]{\tiny{11}}\scoring{11}
+\\
+\end{tabular}}}
+\newcommand{\correctorEleven}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=11}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesEleven\makebox[0pt][c]{}}
+\hspace*{5ex}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesTwelve}{
+\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\hspace{.2cm}\begin{tabular}{lllllll}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+\wrongchoice[X]{\tiny{2}}\scoring{2} &
+\wrongchoice[W]{\tiny{3}}\scoring{3} &
+\wrongchoice[V]{\tiny{4}}\scoring{4} &
+\wrongchoice[U]{\tiny{5}}\scoring{5} &
+\wrongchoice[T]{\tiny{6}}\scoring{6} 
+\\
+&
+\wrongchoice[S]{\tiny{7}}\scoring{7} &
+\wrongchoice[R]{\tiny{8}}\scoring{8} &
+\wrongchoice[Q]{\tiny{9}}\scoring{9} &
+\wrongchoice[P]{\tiny{10}}\scoring{10} &
+\wrongchoice[O]{\tiny{11}}\scoring{11} &
+\correctchoice[N]{\tiny{12}\qquad}\scoring{12}
+\\
+\end{tabular}}}
+\newcommand{\correctorTwelve}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=12}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesTwelve\makebox[0pt][c]{}}
+\hspace*{5ex}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesThirteen}{
+\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\hspace{.2cm}\begin{tabular}{lllllll}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+\wrongchoice[X]{\tiny{2}}\scoring{2} &
+\wrongchoice[W]{\tiny{3}}\scoring{3} &
+\wrongchoice[V]{\tiny{4}}\scoring{4} &
+\wrongchoice[U]{\tiny{5}}\scoring{5} &
+\wrongchoice[T]{\tiny{6}}\scoring{6} 
+\\
+\wrongchoice[S]{\tiny{7}}\scoring{7} &
+\wrongchoice[R]{\tiny{8}}\scoring{8} &
+\wrongchoice[Q]{\tiny{9}}\scoring{9} &
+\wrongchoice[P]{\tiny{10}}\scoring{10} &
+\wrongchoice[O]{\tiny{11}}\scoring{11} &
+\wrongchoice[N]{\tiny{12}}\scoring{12} &
+\correctchoice[M]{\tiny{13}}\scoring{13}
+\\
+\end{tabular}}}
+\newcommand{\correctorThirteen}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=13}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesThirteen\makebox[0pt][c]{}}
+\hspace*{5ex}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesFourteen}{
+%\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\hspace{.2cm}\begin{tabular}{llllllll}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+\wrongchoice[X]{\tiny{2}}\scoring{2} &
+\wrongchoice[W]{\tiny{3}}\scoring{3} &
+\wrongchoice[V]{\tiny{4}}\scoring{4} &
+\wrongchoice[U]{\tiny{5}}\scoring{5} &
+\wrongchoice[T]{\tiny{6}}\scoring{6} &
+\wrongchoice[S]{\tiny{7}}\scoring{7} 
+\\
+&
+\wrongchoice[R]{\tiny{8}}\scoring{8} &
+\wrongchoice[Q]{\tiny{9}}\scoring{9} &
+\wrongchoice[P]{\tiny{10}}\scoring{10} &
+\wrongchoice[O]{\tiny{11}}\scoring{11} &
+\wrongchoice[N]{\tiny{12}}\scoring{12} &
+\wrongchoice[M]{\tiny{13}}\scoring{13} &
+\correctchoice[L]{\tiny{14}}\scoring{14}
+\\
+\end{tabular}}}
+\newcommand{\correctorFourteen}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=14}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesFourteen\makebox[0pt][c]{}}
+\hspace*{5ex}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesFifteen}{
+%\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\hspace{.2cm}\begin{tabular}{llllllll}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+\wrongchoice[X]{\tiny{2}}\scoring{2} &
+\wrongchoice[W]{\tiny{3}}\scoring{3} &
+\wrongchoice[V]{\tiny{4}}\scoring{4} &
+\wrongchoice[U]{\tiny{5}}\scoring{5} &
+\wrongchoice[T]{\tiny{6}}\scoring{6} &
+\wrongchoice[S]{\tiny{7}}\scoring{7} 
+\\
+\wrongchoice[R]{\tiny{8}}\scoring{8} &
+\wrongchoice[Q]{\tiny{9}}\scoring{9} &
+\wrongchoice[P]{\tiny{10}}\scoring{10} &
+\wrongchoice[O]{\tiny{11}}\scoring{11} &
+\wrongchoice[N]{\tiny{12}}\scoring{12} &
+\wrongchoice[M]{\tiny{13}}\scoring{13} &
+\wrongchoice[L]{\tiny{14}}\scoring{14} &
+\correctchoice[K]{\tiny{15}}\scoring{15}
+\\
+\end{tabular}}}
+\newcommand{\correctorFifteen}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=15}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesFifteen\makebox[0pt][c]{}}
+\hspace*{5ex}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+
+\newcommand{\correctorChoicesSixteen}{
+%\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\hspace{.2cm}\begin{tabular}{lllllllll}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+\wrongchoice[X]{\tiny{2}}\scoring{2} &
+\wrongchoice[W]{\tiny{3}}\scoring{3} &
+\wrongchoice[V]{\tiny{4}}\scoring{4} &
+\wrongchoice[U]{\tiny{5}}\scoring{5} &
+\wrongchoice[T]{\tiny{6}}\scoring{6} &
+\wrongchoice[S]{\tiny{7}}\scoring{7} &
+\wrongchoice[R]{\tiny{8}}\scoring{8} 
+\\
+\wrongchoice[Q]{\tiny{9}}\scoring{9} &
+\wrongchoice[P]{\tiny{10}}\scoring{10} &
+\wrongchoice[O]{\tiny{11}}\scoring{11} &
+\wrongchoice[N]{\tiny{12}}\scoring{12} &
+\wrongchoice[M]{\tiny{13}}\scoring{13} &
+\wrongchoice[L]{\tiny{14}}\scoring{14} &
+\wrongchoice[K]{\tiny{15}}\scoring{15} &
+\correctchoice[J]{\tiny{16}}\scoring{16} 
+\end{tabular}}}
+\newcommand{\correctorSixteen}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=16}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesSixteen\makebox[0pt][c]{}}
+\hspace*{5ex}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesNineteen}{
+	%\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+	\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+	{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+		\hspace{.2cm}\begin{tabular}{lllllllllll}
+			\wrongchoice[0]{\tiny{0}}\scoring{0} &
+			\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+			\wrongchoice[X]{\tiny{2}}\scoring{2} &
+			\wrongchoice[W]{\tiny{3}}\scoring{3} &
+			\wrongchoice[V]{\tiny{4}}\scoring{4} &
+			\wrongchoice[U]{\tiny{5}}\scoring{5} &
+			\wrongchoice[T]{\tiny{6}}\scoring{6} &
+			\wrongchoice[S]{\tiny{7}}\scoring{7} &
+			\wrongchoice[R]{\tiny{8}}\scoring{8} &
+			\wrongchoice[Q]{\tiny{9}}\scoring{9} 
+			\\
+			\wrongchoice[P]{\tiny{10}}\scoring{10}& 
+			\wrongchoice[O]{\tiny{11}}\scoring{11} &
+			\wrongchoice[N]{\tiny{12}}\scoring{12} &
+			\wrongchoice[M]{\tiny{13}}\scoring{13} &
+			\wrongchoice[L]{\tiny{14}}\scoring{14} &
+			\wrongchoice[K]{\tiny{15}}\scoring{15}&
+			\wrongchoice[I]{\tiny{16}}\scoring{16} &
+			\wrongchoice[H]{\tiny{17}}\scoring{17} &
+			\wrongchoice[G]{\tiny{18}}\scoring{18} &
+			\correctchoice[F]{\tiny{19}}\scoring{19} 
+			\\
+\end{tabular}}}
+\newcommand{\correctorNineteen}[3][0]{%
+	\par
+	\noindent
+	\begin{question}{#2}\bareme{MAX=19}
+		#3~\\
+		\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+			\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesNineteen\makebox[0pt][c]{}}
+			\hspace*{5ex}}
+	\end{question}
+	\vspace{-55pt}~
+	\par
+}
+
+\newcommand{\correctorChoicesTwenty}{
+	%\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+	\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+	{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+		\hspace{.2cm}\begin{tabular}{lllllllllll}
+			\wrongchoice[0]{\tiny{0}}\scoring{0} &
+			\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+			\wrongchoice[X]{\tiny{2}}\scoring{2} &
+			\wrongchoice[W]{\tiny{3}}\scoring{3} &
+			\wrongchoice[V]{\tiny{4}}\scoring{4} &
+			\wrongchoice[U]{\tiny{5}}\scoring{5} &
+			\wrongchoice[T]{\tiny{6}}\scoring{6} &
+			\wrongchoice[S]{\tiny{7}}\scoring{7} &
+			\wrongchoice[R]{\tiny{8}}\scoring{8} &
+			\wrongchoice[Q]{\tiny{9}}\scoring{9} &
+			\wrongchoice[P]{\tiny{10}}\scoring{10} 
+			\\ &
+			\wrongchoice[O]{\tiny{11}}\scoring{11} &
+			\wrongchoice[N]{\tiny{12}}\scoring{12} &
+			\wrongchoice[M]{\tiny{13}}\scoring{13} &
+			\wrongchoice[L]{\tiny{14}}\scoring{14} &
+			\wrongchoice[K]{\tiny{15}}\scoring{15} &
+			\wrongchoice[J]{\tiny{16}}\scoring{16} &
+			\wrongchoice[I]{\tiny{17}}\scoring{17} &
+			\wrongchoice[H]{\tiny{18}}\scoring{18} &
+			\wrongchoice[G]{\tiny{19}}\scoring{19} &
+			\wrongchoice[F]{\tiny{20}}\scoring{20} 
+			\\
+\end{tabular}}}
+\newcommand{\correctorTwenty}[3][0]{%
+	\par
+	\noindent
+	\begin{question}{#2}\bareme{MAX=20}
+		#3~\\
+		\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+			\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesTwenty\makebox[0pt][c]{}}
+			\hspace*{5ex}}
+	\end{question}
+	\vspace{-55pt}~
+	\par
+}
+
+\newcommand{\correctorChoicesTwentyFive}{
+	%\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+	\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+	{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+		\hspace{.2cm}\begin{tabular}{llllllllll}
+			\wrongchoice[0]{\tiny{0}}\scoring{0} &
+			\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+			\wrongchoice[X]{\tiny{2}}\scoring{2} &
+			\wrongchoice[W]{\tiny{3}}\scoring{3} &
+			\wrongchoice[V]{\tiny{4}}\scoring{4} &
+			\wrongchoice[U]{\tiny{5}}\scoring{5} &
+			\wrongchoice[T]{\tiny{6}}\scoring{6} &
+			\wrongchoice[S]{\tiny{7}}\scoring{7} &
+			\wrongchoice[R]{\tiny{8}}\scoring{8} &
+			\wrongchoice[Q]{\tiny{9}}\scoring{9} 
+			\\ &
+			\wrongchoice[P]{\tiny{10}}\scoring{10} &
+			\wrongchoice[O]{\tiny{11}}\scoring{11} &
+			\wrongchoice[N]{\tiny{12}}\scoring{12} &
+			\wrongchoice[M]{\tiny{13}}\scoring{13} &
+			\wrongchoice[L]{\tiny{14}}\scoring{14} &
+			\wrongchoice[K]{\tiny{15}}\scoring{15} &
+			\wrongchoice[J]{\tiny{16}}\scoring{16} &
+			\wrongchoice[I]{\tiny{17}}\scoring{17} &
+			\wrongchoice[H]{\tiny{18}}\scoring{18} &
+			\wrongchoice[G]{\tiny{19}}\scoring{19} 
+			\\ &
+			\wrongchoice[F]{\tiny{20}}\scoring{20} &
+			\wrongchoice[E]{\tiny{21}}\scoring{21} &
+			\wrongchoice[D]{\tiny{22}}\scoring{22} &
+			\wrongchoice[C]{\tiny{23}}\scoring{23} &
+			\wrongchoice[B]{\tiny{24}}\scoring{24} &
+			\wrongchoice[A]{\tiny{25}}\scoring{25} 
+			\\
+\end{tabular}}}
+\newcommand{\correctorTwentyFive}[3][0]{%
+	\par
+	\noindent
+	\begin{question}{#2}\bareme{MAX=25}
+		#3~\\
+		\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+			\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesTwentyFive\makebox[0pt][c]{}}
+			\hspace*{5ex}}
+	\end{question}
+	\vspace{-55pt}~
+	\par
+}
+
+\newcommand{\correctorChoicesThirty}{
+	%\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+	\setlength{\tabcolsep}{0.08em} % for the horizontal padding
+	{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+		\hspace{.2cm}\begin{tabular}{lllllllllll}
+			\wrongchoice[0]{\tiny{0}}\scoring{0} &
+			\wrongchoice[Y]{\tiny{1}}\scoring{1} &
+			\wrongchoice[X]{\tiny{2}}\scoring{2} &
+			\wrongchoice[W]{\tiny{3}}\scoring{3} &
+			\wrongchoice[V]{\tiny{4}}\scoring{4} &
+			\wrongchoice[U]{\tiny{5}}\scoring{5} &
+			\wrongchoice[T]{\tiny{6}}\scoring{6} &
+			\wrongchoice[S]{\tiny{7}}\scoring{7} &
+			\wrongchoice[R]{\tiny{8}}\scoring{8} &
+			\wrongchoice[Q]{\tiny{9}}\scoring{9} &
+			\wrongchoice[P]{\tiny{10}}\scoring{10} 
+			\\ &
+			\wrongchoice[O]{\tiny{11}}\scoring{11} &
+			\wrongchoice[N]{\tiny{12}}\scoring{12} &
+			\wrongchoice[M]{\tiny{13}}\scoring{13} &
+			\wrongchoice[L]{\tiny{14}}\scoring{14} &
+			\wrongchoice[K]{\tiny{15}}\scoring{15} &
+			\wrongchoice[J]{\tiny{16}}\scoring{16} &
+			\wrongchoice[I]{\tiny{17}}\scoring{17} &
+			\wrongchoice[H]{\tiny{18}}\scoring{18} &
+			\wrongchoice[G]{\tiny{19}}\scoring{19} &
+			\wrongchoice[F]{\tiny{20}}\scoring{20} 
+			\\ &
+			\wrongchoice[E]{\tiny{21}}\scoring{21} &
+			\wrongchoice[D]{\tiny{22}}\scoring{22} &
+			\wrongchoice[C]{\tiny{23}}\scoring{23} &
+			\wrongchoice[B]{\tiny{24}}\scoring{24} &
+			\wrongchoice[A]{\tiny{25}}\scoring{25} &
+			\wrongchoice[AY]{\tiny{26}}\scoring{26} &
+			\wrongchoice[AX]{\tiny{27}}\scoring{27} &
+			\wrongchoice[AW]{\tiny{28}}\scoring{28} &
+			\wrongchoice[AV]{\tiny{29}}\scoring{29} &
+			\correctchoice[AU]{\tiny{30}}\scoring{30} 
+			\\
+\end{tabular}}}
+\newcommand{\correctorThirty}[3][0]{%
+	\par
+	\noindent
+	\begin{question}{#2}\bareme{MAX=30}
+		#3~\\
+		\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}{
+			\parbox{0.9\linewidth}{\linespread{1.25}\selectfont \correctorChoicesThirty\makebox[0pt][c]{}}
+			\hspace*{5ex}}
+	\end{question}
+	\vspace{-55pt}~
+	\par
+}
+
+
+%% half points correctors boxes ===================================
+\newcommand{\correctorChoicesTwoHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\correctchoice[V]{\tiny{2}}\scoring{2} 
+\\
+\end{tabular}}}
+\newcommand{\correctorTwoHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=2}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.83\linewidth][l]{\correctorChoicesTwoHalf}}
+%{\makebox[0.9\linewidth][l]{\correctorChoicesTwoHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesThreeHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\correctchoice[T]{\tiny{3}}\scoring{3}
+\\
+\end{tabular}}}
+\newcommand{\correctorThreeHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=3}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesThreeHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesFourHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\correctchoice[R]{\tiny{4}}\scoring{4}
+\\
+\end{tabular}}}
+\newcommand{\correctorFourHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=4}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.83\linewidth][l]{\correctorChoicesFourHalf}}
+%{\makebox[0.9\linewidth][l]{\correctorChoicesFourHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesFiveHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\correctchoice[P]{\tiny{5}}\scoring{5}
+\\
+\end{tabular}}}
+\newcommand{\correctorFiveHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=5}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesFiveHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesSixHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\correctchoice[N]{\tiny{6}}\scoring{6}
+\\
+\end{tabular}}}
+\newcommand{\correctorSixHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=6}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesSixHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesSevenHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5}
+\\
+&
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\wrongchoice[N]{\tiny{6}}\scoring{6} &
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5} &
+\correctchoice[L]{\tiny{7}}\scoring{7}
+\\
+\end{tabular}}}
+\newcommand{\correctorSevenHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=7}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesSevenHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesEightHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4}
+\\
+&
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\wrongchoice[N]{\tiny{6}}\scoring{6} &
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5} &
+\wrongchoice[L]{\tiny{7}}\scoring{7} &
+\wrongchoice[K]{\tiny{.5}}\scoring{7.5} &
+\correctchoice[J]{\tiny{8}}\scoring{8} 
+\\
+\end{tabular}}}
+\newcommand{\correctorEightHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=8}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesEightHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorChoicesNineHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5}
+\\
+&
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\wrongchoice[N]{\tiny{6}}\scoring{6} &
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5} &
+\wrongchoice[L]{\tiny{7}}\scoring{7} &
+\wrongchoice[K]{\tiny{.5}}\scoring{7.5} &
+\wrongchoice[J]{\tiny{8}}\scoring{8} &
+\wrongchoice[I]{\tiny{.5}}\scoring{8.5} &
+\correctchoice[H]{\tiny{9}}\scoring{9}
+\\
+\end{tabular}}}
+\newcommand{\correctorNineHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=9}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesNineHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+
+\newcommand{\correctorChoicesTenHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} 
+\\
+&
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\wrongchoice[N]{\tiny{6}}\scoring{6} &
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5} &
+\wrongchoice[L]{\tiny{7}}\scoring{7} &
+\wrongchoice[K]{\tiny{.5}}\scoring{7.5} &
+\wrongchoice[J]{\tiny{8}}\scoring{8} &
+\wrongchoice[I]{\tiny{.5}}\scoring{8.5} &
+\wrongchoice[H]{\tiny{9}}\scoring{9} &
+\wrongchoice[G]{\tiny{.5}}\scoring{9.5} &
+\correctchoice[F]{\tiny{10}}\scoring{10}
+\\
+\end{tabular}}}
+\newcommand{\correctorTenHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=10}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.83\linewidth][l]{\correctorChoicesTenHalf}}
+%{\makebox[0.9\linewidth][l]{\correctorChoicesTenHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+
+\newcommand{\correctorChoicesElevenHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5}
+\\
+ &
+\wrongchoice[N]{\tiny{6}}\scoring{6} &
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5} &
+\wrongchoice[L]{\tiny{7}}\scoring{7} &
+\wrongchoice[K]{\tiny{.5}}\scoring{7.5} &
+\wrongchoice[J]{\tiny{8}}\scoring{8} &
+\wrongchoice[I]{\tiny{.5}}\scoring{8.5} &
+\wrongchoice[H]{\tiny{9}}\scoring{9} &
+\wrongchoice[G]{\tiny{.5}}\scoring{9.5} &
+\wrongchoice[F]{\tiny{10}}\scoring{10} &
+\wrongchoice[E]{\tiny{.5}}\scoring{10.5} &
+\correctchoice[D]{\tiny{11}}\scoring{11}
+\\
+\end{tabular}}}
+\newcommand{\correctorElevenHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=11}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesElevenHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+
+\newcommand{\correctorChoicesTwelveHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\wrongchoice[N]{\tiny{6}}\scoring{6}
+\\
+&
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5} &
+\wrongchoice[L]{\tiny{7}}\scoring{7} &
+\wrongchoice[K]{\tiny{.5}}\scoring{7.5} &
+\wrongchoice[J]{\tiny{8}}\scoring{8} &
+\wrongchoice[I]{\tiny{.5}}\scoring{8.5} &
+\wrongchoice[H]{\tiny{9}}\scoring{9} &
+\wrongchoice[G]{\tiny{.5}}\scoring{9.5} &
+\wrongchoice[F]{\tiny{10}}\scoring{10} &
+\wrongchoice[E]{\tiny{.5}}\scoring{10.5} &
+\wrongchoice[D]{\tiny{11}}\scoring{11} &
+\wrongchoice[C]{\tiny{.5}}\scoring{11.5} &
+\correctchoice[B]{\tiny{12}}\scoring{12}
+\\
+\end{tabular}}}
+\newcommand{\correctorTwelveHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=12}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesTwelveHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+
+\newcommand{\correctorChoicesThirteenHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\wrongchoice[N]{\tiny{6}}\scoring{6} &
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5}
+\\ 
+&
+\wrongchoice[L]{\tiny{7}}\scoring{7} &
+\wrongchoice[K]{\tiny{.5}}\scoring{7.5} &
+\wrongchoice[J]{\tiny{8}}\scoring{8} &
+\wrongchoice[I]{\tiny{.5}}\scoring{8.5} &
+\wrongchoice[H]{\tiny{9}}\scoring{9} &
+\wrongchoice[G]{\tiny{.5}}\scoring{9.5} &
+\wrongchoice[F]{\tiny{10}}\scoring{10} &
+\wrongchoice[E]{\tiny{.5}}\scoring{10.5} &
+\wrongchoice[D]{\tiny{11}}\scoring{11} &
+\wrongchoice[C]{\tiny{.5}}\scoring{11.5} &
+\wrongchoice[B]{\tiny{12}}\scoring{12} &
+\wrongchoice[A]{\tiny{.5}}\scoring{12.5} &
+\correctchoice[AY]{\tiny{13}}\scoring{13}
+\\
+\end{tabular}}}
+\newcommand{\correctorThirteenHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=13}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesThirteenHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+
+\newcommand{\correctorChoicesFourteenHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\wrongchoice[N]{\tiny{6}}\scoring{6} &
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5} &
+\wrongchoice[L]{\tiny{7}}\scoring{7}
+\\
+&
+\wrongchoice[K]{\tiny{.5}}\scoring{7.5} &
+\wrongchoice[J]{\tiny{8}}\scoring{8} &
+\wrongchoice[I]{\tiny{.5}}\scoring{8.5} &
+\wrongchoice[H]{\tiny{9}}\scoring{9} &
+\wrongchoice[G]{\tiny{.5}}\scoring{9.5} &
+\wrongchoice[F]{\tiny{10}}\scoring{10} &
+\wrongchoice[E]{\tiny{.5}}\scoring{10.5} &
+\wrongchoice[D]{\tiny{11}}\scoring{11} &
+\wrongchoice[C]{\tiny{.5}}\scoring{11.5} &
+\wrongchoice[B]{\tiny{12}}\scoring{12} &
+\wrongchoice[A]{\tiny{.5}}\scoring{12.5} &
+\wrongchoice[AY]{\tiny{13}}\scoring{13} &
+\wrongchoice[AX]{\tiny{.5}}\scoring{13.5} &
+\correctchoice[AW]{\tiny{14}}\scoring{14}
+\\
+\end{tabular}}}
+\newcommand{\correctorFourteenHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=14}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesFourteenHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+
+\newcommand{\correctorChoicesFifteenHalf}{
+\setlength{\tabcolsep}{0em} % for the horizontal padding
+{\renewcommand{\arraystretch}{1.2}% for the vertical padding
+\newcolumntype{L}{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{2em}}
+\hspace{-0.25cm}\begin{tabular}{LLLLLLLLLLLLLLLL}
+\wrongchoice[0]{\tiny{0}}\scoring{0} &
+\wrongchoice[Y]{\tiny{.5}}\scoring{0.5} &
+\wrongchoice[X]{\tiny{1}}\scoring{1} &
+\wrongchoice[W]{\tiny{.5}}\scoring{1.5} &
+\wrongchoice[V]{\tiny{2}}\scoring{2} &
+\wrongchoice[U]{\tiny{.5}}\scoring{2.5} &
+\wrongchoice[T]{\tiny{3}}\scoring{3} &
+\wrongchoice[S]{\tiny{.5}}\scoring{3.5} &
+\wrongchoice[R]{\tiny{4}}\scoring{4} &
+\wrongchoice[Q]{\tiny{.5}}\scoring{4.5} &
+\wrongchoice[P]{\tiny{5}}\scoring{5} &
+\wrongchoice[O]{\tiny{.5}}\scoring{5.5} &
+\wrongchoice[N]{\tiny{6}}\scoring{6} &
+\wrongchoice[M]{\tiny{.5}}\scoring{6.5} &
+\wrongchoice[L]{\tiny{7}}\scoring{7} &
+\wrongchoice[K]{\tiny{.5}}\scoring{7.5} 
+\\
+&
+\wrongchoice[J]{\tiny{8}}\scoring{8} &
+\wrongchoice[I]{\tiny{.5}}\scoring{8.5} &
+\wrongchoice[H]{\tiny{9}}\scoring{9} &
+\wrongchoice[G]{\tiny{.5}}\scoring{9.5} &
+\wrongchoice[F]{\tiny{10}}\scoring{10} &
+\wrongchoice[E]{\tiny{.5}}\scoring{10.5} &
+\wrongchoice[D]{\tiny{11}}\scoring{11} &
+\wrongchoice[C]{\tiny{.5}}\scoring{11.5} &
+\wrongchoice[B]{\tiny{12}}\scoring{12} &
+\wrongchoice[A]{\tiny{.5}}\scoring{12.5} &
+\wrongchoice[AY]{\tiny{13}}\scoring{13} &
+\wrongchoice[AX]{\tiny{.5}}\scoring{13.5} &
+\wrongchoice[AW]{\tiny{14}}\scoring{14} &
+\wrongchoice[AV]{\tiny{.5}}\scoring{14.5} &
+\correctchoice[AU]{\tiny{15}}\scoring{15}
+\\
+\end{tabular}}}
+\newcommand{\correctorFifteenHalf}[3][0]{%
+\par
+\noindent
+\begin{question}{#2}\bareme{MAX=15}
+#3~\\
+\noindent\AMCOpen{lines=#1,boxframerulecol=lightgray,framerulecol=white}%
+{\makebox[0.9\linewidth][l]{\correctorChoicesFifteenHalf}}
+\end{question}
+\vspace{-55pt}~
+\par
+}
+
+\newcommand{\correctorStop}{
+\bigskip
+
+
+\noindent
+}
+
+\ifx\GridToBox\undefined\else
+\let\OpenGrid=\OpenBox
+%\let\FullPageOpenGrid=\FullPageOpenBox
+%\let\FullPageOpenGridForever=\FullPageOpenBoxForever
+\fi

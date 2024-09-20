@@ -134,6 +134,8 @@ scans/*
 
 marked_scans/*
 
+.idea
+
 amc_projects/*/
 !amc_projects/config
 /examc_app/migrations/0001_initial.py

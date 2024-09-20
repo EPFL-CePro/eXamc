@@ -1,0 +1,191 @@
+%*******************************************************************%
+% EXTRA COMMANDS LINEAR ALGEBRA - ZULETA - A23
+%*******************************************************************%
+%\def\bonne#1{\Bonne{#1.}}% UNHIDE IF "." WANTED AT THE END OF EACH ANSWER
+%\def\mauvaise#1{\Mauvaise{#1.}}% UNHIDE IF "." WANTED AT THE END OF EACH ANSWER
+
+%*******************************************************************%
+% TIMES NEW ROMAN
+%*******************************************************************%
+\usepackage{mathptmx}\def\Times{}  % TIMES NEW ROMAN
+\DeclareMathAlphabet{\pazocal}{OMS}{zplm}{m}{n}%
+\let\mathcal=\pazocal%
+\renewcommand{\baselinestretch}{1.15}% VERTICAL SPACE
+\def\prime{\mkern3mu\oldprime\mkern-2mu}%
+%*******************************************************************%
+
+%*******************************************************************%
+%	LETTRES GRECQUES (POUR TIMES)
+%*******************************************************************%
+\def\smallgreek#1{\ifmmode\mathchoice%
+	{\mathord{\mbox{\small\mathsurround=0pt${#1}$}}}
+	{\mathord{\mbox{\small\mathsurround=0pt${#1}$}}}
+	{\mathord{\mbox{\scriptsize\mathsurround=0pt${#1}$}}}
+	{#1}
+	\else\fi}%
+\let\savedpi=\pi
+\let\savedalpha=\alpha%
+\def\alpha{{\smallgreek{\savedalpha}}}%
+\let\savedlambda=\lambda%
+\def\lambda{{\smallgreek{\savedlambda}}}%
+\def\pi{{\smallgreek{\savedpi}}}%
+\let\savedpartial=\partial
+\def\partial{{\smallgreek{\savedpartial}}}%
+\let\savedinfty=\infty%
+\def\infty{{\mathchoice%
+	{\mathord{\raisebox{-1pt}{\large\mathsurround=0pt$\savedinfty$}}}
+	{\mathord{\raisebox{-1pt}{\large\mathsurround=0pt$\savedinfty$}}}
+	{\mathord{\raisebox{-1pt}{\normalsize\mathsurround=0pt$\savedinfty$}}}
+%	{\mathord{\normalsize \savedinfty}}
+	{\savedinfty}}}
+
+%*******************************************************************%
+%% SETS
+%*******************************************************************%
+%\renewcommand{\mid}{\mathrel{\PERSONAL|}} % SET SEPARATOR |
+
+%*******************************************************************%
+%% SYSTEMS
+%*******************************************************************%
+%\renewcommand{\System}[1]{\PERSONAL\left.#1\right.}% 
+
+%*******************************************************************%
+%% VECTORS AND MATRICES
+%*******************************************************************%
+%\renewcommand{\Vector}[1]{\left(\!\!% DEFAULT []
+%    \begin{array}{c}%
+%      #1%
+%    \end{array}\!\!\right)}%
+
+%\renewenvironment{Matrix}[1]{\left(\!\!% DEFAULT []
+%    \begin{array}[r]{#1}}{%
+%    \end{array}\!\!\right)}
+
+\renewcommand{\vec}[1]{{\DEFAULT\oldvec{#1}\mkern.5mu}}% UNHIDE IF ARROW NOTATION NEEDED
+%\renewcommand{\vec}[1]{{\PERSONAL\mbox{\bfseries\itshape#1}}}% UNHIDE IF BOLD NOTATION NEEDED
+%\renewcommand{\vec}[1]{{\PERSONAL#1}}% UNHIDE IF NO NOTATION NEEDED
+
+%\renewcommand{\T}{{\PERSONAL \top}}% TRANSPOSE - UNHIDE IF \top NEEDED
+%\renewcommand{\T}{{\PERSONAL \rm T}}% TRANSPOSE - UNHIDE IF \rm T NEEDED
+
+%\renewcommand{\ScalProd}[2]{{\PERSONAL \langle#1,#2\,\rangle}} % SCALAR PRODUCT
+
+%\renewcommand{\Id}[1]{{\PERSONAL \mathbb{I}^{}_{#1}}}% IDENTITY MATRIX
+
+%\renewcommand{\ZeroMatrix}{{\PERSONAL O}}% ZERO MATRIX
+
+%\renewcommand{\ZeroVector}[1]{{\PERSONAL \vec{0}}}% ZERO VECTOR
+
+%\renewcommand{\tr}{\mathop{{\PERSONAL\rm tr}}}% TRACE - - UNHIDE IF tr NEEDED
+
+%\renewcommand{\detaille}{} % TO OMIT "de taille" 
+%\renewcommand{\acoeffreels}{}%TO OMIT "à coefficients réels"
+
+%\renewcommand{\proj}{\mathop{{\PERSONAL\rm Proj}}\nolimits}%
+
+%\renewcommand{\TransfMatrix}[2]{{\PERSONAL (T)_{\mathcal{#1}}^{\mathcal{#2}}}} % MATRIX OF A LINEAR APPLICATION
+
+\renewcommand{\PassageMatrix}[2]{{\PERSONAL P=P^{\,\mathcal{#2#1}}}}%
+%\renewcommand{\PassageMatrix}[2]{{\PERSONAL P_{\mathcal{#1}}^{\mathcal{#2}}}}% CHANGE OF BASIS
+
+%*******************************************************************%
+%%  VECTOR SPACES
+%*******************************************************************%
+\renewcommand{\MatricesSpace}[3]{{\PERSONAL M^{}_{#1,#2}(#3)}}% M_{m,n}(R)
+%\renewcommand{\MatricesSpace}[3]{{\PERSONAL\mathbb{R}^{#1\times #2}}}% R^{m \times n}$
+
+%\renewcommand{\Poly}[1]{{\PERSONAL\mathbb{P}^{}_#1(\mathbb{R})}}% P_n(R)
+%\renewcommand{\Poly}[1]{{\PERSONAL\mathcal{P}^{}_{#1}(\RR)}}% P_n(R)
+
+%\renewcommand{\rang}{\mathop{{\PERSONAL\rm rank}}}% RANK
+\renewcommand{\Col}{\mathop{{\PERSONAL\rm Col}}\nolimits}% COL
+\renewcommand{\Nul}{\mathop{{\PERSONAL\rm Nul}}\nolimits}% NUL
+%\renewcommand{\Lign}[1]{\mathop{\rm Col}\nolimits(#1^\T)}%
+
+%\renewcommand{\Span}[1]{%VECTORS
+%     {\PERSONAL\mathop{\rm Span}\nolimits\left\{{\color{black}{#1}}\right\}}}% SUBSPACE SPANNED BY VECTORS
+%\renewcommand{\Base}[1]{%VECTORS
+%     {\PERSONAL\left({\color{black}{#1}}\right)}}% BASIS
+
+%\renewcommand{\coord}[2]{%% {VECTOR}{BASE}
+%     {\PERSONAL\bigl[{\color{black}#1}\bigr]^{}_{\mathcal #2}}}% COORDINATE VECTOR
+%\renewcommand{\EigenSpace}[2]{% {MATRIX}{EIGENVALUE}
+%     {\PERSONAL E^{}_{#2}}}% EIGENSPACE
+%\renewcommand{\CharPol}[1]{{\PERSONAL p^{}_{#1}}} % CHARACTERISTIC POLYNOMIAL
+
+%*******************************************************************%
+
+%*******************************************************************%
+%%  ADDITIONAL NOTATION
+%*******************************************************************%
+%\renewcommand{\lelement}{{\PERSONAL le coefficient}}%
+%\renewcommand{\composante}{{\PERSONAL coordonnée }}%
+%\renewcommand{\pseuclidien}{{\PERSONAL produit scalaire}}%
+\renewcommand{\ordonnee}{{\PERSONAL }}%GLOBAL ordonnée }}%
+\renewcommand{\ordonnees}{{\PERSONAL }}%GLOBAL ordonnées }}%
+\renewcommand{\changementbase}{{\PERSONAL de passage }}%
+%\renewcommand{\parrapport}[2]{{\PERSONAL par rapport à la base~#1 et la base~#2}}% 
+%\renewcommand{\sanschanger}{{\PERSONAL sans changer l'ordre }}%
+%*******************************************************************%
+
+%*******************************************************************%
+%% LEAST SQUARES
+%*******************************************************************%
+%\renewcommand{\hatvec}[1]{{\PERSONAL\widehat{\vec{#1}}}}%
+%\renewcommand{\solMCvec}{{\PERSONAL\widehat{{x}}}}%
+%\renewcommand{\solMCcomp}{{\PERSONAL\widehat{x}}}%
+\renewcommand{\XX}{{\PERSONAL \,t}}%
+%*******************************************************************%
+
+%*******************************************************************%
+%% NOTATION CHOICES
+%*******************************************************************%
+% MULTIPLICITE ALGEBRIQUE/GEOMETRIQUE
+\renewcommand{\ChoixGeometrique}[2]{{\PERSONAL #2}}%{{\GLOBAL #1}}%
+\renewcommand{\ChoixAlgebrique}[2]{{\PERSONAL #2}}%{{\GLOBAL #1}}%
+% DROITE DE REGRESSION
+\renewcommand{\ChoixMoindresCarres}[2]{{\PERSONAL #2}}%
+%\renewcommand{\ChoixDroite}[3]{{\PERSONAL #2}}%
+% ENSEMBLE vs FAMILLE
+%\renewcommand{\ChoixEnsemble}[2]{{\PERSONAL #2}}% Ensemble
+% VECTEURS DANS ESPACE VECTORIEL ABSTRAIT
+%\renewcommand{\ChoixVecteurs}[2]{{\PERSONAL #2}}%
+% COMPLEMENT ORTHOGONAL
+%\renewcommand{\ChoixComplementVF}[2]{{\PERSONAL #2}}% 
+% EN FONCTION DE
+\renewcommand{\ChoixOuvert}[2]{{\PERSONAL #2}}%
+% ENSEMBLE IMAGE
+%\renewcommand{\ChoixImage}[2]{{\PERSONAL #2}}%
+% RELATIVEMENT vs PAR RAPPORT
+\renewcommand{\ChoixParRapport}[2]{{\PERSONAL #2}}%
+%*******************************************************************%
+
+% EOF
+
+
+%*******************************************************************%
+\endinput
+%*******************************************************************%
+
+%*******************************************************************%
+%%  MATRICES
+%*******************************************************************%
+%\renewenvironment{Matrix}[1]{\PERSONAL\left(%
+%    \color{black}\begin{array}[r]{#1}}{%
+%    \end{array}\PERSONAL\right)%
+%}%
+%\renewcommand{\T}{{\PERSONAL\mathrm{T}}}% TRANSPOSE
+%*******************************************************************%
+
+%*******************************************************************%
+%%  VECTORS, SEQUENCES,  FUNCTIONS
+%*******************************************************************%
+\renewcommand{\vec}[1]{{\PERSONAL\oldvec{#1}\mkern.5mu}}% UNHIDE IF ARROW NOTATION NEEDED
+
+% \def\Vec{} %  UNHIDE IF FUNCTIONS ARE NOT VECTORS
+
+
+%*******************************************************************%
+\endinput
+%*******************************************************************%
+%EOF
