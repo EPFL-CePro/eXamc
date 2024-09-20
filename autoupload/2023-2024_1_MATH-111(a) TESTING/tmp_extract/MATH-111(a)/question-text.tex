@@ -1,0 +1,44 @@
+%% Change Question text - FRENCH
+
+\renewcommand{\AMCbeginQuestion}[2]{\QuestionText{#1}}
+\def\QuestionText{\TEXT}
+\def\TEXT#1{\vspace{\AMCformVSpace}\par \mbox{\bf Question~\smash{#1}\,:}~~\ifx\Catalogue\undefined\else{\DebutQuestion}\fi}
+\def\NOTEXT#1{ }
+
+
+%%  little text can be written in the marking area to tell the students not to tick these boxes, 
+\ifx\English\undefined
+\def\AMCotextReserved{\hspace{-25mm}\emph{Réservé au correcteur}}
+\else
+\def\AMCotextReserved{\hspace{-20mm}\emph{Do not write here}}
+\fi
+
+%*******************************************************************%
+%% OPEN PART
+%*******************************************************************%
+\ifx\English\undefined
+\def\OpenQuestionHeader#1{\mbox{\textit{Cette question est notée sur~#1 points.}}}%
+\else
+\def\OpenQuestionHeader#1{\mbox{\textit{This question is worth~#1 points.}}}%
+\fi
+%*******************************************************************%
+\def\OpenQuestion#1#2{%{QUESTION NAME}{POINTS}
+\def\DebutQuestion{}%
+\setlength\parindent{0pt}
+%\begin{description}
+%\item[Question~\theAMCquestionaff\,:] 
+%\OpenQuestionHeader{#2}\par
+%\end{description}
+\ifx2#2\correctorTwo{#1}{\OpenQuestionHeader{#2}\vspace{-.2cm}\par}\else%
+\ifx3#2\correctorThree{#1}{\OpenQuestionHeader{#2}\vspace{-.2cm}\par}\else%
+\ifx4#2\correctorFour{#1}{\OpenQuestionHeader{#2}\vspace{-.2cm}\par}\else%
+\ifx5#2\correctorFive{#1}{\OpenQuestionHeader{#2}\vspace{-.2cm}\par}\else%
+\ifx6#2\correctorSix{#1}{\OpenQuestionHeader{#2}\vspace{-.2cm}\par}\else%
+\ifx7#2\correctorSeven{#1}{\OpenQuestionHeader{#2}\vspace{-.2cm}\par}\else%
+\ifx8#2\correctorEight{#1}{\OpenQuestionHeader{#2}\vspace{-.2cm}\par}\else%
+\ifx9#2\correctorNine{#1}{\OpenQuestionHeader{#2}\vspace{-.2cm}\par}\else%
+\fi\fi\fi\fi\fi\fi\fi\fi
+\correctorStop
+}
+
+%% End of file

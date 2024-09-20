@@ -1,0 +1,194 @@
+%% From fr/OPEN-A23-01.tex =======================================
+\element{section3}{
+%*******************************************************************%
+\OpenQuestion{OPEN-01}{3}%-valeurs-propres-vs-determinant-2023}{3}%{QUESTION NAME}{POINTS}% Simone
+%*******************************************************************%
+\ifx\English\undefined
+Soient $\vec{v}^{}_1,\ldots, \vec{v}^{}_n\in\RR^n$ des vecteurs linéairement indépendants.
+\HSB
+Soit $A$ une matrice diagonalisable \detaille{$n{\times}n$} telle que $\vec{v}^{}_1,\ldots, \vec{v}^{}_n$ sont des vecteurs propres de~$A$ associés aux valeurs propres $\alpha^{}_1,\ldots, \alpha^{}_n$ respectivement. 
+\HSB
+Soit $B$ une matrice diagonalisable \detaille{$n{\times}n$} telle que $\vec{v}^{}_1,\ldots, \vec{v}^{}_n$ sont des vecteurs propres de~$B$ associés aux valeurs propres $\beta^{}_1,\ldots, \beta^{}_n$ respectivement. 
+\HSB
+Montrer que la matrice $A-B$ est diagonalisable et satisfait
+\else
+Let $\vec{v}^{}_1,\ldots, \vec{v}^{}_n\in\RR^n$ be linearly independent vectors.
+\HSB
+Let $A$ be a diagonalizable matrix in $\MatricesSpace{n}{n}{\RR}$ so that the vectors $\vec{v}^{}_1,\ldots, \vec{v}^{}_n$ are eigenvectors of $A$ for the eigenvalues $\alpha^{}_1,\ldots, \alpha^{}_n$ respectively. 
+\HSB
+Let $B$ be a diagonalizable matrix in $\MatricesSpace{n}{n}{\RR}$ so that the vectors $\vec{v}^{}_1,\ldots, \vec{v}^{}_n$ are eigenvectors of $B$ for the eigenvalues $\beta^{}_1,\ldots, \beta^{}_n$ respectively. 
+\HSB
+Prove that $A-B$ is diagonalizable and satisfies
+\fi
+\mathcenter{%
+	\det(A-B)=(\alpha^{}_1-\beta^{}_1)\cdots(\alpha^{}_n-\beta^{}_n)\,.}
+%*******************************************************************%
+\bigskip\vfill
+\OpenGrid{16cm}%
+%\OpenGrid{15cm}%
+%\SuiteQuestion
+%*******************************************************************%
+}
+%% From fr/OPEN-A23-02.tex =======================================
+\element{section3}{
+%*******************************************************************%
+\OpenQuestion{OPEN-02}{3}%-matrices-symetriques-2023}{3}%{QUESTION NAME}{POINTS} % Donna
+%*******************************************************************%
+\ifx\English\undefined
+Soit $A$ une matrice symétrique \detaille$3{\times}3$ dont les valeurs propres sont
+\else
+Let $A$ be a symmetric matrix in $\MatricesSpace{3}{3}{\RR}$ whose eigenvalues are
+\fi
+\mathcenter{%
+	\lambda^{}_1=2, \quad \lambda^{}_2=-2 \quad \mbox{\et} \quad \lambda^{}_3=4\,.}
+\ifx\English\undefined
+Soit $c$ un nombre réel et soient 
+\else
+Let $c$ be a real number and let
+\fi
+\mathcenter{%
+	\vec v^{}_1=\begin{Matrix}{r}1\\[-.25ex]0\\[-.25ex]1\end{Matrix}\,,\quad
+	\vec v^{}_2=\begin{Matrix}{r}-1\\[-.25ex]0\\[-.25ex]1\end{Matrix}\quad\mbox{\et}\quad
+	\vec v^{}_3=\begin{Matrix}{r}c\\[-.25ex]2\\[-.25ex]0\end{Matrix}}
+\ifx\English\undefined
+des vecteurs propres de la matrice~$A$ associés aux valeurs propres~$\lambda^{}_1$,~$\lambda^{}_2$  et~$\lambda^{}_3$ respectivement.
+\HSB
+Déterminer la valeur de $c$ et construire la matrice~$A$.
+\else
+be  eigenvectors of $A$ for the eigenvalues~$\lambda^{}_1$,~$\lambda^{}_2$  and~$\lambda^{}_3$ respectively.
+\HSB
+Determine the value of $c$ and find the matrix~$A$.
+\fi
+%*******************************************************************%
+\bigskip\vfill
+\OpenGrid{18.5cm}%
+%\FullPageOpenGrid
+%\SuiteQuestion
+%*******************************************************************%
+}
+%% From fr/OPEN-A23-testerman-01.tex =======================================
+\element{section3}{
+%*******************************************************************%
+\ifx\VersionSimone\undefined
+\OpenQuestion{OPEN-03-Testerman}{6}%{QUESTION NAME}{POINTS}
+\else
+\OpenQuestion{OPEN-03-Testerman-Deparis}{4}%{QUESTION NAME}{POINTS}
+\fi
+%****************************************************************
+Soit $V=\MatricesSpace{2}{2}{\RR}$.  On rappelle que la trace $\tr(A)$ d'une matrice $A=\begin{Matrix}{rr} a&b\\[-.25ex] c&d\end{Matrix}\in V$, est définie par 
+\mathcenter{%
+	\tr(A) = a+d\,.}
+
+On définit un produit scalaire $\langle\ ,\  \rangle$ sur $V$ par 
+\mathcenter{%
+	\langle A,B \rangle = \tr(A^\T\! B)\,,\qquad\mbox{pour tout $A,B\in V$.}}
+\bigskip
+
+\ifx\VersionSimone\undefined
+\ItemOpen{a}{Démontrer que $\left\{\begin{Matrix}{rr} 1&0\\[-.25ex] 0&0\end{Matrix}\!,\, %
+	\begin{Matrix}{rr} 0&0\\[-.25ex] 0&-1\end{Matrix}\!,\, %
+	\ffrac{1}{\sqrt2}\!\begin{Matrix}{rr} 0&1\\[-.25ex] -1&0\end{Matrix}\!,\, %
+	\ffrac{1}{\sqrt2}\!\begin{Matrix}{rr} 0&1\\[-.25ex] 1&0\end{Matrix}\right\}$\smallskip\ est une base ortho\-normée de $V$, par rapport au produit scalaire $\langle\ ,\ \rangle$.}{2}
+
+\medskip
+	
+\ItemOpen{b}{Soit $W = \left\{\begin{Matrix}{rr} a&a\\[-.25ex] b&b\end{Matrix}\in V \mid a,b\in\RR\right\}$, un sous-espace vectoriel de $V$. Trouver une base  de~$W$.}{1}
+
+\medskip
+
+\ItemOpen{c}{Quelle est la dimension de $W^\perp$, le complément orthogonal de $W$ dans $V$ par rapport au produit scalaire $\langle\ ,\ \rangle$\ ?}{1}
+
+\ItemOpen{d}{Trouver $W^\perp$.}{2}
+\else
+\ItemOpen{a}{Trouver toutes les matrices $A\in V$ qui satisfont $\langle A,A \rangle=0$.}{2}
+
+\medskip
+
+\ItemOpen{b}{Démontrer que $\left\{\begin{Matrix}{rr} 1&0\\[-.25ex] 0&0\end{Matrix}\!,\, %
+	\begin{Matrix}{rr} 0&0\\[-.25ex] 0&-1\end{Matrix}\!,\, %
+	\ffrac{1}{\sqrt2}\!\begin{Matrix}{rr} 0&1\\[-.25ex] -1&0\end{Matrix}\!,\, %
+	\ffrac{1}{\sqrt2}\!\begin{Matrix}{rr} 0&1\\[-.25ex] 1&0\end{Matrix}\right\}$\smallskip\ est une base ortho\-normée de $V$, par rapport au produit scalaire $\langle\ ,\ \rangle$.}{2}
+\fi
+%****************************************************************
+\bigskip\vfill
+\ifx\VersionSimone\undefined
+\OpenGrid{15.5cm}% {DIMENSION}% 
+\else
+\OpenGrid{17.5cm}%
+\fi
+\FullPageOpenGrid
+\FullPageOpenGrid%Message
+%\SuiteQuestion
+%*******************************************************************%
+}
+%% From fr/OPEN-A23-deparis-01.tex =======================================
+\element{section3}{
+%*******************************************************************%
+\ifx\English\undefined
+\OpenQuestion{OPEN-04-Deparis}{3}%{QUESTION NAME}{POINTS}
+\else
+\OpenQuestion{OPEN-03-Deparis-Iseli}{4}%{QUESTION NAME}{POINTS}
+\fi
+%*******************************************************************%
+\ifx\English\undefined
+Soit $T : \Poly{3}\to \MatricesSpace{2}{2}{\RR}$ une application linéaire telle que
+%\mathcenter{%
+%	T(1) = \begin{Matrix}{rr} 1&-1\\[-.25ex] 1&1\end{Matrix},\quad
+%	T(1+x) = \begin{Matrix}{rr} -1&2\\[-.25ex] 2&2\end{Matrix},\quad
+%	T(1+x^2) = \begin{Matrix}{rr} 0&1\\[-.25ex] 3&3\end{Matrix}\quad\mbox{\et}\quad
+%	T(1+x^3) = \begin{Matrix}{rr} -3&5\\[-.25ex] 3&3\end{Matrix}.}
+\else
+Let $T : \Poly{3}\to \MatricesSpace{2}{2}{\RR}$ be a linear transformation defined by
+\fi
+\mathcenter{%
+	T(1) = \begin{Matrix}{rr} 1&-1\\[-.25ex] 1&1\end{Matrix},\quad
+	T(x) = \begin{Matrix}{rr} -1&2\\[-.25ex] 2&2\end{Matrix},\quad
+	T(x^2) = \begin{Matrix}{rr} 0&1\\[-.25ex] 3&3\end{Matrix}\quad\mbox{\et}\quad
+	T(x^3) = \begin{Matrix}{rr} -3&5\\[-.25ex] 3&3\end{Matrix}.}
+\medskip
+\ifx\English\undefined
+Trouver une base de $\Ker(T)$.
+%\ItemOpen{a}{Trouver une base de $\Ker(T)$.}{3}
+%\ItemOpen{b}{Trouver la dimension de $\Im(T)$.}{1}
+%\ItemOpen{c}{Déterminer si $3x^3-2x$ appartient au noyau de $T$.}{2}
+%\ItemOpen{d}{Déterminer si $\begin{Matrix}{rr} 0&0\\[-.25ex] 2&-1\end{Matrix}$ appartient à l'image de $T$.}{2}
+\else
+\ItemOpen{a}{Find a basis for $\Ker (T) $.}{3}
+\ItemOpen{b}{Determine whether $\begin{Matrix}{rr} 0&0\\[-.25ex] 2&-1\end{Matrix}$ is in $\Im (T)$.}{1}
+\fi
+%****************************************************************
+\bigskip\vfill
+\ifx\English\undefined
+\OpenGrid{20.5cm}% 
+\else
+\OpenGrid{19.5cm}% 
+\fi%
+%****************************************************************
+}
+%% From fr/OPEN-A23-deparis-02.tex =======================================
+\element{section3}{
+%*******************************************************************%
+\OpenQuestion{OPEN-05-Deparis}{6}%{QUESTION NAME}{POINTS}
+%*******************************************************************%
+Soit $A$ une matrice \detaille$2{\times}4$ et soient $\vec v^{}_1$ et $\vec v^{}_2$ deux vecteurs propres de la matrice $A^\T\!A$ tels que
+\mathcenter{%
+	\vec v^{}_1=\begin{Matrix}{r} 
+	1\\[-.25ex] -1\\[-.25ex] 0\\[-.25ex] 0\end{Matrix},\qquad
+	\vec v^{}_2=\begin{Matrix}{r} 
+	1\\[-.25ex] 1\\[-.25ex] 1\\[-.25ex] 0\end{Matrix},\qquad
+	A\vec v^{}_1=\begin{Matrix}{r} 
+	2\\[-.25ex] -1\end{Matrix}
+		\qquad\mbox{\et}\qquad
+	A\vec v^{}_2=\begin{Matrix}{r} 
+	1\\[-.25ex] 2\end{Matrix}.}
+%Sans calculer explicitement la matrice $A$, 
+Utiliser ces informations afin de trouver des matrices $U$, $\Sigma$ et $V$ telles que $A$ possède une décomposition en valeurs singulières de la forme 
+%Utiliser ces informations afin de trouver une matrice $U$, une matrice $\Sigma$ et une matrice $V$ telles que $A$ possède une décomposition en valeurs singulières de la forme 
+\mathcenter{%
+	A=U\Sigma V^\T\,.}
+%*******************************************************************%
+\bigskip\vfill
+\OpenGrid{19cm}%
+\FullPageOpenGrid
+%*******************************************************************%
+}
