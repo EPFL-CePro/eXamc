@@ -30,16 +30,23 @@
 </style>
 
 <div id="export_marked_files_div" style="padding:20px">
-  <h6>Options :</h6>
   <form action="{% url 'generate_marked_files' exam.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal" style="margin-top:20px;">
-    {% csrf_token %}
-    {% for radio in form.export_type %}
-      <div>
-          {{ radio }}
-      </div>
+      {% csrf_token %}
+      <h6>File type:</h6>
+      {% for radio in form.export_type %}
+          <div>
+              {{ radio }}
+          </div>
       {% endfor %}
-      <br/>
-        <button type="submit" class="btn btn-dark btn-sm"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export</button>
+    <hr>
+     <h6>With comments:</h6>
+      {% for radio in form.with_comments %}
+          <div>
+              {{ radio }}
+          </div>
+      {% endfor %}
+  <hr>
+      <button type="submit" class="btn btn-dark btn-sm"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export</button>
   </form>
 
 </div>
