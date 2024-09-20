@@ -457,7 +457,9 @@ $(window).on("load",function(){
     createPagination({{ scans_pathes_list|length }}, {{ currpage }});
     {% else %}
     createPagination({{ scans_pathes_list|length }}, 1);
+    document.getElementById("copy_{{scans_pathes_list.0.copy_no}}_{{scans_pathes_list.0.page_no}}").click();
     {% endif %}
+    
 
 {#    //hide top and side bars#}
 {#    var wrapper = document.getElementById("wrapper")#}
