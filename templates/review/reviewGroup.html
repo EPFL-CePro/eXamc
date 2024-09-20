@@ -65,7 +65,7 @@
     </div>
     <div class="list-group" style="height:100%;margin-left:5px" >
         <div id="pagination" class="list-group list-group-horizontal"></div>
-        <div id="markerjs_div" style="height:98%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;">
+        <div id="markerjs_div" style="height:95%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;">
             <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
                 <img id="source_img" style=""/>
                 <img id="marked_img" style="max-width:100%;position: absolute;"/>
@@ -456,8 +456,8 @@ $(window).on("load",function(){
     {% if currpage > 0 %}
     createPagination({{ scans_pathes_list|length }}, {{ currpage }});
     {% else %}
-    createPagination({{ scans_pathes_list|length }}, 1);
     document.getElementById("copy_{{scans_pathes_list.0.copy_no}}_{{scans_pathes_list.0.page_no}}").click();
+    setTimeout(() => { document.getElementById("copy_{{scans_pathes_list.0.copy_no}}_{{scans_pathes_list.0.page_no}}").click()},350);
     {% endif %}
     
 
