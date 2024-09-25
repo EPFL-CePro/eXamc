@@ -271,14 +271,6 @@
 
             </div>
             
-            <!-- MODAL -->
-            <div class="modal fade modal-lg" tabindex="-1" role="dialog" id="modal-{{ comex.id }}" style="left:25%;">
-              <div class="modal-dialog" role="document" style="max-width:80%;">
-                  <div class="modal-content" style="flex-direction: row;">
-            
-                  </div>
-              </div>
-            </div>
             <div class="modal fade" id="displayPdfModal-{{ comex.id }}" tabindex="-1" role="dialog" style="">
               <div class="modal-dialog" role="document">
                 <div class="modal-content" style="width:1050px;height:1050px;">
@@ -330,13 +322,21 @@
             </div>
         {% endfor %}
     </div>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="create-scale-modal" style="margin-left:-100px;">
+      <div class="modal-dialog" role="document">
+          <div class="modal-content" id="create-scale-modal-content">
+
+          </div>
+      </div>
+    </div>
     
     <div class="modal fade" id="manageUsersModal" tabindex="-1" role="dialog" aria-labelledby="manageUsersModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="manageUsersModalLabel">Manage Users</h5>
-            <button type="button" class="close" onclick="cancelAddUsers();" aria-label="Close">
+            <button type="button" class="close" onclick="cancelUsers();" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
@@ -534,7 +534,8 @@ function cancelUsers(){
 $(window).on("load",function(){
     {% for comex in exam.get_common_exams_yc_common %}
         $("#create-scale-button").modalForm({
-            formURL: "{% url 'create_scale' comex.pk %}"
+            formURL: "{% url 'create_scale' comex.pk %}",
+            modalID: "#create-scale-modal"
         });
 
         <!--DISPLAY PDF CATALOG -->

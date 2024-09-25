@@ -1,7 +1,9 @@
 {% load crispy_forms_tags %}
-<div id="scaleCreate"  style="padding:10px;width:100%;">
-    <button type="button" class="close btn btn-default" onclick="$('#modal').modal('hide');"  aria-label="Close">CLOSE</button>
-    <h5 class="modal-title" style="margin-top:20px;">Add Scale</h5>
+<div class="modal-header">
+    <h5 class="modal-title" id="create-scale-title">Add scale</h5>
+    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
+</div>
+<div id="create-scale-body" class="modal-body">
     <form method="post" style="width:900px;">{% csrf_token %}
         <table cellpadding="10" style="margin-bottom:50px;">
           {{ form.as_table }}
@@ -12,10 +14,9 @@
             </td>
           </tr> -->
         </table>
-        <input type="submit" class="btn btn-dark btn-sm" value="validate"/>
     </form>
 </div>
+<div class="modal-footer" style="text-align:right;">
+     <input type="submit" class="btn btn-dark btn-sm" value="validate"/>
+</div>
 
-<script>
-    
-</script>

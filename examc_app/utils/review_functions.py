@@ -422,6 +422,7 @@ def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
 
     corr_box_polygon = Polygon(corr_box_coords)
 
+    marker_intersects = []
     for other_coord in other_coords:
         other_polygon = Polygon(other_coord[1])
 
@@ -448,6 +449,6 @@ def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
             else:
                 new_marker['fillColor'] = 'black'
 
-            return [old_marker_str, json.dumps(new_marker)]
+            marker_intersects.append({"old": old_marker_str, "new": json.dumps(new_marker)})
 
-    return None
+    return marker_intersects

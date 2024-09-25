@@ -683,10 +683,11 @@ def saveMarkers(request):
         marked = False
         if marker_corrector_box:
             if int(marker_corrector_box.page_no) == int(scan_markers.page_no):
-                corrector_box_checked = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
-                if corrector_box_checked:
+                corrector_box_checked_list = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
+                if corrector_box_checked_list and len(corrector_box_checked_list) > 0:
                     marked = True
-                    scan_markers.markers = scan_markers.markers.replace(corrector_box_checked[0].replace(" ",""),corrector_box_checked[1])
+                    for corrector_box in corrector_box_checked_list:
+                        scan_markers.markers = scan_markers.markers.replace(corrector_box['old'].replace(" ",""),corrector_box['new'])
 
         scan_markers.correctorBoxMarked = marked
         scan_markers.save()
