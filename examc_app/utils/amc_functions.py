@@ -196,36 +196,33 @@ def amc_layout_detection(exam):
     else:
         return result.stdout
 
-def amc_automatic_data_capture(exam,zip_file,from_review):
+def amc_automatic_data_capture(exam,file_path,from_review):
     project_path = get_amc_project_path(exam, False)
-    tmp_dir_path = project_path+"/tmp"
 
-    if os.path.exists(tmp_dir_path):
-        try:
-            shutil.rmtree(tmp_dir_path)
-        except Exception as e:
-            t = ''
+    if from_review:
+        tmp_dir_path = tmp_extract_path = file_path
+    else:
+        tmp_dir_path = project_path+"/tmp"
+        if os.path.exists(tmp_dir_path):
+            try:
+                shutil.rmtree(tmp_dir_path)
+            except Exception as e:
+                t = ''
+        os.mkdir(tmp_dir_path)
 
-    os.mkdir(tmp_dir_path)
-
-    file_list_path = tmp_dir_path+"/list-file"
-    tmp_file_list = open(file_list_path, "a")
-
-    tmp_extract_path = tmp_dir_path + "/tmp_extract"
-
-    if not from_review:
+        tmp_extract_path = tmp_dir_path + "/tmp_extract"
         file_name = f"exam_{exam.pk}_amc_scans.zip"
         tmp_file_path = tmp_dir_path + "/" + file_name
         with open(tmp_file_path, 'wb') as temp_file:
-            for chunk in zip_file.chunks():
+            for chunk in file_path.chunks():
                 temp_file.write(chunk)
-    else:
-        tmp_file_path = zip_file
+                # extract zip file in tmp dir
+        with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+            print("start extraction")
+            zip_ref.extractall(tmp_extract_path)
 
-    # extract zip file in tmp dir
-    with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
-        print("start extraction")
-        zip_ref.extractall(tmp_extract_path)
+    file_list_path = tmp_dir_path+"/list-file"
+    tmp_file_list = open(file_list_path, "a")
 
     i = 0
     files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
@@ -343,10 +340,11 @@ def get_amc_data_capture_manual_data(exam):
             if data_questions_id:
                 for qid in data_questions_id:
                     questions_ids += '%' + str(qid['question_id']) + '%'
-                    if qid['why'] == 'E':
-                        questions_ids += '|INV|'
-                    elif qid['why'] == 'V':
-                        questions_ids += '|EMP|'
+                    if 'why' in qid.keys():
+                        if qid['why'] == 'E':
+                            questions_ids += '|INV|'
+                        elif qid['why'] == 'V':
+                            questions_ids += '|EMP|'
 
             data['questions_ids'] = questions_ids + '%'
 
@@ -376,7 +374,15 @@ def get_amc_marks_positions_data(exam,copy,page):
 
     if amc_data_path:
         amc_data_path += "/data/"
-        data_positions = select_marks_positions(amc_data_path,copy,page)
+        data_positions = select_marks_positions(amc_data_path,copy,page,float(get_amc_option_by_key(exam,"seuil")))
+
+        for idx, item in enumerate(data_positions):
+            item["checked"] = False
+            if (item["bvalue"] >= float(get_amc_option_by_key(exam, "seuil")) and item["manual"] == -1.0) or item[
+                "manual"] == 1.0:
+                item["checked"] = True
+
+            data_positions[idx] = item
 
         return data_positions
 
@@ -389,8 +395,8 @@ def update_amc_mark_zone_data(exam,zoneid,copy,page):
         data_zones = select_data_zones(amc_data_path,zoneid)
 
         manual = data_zones[0]['manual']
-        black = data_zones[0]['black']
-        if (manual == -1.0 and black > 0) or manual == 1.0:
+        bvalue = data_zones[0]['bvalue']
+        if (manual == -1.0 and bvalue >= float(get_amc_option_by_key(exam,"seuil"))) or manual == 1.0:
             manual = "0.0"
         else:
             manual = "1.0"
@@ -474,6 +480,10 @@ def get_copy_page_zooms(exam,copy,page):
         for idx, item in enumerate(zooms_data):
             imagedata = base64.b64encode(item["imagedata"])
             item["imagedata"] = imagedata.decode()
+            item["checked"] = False
+            if (item["bvalue"] >= float(get_amc_option_by_key(exam,"seuil")) and item["manual"] == -1) or item["manual"] == 1:
+                item["checked"] = True
+
             zooms_data[idx] = item
 
     return zooms_data

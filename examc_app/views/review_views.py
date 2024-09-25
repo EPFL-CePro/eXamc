@@ -686,6 +686,7 @@ def saveMarkers(request):
                 corrector_box_checked = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
                 if corrector_box_checked:
                     marked = True
+                    scan_markers.markers = scan_markers.markers.replace(corrector_box_checked[0].replace(" ",""),corrector_box_checked[1])
 
         scan_markers.correctorBoxMarked = marked
         scan_markers.save()
@@ -702,7 +703,7 @@ def saveMarkers(request):
         scan_markers.delete()
 
     scan_markers.save()
-    return HttpResponse(marked)
+    return HttpResponse(json.dumps({"marked":marked,"state":scan_markers.markers}))
     # return HttpResponseRedirect(
     #     reverse('reviewGroup', kwargs={'pk': request.POST['reviewGroup_pk'], 'currpage': request.POST['curr_row']}))
 

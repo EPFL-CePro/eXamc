@@ -1,4 +1,6 @@
 import json
+import os
+import pathlib
 from urllib import request
 
 from django.contrib.auth.decorators import login_required
@@ -10,8 +12,7 @@ from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
-
-
+from examc_app.utils.review_functions import generate_marked_pdfs
 
 
 @login_required
@@ -221,12 +222,41 @@ def call_amc_automatic_data_capture(request):
 
 def import_scans_from_review(request,pk):
     exam = Exam.objects.get(pk=pk)
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code
+    export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
+        exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
+    export_subdir = export_subdir.replace(" ", "_")
+    export_tmp_dir = (str(settings.EXPORT_TMP_ROOT) + "/" + export_subdir)
 
-    scans_zip_path = generate_marked_files_zip(exam, 1)
-    result = amc_automatic_data_capture(exam,scans_zip_path,True)
+    if not os.path.exists(export_tmp_dir):
+        os.mkdir(export_tmp_dir)
+
+    # list files from scans dir
+    dir_list = [x for x in os.listdir(scans_dir) if x != '0000']
+    for dir in sorted(dir_list):
+
+        copy_export_subdir = export_tmp_dir + "/" + dir
+
+        if not os.path.exists(copy_export_subdir):
+            os.mkdir(copy_export_subdir)
+
+        for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+            # check if a marked file exist, if yes copy it, or copy original scans
+
+            marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
+            if os.path.exists(marked_file_path):
+                shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
+            else:
+                shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
+
+    result = amc_automatic_data_capture(exam,export_tmp_dir,True)
+
+    shutil.rmtree(export_tmp_dir)
 
     if not 'ERR:' in result:
-        return HttpResponse('yes')
+        return amc_view(request, pk, active_tab=1)
     else:
         return HttpResponse(result)
 

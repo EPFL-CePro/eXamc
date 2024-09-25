@@ -351,10 +351,11 @@ function updateMarkers(markerArea, exam_pk, pages_group_pk){
     page_no = currSourceIdSplit[2];
     id_no = currSourceIdSplit[3]
 
-    marked = saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,sourceImage.getAttribute("src"),id_no);
+    saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,sourceImage.getAttribute("src"),id_no);
 
     initCopyPagesTableOnClickRowEvent(true);
     document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
+   
     //createPagination({{ scans_pathes_list|length }}, id_no);
     {#marked_info_element = document.getElementById(currSourceElementId+"_marked")#}
     {#marked_info_element.innerHTML = ""#}
@@ -383,9 +384,14 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,file
         success: (data) => {
             marked_info_element = document.getElementById(currSourceElementId+"_marked");
             marked_info_element.innerHTML = "";
-            if(data==='True'){
+            data_dict = JSON.parse(data);
+            if(data_dict.marked){
                 marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
-            }          
+            }   
+            maState = JSON.parse(data_dict.state);
+            markerArea.show();
+            markerArea.restoreState(maState);
+            ''
         },
     });
 }
@@ -459,13 +465,6 @@ $(window).on("load",function(){
     document.getElementById("copy_{{scans_pathes_list.0.copy_no}}_{{scans_pathes_list.0.page_no}}").click();
     setTimeout(() => { document.getElementById("copy_{{scans_pathes_list.0.copy_no}}_{{scans_pathes_list.0.page_no}}").click()},350);
     {% endif %}
-    
-
-{#    //hide top and side bars#}
-{#    var wrapper = document.getElementById("wrapper")#}
-{#    var sideb = document.getElementById("sidebar-wrapper");#}
-{#    wrapper.style.paddingLeft = "20px";#}
-{#    sideb.style.display = "none";#}
 });
 document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
     var commentIcon = $( "#comment-icon" );

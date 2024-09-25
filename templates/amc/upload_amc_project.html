@@ -25,6 +25,11 @@
     <h6>{{ message }}</h6>
 </div>
 <script>
+$("#amc_project_zip_file").on("change", function () {
+    var fileName = $(this).val().split("\\").pop();
+    $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+});
+
 let uploadAMCProjectFrm = document.getElementById('uploadAMCProjectForm');
 
 uploadAMCProjectFrm.addEventListener('submit', function(e) {

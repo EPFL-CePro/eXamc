@@ -49,8 +49,8 @@
     <div class="mb-3">
         <h6>Diagnosis</h6>
 
-        <div class="mb-3" style="width:60%;">
-            <table id="table-copies-pages" class="table table-sm table-striped" style="width:100%;">
+        <div class="mb-3" style="width:500px;">
+            <table id="table-copies-pages" class="table table-sm table-striped" >
             <thead >
               <tr>
 
@@ -58,7 +58,7 @@
                 <th data-sortable="true">Page</th>
                 <th data-sortable="true">MSE</th>
                 <th data-sortable="true">Sensitivity</th>
-                <th data-sortable="true">Manual</th>
+                <th data-sortable="true">Man</th>
                 <th></th>
                 <th style="display:none;width:0px;">source</th>
                 <th style="display:none;width:0px;">questions</th>
@@ -72,8 +72,8 @@
                 <td> {{ row.page }}</td>
                 <td>{{ row.mse }}</td>
                 <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{{ row.sensitivity }}</td>
-                <td>{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
-                <td>
+                <td style="text-align: center">{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
+                <td style="text-align: center">
                     <button type="button" data-toggle="modal" onclick="openCopyPageZoomsDialog({{ row.copy }}, {{ row.page }});" class="btn btn-lg btn-sm">
                         <i class="far fa-eye fa-lg"></i>
                     </button>
@@ -259,7 +259,8 @@ $('#amc_scans_zip_file').on('change',function(){
             scrollY: '55vh',
             "dom": 'rtip',
             "lengthChange": false,
-            "paging": false
+            "paging": false,
+            "autoWidth": false
         } );
 
     //var filtered_questions_list=[];
@@ -457,7 +458,7 @@ function openCopyPageZoomsDialog(copy,page){
                 td.appendChild(image);
                 td.appendChild(document.createTextNode(item.bvalue.toFixed(3)));
 
-                if( (item.black > 0 && item.manual === -1) || item.manual === 1){
+                if( item.checked ){ //(item.black > 0 && item.manual === -1) || item.manual === 1){
                     colChecked ++;
                     if(colChecked > 8){
                         tableBodyChecked.appendChild(trChecked);

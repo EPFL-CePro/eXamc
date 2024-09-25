@@ -1,11 +1,14 @@
+import base64
 import imghdr
+import io
 import pathlib
 import os
+import re
 import shutil
 import time
 
 import cv2
-from PIL import Image, ImageStat
+from PIL import Image, ImageStat, ImageEnhance
 from django.conf import settings
 from fpdf import FPDF
 from ldap3.extend import paged_search_accumulator
@@ -257,7 +260,7 @@ def get_scans_pathes_by_group(pagesGroup):
 #     return [task_id,export_tmp_dir + ".zip"]
 
 
-def generate_marked_pdfs(exam,files_path, with_comments,progress_recorder):
+def generate_marked_pdfs(exam,files_path, with_comments=False, progress_recorder=None):
     scans_count = len(os.listdir(files_path))
 
     process_count = scans_count
@@ -383,23 +386,6 @@ def updateCorrectorBoxMarked(pageMarkers):
 def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
     corr_box_marker_data = json.loads(corrector_box_marker_set)['markers']
     other_markers_data = json.loads(other_marker_set)['markers']
-
-    # markers1_with_properties = []
-    # for marker in markers1_data:
-    #     left = marker['left']
-    #     top = marker['top']
-    #     width = marker['width']
-    #     height = marker['height']
-    #     markers1_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
-    #
-    # markers2_with_properties = []
-    # for marker in markers2_data:
-    #     left = marker['left']
-    #     top = marker['top']
-    #     width = marker['width']
-    #     height = marker['height']
-    #     markers2_with_properties.append({'left': left, 'top': top, 'width': width, 'height': height})
-
     corr_box_coords = None
     for marker in corr_box_marker_data:
         left = marker['left']
@@ -432,14 +418,36 @@ def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
             b = (left + width, top)
             c = (left + width, top + height)
             d = (left, top + height)
-        other_coords.append([a, b, c, d])
+        other_coords.append([marker,[a, b, c, d]])
 
     corr_box_polygon = Polygon(corr_box_coords)
 
     for other_coord in other_coords:
-        other_polygon = Polygon(other_coord)
+        other_polygon = Polygon(other_coord[1])
 
         if other_polygon.intersects(corr_box_polygon):
-            return True
+            #change fill color to black to ensure good detection with AMC
+            old_marker_str = json.dumps(other_coord[0])
+            new_marker = other_coord[0]
+            if(new_marker['typeName'] == 'FreehandMarker'):
+                dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
+                img_data = dataUrlPattern.match(new_marker['drawingImgUrl']).group(2)
+                img_data = base64.b64decode(img_data)
+                img_file = Image.open(io.BytesIO(img_data))
+                img_file = img_file.convert("L")
+                enhancer = ImageEnhance.Brightness(img_file)
+                # to reduce brightness by 50%, use factor 0.5
+                img_file = enhancer.enhance(0.5)
+                buffered = io.BytesIO()
+                img_file.save(buffered, format="PNG")
+                img_str = base64.b64encode(buffered.getvalue())
+                img_data_url =  u'data:image/png;base64,'+img_str.decode('utf-8')
 
-    return False
+
+                new_marker['drawingImgUrl'] = img_data_url
+            else:
+                new_marker['fillColor'] = 'black'
+
+            return [old_marker_str, json.dumps(new_marker)]
+
+    return None
