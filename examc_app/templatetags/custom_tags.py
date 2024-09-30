@@ -1,3 +1,4 @@
+import json
 import operator
 import os
 from datetime import datetime
@@ -6,6 +7,7 @@ from django import template
 from django.contrib.auth.models import User
 from django.db.models import FloatField, Sum
 from django.db.models.functions import Cast
+from shapely import Polygon
 
 from examc import settings
 from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser
@@ -195,59 +197,38 @@ def get_pages_group_graded_count_txt(pages_group_id,user_id=None):
     else:
         return int(100/count_copies*count_graded)
 
-# @register.filter
-# def get_students_results_tbody(exam,user):
-#     inner_html = ''
-#     for student in exam.students.all():
-#         inner_html += ('<tr>'
-#                       '<td>{{ student.copie_no }}</td>'
-#                       '<td>{{ student.sciper }}</td>'
-#                       '<td>{{ student.name }}</td>'
-#                       '<td><a hidden>'+str(student.present)+'</a>'
-#                       '<div class="btn-group btn-group-toggle" data-toggle="buttons" style="margin-left:-20px;">')
-#
-#         if student.present:
-#             inner_html += ('<label class="btn btn-light btn-sm active" style="background-color: transparent;">'
-#                           '<input type="radio" name="options" id="present-'+str(student.id)+'-1" checked')
-#             if not user.is_staff:
-#                 inner_html += ' disabled'
-#
-#             inner_html += ('><i class="fa-solid fa-circle-check fa-2xl"></i>'
-#                           '</label>'
-#                           '<label class="btn btn-light btn-sm" style="background-color: transparent;">'
-#                           '<input type="radio" name="options" id="present-{{student.pk}}-0"')
-#             if not user.is_staff :
-#                 inner_html += ' disabled'
-#             inner_html += ('><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i>'
-#                           '</label>')
-#         else:
-#             inner_html += ('<label class="btn btn-light btn-sm" style="background-color: transparent;">'
-#                            '<input type="radio" name="options" id="present-' + str(student.id) + '-1" checked')
-#             if not user.is_staff:
-#                 inner_html += ' disabled'
-#
-#             inner_html += ('><i class="fa-solid fa-circle-check fa-2xl"></i>'
-#                            '</label>'
-#                            '<label class="btn btn-light btn-sm" style="background-color: transparent;">'
-#                            '<input type="radio" name="options" id="present-{{student.pk}}-0"')
-#             if not user.is_staff:
-#                 inner_html += ' disabled'
-#             inner_html += ('><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i>'
-#                            '</label>')
-#
-#         inner_html += ('</div>'
-#                       '</td>'
-#                       '<td>'+str(student.points)+'</td>')
-#
-#         if student.scaleGrades:
-#             scale_grades = sorted(student.scaleGrades.all(), key=operator.attrgetter('scale.name'))
-#             for scale_grade in scale_grades:
-#                 inner_html += '<td>'+str(scale_grade.grade)+'</td>'
-#         else:
-#             scales = student.exam.scales.all()
-#             for scale in scales:
-#                 inner_html += '<td>abs</td>'
-#
-#         inner_html += '</tr>'
-#
-#     return inner_html
+
+@register.filter
+def marker_intersect(marker_info, marker_json):
+    pages_group = PagesGroup.objects.get(pk=marker_info[0])
+    marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,copie_no='CORR-BOX').first()
+    if marker_corrector_box:
+        corr_marker = json.loads(marker_corrector_box.markers)[0]
+        left = corr_marker['left']
+        top = corr_marker['top']
+        width = corr_marker['width']
+        height = corr_marker['height']
+        a = (left, top)
+        b = (left + width, top)
+        c = (left + width, top + height)
+        d = (left, top + height)
+        corr_box_coords = [a, b, c, d]
+
+        marker = json.loads(marker_json)
+        left = corr_marker['left']
+        top = corr_marker['top']
+        width = corr_marker['width']
+        height = corr_marker['height']
+        a = (left, top)
+        b = (left + width, top)
+        c = (left + width, top + height)
+        d = (left, top + height)
+        marker_coords = [a, b, c, d]
+
+        corr_box_polygon = Polygon(corr_box_coords)
+        marker_polygon = Polygon(marker_coords)
+
+        if marker_polygon.intersects(corr_box_polygon):
+            return True
+
+    return False

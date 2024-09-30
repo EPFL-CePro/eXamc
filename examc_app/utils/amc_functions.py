@@ -222,7 +222,7 @@ def amc_automatic_data_capture(exam,file_path,from_review):
             zip_ref.extractall(tmp_extract_path)
 
     file_list_path = tmp_dir_path+"/list-file"
-    tmp_file_list = open(file_list_path, "a")
+    tmp_file_list = open(file_list_path, "a+")
 
     i = 0
     files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
@@ -268,6 +268,7 @@ def amc_automatic_data_capture(exam,file_path,from_review):
                             , text=True)
         
 
+        os.remove(file_list_path)
         if result.stderr:
             return "ERR:" + result.stderr
         else:

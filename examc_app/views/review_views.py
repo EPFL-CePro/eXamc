@@ -77,26 +77,44 @@ class ReviewGroupView(DetailView):
     def get_context_data(self, **kwargs):
         context = super(ReviewGroupView, self).get_context_data(**kwargs)
 
-        pagesGroup = PagesGroup.objects.get(pk=context.get("object").id)
+        pages_group = PagesGroup.objects.get(pk=context.get("object").id)
 
         current_page = self.kwargs['currpage']
 
+        #get correction box coordinates
+        marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,
+                                                          copie_no='CORR-BOX').first()
+
+        corr_box_coords = []
+        if marker_corrector_box:
+            corr_marker = json.loads(marker_corrector_box.markers)['markers'][0]
+            left = corr_marker['left']
+            top = corr_marker['top']
+            width = corr_marker['width']
+            height = corr_marker['height']
+            a = (left, top)
+            b = (left + width, top)
+            c = (left + width, top + height)
+            d = (left, top + height)
+            corr_box_coords = [a, b, c, d]
+
         # Get scans file path dict by pages groups
-        scans_pathes_list = get_scans_pathes_by_group(pagesGroup)
-        if user_allowed(pagesGroup.exam, self.request.user.id):
+        scans_pathes_list = get_scans_pathes_by_group(pages_group)
+        if user_allowed(pages_group.exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewGroup"
-            context['exam'] = pagesGroup.exam
-            context['pages_group'] = pagesGroup
+            context['exam'] = pages_group.exam
+            context['pages_group'] = pages_group
             context['scans_pathes_list'] = scans_pathes_list
-            context['currpage'] = current_page,
+            context['currpage'] = current_page
+            context['corr_box_coords'] = corr_box_coords
             context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
             return context
         else:
             context['user_allowed'] = False
             context['current_url'] = "review"
-            context['exam'] = pagesGroup.exam
-            context['pages_group'] = pagesGroup
+            context['exam'] = pages_group.exam
+            context['pages_group'] = pages_group
             return context
 
 
@@ -654,13 +672,34 @@ def saveMarkers(request):
                                                               exam=exam)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
-    print("imageData : "+str(sys.getsizeof(ImageData)))
     markers = json.loads(request.POST['markers'])
-    print("markers : "+str(sys.getsizeof(markers)))
     marked = False
     if markers["markers"]:
         scan_markers.markers = request.POST['markers']
         scan_markers.filename = request.POST['filename']
+
+
+        scan_markers.save()
+
+        # [# check if marker in corrector box marker
+        # marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,
+        #                                                  copie_no='CORR-BOX').first()
+        #
+        # marked = False
+        # if marker_corrector_box:
+        #     if int(marker_corrector_box.page_no) == int(scan_markers.page_no):
+        #         corrector_box_checked_list = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
+        #         if corrector_box_checked_list and len(corrector_box_checked_list) > 0:
+        #             marked = True
+        #             for corrector_box in corrector_box_checked_list:
+        #                 scan_markers.markers = ]scan_markers.markers.replace(corrector_box['old'].replace(" ",""),corrector_box['new'])
+
+        scan_markers.correctorBoxMarked = False
+        if "HighlightMarker" in scan_markers.markers:
+            scan_markers.correctorBoxMarked = True;
+
+        scan_markers.save()
+
         if dataUrlPattern.match(ImageData):
             ImageData = dataUrlPattern.match(ImageData).group(2)
             # Decode the 64 bit string into 32 bit
@@ -674,24 +713,6 @@ def saveMarkers(request):
             with open(marked_img_path, "wb") as marked_file:
                 marked_file.write(ImageData)
 
-        scan_markers.save()
-
-        # check if marker in corrector box marker
-        marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,
-                                                         copie_no='CORR-BOX').first()
-
-        marked = False
-        if marker_corrector_box:
-            if int(marker_corrector_box.page_no) == int(scan_markers.page_no):
-                corrector_box_checked_list = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
-                if corrector_box_checked_list and len(corrector_box_checked_list) > 0:
-                    marked = True
-                    for corrector_box in corrector_box_checked_list:
-                        scan_markers.markers = scan_markers.markers.replace(corrector_box['old'].replace(" ",""),corrector_box['new'])
-
-        scan_markers.correctorBoxMarked = marked
-        scan_markers.save()
-
         # update page markers users entry
         page_markers_user, created = PageMarkersUser.objects.get_or_create(pageMarkers=scan_markers,user=request.user)
         page_markers_user.modified = datetime.now()
@@ -704,7 +725,7 @@ def saveMarkers(request):
         scan_markers.delete()
 
     scan_markers.save()
-    return HttpResponse(json.dumps({"marked":marked,"state":scan_markers.markers}))
+    return HttpResponse(marked)
     # return HttpResponseRedirect(
     #     reverse('reviewGroup', kwargs={'pk': request.POST['reviewGroup_pk'], 'currpage': request.POST['curr_row']}))
 
@@ -713,13 +734,26 @@ def saveMarkers(request):
 def getMarkersAndComments(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     data_dict = {}
+
+    copy_no = request.POST['copy_no']
+    amc_id = Student.objects.get(copie_no = copy_no.strip("0"), exam = exam).amc_id
+    page_no = request.POST['page_no']
     try:
-        scan_markers = PageMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'],
+        scan_markers = PageMarkers.objects.get(copie_no=copy_no, page_no=page_no,
                                                filename=request.POST['filename'], exam=exam)
-        data_dict["markers"] = scan_markers.markers
+        if scan_markers.markers:
+            data_dict["markers"] = scan_markers.markers
+            markers = json.loads(scan_markers.markers)
+            data_dict["markers"] = json.dumps(markers)
+        else:
+            data_dict["markers"] = None
     except PageMarkers.DoesNotExist:
-        json_string = None
         data_dict["markers"] = None
+
+    corrbox_markers = get_amc_marks_positions_data(exam,amc_id, int(page_no))
+
+    data_dict["corrector_boxes"] = json.dumps(corrbox_markers)
+
 
     # comments
     comments = PagesGroupComment.objects.filter(pages_group=request.POST['group_id'],

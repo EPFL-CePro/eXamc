@@ -15,9 +15,11 @@ from fpdf import FPDF
 
 from examc import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam
+from examc_app.utils.amc_functions import amc_automatic_data_capture
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
+
 
 
 @shared_task(bind=True)
@@ -224,7 +226,7 @@ def import_exam_scans(self, zip_file_path, exam_pk):
             scans_count = len(archive.infolist())
         print(scans_count)
 
-        process_count = scans_count+6
+        process_count = scans_count+7
         process_number = 1
         progress_recorder.set_progress(0, process_count, description='')
         time.sleep(2)
@@ -265,6 +267,7 @@ def import_exam_scans(self, zip_file_path, exam_pk):
         process_number += 1
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
             process_count) + ' - Removing tmp files...')
+
         # remove imported Files (zip + extracted)
         for filename in os.listdir(zip_path):
             file_path = os.path.join(zip_path, filename)
@@ -273,6 +276,12 @@ def import_exam_scans(self, zip_file_path, exam_pk):
                 os.unlink(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
+
+        process_number += 1
+        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+            process_count) + ' - AMC Automatic datacapture...')
+        result = amc_automatic_data_capture(exam,str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+            exam.semester.code) + "/" + exam.code,True)
 
         os.remove(zip_file_path)
 

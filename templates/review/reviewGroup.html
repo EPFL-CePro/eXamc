@@ -7,6 +7,9 @@
 <script type="text/javascript"  src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
 <script type="text/javascript" src="{% static 'js/jquery-comments.js' %}"></script>
 <script type="text/javascript" src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+    
+<script type="text/javascript" src="{% static 'js/jspolygon.js' %}"></script>
+    
 <!-- MathJax -->
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js">
@@ -33,7 +36,12 @@
         <h3><i class="fas fa-glasses fa-l" style="margin-right:10px;"></i>Review {{ pages_group.group_name }}</h3>
     </div>
 </div>
+    <div>
+
+    </div>
 <div class="d-flex" style="height:93vh;">
+
+
     <div id="pages_group_list" style="background-color:#f1f1f1;">
         <table class="table table-striped table-sm" id="table-copies-pages">
             <thead>
@@ -63,12 +71,18 @@
             </tbody>
         </table>
     </div>
-    <div class="list-group" style="height:100%;margin-left:5px" >
+    <div class="list-group" id="test" style="height:100%;margin-left:5px" >
         <div id="pagination" class="list-group list-group-horizontal"></div>
         <div id="markerjs_div" style="height:95%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;">
             <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
                 <img id="source_img" style=""/>
                 <img id="marked_img" style="max-width:100%;position: absolute;"/>
+                <div style="position:absolute;z-index:999;">
+                    <svg id="corrector_boxes_svg" style="width:100%;height:100%;">
+
+                    </svg>
+                </div>
+
             </div>
         </div>
     </div>
@@ -190,6 +204,11 @@ function createPagination(pages, page) {
     // Return the pagination string to be outputted in the pug templates
     document.getElementById("pagination").innerHTML = str;
     setMarkerArea();
+    // hide HiglightMarker if visible (marker used for corrector boxes but not available for reviewers
+    hl_marker_elements = document.querySelectorAll('[data-type-name="HighlightMarker"]');
+    for(el of hl_marker_elements){
+        el.style = "display:none;";
+    }
 }
 
 function setSourceScan(scan_path){
@@ -225,10 +244,11 @@ function setMarkerArea(target) {
     markerArea.uiStyleSettings.clearButtonVisible = true;
     markerArea.uiStyleSettings.resultButtonBlockVisible = false;
     markerArea.uiStyleSettings.notesButtonVisible = false;
-    markerArea.settings.defaultFillColor = 'red';
-    markerArea.settings.defaultStrokeColor = 'red';
+    markerArea.settings.defaultColorSet = ['#ac0000', 'black', 'blue'];
+    markerArea.settings.defaultFillColor = '#ac0000';
+    markerArea.settings.defaultStrokeColor = '#ac0000';
     markerArea.settings.newFreehandMarkerOnPointerUp = true;
-    markerArea.availableMarkerTypes = ['LineMarker','RectangleMarker','EllipseMarker','CoverMarker','EllipseFrameMarker',...markerArea.BASIC_MARKER_TYPES,'CalloutMarker',];
+    markerArea.availableMarkerTypes = ['FreehandMarker', 'HighlightMarker','TextMarker'];//'LineMarker','RectangleMarker','EllipseMarker','CoverMarker','EllipseFrameMarker',...markerArea.BASIC_MARKER_TYPES,'CalloutMarker',];
 
     // since the container div is set to position: relative it is now our positioning root
     // end we have to let marker.js know that
@@ -242,6 +262,7 @@ function setMarkerArea(target) {
     });
 
     markerArea.addEventListener("close", (event) => {
+        check_intersect(event.marker)
         setMarkerArea();
     });
 
@@ -258,20 +279,48 @@ function setMarkerArea(target) {
     }
 
     markerArea.addEventListener("markerdeselect", (event) => {
-        markerDeselect();
+        markerChange();
     });
 
     markerArea.addEventListener("markerdelete", (event) => {
-        updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
+        markerChange();
     });
 
-    markerArea.addEventListener("markerchange", (event) => {
-        updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
-    });
+    {#markerArea.addEventListener("markerselect", (event) => {#}
+    {#    if(event.marker.fillColor === "purple"){#}
+    {#        event.marker.fillColor = "black";#}
+    {#        event.marker.fillColorChanged("black");#}
+    {#        state = event.markerArea.getState();#}
+    {#        event.markerArea.show();#}
+    {#        event.markerArea.restoreState(state);#}
+    {#    }#}
+    {#});#}
 
 }
 
-function markerDeselect(){
+{#function check_intersect(marker){    #}
+{#    mleft = marker.left;#}
+{#    mtop = marker.top;#}
+{#    mwidth = marker.width;#}
+{#    mheight = marker.height;#}
+{#    a = (mleft, mtop);#}
+{#    b = (mleft + mwidth, mtop);#}
+{#    c = (mleft + mwidth, mtop + mheight);#}
+{#    d = (mleft, mtop + mheight);#}
+{#    marker_coords = [a, b, c, d];#}
+{#    marker_pol =  new Polygon( marker_coords);#}
+{#    #}
+{#    corr_pol = new Polygon({{ corr_box_coords }});#}
+{#    #}
+{#    if(marker_pol.intersectsWith(corr_pol)){#}
+{#        return true#}
+{#    }else{#}
+{#        return false#}
+{#    }#}
+{#    #}
+{#}#}
+
+function markerChange(){
     svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
     svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));
     svgDataUrl = `data:image/svg+xml;charset=utf-8;base64,${svgDataBase64}`;
@@ -320,6 +369,11 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
                 data_full = JSON.parse(data);
                 maState=JSON.parse(data_full.markers);
                 comments=data_full.comments;
+                corrector_boxes = JSON.parse(data_full.corrector_boxes);
+                $("#corrector_boxes_svg").empty();
+                if(corrector_boxes.length > 0) {
+                    draw_corrector_boxes(corrector_boxes);
+                }
                 initComments(comments);
             }
         },
@@ -327,6 +381,87 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
             console.log(error);
         }
     });
+}
+
+function draw_corrector_boxes(data){
+    //add rect box corrector
+    corrector_boxes_svg = document.getElementById('corrector_boxes_svg');
+    var svgns = "http://www.w3.org/2000/svg";
+
+    imgRatio = sourceImage.naturalHeight / sourceImage.height;
+
+    const pos_rect = document.getElementById('markerjs_div').getBoundingClientRect();
+    min_x = Math.min.apply(Math, data.map(function (event) {
+                return event.x;
+            }));
+    min_y = Math.min.apply(Math, data.map(function (event) {
+                return event.y;
+            }));
+    x_pos = min_x/imgRatio - 10//105
+    y_pos = min_y/imgRatio - 10//data[0].y - pos_rect.top //125
+    corr_height = data[data.length-1].y - data[0].y +10
+
+    corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:500px;z-index:999");
+
+    for (let pos of data) {
+        if(pos.corner === 1){
+            pol_left = pos.x/imgRatio;
+            pol_top = pos.y/imgRatio;
+            var polygon = document.createElementNS(svgns, 'polygon');
+        }
+        var point = corrector_boxes_svg.createSVGPoint();
+        point.x = (pos.x)/imgRatio-x_pos;
+        point.y = pos.y/imgRatio-y_pos;
+        polygon.points.appendItem(point)
+        
+        if(pos.corner==2){
+            pol_width = (pos.x/imgRatio)-pol_left;            
+        }
+
+        if(pos.corner === 4){
+            pol_height = (pos.y/imgRatio)-pol_top; 
+            corrector_boxes_svg.appendChild(polygon);
+            polygon.setAttribute('fill','transparent');
+            polygon.setAttribute('stroke', 'purple');
+            polygon.setAttribute('stroke-width','3');
+            polygon.setAttribute('opacity','0.7');
+            polygon.setAttribute('onclick',"createMarker4CorrBox("+pol_left+","+pol_top+","+pol_width+","+pol_height+");");
+        }
+    }
+
+}
+
+function createMarker4CorrBox(left,top,width,height){
+    
+    new_marker = markerArea.addNewMarker(markerjs2.HighlightMarker);
+    new_marker.left=left;
+    new_marker.top=top;
+    new_marker.width=width;
+    new_marker.height=height;
+    new_marker.fillColor="black";
+    new_marker.opacity=1;
+    new_marker.createVisual();
+    push_marker = true
+    for(i in markerArea.markers){
+        push_marker = false
+    
+        if(markerArea.markers[i].typeName === 'HighlightMarker'){
+            if(markerArea.markers[i].left !== left || markerArea.markers[i].top !== top 
+                ||markerArea.markers[i].width !== width || markerArea.markers[i].height !== height){
+                push_marker = true;
+            }
+            delete markerArea.markers[i];
+        }
+    }
+    if(push_marker){
+        markerArea.markers.push(new_marker);
+    }
+    
+    
+    maState = markerArea.getState();
+    markerChange();
+    markerArea.restoreState(markerArea.getState());
+    
 }
 
 function initCopyPagesTableOnClickRowEvent(refresh){
@@ -345,6 +480,7 @@ function initCopyPagesTableOnClickRowEvent(refresh){
     }
 }
 
+
 function updateMarkers(markerArea, exam_pk, pages_group_pk){
     imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
     copy_no = currSourceIdSplit[1];
@@ -355,13 +491,7 @@ function updateMarkers(markerArea, exam_pk, pages_group_pk){
 
     initCopyPagesTableOnClickRowEvent(true);
     document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
-   
-    //createPagination({{ scans_pathes_list|length }}, id_no);
-    {#marked_info_element = document.getElementById(currSourceElementId+"_marked")#}
-    {#marked_info_element.innerHTML = ""#}
-    {#if(markerArea.markers.length > 0){#}
-    {#    marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">'#}
-    {#}#}
+
 }
 
 function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,filename,curr_row){
@@ -381,17 +511,13 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,file
         },
         beforeSend : function(){
         },
-        success: (data) => {
+        success: (marked) => {
             marked_info_element = document.getElementById(currSourceElementId+"_marked");
             marked_info_element.innerHTML = "";
-            data_dict = JSON.parse(data);
-            if(data_dict.marked){
+            if(marked){
                 marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
             }   
-            maState = JSON.parse(data_dict.state);
-            markerArea.show();
-            markerArea.restoreState(maState);
-            ''
+
         },
     });
 }
@@ -511,11 +637,6 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
     }
 
 });
-
-    {#// add event listener focusout to markerjs_div to update markers#}
-    {#document.getElementById("markerjs_div").addEventListener('focusout', e => {#}
-    {#    alert('out');#}
-    {#});#}
 
 </script>
 {% else %}

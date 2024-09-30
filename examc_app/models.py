@@ -346,6 +346,7 @@ class Scale(models.Model):
 class Student(models.Model):
     """ Stores student data for an exam, related to :model:`examc_app.Exam` """
     copie_no = models.CharField(max_length=10, default='0')
+    amc_id = models.CharField(max_length=10, default='0')
     sciper = models.CharField(max_length=10, default='999999')
     name = models.CharField(max_length=100)
     section = models.CharField(max_length=20)
