@@ -43,6 +43,7 @@ Contents
    :maxdepth: 4
 
    modules/open_exam/open_exam
+   modules/exam_info/exam_info
    modules/review/review
    modules/amc/amc
    modules/results/results

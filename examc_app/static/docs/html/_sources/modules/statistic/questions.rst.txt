@@ -1,0 +1,5 @@
+Statistics per questions
+=========================
+
+.. image:: images/questions.png
+   :width: 600
