@@ -6,6 +6,7 @@ from django.contrib.sites import requests
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django_tequila.django_backend import User
 
 from examc_app.forms import LoginForm
@@ -18,6 +19,24 @@ def getCommonExams(request, pk):
     update_common_exams(pk)
 
     return HttpResponseRedirect("../admin/examc_app/exam/")
+
+def home(request):
+    user_info = request.user.__dict__
+    user_info.update(request.user.__dict__)
+    return render(request, 'home.html', {
+        'user': request.user,
+        'user_info': user_info,
+    })
+
+
+@login_required
+def select_exam(request, pk, current_url=None):
+    url_string = '../'
+    if current_url is None:
+        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
+    else:
+        return HttpResponseRedirect(reverse(current_url, kwargs={'pk': str(pk)}))
+
 
 ### global views ###
 def menu_access_required(view_func):

@@ -83,7 +83,8 @@ $(window).on("load",function(){
     var topb = document.getElementById("topbar-wrapper");
     var sideb = document.getElementById("sidebar-wrapper");
     var tableContainer = $('#table-copies-pages')
-    document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click();
+    document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click();    
+    setTimeout(() => {document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click(); },350);
 
 });
 

@@ -262,7 +262,6 @@ function setMarkerArea(target) {
     });
 
     markerArea.addEventListener("close", (event) => {
-        check_intersect(event.marker)
         setMarkerArea();
     });
 
@@ -443,9 +442,9 @@ function createMarker4CorrBox(left,top,width,height){
     new_marker.createVisual();
     push_marker = true
     for(i in markerArea.markers){
-        push_marker = false
     
         if(markerArea.markers[i].typeName === 'HighlightMarker'){
+            push_marker = false
             if(markerArea.markers[i].left !== left || markerArea.markers[i].top !== top 
                 ||markerArea.markers[i].width !== width || markerArea.markers[i].height !== height){
                 push_marker = true;
@@ -457,10 +456,11 @@ function createMarker4CorrBox(left,top,width,height){
         markerArea.markers.push(new_marker);
     }
     
-    
+    markerArea.
     maState = markerArea.getState();
+    markerArea.restoreState(markerArea.getState())
     markerChange();
-    markerArea.restoreState(markerArea.getState());
+    //markerArea.restoreState(markerArea.getState());
     
 }
 
@@ -514,7 +514,7 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,file
         success: (marked) => {
             marked_info_element = document.getElementById(currSourceElementId+"_marked");
             marked_info_element.innerHTML = "";
-            if(marked){
+            if(marked === 'True'){
                 marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
             }   
 

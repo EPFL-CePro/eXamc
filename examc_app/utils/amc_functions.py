@@ -196,12 +196,13 @@ def amc_layout_detection(exam):
     else:
         return result.stdout
 
-def amc_automatic_data_capture(exam,file_path,from_review):
+def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
     project_path = get_amc_project_path(exam, False)
 
-    if from_review:
-        tmp_dir_path = tmp_extract_path = file_path
-    else:
+    if not from_review:
+        #tmp_dir_path = tmp_extract_path = file_path
+        #file_list_path = tmp_list_file
+    #else:
         tmp_dir_path = project_path+"/tmp"
         if os.path.exists(tmp_dir_path):
             try:
@@ -221,20 +222,19 @@ def amc_automatic_data_capture(exam,file_path,from_review):
             print("start extraction")
             zip_ref.extractall(tmp_extract_path)
 
-    file_list_path = tmp_dir_path+"/list-file"
-    tmp_file_list = open(file_list_path, "a+")
+        file_list_path = tmp_dir_path+"/list-file"
+        tmp_file_list = open(file_list_path, "a+")
 
-    i = 0
-    files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
-    for file in files:
-        tmp_file_list.write(file + "\n")
+        files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
+        for file in files:
+            tmp_file_list.write(file + "\n")
 
-    tmp_file_list.close()
+        tmp_file_list.close()
 
     # prepare scan images (see amc doc)
     result = subprocess.run(['auto-multiple-choice getimages '
-                             '--list "' + file_list_path + '" '
-                             '--copy-to "' + project_path + '/scans" ']
+                             '--list "' + file_list_path + '" ']
+                             # '--copy-to "' + project_path + '/scans" ']
                             , shell=True
                             , capture_output=True
                             , text=True)
@@ -242,14 +242,15 @@ def amc_automatic_data_capture(exam,file_path,from_review):
         return "ERR:" + result.stderr
     else:
 
-        # replace tmp scans dir with scans dir to file_list_path
-        # rename file_list_path to .txt
-        # finally send this file as parameter to analyse
-        with open(file_list_path,'r') as file:
-            data = file.read()
-            data = data.replace(tmp_extract_path,project_path+'/scans')
-        with open(file_list_path,'w') as file:
-            file.write(data)
+        if not from_review:
+            # replace tmp scans dir with scans dir to file_list_path
+            # rename file_list_path to .txt
+            # finally send this file as parameter to analyse
+            with open(file_list_path,'r') as file:
+                data = file.read()
+                data = data.replace(tmp_extract_path,project_path+'/scans')
+            with open(file_list_path,'w') as file:
+                file.write(data)
 
         os.rename(file_list_path,file_list_path+".txt")
         file_list_path+=".txt"
@@ -334,6 +335,12 @@ def get_amc_data_capture_manual_data(exam):
         extra_pages = get_extra_pages(amc_extra_pages_path,amc_project_url+"/scans/extra/")
         data_pages += extra_pages
         data_pages = sorted(data_pages, key=lambda k: (float(k['copy']), float(k['page'])))
+
+        if '%HOME' in data_pages[0]['source']:
+            home_path = str(Path.home())
+            app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
+            for data in data_pages:
+                data['source'] = data['source'].replace(app_home_path,'')
 
         for data in data_pages:
             data_questions_id = select_manual_datacapture_questions(amc_data_path,data)
