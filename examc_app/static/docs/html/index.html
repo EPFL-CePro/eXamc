@@ -156,6 +156,9 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="modules/open_exam/open_exam.html">Open exam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/create_exam/create_exam.html">Create exam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/room_plan/room_plan.html">Seating map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/exam_info/exam_info.html">Exam info</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="modules/review/review.html">Review</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Review</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/review/review-settings.html">Settings</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Settings</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/review/review-settings-pages-groups.html">Pages groups</a></li>
@@ -166,11 +169,19 @@
 <li class="toctree-l2"><a class="reference internal" href="modules/review/review-export.html">Export marked files</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="modules/amc/amc.html">Auto-multiple-choice (AMC)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/statistic/statistics.html">Statistics</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="modules/amc/amc.html">Auto-multiple-choice (AMC)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Auto-multiple-choice (AMC)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/amc/amc_app.html">AMC application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/amc/import_data.html">AMC import data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules/results/results.html">Results</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="modules/statistic/statistics.html">Statistics</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Statistics</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/statistic/global.html">Global statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/statistic/questions.html">Statistics per questions</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="modules/import_data/import_data.html">Import data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/export_data/export_data.html">Export data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/room_plan/room_plan.html">Seating map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/admin/users.html">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/admin/admin.html">Admin</a></li>
 </ul>
@@ -210,8 +221,8 @@
           <section id="welcome-to-examc-s-documentation">
 <h1>Welcome to eXamc’s documentation!<a class="headerlink" href="#welcome-to-examc-s-documentation" title="Link to this heading">#</a></h1>
 <p><strong>eXamc</strong> is an WebApp that has been developed by a EPFL team. This app allows multiple users to correct exams on the same platform. It also allows to use Auto-Multiple-Choice software.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
 <p>This project is under active development.</p>
 </div>
 <div class="twocol docutils container">
@@ -245,6 +256,9 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="modules/open_exam/open_exam.html">Open exam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/create_exam/create_exam.html">Create exam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/room_plan/room_plan.html">Seating map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/exam_info/exam_info.html">Exam info</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/review/review.html">Review</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="modules/review/review-settings.html">Settings</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/review/review-settings-pages-groups.html">Pages groups</a></li>
@@ -255,11 +269,34 @@
 <li class="toctree-l2"><a class="reference internal" href="modules/review/review-export.html">Export marked files</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="modules/amc/amc.html">Auto-multiple-choice (AMC)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/statistic/statistics.html">Statistics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/amc/amc.html">Auto-multiple-choice (AMC)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/amc/amc_app.html">AMC application</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#import-the-scans">Import the scans</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#check-the-boxes-with-the-sensitivity-setting">Check the boxes with the “sensitivity” setting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#check-the-boxes-with-the-invalid-parameter">Check the boxes with the “invalid” parameter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#check-open-questions-for-which-no-points-have-been-awarded">Check open questions for which no points have been awarded</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#calculate-the-results">Calculate the results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="modules/amc/amc_app.html#associate-the-students-list">Associate the students list</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#export-the-results">Export the results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules/amc/import_data.html">AMC import data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules/results/results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/statistic/statistics.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/statistic/global.html">Global statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/statistic/questions.html">Statistics per questions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/statistic/questions.html#mc-tf-questions">MC &amp; TF questions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/statistic/questions.html#open-questions">Open questions</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="modules/import_data/import_data.html">Import data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/export_data/export_data.html">Export data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/room_plan/room_plan.html">Seating map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/admin/users.html">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/admin/admin.html">Admin</a></li>
 </ul>

@@ -9,7 +9,7 @@ Welcome to eXamc's documentation!
 **eXamc** is an WebApp that has been developed by a EPFL team. This app allows multiple users to correct exams on the same platform. It also allows to use Auto-Multiple-Choice software.
 
 
-.. note::
+.. warning::
 
    This project is under active development.
 
@@ -43,6 +43,8 @@ Contents
    :maxdepth: 4
 
    modules/open_exam/open_exam
+   modules/create_exam/create_exam
+   modules/room_plan/room_plan
    modules/exam_info/exam_info
    modules/review/review
    modules/amc/amc
@@ -50,7 +52,6 @@ Contents
    modules/statistic/statistics
    modules/import_data/import_data
    modules/export_data/export_data
-   modules/room_plan/room_plan
    modules/admin/users
    modules/admin/admin
 
