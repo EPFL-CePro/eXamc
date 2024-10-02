@@ -7,6 +7,7 @@ from examc_app.views import menu_access_required
 
 from examc_app.views import menu_access_required, staff_status, users_view
 from examc_app.views.rooms_plans_views import GenerateRoomPlanView
+
 urlpatterns = [
     path('users/', users_view, name='users'),
     path('staff-status/<int:user_id>/', staff_status, name='staff_status'),
@@ -20,8 +21,8 @@ urlpatterns = [
     path('add_new_pages_group/<int:pk>', views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
-    path('edit_pages_group_corrector_box', views.edit_pages_group_corrector_box, name="edit_pages_group_corrector_box"),
-    path('get_pages_group_rectangle_data', views.get_pages_group_rectangle_data, name='get_pages_group_rectangle_data'),
+    # path('edit_pages_group_corrector_box', views.edit_pages_group_corrector_box, name="edit_pages_group_corrector_box"),
+    # path('get_pages_group_rectangle_data', views.get_pages_group_rectangle_data, name='get_pages_group_rectangle_data'),
     path('delete_pages_group/<int:pages_group_pk>', views.delete_pages_group, name="delete_pages_group"),
     #path('remove_exam_user/<int:user_pk>/<int:exam_pk>', views.remove_exam_user, name="remove_exam_user"),
     # EPFL ldap

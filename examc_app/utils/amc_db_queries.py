@@ -67,6 +67,7 @@ def select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold):
         colname_pages = [d[0] for d in response.description]
         data_pages = [dict(zip(colname_pages, r)) for r in response.fetchall()]
     db.close()
+
     return data_pages
 
 def select_manual_datacapture_questions(amc_data_path, data):

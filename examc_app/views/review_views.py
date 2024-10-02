@@ -1,3 +1,7 @@
+"""  REVIEW MODULE VIEWS
+    This file contains all views used for the review module
+"""
+
 import base64
 import json
 import os
@@ -77,26 +81,26 @@ class ReviewGroupView(DetailView):
     def get_context_data(self, **kwargs):
         context = super(ReviewGroupView, self).get_context_data(**kwargs)
 
-        pagesGroup = PagesGroup.objects.get(pk=context.get("object").id)
+        pages_group = PagesGroup.objects.get(pk=context.get("object").id)
 
         current_page = self.kwargs['currpage']
 
         # Get scans file path dict by pages groups
-        scans_pathes_list = get_scans_pathes_by_group(pagesGroup)
-        if user_allowed(pagesGroup.exam, self.request.user.id):
+        scans_pathes_list = get_scans_pathes_by_group(pages_group)
+        if user_allowed(pages_group.exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewGroup"
-            context['exam'] = pagesGroup.exam
-            context['pages_group'] = pagesGroup
+            context['exam'] = pages_group.exam
+            context['pages_group'] = pages_group
             context['scans_pathes_list'] = scans_pathes_list
-            context['currpage'] = current_page,
+            context['currpage'] = current_page
             context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
             return context
         else:
             context['user_allowed'] = False
             context['current_url'] = "review"
-            context['exam'] = pagesGroup.exam
-            context['pages_group'] = pagesGroup
+            context['exam'] = pages_group.exam
+            context['pages_group'] = pages_group
             return context
 
 
@@ -321,60 +325,60 @@ def get_pages_group_grading_help(request):
     return HttpResponse(pages_group.grading_help)
 
 
-@login_required
-@menu_access_required
-def edit_pages_group_corrector_box(request):
-    """
-    Edit the corrector box of a pages group.
-
-    This view function edits the corrector box of a pages group identified by its primary key. It receives the
-    new corrector box value from the HTTP POST request and updates the pages group accordingly. After the update,
-    it redirects the user back to the review settings view.
-
-    Args:
-        request: The HTTP request object containing the primary key ('pk') of the pages group
-            and the new corrector box value ('corrector_box').
-
-    Returns:
-        HttpResponseRedirect: A redirection to the review settings view after the corrector box update.
-    """
-    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
-    pages_group.correctorBoxMarked = request.POST['corrector_box']
-    pages_group.save()
-
-    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
-
-
-@login_required
-@menu_access_required
-def get_pages_group_rectangle_data(request):
-    """
-    Get rectangle data for a pages group.
-
-    This view function retrieves rectangle data (markers) for a pages group identified by its primary key. It expects
-    the group ID to be sent via an HTTP POST request. If successful, it returns JSON data containing the image path
-    and the markers. If no image path is found, it returns an empty response.
-
-    Args:
-        request: The HTTP request object.
-
-    Returns:
-        HttpResponse: A JSON response containing the image path and markers, or an empty response if no image path is found.
-    """
-    if request.method == 'POST':
-        data_dict = {}
-        pagesGroup = PagesGroup.objects.get(pk=request.POST.get('group_id'))
-        marker_corr_box_qs = PageMarkers.objects.filter(exam=pagesGroup.exam, pages_group=pagesGroup,copie_no='CORR-BOX')
-        marker_corr_box = None
-        if marker_corr_box_qs:
-            marker_corr_box = marker_corr_box_qs.first().markers
-        img_path = get_scans_path_for_group(pagesGroup)
-        if img_path:
-            data_dict['img_path'] = img_path
-            data_dict['markers'] = marker_corr_box
-            return HttpResponse(json.dumps(data_dict))
-        else:
-            return HttpResponse(img_path)
+# @login_required
+# @menu_access_required
+# def edit_pages_group_corrector_box(request):
+#     """
+#     Edit the corrector box of a pages group.
+#
+#     This view function edits the corrector box of a pages group identified by its primary key. It receives the
+#     new corrector box value from the HTTP POST request and updates the pages group accordingly. After the update,
+#     it redirects the user back to the review settings view.
+#
+#     Args:
+#         request: The HTTP request object containing the primary key ('pk') of the pages group
+#             and the new corrector box value ('corrector_box').
+#
+#     Returns:
+#         HttpResponseRedirect: A redirection to the review settings view after the corrector box update.
+#     """
+#     pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
+#     pages_group.correctorBoxMarked = request.POST['corrector_box']
+#     pages_group.save()
+#
+#     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
+#
+#
+# @login_required
+# @menu_access_required
+# def get_pages_group_rectangle_data(request):
+#     """
+#     Get rectangle data for a pages group.
+#
+#     This view function retrieves rectangle data (markers) for a pages group identified by its primary key. It expects
+#     the group ID to be sent via an HTTP POST request. If successful, it returns JSON data containing the image path
+#     and the markers. If no image path is found, it returns an empty response.
+#
+#     Args:
+#         request: The HTTP request object.
+#
+#     Returns:
+#         HttpResponse: A JSON response containing the image path and markers, or an empty response if no image path is found.
+#     """
+#     if request.method == 'POST':
+#         data_dict = {}
+#         pagesGroup = PagesGroup.objects.get(pk=request.POST.get('group_id'))
+#         marker_corr_box_qs = PageMarkers.objects.filter(exam=pagesGroup.exam, pages_group=pagesGroup,copie_no='CORR-BOX')
+#         marker_corr_box = None
+#         if marker_corr_box_qs:
+#             marker_corr_box = marker_corr_box_qs.first().markers
+#         img_path = get_scans_path_for_group(pagesGroup)
+#         if img_path:
+#             data_dict['img_path'] = img_path
+#             data_dict['markers'] = marker_corr_box
+#             return HttpResponse(json.dumps(data_dict))
+#         else:
+#             return HttpResponse(img_path)
 
 #
 # @login_required
@@ -511,23 +515,7 @@ def testing(request):
 
 
 # ------------------------------------------------
-
-def home(request):
-    user_info = request.user.__dict__
-    user_info.update(request.user.__dict__)
-    return render(request, 'home.html', {
-        'user': request.user,
-        'user_info': user_info,
-    })
-
-
-@login_required
-def select_exam(request, pk, current_url=None):
-    url_string = '../'
-    if current_url is None:
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
-    else:
-        return HttpResponseRedirect(reverse(current_url, kwargs={'pk': str(pk)}))
+#
 
 
 @login_required
@@ -548,6 +536,17 @@ def upload_scans(request, pk, task_id=None):
            """
 
     exam = Exam.objects.get(pk=pk)
+
+    # check if amc project exists and documents are compiled. if not inform user and set field readlonly
+    amc_ok = True
+    amc_proj_path = get_amc_project_path(exam,False)
+    if not amc_proj_path :
+        amc_ok = False
+    else:
+        amc_update_documents_msg = get_amc_update_document_info(exam)
+        amc_layout_detection_msg = get_amc_layout_detection_info(exam)
+        if not amc_update_documents_msg or not amc_layout_detection_msg:
+            amc_ok = False
 
     if request.method == 'POST':
         if 'exams_zip_file' not in request.FILES:
@@ -572,71 +571,12 @@ def upload_scans(request, pk, task_id=None):
             'exam': exam,
             'files': [],
             'message': '',
-            'task_id':task_id
+            'task_id':task_id,
+            'amc_ok':amc_ok
         })
 
-    return render(request, 'review/import/upload_scans.html', {'exam': exam,
+    return render(request, 'review/import/upload_scans.html', {'exam': exam,'amc_ok':amc_ok,
                                                                'files': []})
-
-
-# @login_required
-# def start_upload_scans(request, pk, zip_file_path):
-#     """
-#     Extracts and imports scanned files for an exam upload.
-#
-#     This function is responsible for extracting scanned files from a zip archive and importing them into the system
-#     for a specific exam upload process.
-#
-#     Args:
-#         request: TThe HTTP request object.
-#         pk: The primary key of the exam.
-#         zip_file_path: The file path of the zip archive containing the scanned files.
-#
-#     Returns:
-#         return: A message indicating the success or failure of the upload process.
-#     """
-#     exam = Exam.objects.get(pk=pk)
-#
-#     zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code
-#     tmp_extract_path = zip_path + "/tmp_extract"
-#
-#     # extract zip file in tmp dir
-#     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-#         print("start extraction")
-#         zip_ref.extractall(tmp_extract_path)
-#
-#     dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
-#
-#     if dirs:
-#         tmp_extract_path = os.path.join(tmp_extract_path, dirs[0])
-#
-#     result = import_scans(exam, tmp_extract_path)
-#
-#     if isinstance(result, tuple) and len(result) == 2:
-#         message, files = result
-#     elif isinstance(result, str):
-#         message, files = result, []
-#     else:
-#         message, files = "An unexpected error occurred during the upload.", []
-#
-#     # remove imported Files (zip + extracted)
-#     for filename in os.listdir(zip_path):
-#         file_path = os.path.join(zip_path, filename)
-#         try:
-#             if os.path.isfile(file_path) or os.path.islink(file_path):
-#                 os.unlink(file_path)
-#             elif os.path.isdir(file_path):
-#                 shutil.rmtree(file_path)
-#         except Exception as e:
-#             print('Failed to delete %s. Reason: %s' % (file_path, e))
-#
-#     return message
-#     # return render(request, 'import/upload_scans.html', {
-#     #     'exam': exam,
-#     #     'files': files,
-#     #     'message': message
-#     # })
-
 
 @login_required
 def saveMarkers(request):
@@ -654,13 +594,35 @@ def saveMarkers(request):
                                                               exam=exam)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
-    print("imageData : "+str(sys.getsizeof(ImageData)))
     markers = json.loads(request.POST['markers'])
-    print("markers : "+str(sys.getsizeof(markers)))
     marked = False
     if markers["markers"]:
         scan_markers.markers = request.POST['markers']
         scan_markers.filename = request.POST['filename']
+
+
+        scan_markers.save()
+
+        # [# check if marker in corrector box marker
+        # marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,
+        #                                                  copie_no='CORR-BOX').first()
+        #
+        # marked = False
+        # if marker_corrector_box:
+        #     if int(marker_corrector_box.page_no) == int(scan_markers.page_no):
+        #         corrector_box_checked_list = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
+        #         if corrector_box_checked_list and len(corrector_box_checked_list) > 0:
+        #             marked = True
+        #             for corrector_box in corrector_box_checked_list:
+        #                 scan_markers.markers = ]scan_markers.markers.replace(corrector_box['old'].replace(" ",""),corrector_box['new'])
+
+        scan_markers.correctorBoxMarked = False
+        if "HighlightMarker" in scan_markers.markers:
+            scan_markers.correctorBoxMarked = True
+            marked = True
+
+        scan_markers.save()
+
         if dataUrlPattern.match(ImageData):
             ImageData = dataUrlPattern.match(ImageData).group(2)
             # Decode the 64 bit string into 32 bit
@@ -674,24 +636,6 @@ def saveMarkers(request):
             with open(marked_img_path, "wb") as marked_file:
                 marked_file.write(ImageData)
 
-        scan_markers.save()
-
-        # check if marker in corrector box marker
-        marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,
-                                                         copie_no='CORR-BOX').first()
-
-        marked = False
-        if marker_corrector_box:
-            if int(marker_corrector_box.page_no) == int(scan_markers.page_no):
-                corrector_box_checked_list = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
-                if corrector_box_checked_list and len(corrector_box_checked_list) > 0:
-                    marked = True
-                    for corrector_box in corrector_box_checked_list:
-                        scan_markers.markers = scan_markers.markers.replace(corrector_box['old'].replace(" ",""),corrector_box['new'])
-
-        scan_markers.correctorBoxMarked = marked
-        scan_markers.save()
-
         # update page markers users entry
         page_markers_user, created = PageMarkersUser.objects.get_or_create(pageMarkers=scan_markers,user=request.user)
         page_markers_user.modified = datetime.now()
@@ -700,26 +644,38 @@ def saveMarkers(request):
         marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
             exam.semester.code) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
                           scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
-        #os.remove(marked_img_path)
+        os.remove(marked_img_path)
         scan_markers.delete()
 
-    scan_markers.save()
-    return HttpResponse(json.dumps({"marked":marked,"state":scan_markers.markers}))
-    # return HttpResponseRedirect(
-    #     reverse('reviewGroup', kwargs={'pk': request.POST['reviewGroup_pk'], 'currpage': request.POST['curr_row']}))
+    return HttpResponse(marked)
 
 
 @login_required
 def getMarkersAndComments(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     data_dict = {}
+
+    copy_no = request.POST['copy_no']
+    amc_id = Student.objects.get(copie_no = copy_no.strip("0"), exam = exam).amc_id
+    page_no = request.POST['page_no']
     try:
-        scan_markers = PageMarkers.objects.get(copie_no=request.POST['copy_no'], page_no=request.POST['page_no'],
+        scan_markers = PageMarkers.objects.get(copie_no=copy_no, page_no=page_no,
                                                filename=request.POST['filename'], exam=exam)
-        data_dict["markers"] = scan_markers.markers
+        if scan_markers.markers:
+            data_dict["markers"] = scan_markers.markers
+            markers = json.loads(scan_markers.markers)
+            data_dict["markers"] = json.dumps(markers)
+        else:
+            data_dict["markers"] = None
     except PageMarkers.DoesNotExist:
-        json_string = None
         data_dict["markers"] = None
+
+    corrbox_markers = []
+    if not 'x' in page_no:
+        corrbox_markers = get_amc_marks_positions_data(exam,amc_id, int(page_no))
+
+    data_dict["corrector_boxes"] = json.dumps(corrbox_markers)
+
 
     # comments
     comments = PagesGroupComment.objects.filter(pages_group=request.POST['group_id'],

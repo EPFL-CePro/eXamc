@@ -215,10 +215,10 @@ def call_amc_automatic_data_capture(request):
     zip_file = request.FILES['amc_scans_zip_file']
 
     result = amc_automatic_data_capture(exam,zip_file,False)
-    if not 'ERR:' in result:
-        return HttpResponse('yes')
-    else:
-        return HttpResponse(result)
+    #if not 'ERR:' in result:
+    return HttpResponse('yes')
+    #else:
+    #    return HttpResponse(result)
 
 def import_scans_from_review(request,pk):
     exam = Exam.objects.get(pk=pk)
@@ -251,14 +251,36 @@ def import_scans_from_review(request,pk):
             else:
                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
-    result = amc_automatic_data_capture(exam,export_tmp_dir,True)
+
+    ##te4sting
+    amc_proj_path = get_amc_project_path(exam,False)
+    file_list_path = amc_proj_path + "/list-file"
+    tmp_file_list = open(file_list_path, "w")
+
+    files = glob.glob(scans_dir + '/**/*.*', recursive=True)
+    for file in files:
+        marked_file_path = file.replace(scans_dir,marked_dir).rsplit('/', 1)[0]
+        marked_file_path += "/marked_"+file.replace('.jpeg', '.png').split('/')[-1]
+        marked_file_path = pathlib.Path(marked_file_path)
+        if os.path.exists(marked_file_path):
+            tmp_file_list.write(str(marked_file_path) + "\n")
+        else:
+            tmp_file_list.write(file + "\n")
+
+    tmp_file_list.close()
+
+
+    ##end testing
+
+
+    result = amc_automatic_data_capture(exam,export_tmp_dir,True,file_list_path)
 
     shutil.rmtree(export_tmp_dir)
 
-    if not 'ERR:' in result:
-        return amc_view(request, pk, active_tab=1)
-    else:
-        return HttpResponse(result)
+    #if not 'ERR:' in result:
+    return amc_view(request, pk, active_tab=1)
+    #else:
+    #    return HttpResponse(result)
 
 
 def open_amc_exam_pdf(request,pk):

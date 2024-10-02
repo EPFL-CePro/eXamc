@@ -13,6 +13,7 @@
 #     1. Import the include() function: from django.urls import include, path
 #     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 # """
+from celery_progress.urls import app_name
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -46,6 +47,7 @@ urlpatterns = ([
     path('set_final_scale/<int:pk>', views.set_final_scale, name="set_final_scale"),
     path('documentation',login_required(views.documentation_view), name="documentation"),
 ] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
+    + static(settings.MARKED_SCANS_URL, document_root=settings.MARKED_SCANS_ROOT)
     + static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
    + static(settings.DOCUMENTATION_URL, document_root=settings.DOCUMENTATION_ROOT)
    + static(settings.ROOMS_PLANS_URL, document_root=settings.ROOMS_PLANS_ROOT)

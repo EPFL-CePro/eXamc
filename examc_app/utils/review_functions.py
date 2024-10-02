@@ -452,3 +452,5 @@ def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
             marker_intersects.append({"old": old_marker_str, "new": json.dumps(new_marker)})
 
     return marker_intersects
+
+

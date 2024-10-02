@@ -32,7 +32,6 @@
             {% endfor %}
             <th scope="col">Delete</th>
             <th scope="col">Grading Help</th>
-            <th scope="col">Corrector boxes</th>
         </tr>
       </thead>
       <tbody id="group-tbody">
@@ -47,7 +46,7 @@
             
             <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
             <td><button type="button" id="grading-help-bt" title="Grading Help" class="btn btn-light" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )"><i class="fas fa-question-circle fa-xl"></i></button></td>
-            <td><button type="button" id="corrector-box-bt" title="Corrector Boxes" class="btn btn-light" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})"><i class="fas fa-highlighter fa-xl" style="color:#7A03CCFF;"></i></button></td>
+{#            <td><button type="button" id="corrector-box-bt" title="Corrector Boxes" class="btn btn-light" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})"><i class="fas fa-highlighter fa-xl" style="color:#7A03CCFF;"></i></button></td>#}
         </tr>
         {% endfor %}
         <tr class="exam_pages_groups_formset_empty_form" hidden>
@@ -133,23 +132,23 @@
   </div>
 </div>
 
-<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="imageModalLabel">Corrector boxes</h5>
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
-            </div>
-            <div class="modal-body" style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
-                <img id="imgScan"  style="width:100%;" alt="Image">
-<!--                <img id="marked_img" style="max-width:100%;min-width: 600px; position: absolute;">-->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
+{#<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">#}
+{#    <div class="modal-dialog modal-dialog-centered modal-lg">#}
+{#        <div class="modal-content">#}
+{#            <div class="modal-header">#}
+{#                <h5 class="modal-title" id="imageModalLabel">Corrector boxes</h5>#}
+{#                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>#}
+{#            </div>#}
+{#            <div class="modal-body" style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 50px;">#}
+{#                <img id="imgScan"  style="width:100%;" alt="Image">#}
+{#<!--                <img id="marked_img" style="max-width:100%;min-width: 600px; position: absolute;">-->#}
+{#            </div>#}
+{#            <div class="modal-footer">#}
+{#                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>#}
+{#            </div>#}
+{#        </div>#}
+{#    </div>#}
+{#</div>#}
 
 <script type="text/javascript">
 
@@ -205,141 +204,141 @@ function saveGradingHelp(group_id){
     });
 }
 
-// Marker.js configuration remains the same
-let markerArea, sourceImage, targetRoot, maState, modalCorrectorBoxGroupPk;
-
-function setSourceImage(source) {
-  sourceImage = source;
-  targetRoot = source.parentElement;
-}
-
-function showMarkerArea(target) {
-  markerArea = new markerjs2.MarkerArea(sourceImage);
-  markerArea.targetRoot = targetRoot;
-  markerArea.availableMarkerTypes = ["HighlightMarker"];
-  markerArea.settings.defaultHighlightColor = 'purple';
-  markerArea.settings.defaultHighlightOpacity = 0.45;
-  markerArea.uiStyleSettings.resultButtonBlockVisible = false;
-  markerArea.uiStyleSettings.hideToolbox = true;
-  
-  markerArea.addEventListener("render", (event) => {
-    target.src = event.dataUrl;
-    maState = event.state;
-    console.log(maState);
-   });
-  markerArea.addEventListener("close", (event) => {
-    showMarkerArea(target);
-  }); 
-      
-    markerArea.addEventListener("markerdeselect", (event) => {
-        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));
-    });
-    
-    markerArea.addEventListener("markerdelete", (event) => {
-        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));
-    });
-    
-    markerArea.addEventListener("markerchange", (event) => {
-        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));
-    });
-    
-  markerArea.show();
-  if (maState) {
-    markerArea.restoreState(maState);
-  }
-}
-
-
-function markerDeselect(){
-    svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
-    svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));
-    svgDataUrl = `data:image/svg+xml;charset=utf-8;base64,${svgDataBase64}`;
-
-    addMarkersImageProcess(svgDataUrl).then(img => {
-        var canvas = document.createElement('canvas')
-
-        canvas.setAttribute('width', markerArea.target.naturalWidth)
-        canvas.setAttribute('height', markerArea.target.naturalHeight)
-
-        var context = canvas.getContext('2d')
-        context.drawImage(markerArea.target, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
-        context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
-        var dataUrl = canvas.toDataURL('image/png')
-        markedImage.src = dataUrl;
-        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));
-    });
-}
-
-function addMarkersImageProcess(src){
-  return new Promise((resolve, reject) => {
-    let img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = reject
-    img.src = src
-  })
-}
-
-// Attach shown event listener specifically to image modal
-$('#imageModal').on('shown.bs.modal', function() {
-    const modalImage = document.getElementById('imgScan');
-    setSourceImage(modalImage);
-    showMarkerArea(modalImage);
-});
-
-function openModalCorrectorBox(group_id) {
-    $.ajax({
-        type: 'POST',
-        url: "{% url 'get_pages_group_rectangle_data' %}",
-        data: {
-            'group_id': group_id,
-            'csrfmiddlewaretoken': '{{ csrf_token }}'
-        },
-        success: (data) => {
-            data_list = JSON.parse(data)
-            var imgScan = document.getElementById('imgScan');
-            imgScan.src = data_list.img_path;
-            modalCorrectorBoxGroupPk = group_id;
-            //if(data_list.markers !== '') {
-                maState = JSON.parse(data_list.markers);
-            //}
-            var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-            imageModal.show();                
-        },      
-        error: function(error) {
-            console.log(error);
-        }
-    });
-}
-
-function updateMarkers(markers,filename){
-    var state = JSON.stringify(markerArea.getState());
-    $.ajax({
-        url : "{% url 'update_page_group_markers' %}",
-        async : false,
-        type : "POST",
-        data : {
-            
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
-            'pages_group_pk' : modalCorrectorBoxGroupPk,
-            'markers' : markers,
-            'filename' : filename
-        },
-        beforeSend : function(){
-            $('#loadingModal').modal('show');
-        },
-        success: function (response) {
-            console.log('Success');
-        },
-        error: function (error) {
-            console.log(error);
-        },
-        complete: function () {
-            $('#loadingModal').modal('hide');
-            //markerArea.restoreState(maState);
-        }
-    });
-}
+{#// Marker.js configuration remains the same#}
+{#let markerArea, sourceImage, targetRoot, maState, modalCorrectorBoxGroupPk;#}
+{##}
+{#function setSourceImage(source) {#}
+{#  sourceImage = source;#}
+{#  targetRoot = source.parentElement;#}
+{#}#}
+{##}
+{#function showMarkerArea(target) {#}
+{#  markerArea = new markerjs2.MarkerArea(sourceImage);#}
+{#  markerArea.targetRoot = targetRoot;#}
+{#  markerArea.availableMarkerTypes = ["HighlightMarker"];#}
+{#  markerArea.settings.defaultHighlightColor = 'purple';#}
+{#  markerArea.settings.defaultHighlightOpacity = 0.45;#}
+{#  markerArea.uiStyleSettings.resultButtonBlockVisible = false;#}
+{#  markerArea.uiStyleSettings.hideToolbox = true;#}
+{#  #}
+{#  markerArea.addEventListener("render", (event) => {#}
+{#    target.src = event.dataUrl;#}
+{#    maState = event.state;#}
+{#    console.log(maState);#}
+{#   });#}
+{#  markerArea.addEventListener("close", (event) => {#}
+{#    showMarkerArea(target);#}
+{#  }); #}
+{#      #}
+{#    markerArea.addEventListener("markerdeselect", (event) => {#}
+{#        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));#}
+{#    });#}
+{#    #}
+{#    markerArea.addEventListener("markerdelete", (event) => {#}
+{#        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));#}
+{#    });#}
+{#    #}
+{#    markerArea.addEventListener("markerchange", (event) => {#}
+{#        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));#}
+{#    });#}
+{#    #}
+{#  markerArea.show();#}
+{#  if (maState) {#}
+{#    markerArea.restoreState(maState);#}
+{#  }#}
+{#}#}
+{##}
+{##}
+{#function markerDeselect(){#}
+{#    svgData = new XMLSerializer().serializeToString(markerArea.markerImage);#}
+{#    svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));#}
+{#    svgDataUrl = `data:image/svg+xml;charset=utf-8;base64,${svgDataBase64}`;#}
+{##}
+{#    addMarkersImageProcess(svgDataUrl).then(img => {#}
+{#        var canvas = document.createElement('canvas')#}
+{##}
+{#        canvas.setAttribute('width', markerArea.target.naturalWidth)#}
+{#        canvas.setAttribute('height', markerArea.target.naturalHeight)#}
+{##}
+{#        var context = canvas.getContext('2d')#}
+{#        context.drawImage(markerArea.target, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)#}
+{#        context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)#}
+{#        var dataUrl = canvas.toDataURL('image/png')#}
+{#        markedImage.src = dataUrl;#}
+{#        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));#}
+{#    });#}
+{#}#}
+{##}
+{#function addMarkersImageProcess(src){#}
+{#  return new Promise((resolve, reject) => {#}
+{#    let img = new Image()#}
+{#    img.onload = () => resolve(img)#}
+{#    img.onerror = reject#}
+{#    img.src = src#}
+{#  })#}
+{#}#}
+{##}
+{#// Attach shown event listener specifically to image modal#}
+{#$('#imageModal').on('shown.bs.modal', function() {#}
+{#    const modalImage = document.getElementById('imgScan');#}
+{#    setSourceImage(modalImage);#}
+{#    showMarkerArea(modalImage);#}
+{#});#}
+{##}
+{#function openModalCorrectorBox(group_id) {#}
+{#    $.ajax({#}
+{#        type: 'POST',#}
+{#        url: "{% url 'get_pages_group_rectangle_data' %}",#}
+{#        data: {#}
+{#            'group_id': group_id,#}
+{#            'csrfmiddlewaretoken': '{{ csrf_token }}'#}
+{#        },#}
+{#        success: (data) => {#}
+{#            data_list = JSON.parse(data)#}
+{#            var imgScan = document.getElementById('imgScan');#}
+{#            imgScan.src = data_list.img_path;#}
+{#            modalCorrectorBoxGroupPk = group_id;#}
+{#            //if(data_list.markers !== '') {#}
+{#                maState = JSON.parse(data_list.markers);#}
+{#            //}#}
+{#            var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));#}
+{#            imageModal.show();                #}
+{#        },      #}
+{#        error: function(error) {#}
+{#            console.log(error);#}
+{#        }#}
+{#    });#}
+{#}#}
+{##}
+{#function updateMarkers(markers,filename){#}
+{#    var state = JSON.stringify(markerArea.getState());#}
+{#    $.ajax({#}
+{#        url : "{% url 'update_page_group_markers' %}",#}
+{#        async : false,#}
+{#        type : "POST",#}
+{#        data : {#}
+{#            #}
+{#            'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
+{#            'exam_pk' : {{ exam.pk }},#}
+{#            'pages_group_pk' : modalCorrectorBoxGroupPk,#}
+{#            'markers' : markers,#}
+{#            'filename' : filename#}
+{#        },#}
+{#        beforeSend : function(){#}
+{#            $('#loadingModal').modal('show');#}
+{#        },#}
+{#        success: function (response) {#}
+{#            console.log('Success');#}
+{#        },#}
+{#        error: function (error) {#}
+{#            console.log(error);#}
+{#        },#}
+{#        complete: function () {#}
+{#            $('#loadingModal').modal('hide');#}
+{#            //markerArea.restoreState(maState);#}
+{#        }#}
+{#    });#}
+{#}#}
 {#const maStateData = JSON.stringify(maState);#}
 {#$.ajax({#}
 {#    type: 'POST',#}
