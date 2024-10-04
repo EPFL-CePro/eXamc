@@ -2,10 +2,8 @@ from django.contrib.auth.decorators import login_required
 from django.urls import path, include, re_path
 
 from examc_app import views, tasks
-from examc_app.admin import ExamAdmin
-from examc_app.views import menu_access_required
 
-from examc_app.views import menu_access_required, staff_status, users_view
+from examc_app.views import menu_access_required
 from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 
 urlpatterns = [
@@ -101,10 +99,10 @@ urlpatterns = [
     path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
 
     # CSVGEN
-    path('csvgen', csvgen_views.csvgen, name="csvgen"),
+    path('csvgen', views.csvgen, name="csvgen"),
 
     # SEARCH LDAP
-    path('search/', ldap_search_view.upload_excel_generate_csv, name='search_people'),
+    path('search/', views.upload_excel_generate_csv, name='search_people'),
 
     # EPFL LDAP
     path('ldap_search_exam_user_by_email', views.ldap_search_exam_user_by_email, name="ldap_search_exam_user_by_email"),
