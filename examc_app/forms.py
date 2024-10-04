@@ -223,4 +223,18 @@ class SeatingForm(forms.Form):
         widget=forms.RadioSelect(attrs={'data-tooltip': "Choose the shape to draw."}),
         initial='circle'
     )
-    # preview = forms.BooleanField(required=False, initial=False, widget=forms.HiddenInput())
+
+
+class ldapForm(forms.Form):
+    LDAP_SEARCH_CHOICES = [
+        ('uniqueidentifier', 'Sciper'),
+        ('displayName', 'Name'),
+        ('mail', 'Email')
+    ]
+
+    choice = forms.ChoiceField(
+        choices=LDAP_SEARCH_CHOICES,
+        label='To search in LDAP',
+        widget=forms.RadioSelect(attrs={'data-tooltip': "Choose LDAP search."}),
+        initial='sciper'
+    )

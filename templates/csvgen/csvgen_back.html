@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<script type="text/javascript" charset="utf-8">
+    $(window).on("load",function(){
+        $('#datatable').DataTable( {
+            "paging":   false
+        } );
+
+        $("#excel_file").on("change", function() {
+            var fileName = $(this).val().split("\\").pop();
+            $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+        });
+
+        $('#download_bt').on('click', function() {
+          var stud_table = $('#datatable').DataTable();
+          var students_list = stud_table.rows().data().toArray();
+          download_csv(students_list);
+        });
+
+        function download_csv(students_list){
+            $.ajax({
+              url : "{% url 'export_csv' %}",
+              type : "POST",
+              data : {
+                'csrfmiddlewaretoken' : "{{  csrf_token  }}"
+              }
+            });
+          }
+    } );
+
+</script>
+{% endblock %}
+{% block title %}CSV-GENERATOR{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1>CSV GENERATOR</h1>
+    <form action="{% url 'import_students_excel' %}" method="POST" enctype="multipart/form-data"
+          class="form-horizontal">
+        {% csrf_token %}
+        <div class="form-row align-items-center">
+
+            <div class="col-md-8">
+                <input type="file"
+                       accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                       name="students_excel_file" id="excel_file" class="custom-file-input form-control">
+                <label class="custom-file-label" for="excel_file">Choose students Excel file</label>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3">
+                <button class="btn btn-primary"><span class="glyphicon glyphicon-upload"
+                                                      style="margin-right:5px;"></span>Upload
+                </button>
+            </div>
+        </div>
+
+        <form action="/action_page.php">
+            <label for="choice">Choose the type of file:</label>
+            <select name="choice" id="choice">
+                <option value="a">AMC</option>
+                <option value="b">ANS</option>
+
+
+            </select>
+        </form>
+    </form>
+
+
+</div>
+<button class="btn btn-success" type="button" id="download_bt"><span class="glyphicon glyphicon-upload" style="margin-right:5px;"></span>Download csv
+        </button>
+{% if students_list %}
+<div>
+
+    <table id="datatable" class="table table-sm table-striped" style="margin-left:50px; text-align: left; ">
+        <thead class="thead-dark" style="text-align: left">
+        <tr>
+            <th>ID</th>
+            <th>SCIPER</th>
+
+            {% if CSV_TYPE_AMC == a %}
+            <th>NAME</th>
+            <th>EMAIL</th>
+            <th>SEAT</th>
+
+            {% else %}
+            <th>FIRST_NAME</th>
+            <th>LAST_NAME</th>
+            <th>CLASS_NAME</th>
+            {% endif %}
+        </tr>
+        </thead>
+        <tbody>
+        <!--Displaying the converted table-->
+        {% for student in students_list %}
+        <tr>
+            <td>{{ student.id }}</td>
+            <td>{{ student.sciper }}</td>
+
+            {% if CSV_TYPE_AMC  == a %}
+            <td>{{ student.name }}</td>
+            <td>{{ student.email }}</td>
+            <td>{{ student.seat }}</td>
+
+            {% else %}
+            <td>{{ student.first_name }}</td>
+            <td>{{ student.last_name }}</td>
+            <td>{{ student.class_name }}</td>
+            {% endif %}
+
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}
