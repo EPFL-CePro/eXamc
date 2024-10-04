@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load render_table from django_tables2 %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <div>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+            {% csrf_token %}
+            {{ form.as_p }}
+            
+            <label for="file">Excel File (.xlsx) :</label>
+            <input type="file" class="form-control" name="file" id="file" accept=".xlsx" required>
+            
+            <button type="submit" class="btn btn-primary mb-2">Upload</button>
+                </div>
+        </form>
+        
+    </div>
+{% endblock %}
