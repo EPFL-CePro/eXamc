@@ -5,39 +5,55 @@ from examc_app import views, tasks
 from examc_app.admin import ExamAdmin
 from examc_app.views import menu_access_required
 
-from examc_app.views import menu_access_required, staff_status, users_view
+from examc_app.views import menu_access_required
 from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 
 urlpatterns = [
-    path('users/', users_view, name='users'),
-    path('staff-status/<int:user_id>/', staff_status, name='staff_status'),
-    path('admin/exam/import/', ExamAdmin.import_exams_csv_data),
-    path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
-    # scans upload
+    # EXAM INFO
+    path('update_exam_users', views.update_exam_users, name="update_exam_users"),
+    path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
+    path('examInfo/<int:pk>/<str:task_id>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
+    path('update_exam_options/<int:pk>', views.update_exam_options, name='update_exam_options'),
+    path('create_scale/<int:pk>', login_required(views.ScaleCreateView.as_view()), name="create_scale"),
+    path('delete_exam_scale/<int:scale_pk>/<int:exam_pk>', views.delete_exam_scale, name="delete_exam_scale"),
+    path('set_final_scale/<int:pk>', views.set_final_scale, name="set_final_scale"),
+
+    # PREPARATION
+    path('create_exam_project', views.create_exam_project, name="create_exam_project"),
+    path('exam_preparation/<int:pk>', views.exam_preparation_view,name="exam_preparation"),
+    path('exam_add_section/<int:exam_pk>', views.exam_add_section,name="exam_add_section"),
+    path('exam_add_section_question', views.exam_add_section_question, name="exam_add_section_question"),
+    path('exam_update_section', views.exam_update_section, name="exam_update_section"),
+    path('exam_update_question', views.exam_update_question, name="exam_update_question"),
+    path('exam_update_answers', views.exam_update_answers, name="exam_update_answers"),
+    path('exam_remove_answer',views.exam_remove_answer,name="exam_remove_answer"),
+    path('exam_remove_question',views.exam_remove_question,name="exam_remove_question"),
+    path('exam_remove_section',views.exam_remove_section,name="exam_remove_section"),
+    path('exam_add_answer',views.exam_add_answer,name="exam_add_answer"),
+    path('exam_update_first_page',views.exam_update_first_page,name="exam_update_first_page"),
+    path('exam_preview_pdf/<int:exam_pk>', views.exam_preview_pdf, name="exam_preview_pdf"),
+    path('get_header_section_txt', views.get_header_section_txt, name="get_header_section_txt"),
+
+    # REVIEW SETTINGS
     path('upload_scans/<int:pk>', menu_access_required(views.upload_scans), name="upload_scans"),
-    # Review Settings
     path('reviewSettings/<int:pk>/<str:curr_tab>', menu_access_required(views.ReviewSettingsView.as_view()), name="reviewSettingsView"),
-    #path('add_new_reviewers', views.add_new_reviewers, name="add_new_reviewers"),
     path('add_new_pages_group/<int:pk>', views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
-    # path('edit_pages_group_corrector_box', views.edit_pages_group_corrector_box, name="edit_pages_group_corrector_box"),
-    # path('get_pages_group_rectangle_data', views.get_pages_group_rectangle_data, name='get_pages_group_rectangle_data'),
     path('delete_pages_group/<int:pages_group_pk>', views.delete_pages_group, name="delete_pages_group"),
-    #path('remove_exam_user/<int:user_pk>/<int:exam_pk>', views.remove_exam_user, name="remove_exam_user"),
-    # EPFL ldap
-    path('ldap_search_exam_user_by_email', views.ldap_search_exam_user_by_email, name="ldap_search_exam_user_by_email"),
-    # Review
+
+    # REVIEW
     path('review/<int:pk>', login_required(views.ReviewView.as_view()), name="reviewView"),
     path('reviewGroup/<int:pk>/<str:currpage>', login_required(views.ReviewGroupView.as_view()), name="reviewGroup"),
     path('save_markers', views.saveMarkers, name="save_markers"),
     path('get_markers_and_comments', views.getMarkersAndComments, name="get_markers_and_comments"),
     path('save_comment', views.saveComment, name="save_comment"),
     path('update_page_group_markers', views.update_page_group_markers, name="update_page_group_markers"),
-    path('check_if_markers_intersect', views.check_if_markers_intersect, name="check_if_markers_intersect"),
-    # Export
+
+    # REVIEW EXPORT
     path('generate_marked_files/<int:pk>', views.generate_marked_files, name="generate_marked_files"),
     path('download_marked_files/<str:filename>', views.download_marked_files,name="download_marked_files"),
+
     # AMC
     path('amc_view/<int:pk>', views.amc_view, name="amc_view"),
     path('amc_view/<int:pk>/<int:active_tab>', views.amc_view, name="amc_view"),
@@ -66,11 +82,12 @@ urlpatterns = [
     path('amc_set_manual_association',views.amc_set_manual_association, name="amc_set_manual_association"),
     path('amc_send_annotated_papers_data',views.amc_send_annotated_papers_data, name="amc_send_annotated_papers_data"),
     path('call_amc_send_annotated_papers/<int:pk>', views.call_amc_send_annotated_papers, name="call_amc_send_annotated_papers"),
-    # Results & Statistics
+
+    # RESULTS & STATISTICS
     path('catalogPdf/<int:pk>', views.display_catalog, name="catalogPdf"),
     path('catalogPdf/<int:pk>/<slug:searchFor>', views.display_catalog, name="catalogPdf"),
     path('update_question', views.update_question, name="update_question"),
-    path('update_student_present', views.update_student_present, name="update_student_present"),
+    path('update_student_present/<int:pk>/<int:value>', views.update_student_present, name="update_student_present"),
     path('generateStats/<int:pk>', views.generate_stats, name="generate_stats"),
     path('generalStats/<int:pk>', views.general_statistics_view, name="generalStats"),
     path('studentsResults/<int:pk>', views.students_results_view, name="studentsResults"),
@@ -79,26 +96,17 @@ urlpatterns = [
     path('import_data_4_stats/<int:pk>', views.import_data_4_stats, name="import_data_4_stats"),
     path('upload_amc_csv/<int:pk>', views.upload_amc_csv, name="upload_amc_csv"),
     path('upload_catalog_pdf/<int:pk>', views.upload_catalog_pdf, name="upload_catalog_pdf"),
-    # Exam
-    path('update_exam_users', views.update_exam_users, name="update_exam_users"),
-    path('create_exam_project', views.create_exam_project, name="create_exam_project"),
-    path('exam_preparation/<int:pk>', views.exam_preparation_view,name="exam_preparation"),
-    path('exam_add_section/<int:exam_pk>', views.exam_add_section,name="exam_add_section"),
-    path('exam_add_section_question', views.exam_add_section_question, name="exam_add_section_question"),
-    path('exam_update_section', views.exam_update_section, name="exam_update_section"),
-    path('exam_update_question', views.exam_update_question, name="exam_update_question"),
-    path('exam_update_answers', views.exam_update_answers, name="exam_update_answers"),
-    path('exam_remove_answer',views.exam_remove_answer,name="exam_remove_answer"),
-    path('exam_remove_question',views.exam_remove_question,name="exam_remove_question"),
-    path('exam_remove_section',views.exam_remove_section,name="exam_remove_section"),
-    path('exam_add_answer',views.exam_add_answer,name="exam_add_answer"),
-    path('exam_update_first_page',views.exam_update_first_page,name="exam_update_first_page"),
-    path('exam_preview_pdf/<int:exam_pk>', views.exam_preview_pdf, name="exam_preview_pdf"),
-    path('get_header_section_txt', views.get_header_section_txt, name="get_header_section_txt"),
+
+    # ROOM PLAN
+    path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
+
+    # EPFL LDAP
+    path('ldap_search_exam_user_by_email', views.ldap_search_exam_user_by_email, name="ldap_search_exam_user_by_email"),
+
+    # CKEDITOR5
     path("ckeditor5/", include('django_ckeditor_5.urls')),
-    # testing
-    path('testing', views.testing, name="testing"),
-    # Celery progress
+
+    # CELERY-PROGRESS
     path('celery-progress/', include('celery_progress.urls')),
 
 

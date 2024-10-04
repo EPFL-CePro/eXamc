@@ -46,20 +46,6 @@ def menu_access_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapped_view
 
-def users_view(request):
-    users = User.objects.all()
-    return render(request, 'admin/users.html', {'users': users})
-
-@user_passes_test(lambda u: u.is_superuser)
-def staff_status(request, user_id):
-    user = User.objects.get(pk=user_id)
-    if request.POST.get('action') == 'add_staff':
-        user.is_staff = True
-    elif request.POST.get('action') == 'remove_staff':
-        user.is_staff = False
-    user.save()
-    return redirect('users')
-
 def log_in(request, my_task=None):
     if request.method == 'POST':
         form = LoginForm(request.POST)

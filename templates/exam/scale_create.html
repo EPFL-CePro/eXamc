@@ -3,8 +3,8 @@
     <h5 class="modal-title" id="create-scale-title">Add scale</h5>
     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
 </div>
-<div id="create-scale-body" class="modal-body">
-    <form method="post" style="width:900px;">{% csrf_token %}
+<form method="post">{% csrf_token %}
+    <div id="create-scale-body" class="modal-body">
         <table cellpadding="10" style="margin-bottom:50px;">
           {{ form.as_table }}
           <!-- <tr>
@@ -14,9 +14,9 @@
             </td>
           </tr> -->
         </table>
-    </form>
-</div>
-<div class="modal-footer" style="text-align:right;">
-     <input type="submit" class="btn btn-dark btn-sm" value="validate"/>
-</div>
+    </div>
+    <div class="modal-footer" style="text-align:right;">
+         <input type="submit" class="btn btn-dark btn-sm" value="validate"/>
+    </div>
+</form>
 

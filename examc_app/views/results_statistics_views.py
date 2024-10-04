@@ -10,46 +10,32 @@ from django.db.models.functions import Cast
 from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
 
 from examc_app.forms import ExportResultsForm
 from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import *
+from examc_app.views import ExamInfoView
 from userprofile.models import *
 
 ## testing
-from examc_app.tasks import import_csv_data
+from examc_app.tasks import import_csv_data, generate_statistics
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
 
-# QUESTIONS MANAGEMENT
-# ------------------------------------------
-@login_required
-def update_question(request):
-    question = Question.objects.get(pk=request.POST['pk'])
-    field_name = request.POST['field']
-    value = request.POST['value']
-    if field_name == 'answers':
-        yo = 1
-    else:
-        setattr(question, field_name, value)
-    question.save()
-
-    return HttpResponse(1)
-
 # STUDENTS MANAGEMENT
 @login_required
-def update_student_present(request):
+def update_student_present(request,pk,value):
 
-    student = Student.objects.get(pk=request.POST['pk'])
-    value = request.POST['value']
+    student = Student.objects.get(pk=pk)
 
     logger.info(value)
 
-    if value == "1":
+    if value == 1:
         student.present = True
         student.exam.present_students += 1
     else:
@@ -59,11 +45,17 @@ def update_student_present(request):
     student.save()
     student.exam.save()
 
-    EXAM = Exam.objects.get(pk=student.exam.pk)
+    exam = Exam.objects.get(pk=student.exam.pk)
 
-    generate_statistics(student.exam)
+    task = generate_statistics.delay(student.exam.pk)
+    task_id = task.task_id
 
-    return HttpResponse(1)
+    return students_results_view(request,student.exam.pk,task_id)
+
+    # generate_statistics(student.exam)
+    #
+    # return HttpResponse(1)
+
 @login_required
 def import_data_4_stats(request,pk,task_id=None):
     exam = Exam.objects.get(pk=pk)
@@ -218,9 +210,16 @@ def export_data(request,pk):
 @login_required
 def generate_stats(request, pk):
     exam = Exam.objects.get(pk=pk)
-    generate_statistics(exam)
+    #generate_statistics(exam)
 
-    return redirect('../examInfo/' + str(exam.pk))
+    task = generate_statistics.delay(exam.pk)
+    task_id = task.task_id
+
+    # if not result == True:
+    #     messages.error(request, "Unable to upload file. " + result)
+
+    return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': pk, 'task_id': task_id}))
+    #return redirect('../examInfo/' + str(exam.pk))
 
 @login_required
 def general_statistics_view(request,pk):
@@ -265,7 +264,7 @@ def general_statistics_view(request,pk):
 
 
 @login_required
-def students_results_view(request, pk):
+def students_results_view(request, pk, task_id=None):
     exam = Exam.objects.get(pk=pk)
     currexam = exam
 
@@ -287,7 +286,8 @@ def students_results_view(request, pk):
                            "exam" : exam,
                            "common_list": common_list,
                            "currselected_exam" : currexam,
-                           "current_url": "studentsResults"})
+                           "current_url": "studentsResults",
+                           "task_id":task_id})
         else:
             return render(request, "res_and_stats/students_results.html", {"user_allowed":True, "scales": None, "students": None})
     else:

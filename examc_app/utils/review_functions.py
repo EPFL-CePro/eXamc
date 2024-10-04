@@ -363,94 +363,80 @@ def zipdir(path, ziph):
                        os.path.relpath(os.path.join(root, file),os.path.join(path, '..')))
 
 
-# def generate_marked_pdfs(files_path, export_type):
-#     for subdir in os.listdir(files_path):
-#         pdf = FPDF(orientation='P', unit='mm', format='A4')
-#         pdf.set_auto_page_break(0)
-#
-#         for image in os.listdir(files_path + "/" + subdir):
-#             pdf.add_page()
-#             pdf.image(files_path + "/" + subdir + "/" + image, 0, 0, 210)
-#
-#         pdf.output(files_path + "/copy_" + subdir + ".pdf", "F")
-
-
 def updateCorrectorBoxMarked(pageMarkers):
     markers = json.loads(pageMarkers.markers)['markers']
     for marker in markers:
         return None
 
 
-
-
-def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
-    corr_box_marker_data = json.loads(corrector_box_marker_set)['markers']
-    other_markers_data = json.loads(other_marker_set)['markers']
-    corr_box_coords = None
-    for marker in corr_box_marker_data:
-        left = marker['left']
-        top = marker['top']
-        width = marker['width']
-        height = marker['height']
-        a = (left, top)
-        b = (left + width, top)
-        c = (left + width, top + height)
-        d = (left, top + height)
-        corr_box_coords = [a, b, c, d]
-
-    other_coords = []
-    for marker in other_markers_data:
-        if marker['typeName'] == 'ArrowMarker':
-            left = marker['x1']
-            top = marker['y1']
-            width = marker['x2']-left
-            height = marker['y2']-top
-            a = (left, top)
-            b = (left + width, top)
-            c = (left + width, top + height)
-            d = (left, top + height)
-        else:
-            left = marker['left']
-            top = marker['top']
-            width = marker['width']
-            height = marker['height']
-            a = (left, top)
-            b = (left + width, top)
-            c = (left + width, top + height)
-            d = (left, top + height)
-        other_coords.append([marker,[a, b, c, d]])
-
-    corr_box_polygon = Polygon(corr_box_coords)
-
-    marker_intersects = []
-    for other_coord in other_coords:
-        other_polygon = Polygon(other_coord[1])
-
-        if other_polygon.intersects(corr_box_polygon):
-            #change fill color to black to ensure good detection with AMC
-            old_marker_str = json.dumps(other_coord[0])
-            new_marker = other_coord[0]
-            if(new_marker['typeName'] == 'FreehandMarker'):
-                dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
-                img_data = dataUrlPattern.match(new_marker['drawingImgUrl']).group(2)
-                img_data = base64.b64decode(img_data)
-                img_file = Image.open(io.BytesIO(img_data))
-                img_file = img_file.convert("L")
-                enhancer = ImageEnhance.Brightness(img_file)
-                # to reduce brightness by 50%, use factor 0.5
-                img_file = enhancer.enhance(0.5)
-                buffered = io.BytesIO()
-                img_file.save(buffered, format="PNG")
-                img_str = base64.b64encode(buffered.getvalue())
-                img_data_url =  u'data:image/png;base64,'+img_str.decode('utf-8')
-
-
-                new_marker['drawingImgUrl'] = img_data_url
-            else:
-                new_marker['fillColor'] = 'black'
-
-            marker_intersects.append({"old": old_marker_str, "new": json.dumps(new_marker)})
-
-    return marker_intersects
+# def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
+#     corr_box_marker_data = json.loads(corrector_box_marker_set)['markers']
+#     other_markers_data = json.loads(other_marker_set)['markers']
+#     corr_box_coords = None
+#     for marker in corr_box_marker_data:
+#         left = marker['left']
+#         top = marker['top']
+#         width = marker['width']
+#         height = marker['height']
+#         a = (left, top)
+#         b = (left + width, top)
+#         c = (left + width, top + height)
+#         d = (left, top + height)
+#         corr_box_coords = [a, b, c, d]
+#
+#     other_coords = []
+#     for marker in other_markers_data:
+#         if marker['typeName'] == 'ArrowMarker':
+#             left = marker['x1']
+#             top = marker['y1']
+#             width = marker['x2']-left
+#             height = marker['y2']-top
+#             a = (left, top)
+#             b = (left + width, top)
+#             c = (left + width, top + height)
+#             d = (left, top + height)
+#         else:
+#             left = marker['left']
+#             top = marker['top']
+#             width = marker['width']
+#             height = marker['height']
+#             a = (left, top)
+#             b = (left + width, top)
+#             c = (left + width, top + height)
+#             d = (left, top + height)
+#         other_coords.append([marker,[a, b, c, d]])
+#
+#     corr_box_polygon = Polygon(corr_box_coords)
+#
+#     marker_intersects = []
+#     for other_coord in other_coords:
+#         other_polygon = Polygon(other_coord[1])
+#
+#         if other_polygon.intersects(corr_box_polygon):
+#             #change fill color to black to ensure good detection with AMC
+#             old_marker_str = json.dumps(other_coord[0])
+#             new_marker = other_coord[0]
+#             if(new_marker['typeName'] == 'FreehandMarker'):
+#                 dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
+#                 img_data = dataUrlPattern.match(new_marker['drawingImgUrl']).group(2)
+#                 img_data = base64.b64decode(img_data)
+#                 img_file = Image.open(io.BytesIO(img_data))
+#                 img_file = img_file.convert("L")
+#                 enhancer = ImageEnhance.Brightness(img_file)
+#                 # to reduce brightness by 50%, use factor 0.5
+#                 img_file = enhancer.enhance(0.5)
+#                 buffered = io.BytesIO()
+#                 img_file.save(buffered, format="PNG")
+#                 img_str = base64.b64encode(buffered.getvalue())
+#                 img_data_url =  u'data:image/png;base64,'+img_str.decode('utf-8')
+#
+#
+#                 new_marker['drawingImgUrl'] = img_data_url
+#             else:
+#                 new_marker['fillColor'] = 'black'
+#
+#             marker_intersects.append({"old": old_marker_str, "new": json.dumps(new_marker)})
+#
+#     return marker_intersects
 
 

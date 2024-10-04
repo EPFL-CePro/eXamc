@@ -69,7 +69,6 @@
 
 <body>
 {#<main>#}
-
     <script type="text/javascript">
 
         $(document).ready(function() {
@@ -118,21 +117,7 @@
                             </li>
                       </ul>
                     </div>
-                </li>                    
-                    
-{#                <a href="{% url 'examSelect' %}" class="bg-dark list-group-item list-group-item-action" style="color:lightgray;background-color: #1c1c1c !important">#}
-{#                    <div class="d-flex w-100 justify-content-start align-items-center">#}
-{#                        <span class="fas fa-folder-open" style="margin-right:5px;"></span>#}
-{#                        <span class="menu-collapsed" style="margin-right:5px;">Open exam</span>#}
-{#                    </div>#}
-{#                </a>#}
-{#                {% if user|more_arg:exam|is_allowed:'preparation' %}#}
-{#                <a class="bg-dark list-group-item list-group-item-action" href="{% url 'create_exam_project' %}" style="color: lightgray;background-color: #1c1c1c !important">#}
-{#                    <div class="d-flex w-100 justify-content-start align-items-center">#}
-{#                        <span class="fas fa-plus" style="margin-right:5px;"></span>#}
-{#                        <span class="menu-collapsed" style="margin-right:5px;">Create exam</span>#}
-{#                    </div>#}
-{#                {% endif %}#}
+                </li>   
                 {% if exam %}
                     <a {% if user|more_arg:exam|is_allowed:'preparation' %} href="{% url 'examInfo' exam.pk %}" {% endif %}class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="height:auto;background-color: #1d2124;margin-top:20px;">
                         <span title="{{ exam.code }}" class="fa-solid fa-book-open" style="margin-right: 5px;"></span>
@@ -229,21 +214,7 @@
                         <hr class="hr-sidebar">
                         {% endif %}
                     {% endif %}
-{#                    <a href="{% url 'generate_room_plan' %}"#}
-{#                           class="bg-dark list-group-item list-group-item-action">#}
-{#                            <div class="d-flex w-100 justify-content-start align-items-center">#}
-{#                                <span class="fa-solid fa-meteor" style="margin-right:5px;color:#fdfdfd;"></span>#}
-{#                                <span class="menu-collapsed" style="margin-right:5px;color:#ffffff;">Room plan</span>#}
-{#                            </div>#}
-{#                        </a>#}
-{#                        <hr class="hr-sidebar">#}
                     {% if user|is_admin %}
-                    <a href="{% url 'users' %}" class="bg-dark list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="fas fa-bone fa-spin" style="color: #fc6a00;margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="color: #fc6a00;margin-right:5px;">Users </span>
-                        </div>
-                    </a>
                     <a href="{% url 'admin:index' %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="fas fa-carrot fa-spin" style="color: #10E6BC;margin-right:5px;"></span>
@@ -277,9 +248,6 @@
 
         </div>
         <!-- sidebar-container END -->
-{#    </div>#}
-{#    </div>#}
-{#</main>#}
         <!-- page content -->
         <div id="page-content-wrapper">
         
@@ -344,7 +312,7 @@
 </html>
 
 <script>
-//TESTING
+
 {% if task_id %}
 function processProgress(progressBarElement, progressBarMessageElement, progress) {
     progressBarElement.style.width = progress.percent + "%";

@@ -25,10 +25,10 @@ $(window).on("load",function(){
     {% if currselected_exam.students %}
         {% for student in exam.students.all %}
             $('#present-{{student.pk}}-1').on('click', function() {
-              updateStudentPresent({{ student.pk }}, 1);
+              //updateStudentPresent({{ student.pk }}, 1);
             });
             $('#present-{{student.pk}}-0').on('click', function() {
-              updateStudentPresent({{ student.pk }}, 0);
+              //updateStudentPresent({{ student.pk }}, 0);
             });
         {% endfor %}
     {% endif %}
@@ -36,30 +36,30 @@ $(window).on("load",function(){
 })
 
 
-function updateStudentPresent(pk,value){
-  $.ajax({
-    url : "{% url 'update_student_present' %}",
-    type : "POST",
-    data : {
-      'csrfmiddlewaretoken' : "{{  csrf_token  }}",
-      'pk' : pk,
-      'value' : value
-    },
-    beforeSend : function(){
-      $('#loadingModal').modal('show');
-    },
-    complete: function () {
-      $('#loadingModal').modal('hide');
-    },
-    success : function(result) {
-      window.location.href += "?dataUpdated=true";
-      window.location.reload();
-    },              
-    error: (error) => {
-        console.log(error);
-    }
-  });
-}
+{#function updateStudentPresent(pk,value){#}
+{#  $.ajax({#}
+{#    url : "{% url 'update_student_present' %}",#}
+{#    type : "POST",#}
+{#    data : {#}
+{#      'csrfmiddlewaretoken' : "{{  csrf_token  }}",#}
+{#      'pk' : pk,#}
+{#      'value' : value#}
+{#    },#}
+{#    beforeSend : function(){#}
+      {#$('#loadingModal').modal('show');#}
+{#    },#}
+{#    complete: function () {#}
+      {#$('#loadingModal').modal('hide');#}
+{#    },#}
+{#    success : function(result) {#}
+      {#window.location.href += "?dataUpdated=true";#}
+      {#window.location.reload();#}
+{#    },              #}
+{#    error: (error) => {#}
+{#        console.log(error);#}
+{#    }#}
+{#  });#}
+{#}#}
 </script>
 {% if user_allowed %}
     <ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="students-results-nav" style="margin-bottom:10px;">
@@ -100,17 +100,17 @@ function updateStudentPresent(pk,value){
                                   <div class="btn-group btn-group-toggle" data-toggle="buttons" style="margin-left:-20px;">
                                   {% if student.present %}
                                     <label class="btn btn-light btn-sm active" style="background-color: transparent;">
-                                      <input type="radio" name="options" id="present-{{student.pk}}-1" checked {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl"></i>
+                                      <a href="{% url 'update_student_present' student.pk 1 %}"><input type="radio" name="options" id="present-{{student.pk}}-1" checked {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl"></i></a>
                                     </label>
                                     <label class="btn btn-light btn-sm" style="background-color: transparent;">
-                                        <input type="radio" name="options" id="present-{{student.pk}}-0" {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i>
+                                         <a href="{% url 'update_student_present' student.pk 0 %}"><input type="radio" name="options" id="present-{{student.pk}}-0" {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i></a>
                                     </label>
                                   {% else %}
                                     <label class="btn btn-light btn-sm" style="background-color: transparent;">
-                                      <input type="radio" name="options" id="present-{{student.pk}}-1" {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl" style="color:lightgray;"></i>
+                                        <a href="{% url 'update_student_present' student.pk 1 %}"><input type="radio" name="options" id="present-{{student.pk}}-1" {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl" style="color:lightgray;"></i></a>
                                     </label>
                                     <label class="btn btn-light btn-sm active" style="background-color: transparent;">
-                                        <input type="radio" name="options" id="present-{{student.pk}}-0" checked {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl"></i>
+                                        <a href="{% url 'update_student_present' student.pk 0 %}"><input type="radio" name="options" id="present-{{student.pk}}-0" checked {% if not user.is_staff %} disabled {% endif %} href="{% url 'update_student_present' student.pk 0 %}"><i class="fa-solid fa-circle-xmark fa-2xl"></i></a>
                                     </label>
                                   {% endif %}
                                   </div>
