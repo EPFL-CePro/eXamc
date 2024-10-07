@@ -1,5 +1,3 @@
-import row
-
 from examc_app.utils.epflldap import ldap_search
 from ..forms import ldapForm
 from ..utils.epflldap.ldap_search import LDAP_search
