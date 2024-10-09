@@ -7,16 +7,17 @@ import time
 import zipfile
 from contextlib import closing
 from datetime import datetime
+from time import sleep
 
 from celery import shared_task
-from celery_progress.backend import ProgressRecorder
+from celery_progress.backend import ProgressRecorder, logger
 from django.http import FileResponse
 from fpdf import FPDF
 
 from examc import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam
 from examc_app.utils.amc_functions import amc_automatic_data_capture
-from examc_app.utils.generate_statistics_functions import generate_exam_stats
+from examc_app.utils.generate_statistics_functions import generate_exam_stats, update_overall_common_exam
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
 
@@ -292,17 +293,6 @@ def import_exam_scans(self, zip_file_path, exam_pk):
 
     return ' Process finished. '+str(nb_copies)+' copies.'
 
-
-@shared_task(bind=True)
-def TASK_TESTING(self, a, b):
-    """
-   TESTING TASK
-    """
-    time.sleep(10)
-
-    return ' Process finished. '
-
-
 @shared_task(bind=True)
 def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
     try:
@@ -359,4 +349,36 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
         print(exception)
         raise exception
 
+@shared_task(bind=True)
+def generate_statistics(self,exam_pk):
+    try:
+        exam = Exam.objects.get(pk=exam_pk)
+        logger.info(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : Start generating statistics ---> ")
 
+        progress_recorder = ProgressRecorder(self)
+        process_count = 5
+        if exam.common_exams:
+            process_count = len(exam.common_exams.all())+6
+        process_number = 1
+        progress_recorder.set_progress(0, process_count, description='')
+
+        # update/init overall and common exams if common
+        if exam.common_exams.all():
+            process_number += 1
+            progress_recorder.set_progress(process_number, process_count, description='Updating common exams...')
+            overall_exam=update_overall_common_exam(exam)
+            generate_exam_stats(overall_exam,progress_recorder,process_number,process_count)
+        else:
+            generate_exam_stats(exam,progress_recorder,process_number,process_count)
+
+        logger.info(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  -- > End generating stats !")
+
+        process_number += 1
+        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
+            process_count) + 'Done!')
+        return ' Process finished.'
+
+    except Exception as exception:
+        self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during stats generation "+str(exception)})
+        print(exception)
+        raise exception

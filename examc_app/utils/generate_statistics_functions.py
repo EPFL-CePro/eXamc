@@ -22,21 +22,21 @@ from ..models import *
 
 # GENERATE STATISTICS
 #-------------------------------------------------
-def generate_statistics(exam):
-
-    logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : Start generating statistics ---> ")
-
-    # update/init overall and common exams if common
-    if exam.common_exams.all():
-        overall_exam=update_overall_common_exam(exam)
-        generate_exam_stats(overall_exam)
-    else:
-        #overall_exam=update_overall_common_exam(exam)
-        generate_exam_stats(exam)
-
-    logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  -- > End generating stats !")
-
-    return True
+# def generate_statistics(exam):
+#
+#     logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : Start generating statistics ---> ")
+#
+#     # update/init overall and common exams if common
+#     if exam.common_exams.all():
+#         overall_exam=update_overall_common_exam(exam)
+#         generate_exam_stats(overall_exam)
+#     else:
+#         #overall_exam=update_overall_common_exam(exam)
+#         generate_exam_stats(exam)
+#
+#     logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  -- > End generating stats !")
+#
+#     return True
 
 def update_overall_common_exam(exam):
     if not exam.overall:
@@ -106,7 +106,7 @@ def update_overall_common_exam(exam):
 
     return overall_exam
 
-def generate_exam_stats(exam):
+def generate_exam_stats(exam,progress_recorder,process_number,process_count):
     logger.info("GEN STATS for "+exam.code)
     # reset statistic
     reset_statistics(exam)
@@ -127,19 +127,20 @@ def generate_exam_stats(exam):
                 common_list = exam.common_exams.all().filter(~Q(pk=exam.pk),overall=False)
                 print(common_list)
                 for com_exam in common_list:
-                     generate_exam_stats(com_exam)
+                    generate_exam_stats(com_exam,progress_recorder,process_number,process_count)
 
                 discriminatory_count = round(exam.get_sum_common_students() * 27 / 100)
 
                 student_list = Student.objects.filter(exam__in=exam.common_exams.all(),present=True)
-                student_ordered_list = student_list.order_by('points')
                 student_lower_list = Student.objects.filter(exam__in=exam.common_exams.all(), present=True).order_by('points')[:discriminatory_count]
                 student_upper_list = Student.objects.filter(exam__in=exam.common_exams.all(), present=True).order_by('-points')[:discriminatory_count]
 
             else:
+                process_number += 1
+                progress_recorder.set_progress(process_number, process_count, description='Generating stats for exam : '+exam.code)
+
                 discriminatory_count = round(exam.present_students * 27 / 100)
                 student_list = exam.students.all()
-                student_ordered_list = student_list.order_by('points')
                 student_lower_list = Student.objects.filter(exam=exam, present=True).order_by('points')[:discriminatory_count]
                 student_upper_list = Student.objects.filter(exam=exam, present=True).order_by('-points')[:discriminatory_count]
 
@@ -149,11 +150,11 @@ def generate_exam_stats(exam):
 
             question_list = exam.questions.all()
 
+            process_number += 1
+            progress_recorder.set_progress(process_number, process_count,
+                                           description='Generating stats for exam : ' + exam.code + '(scale stats & students grades)')
             for scale in exam.scales.all():
                 all_grades = []
-                avg = 0
-                std = 0
-                med = 0
                 distribution_list = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
                 for student in student_list:
@@ -173,7 +174,7 @@ def generate_exam_stats(exam):
                         elif scale.rounding == 2 :
                             roundint = 2
                         else :
-                            roudint = 0
+                            roundint = 0
 
                         if(scale.rounding == 3):
                             grade = Decimal((student.points+scale.points_to_add) / scale.total_points * (scale.max_grade-scale.min_grade) + scale.min_grade)
@@ -263,6 +264,9 @@ def generate_exam_stats(exam):
             StudentScaleGrade.objects.bulk_create(student_scales_grades_list)
             #print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  - scales stats ok !")
 
+            process_number += 1
+            progress_recorder.set_progress(process_number, process_count,
+                                           description='Generating stats for exam : ' + exam.code + '(questions & answers stats)')
             #Statistics on questions
             for question in question_list:
                 answer_statistic_list = []
@@ -343,6 +347,9 @@ def generate_exam_stats(exam):
                 question.save()
 
             # specific common exam (by section, com VS ind)
+            process_number += 1
+            progress_recorder.set_progress(process_number, process_count,
+                                           description='Generating stats for exam : ' + exam.code + '(overall stats)')
             if exam.overall:
                 create_dist_stats_by_section(exam)
                 create_stats_comVsInd(exam)

@@ -87,8 +87,6 @@
                                         <td>{{ comex.semester.code }}</td>
                                         <td>
                                             <ul class="list-group">
-{#                                                <li class="list-group-item border-0"#}
-{#                                                    style="padding:0px;margin:0px;font-weight: bold;">{{ comex.primary_user.first_name }} {{ comex.primary_user.last_name }}</li>#}
                                                 {% for exam_user in comex.exam_users.all %}
                                                     <li class="list-group-item border-0"
                                                         style="padding:0px;margin:0px;">{{ exam_user.user.first_name }} {{ exam_user.user.last_name }} ({{ exam_user.group.name }})</li>
@@ -201,6 +199,12 @@
                         </div>
                         <div id="collapseThree" class="collapse show" aria-labelledby="headingThree">
                             <div id="questions_div" class="card-body">
+                                <div id="alert_regen_stats" class="alert alert-danger" role="alert" style="display: none;">
+                                  Don't forget to <a id="regen-stats-bt" class="btn btn-dark btn-sm"
+                                       href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
+                                                                                    style="margin-right: 5px;"></i>Regen
+                                        stats</a> after questions and answers changed!
+                                </div>
                                 <table id="questions_dt" class="table table-striped table-sm">
                                     <thead>
                                     <tr>
@@ -307,7 +311,7 @@
                                   <label class="custom-control-label" for="res_and_stats_option">Results & stats module</label>
                                 </div>
                                 <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox"  name="prep_option" id="prep_option" {% if comex.prep_option == 1 %} checked {% endif %}>
+                                  <input class="custom-control-input" type="checkbox"  name="prep_option" id="prep_option" {% if comex.prep_option == 1 %} checked {% endif %} disabled>
                                   <label class="custom-control-label" for="prep_option">Preparation module</label>
                                 </div>
                                 <div style="text-align: right;">
@@ -612,6 +616,7 @@ function updateQuestion(pk,field,value,exam_pk){
     {% if comex.common_exams %}
         var activeNavPills = "#pills-"+exam_pk
     {% endif %}
+    $('#loadingModal').modal('show');
     $.ajax({
             url : "{% url 'update_question' %}",
             type : "POST",
@@ -622,15 +627,16 @@ function updateQuestion(pk,field,value,exam_pk){
                 'value' : value
             },
             beforeSend : function(){
-                $('#loadingModal').modal('show');
+
             },
             complete: function () {
 
             },
             success : function(result) {
                 $('#loadingModal').modal('hide');
-                window.location.href += "?dataUpdated=true";
-                window.location.reload();
+                sessionStorage.setItem("regen_stats", "true");
+                sessionStorage.setItem("scrolly",document.documentElement.scrollTop);
+                window.location.href = "{% url 'examInfo' exam.pk %}?dataUpdated=true";
 
 
             },
@@ -661,5 +667,20 @@ function updateExamOptions(exam_pk){
             }
         });
 }
+
+window.onload = function() {
+    var regen_stats = sessionStorage.getItem("regen_stats");
+    if (regen_stats) {
+        sessionStorage.removeItem("regen_stats");
+        $('#alert_regen_stats').show();
+    }
+    var scroll_y = sessionStorage.getItem("scrolly");
+    if (scroll_y){
+        document.documentElement.scrollTop = scroll_y;
+        sessionStorage.removeItem("scrolly");
+    }
+}
+
+
 </script>
 {% endblock %}
