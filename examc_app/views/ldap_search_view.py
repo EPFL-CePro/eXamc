@@ -56,6 +56,7 @@ def upload_excel_generate_csv(request):
                     ou = ldap_entries.get('ou', [''])[0]
                     employee_type = ldap_entries.get('employeeType', [''])[0]
                     title = ldap_entries.get('title', [''])[0]
+                    uid = ldap_entries.get('uid', [''])[0]
 
                     row_data = {
                         'Sciper': sciper,
@@ -65,6 +66,7 @@ def upload_excel_generate_csv(request):
                         'OU': ou,
                         'Employee type': employee_type,
                         'Title': title,
+                        'uid': uid
                     }
                     data.append(row_data)
                 else:
@@ -74,7 +76,7 @@ def upload_excel_generate_csv(request):
             response['Content-Disposition'] = 'attachment; filename="data.csv"'
 
             writer = csv.DictWriter(response,
-                                    fieldnames=['Sciper', 'First name', 'Last name', 'Email', 'OU', 'Employee type', 'Title'])
+                                    fieldnames=['Sciper', 'First name', 'Last name', 'Email', 'OU', 'Employee type', 'Title', 'uid'])
             writer.writeheader()
             writer.writerows(data)
 
