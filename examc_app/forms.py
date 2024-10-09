@@ -229,7 +229,8 @@ class ldapForm(forms.Form):
     LDAP_SEARCH_CHOICES = [
         ('uniqueidentifier', 'Sciper'),
         ('displayName', 'Name'),
-        ('mail', 'Email')
+        ('mail', 'Email'),
+        ('uid', 'User ID')
     ]
 
     choice = forms.ChoiceField(
