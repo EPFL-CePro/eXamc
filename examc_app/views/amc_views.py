@@ -36,7 +36,7 @@ def upload_amc_project(request, pk):
     return render(request, 'amc/upload_amc_project.html', {'exam': exam})
 
 @login_required
-def amc_view(request, pk, active_tab=0):
+def amc_view(request, pk, active_tab=0,task_id=None):
     exam = Exam.objects.get(pk=pk)
 
     amc_data_path = get_amc_project_path(exam, False)
@@ -100,6 +100,7 @@ def amc_view(request, pk, active_tab=0):
             context['count_missing_assoc'] = get_count_missing_associations(amc_data_path+'/data/')
             context['annotated_papers_available'] = check_annotated_papers_available(exam)
             context['has_results'] = has_results
+            context['task_id'] = task_id
 
     else:
         context['user_allowed'] = False
@@ -278,7 +279,7 @@ def import_scans_from_review(request,pk):
     shutil.rmtree(export_tmp_dir)
 
     #if not 'ERR:' in result:
-    return amc_view(request, pk, active_tab=1)
+    return amc_view(request, pk, 1)
     #else:
     #    return HttpResponse(result)
 
@@ -410,8 +411,10 @@ def call_amc_generate_results(request):
         project_path = get_amc_project_path(exam, False)
         results_csv_path = project_path + "/exports/" + exam.code + "_amc_raw.csv"
         file = open(results_csv_path, 'r', encoding='utf8')
-        result = import_csv_data(file, exam)
-        return HttpResponse(result)
+        task = import_csv_data.delay(results_csv_path, exam.pk)
+        task_id = task.task_id
+
+        return amc_view(request, exam.pk, 4,task_id)
     else:
         return HttpResponse(result)
 

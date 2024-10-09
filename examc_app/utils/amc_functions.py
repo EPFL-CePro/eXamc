@@ -336,7 +336,7 @@ def get_amc_data_capture_manual_data(exam):
         data_pages += extra_pages
         data_pages = sorted(data_pages, key=lambda k: (float(k['copy']), float(k['page'])))
 
-        if '%HOME' in data_pages[0]['source']:
+        if data_pages and '%HOME' in data_pages[0]['source']:
             home_path = str(Path.home())
             app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
             for data in data_pages:
@@ -451,9 +451,12 @@ def get_automatic_data_capture_summary(exam):
 
         nb_copies = select_nb_copies(amc_data_path)
 
-        data_missing_pages = select_missing_pages(amc_data_path)
+        data_missing_pages = []
+        data_unrecognized_pages = []
 
-        data_unrecognized_pages = select_unrecognized_pages(amc_data_path,amc_data_url)
+        if nb_copies > 0:
+            data_missing_pages = select_missing_pages(amc_data_path)
+            data_unrecognized_pages = select_unrecognized_pages(amc_data_path,amc_data_url)
 
         prev_stud = None
         incomplete_copies = []

@@ -99,7 +99,10 @@ urlpatterns = [
     path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
 
     # CSVGEN
-    path('csvgen', views.csvgen, name="csvgen"),
+    path('csvgen/', views.csvgen, name="csvgen"),
+    path('export_csv/', views.export_csv, name="export_csv"),
+    path('import_students_excel/', views.import_students_excel, name="import_students_excel"),
+    path('change_csv_type/<str:choice>', views.change_csv_type, name="change_csv_type"),
 
     # SEARCH LDAP
     path('search/', views.upload_excel_generate_csv, name='search_people'),
