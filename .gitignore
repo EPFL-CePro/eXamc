@@ -6996,6 +6996,7 @@ amc_projects/*/
 /node_modules/xmlchars/xmlchars.js.map
 /node_modules/.package-lock.json
 /exam.amc
-/catalogs/2023-2024/1/MATH-111(a)/MATH-111(a)_2024_1_catalog.pdf
-/export_tmp/2024_1_MATH-111(a)_202405151251083.zip
-/package.json
+/export_tmp/
+/examc_app/migrations/
+/catalogs/
+/autoupload/

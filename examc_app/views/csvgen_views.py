@@ -180,7 +180,7 @@ def import_students_excel_ANS(request, students_file):
     return [ans_students_list, column_number, column_name]
 
 
-# convert excel to csv
+# json to csv
 def export_csv(request):
     choice = request.POST.get("choice")
     students_list = json.loads(request.POST.get("students_list"))
