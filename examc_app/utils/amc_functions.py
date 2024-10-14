@@ -222,14 +222,14 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
             print("start extraction")
             zip_ref.extractall(tmp_extract_path)
 
-        file_list_path = tmp_dir_path+"/list-file"
-        tmp_file_list = open(file_list_path, "a+")
+            file_list_path = tmp_dir_path+"/list-file"
+            tmp_file_list = open(file_list_path, "a+")
 
-        files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
-        for file in files:
-            tmp_file_list.write(file + "\n")
+            files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
+            for file in files:
+                tmp_file_list.write(file + "\n")
 
-        tmp_file_list.close()
+            tmp_file_list.close()
 
     # prepare scan images (see amc doc)
     result = subprocess.run(['auto-multiple-choice getimages '
@@ -371,7 +371,7 @@ def get_extra_pages(amc_extra_pages_path,amc_extra_pages_url=None,student=None):
                 for file in os.listdir(amc_extra_pages_path+subdir):
                     filepath = amc_extra_pages_url+subdir+"/"+file
                     copy = file.split('_')[1].lstrip('0')
-                    page = file.split('_')[2].split('.')[0].lstrip('0').replace('x','.')
+                    page = file.split('_')[2].replace('.jpg','').lstrip('0')
                     extra_page = {'copy':copy,'mse':0.0,'page':page,'sensitivity':0.0,'source':filepath,'timestamp_auto':0}
                     extra_pages_data.append(extra_page)
 
@@ -437,6 +437,9 @@ def create_amc_project_dir_from_zip(exam,zip_file):
 
     # move to destination amc_projects
     amc_project_path = get_amc_project_path(exam, True)
+    # Remove destination folder if it exists
+    if os.path.exists(amc_project_path):
+        shutil.rmtree(amc_project_path)
     shutil.move(tmp_extract_path, amc_project_path)
 
     return 'AMC project folder uploaded !'
@@ -457,6 +460,11 @@ def get_automatic_data_capture_summary(exam):
         if nb_copies > 0:
             data_missing_pages = select_missing_pages(amc_data_path)
             data_unrecognized_pages = select_unrecognized_pages(amc_data_path,amc_data_url)
+
+        if data_unrecognized_pages and '%HOME' in data_unrecognized_pages[0]['filepath']:
+            app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
+            for data in data_unrecognized_pages:
+                data['source'] = data['filepath'].replace(app_home_path,'')
 
         prev_stud = None
         incomplete_copies = []
@@ -520,10 +528,10 @@ def add_unrecognized_page_to_project(exam,copy,question,extra,img_filename):
                     last_exNum = curr_exNum
 
             new_exNum = str(last_exNum + 1).zfill(2)
-            filename = "copy_"+str(copy).zfill(4)+"_"+str(page).zfill(2)+"x"+new_exNum+".jpg"
+            #filename = "copy_"+str(copy).zfill(4)+"_"+str(page).zfill(2)+"x"+new_exNum+".jpg"
 
             #move to extra folder
-            shutil.move(amc_data_path+'/scans/'+img_filename, copy_extra_folder_path+'/'+filename)
+            shutil.move(str(settings.BASE_DIR)+img_filename, copy_extra_folder_path+'/'+img_filename.split('/')[-1])
 
             #remove as unrecognized page
             delete_unrecognized_page(amc_data_path+'/data/',img_filename)

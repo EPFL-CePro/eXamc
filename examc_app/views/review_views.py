@@ -644,7 +644,8 @@ def saveMarkers(request):
         marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
             exam.semester.code) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
                           scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
-        os.remove(marked_img_path)
+        if os.path.exists(marked_img_path):
+            os.remove(marked_img_path)
         scan_markers.delete()
 
     return HttpResponse(marked)
@@ -656,7 +657,6 @@ def getMarkersAndComments(request):
     data_dict = {}
 
     copy_no = request.POST['copy_no']
-    amc_id = Student.objects.get(copie_no = copy_no.strip("0"), exam = exam).amc_id
     page_no = request.POST['page_no']
     try:
         scan_markers = PageMarkers.objects.get(copie_no=copy_no, page_no=page_no,
@@ -672,7 +672,7 @@ def getMarkersAndComments(request):
 
     corrbox_markers = []
     if not 'x' in page_no:
-        corrbox_markers = get_amc_marks_positions_data(exam,amc_id, int(page_no))
+        corrbox_markers = get_amc_marks_positions_data(exam,copy_no.strip("0"), float(page_no))
 
     data_dict["corrector_boxes"] = json.dumps(corrbox_markers)
 

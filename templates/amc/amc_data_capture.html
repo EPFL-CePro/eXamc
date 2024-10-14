@@ -243,7 +243,7 @@
           </div>
       </div>
       <div class="modal-footer">
-        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk 1 %}">Close</a>
+        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk %}">Close</a>
       </div>
     </div>
   </div>
@@ -369,7 +369,7 @@ function showErrorDataCaptureDialog(title){
             tr.appendChild(document.createElement('th'));
             tableHead.appendChild(tr);
             {% for page in unrecognized_pages %}
-                var scanSrc = "{{ page.filepath }}";
+                var scanSrc = "{{ page.source }}";
                 var tr = document.createElement('tr');
                 tr.setAttribute('id',scanSrc);
                 var td = document.createElement('td') ;

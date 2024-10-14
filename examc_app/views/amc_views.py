@@ -36,7 +36,7 @@ def upload_amc_project(request, pk):
     return render(request, 'amc/upload_amc_project.html', {'exam': exam})
 
 @login_required
-def amc_view(request, pk, active_tab=0,task_id=None):
+def amc_view(request, pk,task_id=None):
     exam = Exam.objects.get(pk=pk)
 
     amc_data_path = get_amc_project_path(exam, False)
@@ -86,7 +86,6 @@ def amc_view(request, pk, active_tab=0,task_id=None):
             context['project_dir_files_list'] = project_dir_files_list
             context['data_pages'] = data[0]
             context['data_questions'] = data[1]
-            context['active_tab'] = active_tab
             context['data_capture_message'] = data_capture_message
             context['missing_pages'] = missing_pages
             context['unrecognized_pages'] = unrecognized_pages
@@ -104,7 +103,6 @@ def amc_view(request, pk, active_tab=0,task_id=None):
 
     else:
         context['user_allowed'] = False
-
 
     return render(request, 'amc/amc.html',  context)
 
@@ -279,7 +277,7 @@ def import_scans_from_review(request,pk):
     shutil.rmtree(export_tmp_dir)
 
     #if not 'ERR:' in result:
-    return amc_view(request, pk, 1)
+    return amc_view(request, pk)
     #else:
     #    return HttpResponse(result)
 
@@ -325,7 +323,7 @@ def add_unrecognized_page(request):
     question = request.POST['question']
     copy = request.POST['copy']
     extra = request.POST['extra']
-    img_filename = request.POST['unrecognized_img_src'].split('/')[-1]
+    img_filename = request.POST['unrecognized_img_src']#.split('/')[-1]
     add_unrecognized_page_to_project(exam,copy,question,extra,img_filename)
 
     return HttpResponse(True)
@@ -350,7 +348,7 @@ def call_amc_automatic_association(request):
     result = amc_automatic_association(exam,assoc_primary_key)
 
     if not 'ERR:' in result:
-        return amc_view(request,exam.pk,3)
+        return amc_view(request,exam.pk)
     else:
         return HttpResponse(result)
 
@@ -414,7 +412,7 @@ def call_amc_generate_results(request):
         task = import_csv_data.delay(results_csv_path, exam.pk)
         task_id = task.task_id
 
-        return amc_view(request, exam.pk, 4,task_id)
+        return amc_view(request, exam.pk, task_id)
     else:
         return HttpResponse(result)
 

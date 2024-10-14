@@ -228,7 +228,7 @@ def select_missing_pages(amc_data_path):
                  "       WHERE role=1 "
                  "       UNION "
                  "       SELECT student,page "
-                 "       FROM layout_namefield) AS enter, "
+                 "       FROM layout_zone) AS enter, "
                  "       capture_page "
                  "ON enter.student=capture_page.student "
                  "EXCEPT SELECT student,page,copy FROM capture_page "
