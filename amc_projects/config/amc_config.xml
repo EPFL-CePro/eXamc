@@ -18,8 +18,8 @@
   <ascii_filenames>1</ascii_filenames>
   <assoc_ncols>4</assoc_ncols>
   <assoc_window_size></assoc_window_size>
-  <box_size_proportion>0.9</box_size_proportion>
-  <bw_threshold>0.75</bw_threshold>
+  <box_size_proportion>0.8</box_size_proportion>
+  <bw_threshold>0.8</bw_threshold>
   <checklayout_window_size>899x1304+2813+48</checklayout_window_size>
   <conserve_taille>1</conserve_taille>
   <csv_name_headers></csv_name_headers>

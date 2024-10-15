@@ -13,7 +13,7 @@
     </div>
     <hr/>
     <div class="mb-3">
-        <button type="button" class="btn btn-dark btn-sm" onclick="amcUpdateDocuments();"><i class="fas fa-sync-alt"></i> Update documents</button>
+        <button type="button" class="btn btn-dark btn-sm" onclick="amcUpdateDocuments_process();"><i class="fas fa-sync-alt"></i> Update documents</button>
         <div class="mb-3" style="text-align:right;">
             <a href="{% url 'open_amc_exam_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm" style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
             <a href="{% url 'open_amc_catalog_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm"><i class="fas fa-file-pdf"></i> Catalog</a>
@@ -89,6 +89,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js" integrity="sha512-Hyk+1XSRfagqzuSHE8M856g295mX1i5rfSV5yRugcYFlvQiE3BKgg5oFRfX45s7I8qzMYFa8gbFy9xMFbX7Lqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 {{ project_dir_dict|json_script:"json_amc_proj_dir" }}
 <script>
+let amc_updating_documents = false;
 const amc_dir_json = JSON.parse(document.getElementById('json_amc_proj_dir').textContent);
 setAMCFolderFileListHTML('{{ project_dir_files_list.0.folder }}')
 
@@ -171,10 +172,72 @@ function saveEditedSourceFile(){
     });
 }
 
+function amcUpdateDocuments_process() {
+    nb_copies = document.getElementById('number_of_copies_param').value;
+    amc_process_modal_title = document.getElementById('amc_process_modal_title');
+    amc_process_modal_title.innerHTML = "Updating documents";
+    amc_process_modal_body = $('#amc_process_modal_body');
+    amc_process_modal_body.text('');
+    amc_updating_documents = true;
+    display_amc_log_file(amc_process_modal_body);
+    $('#amc_process_modal').modal('show');
+    $.ajax({
+        type: 'POST',
+        url: '{% url "call_amc_update_documents" %}', // Django URL for your view
+       data : {
+            'csrfmiddlewaretoken' : '{{ csrf_token }}',
+            'exam_pk' : {{ exam.pk }},
+            'nb_copies' : nb_copies
+        },
+        complete: function(data){
+            amc_updating_documents = false;
+            if(data.responseText.includes('ERR:')){
+                setTimeout(function(){
+                    amc_process_modal_body.append('\n\n ***** ERRORS DETECTED **** \n\n' + data.responseText);
+                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                    },1000);
+            }else {
+                setTimeout(function(){
+                    amc_process_modal_body.append('\n\n** UPDATE DOCUMENTS COMPLETED! **');
+                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                    },1000);
+                setTimeout(function(){window.location.reload();},10000);
+            }
+        },
+        error: function(data) {
+            amc_process_modal_body.html('<p>Error occurred</p>');
+        }
+    });
+}
+
+function display_amc_log_file(el){
+     $.ajax({
+        url: "{% url 'view_amc_log_file' exam.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}"
+        },
+        success: (data) => {
+            el.text(data);
+            el.scrollTop(el.prop("scrollHeight"));
+            if(amc_updating_documents) {
+                setTimeout(function () {
+                    el.text(data);
+                    el.scrollTop(el.prop("scrollHeight"));
+                    display_amc_log_file(el);
+                }, 500);
+            }
+        },
+
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
 function amcUpdateDocuments(){
     ajax_info_modal_msg = document.getElementById('ajax_info_modal_msg');
     ajax_info_modal_msg.innerHTML = "Preparation could take some time. A dialog info will display when done !";
-    $('#ajax_info_modal').modal('show');
+    //$('#ajax_info_modal').modal('show');
     nb_copies = document.getElementById('number_of_copies_param').value;
     $.ajax({
         url: "{% url 'call_amc_update_documents' %}",
@@ -182,19 +245,19 @@ function amcUpdateDocuments(){
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
             'exam_pk' : {{ exam.pk }},
-            'nb_copies' : nb_copies
+            'nb_copies' : nb_copies 
         },
-        success: (data) => {
-            upd_doc_msg_el = document.getElementById('update-documents-msg');
-                upd_doc_msg_el.innerText = data;
-            if(data.includes('ERR:')){
-                upd_doc_msg_el.className = "alert alert-danger";
-            }else{
-                upd_doc_msg_el.className = "alert alert-success";
-            }
-            ajax_info_modal_msg.innerHTML = "Preparation has been done !";
-            $('#ajax_info_modal').modal('show');
-        },
+        {#success: (data) => {#}
+        {#    upd_doc_msg_el = document.getElementById('update-documents-msg');#}
+        {#        upd_doc_msg_el.innerText = data;#}
+        {#    if(data.includes('ERR:')){#}
+        {#        upd_doc_msg_el.className = "alert alert-danger";#}
+        {#    }else{#}
+        {#        upd_doc_msg_el.className = "alert alert-success";#}
+        {#    }#}
+        {#    ajax_info_modal_msg.innerHTML = "Preparation has been done !";#}
+        {#    $('#ajax_info_modal').modal('show');#}
+        {#},#}
         error: (error) => {
             console.log(error);
         },    });

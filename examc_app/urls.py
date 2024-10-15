@@ -116,6 +116,10 @@ urlpatterns = [
     # CELERY-PROGRESS
     path('celery-progress/', include('celery_progress.urls')),
 
+    #
+    # path('test/',views.test,name="test"),
+    # path('subprocess_test/',views.subprocess_test,name="subprocess_test"),
+    #
 
 
 ]

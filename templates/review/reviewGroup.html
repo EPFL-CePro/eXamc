@@ -284,39 +284,7 @@ function setMarkerArea(target) {
         markerChange();
     });
 
-    {#markerArea.addEventListener("markerselect", (event) => {#}
-    {#    if(event.marker.fillColor === "purple"){#}
-    {#        event.marker.fillColor = "black";#}
-    {#        event.marker.fillColorChanged("black");#}
-    {#        state = event.markerArea.getState();#}
-    {#        event.markerArea.show();#}
-    {#        event.markerArea.restoreState(state);#}
-    {#    }#}
-    {#});#}
-
 }
-
-{#function check_intersect(marker){    #}
-{#    mleft = marker.left;#}
-{#    mtop = marker.top;#}
-{#    mwidth = marker.width;#}
-{#    mheight = marker.height;#}
-{#    a = (mleft, mtop);#}
-{#    b = (mleft + mwidth, mtop);#}
-{#    c = (mleft + mwidth, mtop + mheight);#}
-{#    d = (mleft, mtop + mheight);#}
-{#    marker_coords = [a, b, c, d];#}
-{#    marker_pol =  new Polygon( marker_coords);#}
-{#    #}
-{#    corr_pol = new Polygon({{ corr_box_coords }});#}
-{#    #}
-{#    if(marker_pol.intersectsWith(corr_pol)){#}
-{#        return true#}
-{#    }else{#}
-{#        return false#}
-{#    }#}
-{#    #}
-{#}#}
 
 function markerChange(){
     svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
@@ -369,7 +337,9 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
                 comments=data_full.comments;
                 corrector_boxes = JSON.parse(data_full.corrector_boxes);
                 $("#corrector_boxes_svg").empty();
+                $("#corr_box_div").css("display","none");
                 if(corrector_boxes.length > 0) {
+                    $("#corr_box_div").css("display","block");
                     draw_corrector_boxes(corrector_boxes);
                 }
                 initComments(comments);
@@ -395,6 +365,9 @@ function draw_corrector_boxes(data){
     min_y = Math.min.apply(Math, data.map(function (event) {
                 return event.y;
             }));
+    max_y = Math.max.apply(Math, data.map(function (event) {
+                return event.y;
+            }));
     x_pos = min_x/imgRatio - 10
     y_pos = min_y/imgRatio - 10
     pos_y_min = 0
@@ -402,7 +375,7 @@ function draw_corrector_boxes(data){
     for (let pos of data) {        
         if(pos.y > pos_y_max){
             pos_y_max = pos.y;
-        }else if(pos.y < pos_y_min){
+        }else if(pos_y_min === 0 || pos.y < pos_y_min){
             pos_y_min = pos.y;
         }
         
@@ -430,7 +403,7 @@ function draw_corrector_boxes(data){
             polygon.setAttribute('onclick',"createMarker4CorrBox("+pol_left+","+pol_top+","+pol_width+","+pol_height+");");
         }
     }
-    corr_height = pos_y_max - pos_y_min +10;
+    corr_height = max_y/imgRatio - y_pos + 10;//pos_y_max - pos_y_min;
     corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:500px;z-index:999");
 }
 
@@ -588,7 +561,7 @@ function initComments(commentsArray){
 
 
 $(window).on("load",function(){
-    initCopyPagesTableOnClickRowEvent(true);
+    initCopyPagesTableOnClickRowEvent(false);
     {% if currpage > 0 %}
     createPagination({{ scans_pathes_list|length }}, {{ currpage }});
     {% else %}

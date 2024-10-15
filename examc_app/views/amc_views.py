@@ -3,9 +3,10 @@ import os
 import pathlib
 from urllib import request
 
+from asgiref.sync import async_to_sync, sync_to_async
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
-from django.http import HttpResponse, Http404, FileResponse
+from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse
 from django.shortcuts import render
 
 from examc_app.models import *
@@ -196,9 +197,9 @@ def save_amc_edited_file(request):
 def call_amc_update_documents(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     nb_copies = request.POST['nb_copies']
+
     result = amc_update_documents(exam,nb_copies,False)
-    if not 'ERR:' in result:
-        result = get_amc_update_document_info(exam)
+
     return HttpResponse(result)
 
 @login_required
@@ -209,15 +210,11 @@ def call_amc_layout_detection(request):
         result = get_amc_layout_detection_info(exam)
     return HttpResponse(result)
 
-def call_amc_automatic_data_capture(request):
+def call_amc_automatic_data_capture(request,from_review):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     zip_file = request.FILES['amc_scans_zip_file']
 
-    result = amc_automatic_data_capture(exam,zip_file,False)
-    #if not 'ERR:' in result:
-    return HttpResponse('yes')
-    #else:
-    #    return HttpResponse(result)
+    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,False,file_list_path=None))
 
 def import_scans_from_review(request,pk):
     exam = Exam.objects.get(pk=pk)
@@ -250,8 +247,6 @@ def import_scans_from_review(request,pk):
             else:
                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
-
-    ##te4sting
     amc_proj_path = get_amc_project_path(exam,False)
     file_list_path = amc_proj_path + "/list-file"
     tmp_file_list = open(file_list_path, "w")
@@ -268,18 +263,7 @@ def import_scans_from_review(request,pk):
 
     tmp_file_list.close()
 
-
-    ##end testing
-
-
-    result = amc_automatic_data_capture(exam,export_tmp_dir,True,file_list_path)
-
-    shutil.rmtree(export_tmp_dir)
-
-    #if not 'ERR:' in result:
-    return amc_view(request, pk)
-    #else:
-    #    return HttpResponse(result)
+    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
 
 def open_amc_exam_pdf(request,pk):

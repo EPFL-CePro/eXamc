@@ -392,3 +392,4 @@ def generate_statistics(self,exam_pk):
         self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during stats generation "+str(exception)})
         print(exception)
         raise exception
+

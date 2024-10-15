@@ -64,7 +64,7 @@
                 <td>{{ row.copy }}</td>
                 <td> {{ row.page }}</td>
                 <td>{{ row.mse }}</td>
-                <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{{ row.sensitivity }}</td>
+                <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{% if row.sensitivity %}{{ row.sensitivity }}{% else %}-{% endif %}</td>
                 <td style="display:none;">{{ row.source }}</td>
                 <td style="display:none;">{{ row.questions_ids }}</td>
                 <td style="text-align: center;">{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
@@ -91,16 +91,30 @@ $(window).on("load",function(){
 
 
 {% if data_pages %}
+    var filtered_questions_list=[];
+    
     var table = $("#table-copies-pages").DataTable( {
             scrollY: '79vh',
                 "dom": 'rtip',
             "lengthChange": false,
             "paging": false,
             "autoWidth": false,
+            "fnDrawCallback": function () {
+                if(filtered_questions_list.length>0){
+                    rows = Array.from($("#table-copies-pages tbody tr"));
+                    var new_filtered_questions_list = [];
+                    rows.forEach(function (row) {
+                        if(filtered_questions_list.includes(row.getAttribute('id'))){
+                            new_filtered_questions_list.push(row.getAttribute('id'));
+                        }                
+                    });
+                }
+                filtered_questions_list = new_filtered_questions_list;
+            }
             //columns: [{ width: '200px' }, null,null,null,null, null, null]
         } );
 
-    var filtered_questions_list=[];
+    
     var question_filter_id=0;
     var question_filter_name='All';
     var type_filter='All';
@@ -322,7 +336,7 @@ function update_amc_mark_zone(element){
 function find_row_by_filters(type,question_id,question_name){
     filtered_questions_list = [];
     rows = [];
-    if(question_id == 0 && type === 'all'){
+    if(question_id === 'All' && type === 'all'){
         rows = Array.from($("#table-copies-pages tbody tr"));
     }else{
         search_str = '';
@@ -351,34 +365,39 @@ function find_row_by_filters(type,question_id,question_name){
 }
 
 function go_to_next(){
-    next = filtered_questions_list[0];
-    curr_index = filtered_questions_list.indexOf(curr_selected_id);
-    if(curr_index > -1 && curr_index < filtered_questions_list.length-1){
-        next = filtered_questions_list[curr_index+1];
+    if(filtered_questions_list.length > 0) {
+        next = filtered_questions_list[0];
+        curr_index = filtered_questions_list.indexOf(curr_selected_id);
+        if (curr_index > -1 && curr_index < filtered_questions_list.length - 1) {
+            next = filtered_questions_list[curr_index + 1];
+        }
+
+        $(document.getElementById(next)).trigger('click');
+        test = $('#table-copies-pages');
+        tableContainer = $('#table-copies-pages')[0].parentNode;
+        row = document.getElementById(next);
+        offsetTop = row.offsetTop;
+        tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight / 2;
+        curr_selected_id = next;
     }
-    
-    $(document.getElementById(next)).trigger('click');
-    test = $('#table-copies-pages');
-    tableContainer = $('#table-copies-pages')[0].parentNode;
-    row = document.getElementById(next);
-    offsetTop = row.offsetTop;
-    tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight/2;
-    curr_selected_id = next;
 }
 
 function go_to_previews(){
-    preview = filtered_questions_list[0];
-    curr_index = filtered_questions_list.indexOf(curr_selected_id);
-    if(curr_index > 0){
-        preview = filtered_questions_list[curr_index-1];
-    };
-    $("#"+preview).trigger('click');
-    test = $('#table-copies-pages');
-    tableContainer = $('#table-copies-pages')[0].parentNode;
-    row = document.getElementById(preview);
-    offsetTop = row.offsetTop;
-    tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight/2;
-    curr_selected_id = preview;
+    if(filtered_questions_list.length > 0) {
+        preview = filtered_questions_list[0];
+        curr_index = filtered_questions_list.indexOf(curr_selected_id);
+        if (curr_index > 0) {
+            preview = filtered_questions_list[curr_index - 1];
+        }
+        ;
+        $("#" + preview).trigger('click');
+        test = $('#table-copies-pages');
+        tableContainer = $('#table-copies-pages')[0].parentNode;
+        row = document.getElementById(preview);
+        offsetTop = row.offsetTop;
+        tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight / 2;
+        curr_selected_id = preview;
+    }
 }
 </script>
 {% endif %}

@@ -20,6 +20,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
+from django.template.loader import get_template
 from setuptools import glob
 
 from examc_app.utils.amc_db_queries import *
@@ -135,7 +136,64 @@ def latex_files_to_list(path):
 
     return file_list
 
+##testing
+def process(request):
+    # If you're getting IP from a form, ensure this value is passed
+    ip = request.POST.get('ip', 'www.google.ch')  # Default IP to google.ch
+
+    # Load the template that will be used for each line of the subprocess output
+    template = get_template("subprocess.html")
+
+    # Using subprocess to execute the ping command and stream the output
+    with subprocess.Popen([f'ping -c5 {ip}'], shell=True, stdout=subprocess.PIPE, bufsize=1,
+                          universal_newlines=True) as p:
+        # Iterate over each line in the stdout of the subprocess
+        for line in p.stdout:
+            # Yield rendered template with each line
+            yield line.strip()  # Strip to remove extra newlines
+
+    # If the subprocess has a non-zero exit code, raise an error
+    if p.returncode != 0:
+        raise subprocess.CalledProcessError(p.returncode, p.args)
+
+def amc_update_documents_subprocess(exam,nb_copies,scoring_only,preview=False):
+    amc_project_path = get_amc_project_path(exam, False)
+    if preview:
+        os.rename(amc_project_path + "/students.csv", amc_project_path + "/students.bck")
+        os.rename(amc_project_path + "/sample.csv", amc_project_path + "/students.csv")
+
+    if scoring_only:
+        command = ['auto-multiple-choice prepare '
+                     '--mode b '
+                     '--data "' + amc_project_path + '/data/" '
+                                                     '--with pdflatex '
+                                                     '--filter latex '
+                                                     '--prefix "'
+                     + amc_project_path + '/" "'
+                     + amc_project_path + '/exam.tex" ']
+    else:
+        amc_update_options_xml_by_key(exam, 'nombre_copies', nb_copies)
+        exam_file = get_amc_option_by_key(exam, 'doc_question')
+        correction_file = get_amc_option_by_key(exam, 'doc_catalog')
+        doc_setting = get_amc_option_by_key(exam, 'doc_setting')
+        command = ['auto-multiple-choice prepare '
+                                 '--mode s '
+                                 '--with pdflatex '
+                                 '--filter latex '
+                                 '--prefix "'
+                                 +get_amc_project_path(exam,False)+'/" "'
+                                 +get_amc_project_path(exam,False)+'/exam.tex" '
+                                 '--data "'+get_amc_project_path(exam,False)+'/data/" '
+                                 '--out-sujet "'+exam_file+'" '
+                                 '--out-catalog "'+correction_file+'" '
+                                 '--out-calage "'+doc_setting+'" ']
+
+    subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+
+
+
 def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
+
     amc_project_path = get_amc_project_path(exam,False)
     if preview:
         os.rename(amc_project_path+"/students.csv",amc_project_path+"/students.bck")
@@ -172,9 +230,7 @@ def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
                                 ,shell=True
                                 , capture_output=True
                                 , text=True)
-        # if result.stderr:
-        #     return "ERR:"+result.stderr
-        # else:
+
     if preview:
         os.rename(amc_project_path+"/students.csv",amc_project_path+"/sample.csv")
         os.rename(amc_project_path+"/students.bck",amc_project_path+"/students.csv")
@@ -195,6 +251,76 @@ def amc_layout_detection(exam):
         return "ERR:"+result.stderr
     else:
         return result.stdout
+
+def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file_list_path=None):
+    project_path = get_amc_project_path(exam, False)
+
+    if not from_review:
+        tmp_dir_path = project_path + "/tmp"
+        if os.path.exists(tmp_dir_path):
+            try:
+                shutil.rmtree(tmp_dir_path)
+            except Exception as e:
+                t = ''
+        os.mkdir(tmp_dir_path)
+
+        tmp_extract_path = tmp_dir_path + "/tmp_extract"
+        file_name = f"exam_{exam.pk}_amc_scans.zip"
+        tmp_file_path = tmp_dir_path + "/" + file_name
+        with open(tmp_file_path, 'wb') as temp_file:
+            for chunk in file_path.chunks():
+                temp_file.write(chunk)
+                # extract zip file in tmp dir
+        with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+            print("start extraction")
+            zip_ref.extractall(tmp_extract_path)
+
+            file_list_path = tmp_dir_path + "/list-file"
+            tmp_file_list = open(file_list_path, "a+")
+
+            files = glob.glob(tmp_extract_path + '/**/*.*', recursive=True)
+            for file in files:
+                tmp_file_list.write(file + "\n")
+
+            tmp_file_list.close()
+
+    # prepare scan images (see amc doc)
+    command = ['auto-multiple-choice getimages '
+                             '--list "' + file_list_path + '" ']
+    if not from_review:
+        command[0] += ' --copy-to "' + project_path + '/scans" '
+
+    yield "Getting images ...\n"
+    subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True)
+
+    os.rename(file_list_path, file_list_path + ".txt")
+    file_list_path += ".txt"
+
+    box_prop = get_amc_option_by_key(exam, "box_size_proportion")
+
+    # analyse scans
+    command = ['auto-multiple-choice analyse '
+                             '--prop ' + box_prop + ' '
+                             '--data "' + project_path + '/data/" '
+                            '--projet "' + project_path + '" '
+                            '--liste-fichiers "' + file_list_path + '" '
+                            '--try-three ']
+
+    yield "Automatic data capture ...\n"
+    errors = ''
+    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+        for line in process.stdout:
+            print(line.strip())
+            if "ERR:" in line:
+                errors += line
+            yield line
+
+        if  process.returncode and process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, process.args)
+
+    shutil.rmtree(tmp_dir_path)
+    if errors:
+        yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
 
 def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
     project_path = get_amc_project_path(exam, False)
