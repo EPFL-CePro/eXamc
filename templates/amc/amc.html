@@ -9,32 +9,32 @@
     {%  if project_dir_dict %}
     <ul class="nav nav-pills flex-column flex-sm-row border" id="amc-pills-tab" role="tablist">
       <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link {% if active_tab == 0 %} active {% endif %}" id="project-tab" data-toggle="pill" href="#pills-project" role="tab" aria-controls="pills-project" aria-selected="true">Project</a>
+        <a class="flex-sm-fill text-sm-center nav-link" id="project-tab" data-toggle="pill" href="#pills-project" role="tab" aria-controls="pills-project" aria-selected="false">Project</a>
       </li>
       <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link {% if active_tab == 1 %} active {% endif %}" id="dataCapture-tab" data-toggle="pill" href="#pills-dataCapture" role="tab" aria-controls="pills-dataCapture" aria-selected="false">Data capture</a>
+        <a class="flex-sm-fill text-sm-center nav-link" id="dataCapture-tab" data-toggle="pill" href="#pills-dataCapture" role="tab" aria-controls="pills-dataCapture" aria-selected="false">Data capture</a>
       </li>
       <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link {% if active_tab == 2 %} active {% endif %}" id="marking-tab" data-toggle="pill" href="#pills-marking" role="tab" aria-controls="pills-marking" aria-selected="false">Marking</a>
+        <a class="flex-sm-fill text-sm-center nav-link{% if not data_pages %} disabled{% endif %}" id="marking-tab" data-toggle="pill" href="#pills-marking" role="tab" aria-controls="pills-marking" aria-selected="false">Marking</a>
       </li>
       <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link {% if active_tab == 3 %} active {% endif %}" id="reports-tab" data-toggle="pill" href="#pills-reports" role="tab" aria-controls="pills-reports" aria-selected="false">Results</a>
+        <a class="flex-sm-fill text-sm-center nav-link{% if not data_pages %} disabled{% endif %}" id="reports-tab" data-toggle="pill" href="#pills-reports" role="tab" aria-controls="pills-reports" aria-selected="false">Results</a>
       </li>
       <li style="padding-left:200px;">
           <button id="view_log_bt" type="button" class="btn btn-outline-secondary btn-sm" onclick="openLogFileDialog();">log file</button>
       </li>
     </ul>
     <div class="tab-content" id="project-pills-tabContent">
-      <div class="tab-pane fade {% if active_tab == 0 %} show active {% endif %}" id="pills-project" role="tabpanel" aria-labelledby="pills-project-tab">
+      <div class="tab-pane fade" id="pills-project" role="tabpanel" aria-labelledby="pills-project-tab">
           {% include "./amc_preparation.html" %}
       </div>
-      <div class="tab-pane fade {% if active_tab == 1 %} show active {% endif %}" id="pills-dataCapture" role="tabpanel" aria-labelledby="pills-dataCapture-tab">
+      <div class="tab-pane fade" id="pills-dataCapture" role="tabpanel" aria-labelledby="pills-dataCapture-tab">
         {% include "./amc_data_capture.html" %}
       </div>
-      <div class="tab-pane fade {% if active_tab == 2 %} show active {% endif %}" id="pills-marking" role="tabpanel" aria-labelledby="pills-marking-tab">
+      <div class="tab-pane fade" id="pills-marking" role="tabpanel" aria-labelledby="pills-marking-tab">
         {% include "./amc_marking.html" %}
       </div>
-      <div class="tab-pane fade {% if active_tab == 3 %} show active {% endif %}" id="pills-reports" role="tabpanel" aria-labelledby="pills-reports-tab">
+      <div class="tab-pane fade" id="pills-reports" role="tabpanel" aria-labelledby="pills-reports-tab">
         {% include "./amc_results.html" %}
       </div>
     </div>
@@ -61,7 +61,39 @@
     </div>
   </div>
 </div>
+    
+<div class="modal fade" id="amc_process_modal" tabindex="-1" role="dialog" aria-labelledby="amcProcessModal" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="amc_process_modal_title">Process info</h5>
+        <button type="button" class="close" onclick="$('#amc_process_modal').modal('hide');"  aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="amc_process_modal_body" style="margin:10px;white-space: pre-line;height:500px;overflow-y: scroll;background-color: black;color:white;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="$('#amc_process_modal').modal('hide');">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
+
+// store the currently selected tab in the hash value
+$("ul.nav-pills > li > a").on("shown.bs.tab", function(e) {
+  var curr_tab = $(e.target).attr("id");//.substr(1);
+  window.location.hash = curr_tab;
+});
+
+// on load of the page: switch to the currently selected tab
+var hash = window.location.hash;
+if(hash) {
+    $(hash).click();//'#amc-pills-tab a[href="' + hash + '"]').tab('show');
+}else{
+    $('#project-tab').click();
+}
 
 function openLogFileDialog(){
     $.ajax({

@@ -185,7 +185,7 @@ function amc_update_students_file (e) {
                     error_div.innerHTML = data;
                 }else{
                     error_div.setAttribute('hidden',"");
-                    location.replace("{% url 'amc_view' exam.pk 2 %}");
+                    location.replace("{% url 'amc_view' exam.pk %}");
                 }               
             },
             error: (error) => {
@@ -385,7 +385,7 @@ function saveStudentsListFile(){
                 error_div.innerHTML = data;
             }else{
                 error_div.setAttribute('hidden',"");
-                location.replace("{% url 'amc_view' exam.pk 2 %}");
+                location.replace("{% url 'amc_view' exam.pk %}");
             }     
             $('#edit_students_list_modal').modal('hide');
         },

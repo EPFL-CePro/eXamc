@@ -1,4 +1,5 @@
 import csv
+import glob
 import json
 import os
 import pathlib
@@ -281,8 +282,17 @@ def import_exam_scans(self, zip_file_path, exam_pk):
         process_number += 1
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
             process_count) + ' - AMC Automatic datacapture...')
-        result = amc_automatic_data_capture(exam,str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-            exam.semester.code) + "/" + exam.code,True)
+
+        scans_folder_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+        file_list_path = scans_folder_path + "/list-file"
+        tmp_file_list = open(file_list_path, "a+")
+
+        files = glob.glob(scans_folder_path + '/**/*.*', recursive=True)
+        for file in files:
+            tmp_file_list.write(file + "\n")
+
+        tmp_file_list.close()
+        result = amc_automatic_data_capture(exam,scans_folder_path,True,file_list_path)
 
         os.remove(zip_file_path)
 
@@ -382,3 +392,4 @@ def generate_statistics(self,exam_pk):
         self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during stats generation "+str(exception)})
         print(exception)
         raise exception
+

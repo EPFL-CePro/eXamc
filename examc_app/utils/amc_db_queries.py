@@ -57,7 +57,7 @@ def select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold):
                 "   timestamp_auto, "
                 "   timestamp_manual, "
                 "   REPLACE(src,'%PROJET','" + amc_data_url + "') as source, "
-                "   (SELECT ROUND(10*("+str(amc_threshold)+" - MIN(ABS(1.0 * cz.black / cz.total - "+str(amc_threshold)+"))) / "+str(amc_threshold)+",2) FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page) as sensitivity "
+                "   (SELECT ROUND(10*("+str(amc_threshold)+" - MIN(ABS(1.0 * cz.black / cz.total - "+str(amc_threshold)+"))) / "+str(amc_threshold)+",2) FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page AND cz.total > 0 AND cz.type = 4) as sensitivity "
                 "FROM capture_page cp "
                 "ORDER BY copy, page")
 
@@ -228,7 +228,7 @@ def select_missing_pages(amc_data_path):
                  "       WHERE role=1 "
                  "       UNION "
                  "       SELECT student,page "
-                 "       FROM layout_namefield) AS enter, "
+                 "       FROM layout_zone) AS enter, "
                  "       capture_page "
                  "ON enter.student=capture_page.student "
                  "EXCEPT SELECT student,page,copy FROM capture_page "

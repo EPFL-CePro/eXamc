@@ -46,6 +46,9 @@ class ManageReviewersForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ManageReviewersForm, self).__init__(*args, **kwargs)
+        # filter many to many pagesgroup to get only for curr exam
+        self.pages_groups_choices = PagesGroup.objects.filter(exam=kwargs.pop('instance').exam)
+        self.fields['pages_groups'].queryset = self.pages_groups_choices
         # you can iterate all fields here
         for fname, f in self.fields.items():
             f.widget.attrs['style'] = 'width:300px;'

@@ -13,7 +13,6 @@
             Manual
         </a>
     </div>
-    <hr/>
     <div class="mb-3">
         {% if data_pages %}
         {%  if missing_pages %}
@@ -120,7 +119,7 @@
             <h6>eXamc Review (this app)</h6>
             <div class="form-group">
                <div class="col-md-8">
-                    <a href="{% url 'import_scans_from_review' exam.pk %}" class="btn btn-primary btn-sm">Import</a>
+                    <button onclick="callAutomaticDataCapture_process(true)" class="btn btn-primary btn-sm">Import</button>
                 </div>
             </div>
         </div>
@@ -243,7 +242,7 @@
           </div>
       </div>
       <div class="modal-footer">
-        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk 1 %}">Close</a>
+        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk %}">Close</a>
       </div>
     </div>
   </div>
@@ -298,33 +297,68 @@ const amcScansFromLocalFrm = document.getElementById("amcScansFromLocalFrm");
 
 amcScansFromLocalFrm.addEventListener("submit", (e) => {
     e.preventDefault();
-    callAutomaticDataCapture();
+    callAutomaticDataCapture_process(false);
 })
 
-function callAutomaticDataCapture(){
+function callAutomaticDataCapture_process(from_review) {
     $("#closeConfirmAutomaticDataCaptureModalBt").click();
-    frmData = new FormData($("#amcScansFromLocalFrm")[0])
-    frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-    frmData.append('exam_pk', {{ exam.pk }});
-    ajax_info_modal_msg = document.getElementById('ajax_info_modal_msg');
-    ajax_info_modal_msg.innerHTML = "Automatic data capture could take some time. A dialog info will display when done !";
-    $('#ajax_info_modal').modal('show');
-    $.ajax({
-        url: "{% url 'call_amc_automatic_data_capture' %}",
-        type: "POST",
-        data : frmData,
-        contentType: false,
-        processData: false,
-        success: (data) => { 
-            ajax_info_modal_msg.innerHTML = "Automatic data done !";
-            $('#ajax_info_modal').modal('show');
-        },
-        error: (error) => {
-            ajax_info_modal_msg.innerHTML = "Problem during Automatic Data Capture ! </br></br>" +
-                "error";
-            $('#ajax_info_modal').modal('show');
-        }
-    });  
+    amc_process_modal_title = document.getElementById('amc_process_modal_title');
+    amc_process_modal_title.innerHTML = "Automatic data capture processing";
+    amc_process_modal_body = $('#amc_process_modal_body');
+    amc_process_modal_body.text('');
+    $('#amc_process_modal').modal('show');
+    if(from_review) {
+        const csrfToken = getCookie('csrftoken'); // Get CSRF token from the cookie
+        $.ajax({
+            url: "{% url 'import_scans_from_review' exam.pk %}",
+            type: "POST",
+            data : {
+               'csrfmiddlewaretoken' : '{{ csrf_token }}',
+            },
+            xhrFields: {
+                // This triggers each time progress is made on the request
+                onprogress: function(event) {
+                    amc_process_modal_body.html('');
+                    var response = event.currentTarget.responseText;
+                    amc_process_modal_body.html(response.replace('\n','<br/>'));
+                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                }
+            },
+            success: function() {
+                amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+            },
+            error: function() {
+                amc_process_modal_body.html('<p>Error occurred</p>');
+            }
+        });
+    }else{
+        frmData = new FormData($("#amcScansFromLocalFrm")[0])
+        frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        frmData.append('exam_pk', {{ exam.pk }});
+        $.ajax({
+            url: "{% url 'import_scans_from_review' exam.pk %}",
+            type: "POST",
+            data:frmData,
+            contentType: false,
+            processData: false,
+            xhrFields: {
+                // This triggers each time progress is made on the request
+                onprogress: function(event) {
+                    amc_process_modal_body.html('');
+                    var response = event.currentTarget.responseText;
+                    amc_process_modal_body.html(response.replace('\n','<br/>'));
+                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                }
+            },
+            success: function() {
+                amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+            },
+            error: function() {
+                amc_process_modal_body.html('<p>Error occurred</p>');
+            }
+        });
+    }
 }
 
 function showErrorDataCaptureDialog(title){    
@@ -369,7 +403,7 @@ function showErrorDataCaptureDialog(title){
             tr.appendChild(document.createElement('th'));
             tableHead.appendChild(tr);
             {% for page in unrecognized_pages %}
-                var scanSrc = "{{ page.filepath }}";
+                var scanSrc = "{{ page.source }}";
                 var tr = document.createElement('tr');
                 tr.setAttribute('id',scanSrc);
                 var td = document.createElement('td') ;
@@ -547,6 +581,21 @@ function update_amc_mark_zone(zoneid,copy,page){
             console.log(error);
         }
     });
+}
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 </script>

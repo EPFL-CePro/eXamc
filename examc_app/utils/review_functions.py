@@ -25,7 +25,6 @@ from datetime import datetime
 
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
 def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,process_number):
-    #extra_letters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','t','u','v','w','x','y','z']
 
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
 
@@ -63,7 +62,6 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
             else:
                 extra_i += 1
 
-            #print("copy "+str(copy_nr)+" / page "+str(page_nr))
 
             copy_nr_dir = str(copy_nr).zfill(4)
             subdir = os.path.join(scans_dir, copy_nr_dir)
@@ -73,7 +71,7 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
             page_nr_w_extra = str(page_nr)
             page_nr_w_extra = page_nr_w_extra.zfill(2)
             if extra_i > 0:
-                page_nr_w_extra += "x" + str(extra_i)
+                page_nr_w_extra += "." + str(extra_i)
 
             os.rename(f, subdir + "/copy_" + str(copy_nr).zfill(4) + "_" + str(page_nr_w_extra) + pathlib.Path(
                 filename).suffix)
@@ -141,15 +139,16 @@ def delete_old_scans(exam):
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
     marked_scans_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
-    for filename in os.listdir(marked_scans_dir):
-        file_path = os.path.join(scans_dir, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+    if os.path.exists(marked_scans_dir):
+        for filename in os.listdir(marked_scans_dir):
+            file_path = os.path.join(scans_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 def get_scans_path_for_group(pagesGroup):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
@@ -183,7 +182,7 @@ def get_scans_pathes_by_group(pagesGroup):
         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
             split_filename = filename.split('_')
             copy_no = split_filename[-2]
-            page_no_real = split_filename[-1].split('.')[0].replace('x', '.')
+            page_no_real = split_filename[-1].replace('.jpg','')
             # get only two first char to prevent extra pages with a,b,c suffixes
             page_no_int = int(page_no_real[0:2])
             if page_no_int >= pagesGroup.page_from and page_no_int <= pagesGroup.page_to:
@@ -208,6 +207,7 @@ def get_scans_pathes_by_group(pagesGroup):
                 #scans_path_dict["marked_by"] = marked_by
                 scans_pathes.append(scans_path_dict)
 
+    scans_pathes = sorted(scans_pathes, key=lambda k: (k['copy_no'], float(k['page_no'])))
     return scans_pathes
 
 #

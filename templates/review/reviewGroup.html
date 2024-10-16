@@ -77,7 +77,7 @@
             <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
                 <img id="source_img" style=""/>
                 <img id="marked_img" style="max-width:100%;position: absolute;"/>
-                <div style="position:absolute;z-index:999;">
+                <div id="corr_box_div" style="position:absolute;z-index:999;">
                     <svg id="corrector_boxes_svg" style="width:100%;height:100%;">
 
                     </svg>
@@ -221,15 +221,14 @@ function setSourceScan(scan_path){
     markedImage.src = scan_path;
 
     // change current and last source element background color
-    currSourceIdSplit = scan_path.split('/').pop().split('.').slice(-2)[0].split('_');
-    currSourceElementId =
-    currSourceIdSplit[0]+"_"+currSourceIdSplit[1]+"_"+parseFloat(currSourceIdSplit[2].replace("x","."));
+    currSourceIdSplit = scan_path.split('/').pop().replace('.jpg','').split('_');
+    currSourceElementId = currSourceIdSplit[0]+"_"+currSourceIdSplit[1]+"_"+parseFloat(currSourceIdSplit[2]);
     
     currSourceIdSplit.push(document.getElementById(currSourceElementId).cells[0].innerText);
     if (old_source){
-        lastSourceIdSplit = old_source.split('/').pop().split('.').slice(-2)[0].split('_');
+        lastSourceIdSplit = old_source.split('/').pop().replace('.jpg','').split('_');
         lastSourceElementId =
-        lastSourceIdSplit[0]+"_"+lastSourceIdSplit[1]+"_"+parseFloat(lastSourceIdSplit[2].replace("x","."));
+        lastSourceIdSplit[0]+"_"+lastSourceIdSplit[1]+"_"+parseFloat(lastSourceIdSplit[2]);
         document.getElementById(lastSourceElementId).style.backgroundColor = "";
     }
     document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
@@ -285,39 +284,7 @@ function setMarkerArea(target) {
         markerChange();
     });
 
-    {#markerArea.addEventListener("markerselect", (event) => {#}
-    {#    if(event.marker.fillColor === "purple"){#}
-    {#        event.marker.fillColor = "black";#}
-    {#        event.marker.fillColorChanged("black");#}
-    {#        state = event.markerArea.getState();#}
-    {#        event.markerArea.show();#}
-    {#        event.markerArea.restoreState(state);#}
-    {#    }#}
-    {#});#}
-
 }
-
-{#function check_intersect(marker){    #}
-{#    mleft = marker.left;#}
-{#    mtop = marker.top;#}
-{#    mwidth = marker.width;#}
-{#    mheight = marker.height;#}
-{#    a = (mleft, mtop);#}
-{#    b = (mleft + mwidth, mtop);#}
-{#    c = (mleft + mwidth, mtop + mheight);#}
-{#    d = (mleft, mtop + mheight);#}
-{#    marker_coords = [a, b, c, d];#}
-{#    marker_pol =  new Polygon( marker_coords);#}
-{#    #}
-{#    corr_pol = new Polygon({{ corr_box_coords }});#}
-{#    #}
-{#    if(marker_pol.intersectsWith(corr_pol)){#}
-{#        return true#}
-{#    }else{#}
-{#        return false#}
-{#    }#}
-{#    #}
-{#}#}
 
 function markerChange(){
     svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
@@ -370,7 +337,9 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
                 comments=data_full.comments;
                 corrector_boxes = JSON.parse(data_full.corrector_boxes);
                 $("#corrector_boxes_svg").empty();
+                $("#corr_box_div").css("display","none");
                 if(corrector_boxes.length > 0) {
+                    $("#corr_box_div").css("display","block");
                     draw_corrector_boxes(corrector_boxes);
                 }
                 initComments(comments);
@@ -389,20 +358,27 @@ function draw_corrector_boxes(data){
 
     imgRatio = sourceImage.naturalHeight / sourceImage.height;
 
-    const pos_rect = document.getElementById('markerjs_div').getBoundingClientRect();
+    const corr_box_div = document.getElementById('corr_box_div');
     min_x = Math.min.apply(Math, data.map(function (event) {
                 return event.x;
             }));
     min_y = Math.min.apply(Math, data.map(function (event) {
                 return event.y;
             }));
-    x_pos = min_x/imgRatio - 10//105
-    y_pos = min_y/imgRatio - 10//data[0].y - pos_rect.top //125
-    corr_height = data[data.length-1].y - data[0].y +10
-
-    corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:500px;z-index:999");
-
-    for (let pos of data) {
+    max_y = Math.max.apply(Math, data.map(function (event) {
+                return event.y;
+            }));
+    x_pos = min_x/imgRatio - 10
+    y_pos = min_y/imgRatio - 10
+    pos_y_min = 0
+    pos_y_max = 0
+    for (let pos of data) {        
+        if(pos.y > pos_y_max){
+            pos_y_max = pos.y;
+        }else if(pos_y_min === 0 || pos.y < pos_y_min){
+            pos_y_min = pos.y;
+        }
+        
         if(pos.corner === 1){
             pol_left = pos.x/imgRatio;
             pol_top = pos.y/imgRatio;
@@ -427,7 +403,8 @@ function draw_corrector_boxes(data){
             polygon.setAttribute('onclick',"createMarker4CorrBox("+pol_left+","+pol_top+","+pol_width+","+pol_height+");");
         }
     }
-
+    corr_height = max_y/imgRatio - y_pos + 10;//pos_y_max - pos_y_min;
+    corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:500px;z-index:999");
 }
 
 function createMarker4CorrBox(left,top,width,height){
@@ -584,7 +561,7 @@ function initComments(commentsArray){
 
 
 $(window).on("load",function(){
-    initCopyPagesTableOnClickRowEvent(true);
+    initCopyPagesTableOnClickRowEvent(false);
     {% if currpage > 0 %}
     createPagination({{ scans_pathes_list|length }}, {{ currpage }});
     {% else %}
