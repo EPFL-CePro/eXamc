@@ -68,7 +68,8 @@ INSTALLED_APPS = [
     'django_quill',
     'django_ckeditor_5',
     'celery',
-    'celery_progress'
+    'celery_progress',
+    'maintenance_mode',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +83,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_tequila.middleware.TequilaMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
+    'maintenance_mode.middleware.MaintenanceModeMiddleware'
 ]
 
 ROOT_URLCONF = 'examc.urls'
@@ -132,6 +134,10 @@ USE_L10N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# For maintenance set True
+MAINTENANCE_MODE = False
+MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
