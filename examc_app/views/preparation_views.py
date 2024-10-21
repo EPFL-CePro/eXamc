@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
-from examc import settings
+from django.conf import settings
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, ckeditorForm
 from examc_app.models import *
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview

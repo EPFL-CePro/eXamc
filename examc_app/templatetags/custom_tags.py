@@ -9,7 +9,7 @@ from django.db.models import FloatField, Sum
 from django.db.models.functions import Cast
 from shapely import Polygon
 
-from examc import settings
+from django.conf import settings
 from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser
 from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
 
