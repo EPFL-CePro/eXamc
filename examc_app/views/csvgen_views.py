@@ -12,7 +12,7 @@ from django.http import FileResponse, HttpResponse
 from django.shortcuts import render
 
 from examc_app.utils.epflldap import ldap_search
-from examc import settings
+from django.conf import settings
 
 CSV_TYPE_AMC = "a"
 STUDENTS_LIST = None

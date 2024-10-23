@@ -103,7 +103,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.env.local
 .venv
 env/
 venv/
@@ -7130,7 +7130,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.env.local
 .venv
 env/
 venv/
@@ -7296,3 +7296,5 @@ fabric.properties
 /examc_app/migrations/
 /catalogs/
 /autoupload/
+/.env.dev
+/.env.prod

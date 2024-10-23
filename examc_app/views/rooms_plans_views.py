@@ -14,7 +14,7 @@ from django.shortcuts import get_object_or_404, render
 import secrets
 
 from examc_app.utils.review_functions import *
-from examc import settings
+from django.conf import settings
 from examc_app.forms import SeatingForm
 from examc_app.utils.rooms_plans_functions import generate_plan
 

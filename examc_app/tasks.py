@@ -15,7 +15,7 @@ from celery_progress.backend import ProgressRecorder, logger
 from django.http import FileResponse
 from fpdf import FPDF
 
-from examc import settings
+from django.conf import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam
 from examc_app.utils.amc_functions import amc_automatic_data_capture
 from examc_app.utils.generate_statistics_functions import generate_exam_stats, update_overall_common_exam

@@ -3,6 +3,7 @@ from email.policy import default
 from django import forms
 import os
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, ModelForm
 from django_ckeditor_5.widgets import CKEditor5Widget
@@ -10,7 +11,6 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser
 from .utils.global_functions import get_course_teachers_string
 
-from examc import settings
 
 
 
