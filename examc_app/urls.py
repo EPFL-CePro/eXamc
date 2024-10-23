@@ -54,7 +54,7 @@ urlpatterns = [
 
     # AMC
     path('amc_view/<int:pk>', views.amc_view, name="amc_view"),
-    path('amc_view/<int:pk>/<int:active_tab>', views.amc_view, name="amc_view"),
+    path('amc_view/<int:pk>/<str:curr_tab>', views.amc_view, name="amc_view"),
     path('amc_data_capture_manual/<int:pk>', views.amc_data_capture_manual, name="amc_data_capture_manual"),
     path('get_amc_marks_positions', views.get_amc_marks_positions, name="get_amc_marks_positions"),
     path('update_amc_mark_zone', views.update_amc_mark_zone, name="update_amc_mark_zone"),

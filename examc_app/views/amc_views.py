@@ -37,7 +37,7 @@ def upload_amc_project(request, pk):
     return render(request, 'amc/upload_amc_project.html', {'exam': exam})
 
 @login_required
-def amc_view(request, pk,task_id=None):
+def amc_view(request, pk,curr_tab=None, task_id=None):
     exam = Exam.objects.get(pk=pk)
 
     amc_data_path = get_amc_project_path(exam, False)
@@ -101,6 +101,7 @@ def amc_view(request, pk,task_id=None):
             context['annotated_papers_available'] = check_annotated_papers_available(exam)
             context['has_results'] = has_results
             context['task_id'] = task_id
+            context['curr_tab'] = curr_tab
 
     else:
         context['user_allowed'] = False

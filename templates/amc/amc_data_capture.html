@@ -170,7 +170,7 @@
                 </div>
                 <div class="form-group">
                     <label for="question">Question</label>
-                    <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="question" id="question" required">
+                    <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="question" id="question" required>
                         <option selected>
                         {% for question in data_questions %}
                             <option value="{{ question.name }}">{{ question.name }}</option>
@@ -223,9 +223,9 @@
       </div>
       <div class="modal-body" style="padding:20px;max-height:70vh;overflow-y: auto;">
           <div class="btn-group">
-              <button type="button" class="btn btn-dark btn-sm" style="margin-left:150px;max-width:50px;margin-right:50px;" onclick=""><i class="fas fa-chevron-left fa-2x"></i></button>
+              <button id="zoomDataCapturePreviousBt" type="button" class="btn btn-dark btn-sm" style="margin-left:150px;max-width:50px;margin-right:50px;" onclick=""><i class="fas fa-chevron-left fa-2x"></i></button>
               <h6 id="zoomDataCaptureDiagnosisDialogHeader" style="text-align: center;width:250px"></h6>
-              <button type="button" class="btn btn-dark btn-sm" style="max-width:50px;margin-left:50px;" onclick=""><i class="fas fa-chevron-right fa-2x"></i></button>
+              <button id="zoomDataCaptureNextBt" type="button" class="btn btn-dark btn-sm" style="max-width:50px;margin-left:50px;" onclick=""><i class="fas fa-chevron-right fa-2x"></i></button>
           </div>
           <div style="padding:20px;">
             <h6>Unchecked boxes</h6>
@@ -242,7 +242,7 @@
           </div>
       </div>
       <div class="modal-footer">
-        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk %}">Close</a>
+        <a class="btn btn-secondary btn-sm" onclick="window.location.reload();" >Close</a>
       </div>
     </div>
   </div>
@@ -486,6 +486,7 @@ function openCopyPageZoomsDialog(copy,page){
             zoom_data.forEach(function (item) {
                 var image = new Image();
                 image.src = 'data:image/png;base64,'+item.imagedata;
+                image.setAttribute('width','40px');
                 msg=JSON.stringify(item)
                 image.setAttribute('onclick', 'update_amc_mark_zone('+item.zoneid+','+copy+','+page+')');
                 var td = document.createElement('td');
@@ -519,7 +520,10 @@ function openCopyPageZoomsDialog(copy,page){
             }
             $('#zoomDataCaptureDiagnosisDialog').modal('show');
 
-            document.getElementById("zoomDataCaptureDiagnosisDialogHeader").innerHTML = 'Boxes zooms for <br/> Copy'+copy+' / Page '+page;
+            document.getElementById("zoomDataCaptureDiagnosisDialogHeader").innerHTML = 'Boxes zooms for <br/> Copy '+copy+' / Page '+page;
+            document.getElementById('zoomDataCapturePreviousBt').setAttribute('onclick','zoomDataCapturePrevious('+copy+','+page+')')
+            document.getElementById('zoomDataCaptureNextBt').setAttribute('onclick','zoomDataCaptureNext('+copy+','+page+')')
+
         },
         error: (error) => {
             console.log(error);
@@ -596,6 +600,19 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+function zoomDataCaptureNext(copy,page){
+    curr_row = document.getElementById('table-scan-row-'+copy+'-'+page);
+    next_row = curr_row.parentNode.rows[curr_row.rowIndex];
+    if(next_row){openCopyPageZoomsDialog(next_row.cells[0].innerText,next_row.cells[1].innerText);}
+}
+
+function zoomDataCapturePrevious(copy,page){
+    curr_row = document.getElementById('table-scan-row-'+copy+'-'+page);
+    prev_row = curr_row.parentNode.rows[curr_row.rowIndex-2];
+    if(prev_row){openCopyPageZoomsDialog(prev_row.cells[0].innerText,prev_row.cells[1].innerText);}
+
 }
 
 </script>

@@ -14,9 +14,6 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 
 from .base import *
-from dotenv import load_dotenv
-
-load_dotenv('.env.local')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ['SECRET_KEY']

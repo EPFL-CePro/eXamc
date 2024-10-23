@@ -91,6 +91,8 @@ $("ul.nav-pills > li > a").on("shown.bs.tab", function(e) {
 var hash = window.location.hash;
 if(hash) {
     $(hash).click();//'#amc-pills-tab a[href="' + hash + '"]').tab('show');
+}else if ('{{ curr_tab }}') {
+    $('{{curr_tab}}').click();
 }else{
     $('#project-tab').click();
 }
