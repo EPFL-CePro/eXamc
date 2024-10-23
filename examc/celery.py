@@ -4,8 +4,10 @@ from celery import Celery
 
 from django.conf import settings
 import os
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examc.settings')
+from dotenv import load_dotenv
+dotenv_path = os.path.join(os.path.dirname(__file__), '../.env.local')
+load_dotenv(dotenv_path)
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examc.settings.local')
 
 
 
