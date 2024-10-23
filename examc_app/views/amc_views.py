@@ -218,6 +218,12 @@ def call_amc_automatic_data_capture(request,from_review):
 
 def import_scans_from_review(request,pk):
     exam = Exam.objects.get(pk=pk)
+
+    amc_proj_path = get_amc_project_path(exam, False)
+    file_list_path = amc_proj_path + "/list-file"
+    if os.path.exists(file_list_path):
+        os.remove(file_list_path)
+
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
         exam.semester.code) + "/" + exam.code
@@ -247,8 +253,7 @@ def import_scans_from_review(request,pk):
             else:
                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
-    amc_proj_path = get_amc_project_path(exam,False)
-    file_list_path = amc_proj_path + "/list-file"
+
     tmp_file_list = open(file_list_path, "w")
 
     files = glob.glob(scans_dir + '/**/*.*', recursive=True)

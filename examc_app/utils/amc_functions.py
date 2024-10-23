@@ -318,7 +318,8 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
         if  process.returncode and process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, process.args)
 
-    shutil.rmtree(tmp_dir_path)
+    if tmp_dir_path:
+        shutil.rmtree(tmp_dir_path)
     if errors:
         yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
 
