@@ -300,7 +300,7 @@ function markerChange(){
         var context = canvas.getContext('2d')
         context.drawImage(markerArea.target, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
         context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
-        var dataUrl = canvas.toDataURL('image/png')
+        var dataUrl = canvas.toDataURL('image/jpeg')
         markedImage.src = dataUrl;
         updateMarkers(markerArea,"{{ exam.pk }}","{{ pages_group.pk }}");
     });
