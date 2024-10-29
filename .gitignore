@@ -7299,9 +7299,3 @@ fabric.properties
 /.env.dev
 /.env.prod
 
-
-static/django_ckeditor_5/
-static/django_extensions/
-static/django_quill/
-static/img/amc_icons/test
-
