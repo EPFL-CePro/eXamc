@@ -26,7 +26,7 @@ from datetime import datetime
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
 def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,process_number):
 
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
 
     print("* Start splitting by copy")
 
@@ -99,7 +99,7 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
 
 def import_scans(exam, path,progress_recorder,process_count,process_number):
     print("* Start importing scans")
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     os.makedirs(scans_dir, exist_ok=True)
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Deleting old scans...')
@@ -127,7 +127,7 @@ def import_scans(exam, path,progress_recorder,process_count,process_number):
 
 
 def delete_old_scans(exam):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     for filename in os.listdir(scans_dir):
         file_path = os.path.join(scans_dir, filename)
         try:
@@ -138,7 +138,7 @@ def delete_old_scans(exam):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-    marked_scans_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    marked_scans_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     if os.path.exists(marked_scans_dir):
         for filename in os.listdir(marked_scans_dir):
             file_path = os.path.join(scans_dir, filename)
@@ -152,9 +152,9 @@ def delete_old_scans(exam):
 
 def get_scans_path_for_group(pagesGroup):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
-        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code
+        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
     scans_url = "../../scans/" + str(pagesGroup.exam.year.code) + "/" + str(
-        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code
+        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
 
     for dir in sorted(os.listdir(scans_dir)):
         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
@@ -168,9 +168,9 @@ def get_scans_path_for_group(pagesGroup):
 
 def get_scans_pathes_by_group(pagesGroup):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
-        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code
+        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
     scans_url = "../../scans/" + str(pagesGroup.exam.year.code) + "/" + str(
-        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code
+        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
 
     scans_pathes = []
 

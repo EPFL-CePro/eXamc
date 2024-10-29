@@ -9,6 +9,7 @@ from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 urlpatterns = [
     # EXAM INFO
     path('update_exam_users', views.update_exam_users, name="update_exam_users"),
+    path('update_exam_date', views.update_exam_date, name="update_exam_date"),
     path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
     path('examInfo/<int:pk>/<str:task_id>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
     path('update_exam_options/<int:pk>', views.update_exam_options, name='update_exam_options'),

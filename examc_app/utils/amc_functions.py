@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 import xml.etree.ElementTree as xmlET
 import zipfile
 from datetime import datetime
@@ -682,9 +683,40 @@ def get_automatic_association_code(exam):
         if association_code:
             return association_code
 
-    return "Pre-association"
+#     return "Pre-association"
+#
+# def amc_mark(exam,update_scoring_strategy):
+#     if update_scoring_strategy == 'true':
+#         result = amc_update_documents(exam,None,True)
+#
+#     project_path = get_amc_project_path(exam, False)
+#     threshold = get_amc_option_by_key(exam, "seuil")
+#     threshold_up = get_amc_option_by_key(exam, 'seuil_up')
+#     grain = get_amc_option_by_key(exam, "note_grain")
+#     round = get_amc_option_by_key(exam, "note_arrondi")
+#     notemin = get_amc_option_by_key(exam, "note_min")
+#     notemax = get_amc_option_by_key(exam, "note_max")
+#     plafond = get_amc_option_by_key(exam, "note_max_plafond")
+#     result = subprocess.run(['auto-multiple-choice note '
+#                              '--data "' + project_path + '/data/" '
+#                              '--seuil ' + threshold + ' '
+#                              '--seuil-up '  + threshold_up + ' '
+#                              '--grain ' + grain + ' '
+#                              '--arrondi ' + round + ' '
+#                              '--notemin ' + notemin + ' '
+#                              '--notemax ' + notemax + ' '
+#                              '--plafond ' + plafond + ' ']
+#                             , shell=True
+#                             , capture_output=True
+#                             , text=True)
+#     if result.stderr:
+#         return "ERR:" + result.stderr
+#     else:
+#         return result.stdout
 
-def amc_mark(exam,update_scoring_strategy):
+
+
+def amc_mark_subprocess(request, exam,update_scoring_strategy):
     if update_scoring_strategy == 'true':
         result = amc_update_documents(exam,None,True)
 
@@ -692,26 +724,36 @@ def amc_mark(exam,update_scoring_strategy):
     threshold = get_amc_option_by_key(exam, "seuil")
     threshold_up = get_amc_option_by_key(exam, 'seuil_up')
     grain = get_amc_option_by_key(exam, "note_grain")
-    round = get_amc_option_by_key(exam, "note_arrondi")
+    round_grade = get_amc_option_by_key(exam, "note_arrondi")
     notemin = get_amc_option_by_key(exam, "note_min")
     notemax = get_amc_option_by_key(exam, "note_max")
     plafond = get_amc_option_by_key(exam, "note_max_plafond")
-    result = subprocess.run(['auto-multiple-choice note '
+    yield "Start marking ...\n"
+
+    command = ['auto-multiple-choice note '
                              '--data "' + project_path + '/data/" '
                              '--seuil ' + threshold + ' '
                              '--seuil-up '  + threshold_up + ' '
                              '--grain ' + grain + ' '
-                             '--arrondi ' + round + ' '
+                             '--arrondi ' + round_grade + ' '
                              '--notemin ' + notemin + ' '
                              '--notemax ' + notemax + ' '
                              '--plafond ' + plafond + ' ']
-                            , shell=True
-                            , capture_output=True
-                            , text=True)
-    if result.stderr:
-        return "ERR:" + result.stderr
-    else:
-        return result.stdout
+    errors = ''
+    with subprocess.Popen(command,shell=True,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+        with open('/home/ludo/CEPRO/Workspace/GITHUB_KedroX/eXamc/examc/amc_projects/2024-2025/1/CEPRO-TEST-001_20241024/amc-compiled.amc', 'r') as file:
+            # Read each line in the file
+            for line in file:
+                if 'ETU' in line:
+                    info_str = 'Student Nr. '+line.split('=')[1].split('}')[0] + ' \n'
+                    print(info_str)
+                    yield info_str
+
+        if  process.returncode and process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, process.args)
+
+    if errors:
+        yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
 
 def get_amc_mean(exam):
     amc_data_path = get_amc_project_path(exam, False)

@@ -1,4 +1,4 @@
-
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Q
 from django.http import HttpResponse, HttpResponseRedirect
@@ -140,6 +140,27 @@ def update_exam_users(request):
         if exam_user.group.id in [2,3,4] and not exam_user.pages_groups:
             exam_user.pages_groups.set(PagesGroup.objects.filter(exam=exam).all())
         exam_user.save()
+
+    return redirect('examInfo', pk=exam.pk)
+
+
+
+@login_required
+@menu_access_required
+def update_exam_date(request):
+    """
+           Update exam date.
+
+           This function is used to update exam date
+
+           :param request: The HTTP request object.
+
+               Args:
+                    request: The HTTP request object.
+           """
+    exam = Exam.objects.get(pk=request.POST.get('pk'))
+    exam.date = request.POST.get('date')
+    exam.save()
 
     return redirect('examInfo', pk=exam.pk)
 

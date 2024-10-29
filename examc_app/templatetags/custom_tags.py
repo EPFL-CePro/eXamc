@@ -186,7 +186,7 @@ def get_pages_group_graded_count_txt(pages_group_id,user_id=None):
         count_graded = PageMarkers.objects.filter(pages_group=pages_group, correctorBoxMarked=True,pageMarkers_users__user__id=user_id).count()
     else:
         count_graded = PageMarkers.objects.filter(pages_group=pages_group,correctorBoxMarked=True).count()
-    scans_path =  str(settings.SCANS_ROOT) + "/" + str(pages_group.exam.year.code) + "/" + str(pages_group.exam.semester.code) + "/" + pages_group.exam.code
+    scans_path =  str(settings.SCANS_ROOT) + "/" + str(pages_group.exam.year.code) + "/" + str(pages_group.exam.semester.code) + "/" + pages_group.exam.code+"_"+pages_group.exam.date.strftime("%Y%m%d")
     scans_folders = [x for x in os.listdir(scans_path) if x != '0000']
     count_copies = len(scans_folders)
 
