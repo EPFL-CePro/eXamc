@@ -1,52 +1,41 @@
+import operator
 import shutil
 import zipfile
 from datetime import datetime
 
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db.models.functions import Cast
-from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect
+from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
 
 from examc_app.forms import ExportResultsForm
 from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import *
+from examc_app.views import ExamInfoView
 from userprofile.models import *
+
+## testing
+from examc_app.tasks import import_csv_data, generate_statistics
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
 
-# QUESTIONS MANAGEMENT
-# ------------------------------------------
-@login_required
-def update_question(request):
-    question = Question.objects.get(pk=request.POST['pk'])
-    field_name = request.POST['field']
-    value = request.POST['value']
-    if field_name == 'answers':
-        yo = 1
-    else:
-        setattr(question, field_name, value)
-    question.save()
-
-    return HttpResponse(1)
-
 # STUDENTS MANAGEMENT
 @login_required
-def update_student_present(request):
+def update_student_present(request,pk,value):
 
-    student = Student.objects.get(pk=request.POST['pk'])
-    value = request.POST['value']
+    student = Student.objects.get(pk=pk)
 
     logger.info(value)
 
-    if value == "1":
+    if value == 1:
         student.present = True
         student.exam.present_students += 1
     else:
@@ -56,26 +45,59 @@ def update_student_present(request):
     student.save()
     student.exam.save()
 
-    EXAM = Exam.objects.get(pk=student.exam.pk)
+    exam = Exam.objects.get(pk=student.exam.pk)
 
-    generate_statistics(student.exam)
+    task = generate_statistics.delay(student.exam.pk)
+    task_id = task.task_id
 
-    return HttpResponse(1)
+    return students_results_view(request,student.exam.pk,task_id)
+
+    # generate_statistics(student.exam)
+    #
+    # return HttpResponse(1)
+
 @login_required
-def import_data_4_stats(request,pk):
+def import_data_4_stats(request,pk,task_id=None):
     exam = Exam.objects.get(pk=pk)
+    currexam = exam
+
+    common_list = get_common_list(exam)
+
+    if exam.is_overall():
+        currexam = common_list[1]
+        common_list.remove(exam)
+    elif common_list:
+        currexam = exam
+        exam = common_list[0]
+        if len(common_list) > 1:
+            common_list.remove(exam)
+
     return render(request, 'res_and_stats/import_data.html',
-                  {"user_allowed": user_allowed(exam,request.user.id),"exam":exam })
+                  {"user_allowed": user_allowed(exam,request.user.id),
+                   "exam":exam,
+                   "currselected_exam":currexam,
+                   "common_list":common_list,
+                   "task_id":task_id})
 
 @login_required
 def upload_amc_csv(request, pk):
-    exam = Exam.objects.get(pk=pk)
-    result = import_csv_data(request.FILES["amc_csv_file"], exam)
+    csv_file = request.FILES["amc_csv_file"]
+    temp_csv_file_name = "tmp_upload_amc_csv_"+datetime.datetime.now().strftime("%Y%m%d%H%M%S")+".csv"
+    temp_csv_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, temp_csv_file_name)
 
-    if not result == True:
-        messages.error(request, "Unable to upload file. " + result)
+    os.makedirs(os.path.dirname(temp_csv_file_path), exist_ok=True)
 
-    return redirect('../examInfo/' + str(exam.pk))
+    with open(temp_csv_file_path, 'wb') as temp_file:
+        for chunk in csv_file.chunks():
+            temp_file.write(chunk)
+
+    task = import_csv_data.delay(temp_csv_file_path, pk)
+    task_id = task.task_id
+
+    # if not result == True:
+    #     messages.error(request, "Unable to upload file. " + result)
+
+    return import_data_4_stats(request,pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk))
 
 @login_required
 def upload_catalog_pdf(request, pk):
@@ -90,7 +112,7 @@ def upload_catalog_pdf(request, pk):
     exam.pdf_catalog_name = filename
     exam.save()
 
-    return redirect('../examInfo/' + str(exam.pk))
+    return redirect('../import_data_4_stats/' + str(exam.pk))
 
 @login_required
 def export_data(request,pk):
@@ -188,13 +210,21 @@ def export_data(request,pk):
 @login_required
 def generate_stats(request, pk):
     exam = Exam.objects.get(pk=pk)
-    generate_statistics(exam)
+    #generate_statistics(exam)
 
-    return redirect('../examInfo/' + str(exam.pk))
+    task = generate_statistics.delay(exam.pk)
+    task_id = task.task_id
+
+    # if not result == True:
+    #     messages.error(request, "Unable to upload file. " + result)
+
+    return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': pk, 'task_id': task_id}))
+    #return redirect('../examInfo/' + str(exam.pk))
 
 @login_required
 def general_statistics_view(request,pk):
     exam = Exam.objects.get(pk=pk)
+    currexam = exam
 
     if user_allowed(exam,request.user.id):
 
@@ -204,18 +234,23 @@ def general_statistics_view(request,pk):
 
             common_list = get_common_list(exam)
 
-            sum_all_students = len(exam.students.all())
+            if common_list:
+                currexam = exam
+                exam = common_list[0]
+
+            sum_all_students = len(currexam.students.all())
             correlation_list = []
 
-            if exam.overall:
-                sum_all_students = exam.get_sum_common_students()
-                correlation_list = get_comVsInd_correlation(exam)
+            if currexam.overall:
+                sum_all_students = currexam.get_sum_common_students()
+                correlation_list = get_comVsInd_correlation(currexam)
 
             return render(request, "res_and_stats/general_statistics.html",
                           {"user_allowed":True,
                            "exam" : exam,
+                           "currselected_exam": currexam,
                            "grade_list": grade_list,
-                           "absent": sum_all_students - exam.present_students,
+                           "absent": sum_all_students - currexam.present_students,
                            "common_list": common_list,
                            "correlation_list":correlation_list,
                            "current_url": "generalStats"})
@@ -229,64 +264,81 @@ def general_statistics_view(request,pk):
 
 
 @login_required
-def students_statistics_view(request,pk):
-    EXAM = Exam.objects.get(pk=pk)
+def students_results_view(request, pk, task_id=None):
+    exam = Exam.objects.get(pk=pk)
+    currexam = exam
 
-    if user_allowed(EXAM,request.user.id):
-        if EXAM and EXAM.scaleStatistics:
+    if user_allowed(exam,request.user.id):
+        if exam and exam.scaleStatistics:
+            common_list = get_common_list(exam)
 
-            common_list = get_common_list(EXAM)
-            students = Exam.objects.none()
+            if exam.is_overall():
+                currexam = common_list[1]
+                common_list.remove(exam)
+            elif common_list:
+                currexam = exam
+                exam = common_list[0]
+                if len(common_list) > 1:
+                    common_list.remove(exam)
 
-            if EXAM.overall:
-                for com_exam in EXAM.common_exams.all():
-
-                    students = students | com_exam.students.all()
-
-                students = sorted(students, key=operator.attrgetter('name'))
-            else:
-                students = EXAM.students.all()
-
-            return render(request, "res_and_stats/students_statistics.html",
+            return render(request, "res_and_stats/students_results.html",
                           {"user_allowed":True,
-                           "exam" : EXAM,
-                           "students" : students,
+                           "exam" : exam,
                            "common_list": common_list,
-                           "current_url": "studentsStats"})
+                           "currselected_exam" : currexam,
+                           "current_url": "studentsResults",
+                           "task_id":task_id})
         else:
-            return render(request, "res_and_stats/students_statistics.html", {"user_allowed":True,"scales": None, "students": None})
+            return render(request, "res_and_stats/students_results.html", {"user_allowed":True, "scales": None, "students": None})
     else:
-        return render(request, "res_and_stats/students_statistics.html", {"user_allowed":False,"scales": None, "students": None})
+        return render(request, "res_and_stats/students_results.html", {"user_allowed":False, "scales": None, "students": None})
 
 
 @login_required
 def questions_statistics_view(request,pk):
-    EXAM = Exam.objects.get(pk=pk)
+    exam = Exam.objects.get(pk=pk)
+    currexam = exam
 
-    if user_allowed(EXAM,request.user.id):
+    if user_allowed(exam,request.user.id):
 
-        if EXAM and EXAM.scaleStatistics.all() and EXAM.questions.all():
-            discriminatory_factor = Question.objects.filter(exam=EXAM)[0].discriminatory_factor
-            discriminatory_qty = round(EXAM.present_students * discriminatory_factor / 100)
+        if exam and exam.scaleStatistics.all() and exam.questions.all():
+
+            common_list = get_common_list(exam)
+
+            if common_list:
+                currexam = exam
+                exam = common_list[0]
+
+            discriminatory_factor = Question.objects.filter(exam=currexam)[0].discriminatory_factor
+            discriminatory_qty = round(currexam.present_students * discriminatory_factor / 100)
 
             question_stat_by_teacher_list = []
 
-            if EXAM.overall:
-                question_stat_by_teacher_list = get_questions_stats_by_teacher(EXAM)
+            if currexam.overall:
+                question_stat_by_teacher_list = get_questions_stats_by_teacher(currexam)
+
+            mcq_questions = Question.objects.filter(exam=currexam).exclude(question_type__id=4)
+            open_questions = Question.objects.filter(exam=currexam,question_type__id=4)
+
+            for question in open_questions.all():
+                print(question)
 
             return render(request, "res_and_stats/questions_statistics.html",
-                          {"user_allowed":True,"exam": EXAM,"discriminatory_factor": discriminatory_factor, "discriminatory_qty": discriminatory_qty,
-                           "mcq_questions": Question.objects.filter(exam=EXAM).exclude(question_type__id=4),
-                           "open_questions": Question.objects.filter(exam=EXAM,question_type__id=4),
+                          {"user_allowed":True,
+                           "exam": exam,
+                           "currselected_exam" : currexam,
+                           "discriminatory_factor": discriminatory_factor, "discriminatory_qty": discriminatory_qty,
+                           "mcq_questions": mcq_questions,
+                           "open_questions": open_questions,
                            "questionsStatsByTeacher": question_stat_by_teacher_list,
-                           "common_list" : get_common_list(EXAM),
+                           "common_list" : common_list,
                            "current_url": "questionsStats"})
         else:
             return render(request, "res_and_stats/questions_statistics.html",
-                          {"user_allowed":True,"exam": EXAM,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
+                          {"user_allowed":True,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
     else:
         return render(request, "res_and_stats/questions_statistics.html",
-                      {"user_allowed":False,"exam": EXAM,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
+                      {"user_allowed":False,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
 
 
 # PDF
@@ -324,12 +376,14 @@ def get_questions_stats_by_teacher(exam):
         teacher_list = []
 
         for comex in exam.common_exams.all():
-            teacher = {'teacher':comex.primary_user.last_name.replace("-","_")}
+            exam_user = ExamUser.objects.filter(exam=comex,group__id=2).first()
+            teacher = {'teacher':exam_user.user.last_name.replace("-","_")}
 
             section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
             teacher.update({'sections':section_list})
 
-            answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / comex.present_students * Count('ticked'), FloatField()))
+            present_students = comex.present_students if comex.present_students > 0 else 1
+            answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
 
             na_answers = 0
             new_answer_list = []
@@ -338,8 +392,8 @@ def get_questions_stats_by_teacher(exam):
                     na_answers += comex.present_students*answer.get('percent')/100
                 else:
                     new_answer_list.append({'ticked':answer.get('ticked'),'percent':answer.get('percent')})
-
-            new_answer_list.append({'ticked':'NA','percent':100/comex.present_students*na_answers})
+            na_answers = na_answers if na_answers > 0 else 1
+            new_answer_list.append({'ticked':'NA','percent':100/present_students*na_answers})
 
 
             teacher.update({'answers':new_answer_list})
@@ -350,3 +404,7 @@ def get_questions_stats_by_teacher(exam):
         question_stat_list.append(question_stat)
 
     return question_stat_list
+
+
+
+## TESTING

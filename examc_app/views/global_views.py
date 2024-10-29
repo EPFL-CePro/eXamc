@@ -6,6 +6,7 @@ from django.contrib.sites import requests
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django_tequila.django_backend import User
 
 from examc_app.forms import LoginForm
@@ -19,6 +20,24 @@ def getCommonExams(request, pk):
 
     return HttpResponseRedirect("../admin/examc_app/exam/")
 
+def home(request):
+    user_info = request.user.__dict__
+    user_info.update(request.user.__dict__)
+    return render(request, 'home.html', {
+        'user': request.user,
+        'user_info': user_info,
+    })
+
+
+@login_required
+def select_exam(request, pk, current_url=None):
+    url_string = '../'
+    if current_url is None:
+        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
+    else:
+        return HttpResponseRedirect(reverse(current_url, kwargs={'pk': str(pk)}))
+
+
 ### global views ###
 def menu_access_required(view_func):
     def wrapped_view(request, *args, **kwargs):
@@ -27,21 +46,7 @@ def menu_access_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapped_view
 
-def users_view(request):
-    users = User.objects.all()
-    return render(request, 'admin/users.html', {'users': users})
-
-@user_passes_test(lambda u: u.is_superuser)
-def staff_status(request, user_id):
-    user = User.objects.get(pk=user_id)
-    if request.POST.get('action') == 'add_staff':
-        user.is_staff = True
-    elif request.POST.get('action') == 'remove_staff':
-        user.is_staff = False
-    user.save()
-    return redirect('users')
-
-def log_in(request):
+def log_in(request, my_task=None):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -74,3 +79,4 @@ def user_allowed(exam, user_id):
         return True
     else:
         return False
+

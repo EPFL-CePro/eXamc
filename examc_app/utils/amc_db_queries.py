@@ -3,7 +3,7 @@ import sqlite3
 import sys
 import time
 import traceback
-
+from pathlib import Path
 
 class AMC_DB:
     def __init__(self, db_path: str) -> None:
@@ -42,7 +42,9 @@ def select_count_layout_pages(amc_data_path):
     db = AMC_DB(amc_data_path + "layout.sqlite")
     query_str = "SELECT count(*) FROM layout_page"
     response = db.execute_query(query_str)
-    nb_pages_detected = response.fetchall()[0][0]
+    nb_pages_detected = 0;
+    if response:
+        nb_pages_detected = response.fetchall()[0][0]
     db.close()
     return nb_pages_detected
 
@@ -55,38 +57,52 @@ def select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold):
                 "   timestamp_auto, "
                 "   timestamp_manual, "
                 "   REPLACE(src,'%PROJET','" + amc_data_url + "') as source, "
-                "   (SELECT ROUND(10*("+str(amc_threshold)+" - MIN(ABS(1.0 * cz.black / cz.total - "+str(amc_threshold)+"))) / "+str(amc_threshold)+",2) FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page) as sensitivity "
+                "   (SELECT ROUND(10*("+str(amc_threshold)+" - MIN(ABS(1.0 * cz.black / cz.total - "+str(amc_threshold)+"))) / "+str(amc_threshold)+",2) FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page AND cz.total > 0 AND cz.type = 4) as sensitivity "
                 "FROM capture_page cp "
                 "ORDER BY copy, page")
 
     response = db.execute_query(query_str)
-
-    colname_pages = [d[0] for d in response.description]
-    data_pages = [dict(zip(colname_pages, r)) for r in response.fetchall()]
+    data_pages = []
+    if response:
+        colname_pages = [d[0] for d in response.description]
+        data_pages = [dict(zip(colname_pages, r)) for r in response.fetchall()]
     db.close()
+
     return data_pages
 
 def select_manual_datacapture_questions(amc_data_path, data):
 
     db = AMC_DB(amc_data_path + "capture.sqlite")
 
-    # Attach scoring db
-    db.cur.execute("ATTACH DATABASE '" + amc_data_path + "scoring.sqlite' as scoring")
+    scoring_exists = False
+    if Path(amc_data_path + 'scoring.sqlite').stat().st_size > 0:
+        scoring_exists = True
 
-    query_str = ("SELECT DISTINCT(id_a) as question_id, "
-                "   sc.why as why "
-                "   FROM capture_zone cz "
-                "   INNER JOIN scoring.scoring_score as sc ON sc.student = " + str(data['copy']) + " AND sc.question = cz.id_a "
-                "WHERE type = 4 "
+    query_str = ("SELECT DISTINCT(id_a) as question_id ")
+
+    if scoring_exists:
+        query_str += (",sc.why as why ")
+
+
+    query_str += ("   FROM capture_zone cz ")
+
+    if scoring_exists:
+        # Attach scoring db
+        db.cur.execute("ATTACH DATABASE '" + amc_data_path + "scoring.sqlite' as scoring")
+
+        query_str += ("INNER JOIN scoring.scoring_score as sc ON sc.student = " + str(data['copy']) + " AND sc.question = cz.id_a ")
+
+    query_str += ("WHERE type = 4 "
                 "AND cz.student = " + str(data['copy']) +
                 " AND cz.page = " + str(data['page']))
 
 
 
     response = db.execute_query(query_str)
-
-    colname_questions_id = [d[0] for d in response.description]
-    data_questions_id = [dict(zip(colname_questions_id, r)) for r in response.fetchall()]
+    data_questions_id = []
+    if response:
+        colname_questions_id = [d[0] for d in response.description]
+        data_questions_id = [dict(zip(colname_questions_id, r)) for r in response.fetchall()]
 
     if not len(data_questions_id) > 0:
         db = AMC_DB(amc_data_path + "layout.sqlite")
@@ -110,46 +126,61 @@ def select_questions(amc_data_path):
     query_str = ("SELECT * FROM layout_question")
 
     response = db.execute_query(query_str)
-
-    colname_questions = [d[0] for d in response.description]
-    data_questions = [dict(zip(colname_questions, r)) for r in response.fetchall()]
+    data_questions = []
+    if response:
+        colname_questions = [d[0] for d in response.description]
+        data_questions = [dict(zip(colname_questions, r)) for r in response.fetchall()]
     db.close()
 
     return data_questions
 
-def select_marks_positions(amc_data_path,copy,page):
+def select_marks_positions(amc_data_path,copy,page,seuil):
+
+    scoring_exists = False
+    if Path(amc_data_path + 'scoring.sqlite').stat().st_size > 0:
+        scoring_exists = True
 
     db = AMC_DB(amc_data_path + "capture.sqlite")
 
-    # Attach scoring db
-    db.cur.execute("ATTACH DATABASE '" + amc_data_path + "scoring.sqlite' as scoring")
-
     query_str = ("SELECT cp.zoneid, "
-                "cp.corner, "
-                "cp.x, "
-                "cp.y, "
-                "cz.manual,"
-                "cz.black, "
-                "sc.why "
-                "FROM capture_position cp "
-                "INNER JOIN capture_zone cz ON cz.zoneid = cp.zoneid "
-                "LEFT OUTER JOIN scoring.scoring_score sc ON sc.student = " + str(copy) + " AND sc.question = cz.id_a "
-                "WHERE cp.zoneid in "
-                "   (SELECT cz2.zoneid from capture_zone cz2 WHERE cz2.student = " + str(copy) + " AND cz2.page = " + str(page) + ") "
-                 "AND cp.type = 1 "
-                 "AND cz.type = 4 "
-                 "ORDER BY cp.zoneid, cp.corner ")
+                 "cast(black as real) / total as bvalue,"
+                 "cp.corner, "
+                 "cp.x, "
+                 "cp.y, "
+                 "cz.manual,"
+                 "cz.black ")
+
+    if scoring_exists:
+        query_str += ", sc.why "
+
+    query_str +=  ("FROM capture_position cp "
+                 "INNER JOIN capture_zone cz ON cz.zoneid = cp.zoneid ")
+
+    if scoring_exists:
+        # Attach scoring db
+        db.cur.execute("ATTACH DATABASE '" + amc_data_path + "scoring.sqlite' as scoring")
+
+        query_str += ("LEFT OUTER JOIN scoring.scoring_score sc ON sc.student = " + str(copy) + " AND sc.question = cz.id_a ")
+
+
+    query_str += ("WHERE cp.zoneid in "
+            "   (SELECT cz2.zoneid from capture_zone cz2 WHERE cz2.student = " + str(copy) + " AND cz2.page = " + str(page) + ") "
+             "AND cp.type = 1 "
+             "AND cz.type = 4 "
+             "ORDER BY cp.zoneid, cp.corner ")
 
     response = db.execute_query(query_str)
-    colname_positions = [d[0] for d in response.description]
-    data_positions = [dict(zip(colname_positions, r)) for r in response.fetchall()]
+    data_positions = []
+    if response:
+        colname_positions = [d[0] for d in response.description]
+        data_positions = [dict(zip(colname_positions, r)) for r in response.fetchall()]
     db.close()
 
     return data_positions
 
 def select_data_zones(amc_data_path, zoneid):
     db = AMC_DB(amc_data_path + "capture.sqlite")
-    query_str = ("SELECT * FROM capture_zone WHERE zoneid = " + str(zoneid))
+    query_str = ("SELECT cast(black as real) / total as bvalue, * FROM capture_zone WHERE zoneid = " + str(zoneid))
     response = db.execute_query(query_str)
     colname_zones = [d[0] for d in response.description]
     data_zones = [dict(zip(colname_zones, r)) for r in response.fetchall()]
@@ -177,8 +208,9 @@ def select_nb_copies(amc_data_path):
                             " GROUP BY student, copy")
 
     response = db.execute_query(query_str)
-
-    nb_copies = len(response.fetchall())
+    nb_copies = 0
+    if response:
+        nb_copies = len(response.fetchall())
     db.close()
 
     return nb_copies
@@ -196,16 +228,17 @@ def select_missing_pages(amc_data_path):
                  "       WHERE role=1 "
                  "       UNION "
                  "       SELECT student,page "
-                 "       FROM layout_namefield) AS enter, "
+                 "       FROM layout_zone) AS enter, "
                  "       capture_page "
                  "ON enter.student=capture_page.student "
                  "EXCEPT SELECT student,page,copy FROM capture_page "
                  "ORDER BY student,copy,page")
 
     response = db.execute_query(query_str)
-
-    colname_missing_pages = [d[0] for d in response.description]
-    data_missing_pages = [dict(zip(colname_missing_pages, r)) for r in response.fetchall()]
+    data_missing_pages = []
+    if response:
+        colname_missing_pages = [d[0] for d in response.description]
+        data_missing_pages = [dict(zip(colname_missing_pages, r)) for r in response.fetchall()]
     db.close()
 
     return data_missing_pages
@@ -216,9 +249,10 @@ def select_unrecognized_pages(amc_data_path,amc_data_url):
     query_str = ("SELECT REPLACE(filename,'%PROJET','" + amc_data_url + "') as filename FROM capture_failed")
 
     response = db.execute_query(query_str)
-
-    colname_unrecognized_pages = [d[0] for d in response.description]
-    data_unrecognized_pages = [dict(zip(colname_unrecognized_pages, r)) for r in response.fetchall()]
+    data_unrecognized_pages = []
+    if response:
+        colname_unrecognized_pages = [d[0] for d in response.description]
+        data_unrecognized_pages = [dict(zip(colname_unrecognized_pages, r)) for r in response.fetchall()]
 
     data_unrecognized_pages_list = []
     db.close()
@@ -237,8 +271,10 @@ def select_overwritten_pages(amc_data_path):
 
     response = db.execute_query(query_str)
 
-    colname_overwritten_pages = [d[0] for d in response.description]
-    data_overwritten_pages = [dict(zip(colname_overwritten_pages, r)) for r in response.fetchall()]
+    data_overwritten_pages = []
+    if response:
+        colname_overwritten_pages = [d[0] for d in response.description]
+        data_overwritten_pages = [dict(zip(colname_overwritten_pages, r)) for r in response.fetchall()]
     db.close()
 
     return data_overwritten_pages
@@ -291,7 +327,9 @@ def get_mean(amc_data_path):
     query_str = ("SELECT AVG(mark) as mean FROM scoring_mark")
 
     response = db.execute_query(query_str)
-    mean = response.fetchall()[0]['mean']
+    mean = 0
+    if response:
+        mean = response.fetchall()[0]['mean']
 
     db.close()
 
@@ -321,8 +359,10 @@ def get_questions_scoring_details(amc_data_path):
                  "ORDER BY sm.student, lq.name")
 
     response = db.execute_query(query_str)
-    colname_marking = [d[0] for d in response.description]
-    marking_details = [dict(zip(colname_marking, r)) for r in response.fetchall()]
+    marking_details = []
+    if response:
+        colname_marking = [d[0] for d in response.description]
+        marking_details = [dict(zip(colname_marking, r)) for r in response.fetchall()]
 
     db.close()
 

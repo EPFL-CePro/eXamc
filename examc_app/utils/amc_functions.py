@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 import xml.etree.ElementTree as xmlET
 import zipfile
 from datetime import datetime
@@ -20,6 +21,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
+from django.template.loader import get_template
 from setuptools import glob
 
 from examc_app.utils.amc_db_queries import *
@@ -135,7 +137,64 @@ def latex_files_to_list(path):
 
     return file_list
 
+##testing
+def process(request):
+    # If you're getting IP from a form, ensure this value is passed
+    ip = request.POST.get('ip', 'www.google.ch')  # Default IP to google.ch
+
+    # Load the template that will be used for each line of the subprocess output
+    template = get_template("subprocess.html")
+
+    # Using subprocess to execute the ping command and stream the output
+    with subprocess.Popen([f'ping -c5 {ip}'], shell=True, stdout=subprocess.PIPE, bufsize=1,
+                          universal_newlines=True) as p:
+        # Iterate over each line in the stdout of the subprocess
+        for line in p.stdout:
+            # Yield rendered template with each line
+            yield line.strip()  # Strip to remove extra newlines
+
+    # If the subprocess has a non-zero exit code, raise an error
+    if p.returncode != 0:
+        raise subprocess.CalledProcessError(p.returncode, p.args)
+
+def amc_update_documents_subprocess(exam,nb_copies,scoring_only,preview=False):
+    amc_project_path = get_amc_project_path(exam, False)
+    if preview:
+        os.rename(amc_project_path + "/students.csv", amc_project_path + "/students.bck")
+        os.rename(amc_project_path + "/sample.csv", amc_project_path + "/students.csv")
+
+    if scoring_only:
+        command = ['auto-multiple-choice prepare '
+                     '--mode b '
+                     '--data "' + amc_project_path + '/data/" '
+                                                     '--with pdflatex '
+                                                     '--filter latex '
+                                                     '--prefix "'
+                     + amc_project_path + '/" "'
+                     + amc_project_path + '/exam.tex" ']
+    else:
+        amc_update_options_xml_by_key(exam, 'nombre_copies', nb_copies)
+        exam_file = get_amc_option_by_key(exam, 'doc_question')
+        correction_file = get_amc_option_by_key(exam, 'doc_catalog')
+        doc_setting = get_amc_option_by_key(exam, 'doc_setting')
+        command = ['auto-multiple-choice prepare '
+                                 '--mode s '
+                                 '--with pdflatex '
+                                 '--filter latex '
+                                 '--prefix "'
+                                 +get_amc_project_path(exam,False)+'/" "'
+                                 +get_amc_project_path(exam,False)+'/exam.tex" '
+                                 '--data "'+get_amc_project_path(exam,False)+'/data/" '
+                                 '--out-sujet "'+exam_file+'" '
+                                 '--out-catalog "'+correction_file+'" '
+                                 '--out-calage "'+doc_setting+'" ']
+
+    subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+
+
+
 def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
+
     amc_project_path = get_amc_project_path(exam,False)
     if preview:
         os.rename(amc_project_path+"/students.csv",amc_project_path+"/students.bck")
@@ -172,9 +231,7 @@ def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
                                 ,shell=True
                                 , capture_output=True
                                 , text=True)
-        # if result.stderr:
-        #     return "ERR:"+result.stderr
-        # else:
+
     if preview:
         os.rename(amc_project_path+"/students.csv",amc_project_path+"/sample.csv")
         os.rename(amc_project_path+"/students.bck",amc_project_path+"/students.csv")
@@ -196,48 +253,116 @@ def amc_layout_detection(exam):
     else:
         return result.stdout
 
-def amc_automatic_data_capture(exam,zip_file,from_review):
+def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file_list_path=None):
     project_path = get_amc_project_path(exam, False)
-    tmp_dir_path = project_path+"/tmp"
-
-    if os.path.exists(tmp_dir_path):
-        try:
-            shutil.rmtree(tmp_dir_path)
-        except Exception as e:
-            t = ''
-
-    os.mkdir(tmp_dir_path)
-
-    file_list_path = tmp_dir_path+"/list-file"
-    tmp_file_list = open(file_list_path, "a")
-
-    tmp_extract_path = tmp_dir_path + "/tmp_extract"
 
     if not from_review:
+        tmp_dir_path = project_path + "/tmp"
+        if os.path.exists(tmp_dir_path):
+            try:
+                shutil.rmtree(tmp_dir_path)
+            except Exception as e:
+                t = ''
+        os.mkdir(tmp_dir_path)
+
+        tmp_extract_path = tmp_dir_path + "/tmp_extract"
         file_name = f"exam_{exam.pk}_amc_scans.zip"
         tmp_file_path = tmp_dir_path + "/" + file_name
         with open(tmp_file_path, 'wb') as temp_file:
-            for chunk in zip_file.chunks():
+            for chunk in file_path.chunks():
                 temp_file.write(chunk)
-    else:
-        tmp_file_path = zip_file
+                # extract zip file in tmp dir
+        with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+            print("start extraction")
+            zip_ref.extractall(tmp_extract_path)
 
-    # extract zip file in tmp dir
-    with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
-        print("start extraction")
-        zip_ref.extractall(tmp_extract_path)
+            file_list_path = tmp_dir_path + "/list-file"
+            tmp_file_list = open(file_list_path, "a+")
 
-    i = 0
-    files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
-    for file in files:
-        tmp_file_list.write(file + "\n")
+            files = glob.glob(tmp_extract_path + '/**/*.*', recursive=True)
+            for file in files:
+                tmp_file_list.write(file + "\n")
 
-    tmp_file_list.close()
+            tmp_file_list.close()
+
+    # prepare scan images (see amc doc)
+    command = ['auto-multiple-choice getimages '
+                             '--list "' + file_list_path + '" ']
+    if not from_review:
+        command[0] += ' --copy-to "' + project_path + '/scans" '
+
+    yield "Getting images ...\n"
+    subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True)
+
+    os.rename(file_list_path, file_list_path + ".txt")
+    file_list_path += ".txt"
+
+    box_prop = get_amc_option_by_key(exam, "box_size_proportion")
+
+    # analyse scans
+    command = ['auto-multiple-choice analyse '
+                             '--prop ' + box_prop + ' '
+                             '--data "' + project_path + '/data/" '
+                            '--projet "' + project_path + '" '
+                            '--liste-fichiers "' + file_list_path + '" '
+                            '--try-three ']
+
+    yield "Automatic data capture ...\n"
+    errors = ''
+    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+        for line in process.stdout:
+            print(line.strip())
+            if "ERR:" in line:
+                errors += line
+            yield line
+
+        if  process.returncode and process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, process.args)
+
+    if tmp_dir_path:
+        shutil.rmtree(tmp_dir_path)
+    if errors:
+        yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
+
+def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
+    project_path = get_amc_project_path(exam, False)
+
+    if not from_review:
+        #tmp_dir_path = tmp_extract_path = file_path
+        #file_list_path = tmp_list_file
+    #else:
+        tmp_dir_path = project_path+"/tmp"
+        if os.path.exists(tmp_dir_path):
+            try:
+                shutil.rmtree(tmp_dir_path)
+            except Exception as e:
+                t = ''
+        os.mkdir(tmp_dir_path)
+
+        tmp_extract_path = tmp_dir_path + "/tmp_extract"
+        file_name = f"exam_{exam.pk}_amc_scans.zip"
+        tmp_file_path = tmp_dir_path + "/" + file_name
+        with open(tmp_file_path, 'wb') as temp_file:
+            for chunk in file_path.chunks():
+                temp_file.write(chunk)
+                # extract zip file in tmp dir
+        with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+            print("start extraction")
+            zip_ref.extractall(tmp_extract_path)
+
+            file_list_path = tmp_dir_path+"/list-file"
+            tmp_file_list = open(file_list_path, "a+")
+
+            files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
+            for file in files:
+                tmp_file_list.write(file + "\n")
+
+            tmp_file_list.close()
 
     # prepare scan images (see amc doc)
     result = subprocess.run(['auto-multiple-choice getimages '
-                             '--list "' + file_list_path + '" '
-                             '--copy-to "' + project_path + '/scans" ']
+                             '--list "' + file_list_path + '" ']
+                             # '--copy-to "' + project_path + '/scans" ']
                             , shell=True
                             , capture_output=True
                             , text=True)
@@ -245,14 +370,15 @@ def amc_automatic_data_capture(exam,zip_file,from_review):
         return "ERR:" + result.stderr
     else:
 
-        # replace tmp scans dir with scans dir to file_list_path
-        # rename file_list_path to .txt
-        # finally send this file as parameter to analyse
-        with open(file_list_path,'r') as file:
-            data = file.read()
-            data = data.replace(tmp_extract_path,project_path+'/scans')
-        with open(file_list_path,'w') as file:
-            file.write(data)
+        if not from_review:
+            # replace tmp scans dir with scans dir to file_list_path
+            # rename file_list_path to .txt
+            # finally send this file as parameter to analyse
+            with open(file_list_path,'r') as file:
+                data = file.read()
+                data = data.replace(tmp_extract_path,project_path+'/scans')
+            with open(file_list_path,'w') as file:
+                file.write(data)
 
         os.rename(file_list_path,file_list_path+".txt")
         file_list_path+=".txt"
@@ -271,6 +397,7 @@ def amc_automatic_data_capture(exam,zip_file,from_review):
                             , text=True)
         
 
+        os.remove(file_list_path)
         if result.stderr:
             return "ERR:" + result.stderr
         else:
@@ -337,16 +464,23 @@ def get_amc_data_capture_manual_data(exam):
         data_pages += extra_pages
         data_pages = sorted(data_pages, key=lambda k: (float(k['copy']), float(k['page'])))
 
+        if data_pages and '%HOME' in data_pages[0]['source']:
+            home_path = str(Path.home())
+            app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
+            for data in data_pages:
+                data['source'] = data['source'].replace(app_home_path,'')
+
         for data in data_pages:
             data_questions_id = select_manual_datacapture_questions(amc_data_path,data)
             questions_ids = ''
             if data_questions_id:
                 for qid in data_questions_id:
                     questions_ids += '%' + str(qid['question_id']) + '%'
-                    if qid['why'] == 'E':
-                        questions_ids += '|INV|'
-                    elif qid['why'] == 'V':
-                        questions_ids += '|EMP|'
+                    if 'why' in qid.keys():
+                        if qid['why'] == 'E':
+                            questions_ids += '|INV|'
+                        elif qid['why'] == 'V':
+                            questions_ids += '|EMP|'
 
             data['questions_ids'] = questions_ids + '%'
 
@@ -365,7 +499,7 @@ def get_extra_pages(amc_extra_pages_path,amc_extra_pages_url=None,student=None):
                 for file in os.listdir(amc_extra_pages_path+subdir):
                     filepath = amc_extra_pages_url+subdir+"/"+file
                     copy = file.split('_')[1].lstrip('0')
-                    page = file.split('_')[2].split('.')[0].lstrip('0').replace('x','.')
+                    page = file.split('_')[2].replace('.jpg','').lstrip('0')
                     extra_page = {'copy':copy,'mse':0.0,'page':page,'sensitivity':0.0,'source':filepath,'timestamp_auto':0}
                     extra_pages_data.append(extra_page)
 
@@ -376,7 +510,15 @@ def get_amc_marks_positions_data(exam,copy,page):
 
     if amc_data_path:
         amc_data_path += "/data/"
-        data_positions = select_marks_positions(amc_data_path,copy,page)
+        data_positions = select_marks_positions(amc_data_path,copy,page,float(get_amc_option_by_key(exam,"seuil")))
+
+        for idx, item in enumerate(data_positions):
+            item["checked"] = False
+            if (item["bvalue"] >= float(get_amc_option_by_key(exam, "seuil")) and item["manual"] == -1.0) or item[
+                "manual"] == 1.0:
+                item["checked"] = True
+
+            data_positions[idx] = item
 
         return data_positions
 
@@ -389,8 +531,8 @@ def update_amc_mark_zone_data(exam,zoneid,copy,page):
         data_zones = select_data_zones(amc_data_path,zoneid)
 
         manual = data_zones[0]['manual']
-        black = data_zones[0]['black']
-        if (manual == -1.0 and black > 0) or manual == 1.0:
+        bvalue = data_zones[0]['bvalue']
+        if (manual == -1.0 and bvalue >= float(get_amc_option_by_key(exam,"seuil"))) or manual == 1.0:
             manual = "0.0"
         else:
             manual = "1.0"
@@ -423,6 +565,9 @@ def create_amc_project_dir_from_zip(exam,zip_file):
 
     # move to destination amc_projects
     amc_project_path = get_amc_project_path(exam, True)
+    # Remove destination folder if it exists
+    if os.path.exists(amc_project_path):
+        shutil.rmtree(amc_project_path)
     shutil.move(tmp_extract_path, amc_project_path)
 
     return 'AMC project folder uploaded !'
@@ -437,9 +582,17 @@ def get_automatic_data_capture_summary(exam):
 
         nb_copies = select_nb_copies(amc_data_path)
 
-        data_missing_pages = select_missing_pages(amc_data_path)
+        data_missing_pages = []
+        data_unrecognized_pages = []
 
-        data_unrecognized_pages = select_unrecognized_pages(amc_data_path,amc_data_url)
+        if nb_copies > 0:
+            data_missing_pages = select_missing_pages(amc_data_path)
+            data_unrecognized_pages = select_unrecognized_pages(amc_data_path,amc_data_url)
+
+        if data_unrecognized_pages and '%HOME' in data_unrecognized_pages[0]['filepath']:
+            app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
+            for data in data_unrecognized_pages:
+                data['source'] = data['filepath'].replace(app_home_path,'')
 
         prev_stud = None
         incomplete_copies = []
@@ -474,6 +627,10 @@ def get_copy_page_zooms(exam,copy,page):
         for idx, item in enumerate(zooms_data):
             imagedata = base64.b64encode(item["imagedata"])
             item["imagedata"] = imagedata.decode()
+            item["checked"] = False
+            if (item["bvalue"] >= float(get_amc_option_by_key(exam,"seuil")) and item["manual"] == -1) or item["manual"] == 1:
+                item["checked"] = True
+
             zooms_data[idx] = item
 
     return zooms_data
@@ -499,10 +656,10 @@ def add_unrecognized_page_to_project(exam,copy,question,extra,img_filename):
                     last_exNum = curr_exNum
 
             new_exNum = str(last_exNum + 1).zfill(2)
-            filename = "copy_"+str(copy).zfill(4)+"_"+str(page).zfill(2)+"x"+new_exNum+".jpg"
+            #filename = "copy_"+str(copy).zfill(4)+"_"+str(page).zfill(2)+"x"+new_exNum+".jpg"
 
             #move to extra folder
-            shutil.move(amc_data_path+'/scans/'+img_filename, copy_extra_folder_path+'/'+filename)
+            shutil.move(str(settings.BASE_DIR)+img_filename, copy_extra_folder_path+'/'+img_filename.split('/')[-1])
 
             #remove as unrecognized page
             delete_unrecognized_page(amc_data_path+'/data/',img_filename)
@@ -526,9 +683,40 @@ def get_automatic_association_code(exam):
         if association_code:
             return association_code
 
-    return "Pre-association"
+#     return "Pre-association"
+#
+# def amc_mark(exam,update_scoring_strategy):
+#     if update_scoring_strategy == 'true':
+#         result = amc_update_documents(exam,None,True)
+#
+#     project_path = get_amc_project_path(exam, False)
+#     threshold = get_amc_option_by_key(exam, "seuil")
+#     threshold_up = get_amc_option_by_key(exam, 'seuil_up')
+#     grain = get_amc_option_by_key(exam, "note_grain")
+#     round = get_amc_option_by_key(exam, "note_arrondi")
+#     notemin = get_amc_option_by_key(exam, "note_min")
+#     notemax = get_amc_option_by_key(exam, "note_max")
+#     plafond = get_amc_option_by_key(exam, "note_max_plafond")
+#     result = subprocess.run(['auto-multiple-choice note '
+#                              '--data "' + project_path + '/data/" '
+#                              '--seuil ' + threshold + ' '
+#                              '--seuil-up '  + threshold_up + ' '
+#                              '--grain ' + grain + ' '
+#                              '--arrondi ' + round + ' '
+#                              '--notemin ' + notemin + ' '
+#                              '--notemax ' + notemax + ' '
+#                              '--plafond ' + plafond + ' ']
+#                             , shell=True
+#                             , capture_output=True
+#                             , text=True)
+#     if result.stderr:
+#         return "ERR:" + result.stderr
+#     else:
+#         return result.stdout
 
-def amc_mark(exam,update_scoring_strategy):
+
+
+def amc_mark_subprocess(request, exam,update_scoring_strategy):
     if update_scoring_strategy == 'true':
         result = amc_update_documents(exam,None,True)
 
@@ -536,26 +724,36 @@ def amc_mark(exam,update_scoring_strategy):
     threshold = get_amc_option_by_key(exam, "seuil")
     threshold_up = get_amc_option_by_key(exam, 'seuil_up')
     grain = get_amc_option_by_key(exam, "note_grain")
-    round = get_amc_option_by_key(exam, "note_arrondi")
+    round_grade = get_amc_option_by_key(exam, "note_arrondi")
     notemin = get_amc_option_by_key(exam, "note_min")
     notemax = get_amc_option_by_key(exam, "note_max")
     plafond = get_amc_option_by_key(exam, "note_max_plafond")
-    result = subprocess.run(['auto-multiple-choice note '
+    yield "Start marking ...\n"
+
+    command = ['auto-multiple-choice note '
                              '--data "' + project_path + '/data/" '
                              '--seuil ' + threshold + ' '
                              '--seuil-up '  + threshold_up + ' '
                              '--grain ' + grain + ' '
-                             '--arrondi ' + round + ' '
+                             '--arrondi ' + round_grade + ' '
                              '--notemin ' + notemin + ' '
                              '--notemax ' + notemax + ' '
                              '--plafond ' + plafond + ' ']
-                            , shell=True
-                            , capture_output=True
-                            , text=True)
-    if result.stderr:
-        return "ERR:" + result.stderr
-    else:
-        return result.stdout
+    errors = ''
+    with subprocess.Popen(command,shell=True,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+        with open('/home/ludo/CEPRO/Workspace/GITHUB_KedroX/eXamc/examc/amc_projects/2024-2025/1/CEPRO-TEST-001_20241024/amc-compiled.amc', 'r') as file:
+            # Read each line in the file
+            for line in file:
+                if 'ETU' in line:
+                    info_str = 'Student Nr. '+line.split('=')[1].split('}')[0] + ' \n'
+                    print(info_str)
+                    yield info_str
+
+        if  process.returncode and process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, process.args)
+
+    if errors:
+        yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
 
 def get_amc_mean(exam):
     amc_data_path = get_amc_project_path(exam, False)

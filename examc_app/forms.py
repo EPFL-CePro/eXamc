@@ -1,14 +1,16 @@
+from email.policy import default
+
 from django import forms
 import os
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, ModelForm
 from django_ckeditor_5.widgets import CKEditor5Widget
 
-from .models import PagesGroup, Reviewer, Exam, AcademicYear, Semester, Course, QuestionType
+from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser
 from .utils.global_functions import get_course_teachers_string
 
-from examc import settings
 
 
 
@@ -39,11 +41,14 @@ PagesGroupsFormSet = modelformset_factory(
 
 class ManageReviewersForm(forms.ModelForm):
     class Meta:
-        model = Reviewer
+        model = ExamUser
         fields = ['user', 'pages_groups']
 
     def __init__(self, *args, **kwargs):
         super(ManageReviewersForm, self).__init__(*args, **kwargs)
+        # filter many to many pagesgroup to get only for curr exam
+        self.pages_groups_choices = PagesGroup.objects.filter(exam=kwargs.pop('instance').exam)
+        self.fields['pages_groups'].queryset = self.pages_groups_choices
         # you can iterate all fields here
         for fname, f in self.fields.items():
             f.widget.attrs['style'] = 'width:300px;'
@@ -52,13 +57,19 @@ class ManageReviewersForm(forms.ModelForm):
                 f.disabled = True
 
 
-ReviewersFormSet = modelformset_factory(Reviewer, form=ManageReviewersForm, extra=0)
+ReviewersFormSet = modelformset_factory(ExamUser, form=ManageReviewersForm, extra=0)
 
 
 class ExportMarkedFilesForm(forms.Form):
     export_type = forms.ChoiceField(widget=forms.RadioSelect,
-                                    choices=[(1, 'JPGs (one per page)'), (2, 'PDFs (one per student copy)')],
+                                    choices=[(2, 'PDFs (one per student copy)'),(1, 'JPGs (one per page)')],
+                                    initial=2,
                                     required=True)
+
+    with_comments = forms.ChoiceField(widget=forms.RadioSelect,
+                                      choices=[(1,'Yes'),(2,'No')],
+                                      initial=1,
+                                      required=True)
 
     def __init__(self, *args, **kwargs):
         exam = kwargs.pop('exam', None)
@@ -75,7 +86,7 @@ class ExportResultsForm(forms.Form):
     exportIsaCsv = forms.BooleanField(label='export ISA .csv', label_suffix=' ',initial=False, required=False, widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
     exportExamScalePdf = forms.BooleanField(label='export Exam scale pdf', label_suffix=' ',initial=False, required=False,widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
     exportStudentsDataCsv = forms.BooleanField(label='export Students data .csv', label_suffix=' ',initial=False, required=False,widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
-
+    scale = forms.ChoiceField(choices=(), widget=forms.RadioSelect(attrs={'class': "custom-radio-list form-check-inline"}), required=True)
     def __init__(self, *args, **kwargs):
 
         exam = kwargs.pop('exam', None)
@@ -87,14 +98,11 @@ class ExportResultsForm(forms.Form):
             if exam.overall:
                 self.fields['common_exams'] = forms.MultipleChoiceField(
                         widget=forms.CheckboxSelectMultiple(attrs={'class': "custom-radio-list form-check-inline"}),
-                        choices=[ (c.pk,c.code+" "+c.primary_user.last_name) for c in exam.common_exams.all()],required=False)
+                        choices=[ (c.pk,c.code+" "+c.exam_users.first().user.last_name) for c in exam.common_exams.all()],required=False)
 
             self.fields['scale'].choices=[ (s.pk, s.name) for s in exam.scales.all()]
 
-CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
-JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
-CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
-IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
+
 
 class CreateExamProjectForm(forms.Form):
     course = forms.ChoiceField(label='Course',choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}),required=True)
@@ -146,6 +154,10 @@ class CreateQuestionForm(forms.Form):
 class ckeditorForm(forms.Form):
     ckeditor_txt = forms.CharField(widget=CKEditor5Widget(attrs={'class':'django_ckeditor_5','width': '100%'}))
 
+CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
+JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
+CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
+IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
 class SeatingForm(forms.Form):
     csv_file = forms.MultipleChoiceField(
         choices=CSV_FILES,
@@ -214,4 +226,19 @@ class SeatingForm(forms.Form):
         widget=forms.RadioSelect(attrs={'data-tooltip': "Choose the shape to draw."}),
         initial='circle'
     )
-    # preview = forms.BooleanField(required=False, initial=False, widget=forms.HiddenInput())
+
+
+class ldapForm(forms.Form):
+    LDAP_SEARCH_CHOICES = [
+        ('uniqueidentifier', 'Sciper'),
+        ('displayName', 'Name'),
+        ('mail', 'Email'),
+        ('uid', 'User ID')
+    ]
+
+    choice = forms.ChoiceField(
+        choices=LDAP_SEARCH_CHOICES,
+        label='To search in LDAP',
+        widget=forms.RadioSelect(attrs={'data-tooltip': "Choose LDAP search."}),
+        initial='sciper'
+    )

@@ -13,7 +13,6 @@
             Manual
         </a>
     </div>
-    <hr/>
     <div class="mb-3">
         {% if data_pages %}
         {%  if missing_pages %}
@@ -49,8 +48,8 @@
     <div class="mb-3">
         <h6>Diagnosis</h6>
 
-        <div class="mb-3" style="width:60%;">
-            <table id="table-copies-pages" class="table table-sm table-striped" style="width:100%;">
+        <div class="mb-3" style="width:500px;">
+            <table id="table-copies-pages" class="table table-sm table-striped" >
             <thead >
               <tr>
 
@@ -58,7 +57,7 @@
                 <th data-sortable="true">Page</th>
                 <th data-sortable="true">MSE</th>
                 <th data-sortable="true">Sensitivity</th>
-                <th data-sortable="true">Manual</th>
+                <th data-sortable="true">Man</th>
                 <th></th>
                 <th style="display:none;width:0px;">source</th>
                 <th style="display:none;width:0px;">questions</th>
@@ -72,8 +71,8 @@
                 <td> {{ row.page }}</td>
                 <td>{{ row.mse }}</td>
                 <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{{ row.sensitivity }}</td>
-                <td>{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
-                <td>
+                <td style="text-align: center">{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
+                <td style="text-align: center">
                     <button type="button" data-toggle="modal" onclick="openCopyPageZoomsDialog({{ row.copy }}, {{ row.page }});" class="btn btn-lg btn-sm">
                         <i class="far fa-eye fa-lg"></i>
                     </button>
@@ -120,7 +119,7 @@
             <h6>eXamc Review (this app)</h6>
             <div class="form-group">
                <div class="col-md-8">
-                    <a href="{% url 'import_scans_from_review' exam.pk %}" class="btn btn-primary btn-sm">Import</a>
+                    <button onclick="callAutomaticDataCapture_process(true)" class="btn btn-primary btn-sm">Import</button>
                 </div>
             </div>
         </div>
@@ -171,7 +170,7 @@
                 </div>
                 <div class="form-group">
                     <label for="question">Question</label>
-                    <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="question" id="question" required">
+                    <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="question" id="question" required>
                         <option selected>
                         {% for question in data_questions %}
                             <option value="{{ question.name }}">{{ question.name }}</option>
@@ -224,9 +223,9 @@
       </div>
       <div class="modal-body" style="padding:20px;max-height:70vh;overflow-y: auto;">
           <div class="btn-group">
-              <button type="button" class="btn btn-dark btn-sm" style="margin-left:150px;max-width:50px;margin-right:50px;" onclick=""><i class="fas fa-chevron-left fa-2x"></i></button>
+              <button id="zoomDataCapturePreviousBt" type="button" class="btn btn-dark btn-sm" style="margin-left:150px;max-width:50px;margin-right:50px;" onclick=""><i class="fas fa-chevron-left fa-2x"></i></button>
               <h6 id="zoomDataCaptureDiagnosisDialogHeader" style="text-align: center;width:250px"></h6>
-              <button type="button" class="btn btn-dark btn-sm" style="max-width:50px;margin-left:50px;" onclick=""><i class="fas fa-chevron-right fa-2x"></i></button>
+              <button id="zoomDataCaptureNextBt" type="button" class="btn btn-dark btn-sm" style="max-width:50px;margin-left:50px;" onclick=""><i class="fas fa-chevron-right fa-2x"></i></button>
           </div>
           <div style="padding:20px;">
             <h6>Unchecked boxes</h6>
@@ -243,7 +242,7 @@
           </div>
       </div>
       <div class="modal-footer">
-        <a class="btn btn-secondary btn-sm" href="{% url 'amc_view' exam.pk 1 %}">Close</a>
+        <a class="btn btn-secondary btn-sm" onclick="window.location.reload();" >Close</a>
       </div>
     </div>
   </div>
@@ -259,16 +258,10 @@ $('#amc_scans_zip_file').on('change',function(){
             scrollY: '55vh',
             "dom": 'rtip',
             "lengthChange": false,
-            "paging": false
+            "paging": false,
+            "autoWidth": false
         } );
-
-    //var filtered_questions_list=[];
-    //var question_filter_id=0;
-    //var question_filter_name='All';
-    //var type_filter='All';
     var curr_selected_id = "table-scan-row-1-1";
-    //var canvasScan = document.getElementById("canvasScan");
-    //var imgScan = new Image();
     initCopyPagesTableOnClickRowEvent(true);
     $("#table-copies-pages tbody tr:first").trigger('click');
 {% endif %}
@@ -297,33 +290,68 @@ const amcScansFromLocalFrm = document.getElementById("amcScansFromLocalFrm");
 
 amcScansFromLocalFrm.addEventListener("submit", (e) => {
     e.preventDefault();
-    callAutomaticDataCapture();
+    callAutomaticDataCapture_process(false);
 })
 
-function callAutomaticDataCapture(){
+function callAutomaticDataCapture_process(from_review) {
     $("#closeConfirmAutomaticDataCaptureModalBt").click();
-    frmData = new FormData($("#amcScansFromLocalFrm")[0])
-    frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-    frmData.append('exam_pk', {{ exam.pk }});
-    ajax_info_modal_msg = document.getElementById('ajax_info_modal_msg');
-    ajax_info_modal_msg.innerHTML = "Automatic data capture could take some time. A dialog info will display when done !";
-    $('#ajax_info_modal').modal('show');
-    $.ajax({
-        url: "{% url 'call_amc_automatic_data_capture' %}",
-        type: "POST",
-        data : frmData,
-        contentType: false,
-        processData: false,
-        success: (data) => { 
-            ajax_info_modal_msg.innerHTML = "Automatic data done !";
-            $('#ajax_info_modal').modal('show');
-        },
-        error: (error) => {
-            ajax_info_modal_msg.innerHTML = "Problem during Automatic Data Capture ! </br></br>" +
-                "error";
-            $('#ajax_info_modal').modal('show');
-        }
-    });  
+    amc_process_modal_title = document.getElementById('amc_process_modal_title');
+    amc_process_modal_title.innerHTML = "Automatic data capture processing";
+    amc_process_modal_body = $('#amc_process_modal_body');
+    amc_process_modal_body.text('');
+    $('#amc_process_modal').modal('show');
+    if(from_review) {
+        const csrfToken = getCookie('csrftoken'); // Get CSRF token from the cookie
+        $.ajax({
+            url: "{% url 'import_scans_from_review' exam.pk %}",
+            type: "POST",
+            data : {
+               'csrfmiddlewaretoken' : '{{ csrf_token }}',
+            },
+            xhrFields: {
+                // This triggers each time progress is made on the request
+                onprogress: function(event) {
+                    amc_process_modal_body.html('');
+                    var response = event.currentTarget.responseText;
+                    amc_process_modal_body.html(response.replace('\n','<br/>'));
+                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                }
+            },
+            success: function() {
+                amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+            },
+            error: function() {
+                amc_process_modal_body.html('<p>Error occurred</p>');
+            }
+        });
+    }else{
+        frmData = new FormData($("#amcScansFromLocalFrm")[0])
+        frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        frmData.append('exam_pk', {{ exam.pk }});
+        $.ajax({
+            url: "{% url 'import_scans_from_review' exam.pk %}",
+            type: "POST",
+            data:frmData,
+            contentType: false,
+            processData: false,
+            xhrFields: {
+                // This triggers each time progress is made on the request
+                onprogress: function(event) {
+                    amc_process_modal_body.html('');
+                    var response = event.currentTarget.responseText;
+                    amc_process_modal_body.html(response.replace('\n','<br/>'));
+                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                }
+            },
+            success: function() {
+                amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+            },
+            error: function() {
+                amc_process_modal_body.html('<p>Error occurred</p>');
+            }
+        });
+    }
 }
 
 function showErrorDataCaptureDialog(title){    
@@ -368,7 +396,7 @@ function showErrorDataCaptureDialog(title){
             tr.appendChild(document.createElement('th'));
             tableHead.appendChild(tr);
             {% for page in unrecognized_pages %}
-                var scanSrc = "{{ page.filepath }}";
+                var scanSrc = "{{ page.source }}";
                 var tr = document.createElement('tr');
                 tr.setAttribute('id',scanSrc);
                 var td = document.createElement('td') ;
@@ -451,13 +479,14 @@ function openCopyPageZoomsDialog(copy,page){
             zoom_data.forEach(function (item) {
                 var image = new Image();
                 image.src = 'data:image/png;base64,'+item.imagedata;
+                image.setAttribute('width','40px');
                 msg=JSON.stringify(item)
                 image.setAttribute('onclick', 'update_amc_mark_zone('+item.zoneid+','+copy+','+page+')');
                 var td = document.createElement('td');
                 td.appendChild(image);
                 td.appendChild(document.createTextNode(item.bvalue.toFixed(3)));
 
-                if( (item.black > 0 && item.manual === -1) || item.manual === 1){
+                if( item.checked ){ //(item.black > 0 && item.manual === -1) || item.manual === 1){
                     colChecked ++;
                     if(colChecked > 8){
                         tableBodyChecked.appendChild(trChecked);
@@ -484,7 +513,10 @@ function openCopyPageZoomsDialog(copy,page){
             }
             $('#zoomDataCaptureDiagnosisDialog').modal('show');
 
-            document.getElementById("zoomDataCaptureDiagnosisDialogHeader").innerHTML = 'Boxes zooms for <br/> Copy'+copy+' / Page '+page;
+            document.getElementById("zoomDataCaptureDiagnosisDialogHeader").innerHTML = 'Boxes zooms for <br/> Copy '+copy+' / Page '+page;
+            document.getElementById('zoomDataCapturePreviousBt').setAttribute('onclick','zoomDataCapturePrevious('+copy+','+page+')')
+            document.getElementById('zoomDataCaptureNextBt').setAttribute('onclick','zoomDataCaptureNext('+copy+','+page+')')
+
         },
         error: (error) => {
             console.log(error);
@@ -546,6 +578,34 @@ function update_amc_mark_zone(zoneid,copy,page){
             console.log(error);
         }
     });
+}
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function zoomDataCaptureNext(copy,page){
+    curr_row = document.getElementById('table-scan-row-'+copy+'-'+page);
+    next_row = curr_row.parentNode.rows[curr_row.rowIndex];
+    if(next_row){openCopyPageZoomsDialog(next_row.cells[0].innerText,next_row.cells[1].innerText);}
+}
+
+function zoomDataCapturePrevious(copy,page){
+    curr_row = document.getElementById('table-scan-row-'+copy+'-'+page);
+    prev_row = curr_row.parentNode.rows[curr_row.rowIndex-2];
+    if(prev_row){openCopyPageZoomsDialog(prev_row.cells[0].innerText,prev_row.cells[1].innerText);}
+
 }
 
 </script>

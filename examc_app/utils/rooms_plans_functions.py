@@ -11,7 +11,7 @@ import traceback
 # import module
 import traceback
 
-from examc import settings
+from django.conf import settings
 
 #to import image
 try:

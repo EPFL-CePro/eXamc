@@ -34,8 +34,8 @@
         <a class="flex-sm-fill text-sm-center nav-link" id="comVsInd-{{ scale.pk }}-sections-tab" data-toggle="pill" href="#pills-comVsInd-{{ scale.pk }}-sections" role="tab" aria-controls="pills-comVsInd-{{ scale.pk }}-sections" aria-selected="false">by Section</a>
       </li>
     </ul>
-    <div class="tab-content" id="stats-comVsInd-pills-sub-tabContent">
-      <div class="tab-pane fade show active" id="pills-comVsInd-{{ scale.pk }}-teachers" role="tabpanel" aria-labelledby="pills-comVsInd-{{ scale.pk }}-teachers-tab">
+    <div class="tab-content" id="stats-comVsInd-pills-sub-tabContent" style="max-height:75vh;overflow-y:scroll;">
+      <div class="tab-pane fade show active" id="pills-comVsInd-{{ scale.pk }}-teachers" role="tabpanel" aria-labelledby="pills-comVsInd-{{ scale.pk }}-teachers-tab" style="max-width:80%;">
         <div class="table-responsive">
         {% with exam|get_teachers_comVsInd_scaleStats_by_overall_examScale:scale as teachers_stats %}
           </br>
@@ -63,9 +63,9 @@
           </table>
         {% endwith %}
         </div>
-        <canvas id="canvas-comVsIndByTeacher-{{ scale.pk }}" class="chartjs-render-monitor"></canvas>
+        <canvas id="canvas-comVsIndByTeacher-{{ scale.pk }}" class="chartjs-render-monitor" style="object-fit: contain;"></canvas>
       </div>
-      <div class="tab-pane fade" id="pills-comVsInd-{{ scale.pk }}-sections" role="tabpanel" aria-labelledby="pills-comVsInd-{{ scale.pk }}-sections-tab">
+      <div class="tab-pane fade" id="pills-comVsInd-{{ scale.pk }}-sections" role="tabpanel" aria-labelledby="pills-comVsInd-{{ scale.pk }}-sections-tab" style="max-width:80%;">
         <div class="table-responsive">
         {% with exam|get_sections_comVsInd_scaleStats_by_overall_examScale:scale as sections_stats %}
           </br>
@@ -93,7 +93,7 @@
           </table>
         </div>
         {% endwith %}
-        <canvas id="canvas-comVsIndBySection-{{ scale.pk }}" class="chartjs-render-monitor"></canvas>
+        <canvas id="canvas-comVsIndBySection-{{ scale.pk }}" class="chartjs-render-monitor" style="object-fit: contain;"></canvas>
       </div>
     </div>
   </div>

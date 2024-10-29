@@ -9,14 +9,14 @@
             <h3>Manual Data Capture</h3>
         </div>
         <div style="margin-left: 50%; height: 50px; text-align:right;">
-            <a style="margin-left:150px;" href="{% url 'amc_view' exam.pk 1 %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to AMC Data Capture</a>
+            <a style="margin-left:150px;" href="{% url 'amc_view' exam.pk '#dataCapture-tab' %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to AMC Data Capture</a>
         </div>
     </div>
     <div class="d-flex">
         <div id="scan_page" style="height:95vh;">
             <canvas id="canvasScan"></canvas>
         </div>
-        <div class="list-group" style="width: 350px;margin-left:5px;height:95vh;" >
+        <div class="list-group" style="width: 400px;margin-left:5px;height:95vh;" >
             <div class="btn-toolbar mb-3 justify-content-between">
                 <div class="btn-group me-2">
                     <button type="button" class="btn btn-dark btn-sm" style="width:100px;" onclick="go_to_previews();"><i class="fas fa-chevron-left fa-2x"></i></button>
@@ -53,9 +53,9 @@
                 <th data-sortable="true">Page</th>
                 <th data-sortable="true">MSE</th>
                 <th data-sortable="true">Sensitivity</th>
-                <th style="display:none;width:0px;">source</th>
-                <th style="display:none;width:0px;">questions</th>
-                <th data-sortable="true">Manual</th>
+                <th style="display:none;">source</th>
+                <th style="display:none;">questions</th>
+                <th data-sortable="true">Man</th>
               </tr>
             </thead>
             <tbody style="height:50%;">
@@ -64,10 +64,10 @@
                 <td>{{ row.copy }}</td>
                 <td> {{ row.page }}</td>
                 <td>{{ row.mse }}</td>
-                <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{{ row.sensitivity }}</td>
+                <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{% if row.sensitivity %}{{ row.sensitivity }}{% else %}-{% endif %}</td>
                 <td style="display:none;">{{ row.source }}</td>
                 <td style="display:none;">{{ row.questions_ids }}</td>
-                <td>{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
+                <td style="text-align: center;">{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -82,20 +82,39 @@ $(window).on("load",function(){
     var wrapper = document.getElementById("wrapper")
     var topb = document.getElementById("topbar-wrapper");
     var sideb = document.getElementById("sidebar-wrapper");
+    var tableContainer = $('#table-copies-pages')
+    document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click();    
+    setTimeout(() => {document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click(); },350);
 
 });
 
 
 
 {% if data_pages %}
+    var filtered_questions_list=[];
+    
     var table = $("#table-copies-pages").DataTable( {
             scrollY: '79vh',
                 "dom": 'rtip',
             "lengthChange": false,
-            "paging": false
+            "paging": false,
+            "autoWidth": false,
+            "fnDrawCallback": function () {
+                if(filtered_questions_list.length>0){
+                    rows = Array.from($("#table-copies-pages tbody tr"));
+                    var new_filtered_questions_list = [];
+                    rows.forEach(function (row) {
+                        if(filtered_questions_list.includes(row.getAttribute('id'))){
+                            new_filtered_questions_list.push(row.getAttribute('id'));
+                        }                
+                    });
+                }
+                filtered_questions_list = new_filtered_questions_list;
+            }
+            //columns: [{ width: '200px' }, null,null,null,null, null, null]
         } );
 
-    var filtered_questions_list=[];
+    
     var question_filter_id=0;
     var question_filter_name='All';
     var type_filter='All';
@@ -137,8 +156,6 @@ function setScanCanvas(data,scan_src,copy,page){
     ctxImg.canvas.width = canvasWidth;
     ctxImg.canvas.height = canvasHeight;
 
-    
-
 
     //set sleep function to wait before drawing image otherwise new image is not updating
     function sleep(ms) {
@@ -179,18 +196,7 @@ function setScanCanvas(data,scan_src,copy,page){
                         ctxImg.closePath();
                         elemBottom = pos.y / canvasRatio;
                         c4 = [pos.x / canvasRatio, pos.y / canvasRatio];
-
-                        if ((pos.black > 0 && pos.manual === -1) || pos.manual === 1) {
-                            ctxImg.strokeStyle = '#ff0000';
-                            ctxImg.lineWidth = 3;
-                        } else {
-                            ctxImg.strokeStyle = '#3342FF';
-                            ctxImg.lineWidth = 1;
-                        }
-
-                        ctxImg.stroke();
-                        ctxImg.restore();
-
+                        
                         // draw yellow and blue lines for E and V (invalid and empty)
                         if (pos.why && pos.why !== '') {
                             // Define a start Point-->
@@ -206,7 +212,7 @@ function setScanCanvas(data,scan_src,copy,page){
                                 ctxImg.strokeStyle = '#00FFFF';
                             }
                             ;
-                            ctxImg.lineWidth = 3;
+                            ctxImg.lineWidth = 5;
                             ctxImg.stroke();
                             ctxImg.restore();
 
@@ -215,6 +221,17 @@ function setScanCanvas(data,scan_src,copy,page){
                             c3 = [0, 0];
                             c4 = [0, 0];
                         }
+
+                        if ( pos.checked ) {//(pos.black > 0 && pos.manual === -1) || pos.manual === 1) {
+                            ctxImg.strokeStyle = '#ff0000';
+                            ctxImg.lineWidth = 3;
+                        } else{
+                            ctxImg.strokeStyle = '#33a3ff';
+                            ctxImg.lineWidth = 1;
+                            }
+
+                        ctxImg.stroke();
+                        ctxImg.restore();
 
                         // Add element.
                         elements.push({
@@ -319,7 +336,7 @@ function update_amc_mark_zone(element){
 function find_row_by_filters(type,question_id,question_name){
     filtered_questions_list = [];
     rows = [];
-    if(question_id == 0 && type === 'all'){
+    if(question_id === 'All' && type === 'all'){
         rows = Array.from($("#table-copies-pages tbody tr"));
     }else{
         search_str = '';
@@ -348,34 +365,39 @@ function find_row_by_filters(type,question_id,question_name){
 }
 
 function go_to_next(){
-    next = filtered_questions_list[0];
-    curr_index = filtered_questions_list.indexOf(curr_selected_id);
-    if(curr_index > -1 && curr_index < filtered_questions_list.length-1){
-        next = filtered_questions_list[curr_index+1];
-    }
-    
-    $(document.getElementById(next)).trigger('click');
+    if(filtered_questions_list.length > 0) {
+        next = filtered_questions_list[0];
+        curr_index = filtered_questions_list.indexOf(curr_selected_id);
+        if (curr_index > -1 && curr_index < filtered_questions_list.length - 1) {
+            next = filtered_questions_list[curr_index + 1];
+        }
 
-    tableContainer = $('#table-copies-pages')[0].parentNode;
-    row = document.getElementById(next);
-    offsetTop = row.offsetTop;
-    tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight/2;
-    curr_selected_id = next;
+        $(document.getElementById(next)).trigger('click');
+        test = $('#table-copies-pages');
+        tableContainer = $('#table-copies-pages')[0].parentNode;
+        row = document.getElementById(next);
+        offsetTop = row.offsetTop;
+        tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight / 2;
+        curr_selected_id = next;
+    }
 }
 
 function go_to_previews(){
-    previews = filtered_questions_list[0];
-    curr_index = filtered_questions_list.indexOf(curr_selected_id);
-    if(curr_index > 0){
-        previews = filtered_questions_list[curr_index-1];
-    };
-    $("#"+previews).trigger('click');
-
-    tableContainer = $('#table-copies-pages')[0].parentNode();
-    row = document.getElementById(preview);
-    offsetTop = row.offsetTop;
-    tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight/2;
-    curr_selected_id = previews;
+    if(filtered_questions_list.length > 0) {
+        preview = filtered_questions_list[0];
+        curr_index = filtered_questions_list.indexOf(curr_selected_id);
+        if (curr_index > 0) {
+            preview = filtered_questions_list[curr_index - 1];
+        }
+        ;
+        $("#" + preview).trigger('click');
+        test = $('#table-copies-pages');
+        tableContainer = $('#table-copies-pages')[0].parentNode;
+        row = document.getElementById(preview);
+        offsetTop = row.offsetTop;
+        tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight / 2;
+        curr_selected_id = preview;
+    }
 }
 </script>
 {% endif %}

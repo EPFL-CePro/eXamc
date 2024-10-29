@@ -2,7 +2,7 @@ import json
 # Get an instance of a logger
 import logging
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.db import models
 from django.db.models import Count
 from django.utils import timezone
@@ -38,7 +38,7 @@ class Exam(models.Model):
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT,related_name='exams',)
     year = models.ForeignKey(AcademicYear, on_delete=models.RESTRICT,related_name='exams')
     date = models.DateField(default=timezone.now, blank=True,null=True)
-    users = models.ManyToManyField(User, blank=True)
+    #users = models.ManyToManyField(User, blank=True)
     present_students = models.IntegerField(default=0)
     common_exams = models.ManyToManyField("self", blank=True)
     overall = models.BooleanField(default=0)
@@ -50,6 +50,7 @@ class Exam(models.Model):
     res_and_stats_option = models.BooleanField(default=0)
     prep_option = models.BooleanField(default=0)
     history = HistoricalRecords()
+    pdf_catalog_name = models.CharField(max_length=200, blank=True,null=True)
 
     class Meta:
         unique_together = ('code', 'semester', 'year')
@@ -106,6 +107,23 @@ class Exam(models.Model):
                 common_pts += question.max_points
 
         return common_pts
+
+    def get_common_exams_yc_common(self):
+        """ Return all common exams including the common (000-) """
+        exam_list = [self]
+        for comex in self.common_exams.all():
+            exam_list.append(comex)
+
+        return exam_list
+
+    def get_students_results_exams(self):
+        """ Return all exams for students results (without global one) """
+        exam_list = []
+        if not self.is_overall():
+            exam_list.append(self)
+        for comex in self.common_exams.all():
+            exam_list.append(comex)
+        return exam_list
 
 class ExamSection(models.Model):
     """ Stores section data for an exam, related to :model:`examc_app.Exam` """
@@ -204,23 +222,30 @@ class PagesGroup(models.Model):
     page_from = models.IntegerField(default=0)
     page_to = models.IntegerField(default=0)
     grading_help = models.TextField(default='')
-    rectangle = models.TextField(default='')
-    correctorBoxes = models.TextField(blank=True)
+    # rectangle = models.TextField(default='')
+    # correctorBoxes = models.TextField(blank=True)
     history = HistoricalRecords()
 
     def __str__(self):
         return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
 
-
-class Reviewer(models.Model):
-    """ Stores reviewer for exam data, related to :model:`examc_app.Exam`, :model:`examc_app.PagesGroup` and :model:`auth.User` """
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='reviewers')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewers')
+class ExamUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_exams')
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE,related_name='exam_users')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE,related_name='user_groups', null=True,default=None)
     pages_groups = models.ManyToManyField(PagesGroup, blank=True)
     history = HistoricalRecords()
 
-    def __str__(self):
-        return self.exam.code + " - " + self.user.username
+
+# class Reviewer(models.Model):
+#     """ Stores reviewer for exam data, related to :model:`examc_app.Exam`, :model:`examc_app.PagesGroup` and :model:`auth.User` """
+#     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='reviewers')
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewers')
+#     pages_groups = models.ManyToManyField(PagesGroup, blank=True)
+#     history = HistoricalRecords()
+#
+#     def __str__(self):
+#         return self.exam.code + " - " + self.user.username
 
 
 class PagesGroupComment(models.Model):
@@ -228,7 +253,7 @@ class PagesGroupComment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pagesGroupComments')
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='pagesGroupComments', blank=True)
     copy_no = models.CharField(max_length=10, default='0')
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, default=None, null=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, default=None, null=True, related_name='children')
     created = models.DateTimeField(auto_now_add=True, blank=True)
     modified = models.DateTimeField(blank=True, null=True)
     content = models.TextField()
@@ -240,9 +265,11 @@ class PagesGroupComment(models.Model):
         modified_str = ""
         if self.modified:
             modified_str = self.modified.strftime("%Y-%m-%d %H:%M:%S")
-        profile_picture = 'far fa-user-circle fa-sm'
+        profile_picture = 'fa-regular fa-circle-user fa-2xs'
+        created_by_curr_user = False
         if self.user_id == curr_user_id:
-            profile_picture = 'fa fa-user-circle fa-sm'
+            profile_picture = 'fa-solid fa-circle-user fa-2xs'
+            created_by_curr_user = True
         return {
             "id": self.pk,
             "parent": self.parent_id,
@@ -252,19 +279,20 @@ class PagesGroupComment(models.Model):
             "creator": self.user_id,
             "fullname": self.user.first_name + " " + self.user.last_name,
             "is_new": self.is_new,
-            "profile_picture_url": profile_picture
+            "profile_picture_url": profile_picture,
+            "created_by_current_user": created_by_curr_user
         }
 
 
 class PageMarkers(models.Model):
     """ Stores markers data for a scan page, related to :model:`examc_app.Exam`, :model:`examc_app.PagesGroup`, :model:`examc_app.PagesGroupComment` """
-    copie_no = models.CharField(max_length=10, default='0')
-    page_no = models.CharField(max_length=10, default='0')
+    copie_no = models.CharField(max_length=10, default='',blank=True)
+    page_no = models.CharField(max_length=10, default='')
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='pageMarkers', blank=True,
                                     null=True)
     filename = models.CharField(max_length=100)
     markers = models.TextField(blank=True)
-    comment = models.TextField(blank=True)
+    #comment = models.TextField(blank=True)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='pageMarkers')
     correctorBoxMarked = models.BooleanField(default=False)
     history = HistoricalRecords()
@@ -272,6 +300,21 @@ class PageMarkers(models.Model):
     def __str__(self):
         return self.copie_no + " - " + self.filename + " " + self.exam.code
 
+    def get_users_with_date(self):
+        users_list = []
+        for pm_user in self.pageMarkers_users.all():
+            user_dict = {}
+            user_dict["username"]=pm_user.user.username
+            user_dict["date"]=pm_user.modified.strftime("%Y-%m-%d %H:%M:%S")
+            users_list.append(user_dict)
+
+        return users_list
+
+class PageMarkersUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_pageMarkers')
+    pageMarkers = models.ForeignKey(PageMarkers, on_delete=models.CASCADE,related_name='pageMarkers_users')
+    created = models.DateTimeField(auto_now_add=True, blank=True)
+    modified = models.DateTimeField(blank=True, null=True)
 
 ########################
 # RESULTS & STATISTICS
@@ -303,6 +346,7 @@ class Scale(models.Model):
 class Student(models.Model):
     """ Stores student data for an exam, related to :model:`examc_app.Exam` """
     copie_no = models.CharField(max_length=10, default='0')
+    amc_id = models.CharField(max_length=10, default='0')
     sciper = models.CharField(max_length=10, default='999999')
     name = models.CharField(max_length=100)
     section = models.CharField(max_length=20)

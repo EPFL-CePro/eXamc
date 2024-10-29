@@ -157,6 +157,7 @@ http://viima.github.io/jquery-comments/*/
 
 .jquery-comments .commenting-field.main .profile-picture {
 	margin-bottom: 1rem;
+	padding-top:.5rem;
 }
 
 .jquery-comments .textarea-wrapper {
@@ -682,7 +683,7 @@ http://viima.github.io/jquery-comments/*/
 }
 
 .jquery-comments ul.main li.comment .child-comments i.profile-picture {
-	font-size: 2.4em;
+	/*font-size: 2.4em;*/
 }
 
 .jquery-comments ul.main li.comment .child-comments li.toggle-all {

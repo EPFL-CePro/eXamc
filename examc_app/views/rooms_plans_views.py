@@ -10,11 +10,11 @@ from django.views import View
 from django.views.generic.edit import FormView
 from django.urls import reverse_lazy
 from django.http import FileResponse, HttpResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 import secrets
 
 from examc_app.utils.review_functions import *
-from examc import settings
+from django.conf import settings
 from examc_app.forms import SeatingForm
 from examc_app.utils.rooms_plans_functions import generate_plan
 
@@ -23,6 +23,8 @@ CSV_TO_JPG_MAP = {
     'AAC_132.csv': 'AAC_132.jpg',
     'AAC_137.csv': 'AAC_137.jpg',
     'AAC_231.csv': 'AAC_231.jpg',
+    'BC_07.csv':'BC07.jpg',
+    'BC_08.csv':'BC08.jpg',
     'BCH_2201.csv': 'BCH_2201.jpg',
     'BS_150.csv': 'BS_150.jpg',
     'BS_150_soft.csv': 'BS_150_soft.jpg',
@@ -46,6 +48,8 @@ CSV_TO_JPG_MAP = {
     'CE_1515_bas.csv': 'CE_1515_bas.jpg',
     'CE_1515_haut.csv': 'CE_1515_haut.jpg',
     'CH_B3_30.csv': 'CH_B3_30.jpg',
+    'CM_0_11.csv': 'CM_0_11.jpg',
+    'CM_0_13.csv': 'CM_0_13.jpg',
     'CM_1_1.csv': 'CM_1_1.jpg',
     'CM_1_2.csv': 'CM_1_2.jpg',
     'CM_1_3.csv': 'CM_1_3.jpg',
@@ -53,14 +57,24 @@ CSV_TO_JPG_MAP = {
     'CM_1_5.csv': 'CM_1_5.jpg',
     'CM_1105.csv': 'CM_1105.jpg',
     'CM_1106.csv': 'CM_1106.jpg',
+    'CM_1111.csv': 'CM1111.jpg',
+    'CM_1112.csv': 'CM1112.jpg',
     'CM_1120.csv': 'CM_1120.jpg',
     'CM_1121.csv': 'CM_1121.jpg',
     'CO_01.csv': 'CO_01.jpg',
     'CO_02.csv': 'CO_02.jpg',
     'CO_03.csv': 'CO_03.jpg',
+    'CO_4.csv': 'CO4.jpg',
+    'CO_5.csv': 'CO5.jpg',
+    'CO_6.csv': 'CO6.jpg',
     'CO_023.csv': 'CO_023.jpg',
     'CO_020.csv': 'CO_020.jpg',
     'CO_021.csv': 'CO_021.jpg',
+    'GC_A3_31.csv': 'GC_A3_31.jpg',
+    'GC_B3_31.csv': 'GC_B3_31.jpg',
+    'GC_C3_30.csv': 'GC_C3_30.jpg',
+    'GR_B3_30.csv': 'GR_B3_30.jpg',
+    'INF_1.csv':'INF1.jpg',
     'INJ_218.csv': 'INJ_218.jpg',
     'INM_10.csv': 'INM_10.jpg',
     'INM_11.csv': 'INM_11.jpg',
@@ -68,6 +82,7 @@ CSV_TO_JPG_MAP = {
     'INM_202.csv': 'INM_202.jpg',
     'MA_A1_10.csv': 'MA_A1_10.jpg',
     'MA_A1_12.csv': 'MA_A1_12.jpg',
+    'ME_B3_31.csv':'ME_B3_31.jpg',
     'PO_01_exam.csv': 'PO_01_exam.jpg',
     'PO_01_old.csv': 'PO_01_old.jpg',
     'PO_01_old_exam.csv': 'PO_01_old.jpg',

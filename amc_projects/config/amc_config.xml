@@ -18,8 +18,8 @@
   <ascii_filenames>1</ascii_filenames>
   <assoc_ncols>4</assoc_ncols>
   <assoc_window_size></assoc_window_size>
-  <box_size_proportion>0.7</box_size_proportion>
-  <bw_threshold>0.75</bw_threshold>
+  <box_size_proportion>0.8</box_size_proportion>
+  <bw_threshold>0.8</bw_threshold>
   <checklayout_window_size>899x1304+2813+48</checklayout_window_size>
   <conserve_taille>1</conserve_taille>
   <csv_name_headers></csv_name_headers>
@@ -36,7 +36,7 @@
   <defaut_note_max_plafond>1</defaut_note_max_plafond>
   <defaut_note_min></defaut_note_min>
   <defaut_note_null>0</defaut_note_null>
-  <defaut_seuil>0.01</defaut_seuil>
+  <defaut_seuil>0.1</defaut_seuil>
   <defaut_seuil_up>1</defaut_seuil_up>
   <defaut_verdict>%(ID)
 Score: %S/%M</defaut_verdict>
@@ -44,13 +44,14 @@ Score: %S/%M</defaut_verdict>
   <defaut_verdict_qc>&quot;X&quot;</defaut_verdict_qc>
   <delimiteur_decimal>,</delimiteur_decimal>
   <df_annotatedemail_email_subject>Correction de votre test blanc d'algèbre linéaire</df_annotatedemail_email_subject>
-  <df_annotatedemail_email_text>Bonjour,
+  <df_annotatedemail_email_text>
+      Hello,
 
-Veuillez trouvez ci-jointe la correction de votre test blanc.
+Please find enclosed the correction of your exam.
 
-Pour toute question relative à votre copie, n'hésitez pas à contacter votre enseignant.
+If you have any questions about your paper, please do not hesitate to contact your teacher.
 
-Bonne réception.</df_annotatedemail_email_text>
+Regards</df_annotatedemail_email_text>
   <df_annotatedemail_email_use_html></df_annotatedemail_email_use_html>
   <df_subjectemail_email_subject>Exam questions</df_subjectemail_email_subject>
   <df_subjectemail_email_text>Please find enclosed your question sheet.

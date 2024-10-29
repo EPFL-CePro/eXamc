@@ -14,14 +14,29 @@
 
     {% block content %}
 {% if user_allowed %}
-    <h4>General Statistics</h4>
-
-    {% if exam.scaleStatistics.all %}
-
-    {% if exam.is_overall %}
+    
+    <ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="students-results-nav" style="margin-bottom:10px;">
+        {% for comex in common_list %}
+            <li class="nav-item" role="presentation">
+                <a class="flex-sm-fill text-sm-center nav-link {% if comex == currselected_exam %}active{% endif %}"
+                   id="{{ comex.id }}-tab"  href="{% url 'generalStats' comex.pk %}" >
+                    {% if comex.is_overall %}
+                    COMMON
+                    {% else %}
+                    {{ comex.code }}
+                    {% endif %}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+    <h4><i class="fas fa-chart-line" style="margin-right:5px;"></i>Global statistics</h4>
+    
+    {% if currselected_exam.scaleStatistics.all %}
+    
+    {% if currselected_exam.is_overall %}
     <ul class="nav nav-pills flex-column flex-sm-row border" id="general-statistics-pills-tab" role="tablist">
       <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link active" id="global-tab" data-toggle="pill" href="#pills-global" role="tab" aria-controls="pills-global" aria-selected="true">Global</a>
+        <a class="flex-sm-fill text-sm-center nav-link active" id="global-tab" data-toggle="pill" href="#pills-global" role="tab" aria-controls="pills-global" aria-selected="true">Common</a>
       </li>
       <li class="nav-item" role="presentation">
         <a class="flex-sm-fill text-sm-center nav-link" id="byTeacher-tab" data-toggle="pill" href="#pills-byTeacher" role="tab" aria-controls="pills-byTeacher" aria-selected="false">By Teacher</a>
@@ -38,8 +53,8 @@
       </li>
       {% endif %}
     </ul>
-    <div class="tab-content" id="general-statistics-pills-tabContent"">
-      <div class="tab-pane fade show active" id="pills-global" role="tabpanel" aria-labelledby="pills-global-tab">
+    <div class="tab-content" id="general-statistics-pills-tabContent">
+      <div class="tab-pane fade show active" id="pills-global" role="tabpanel" aria-labelledby="pills-global-tab" style="height:85vh;overflow-y:scroll;">
     {% endif %}
 
         <!-- global statistics -->
@@ -48,11 +63,11 @@
     {% else %}
         <div class="alert alert-warning">
           <h4 class="alert-heading">Warning!</h4>
-          <p class="mb-0">No data found for this exam. Please check there is minimum one scale defined in Exam Info !</a></p>
+          <p class="mb-0">No data found for this exam. Please check there is minimum one scale defined in Exam Info !</p>
         </div>
     {% endif %}
 
-    {% if exam.is_overall %}
+    {% if currselected_exam.is_overall %}
       </div>
       <div class="tab-pane fade" id="pills-byTeacher" role="tabpanel" aria-labelledby="pills-byTeacher-tab">
         {% include "./general_statistics_byTeacher.html" %}
@@ -64,7 +79,7 @@
         {% include "./general_statistics_comVsInd.html" %}
       </div>
       {% if correlation_list %}
-      <div class="tab-pane fade" id="pills-correlation" role="tabpanel" aria-labelledby="pills-correlation-tab">
+      <div class="tab-pane fade" id="pills-correlation" role="tabpanel" aria-labelledby="pills-correlation-tab" style="height:85vh;overflow-y:scroll;">
         {% include "./general_statistics_comVsInd_correlation.html" %}
       </div>
       {% endif %}
@@ -75,10 +90,10 @@
 
 
 /* define palette size */
-{% if exam.is_overall %}
-var paletteSize = {{ exam.common_exams.all|length }}+1;
+{% if currselected_exam.is_overall %}
+var paletteSize = {{ currselected_exam.common_exams.all|length }}+1;
 {% else %}
-var paletteSize = {{ exam.scales.all|length }}+1;
+var paletteSize = {{ currselected_exam.scales.all|length }}+1;
 {% endif %}
 
 var general_stats_chart_config = {
@@ -86,17 +101,17 @@ var general_stats_chart_config = {
   data: {
     labels: {{ grade_list }},
     datasets: [
-    {% for scale_stat in exam.scaleStatistics.all %}
+    {% for scale_stat in currselected_exam.scaleStatistics.all %}
     {% if scale_stat.section == 'global' %}
     {
       label: '{{ scale_stat.scale.name }}',
       fill: false,
       backgroundColor: palette('mpn65', paletteSize).map(function(hex) {
         return '#' + hex;
-      })[{{ exam.scaleStatistics.all|get_item_pos:scale_stat }}],
+      })[{{ currselected_exam.scaleStatistics.all|get_item_pos:scale_stat }}],
       borderColor: palette('mpn65', paletteSize).map(function(hex) {
         return '#' + hex;
-      })[{{ exam.scaleStatistics.all|get_item_pos:scale_stat }}],
+      })[{{ currselected_exam.scaleStatistics.all|get_item_pos:scale_stat }}],
       data: [
       {% for distribution in scale_stat.scaleDistributions.all %}
       {{ distribution.quantity }},
@@ -139,25 +154,25 @@ var general_stats_chart_config = {
     },
   };
 
-  {% if exam.is_overall %}
+  {% if currselected_exam.is_overall %}
 
-  {% for scale in exam.scales.all %}
+  {% for scale in currselected_exam.scales.all %}
   var general_stats_byTeacher_chart_config{{scale.pk}} = {
     type: 'line',
     data: {
       labels: {{ grade_list }},
       datasets: [
-      {% for comex in exam.common_exams.all %}
+      {% for comex in currselected_exam.common_exams.all %}
       {% for scale_stat in comex.scaleStatistics.all|filter_scales_stats_by_scale:scale.name %}
       {
         label: '{{ comex.code }} {{ comex.primary_user.last_name }}',
         fill: false,
-        backgroundColor: palette('mpn65', {{ exam.common_exams.all|length }}).map(function(hex) {
+        backgroundColor: palette('mpn65', {{ currselected_exam.common_exams.all|length }}).map(function(hex) {
           return '#' + hex;
-        })[{{ exam.common_exams.all|get_item_pos:comex }}],
-        borderColor : palette('mpn65', {{ exam.common_exams.all|length }}).map(function(hex) {
+        })[{{ currselected_exam.common_exams.all|get_item_pos:comex }}],
+        borderColor : palette('mpn65', {{ currselected_exam.common_exams.all|length }}).map(function(hex) {
           return '#' + hex;
-        })[{{ exam.common_exams.all|get_item_pos:comex }}],
+        })[{{ currselected_exam.common_exams.all|get_item_pos:comex }}],
         data: [
         {% for distribution in scale_stat.scaleDistributions.all %}
         {{ distribution.quantity|divideMult100:comex.present_students }},
@@ -201,24 +216,24 @@ var general_stats_chart_config = {
     };
     {% endfor %}
 
-    {% for scale in exam.scales.all %}
+    {% for scale in currselected_exam.scales.all %}
     var general_stats_bySection_chart_config{{scale.pk}} = {
       type: 'line',
       data: {
         labels: {{ grade_list }},
         datasets: [
-        {% for stat in exam|get_sections_scaleStats_by_examScale:scale %}
+        {% for stat in currselected_exam|get_sections_scaleStats_by_examScale:scale %}
         {
           label: '{{ stat.section }}',
           fill: false,
-          backgroundColor: palette('mpn65', {{ exam|get_sections_scaleStats_by_examScale:scale|length }}).map(function(hex) {
+          backgroundColor: palette('mpn65', {{ currselected_exam|get_sections_scaleStats_by_examScale:scale|length }}).map(function(hex) {
             return '#' + hex;
-          })[{{ exam|get_sections_scaleStats_by_examScale:scale|get_item_pos:stat }}],
-          borderColor : palette('mpn65', {{ exam|get_sections_scaleStats_by_examScale:scale|length }}).map(function(hex) {
+          })[{{ currselected_exam|get_sections_scaleStats_by_examScale:scale|get_item_pos:stat }}],
+          borderColor : palette('mpn65', {{ currselected_exam|get_sections_scaleStats_by_examScale:scale|length }}).map(function(hex) {
             return '#' + hex;
-          })[{{ exam|get_sections_scaleStats_by_examScale:scale|get_item_pos:stat }}],
+          })[{{ currselected_exam|get_sections_scaleStats_by_examScale:scale|get_item_pos:stat }}],
           data: [
-          {% for dist in stat.scalesDistributions.all %}
+          {% for dist in stat.scaleDistributions.all %}
             {{ dist.quantity|divideMult100:stat.section_nb_students }},
           {% endfor %}
           ],
@@ -261,15 +276,15 @@ var general_stats_chart_config = {
 
       var comVsIndByTeacher_labels = [];
       var comVsIndBySection_labels = [];
-      {% for comex in exam.common_exams.all %}
-        comVsIndByTeacher_labels.push('{{ comex.primary_user.last_name }}');
+      {% for comex in currselected_exam.common_exams.all %}
+        comVsIndByTeacher_labels.push('{{ comex.code }}');
       {% endfor %}
-      {% for section in exam|get_sections_by_overall_exam %}
+      {% for section in currselected_exam|get_sections_by_overall_exam %}
         comVsIndBySection_labels.push('{{ section.section }}');
       {% endfor %}
 
-      {% for scale in exam.scales.all %}
-      {% with exam|get_teachers_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
+      {% for scale in currselected_exam.scales.all %}
+      {% with currselected_exam|get_teachers_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
       var general_stats_comVsIndByTeacher{{ scale.pk }} = {
         type: 'bar',
         data:{
@@ -354,7 +369,7 @@ var general_stats_chart_config = {
       };
       {% endwith %}
 
-      {% with exam|get_sections_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
+      {% with currselected_exam|get_sections_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
       var general_stats_comVsIndBySection{{ scale.pk }} = {
         type: 'bar',
         data:{
@@ -491,8 +506,8 @@ var general_stats_chart_config = {
         window.myLine = new Chart(ctx, general_stats_chart_config);
       }
 
-      {% if exam.is_overall %}
-      {% for scale in exam.scales.all %}
+      {% if currselected_exam.is_overall %}
+      {% for scale in currselected_exam.scales.all %}
       var ctxByTeacher{{scale.pk}} = document.getElementById('canvas-byTeacher-{{scale.pk}}');
       if (typeof(ctxByTeacher{{scale.pk}}) != 'undefined' && ctxByTeacher{{scale.pk}} != null)
       {
@@ -508,7 +523,7 @@ var general_stats_chart_config = {
       }
       {% endfor %}
 
-      {% for scale in exam.scales.all %}
+      {% for scale in currselected_exam.scales.all %}
       var ctxComVsIndByTeacher{{ scale.pk }} = document.getElementById('canvas-comVsIndByTeacher-{{ scale.pk }}');
       ctxComVsIndByTeacher{{ scale.pk }}.height = 100;
       if (typeof(ctxComVsIndByTeacher{{ scale.pk }}) != 'undefined' && ctxComVsIndByTeacher{{ scale.pk }} != null)

@@ -1,11 +1,16 @@
+import json
+import operator
+import os
 from datetime import datetime
 
 from django import template
 from django.contrib.auth.models import User
 from django.db.models import FloatField, Sum
 from django.db.models.functions import Cast
+from shapely import Polygon
 
-from examc_app.models import ScaleDistribution, ComVsIndStatistic
+from django.conf import settings
+from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser
 from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
 
 register = template.Library()
@@ -21,18 +26,39 @@ def print_timestamp(timestamp):
     except ValueError:
         return None
     return datetime.fromtimestamp(ts)
+
 @register.filter
-def is_reviewer(user,exam):
-    auth_user = User.objects.get(username=user.username)
+def more_arg(_1, _2):
+    return _1, _2
 
-    if auth_user in exam.users.all() or auth_user.is_superuser:
+@register.filter
+def is_allowed(_user_exam,option):
+    user, exam = _user_exam
+    auth_user = User.objects.get(pk=user.pk)
+    if auth_user.is_superuser:
+        return True
+
+    group_ids_allowed = []
+
+    if option == 'preparation':
+        group_ids_allowed = [2,4]
+    elif option == 'creation':
+        if user.groups.filter(pk__in=[1,2,4,5]).exists():
+            return True
+        else:
+            return False
+    elif option == 'amc':
+        group_ids_allowed = [2,4]
+    elif option =='res_and_stats':
+        group_ids_allowed = [2,4]
+    elif option =='review':
+        group_ids_allowed = [2,4]
+
+    try:
+        exam_user = ExamUser.objects.get(exam=exam, user=auth_user, group__in=group_ids_allowed)
+        return True
+    except ExamUser.DoesNotExist:
         return False
-    else:
-        for exam_reviewer in exam.reviewers.all():
-            if auth_user == exam_reviewer.user:
-                return True
-
-    return False
 
 @register.filter
 def is_admin(user):
@@ -77,8 +103,8 @@ def get_item(dictionary, key):
 
 @register.filter
 def get_sections_scaleStats_by_examScale(exam,scale):
-    return ScaleStatistic.objects.filter(exam=exam, scale=scale).exclude(section__isnull=True).exclude(section__exact='').exclude(section__exact='GLOBAL').order_by('scale__pk')
-
+    results = ScaleStatistic.objects.filter(exam=exam, scale=scale).exclude(section__isnull=True).exclude(section__exact='').exclude(section__exact='GLOBAL').order_by('scale__pk')
+    return results
 @register.filter
 def get_section_students_count(exam,section):
     print(exam)
@@ -151,3 +177,58 @@ def get_frm_by_id(l, i):
         return l[i]
     except:
         return None
+
+@register.filter
+def get_pages_group_graded_count_txt(pages_group_id,user_id=None):
+    pages_group = PagesGroup.objects.get(pk=pages_group_id)
+    count_graded = 0
+    if user_id and user_id != 0:
+        count_graded = PageMarkers.objects.filter(pages_group=pages_group, correctorBoxMarked=True,pageMarkers_users__user__id=user_id).count()
+    else:
+        count_graded = PageMarkers.objects.filter(pages_group=pages_group,correctorBoxMarked=True).count()
+    scans_path =  str(settings.SCANS_ROOT) + "/" + str(pages_group.exam.year.code) + "/" + str(pages_group.exam.semester.code) + "/" + pages_group.exam.code+"_"+pages_group.exam.date.strftime("%Y%m%d")
+    scans_folders = [x for x in os.listdir(scans_path) if x != '0000']
+    count_copies = len(scans_folders)
+
+    if user_id == 0:
+        return str(int(count_graded)) + " / " + str(count_copies)
+    elif user_id and user_id != 0:
+        return int(100/count_copies*count_graded)
+    else:
+        return int(100/count_copies*count_graded)
+
+
+@register.filter
+def marker_intersect(marker_info, marker_json):
+    pages_group = PagesGroup.objects.get(pk=marker_info[0])
+    marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,copie_no='CORR-BOX').first()
+    if marker_corrector_box:
+        corr_marker = json.loads(marker_corrector_box.markers)[0]
+        left = corr_marker['left']
+        top = corr_marker['top']
+        width = corr_marker['width']
+        height = corr_marker['height']
+        a = (left, top)
+        b = (left + width, top)
+        c = (left + width, top + height)
+        d = (left, top + height)
+        corr_box_coords = [a, b, c, d]
+
+        marker = json.loads(marker_json)
+        left = corr_marker['left']
+        top = corr_marker['top']
+        width = corr_marker['width']
+        height = corr_marker['height']
+        a = (left, top)
+        b = (left + width, top)
+        c = (left + width, top + height)
+        d = (left, top + height)
+        marker_coords = [a, b, c, d]
+
+        corr_box_polygon = Polygon(corr_box_coords)
+        marker_polygon = Polygon(marker_coords)
+
+        if marker_polygon.intersects(corr_box_polygon):
+            return True
+
+    return False

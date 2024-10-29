@@ -2,8 +2,8 @@
 <html class="no-js" lang="en" data-content_root="./">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Review" href="modules/review/review.html" />
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Open exam" href="modules/open_exam/open_exam.html" />
 
     <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>eXamc version 1.0 dev documentation</title>
@@ -155,6 +155,10 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
+<li class="toctree-l1"><a class="reference internal" href="modules/open_exam/open_exam.html">Open exam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/create_exam/create_exam.html">Create exam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/room_plan/room_plan.html">Seating map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/exam_info/exam_info.html">Exam info</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="modules/review/review.html">Review</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Review</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/review/review-settings.html">Settings</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Settings</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/review/review-settings-pages-groups.html">Pages groups</a></li>
@@ -165,8 +169,19 @@
 <li class="toctree-l2"><a class="reference internal" href="modules/review/review-export.html">Export marked files</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="modules/amc/amc.html">Auto-multiple-choice (AMC)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/statistic/statistics.html">Statistics</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="modules/amc/amc.html">Auto-multiple-choice (AMC)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Auto-multiple-choice (AMC)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/amc/amc_app.html">AMC application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/amc/import_data.html">AMC import data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules/results/results.html">Results</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="modules/statistic/statistics.html">Statistics</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Statistics</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/statistic/global.html">Global statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/statistic/questions.html">Statistics per questions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules/import_data/import_data.html">Import data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/export_data/export_data.html">Export data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/admin/users.html">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/admin/admin.html">Admin</a></li>
 </ul>
@@ -206,8 +221,8 @@
           <section id="welcome-to-examc-s-documentation">
 <h1>Welcome to eXamc’s documentation!<a class="headerlink" href="#welcome-to-examc-s-documentation" title="Link to this heading">#</a></h1>
 <p><strong>eXamc</strong> is an WebApp that has been developed by a EPFL team. This app allows multiple users to correct exams on the same platform. It also allows to use Auto-Multiple-Choice software.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
 <p>This project is under active development.</p>
 </div>
 <div class="twocol docutils container">
@@ -240,6 +255,10 @@
 <h2>Contents<a class="headerlink" href="#contents" title="Link to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="modules/open_exam/open_exam.html">Open exam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/create_exam/create_exam.html">Create exam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/room_plan/room_plan.html">Seating map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/exam_info/exam_info.html">Exam info</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/review/review.html">Review</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="modules/review/review-settings.html">Settings</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/review/review-settings-pages-groups.html">Pages groups</a></li>
@@ -250,8 +269,34 @@
 <li class="toctree-l2"><a class="reference internal" href="modules/review/review-export.html">Export marked files</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="modules/amc/amc.html">Auto-multiple-choice (AMC)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modules/statistic/statistics.html">Statistics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/amc/amc.html">Auto-multiple-choice (AMC)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/amc/amc_app.html">AMC application</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#import-the-scans">Import the scans</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#check-the-boxes-with-the-sensitivity-setting">Check the boxes with the “sensitivity” setting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#check-the-boxes-with-the-invalid-parameter">Check the boxes with the “invalid” parameter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#check-open-questions-for-which-no-points-have-been-awarded">Check open questions for which no points have been awarded</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#calculate-the-results">Calculate the results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="modules/amc/amc_app.html#associate-the-students-list">Associate the students list</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amc/amc_app.html#export-the-results">Export the results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules/amc/import_data.html">AMC import data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules/results/results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/statistic/statistics.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/statistic/global.html">Global statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/statistic/questions.html">Statistics per questions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/statistic/questions.html#mc-tf-questions">MC &amp; TF questions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/statistic/questions.html#open-questions">Open questions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules/import_data/import_data.html">Import data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/export_data/export_data.html">Export data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/admin/users.html">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules/admin/admin.html">Admin</a></li>
 </ul>
@@ -272,12 +317,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="modules/review/review.html">
+          <a class="next-page" href="modules/open_exam/open_exam.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Review</div>
+                <div class="title">Open exam</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

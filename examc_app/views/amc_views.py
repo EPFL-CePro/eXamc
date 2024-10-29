@@ -1,16 +1,19 @@
 import json
+import os
+import pathlib
 from urllib import request
 
+from asgiref.sync import async_to_sync, sync_to_async
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
-from django.http import HttpResponse, Http404, FileResponse
+from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse
 from django.shortcuts import render
 
 from examc_app.models import *
+from examc_app.tasks import import_csv_data, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.results_statistics_functions import import_csv_data
-from examc_app.utils.review_functions import *
+from examc_app.utils.review_functions import generate_marked_pdfs
 
 
 @login_required
@@ -34,7 +37,7 @@ def upload_amc_project(request, pk):
     return render(request, 'amc/upload_amc_project.html', {'exam': exam})
 
 @login_required
-def amc_view(request, pk, active_tab=0):
+def amc_view(request, pk,curr_tab=None, task_id=None):
     exam = Exam.objects.get(pk=pk)
 
     amc_data_path = get_amc_project_path(exam, False)
@@ -84,7 +87,6 @@ def amc_view(request, pk, active_tab=0):
             context['project_dir_files_list'] = project_dir_files_list
             context['data_pages'] = data[0]
             context['data_questions'] = data[1]
-            context['active_tab'] = active_tab
             context['data_capture_message'] = data_capture_message
             context['missing_pages'] = missing_pages
             context['unrecognized_pages'] = unrecognized_pages
@@ -98,10 +100,11 @@ def amc_view(request, pk, active_tab=0):
             context['count_missing_assoc'] = get_count_missing_associations(amc_data_path+'/data/')
             context['annotated_papers_available'] = check_annotated_papers_available(exam)
             context['has_results'] = has_results
+            context['task_id'] = task_id
+            context['curr_tab'] = curr_tab
 
     else:
         context['user_allowed'] = False
-
 
     return render(request, 'amc/amc.html',  context)
 
@@ -195,9 +198,9 @@ def save_amc_edited_file(request):
 def call_amc_update_documents(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     nb_copies = request.POST['nb_copies']
+
     result = amc_update_documents(exam,nb_copies,False)
-    if not 'ERR:' in result:
-        result = get_amc_update_document_info(exam)
+
     return HttpResponse(result)
 
 @login_required
@@ -208,26 +211,65 @@ def call_amc_layout_detection(request):
         result = get_amc_layout_detection_info(exam)
     return HttpResponse(result)
 
-def call_amc_automatic_data_capture(request):
+def call_amc_automatic_data_capture(request,from_review):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     zip_file = request.FILES['amc_scans_zip_file']
 
-    result = amc_automatic_data_capture(exam,zip_file,False)
-    if not 'ERR:' in result:
-        return HttpResponse('yes')
-    else:
-        return HttpResponse(result)
+    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,False,file_list_path=None))
 
 def import_scans_from_review(request,pk):
     exam = Exam.objects.get(pk=pk)
 
-    scans_zip_path = generate_marked_files_zip(exam, 1)
-    result = amc_automatic_data_capture(exam,scans_zip_path,True)
+    amc_proj_path = get_amc_project_path(exam, False)
+    file_list_path = amc_proj_path + "/list-file"
+    if os.path.exists(file_list_path):
+        os.remove(file_list_path)
 
-    if not 'ERR:' in result:
-        return HttpResponse('yes')
-    else:
-        return HttpResponse(result)
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
+        exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
+    export_subdir = export_subdir.replace(" ", "_")
+    export_tmp_dir = (str(settings.EXPORT_TMP_ROOT) + "/" + export_subdir)
+
+    if not os.path.exists(export_tmp_dir):
+        os.mkdir(export_tmp_dir)
+
+    # list files from scans dir
+    dir_list = [x for x in os.listdir(scans_dir) if x != '0000']
+    for dir in sorted(dir_list):
+
+        copy_export_subdir = export_tmp_dir + "/" + dir
+
+        if not os.path.exists(copy_export_subdir):
+            os.mkdir(copy_export_subdir)
+
+        for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+            # check if a marked file exist, if yes copy it, or copy original scans
+
+            marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
+            if os.path.exists(marked_file_path):
+                shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
+            else:
+                shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
+
+
+    tmp_file_list = open(file_list_path, "w")
+
+    files = glob.glob(scans_dir + '/**/*.*', recursive=True)
+    for file in files:
+        marked_file_path = file.replace(scans_dir,marked_dir).rsplit('/', 1)[0]
+        marked_file_path += "/marked_"+file.replace('.jpeg', '.png').split('/')[-1]
+        marked_file_path = pathlib.Path(marked_file_path)
+        if os.path.exists(marked_file_path):
+            tmp_file_list.write(str(marked_file_path) + "\n")
+        else:
+            tmp_file_list.write(file + "\n")
+
+    tmp_file_list.close()
+
+    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
 
 def open_amc_exam_pdf(request,pk):
@@ -271,7 +313,7 @@ def add_unrecognized_page(request):
     question = request.POST['question']
     copy = request.POST['copy']
     extra = request.POST['extra']
-    img_filename = request.POST['unrecognized_img_src'].split('/')[-1]
+    img_filename = request.POST['unrecognized_img_src']#.split('/')[-1]
     add_unrecognized_page_to_project(exam,copy,question,extra,img_filename)
 
     return HttpResponse(True)
@@ -281,7 +323,8 @@ def call_amc_mark(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     update_scoring_strategy = request.POST['update_scoring_strategy']
 
-    result = amc_mark(exam,update_scoring_strategy)
+    return StreamingHttpResponse(amc_mark_subprocess(request, exam, update_scoring_strategy))
+   # result = amc_mark(exam,update_scoring_strategy)
 
     if not 'ERR:' in result:
         return HttpResponse('yes')
@@ -296,7 +339,7 @@ def call_amc_automatic_association(request):
     result = amc_automatic_association(exam,assoc_primary_key)
 
     if not 'ERR:' in result:
-        return amc_view(request,exam.pk,3)
+        return amc_view(request,exam.pk)
     else:
         return HttpResponse(result)
 
@@ -357,8 +400,10 @@ def call_amc_generate_results(request):
         project_path = get_amc_project_path(exam, False)
         results_csv_path = project_path + "/exports/" + exam.code + "_amc_raw.csv"
         file = open(results_csv_path, 'r', encoding='utf8')
-        result = import_csv_data(file, exam)
-        return HttpResponse(result)
+        task = import_csv_data.delay(results_csv_path, exam.pk)
+        task_id = task.task_id
+
+        return amc_view(request, exam.pk, task_id)
     else:
         return HttpResponse(result)
 

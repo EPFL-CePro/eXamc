@@ -185,7 +185,7 @@ function amc_update_students_file (e) {
                     error_div.innerHTML = data;
                 }else{
                     error_div.setAttribute('hidden',"");
-                    location.replace("{% url 'amc_view' exam.pk 2 %}");
+                    location.replace("{% url 'amc_view' exam.pk %}");
                 }               
             },
             error: (error) => {
@@ -195,7 +195,11 @@ function amc_update_students_file (e) {
     }
 }
 function amc_mark() {
-    $('#loadingModal').modal('show');
+    amc_process_modal_title = document.getElementById('amc_process_modal_title');
+    amc_process_modal_title.innerHTML = "Marking";
+    amc_process_modal_body = $('#amc_process_modal_body');
+    amc_process_modal_body.text('');
+    $('#amc_process_modal').modal('show');
     update_scoring_strategy = document.getElementById('update_marking_scale').checked;
     $.ajax({
         url: "{% url 'call_amc_mark' %}",
@@ -205,12 +209,21 @@ function amc_mark() {
             'exam_pk' : {{ exam.pk }},
             'update_scoring_strategy' : update_scoring_strategy,
         },
-        success: (data) => {
-            $('#loadingModal').modal('hide');           
-        },
-        error: (error) => {
-            console.log(error);
-        }
+            xhrFields: {
+                // This triggers each time progress is made on the request
+                onprogress: function(event) {
+                    amc_process_modal_body.html('');
+                    var response = event.currentTarget.responseText;
+                    amc_process_modal_body.html(response.replace('\n','<br/>'));
+                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                }
+            },
+            success: function() {
+                amc_process_modal_body.append('** MARKING COMPLETED! **');
+            },
+            error: function() {
+                amc_process_modal_body.html('<p>Error occurred</p>');
+            }
     });
 }
 function amc_automatic_association() {
@@ -385,7 +398,7 @@ function saveStudentsListFile(){
                 error_div.innerHTML = data;
             }else{
                 error_div.setAttribute('hidden',"");
-                location.replace("{% url 'amc_view' exam.pk 2 %}");
+                location.replace("{% url 'amc_view' exam.pk %}");
             }     
             $('#edit_students_list_modal').modal('hide');
         },

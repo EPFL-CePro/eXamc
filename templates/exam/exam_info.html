@@ -13,250 +13,394 @@
 
     
 {% if user_allowed %}
-  <h4><i class="fa-solid fa-book-open fa-l" style="margin-right:5px;"></i>Exam Info</h4>
+    <ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="exam-info-pills-tab" role="tablist"
+        style="margin-bottom:10px;">
+        {% for comex in exam.get_common_exams_yc_common %}
+            <li class="nav-item" role="presentation">
+                <a class="flex-sm-fill text-sm-center nav-link {% if comex.is_overall %}active{% endif %}"
+                   id="{{ comex.id }}-tab" data-toggle="pill" href="#pills-{{ comex.id }}" role="tab"
+                   aria-controls="pills-{{ comex.id }}" aria-selected="true">
+                    {% if comex.is_overall %}
+                        COMMON
+                    {% else %}
+                        {{ comex.code }}
+                    {% endif %}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+    <div class="tab-content" id="exam-info-pills-tabContent">
+        {% for comex in exam.get_common_exams_yc_common %}
+            <div class="tab-pane fade {% if comex.is_overall %}show active{% endif %}" id="pills-{{ comex.id }}" role="tabpanel" aria-labelledby="pills-{{ comex.id }}-tab">
 
-  <div class="accordion" id="accordionExamInfo">
-    <div class="card z-depth-0 bordered">
-      <div class="card-header" id="headingOne">
-        <h5 class="mb-0">
-          <p style="text-align:left;margin-bottom:-5px;">
-            <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne"
-            aria-expanded="true" aria-controls="collapseOne">
-            Exam
-          </button>
-            <a id="regen-stats-bt" class="btn btn-dark btn-sm" href="{% url 'generate_stats' exam.pk %}"><i class="fa-solid fa-rotate-right" style="margin-right: 5px;"></i>Regen stats</a>
-          <span style="float:right;margin-top:7px;">
-            <a data-toggle="modal" data-target="#displayPdfModal" title="Show in pdf" style="font-size:12px;">catalog<i class="far fa-file-pdf" style="font-size:24px;color:red"></i></a>
-          </span>
-        </p>
-      </h5>
+                <h4><i class="fa-solid fa-book-open fa-l" style="margin-right:5px;"></i>Exam Info</h4>
+
+                <div class="accordion" id="accordionExamInfo-{{ comex.id }}">
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingOne">
+                            <h5 class="mb-0">
+                                <p style="text-align:left;margin-bottom:-5px;">
+                                    <button class="btn btn-link" type="button" data-toggle="collapse"
+                                            data-target="#collapseOne"
+                                            aria-expanded="true" aria-controls="collapseOne">
+                                        Exam
+                                    </button>
+                                    <a id="regen-stats-bt" class="btn btn-dark btn-sm"
+                                       href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
+                                                                                    style="margin-right: 5px;"></i>Regen
+                                        stats</a>
+                                    <span style="float:right;margin-top:7px;">
+                                        <a data-toggle="modal" data-target="#displayPdfModal-{{ comex.id }}" title="Show in pdf" style="font-size:12px;">catalog<i
+                                                class="far fa-file-pdf" style="font-size:24px;color:red"></i></a>
+                                    </span>
+                                </p>
+                            </h5>
+                        </div>
+                        <div id="collapseOne" class="collapse show" aria-labelledby="headingOne">
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr style="border-bottom:.5px solid lightgrey;">
+                                        <th>Code</th>
+                                        <th>Name</th>
+                                        <th>Year</th>
+                                        <th>Semester</th>
+                                        <th>Date</th>
+                                        {% if comex.common_exams.all %}
+                                            <th>Common</th>
+                                            <th>Individual specific</th>
+                                        {% endif %}
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            {% if comex.is_overall %}
+                                                GLOBAL
+                                            {% else %}
+                                                {{ comex.code }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ comex.name }}</td>
+                                        <td>{{ comex.year.code }}</td>                             
+                                        <td>{{ comex.semester.code }}</td>
+                                        <td colspan="2" id="exam_date_column">
+                                            {% if comex.date %}
+                                                {{ comex.date|date:"Y-m-d" }}
+                                            {% else %}
+                                                <input class="date form-control" type="date" name="exam_date" id="exam_date"  style="width:175px;color:red;" class="form-control" required="" aria-invalid="true" value="{{ comex.date|date:"Y-m-d" }}">
+                                                <a style="color:red">Please select a date !</a>
+                                            {% endif %}
+                                        </td>
+                                        {% if comex.common_exams.all %}
+                                            <td>
+                                                <ul class="list-group">
+                                                    {% for comex in comex.common_exams.all %}
+                                                        {% if not comex.is_overall %}
+                                                            <li class="list-group-item border-0"
+                                                                style="padding:0px;margin:0px;">{{ comex.code }} {{ comex.name }}</li>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </ul>
+                                            </td>
+                                            <td>
+                                                {{ comex.indiv_formula }}
+                                                <br>
+                                                <em>[indiv_max_points];[common_max_points];[formula]
+                                                    <ul>
+                                                        <li>IP - invid_max_points</li>
+                                                        <li>CP - common_max_points</li>
+                                                        <li>SCP - students common points</li>
+                                                        <li>SIP - students indiv points</li>
+                                                    </ul>
+                                                </em>
+                                            </td>
+                                        {% endif %}
+                                        <td style="text-align:right;">
+                                            <button type="button" class="btn btn-light btn-sm"
+                                                    style="background-color: transparent;"
+                                                    onclick="$('#examOptionsModal-{{ comex.id }}').modal('show');"><i
+                                                    class="fas fa-ellipsis-v fa-2xl"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align: right;">
+                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>
+                                        </td>           
+                                        <td>
+                                            <ul class="list-group">
+                                                {% for exam_user in comex.exam_users.all %}
+                                                    <li class="list-group-item border-0"
+                                                        style="padding:0px;margin:0px;">{{ exam_user.user.first_name }} {{ exam_user.user.last_name }} ({{ exam_user.group.name }})</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingTwo">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                                    Scales
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo">
+                            <div class="card-body">
+                                <table class="table table-striped table-sm">
+                                    <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Total points</th>
+                                        <th>Points to add</th>
+                                        <th>Final</th>
+                                        {% if user.is_staff %}
+                                            <th>Delete</th>
+                                        {% endif %}
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for scale in comex.scales.all %}
+                                        <tr>
+                                            <td>{{ scale.name }}</td>
+                                            <td>{{ scale.total_points }}</td>
+                                            <td>{{ scale.points_to_add }}</td>
+                                            {% if scale.final %}
+                                                <td><a class="btn btn-light btn-sm" disabled
+                                                       style="background-color: transparent;"><i
+                                                        class="fa-solid fa-circle-check fa-2xl"></i></a></td>
+                                            {% else %}
+                                                <td><a class="btn btn-light btn-sm"
+                                                       href="{% url 'set_final_scale' scale.pk %}"
+                                                       style="background-color: transparent;"><i
+                                                        class="fa-solid fa-circle-xmark fa-2xl"
+                                                        style="color:lightgray;"></i></a></td>
+                                            {% endif %}
+                                            {% if user.is_staff %}
+                                                <td><a class="btn btn-light btn-sm"
+                                                       href="{% url 'delete_exam_scale' scale.pk comex.pk %}"><i
+                                                        class="fa-solid fa-circle-minus fa-2xl"
+                                                        style="margin-right:5px;color:red;"></i></a></td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% if user.is_staff %}
+                                    <a target="_blank" id="create-scale-button" class="btn btn-light"
+                                       style="background-color: transparent" type="button"><i
+                                            class="fa-solid fa-circle-plus fa-2xl"
+                                            style="margin-right:5px;color:green;"></i></a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingThree">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseThree" aria-expanded="false"
+                                        aria-controls="collapseThree">
+                                    Questions (Total points : {{ sum_questions_points.max_points__sum }})
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseThree" class="collapse show" aria-labelledby="headingThree">
+                            <div id="questions_div" class="card-body">
+                                <div id="alert_regen_stats" class="alert alert-danger" role="alert" style="display: none;">
+                                  Don't forget to <a id="regen-stats-bt" class="btn btn-dark btn-sm"
+                                       href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
+                                                                                    style="margin-right: 5px;"></i>Regen
+                                        stats</a> after questions and answers changed!
+                                </div>
+                                <table id="questions_dt" class="table table-striped table-sm">
+                                    <thead>
+                                    <tr>
+                                        <th>Question</th>
+                                        <th>Type</th>
+                                        <th>Answers</th>
+                                        <th>Max Points</th>
+                                        <th>Common</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for question in comex.questions.all %}
+                                        <tr id="question-{{ question.pk }}">
+                                            <td>{{ question.code }}</td>
+                                            <td>
+                                                <div class="btn-group-sm" role="group">
+                                                    {% for question_type in question_types.all %}
+                                                        <button id="type-{{ question.pk }}-{{ question_type.pk }}"
+                                                                type="button"
+                                                                {% if question.question_type.pk == question_type.pk %}
+                                                                class="btn btn-dark btn-sm focus" {% else %}
+                                                                class="btn btn-outline-dark btn-sm disabled"{% endif %}
+                                                                {% if not user.is_staff %} disabled {% endif %}>
+                                                            {{ question_type.code }}</button>
+                                                    {% endfor %}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if question.question_type.id <= 2 %}
+                                                    <div class="form-group-sm" role="group">
+                                                        <input id="nb-answers-slider-{{ question.pk }}"
+                                                               data-slider-id='nb-answers-{{ question.pk }}'
+                                                               type="text"
+                                                               data-slider-value="{{ question.nb_answers }}"
+                                                               style="width:500px;"/>
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td><input id="maxpts-{{ question.pk }}" type="number" min="0"
+                                                       value="{{ question.max_points }}" step=".01"
+                                                       style="width:100px;" class="form-control form-control-sm"
+                                                    {% if not user.is_staff %} disabled {% endif %}></td>
+                                            <td>
+                                                <div class="btn-group-sm" role="group">
+                                                    <button id="common-{{ question.pk }}-1" type="button"
+                                                            class="btn btn-light btn-sm"
+                                                            style="background-color: transparent;"
+                                                            {% if not user.is_staff %} disabled {% endif %}><i
+                                                            class="fa-solid fa-circle-check fa-2xl"
+                                                            {% if not question.common %}style="color:lightgray;"{% endif %}></i>
+                                                    </button>
+                                                    <button id="common-{{ question.pk }}-2" type="button"
+                                                            class="btn btn-light btn-sm"
+                                                            style="background-color: transparent;"
+                                                            {% if not user.is_staff %} disabled {% endif %}><i
+                                                            class="fa-solid fa-circle-xmark fa-2xl"
+                                                            {% if question.common %}style="color:lightgray;"{% endif %}></i>
+                                                    </button>
+                                                </div>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="modal fade" id="displayPdfModal-{{ comex.id }}" tabindex="-1" role="dialog" style="">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content" style="width:1050px;height:1050px;">
+            
+                  <div class="modal-body">
+                    <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">CLOSE</button>
+                  </br>
+                    <div id="embedPdf"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="modal fade" id="examOptionsModal-{{ comex.id }}" tabindex="-1" aria-labelledby="examOptionsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="imageModalLabel">Exam options</h5>{{ comex.code }}
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                        </div>
+                        <div class="modal-body">{{ comex.amc_option }}
+                            <form id="form-exam-options" method="post" style="padding:20px;">
+                                {% csrf_token %}
+                                <div class="custom-control custom-switch mb-3">
+                                  <input class="custom-control-input" type="checkbox" name="review_option" id="review_option_check" {% if comex.review_option == 1 %} checked {% endif %}>
+                                  <label class="custom-control-label" for="review_option_check">Review module</label>
+                                </div>
+                                <div class="custom-control custom-switch mb-3">
+                                  <input class="custom-control-input" type="checkbox"  name="amc_option" id="amc_option" {% if comex.amc_option == 1 %} checked {% endif %}>
+                                  <label class="custom-control-label" for="amc_option">AMC module</label>
+                                </div>
+                                <div class="custom-control custom-switch mb-3">
+                                  <input class="custom-control-input" type="checkbox"  name="res_and_stats_option" id="res_and_stats_option" {% if comex.res_and_stats_option == 1 %} checked {% endif %}>
+                                  <label class="custom-control-label" for="res_and_stats_option">Results & stats module</label>
+                                </div>
+                                <div class="custom-control custom-switch mb-3">
+                                  <input class="custom-control-input" type="checkbox"  name="prep_option" id="prep_option" {% if comex.prep_option == 1 %} checked {% endif %} disabled>
+                                  <label class="custom-control-label" for="prep_option">Preparation module</label>
+                                </div>
+                                <div style="text-align: right;">
+                                    <button type="button" onclick="updateExamOptions({{ comex.pk }});" class="btn btn-dark btn-sm">Validate</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
     </div>
-    <div id="collapseOne" class="collapse show" aria-labelledby="headingOne">
-      <div class="card-body">
-        <table  class="table table-sm table-borderless">
-          <tr style="border-bottom:.5px solid lightgrey;">
-            <th>Code</th>
-            <th>Name</th>
-            <th>Year</th>
-            <th>Semester</th>
-            <th>Teacher(s)</th>
-            {% if exam.common_exams.all %}
-            <th>Common</th>
-            <th>Individual specific</th>
-            {% endif %}
-            <th></th>
-          </tr>
-          <tr>
-            <td>
-              {% if exam.is_overall %}
-                GLOBAL
-              {% else %}
-                {{ exam.code }}
-              {% endif %}
-            </td>
-            <td>{{ exam.name }}</td>
-            <td>{{ exam.year.code }}</td>
-            <td>{{ exam.semester.code }}</td>
-            <td>
-              <ul class="list-group">
-                <li class="list-group-item border-0" style="padding:0px;margin:0px;font-weight: bold;">{{ exam.primary_user.first_name }} {{ exam.primary_user.last_name }}</li>
-                {% for teacher in exam.users.all %}
-                <li class="list-group-item border-0" style="padding:0px;margin:0px;">{{ teacher.first_name }} {{ teacher.last_name }}</li>
-                {% endfor %}
-              </ul>
-            </td>
-            {% if exam.common_exams.all %}
-            <td>
-              <ul class="list-group">
-                {% for exam in exam.common_exams.all %}
-                  {% if not exam.is_overall %}
-                    <li class="list-group-item border-0" style="padding:0px;margin:0px;">{{ exam.code }} {{ exam.name }}</li>
-                  {% endif %}
-                {% endfor %}
-              </ul>
-            </td>
-            <td>
-              {{ exam.indiv_formula }}
-              <br>
-              <em>[indiv_max_points];[common_max_points];[formula]
-              <ul>
-              <li>IP - invid_max_points</li>
-              <li>CP - common_max_points</li>
-              <li>SCP - students common points</li>
-              <li>SIP - students indiv points</li>
-              </ul></em>
-            </td>
-            {% endif %}
-            <td><button type="button" class="btn btn-light btn-sm" style="background-color: transparent;" onclick="$('#examOptionsModal').modal('show');"><i class="fas fa-ellipsis-v fa-2xl"></i></button></td>
-          </tr>
-        </table>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="create-scale-modal" style="margin-left:-100px;">
+      <div class="modal-dialog" role="document">
+          <div class="modal-content" id="create-scale-modal-content">
+
+          </div>
       </div>
     </div>
-  </div>
-  <div class="card z-depth-0 bordered">
-    <div class="card-header" id="headingTwo">
-      <h5 class="mb-0">
-        <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
-        data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
-        Scales
-      </button>
-    </h5>
-  </div>
-  <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo">
-    <div class="card-body">
-      <table class="table table-striped table-sm">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Total points</th>
-            <th>Points to add</th>
-            <th>Final</th>
-            {% if user.is_staff %}
-            <th>Delete</th>
-            {% endif %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for scale in exam.scales.all %}
-          <tr>
-            <td>{{ scale.name }}</td>
-            <td>{{ scale.total_points }}</td>
-            <td>{{ scale.points_to_add }}</td>
-            {% if scale.final %}
-            <td><a class="btn btn-light btn-sm" disabled style="background-color: transparent;"><i class="fa-solid fa-circle-check fa-2xl"></i></a></td>
-            {% else %}
-            <td><a class="btn btn-light btn-sm" href="{% url 'set_final_scale' scale.pk %}" style="background-color: transparent;"><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i></a></td>
-            {% endif %}
-            {% if user.is_staff %}
-            <td><a class="btn btn-light btn-sm" href="{% url 'delete_exam_scale' scale.pk exam.pk %}"><i class="fa-solid fa-circle-minus fa-2xl" style="margin-right:5px;color:red;"></i></a></td>
-            {% endif %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% if user.is_staff %}
-      <a target="_blank" id="create-scale-button" class="btn btn-light" style="background-color: transparent"  type="button"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>
-      {% endif %}
+    
+    <div class="modal fade" id="manageUsersModal" tabindex="-1" role="dialog" aria-labelledby="manageUsersModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="manageUsersModalLabel">Manage Users</h5>
+            <button type="button" class="close" onclick="cancelUsers();" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="manageUsersModalBody" class="modal-body">
+            <h6>Users</h6>
+            <ul class="list-group" id="currUsersList">
+                {% for exam_user in exam.exam_users.all %}
+                    <li id="{{ exam_user.user.username }};{{ exam_user.user.first_name }};{{ exam_user.user.last_name }};{{ exam_user.user.email }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;">
+                        <div>
+                            <button class="btn btn-light btn-sm" style="margin-right:10px;"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
+                            {{ exam_user.user.username }} - {{ exam_user.user.first_name }} {{ exam_user.user.last_name }} - {{ exam_user.user.email }}
+                        </div>
+                        <div>
+                            {% for user_group in users_groups_add.all %}
+                                <div class="form-check form-check-inline" style="margin-top:5px;">
+                                    <input class="form-check-input" type="radio" name="user_group_radio_{{ exam_user.user.username }}" id="user_group_radio_{{ exam_user.user.id }}_{{ user_group.id }}" value="{{ user_group.id }}"
+                                        {% if exam_user.group.id == user_group.id %} checked {% endif %}>
+                                    <label class="form-check-label" for="user_group_radio_{{ exam_user.user.id }}_{{ user_group.id }}">{{ user_group.name }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+            <hr>
+            <div>
+                <h6>Add Users</h6>
+                <input id="newUserEmail" class="form-control" type="text" placeholder="Email">
+              </br>
+              <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap();" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
+            </div>
+            <ul  class="list-group" id="newUsersList"></ul>
+        </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers();">Cancel</button>
+            <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers();">Validate</button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-<div class="card z-depth-0 bordered">
-  <div class="card-header" id="headingThree">
-    <h5 class="mb-0">
-      <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
-      data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-      Questions (Total points : {{ sum_questions_points.max_points__sum }})
-    </button>
-  </h5>
-</div>
-<div id="collapseThree" class="collapse show" aria-labelledby="headingThree">
-  <div id="questions_div" class="card-body">
-    <table id="questions_dt" class="table table-striped table-sm">
-      <thead>
-        <tr>
-          <th>Question</th>
-          <th>Type</th>
-          <th>Answers</th>
-          <th>Max Points</th>
-          <th>Common</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for question in exam.questions.all %}
-        <tr>
-          <td>{{ question.code }}</td>
-          <td>
-            <div class="btn-group-sm" role="group">
-            {% for question_type in question_types.all %}
-              <button id="type-{{question.pk}}-{{ question_type.pk }}" type="button" {% if question.question_type.pk == question_type.pk %} class="btn btn-dark btn-sm focus" {% else %} class="btn btn-outline-dark btn-sm disabled"{% endif %} {% if not user.is_staff %} disabled {% endif %}>
-                  {{ question_type.code }}</button>
-            {% endfor %}
-            </div>
-          </td>
-          <td>
-            {% if question.question_type.id <= 2 %}
-            <div class="form-group-sm" role="group">
-                <input id="nb-answers-slider-{{ question.pk }}" data-slider-id='nb-answers-{{ question.pk }}' type="text" data-slider-value="{{ question.nb_answers }}" style="width:500px;"/>
-            </div>
-            {% endif %}
-          </td>
-          <td><input id="maxpts-{{question.pk}}" type="number" min="0" value="{{ question.max_points }}" step=".01" style="width:100px;" class="form-control form-control-sm" {% if not user.is_staff %} disabled {% endif %}></td>
-          <td>
-            <div class="btn-group-sm" role="group">
-                <button id="common-{{question.pk}}-1" type="button" class="btn btn-light btn-sm" style="background-color: transparent;"{% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl" {% if not question.common %}style="color:lightgray;"{% endif %}></i></button>
-                <button id="common-{{question.pk}}-2" type="button" class="btn btn-light btn-sm" style="background-color: transparent;"{% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl" {% if question.common %}style="color:lightgray;"{% endif %}></i></button>
-            </div>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+
+
 {% else %}
 
 <h4>You are not allowed to view this page !</h4>
 
 {% endif %}
 
-<!-- MODAL -->
-<div class="modal fade modal-lg" tabindex="-1" role="dialog" id="modal" style="left:25%;">
-  <div class="modal-dialog" role="document" style="max-width:80%;">
-      <div class="modal-content" style="flex-direction: row;">
 
-      </div>
-  </div>
-</div>
-<div class="modal fade" id="displayPdfModal" tabindex="-1" role="dialog" style="">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content" style="width:1050px;height:1050px;">
-
-      <div class="modal-body">
-        <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">CLOSE</button>
-      </br>
-        <div id="embedPdf"></div>
-      </div>
-    </div>
-  </div>
-</div>
-</div>
-
-<div class="modal fade" id="examOptionsModal" tabindex="-1" aria-labelledby="examOptionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="imageModalLabel">Exam options</h5>
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
-            </div>
-            <div class="modal-body">{{ exam.amc_option }}
-                <form id="form-exam-options" method="post" style="padding:20px;">
-                    {% csrf_token %}
-                    <div class="custom-control custom-switch mb-3">
-                      <input class="custom-control-input" type="checkbox" name="review_option" id="review_option_check" {% if exam.review_option == 1 %} checked {% endif %}>
-                      <label class="custom-control-label" for="review_option_check">Review module</label>
-                    </div>
-                    <div class="custom-control custom-switch mb-3">
-                      <input class="custom-control-input" type="checkbox"  name="amc_option" id="amc_option" {% if exam.amc_option == 1 %} checked {% endif %}>
-                      <label class="custom-control-label" for="amc_option">AMC module</label>
-                    </div>
-                    <div class="custom-control custom-switch mb-3">
-                      <input class="custom-control-input" type="checkbox"  name="res_and_stats_option" id="res_and_stats_option" {% if exam.res_and_stats_option == 1 %} checked {% endif %}>
-                      <label class="custom-control-label" for="res_and_stats_option">Results & stats module</label>
-                    </div>
-                    <div class="custom-control custom-switch mb-3">
-                      <input class="custom-control-input" type="checkbox"  name="prep_option" id="prep_option" {% if exam.prep_option == 1 %} checked {% endif %}>
-                      <label class="custom-control-label" for="prep_option">Preparation module</label>
-                    </div>
-                    <div style="text-align: right;">
-                        <button type="button" onclick="updateExamOptions();" class="btn btn-dark btn-sm">Validate</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-            </div>
-        </div>
-    </div>
-</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js" integrity="sha512-f0VlzJbcEB6KiW8ZVtL+5HWPDyW1+nJEjguZ5IVnSQkvZbwBt2RfCBY0CBO1PsMAqxxrG4Di6TfsCPP3ZRwKpA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css" integrity="sha512-3q8fi8M0VS+X/3n64Ndpp6Bit7oXSiyCnzmlx6IDBLGlY5euFySyJ46RUlqIVs0DPCGOypqP8IRk/EyPvU28mQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
@@ -269,63 +413,246 @@
 </style>
 <script>
 
+$("#exam_date").on("change", function() {
+    let pickedDate = $("input").val();
+    updateExamDate(pickedDate);
+});
+
+document.getElementById("newUserEmail").addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("search_ldap_bt").click();
+  }
+});
+
+function updateExamDate(date){
+    $.ajax({
+        url: "{% url 'update_exam_date' %}",
+        type: "POST",
+        dataType: "json",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : {{ exam.pk }},
+            'date' : date,
+        },
+        complete: function () {
+            $("#exam_date_column").load(location.href + " #exam_date_column" );
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function searchLdap(){
+    var email = document.getElementById("newUserEmail").value;
+
+    var add_User_error = document.getElementById("addUserError");
+    if (typeof(add_User_error) != 'undefined' && add_User_error != null)
+    {
+      add_User_error.remove();
+    }
+
+    $.ajax({
+        url: "{% url 'ldap_search_exam_user_by_email' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : {{ exam.pk }},
+            'email' : email,
+        },
+        success: (data) => {
+            if(data==="exist"){
+                let add_User_error = document.createElement('div');
+                add_User_error.setAttribute("class","alert alert-warning");
+                add_User_error.setAttribute("role","alert")
+                add_User_error.innerHTML = "User already present as a User for this exam !";
+                document.getElementById("manageUsersModalBody").appendChild(add_User_error);
+            }else{
+                let list = document.getElementById("newUsersList");
+                let li = document.createElement('li');
+                let remove_bt = document.createElement('button')
+                let user_info = document.createElement('div')
+                remove_bt.textContent = 'remove';
+                remove_bt.setAttribute("class","btn btn-light btn-sm");
+                remove_bt.setAttribute("style","margin-right:10px;");
+                remove_bt.addEventListener('click', () => {
+                    document.getElementById(data).remove();
+                });
+                remove_bt.innerHTML = '<i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>'
+                user_info.appendChild(remove_bt);
+                li_txt = data.replace(/;/g,' ');
+                user_info.appendChild(document.createTextNode(li_txt));
+                li.appendChild(user_info);
+                users_groups_div = document.createElement('div');
+                users_groups_div.setAttribute("style","margin-top:5px;")
+                {% for user_group in users_groups_add.all %}
+                    username = li_txt.split(" ")[0]
+                    users_groups_radios_div = document.createElement('div')
+                    users_groups_radios_div.setAttribute("class","form-check form-check-inline");
+                    users_groups_radios_div.innerHTML = '<input class="form-check-input" type="radio" name="user_group_radio_'+username+'" id="user_group_radio_'+username+'_{{ user_group.id }}" value="{{ user_group.id }}" {% if user_group.id == 2 %}checked{% endif %}>'+
+                                                '<label class="form-check-label" for="user_group_radio_'+username+'_{{ user_group.id }}">{{ user_group.name }}</label>'
+                    users_groups_div.appendChild(users_groups_radios_div);
+                {% endfor %}
+                li.appendChild(users_groups_div);
+                
+                li.setAttribute("id",data);
+                li.setAttribute("class","list-group-item");
+                li.setAttribute("style","display: flex;justify-content: space-between;padding:5px;");
+                list.appendChild(li);
+                document.getElementById("newUserEmail").value = "";
+             }
+        },
+        error: (error) => {
+            let add_User_error = document.createElement('div');
+            add_User_error.setAttribute("class","alert alert-warning");
+            add_User_error.setAttribute("role","alert")
+            add_User_error.innerHTML = "Cannot find user with this email address in EPFL LDAP !";
+            document.getElementById("manageUsersModalBody").appendChild(add_User_error);
+            console.log(error);
+        }
+    });
+}
+
+function validateUsers(){
+    var new_users_li = document.getElementById("newUsersList").querySelectorAll("li");
+    var curr_users_li = document.getElementById("currUsersList").querySelectorAll("li");
+
+    let users = [];
+    for(let i=0; i<curr_users_li.length;i++) {
+        user = curr_users_li[i].id;
+        user_split = user.split(";")
+        username = user_split[0]
+        firstname = user_split[1]
+        lastname = user_split[2]
+        useremail = user_split[3]
+        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+username+']:checked').value;
+        users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+    }
+    for(let i=0; i<new_users_li.length;i++) {
+        user = new_users_li[i].id;
+        user_split = user.split(";")
+        username = user_split[0]
+        firstname = user_split[1]
+        lastname = user_split[2]
+        useremail = user_split[3]
+        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+username+']:checked').value;
+        users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+    }
+
+    let list = document.getElementById("newUsersList");
+    list.innerHTML = '';
+    document.getElementById("newUserEmail").value = '';
+    $('.modal').modal('hide');
+    $.ajax({
+        url: "{% url 'update_exam_users' %}",
+        type: "POST",
+        dataType: "json",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : {{ exam.pk }},
+            'users_list' : users,
+        },
+        complete: function () {
+            location.reload();
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function cancelUsers(){
+    let list = document.getElementById("newUsersList");
+    list.innerHTML = '';
+    document.getElementById("newUserEmail").value = '';
+    $('.modal').modal('hide');
+}
 
 $(window).on("load",function(){
-
-    $("#create-scale-button").modalForm({
-        formURL: "{% url 'create_scale' exam.pk %}"
-    });
-
-    <!--DISPLAY PDF CATALOG -->
-    $('#displayPdfModal').on('show.bs.modal', function (event) {
-        document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' exam.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
-    })
-
-    <!--QUESTIONS EVENTS-->
-    <!--question-common checkboxes-->
-    {% for question in exam.questions.all %}
-        $('#common-{{ question.pk }}-1').on('click', function() {
-        updateQuestion({{ question.pk }},'common', 1);
+    {% for comex in exam.get_common_exams_yc_common %}
+        $("#create-scale-button").modalForm({
+            formURL: "{% url 'create_scale' comex.pk %}",
+            modalID: "#create-scale-modal"
         });
-        $('#common-{{ question.pk }}-2').on('click', function() {
-        updateQuestion({{ question.pk }},'common', 0);
-        });
-    {% endfor %}
 
-    <!--question-type button-groups-->
-    {% for question in exam.questions.all %}
-        {% for question_type in question_types %}
-            $('#type-{{ question.pk }}-{{ question_type.pk }}').on('click', function() {
-            updateQuestion({{ question.pk }},'question_type_id', {{ question_type.pk }});
-        });
+        <!--DISPLAY PDF CATALOG -->
+        $('#displayPdfModal').on('show.bs.modal', function (event) {
+            document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' comex.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
+        })
+
+        <!--QUESTIONS EVENTS-->
+        <!--question-common checkboxes-->
+        {% for question in comex.questions.all %}
+            $('#common-{{ question.pk }}-1').on('click', function() {
+            updateQuestion({{ question.pk }},'common', 1,{{ comex.pk }});
+            });
+            $('#common-{{ question.pk }}-2').on('click', function() {
+            updateQuestion({{ question.pk }},'common', 0,{{ comex.pk }});
+            });
+        {% endfor %}
+
+        <!--question-type button-groups-->
+        {% for question in comex.questions.all %}
+            {% for question_type in question_types %}
+                $('#type-{{ question.pk }}-{{ question_type.pk }}').on('click', function() {
+                updateQuestion({{ question.pk }},'question_type_id', {{ question_type.pk }},{{ comex.pk }});
+            });
+            {% endfor %}
+        {% endfor %}
+
+        <!--question-answers button-groups-->
+        {% for question in comex.questions.all %}
+            {% if question.question_type.id <= 2 %}
+                answers_range = Array.from({ length: {{ question.nb_answers }}+3 }, (value, index) => 1 + index);
+                label_positions = [];
+                for(i in answers_range) {
+                    label_positions.push(100/(answers_range.length-1)*i);
+                }
+                slider = $('#nb-answers-slider-{{ question.pk }}');
+                slider.bootstrapSlider({
+                    ticks: answers_range,
+                    ticks_labels: answers_range,
+                    ticks_positions: label_positions,
+                    ticks_snap_bounds: 1
+                });
+
+
+                $('#nb-answers-{{ question.pk }}').on('mouseup',function(el){
+                    updateQuestion({{ question.pk }},'nb_answers',el.target.ariaValueNow,{{ comex.pk }});
+
+                });
+            {% endif %}
+        {% endfor %}
+
+        <!--question-max-pts input-->
+        {% for question in comex.questions.all %}
+            $('#maxpts-{{ question.pk }}').on('input', function() {
+            updateQuestion({{ question.pk }},'max_points', this.value,{{ comex.pk }});
+            });
         {% endfor %}
     {% endfor %}
 
-    <!--question-answers button-groups-->    
-    {% for question in exam.questions.all %}
-        {% if question.question_type.id <= 2 %}
-            answers_range = Array.from({ length: {{ question.nb_answers }}+3 }, (value, index) => 1 + index);
-            $('#nb-answers-slider-{{ question.pk }}').bootstrapSlider({
-                ticks: answers_range,
-                ticks_labels: answers_range,
-                ticks_snap_bounds: 1
-            });
-            $('#nb-answers-{{ question.pk }}').on('mouseup',function(el){
-                updateQuestion({{ question.pk }},'nb_answers',el.target.ariaValueNow);
+    $('a[data-toggle="pill"]').on('show.bs.tab', function(e) {
+        localStorage.setItem('activeTab', $(e.target).attr('href'));
+    });
+    var activeTab = localStorage.getItem('activeTab');
+    if(activeTab && $(activeTab).length > 0){
+        $('#exam-info-pills-tab a[href="' + activeTab + '"]').tab('show');
+    }else{
+        $('#exam-info-pills-tab a[href="#pills-' + {{ exam.get_common_exams_yc_common.0.id }} + '"]').tab('show');
+    }
 
-            });
-        {% endif %}
-    {% endfor %}
-
-    <!--question-max-pts input-->
-    {% for question in exam.questions.all %}
-        $('#maxpts-{{ question.pk }}').on('input', function() {
-        updateQuestion({{ question.pk }},'max_points', this.value);
-        });
-    {% endfor %}
 })
 <!--EXAM AJAX UPDATE FUNCTIONS-->
-function updateQuestion(pk,field,value){
+function updateQuestion(pk,field,value,exam_pk){
+    //get current active tab if overall
+    {% if comex.common_exams %}
+        var activeNavPills = "#pills-"+exam_pk
+    {% endif %}
+    $('#loadingModal').modal('show');
     $.ajax({
             url : "{% url 'update_question' %}",
             type : "POST",
@@ -336,14 +663,18 @@ function updateQuestion(pk,field,value){
                 'value' : value
             },
             beforeSend : function(){
-                $('#loadingModal').modal('show');
+
             },
             complete: function () {
-                $('#loadingModal').modal('hide');
+
             },
             success : function(result) {
-                window.location.href += "?dataUpdated=true";
-                window.location.reload();
+                $('#loadingModal').modal('hide');
+                sessionStorage.setItem("regen_stats", "true");
+                sessionStorage.setItem("scrolly",document.documentElement.scrollTop);
+                window.location.href = "{% url 'examInfo' exam.pk %}?dataUpdated=true";
+
+
             },
             error: (error) => {
                 console.log(error);
@@ -351,17 +682,17 @@ function updateQuestion(pk,field,value){
     });
 }
 
-function updateExamOptions(){
+function updateExamOptions(exam_pk){
     data = $("#form-exam-options").serialize();
     $.ajax({
-            url : "{% url 'update_exam_options' exam.pk %}",
+            url : "/update_exam_options/"+exam_pk,
             type : "POST",
             data : data,
             beforeSend : function(){
                 $('#loadingModal').modal('show');
             },
             complete: function () {
-                location.replace("{% url 'examInfo' exam.pk %}");
+                location.replace("/examInfo/"+exam_pk);
             },
             success: (data) => {
                 $('#loadingModal').modal('hide');
@@ -372,5 +703,20 @@ function updateExamOptions(){
             }
         });
 }
+
+window.onload = function() {
+    var regen_stats = sessionStorage.getItem("regen_stats");
+    if (regen_stats) {
+        sessionStorage.removeItem("regen_stats");
+        $('#alert_regen_stats').show();
+    }
+    var scroll_y = sessionStorage.getItem("scrolly");
+    if (scroll_y){
+        document.documentElement.scrollTop = scroll_y;
+        sessionStorage.removeItem("scrolly");
+    }
+}
+
+
 </script>
 {% endblock %}

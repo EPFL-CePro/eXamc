@@ -130,7 +130,6 @@ function call_amc_annotate() {
 }
 
 function generate_amc_results() {
-    $('#loadingModal').modal('show');
     $.ajax({
         url: "{% url 'call_amc_generate_results' %}",
         type: "POST",
@@ -139,8 +138,7 @@ function generate_amc_results() {
             'exam_pk' : {{ exam.pk }},
         },
         success: (data) => {
-            $('#loadingModal').modal('hide');
-            location.replace("{% url 'amc_view' exam.pk 3%}");
+            window.location.reload();
         },
         error: (error) => {
             console.log(error);

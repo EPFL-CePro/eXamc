@@ -90,7 +90,7 @@ class CourseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 
 admin.site.register(PagesGroup, SimpleHistoryAdmin)
 admin.site.register(PagesGroupComment, SimpleHistoryAdmin)
-admin.site.register(Reviewer, SimpleHistoryAdmin)
+admin.site.register(ExamUser, SimpleHistoryAdmin)
 admin.site.register(PageMarkers, SimpleHistoryAdmin)
 admin.site.register(Question)
 admin.site.register(Student)
