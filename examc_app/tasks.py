@@ -283,7 +283,7 @@ def import_exam_scans(self, zip_file_path, exam_pk):
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
             process_count) + ' - AMC Automatic datacapture...')
 
-        scans_folder_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+        scans_folder_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
         file_list_path = scans_folder_path + "/list-file"
         tmp_file_list = open(file_list_path, "a+")
 
@@ -307,8 +307,8 @@ def import_exam_scans(self, zip_file_path, exam_pk):
 def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
     try:
         exam = Exam.objects.get(pk=exam_pk)
-        scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
-        marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+        scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+        marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
         export_subdir = 'marked_'+str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
         export_subdir = export_subdir.replace(" ","_")
         export_tmp_dir = (str(settings.EXPORT_TMP_ROOT) + "/" + export_subdir)

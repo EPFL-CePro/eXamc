@@ -64,9 +64,7 @@
                                         <th>Name</th>
                                         <th>Year</th>
                                         <th>Semester</th>
-                                        <th>Users
-                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>
-                                        </th>
+                                        <th>Date</th>
                                         {% if comex.common_exams.all %}
                                             <th>Common</th>
                                             <th>Individual specific</th>
@@ -83,15 +81,15 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ comex.name }}</td>
-                                        <td>{{ comex.year.code }}</td>
+                                        <td>{{ comex.year.code }}</td>                             
                                         <td>{{ comex.semester.code }}</td>
-                                        <td>
-                                            <ul class="list-group">
-                                                {% for exam_user in comex.exam_users.all %}
-                                                    <li class="list-group-item border-0"
-                                                        style="padding:0px;margin:0px;">{{ exam_user.user.first_name }} {{ exam_user.user.last_name }} ({{ exam_user.group.name }})</li>
-                                                {% endfor %}
-                                            </ul>
+                                        <td colspan="2" id="exam_date_column">
+                                            {% if comex.date %}
+                                                {{ comex.date|date:"Y-m-d" }}
+                                            {% else %}
+                                                <input class="date form-control" type="date" name="exam_date" id="exam_date"  style="width:175px;color:red;" class="form-control" required="" aria-invalid="true" value="{{ comex.date|date:"Y-m-d" }}">
+                                                <a style="color:red">Please select a date !</a>
+                                            {% endif %}
                                         </td>
                                         {% if comex.common_exams.all %}
                                             <td>
@@ -117,11 +115,24 @@
                                                 </em>
                                             </td>
                                         {% endif %}
-                                        <td>
+                                        <td style="text-align:right;">
                                             <button type="button" class="btn btn-light btn-sm"
                                                     style="background-color: transparent;"
                                                     onclick="$('#examOptionsModal-{{ comex.id }}').modal('show');"><i
                                                     class="fas fa-ellipsis-v fa-2xl"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align: right;">
+                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>
+                                        </td>           
+                                        <td>
+                                            <ul class="list-group">
+                                                {% for exam_user in comex.exam_users.all %}
+                                                    <li class="list-group-item border-0"
+                                                        style="padding:0px;margin:0px;">{{ exam_user.user.first_name }} {{ exam_user.user.last_name }} ({{ exam_user.group.name }})</li>
+                                                {% endfor %}
+                                            </ul>
                                         </td>
                                     </tr>
                                 </table>
@@ -401,6 +412,12 @@
 }
 </style>
 <script>
+
+$("#exam_date").on("change", function() {
+    let pickedDate = $("input").val();
+    updateExamDate(pickedDate);
+});
+
 document.getElementById("newUserEmail").addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
     // Cancel the default action, if needed
@@ -409,6 +426,25 @@ document.getElementById("newUserEmail").addEventListener("keypress", function(ev
     document.getElementById("search_ldap_bt").click();
   }
 });
+
+function updateExamDate(date){
+    $.ajax({
+        url: "{% url 'update_exam_date' %}",
+        type: "POST",
+        dataType: "json",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : {{ exam.pk }},
+            'date' : date,
+        },
+        complete: function () {
+            $("#exam_date_column").load(location.href + " #exam_date_column" );
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
 
 function searchLdap(){
     var email = document.getElementById("newUserEmail").value;

@@ -629,7 +629,7 @@ def saveMarkers(request):
             ImageData = base64.b64decode(ImageData)
 
             marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-                exam.semester.code) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
+                exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d") + "/" + scan_markers.copie_no + "/" + "marked_" + \
                               scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
             os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
 
@@ -642,7 +642,7 @@ def saveMarkers(request):
         page_markers_user.save()
     else:
         marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-            exam.semester.code) + "/" + exam.code + "/" + scan_markers.copie_no + "/" + "marked_" + \
+            exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d") + "/" + scan_markers.copie_no + "/" + "marked_" + \
                           scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
         if os.path.exists(marked_img_path):
             os.remove(marked_img_path)

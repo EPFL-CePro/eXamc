@@ -225,9 +225,9 @@ def import_scans_from_review(request,pk):
     if os.path.exists(file_list_path):
         os.remove(file_list_path)
 
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code
+        exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
         exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
     export_subdir = export_subdir.replace(" ", "_")
@@ -323,7 +323,8 @@ def call_amc_mark(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     update_scoring_strategy = request.POST['update_scoring_strategy']
 
-    result = amc_mark(exam,update_scoring_strategy)
+    return StreamingHttpResponse(amc_mark_subprocess(request, exam, update_scoring_strategy))
+   # result = amc_mark(exam,update_scoring_strategy)
 
     if not 'ERR:' in result:
         return HttpResponse('yes')
