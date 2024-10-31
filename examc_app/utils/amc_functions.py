@@ -395,10 +395,11 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
                     '--try-three ']
 
         result =  subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
-
+        print("amc analyse result : "+result)
         print('before delete '+file_list_path)
         os.remove(file_list_path)
         if result.stderr:
+            print(result.stderr)
             return "ERR:" + result.stderr
         else:
             return result.stdout
