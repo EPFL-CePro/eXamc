@@ -13,7 +13,7 @@ The last one, is dedicated to detect the corrector boxes.
 
 After making changes, use the "SAVE" button.
 
-.. image:: images/review_pages_groups.png
+.. image:: images/pages_groups.png
    :width: 600
 
 
@@ -23,13 +23,4 @@ The "GRADING HELP" button is used to give the assessor comments on how to correc
 to manage the style of the comment. These comments will be displayed in the review menu during the correction process.
 
 .. image:: images/review_grading_help.png
-   :width: 600
-
-
-**Corrector Boxes**
-
-The "CORRECTOR BOXES" button is used to check inside the corrector boxes whether the examiner has entered the number of points. This should be done
-before correcting the examination. If there is no tick in the added box, an error message will appear.
-
-.. image:: images/review_corrector_box.png
    :width: 600

@@ -52,8 +52,7 @@ Contents
    modules/statistic/statistics
    modules/import_data/import_data
    modules/export_data/export_data
-   modules/admin/users
-   modules/admin/admin
+
 
 
 Indices and tables
