@@ -51,6 +51,36 @@ $("#exams_zip_file").on("change", function () {
         $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
     });
 
+function call_amc_automatic_datacapture_process(){
+    amc_process_modal_title = document.getElementById('amc_process_modal_title');
+    amc_process_modal_title.innerHTML = "Automatic data capture processing";
+    amc_process_modal_body = $('#amc_process_modal_body');
+    amc_process_modal_body.text('');
+    $('#amc_process_modal').modal('show');    
+    $.ajax({
+        url: "{% url 'import_scans_from_review' exam.pk %}",
+        type: "POST",
+        data : {
+           'csrfmiddlewaretoken' : '{{ csrf_token }}',
+        },
+        xhrFields: {
+            // This triggers each time progress is made on the request
+            onprogress: function(event) {
+                amc_process_modal_body.html('');
+                var response = event.currentTarget.responseText;
+                amc_process_modal_body.html(response.replace('\n','<br/>'));
+                amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+            }
+        },
+        success: function() {
+            amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+        },
+        error: function() {
+            amc_process_modal_body.html('<p>Error occurred</p>');
+        }
+    });
+ 
+}
 </script>
 </body>
 {% endblock %}

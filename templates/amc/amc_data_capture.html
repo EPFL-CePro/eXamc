@@ -301,7 +301,6 @@ function callAutomaticDataCapture_process(from_review) {
     amc_process_modal_body.text('');
     $('#amc_process_modal').modal('show');
     if(from_review) {
-        const csrfToken = getCookie('csrftoken'); // Get CSRF token from the cookie
         $.ajax({
             url: "{% url 'import_scans_from_review' exam.pk %}",
             type: "POST",
