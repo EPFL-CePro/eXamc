@@ -47,8 +47,11 @@ def create_exam_project(request):
             exam.amc_option = True
             exam.save()
             for teacher in teachers:
-                exam.users.add(teacher)
-            exam.save()
+                exam_user = ExamUser()
+                exam_user.user = teacher
+                exam_user.exam = exam
+                exam_user.group_id = 2
+                exam_user.save()
 
             #copy template to new amc_project directory
             amc_project_template_path = str(settings.AMC_PROJECTS_ROOT)+"/templates/"+language+"/base"

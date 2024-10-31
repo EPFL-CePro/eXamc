@@ -290,11 +290,12 @@ def import_exam_scans(self, zip_file_path, exam_pk):
         files = glob.glob(scans_folder_path + '/**/*.*', recursive=True)
         for file in files:
             tmp_file_list.write(file + "\n")
-
+        print('start amc automatic data capture')
         tmp_file_list.close()
         result = amc_automatic_data_capture(exam,scans_folder_path,True,file_list_path)
-
+        print('end amc automatic data capture')
         os.remove(zip_file_path)
+        shutil.rmtree(zip_path)
 
     except Exception as exception:
         self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during import "+str(exception)})
