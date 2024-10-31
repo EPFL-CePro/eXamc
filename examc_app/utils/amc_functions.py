@@ -366,43 +366,43 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
         command[0] += ' --copy-to "' + project_path + '/scans" '
 
     result = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
-    if result.stderr:
-        print("err : " + result.stderr)
-        return "ERR:" + result.stderr
-    else:
+    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+        for line in process.stdout:
+            print(line.strip())
+    # if result.stderr:
+    #     print("err : " + result.stderr)
+    #     return "ERR:" + result.stderr
+    # else:
 
-        if not from_review:
-            # replace tmp scans dir with scans dir to file_list_path
-            # rename file_list_path to .txt
-            # finally send this file as parameter to analyse
-            with open(file_list_path,'r') as file:
-                data = file.read()
-                data = data.replace(tmp_extract_path,project_path+'/scans')
-            with open(file_list_path,'w') as file:
-                file.write(data)
+    if not from_review:
+        # replace tmp scans dir with scans dir to file_list_path
+        # rename file_list_path to .txt
+        # finally send this file as parameter to analyse
+        with open(file_list_path,'r') as file:
+            data = file.read()
+            data = data.replace(tmp_extract_path,project_path+'/scans')
+        with open(file_list_path,'w') as file:
+            file.write(data)
 
-        os.rename(file_list_path,file_list_path+".txt")
-        file_list_path+=".txt"
-        box_prop = get_amc_option_by_key(exam, "box_size_proportion")
+    os.rename(file_list_path,file_list_path+".txt")
+    file_list_path+=".txt"
+    box_prop = get_amc_option_by_key(exam, "box_size_proportion")
+    print("before analyse")
+    # analyse scans
+    print("amc analyse")
+    command = ['auto-multiple-choice analyse '
+               '--prop ' + box_prop + ' '
+                '--data "' + project_path + '/data/" '
+                '--projet "' + project_path + '" '
+                '--liste-fichiers "' + file_list_path + '" '
+                '--try-three ']
+    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
+        for line in process.stdout:
+            print(line.strip())
 
-        # analyse scans
-        print("amc analyse")
-        command = ['auto-multiple-choice analyse '
-                   '--prop ' + box_prop + ' '
-                    '--data "' + project_path + '/data/" '
-                    '--projet "' + project_path + '" '
-                    '--liste-fichiers "' + file_list_path + '" '
-                    '--try-three ']
-
-        result =  subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
-        print("amc analyse result : "+result.communicate()[0])
-        print('before delete '+file_list_path)
-        os.remove(file_list_path)
-        if result.stderr:
-            print(result.stderr)
-            return "ERR:" + result.stderr
-        else:
-            return result.stdout
+    print("end analyse")
+    os.remove(file_list_path)
+    return 'ok'
 
 
 def amc_update_options_xml_by_key(exam,key,value):
