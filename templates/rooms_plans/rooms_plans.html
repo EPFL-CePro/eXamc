@@ -13,7 +13,7 @@
 {% block title %}Seating plan{% endblock %}
 {% block content %}
     <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
-    <p>This website is under development, please fill the survey or contact lucile.pinard@epfl.ch in case of issue</p>
+    <p>This website is under development, please contact lucile.pinard@epfl.ch in case of issue</p>
     <form id="special-form" method="post" enctype="multipart/form-data">
     
         {% csrf_token %}
@@ -39,12 +39,6 @@
         <button class="btn btn-dark btn-sm" type="submit" name="action" value="download">Download Seat Map</button>
         <button class="btn btn-dark btn-sm" type="submit" name="action" value="preview">Preview Seat Map</button>
     </form>
-    <br>
-    <a href="{% static '/exemple_csv.csv' %}" class="btn btn-dark btn-sm" download target="blank">Download Example .csv special file{{ special_file }}</a>
-    <br>
-    <br>
-    <a href="https://docs.google.com/forms/d/1Bu_SiV5ckfGGeA3h-SLQ36WsCe7P_9QG8wSvmlMIXzs/edit" class="btn btn-dark btn-sm" target="blank">Survey</a>
-    
     <br>
     <br>
     <div class="row">
