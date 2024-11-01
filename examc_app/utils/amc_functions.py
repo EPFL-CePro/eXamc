@@ -321,6 +321,8 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
 
     if tmp_dir_path:
         shutil.rmtree(tmp_dir_path)
+    if file_list_path:
+        os.remove(file_list_path)
     if errors:
         yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
 
@@ -328,9 +330,6 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
     project_path = get_amc_project_path(exam, False)
 
     if not from_review:
-        #tmp_dir_path = tmp_extract_path = file_path
-        #file_list_path = tmp_list_file
-    #else:
         tmp_dir_path = project_path+"/tmp"
         if os.path.exists(tmp_dir_path):
             try:
@@ -358,50 +357,52 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
                 tmp_file_list.write(file + "\n")
 
             tmp_file_list.close()
+    print('amc getimages')
 
     # prepare scan images (see amc doc)
-    result = subprocess.run(['auto-multiple-choice getimages '
-                             '--list "' + file_list_path + '" ']
-                             # '--copy-to "' + project_path + '/scans" ']
-                            , shell=True
-                            , capture_output=True
-                            , text=True)
-    if result.stderr:
-        return "ERR:" + result.stderr
-    else:
+    command = ['auto-multiple-choice getimages '
+               '--list "' + file_list_path + '" ']
+    if not from_review:
+        command[0] += ' --copy-to "' + project_path + '/scans" '
 
-        if not from_review:
-            # replace tmp scans dir with scans dir to file_list_path
-            # rename file_list_path to .txt
-            # finally send this file as parameter to analyse
-            with open(file_list_path,'r') as file:
-                data = file.read()
-                data = data.replace(tmp_extract_path,project_path+'/scans')
-            with open(file_list_path,'w') as file:
-                file.write(data)
+    result = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+        for line in process.stdout:
+            print(line.strip())
+    # if result.stderr:
+    #     print("err : " + result.stderr)
+    #     return "ERR:" + result.stderr
+    # else:
 
-        os.rename(file_list_path,file_list_path+".txt")
-        file_list_path+=".txt"
+    if not from_review:
+        # replace tmp scans dir with scans dir to file_list_path
+        # rename file_list_path to .txt
+        # finally send this file as parameter to analyse
+        with open(file_list_path,'r') as file:
+            data = file.read()
+            data = data.replace(tmp_extract_path,project_path+'/scans')
+        with open(file_list_path,'w') as file:
+            file.write(data)
 
-        box_prop = get_amc_option_by_key(exam, "box_size_proportion")
+    os.rename(file_list_path,file_list_path+".txt")
+    file_list_path+=".txt"
+    box_prop = get_amc_option_by_key(exam, "box_size_proportion")
+    print("before analyse")
+    # analyse scans
+    print("amc analyse")
+    command = ['auto-multiple-choice analyse '
+               '--prop ' + box_prop + ' '
+                '--data "' + project_path + '/data/" '
+                '--projet "' + project_path + '" '
+                '--liste-fichiers "' + file_list_path + '" '
+                '--try-three ']
+    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
+        for line in process.stdout:
+            print(line.strip())
 
-        # analyse scans
-        result = subprocess.run(['auto-multiple-choice analyse '
-                             '--prop '+box_prop+' '
-                             '--data "'+project_path+'/data/" '
-                             '--projet "'+project_path+'" '
-                             '--liste-fichiers "'+file_list_path+'" '
-                             '--try-three ']
-                            , shell=True
-                            , capture_output=True
-                            , text=True)
-        
-
-        os.remove(file_list_path)
-        if result.stderr:
-            return "ERR:" + result.stderr
-        else:
-            return result.stdout
+    print("end analyse")
+    os.remove(file_list_path)
+    return 'ok'
 
 
 def amc_update_options_xml_by_key(exam,key,value):
@@ -741,7 +742,7 @@ def amc_mark_subprocess(request, exam,update_scoring_strategy):
                              '--plafond ' + plafond + ' ']
     errors = ''
     with subprocess.Popen(command,shell=True,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
-        with open('/home/ludo/CEPRO/Workspace/GITHUB_KedroX/eXamc/examc/amc_projects/2024-2025/1/CEPRO-TEST-001_20241024/amc-compiled.amc', 'r') as file:
+        with open(project_path+'/amc-compiled.amc', 'r') as file:
             # Read each line in the file
             for line in file:
                 if 'ETU' in line:

@@ -283,25 +283,26 @@ def import_exam_scans(self, zip_file_path, exam_pk):
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
             process_count) + ' - AMC Automatic datacapture...')
 
-        scans_folder_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
-        file_list_path = scans_folder_path + "/list-file"
-        tmp_file_list = open(file_list_path, "a+")
-
-        files = glob.glob(scans_folder_path + '/**/*.*', recursive=True)
-        for file in files:
-            tmp_file_list.write(file + "\n")
-
-        tmp_file_list.close()
-        result = amc_automatic_data_capture(exam,scans_folder_path,True,file_list_path)
-
+        # scans_folder_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+        # file_list_path = scans_folder_path + "/list-file"
+        # tmp_file_list = open(file_list_path, "a+")
+        #
+        # files = glob.glob(scans_folder_path + '/**/*.*', recursive=True)
+        # for file in files:
+        #     tmp_file_list.write(file + "\n")
+        # print('start amc automatic data capture')
+        # tmp_file_list.close()
+        #result = amc_automatic_data_capture(exam,scans_folder_path,True,file_list_path)
+        #print('end amc automatic data capture')
         os.remove(zip_file_path)
+        shutil.rmtree(zip_path)
 
     except Exception as exception:
         self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during import "+str(exception)})
         os.remove(zip_file_path)
         raise exception
 
-    return ' Process finished. '+str(nb_copies)+' copies.'
+    return 'upload_scans_ok'
 
 @shared_task(bind=True)
 def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
