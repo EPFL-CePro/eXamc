@@ -4,103 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="room plan">
-      <change afterPath="$PROJECT_DIR$/docs/source/modules/amc/images/AMC_correct_manual.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/modules/amc/images/import.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/modules/amc/images/project.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/modules/open_exam/images/open_exam.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/modules/results/images/result.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/modules/review/images/export.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="doc">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/amc/amc_app.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/amc/amc_app.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/amc/images/AMC_correct.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/amc/import_data.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/amc/import_data.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/create_exam/create_exam.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/create_exam/create_exam.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/exam_info/exam_info.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/exam_info/exam_info.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/export_data/export_data.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/export_data/export_data.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/import_data/import_data.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/import_data/import_data.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/open_exam/open_exam.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/open_exam/open_exam.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/results/images/results.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/results/results.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/results/results.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/images/review_add_reviewer.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/images/review_pages_groups.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/images/review_reviewer.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/images/review_select_question.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/review-export.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/review/review-export.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/review-settings-pages-groups.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/review/review-settings-pages-groups.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/review-settings-reviewers.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/review/review-settings-reviewers.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/review-settings.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/review/review-settings.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/review-upload.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/review/review-upload.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/room_plan/room_plan.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/room_plan/room_plan.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/statistic/global.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/statistic/global.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/statistic/questions.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/statistic/questions.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/statistic/statistics.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/statistic/statistics.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/environment.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/environment.pickle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/index.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/index.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/amc/amc_app.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/amc/amc_app.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/amc/import_data.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/amc/import_data.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/create_exam/create_exam.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/create_exam/create_exam.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/exam_info/exam_info.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/exam_info/exam_info.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/export_data/export_data.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/export_data/export_data.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/import_data/import_data.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/import_data/import_data.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/open_exam/open_exam.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/open_exam/open_exam.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/results/results.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/results/results.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-export.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-export.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-settings-pages-groups.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-settings-pages-groups.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-settings-reviewers.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-settings-reviewers.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-settings.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-settings.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-upload.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-upload.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/room_plan/room_plan.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/room_plan/room_plan.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/statistic/global.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/statistic/global.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/statistic/questions.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/statistic/questions.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/statistic/statistics.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/statistic/statistics.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_images/AMC_correct.png" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_images/AMC_correct.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_images/results.png" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_images/results.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_images/review_select_question.png" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_images/review_select_question.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/index.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/index.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/amc/amc_app.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/amc/amc_app.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/amc/import_data.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/amc/import_data.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/create_exam/create_exam.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/create_exam/create_exam.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/exam_info/exam_info.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/exam_info/exam_info.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/export_data/export_data.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/export_data/export_data.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/import_data/import_data.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/import_data/import_data.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/open_exam/open_exam.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/open_exam/open_exam.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/results/results.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/results/results.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-export.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-export.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-settings-pages-groups.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-settings-pages-groups.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-settings-reviewers.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-settings-reviewers.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-settings.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-settings.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-upload.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-upload.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/room_plan/room_plan.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/room_plan/room_plan.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/statistic/global.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/statistic/global.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/statistic/questions.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/statistic/questions.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/statistic/statistics.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/statistic/statistics.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/amc.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/amc.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/amc_app.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/amc_app.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/import_data.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/import_data.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/create_exam/create_exam.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/create_exam/create_exam.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/exam_info/exam_info.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/exam_info/exam_info.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/export_data/export_data.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/export_data/export_data.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/import_data/import_data.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/import_data/import_data.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/open_exam/open_exam.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/open_exam/open_exam.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/results/results.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/results/results.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-export.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-export.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings-pages-groups.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings-pages-groups.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings-reviewers.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings-reviewers.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-upload.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-upload.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/room_plan/room_plan.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/room_plan/room_plan.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/statistic/global.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/statistic/global.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/statistic/questions.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/statistic/questions.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/statistic/statistics.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/statistic/statistics.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/objects.inv" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/objects.inv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/searchindex.js" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/searchindex.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv.orig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -350,7 +256,7 @@
       <workItem from="1729061625373" duration="12020000" />
       <workItem from="1729657502125" duration="34985000" />
       <workItem from="1729858713131" duration="16478000" />
-      <workItem from="1730363250559" duration="39283000" />
+      <workItem from="1730363250559" duration="41941000" />
     </task>
     <task id="LOCAL-00001" summary="test models">
       <option name="closed" value="true" />
@@ -584,7 +490,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730453175193</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="doc">
+      <option name="closed" value="true" />
+      <created>1730705030891</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1730705030891</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -626,12 +540,19 @@
     <MESSAGE value="maintenance" />
     <MESSAGE value="celery.py" />
     <MESSAGE value="png to jpeg" />
-    <MESSAGE value="doc" />
     <MESSAGE value="room plan" />
-    <option name="LAST_COMMIT_MESSAGE" value="room plan" />
+    <MESSAGE value="doc" />
+    <option name="LAST_COMMIT_MESSAGE" value="doc" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/examc_app/views/rooms_plans_views.py</url>
+          <line>248</line>
+          <option name="timeStamp" value="16" />
+        </line-breakpoint>
+      </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">
