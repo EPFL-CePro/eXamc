@@ -233,7 +233,7 @@ class ldapForm(forms.Form):
         ('uniqueidentifier', 'Sciper'),
         ('displayName', 'Name'),
         ('mail', 'Email'),
-        ('uid', 'User ID')
+        ('uid', 'User ID (gaspar)')
     ]
 
     choice = forms.ChoiceField(

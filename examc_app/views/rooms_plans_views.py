@@ -205,7 +205,7 @@ class GenerateRoomPlanView(FormView):
             for i in range(len(csv_files)):
                 image_file = image_files[i]
                 csv_file = csv_files[i]
-                export_file = f"{image_file.replace('.jpg', '_export')}.jpg"
+                export_file = f"{image_file.replace('.jpg', f'_{user_token}_export')}.jpg"
                 total_seats = count_csv_lines(os.path.join(settings.ROOMS_PLANS_ROOT, 'csv', csv_file))
 
                 if total_seats is None:
@@ -246,7 +246,7 @@ class GenerateRoomPlanView(FormView):
             for i in range(len(csv_files)):
                 image_file = image_files[i]
                 csv_file = csv_files[i]
-                export_file = f"{image_file.replace('.jpg', '_export')}.jpg"
+                export_file = f"{image_file.replace('.jpg', f'_{user_token}_export')}.jpg"
                 result = generate_plan(csv_data, image_file, csv_file, export_file, numbering_option, skipping_option,
                                        str(first_seat_number), str(last_seat_number), special_file, shape_to_draw)
 
