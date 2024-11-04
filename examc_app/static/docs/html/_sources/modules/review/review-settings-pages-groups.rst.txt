@@ -9,7 +9,6 @@ The next two entry are used to apply the numbers of pages that contain the quest
 
 The last entries in the tree are buttons.The first one, "DELETE", is used to remove the question.
 The next one is "GRADING HELP" for leaving comments on how correct the question.
-The last one, is dedicated to detect the corrector boxes.
 
 After making changes, use the "SAVE" button.
 

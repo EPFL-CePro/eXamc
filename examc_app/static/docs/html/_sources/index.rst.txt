@@ -6,12 +6,12 @@
 Welcome to eXamc's documentation!
 =================================
 
-**eXamc** is an WebApp that has been developed by a EPFL team. This app allows multiple users to correct exams on the same platform. It also allows to use Auto-Multiple-Choice software.
-
+**eXamc** is a web application developed by an EPFL team. This application allows several users to correct exams on the same platform.
+It also allows the use of auto-multiple-choice software.
 
 .. warning::
 
-   This project is under active development.
+   This project is under active development. In case of technical issues please contact cepro-exam@epfl.ch
 
 .. container:: twocol
 
@@ -20,12 +20,15 @@ Welcome to eXamc's documentation!
         **Procedure for teacher**
 
       - Connect to your Tequila account
-      - Upload your scans
-      - Create a question bank
-      - Assign new reviewer to question bank
+      - Open a exam
+      - Upload your AMC project
+      - Upload your scans in Review
+      - Assign new reviewer in Exam Infos
+      - In review settings, create your questions
       - Correct open questions
-      - Upload your project to AMC
       - Correct the MCQ using AMC
+      - Generate your results
+      - Export your data
 
     .. container:: rightside
 
@@ -61,3 +64,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+

@@ -1,9 +1,10 @@
 Results
 ==========
 
-The results page gives a overview of the students results.
-It is possible to write if a students was absent or not.
+The results page gives an overview of the student's results on the scale originally specified. It is possible to search for a specific
+student using the search bar at the top left.
+This is the place where you can write if a student has been absent.
 
 
-.. image:: images/results.png
-  :width: 600
+.. image:: images/result.png
+  :width: 800

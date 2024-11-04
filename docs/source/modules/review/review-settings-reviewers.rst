@@ -12,7 +12,7 @@ database and in the app database, if your reviewer is not an EPFL member, please
 .. image:: images/add_reviewer.png
   :width: 600
 
-The entry "USER" is the name of the reviewer, this is also a selector to easily change the reviewer name.
+In the review settings, the "USER" entry is the name of the reviewer, this is also a selector to easily change the reviewer name.
 The second entry, "PAGES GROUPS", is used to assign the question bank to the reviewer.
 
 
