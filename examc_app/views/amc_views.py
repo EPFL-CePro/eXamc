@@ -87,6 +87,7 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             context['project_dir_files_list'] = project_dir_files_list
             context['data_pages'] = data[0]
             context['data_questions'] = data[1]
+            context['data_copies'] = data[2]
             context['data_capture_message'] = data_capture_message
             context['missing_pages'] = missing_pages
             context['unrecognized_pages'] = unrecognized_pages

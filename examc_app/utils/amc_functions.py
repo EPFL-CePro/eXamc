@@ -472,6 +472,7 @@ def get_amc_data_capture_manual_data(exam):
             for data in data_pages:
                 data['source'] = data['source'].replace(app_home_path,'')
 
+        data_copies = []
         for data in data_pages:
             data_questions_id = select_manual_datacapture_questions(amc_data_path,data)
             questions_ids = ''
@@ -484,11 +485,14 @@ def get_amc_data_capture_manual_data(exam):
                         elif qid['why'] == 'V':
                             questions_ids += '|EMP|'
 
+            if not data['copy'] in data_copies:
+                data_copies.append(data['copy'])
+
             data['questions_ids'] = questions_ids + '%'
 
         data_questions = select_questions(amc_data_path)
 
-        return [data_pages, data_questions]
+        return [data_pages, data_questions, data_copies]
 
 def get_extra_pages(amc_extra_pages_path,amc_extra_pages_url=None,student=None):
     extra_pages_data = []
