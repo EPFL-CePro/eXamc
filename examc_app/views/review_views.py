@@ -182,42 +182,40 @@ class ReviewSettingsView(DetailView):
         exam = Exam.objects.get(pk=self.kwargs['pk'])
         error_msg = ''
 
-        if "submit-groups" in self.request.POST:
-            curr_tab = "groups"
-            formset = PagesGroupsFormSet(self.request.POST)
+        if "submit-reviewers" in self.request.POST:
+            curr_tab = "reviewers"
+            formset = ReviewersFormSet(self.request.POST)
             if formset.is_valid():
                 for form in formset:
                     print(form)
-                    if form.is_valid() and form.cleaned_data:
-                        error_msg = None
-                        if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
-                            error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
-                            break
-                        else:
-                            pagesGroup = form.save(commit=False)
-                            if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
-                                pagesGroup.exam = exam
-                                pagesGroup.save()
+                    if form.is_valid() and form.cleaned_data and form.cleaned_data["user"]:
+                        examReviewer = form.save(commit=False)
+                        examReviewer.exam = exam
+                        if "pages_groups" in form.cleaned_data:
+                            examReviewer.pages_groups.set(form.cleaned_data["pages_groups"])
+                            examReviewer.save()
+                            form.save_m2m()
         else:
             curr_tab = "groups"
-            formset = PagesGroupsFormSet(self.request.POST)
+            questions = get_questions(get_amc_project_path(exam, True) + "/data/")
+            questions_choices = [(q['name'], q['name']) for q in questions]
+            formset = PagesGroupsFormSet(self.request.POST,form_kwargs={"questions_choices": questions_choices})
             if formset.is_valid():
                 for form in formset:
                     print(form)
                     if form.is_valid() and form.cleaned_data:
                         error_msg = None
-                        if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
-                            error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
-                            break
-                        else:
-                            pagesGroup = form.save(commit=False)
-                            if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
-                                pagesGroup.exam = exam
-                                pagesGroup.save()
+                        pagesGroup = form.save(commit=False)
+                        if form.cleaned_data["nb_pages"] > -1 :
+                            pagesGroup.exam = exam
+                            pagesGroup.save()
 
         formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam))
+
+        questions = get_questions(get_amc_project_path(exam, True)+"/data/")
+        questions_choices = [ (q['name'],q['name']) for q in questions]
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-            {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
+            {'id': None, 'group_name': 'Select', 'page_from': -1}], form_kwargs={"questions_choices": questions_choices})
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam, self.request.user.id):
