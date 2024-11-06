@@ -84,6 +84,7 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
             if last_page_nr != page_nr:
                 extra_i = 0
 
+            last_page_nr = page_nr
             last_copy_nr = copy_nr
 
     pages_by_copy.append([last_copy_nr, pages_count])

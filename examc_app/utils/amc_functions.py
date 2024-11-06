@@ -255,6 +255,7 @@ def amc_layout_detection(exam):
 
 def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file_list_path=None):
     project_path = get_amc_project_path(exam, False)
+    tmp_dir_path = None
 
     if not from_review:
         tmp_dir_path = project_path + "/tmp"
