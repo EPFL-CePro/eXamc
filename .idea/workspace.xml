@@ -4,68 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="survey and csv">
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="doc">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_120.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_132.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_137.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/AAC_231.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BCH_2201.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_150.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_150_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_150_soft.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_160.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_160.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_170.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_170.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_260.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_260.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/BS_270.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/BS_270.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1100.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1100.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1104.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1104.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1105.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1105.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1106.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1106.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_bas.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_bas.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_haut.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1515_haut.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_1.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_1.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_2.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_2.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_3.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_3.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_4.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_4.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_5.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_5.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_6.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_6.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_1_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_1_soft.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CE_3_soft.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CE_3_soft.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CH_B3_30.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CH_B3_30.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1106.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1106.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1120.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1120.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1121.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1121.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_1.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_1.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_2.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_2.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_3.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_3.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_4.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_4.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CM_1_5.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CM_1_5.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CO_01.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_01.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CO_02.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_02.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/CO_03.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/CO_03.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/INJ_218.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/INJ_218.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_10.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_10.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_12.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/MA_A1_12.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/PO_01_exam.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_exam.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old_exam.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/PO_01_old_exam.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/SG_0211.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_0211.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/SG_0213.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_0213.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/SG_1138.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/SG_1138.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_A.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_A.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_B.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_B.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_C.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_C.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_D.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_D.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_E.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_E.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_F.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_F.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_G.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_G.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/csv/STCC_H.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/csv/STCC_H.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/export/AAC_231_export.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/export/BS_160_export.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/export/exported_seating_maps.zip" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rooms_plans/param.csv" beforeDir="false" afterPath="$PROJECT_DIR$/rooms_plans/param.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/rooms_plans/rooms_plans.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,6 +22,7 @@
       <list>
         <option value="Python Script" />
         <option value="HTML File" />
+        <option value="CSS File" />
       </list>
     </option>
   </component>
@@ -109,48 +51,49 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Django Server.eXamc.executor&quot;: &quot;Debug&quot;,
-    &quot;Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form.executor&quot;: &quot;Debug&quot;,
-    &quot;Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form.executor&quot;: &quot;Run&quot;,
-    &quot;Django tests.Test: examc_app.tests.test_forms.executor&quot;: &quot;Debug&quot;,
-    &quot;Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase.executor&quot;: &quot;Debug&quot;,
-    &quot;Django tests.Test: examc_app.tests.test_models.StudentTestCase.executor&quot;: &quot;Debug&quot;,
-    &quot;Django tests.Test: examc_app.tests.test_models.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.pycharm.django.structure.promotion.once.per.project&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;django.template.preview.state&quot;: &quot;SHOW_EDITOR&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/lucile/eXamc/rooms_plans/csv_special_numbers&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Django Server.eXamc.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form.executor": "Run",
+    "Django tests.Test: examc_app.tests.test_forms.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_models.StudentTestCase.executor": "Debug",
+    "Django tests.Test: examc_app.tests.test_models.executor": "Debug",
+    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.pycharm.django.structure.promotion.once.per.project": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "django.template.preview.state": "SHOW_EDITOR",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/lucile/eXamc/docs/source/modules/amc/images",
+    "list.type.of.created.stylesheet": "CSS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/rooms_plans/csv_special_numbers" />
-      <recent name="$PROJECT_DIR$/rooms_plans" />
-      <recent name="$PROJECT_DIR$/examc_app/scripts/csv_special_numbers" />
-      <recent name="$PROJECT_DIR$/examc_app/scripts" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/amc/images" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/results/images" />
       <recent name="$PROJECT_DIR$/docs/source/modules/review/images" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/create_exam/images" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/open_exam/images" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/rooms_plans" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/review" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/review/images" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/exam_info/images" />
+      <recent name="$PROJECT_DIR$/docs/source/modules/exam_info" />
       <recent name="$PROJECT_DIR$" />
-      <recent name="$PROJECT_DIR$/examc_app/rooms_plans" />
-      <recent name="$PROJECT_DIR$/examc_app/utils" />
-      <recent name="$PROJECT_DIR$/docs/source/_static" />
     </key>
   </component>
   <component name="RunManager" selected="Django Server.eXamc">
@@ -246,8 +189,8 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
         <env name="DEBUG" value="1" />
+        <env name="DJANGO_SETTINGS_MODULE" value="examc.settings.local" />
         <env name="PYDEVD_USE_CYTHON" value="NO" />
-        <env name="DJANGO_SETTINGS_MODULE" value="examc.settings" />
       </envs>
       <option name="SDK_HOME" value="" />
       <option name="SDK_NAME" value="Python 3.12 (eXamc)" />
@@ -285,8 +228,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PY-241.17011.127" />
-        <option value="bundled-python-sdk-48aec45f0201-7e9c3bbb6e34-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.17011.127" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-PY-242.23726.102" />
+        <option value="bundled-python-sdk-5e1850174b45-399fe30bd8c1-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-242.23726.102" />
       </set>
     </attachedChunks>
   </component>
@@ -308,6 +251,12 @@
       <workItem from="1717043576151" duration="21070000" />
       <workItem from="1717145886100" duration="35981000" />
       <workItem from="1717499307591" duration="5494000" />
+      <workItem from="1728547788516" duration="5216000" />
+      <workItem from="1729057273358" duration="2015000" />
+      <workItem from="1729061625373" duration="12020000" />
+      <workItem from="1729657502125" duration="34985000" />
+      <workItem from="1729858713131" duration="16478000" />
+      <workItem from="1730363250559" duration="41941000" />
     </task>
     <task id="LOCAL-00001" summary="test models">
       <option name="closed" value="true" />
@@ -485,7 +434,71 @@
       <option name="project" value="LOCAL" />
       <updated>1717406246780</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="merge">
+      <option name="closed" value="true" />
+      <created>1728477088243</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1728477088243</updated>
+    </task>
+    <task id="LOCAL-00024" summary="maintenance">
+      <option name="closed" value="true" />
+      <created>1729057323372</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1729057323372</updated>
+    </task>
+    <task id="LOCAL-00025" summary="room plan">
+      <option name="closed" value="true" />
+      <created>1729658884216</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1729658884216</updated>
+    </task>
+    <task id="LOCAL-00026" summary="celery.py">
+      <option name="closed" value="true" />
+      <created>1729668947853</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1729668947853</updated>
+    </task>
+    <task id="LOCAL-00027" summary="png to jpeg">
+      <option name="closed" value="true" />
+      <created>1729684163070</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1729684163070</updated>
+    </task>
+    <task id="LOCAL-00028" summary="doc">
+      <option name="closed" value="true" />
+      <created>1730266942011</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1730266942012</updated>
+    </task>
+    <task id="LOCAL-00029" summary="room plan">
+      <option name="closed" value="true" />
+      <created>1730453175193</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1730453175193</updated>
+    </task>
+    <task id="LOCAL-00030" summary="doc">
+      <option name="closed" value="true" />
+      <created>1730705030891</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1730705030891</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -523,17 +536,30 @@
     <MESSAGE value="button room plan added" />
     <MESSAGE value="preview images" />
     <MESSAGE value="survey and csv" />
-    <option name="LAST_COMMIT_MESSAGE" value="survey and csv" />
+    <MESSAGE value="merge" />
+    <MESSAGE value="maintenance" />
+    <MESSAGE value="celery.py" />
+    <MESSAGE value="png to jpeg" />
+    <MESSAGE value="room plan" />
+    <MESSAGE value="doc" />
+    <option name="LAST_COMMIT_MESSAGE" value="doc" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/examc_app/views/review_views.py</url>
-          <line>757</line>
-          <option name="timeStamp" value="17" />
+          <url>file://$PROJECT_DIR$/examc_app/views/rooms_plans_views.py</url>
+          <line>248</line>
+          <option name="timeStamp" value="16" />
         </line-breakpoint>
       </breakpoints>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">

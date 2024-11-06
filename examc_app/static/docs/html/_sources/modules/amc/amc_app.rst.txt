@@ -1,6 +1,13 @@
 AMC application
 ===============
 
+First, you have to check if in the Project tab everything's ok. Check if the to infos bar are green.
+
+.. image:: images/project.png
+   :width: 600
+
+Please do not update the document after starting the AMC correction.
+
 Import the scans
 ----------------
 
@@ -30,7 +37,7 @@ This step allows you to check the boxes (a trace in a box, a cross incorrectly e
 #. Check the "update marking scale" box.
 #. Click on the "Mark" button.
 
-.. image:: images/AMC_correct.png
+.. image:: images/AMC_correct_manual.png
    :width: 600
 
 Check the boxes with the "invalid" parameter
