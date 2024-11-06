@@ -15,8 +15,7 @@
     <tr>
         <th></th>
       <th>Group Name</th>
-      <th style="text-align: center;">Page from</th>
-      <th style="text-align: center;">Page to</th>
+      <th style="text-align: center;">Nb pages</th>
         <th style="text-align: center;">Reviewers</th>
       <th style="text-align: center;">Graded</th>
       <th style="text-align: center;">Comments</th>
@@ -29,8 +28,7 @@
             <a class="btn btn-dark btn-sm" href="{% url 'reviewGroup' pages_group.pk 0 %}"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a>
         </td>
       <td>{{ pages_group.group_name }}</td>
-      <td style="text-align: center;">{{ pages_group.page_from }}</td>
-      <td style="text-align: center;">{{ pages_group.page_to }}</td>
+      <td style="text-align: center;">{{ pages_group.nb_pages }}</td>
         <td style="text-align: center;">
             <ul class="list-group list-group-flush" style="width:70%;margin-left:15%">
             {% for exam_user in exam.exam_users.all %}

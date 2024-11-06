@@ -469,3 +469,24 @@ def update_report_student(amc_data_path,student,mail_timestamp,mail_status,mail_
     db.close()
 
     return response
+
+def get_questions(amc_data_path):
+    db = AMC_DB(amc_data_path + "layout.sqlite")
+    query_str = "SELECT * FROM layout_question"
+    response = db.execute_query(query_str)
+    colname_question = [d[0] for d in response.description]
+    question_details = [dict(zip(colname_question, r)) for r in response.fetchall()]
+
+    return question_details
+
+def get_question_start_page_by_student(amc_data_path,question_name,student_id):
+    db = AMC_DB(amc_data_path + "layout.sqlite")
+    query_str = ("SELECT DISTINCT b.student, q.question, q.name, b.page FROM layout_box b"
+                 " INNER JOIN layout_question q ON q.question = b.question"
+                 " WHERE q.name = '"+ str(question_name) + "' AND b.student = " + str(student_id))
+
+    response = db.execute_query(query_str)
+    colname_qp = [d[0] for d in response.description]
+    qp_details = [dict(zip(colname_qp, r)) for r in response.fetchall()]
+
+    return qp_details

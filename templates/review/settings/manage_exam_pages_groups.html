@@ -15,6 +15,62 @@
 
 {% load custom_tags %}
 
+{#<form enctype= 'multipart/form-data' id="form-groups" method="POST">#}
+{#    {% csrf_token %}#}
+{#    {{ exam_pages_groups_formset.management_form }}#}
+{#    <button type="submit" title="Save groups" name="submit-groups" style="margin:20px;" class="btn btn-dark btn-sm"><i class="fas fa-floppy-disk fa-2xl" style="margin-right:10px;"></i>Save</button>#}
+{#    {% if error_msg %}#}
+{#        <div class="alert alert-danger " role="alert" style="margin:20px;text-align:center;">{{ error_msg }}</div>#}
+{#    {% endif %}#}
+{#    <table class="table" style="max-width:500px">#}
+{#      <thead>#}
+{#        <tr>#}
+{#            {% for field in exam_pages_groups_formset.initial_forms.0 %}#}
+{#            {% if field.label != 'Id' %}#}
+{#            <th scope="col">{{ field.label }}</th>#}
+{#            {% endif %}#}
+{#            {% endfor %}#}
+{#            <th scope="col">Delete</th>#}
+{#            <th scope="col">Grading Help</th>#}
+{#        </tr>#}
+{#      </thead>#}
+{#      <tbody id="group-tbody">#}
+{#        {% for form in exam_pages_groups_formset.initial_forms %}#}
+{#        <tr id="group-form">#}
+{#            {% for hidden in form.hidden_fields %}#}
+{#                {{ hidden }}#}
+{#            {% endfor %}#}
+{#            {% for field in form.visible_fields %}#}
+{#                <td>{{ field }}</td>#}
+{#            {% endfor %}#}
+{#            #}
+{#            <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>#}
+{#            <td><button type="button" id="grading-help-bt" title="Grading Help" class="btn btn-light" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )"><i class="fas fa-question-circle fa-xl"></i></button></td>#}
+{#            <td><button type="button" id="corrector-box-bt" title="Corrector Boxes" class="btn btn-light" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})"><i class="fas fa-highlighter fa-xl" style="color:#7A03CCFF;"></i></button></td>#}
+{#        </tr>#}
+{#        {% endfor %}#}
+{#        <tr class="exam_pages_groups_formset_empty_form" hidden>#}
+{#            {% for hidden in exam_pages_groups_formset.extra_forms.0.hidden_fields %}#}
+{#                {{ hidden }}#}
+{#            {% endfor %}#}
+{#            {% for field in exam_pages_groups_formset.extra_forms.0.visible_fields %}#}
+{#                {% if field.label == 'Delete' %}#}
+{#                <td style="text-align:center;padding-top:35px">{{ field }}</td>#}
+{#            {% else %}#}
+{#                <td>{{ field }}</td>#}
+{#            {% endif %}#}
+{#            {% endfor %}#}
+{#            {% load static %}#}
+{#        </tr>#}
+{#      </tbody>#}
+{#    </table>#}
+{#    <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' exam.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>#}
+{#</form>#}
+
+
+
+
+
 <form enctype= 'multipart/form-data' id="form-groups" method="POST">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
@@ -22,7 +78,7 @@
     {% if error_msg %}
         <div class="alert alert-danger " role="alert" style="margin:20px;text-align:center;">{{ error_msg }}</div>
     {% endif %}
-    <table class="table" style="max-width:500px">
+    <table class="table" style="max-width:1000px">
       <thead>
         <tr>
             {% for field in exam_pages_groups_formset.initial_forms.0 %}
@@ -43,7 +99,7 @@
             {% for field in form.visible_fields %}
                 <td>{{ field }}</td>
             {% endfor %}
-            
+
             <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
             <td><button type="button" id="grading-help-bt" title="Grading Help" class="btn btn-light" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )"><i class="fas fa-question-circle fa-xl"></i></button></td>
 {#            <td><button type="button" id="corrector-box-bt" title="Corrector Boxes" class="btn btn-light" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})"><i class="fas fa-highlighter fa-xl" style="color:#7A03CCFF;"></i></button></td>#}
@@ -66,6 +122,10 @@
     </table>
     <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' exam.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>
 </form>
+
+
+
+
 
 <div id="grading-help-modal" class="modal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-xl" role="document">

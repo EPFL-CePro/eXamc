@@ -5,39 +5,53 @@ import os
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.forms import modelformset_factory, ModelForm
+from django.forms import modelformset_factory, ModelForm, formset_factory
 from django_ckeditor_5.widgets import CKEditor5Widget
 
 from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser
 from .utils.global_functions import get_course_teachers_string
 
 
-
-
 class UploadScansForm(forms.Form):
     files = forms.FileField(widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
 
 
+# class ManagePagesGroupsForm(forms.ModelForm):
+#     class Meta:
+#         model = PagesGroup
+#         fields = ['group_name', 'nb_pages']
+#
+#     def __init__(self, *args, **kwargs):
+#         super(ManagePagesGroupsForm, self).__init__(*args, **kwargs)
+#         # you can iterate all fields here
+#         for fname, f in self.fields.items():
+#             f.widget.attrs['class'] = 'form-control'
+#             if fname == 'group_name':
+#                 f.widget.attrs['style'] = 'width:300px;'
+#             else:
+#                 f.widget.attrs['style'] = 'width:100px;'
+#
+#
+# PagesGroupsFormSet = modelformset_factory(
+#     PagesGroup, form=ManagePagesGroupsForm,  extra=0
+# )
+
 class ManagePagesGroupsForm(forms.ModelForm):
     class Meta:
         model = PagesGroup
-        fields = ['group_name', 'page_from', 'page_to']
+        fields = ['group_name', 'nb_pages']
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, questions_choices, *args, **kwargs):
         super(ManagePagesGroupsForm, self).__init__(*args, **kwargs)
-        # you can iterate all fields here
-        for fname, f in self.fields.items():
-            f.widget.attrs['class'] = 'form-control'
-            if fname == 'group_name':
-                f.widget.attrs['style'] = 'width:300px;'
-            else:
-                f.widget.attrs['style'] = 'width:100px;'
-
+        self.fields['group_name'] = forms.ChoiceField(label='Question', choices=questions_choices, widget=forms.Select(
+            attrs={'class': "selectpicker form-control", 'size': 5}), required=True)
+        self.fields['nb_pages'] = forms.IntegerField(label='Nb pages',
+                                      widget=forms.NumberInput(attrs={'class': "form-control", 'id': "page_from", 'style':'width:100px'}),
+                                      required=True, min_value=1)
 
 PagesGroupsFormSet = modelformset_factory(
     PagesGroup, form=ManagePagesGroupsForm,  extra=0
 )
-
 
 class ManageReviewersForm(forms.ModelForm):
     class Meta:

@@ -11,14 +11,13 @@ import cv2
 from PIL import Image, ImageStat, ImageEnhance
 from django.conf import settings
 from fpdf import FPDF
-from ldap3.extend import paged_search_accumulator
-from shapely import Polygon
 
 from examc_app.models import *
 import pyzbar.pyzbar as pyzbar
 from datetime import datetime
 
-
+from examc_app.utils.amc_db_queries import get_questions, get_question_start_page_by_student
+from examc_app.utils.amc_functions import get_amc_project_path
 
 
 # from examc_app.views import *
@@ -176,8 +175,6 @@ def get_scans_pathes_by_group(pagesGroup):
 
     scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
 
-
-
     for dir in sorted(os.listdir(scans_dir)):
         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
             split_filename = filename.split('_')
@@ -185,7 +182,11 @@ def get_scans_pathes_by_group(pagesGroup):
             page_no_real = split_filename[-1].replace('.jpg','')
             # get only two first char to prevent extra pages with a,b,c suffixes
             page_no_int = int(page_no_real[0:2])
-            if page_no_int >= pagesGroup.page_from and page_no_int <= pagesGroup.page_to:
+
+            amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
+            from_p = amc_questions_pages[0]['page']
+            to_p = from_p+pagesGroup.nb_pages-1
+            if page_no_int >= from_p and page_no_int <= to_p:
                 marked = False
                 comment = None
                 if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():

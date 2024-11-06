@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import zipfile
+from functools import wraps, partial
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -140,9 +141,14 @@ class ReviewSettingsView(DetailView):
         curr_tab = "groups"
         if self.kwargs.get("curr_tab") != '':
             curr_tab = self.kwargs.get("curr_tab")
-        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-            {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
+        # formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
+        #     {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
         formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam,group__pk__in=[2,3,4]))
+
+        questions = get_questions(get_amc_project_path(exam, True)+"/data/")
+        questions_choices = [ (q['name'],q['name']) for q in questions]
+        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
+            {'id': None, 'group_name': 'Select', 'page_from': -1}], form_kwargs={"questions_choices": questions_choices})
 
         grading_help_group_form = ckeditorForm()
         grading_help_group_form.initial['ckeditor_txt'] = ''
@@ -151,8 +157,8 @@ class ReviewSettingsView(DetailView):
             context['user_allowed'] = True
             context['current_url'] = "reviewSettings"
             context['exam'] = exam
-            context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
+            context['exam_pages_groups_formset'] = formsetPagesGroups
             context['curr_tab'] = curr_tab
             context['gh_group_form'] = grading_help_group_form
             return context
@@ -176,19 +182,22 @@ class ReviewSettingsView(DetailView):
         exam = Exam.objects.get(pk=self.kwargs['pk'])
         error_msg = ''
 
-        if "submit-reviewers" in self.request.POST:
-            curr_tab = "reviewers"
-            formset = ReviewersFormSet(self.request.POST)
+        if "submit-groups" in self.request.POST:
+            curr_tab = "groups"
+            formset = PagesGroupsFormSet(self.request.POST)
             if formset.is_valid():
                 for form in formset:
                     print(form)
-                    if form.is_valid() and form.cleaned_data and form.cleaned_data["user"]:
-                        examReviewer = form.save(commit=False)
-                        examReviewer.exam = exam
-                        if "pages_groups" in form.cleaned_data:
-                            examReviewer.pages_groups.set(form.cleaned_data["pages_groups"])
-                            examReviewer.save()
-                            form.save_m2m()
+                    if form.is_valid() and form.cleaned_data:
+                        error_msg = None
+                        if form.cleaned_data["page_to"] < form.cleaned_data["page_from"]:
+                            error_msg = "'PAGE TO' cannot be lower than 'PAGE FROM' !"
+                            break
+                        else:
+                            pagesGroup = form.save(commit=False)
+                            if form.cleaned_data["page_from"] > -1 and form.cleaned_data["page_to"] > -1:
+                                pagesGroup.exam = exam
+                                pagesGroup.save()
         else:
             curr_tab = "groups"
             formset = PagesGroupsFormSet(self.request.POST)
@@ -247,9 +256,8 @@ def add_new_pages_group(request, pk):
     exam = Exam.objects.get(pk=pk)
     new_group = PagesGroup()
     new_group.exam = exam
-    new_group.group_name = '[NEW]'
-    new_group.page_from = -1
-    new_group.page_to = -1
+    new_group.group_name = 'Select...'
+    new_group.nb_pages = -1
     new_group.save()
 
     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups"}))
@@ -672,7 +680,7 @@ def getMarkersAndComments(request):
 
     corrbox_markers = []
     if not 'x' in page_no:
-        corrbox_markers = get_amc_marks_positions_data(exam,copy_no.strip("0"), float(page_no))
+        corrbox_markers = get_amc_marks_positions_data(exam,copy_no.lstrip("0"), float(page_no))
 
     data_dict["corrector_boxes"] = json.dumps(corrbox_markers)
 
