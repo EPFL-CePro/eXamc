@@ -320,12 +320,37 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
         if  process.returncode and process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, process.args)
 
+    # check consistency between AMC page recognition and review pages
+    yield "Checking data consistency ...\n"
+    check_pages_recognition_consistency(exam)
+
     if tmp_dir_path:
         shutil.rmtree(tmp_dir_path)
     if file_list_path:
         os.remove(file_list_path)
     if errors:
         yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
+
+def check_pages_recognition_consistency(exam):
+    project_path = get_amc_project_path(exam, False)
+
+    capture_pages = select_capture_pages(project_path+"/data/")
+
+    for capture_page in capture_pages:
+        #yield " -- copy "+ str(capture_page['student']) + " page " + str(capture_page['page']) + "\n"
+        filename = capture_page['src'].split("/")[-1]
+        filename_split = filename.split('.')
+        if len(filename_split) > 2:
+            new_filename_path = capture_page['src'].replace(filename,'')
+            new_filename = 'copy_'+str(capture_page['student']).zfill(4)+"_"+str(capture_page['page']).zfill(2)+"."+filename_split[2]
+            new_filename = new_filename_path+new_filename
+            if '%HOME' in new_filename:
+                shutil.move(capture_page['src'].replace('%HOME',str(Path.home())),new_filename.replace('%HOME',str(Path.home())))
+            else:
+                shutil.move(capture_page['src'],new_filename)
+            update_capture_page_src(project_path+"/data/",capture_page['student'],capture_page['page'],new_filename)
+
+
 
 def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
     project_path = get_amc_project_path(exam, False)
@@ -467,7 +492,6 @@ def get_amc_data_capture_manual_data(exam):
         data_pages = sorted(data_pages, key=lambda k: (float(k['copy']), float(k['page'])))
 
         if data_pages and '%HOME' in data_pages[0]['source']:
-            home_path = str(Path.home())
             app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
             for data in data_pages:
                 data['source'] = data['source'].replace(app_home_path,'')

@@ -490,3 +490,20 @@ def get_question_start_page_by_student(amc_data_path,question_name,student_id):
     qp_details = [dict(zip(colname_qp, r)) for r in response.fetchall()]
 
     return qp_details
+
+def select_capture_pages(amc_data_path):
+    db = AMC_DB(amc_data_path + "capture.sqlite")
+    query_str = ("SELECT student, page, src FROM capture_page ORDER BY student, page")
+
+    response = db.execute_query(query_str)
+    colname_cp = [d[0] for d in response.description]
+    cp_details = [dict(zip(colname_cp, r)) for r in response.fetchall()]
+
+    return cp_details
+
+def update_capture_page_src(amc_data_path,student,page,new_filename):
+    db = AMC_DB(amc_data_path + "capture.sqlite")
+    query_str = ("UPDATE capture_page SET src = '"+new_filename+"' WHERE student = "+str(student)+" AND page = "+str(page))
+    response = db.execute_query(query_str)
+
+    return response
