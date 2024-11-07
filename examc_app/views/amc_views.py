@@ -164,7 +164,7 @@ def edit_amc_file(request):
         f.close()
         return HttpResponse(json.dumps([filepath, file_contents]))
     else:
-        f = open(request.POST['filepath'], 'r')
+        f = open(request.POST['filepath'], 'r', encoding='utf-8')
         file_contents = f.read()
         f.close()
         return HttpResponse(file_contents)

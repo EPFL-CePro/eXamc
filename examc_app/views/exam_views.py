@@ -13,6 +13,7 @@ from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
 from examc_app.views.global_views import menu_access_required
 from examc_app.tasks import generate_statistics
+from userprofile.models import UserProfile
 
 
 @method_decorator(login_required(login_url='/'), name='dispatch')
@@ -101,7 +102,7 @@ def ldap_search_exam_user_by_email(request):
         return HttpResponse(entry_str)
 
     user_entry = ldap_search.get_entry(email, 'mail')
-    entry_str = user_entry['uniqueidentifier'][0] + ";" + user_entry['givenName'][0] + ";" + user_entry['sn'][
+    entry_str = user_entry['uniqueidentifier'][0] + ";"  + user_entry['givenName'][0] + ";" + user_entry['sn'][
         0] + ";" + email
 
     return HttpResponse(entry_str)
@@ -134,6 +135,9 @@ def update_exam_users(request):
             user.last_name = user_list[2]
             user.email = user_list[3]
             user.save()
+            user_profile = UserProfile.objects.get(user=user)
+            user_profile.sciper = user.username
+            user_profile.save()
 
         exam_user, created = ExamUser.objects.get_or_create(user=user, exam=exam)
         exam_user.group = Group.objects.get(pk=user_list[4])

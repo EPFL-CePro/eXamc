@@ -125,8 +125,8 @@ def export_data(request,pk):
             if EXAM and EXAM.scaleStatistics:
 
                 # delete old tmp folders and zips
-                for filename in os.listdir(str(settings.EXPORT_FOLDER)):
-                    file_path = os.path.join(str(settings.EXPORT_FOLDER), filename)
+                for filename in os.listdir(str(settings.EXPORT_TMP_ROOT)):
+                    file_path = os.path.join(str(settings.EXPORT_TMP_ROOT), filename)
                     try:
                         if os.path.isfile(file_path) or os.path.islink(file_path):
                             os.unlink(file_path)
@@ -155,7 +155,7 @@ def export_data(request,pk):
 
                     # create tmp folder
                     export_folder_name = "export_"+str(datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
-                    export_path = str(settings.EXPORT_FOLDER)+"/"+export_folder_name
+                    export_path = str(settings.EXPORT_TMP_ROOT)+"/"+export_folder_name
                     os.makedirs(export_path, exist_ok=True)
                     logger.info(os.path.dirname(export_path))
 
