@@ -163,8 +163,8 @@
                     <label for="copy">Copy Nr.</label>
                     <select class="form-control" size="5" data-live-search="true"  id="inputGroupSelectCopy" name="copy" id="copy" required>
                         <option selected></option>
-                        {% for i in 'x'|ljust:copy_count %}
-                            <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                        {% for copy in data_copies %}
+                            <option value="{{ copy }}">{{ copy }}</option>
                         {% endfor %}
                     </select>
                 </div>

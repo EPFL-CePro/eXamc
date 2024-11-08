@@ -620,8 +620,8 @@ $(window).on("load",function(){
                 });
 
 
-                $('#nb-answers-{{ question.pk }}').on('mouseup',function(el){
-                    updateQuestion({{ question.pk }},'nb_answers',el.target.ariaValueNow,{{ comex.pk }});
+                $('#nb-answers-{{ question.pk }}').on('slideStop',function(el){
+                    updateQuestion({{ question.pk }},'nb_answers',el.value,{{ comex.pk }});
 
                 });
             {% endif %}

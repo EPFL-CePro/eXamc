@@ -38,7 +38,7 @@ def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
 def generate_isa_csv(exam,scale,folder_path):
-    f = open(folder_path+"/"+exam.code+"_"+exam.primary_user.username+"_ISA.csv", 'w', newline='', encoding='utf-8')
+    f = open(folder_path+"/"+exam.code+"_"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_ISA.csv", 'w', newline='', encoding='utf-8')
     writer = csv.writer(f)
     for student in exam.students.all():
         try:
@@ -102,7 +102,7 @@ def generate_scale_pdf(exam,scale,folder_path):
 
 def generate_students_data_csv(exam,folder_path):
     logger.info('start')
-    f = open(folder_path+"/"+exam.code+"_"+exam.primary_user.username+"_DATA.csv", 'w', newline='', encoding='utf-8')
+    f = open(folder_path+"/"+exam.code+"_"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_DATA.csv", 'w', newline='', encoding='utf-8')
     writer = csv.writer(f, delimiter=";")
     data = []
 
@@ -367,10 +367,9 @@ def import_exams_csv(csv_file):
             exam.name = fields[1]
             exam.year.code = fields[2]
             exam.semester.code = fields[3]
-            exam.primary_user = primary_user
             exam.save()
-            exam.users.add(*users)
-            exam.save()
+            #exam.exam_users.users.add(*users)
+            #exam.save()
 
         line_nr += 1
 

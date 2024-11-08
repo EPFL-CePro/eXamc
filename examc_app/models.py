@@ -219,15 +219,15 @@ class PagesGroup(models.Model):
     """ Stores pages group data, representing pages for questions, related to :model:`examc_app.Exam` """
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='pagesGroup')
     group_name = models.CharField(max_length=20, default='0')
-    page_from = models.IntegerField(default=0)
-    page_to = models.IntegerField(default=0)
+    nb_pages = models.IntegerField(default=0)
+    #page_to = models.IntegerField(default=0)
     grading_help = models.TextField(default='')
     # rectangle = models.TextField(default='')
     # correctorBoxes = models.TextField(blank=True)
     history = HistoricalRecords()
 
     def __str__(self):
-        return self.group_name + " ( pages " + str(self.page_from) + "..." + str(self.page_to) + " )"
+        return self.group_name + " ( pages " + str(self.nb_pages) + " )"
 
 class ExamUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_exams')

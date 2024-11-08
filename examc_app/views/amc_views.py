@@ -87,6 +87,7 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             context['project_dir_files_list'] = project_dir_files_list
             context['data_pages'] = data[0]
             context['data_questions'] = data[1]
+            context['data_copies'] = data[2]
             context['data_capture_message'] = data_capture_message
             context['missing_pages'] = missing_pages
             context['unrecognized_pages'] = unrecognized_pages
@@ -163,7 +164,7 @@ def edit_amc_file(request):
         f.close()
         return HttpResponse(json.dumps([filepath, file_contents]))
     else:
-        f = open(request.POST['filepath'], 'r')
+        f = open(request.POST['filepath'], 'r', encoding='utf-8')
         file_contents = f.read()
         f.close()
         return HttpResponse(file_contents)
