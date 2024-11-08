@@ -30,7 +30,7 @@ urlpatterns = ([
     path('', include('examc_app.urls')),
     path('', views.home, name='home'),
     path('login_form/', views.log_in, name='login_form'),
-    path('logout', views.logout,name='logout'),
+    #path('logout/', views.logout_view,name='logout'),
     path('home',views.home, name='home'),
     path('admin/exam/import_exams_data/', ExamAdmin.import_exams_csv_data),
     path('admin/course/import_courses_data/', CourseAdmin.import_courses_json_data),

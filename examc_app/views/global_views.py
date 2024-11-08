@@ -1,8 +1,8 @@
+import requests
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.sites import requests
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, redirect
@@ -62,10 +62,18 @@ def log_in(request, my_task=None):
         form = LoginForm()
     return render(request, 'login_form.html', {'form': form})
 
-@login_required
-def logout(request):
-    response = requests.get("https://tequila.epfl.ch/logout")
-    return redirect(settings.LOGIN_URL)
+# @login_required
+# def logout(request):
+#     response = requests.get("https://tequila.epfl.ch/logout")
+#     django.contrib.auth.logout(request)
+#     return redirect(settings.LOGIN_URL)
+#
+# @login_required
+# def logout_view(request):
+#     if request.user.is_authenticated == True:
+#         response = requests.get("https://tequila.epfl.ch/logout")
+#         logout(request)
+#         return redirect(settings.LOGIN_URL)
 
 @login_required
 def documentation_view(request):
