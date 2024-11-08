@@ -336,7 +336,7 @@ class Scale(models.Model):
         if self.exam:
             return self.name + "(" + str(self.total_points) + ", " + str(
                 self.points_to_add) + ", " + self.formula + ", " + str(
-                self.final) + ")" + self.exam.code + " - " + self.exam.name + " " + self.exam.year + " " + str(
+                self.final) + ")" + self.exam.code + " - " + self.exam.name + " " + self.exam.year.code + " " + str(
                 self.exam.semester)
         else:
             return self.name + "(" + str(self.total_points) + ", " + str(

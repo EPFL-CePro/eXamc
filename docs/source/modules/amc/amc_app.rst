@@ -6,7 +6,7 @@ First, you have to check if in the Project tab everything's ok. Check if the to 
 .. image:: images/project.png
    :width: 600
 
-Please do not update the document after starting the AMC correction.
+If it doesn't, click Update Documents and Layout Detection.
 
 Import the scans
 ----------------
@@ -54,13 +54,13 @@ Go back to the "Data capture" tab
 Check open questions for which no points have been awarded
 -----------------------------------------------------------
 
-i&e is used to check whether all the boxes in a question are empty. You can use it to check that you haven't forgotten to correct an open question.
+'empty' is used to check whether all the boxes in a question are empty. You can use it to check that an open question has been forgotten.
 
 From "Data capture" tab
 
 #. Click on the "manual" button.
 #. Make sure to select "Scan".
-#. Select the settings: i&e.
+#. Select the settings: empty.
 #. Select the first ID of your open question to be checked.
 #. Make sure you start checking by being on copy 1 page 1 and click the ">" button to move to the next copy where points are missing.
 #. Correct the question and select the box to award the correct number of points.
