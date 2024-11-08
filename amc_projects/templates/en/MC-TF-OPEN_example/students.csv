@@ -1,0 +1,11 @@
+ID,SCIPER,NAME,SECTION,EMAIL,ROOM,SEAT
+1,999000,Student 1,MA,student1@epfl.ch,R-A,AC-345
+2,999001,Student 2,MT,student2@epfl.ch,R-A,A-2
+3,999002,Student 3,SV,student3@epfl.ch,R-A,A-3
+4,999003,Student 4,-,,R-B,B-1
+5,999004,Student 5,-,,R-B,B-2
+6,999005,Student 6,MA,,R-B,B-3
+7,999006,Student 7,MT,,R-B,B-4
+8,999007,Student 8,SV,,R-B,B-5
+9,999008,Student 9,-,,R-B,B-6
+10,999009,Student 10,-,,R-B,B-7
