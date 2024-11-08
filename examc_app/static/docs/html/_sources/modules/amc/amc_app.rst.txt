@@ -6,7 +6,7 @@ First, you have to check if in the Project tab everything's ok. Check if the to 
 .. image:: images/project.png
    :width: 600
 
-Please do not update the document after starting the AMC correction.
+If it doesn't, click Update Documents and Layout Detection.
 
 Import the scans
 ----------------
@@ -54,7 +54,7 @@ Go back to the "Data capture" tab
 Check open questions for which no points have been awarded
 -----------------------------------------------------------
 
-i&e is used to check whether all the boxes in a question are empty. You can use it to check that you haven't forgotten to correct an open question.
+'empty' is used to check whether all the boxes in a question are empty. You can use it to check that you haven't forgotten to correct an open question.
 
 From "Data capture" tab
 
