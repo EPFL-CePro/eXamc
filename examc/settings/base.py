@@ -163,7 +163,7 @@ TEQUILA_ALLOWED_REQUEST_HOSTS = None
 TEQUILA_ALLOW_GUESTS = False
 LOGIN_URL = "/login"
 LOGIN_REDIRECT_URL = "/"
-LOGOUT_URL = "/logout"
+LOGOUT_URL = "/"
 LOGIN_REDIRECT_IF_NOT_ALLOWED = "/not_allowed"
 LOGIN_REDIRECT_TEXT_IF_NOT_ALLOWED = "Not allowed : please contact your admin"
 

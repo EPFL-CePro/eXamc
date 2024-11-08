@@ -253,24 +253,32 @@
                         <hr class="hr-sidebar">
                         {% endif %}
                     {% endif %}
+                    <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action" target="_blank" style="margin-top:10px;">
+                        <div class="d-flex w-100 justify-content-start align-items-center">
+                            <span class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></span>
+                            <span class="menu-collapsed" style="color:#CCA71CFF;margin-right:5px;">Documentation </span>
+                        </div>
+                    </a>                    
+                    <hr class="hr-sidebar"> 
                     {% if user|is_admin %}
                     <a href="{% url 'admin:index' %}" class="bg-dark list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="fas fa-carrot fa-spin" style="color: #10E6BC;margin-right:5px;"></span>
                             <span class="menu-collapsed" style="color: #10E6BC;margin-right:5px;">Admin </span>
                         </div>
-                    </a>
-                    {% endif %}
-                    <a href="{% static 'docs/html/index.html' %}" class="bg-dark list-group-item list-group-item-action" target="_blank" style="margin-top:10px;">
+                    </a>   
+                    <hr class="hr-sidebar">
+                    {% endif %}  
+                    <a data-toggle="sidebar-colapse" class="bg-dark list-group-item list-group-item-action d-flex align-items-center">
                         <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="far fa-question-circle fa-lg" style="color:#CCA71CFF;margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="color:#CCA71CFF;margin-right:5px;">Documentation </span>
+                            <span  class="fa-solid fa-face-grimace" style="color:#387900FF;margin-right:5px;"></span>
+                            <span  class="menu-collapsed" style="color:#387900FF;margin-right:5px;">{{ user }}</span>
                         </div>
                     </a>
-                        <a href="#" data-toggle="sidebar-colapse" class="bg-dark list-group-item list-group-item-action d-flex align-items-center">
+                    <a href="/logout" data-toggle="sidebar-colapse" class="bg-dark list-group-item list-group-item-action d-flex align-items-center">
                         <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span  class="fas fa-grimace fa-lg" style="color:#387900FF;margin-right:5px;"></span>
-                            <span  class="menu-collapsed" style="color:#387900FF;margin-right:5px;">{{ user }}</span>
+                            <span  class="fa-solid fa-right-from-bracket" style="color:#a90000;margin-right:5px;"></span>
+                            <span  class="menu-collapsed" style="color:#a90000;margin-right:5px;">logout</span>
                         </div>
                     </a>
                     <a href="#top" data-toggle="sidebar-colapse"
