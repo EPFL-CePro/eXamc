@@ -35,7 +35,6 @@ It also allows the use of auto-multiple-choice software.
         **Procedure for reviewer**
 
       - Connect to your Tequila account
-      - Have a coffee
       - Correct the open questions
 
 
