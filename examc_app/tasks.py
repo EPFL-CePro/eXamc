@@ -187,7 +187,7 @@ def import_csv_data(self, temp_csv_file_path, exam_pk):
 
         progress_recorder.set_progress(process_number, process_count, description=str(process_number)+'/'+str(process_count)+' - Generating statistics...')
 
-        generate_exam_stats(exam)
+        generate_exam_stats(exam,progress_recorder,process_number,process_count)
         process_number+=1
 
         progress_recorder.set_progress(process_number, process_count, description=str(process_number)+'/'+str(process_count)+' - Process finished!')
