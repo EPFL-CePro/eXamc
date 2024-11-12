@@ -18,6 +18,21 @@
       <excludeFolder url="file://$MODULE_DIR$/marked_scans/2024" />
       <excludeFolder url="file://$MODULE_DIR$/scans/2024" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/amc_projects/2023-2024" />
+      <excludeFolder url="file://$MODULE_DIR$/autoupload" />
+      <excludeFolder url="file://$MODULE_DIR$/catalogs" />
+      <excludeFolder url="file://$MODULE_DIR$/export_tmp/marked_2023-2024_1_CEPRO_001_202410230850567" />
+      <excludeFolder url="file://$MODULE_DIR$/export_tmp/marked_2023-2024_1_CEPRO_001_202410230851204" />
+      <excludeFolder url="file://$MODULE_DIR$/export_tmp/marked_2023-2024_1_CEPRO_001_202410230857506" />
+      <excludeFolder url="file://$MODULE_DIR$/export_tmp/marked_2023-2024_1_CEPRO_001_202410230900343" />
+      <excludeFolder url="file://$MODULE_DIR$/export_tmp/marked_2023-2024_1_CEPRO_001_202410230901496" />
+      <excludeFolder url="file://$MODULE_DIR$/export_tmp/marked_2023-2024_1_CEPRO_001_202410230905498" />
+      <excludeFolder url="file://$MODULE_DIR$/export_tmp/marked_2023-2024_1_CEPRO_001_202410240858320" />
+      <excludeFolder url="file://$MODULE_DIR$/marked_scans/2023-2024" />
+      <excludeFolder url="file://$MODULE_DIR$/rooms_plans/export" />
+      <excludeFolder url="file://$MODULE_DIR$/scans/2022-2023" />
+      <excludeFolder url="file://$MODULE_DIR$/scans/2023-2024" />
+      <excludeFolder url="file://$MODULE_DIR$/static" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
