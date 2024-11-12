@@ -122,28 +122,35 @@ def update_exam_users(request):
            """
     exam = Exam.objects.get(pk=request.POST.get('pk'))
     users_list = request.POST.getlist('users_list[]')
+
     #reviewer_group, created = Group.objects.get_or_create(name='Reviewer')
     for user_in in users_list:
         user_list = user_in.split(";")
-        users = User.objects.filter(email=user_list[3]).all()
-        if users:
-            user = users.first()
-        else:
-            user = User()
-            user.username = user_list[0]
-            user.first_name = user_list[1]
-            user.last_name = user_list[2]
-            user.email = user_list[3]
-            user.save()
-            user_profile = UserProfile.objects.get(user=user)
-            user_profile.sciper = user.username
-            user_profile.save()
 
-        exam_user, created = ExamUser.objects.get_or_create(user=user, exam=exam)
-        exam_user.group = Group.objects.get(pk=user_list[4])
-        if exam_user.group.id in [2,3,4] and not exam_user.pages_groups:
-            exam_user.pages_groups.set(PagesGroup.objects.filter(exam=exam).all())
-        exam_user.save()
+        if user_list[0].startswith('delete_'):
+            user_to_delete = User.objects.filter(email=user_list[3]).first()
+            exam_user = ExamUser.objects.get(user=user_to_delete,exam=exam)
+            exam_user.delete()
+        else:
+            users = User.objects.filter(email=user_list[3]).all()
+            if users:
+                user = users.first()
+            else:
+                user = User()
+                user.username = user_list[0]
+                user.first_name = user_list[1]
+                user.last_name = user_list[2]
+                user.email = user_list[3]
+                user.save()
+                user_profile = UserProfile.objects.get(user=user)
+                user_profile.sciper = user.username
+                user_profile.save()
+
+            exam_user, created = ExamUser.objects.get_or_create(user=user, exam=exam)
+            exam_user.group = Group.objects.get(pk=user_list[4])
+            if exam_user.group.id in [2,3,4] and not exam_user.pages_groups:
+                exam_user.pages_groups.set(PagesGroup.objects.filter(exam=exam).all())
+            exam_user.save()
 
     return redirect('examInfo', pk=exam.pk)
 
