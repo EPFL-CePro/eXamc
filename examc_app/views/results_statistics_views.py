@@ -347,6 +347,8 @@ def questions_statistics_view(request,pk):
 @login_required
 def display_catalog(request, pk):
     exam = Exam.objects.get(pk=pk)
+    if exam.is_overall():
+        exam = exam.common_exams.all().first()
     cat_name = exam.code + '_' + str(exam.year.code) + '_' + str(exam.semester.code) + '_catalog.pdf'
     cat_path = str(settings.CATALOG_ROOT)+'/'+str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'_'+exam.date.strftime("%Y%m%d") +'/'+cat_name
     try:
