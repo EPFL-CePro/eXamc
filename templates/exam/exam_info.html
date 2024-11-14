@@ -361,7 +361,7 @@
                 {% for exam_user in exam.exam_users.all %}
                     <li id="{{ exam_user.user.username }};{{ exam_user.user.first_name }};{{ exam_user.user.last_name }};{{ exam_user.user.email }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;">
                         <div>
-                            <button class="btn btn-light btn-sm" style="margin-right:10px;"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
+                            <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers('{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
                             {{ exam_user.user.username }} - {{ exam_user.user.first_name }} {{ exam_user.user.last_name }} - {{ exam_user.user.email }}
                         </div>
                         <div>
@@ -516,20 +516,29 @@ function searchLdap(){
     });
 }
 
-function validateUsers(){
+function validateUsers(username_to_remove = null){
     var new_users_li = document.getElementById("newUsersList").querySelectorAll("li");
     var curr_users_li = document.getElementById("currUsersList").querySelectorAll("li");
-
+    
     let users = [];
     for(let i=0; i<curr_users_li.length;i++) {
+        group_id = null;
         user = curr_users_li[i].id;
         user_split = user.split(";")
         username = user_split[0]
         firstname = user_split[1]
         lastname = user_split[2]
         useremail = user_split[3]
-        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+username+']:checked').value;
-        users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+        if(!username.startsWith("delete_"))
+            group_id = document.querySelector('input[type=radio][name=user_group_radio_'+username+']:checked').value;
+        if(username !== username_to_remove){
+            users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+        }else{
+            li_id = username+';'+firstname+';'+lastname+';'+useremail;
+            li_remove = document.getElementById(li_id);
+            li_remove.style.textDecoration = 'line-through';
+            li_remove.id = "delete_"+username+";"+firstname+";"+lastname+";"+useremail;
+        }
     }
     for(let i=0; i<new_users_li.length;i++) {
         user = new_users_li[i].id;
@@ -542,26 +551,30 @@ function validateUsers(){
         users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
     }
 
-    let list = document.getElementById("newUsersList");
-    list.innerHTML = '';
-    document.getElementById("newUserEmail").value = '';
-    $('.modal').modal('hide');
-    $.ajax({
-        url: "{% url 'update_exam_users' %}",
-        type: "POST",
-        dataType: "json",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : {{ exam.pk }},
-            'users_list' : users,
-        },
-        complete: function () {
-            location.reload();
-        },
-        error: (error) => {
-            console.log(error);
-        }
-    });
+    if(username_to_remove == null){
+        let list = document.getElementById("newUsersList");
+        list.innerHTML = '';
+        document.getElementById("newUserEmail").value = '';
+        $.ajax({
+            url: "{% url 'update_exam_users' %}",
+            type: "POST",
+            dataType: "json",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'pk' : {{ exam.pk }},
+                'users_list' : users,
+            },
+            complete: function () {
+                if( username_to_remove == null) {
+                    $('.modal').modal('hide');
+                    location.reload();
+                }
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
 }
 
 function cancelUsers(){
@@ -579,7 +592,7 @@ $(window).on("load",function(){
         });
 
         <!--DISPLAY PDF CATALOG -->
-        $('#displayPdfModal').on('show.bs.modal', function (event) {
+        $('#displayPdfModal-{{ comex.id }}').on('show.bs.modal', function (event) {
             document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' comex.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
         })
 

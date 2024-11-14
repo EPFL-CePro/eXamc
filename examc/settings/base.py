@@ -133,6 +133,7 @@ AUTOUPLOAD_URL = '/autoupload/'
 # Export marked files folder tmp
 EXPORT_TMP_ROOT = BASE_DIR / 'export_tmp/'
 EXPORT_TMP_URL = '/export_tmp/'
+SCALE_PDF_TEMPLATE = BASE_DIR / 'templates/res_and_stats/scale_pdf.html'
 
 # pdf catalogs folder
 CATALOG_ROOT = BASE_DIR / 'catalogs'

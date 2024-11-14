@@ -96,7 +96,7 @@ def generate_scale_pdf(exam,scale,folder_path):
 
     html = template.render({"EXAM": exam,"SCALE":scale_list})  # Renders the template with the context data.
 
-    pdfkit.from_string(html, output_path = folder_path+"/"+exam.code+"_"+exam.primary_user.username+"_SCALE.pdf")#, configuration = config)
+    pdfkit.from_string(html, output_path = folder_path+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_SCALE.pdf")#, configuration = config)
 
     return True
 

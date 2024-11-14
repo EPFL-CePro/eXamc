@@ -341,7 +341,7 @@ function find_row_by_filters(type,question_id,question_name){
     }else{
         search_str = '';
         if(question_id > 0){
-            search_str = '%'+question_id;
+            search_str = '%'+question_id+'%';
         }
         if(type === 'invalid'){
             search_str += '|INV|';
@@ -350,7 +350,7 @@ function find_row_by_filters(type,question_id,question_name){
             search_str += '|EMP|';
         }
 
-        search_str+='%'
+        //search_str+='%'
         rows = Array.from($("#table-copies-pages tbody tr:contains("+search_str+")"));
     }
     rows.forEach(function (row) {
