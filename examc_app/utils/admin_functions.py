@@ -3,34 +3,39 @@ import json
 
 from django.contrib.auth.models import User, Group
 
-from examc_app.models import Exam, Course, AcademicYear, Semester
+from examc_app.models import Exam, Course, AcademicYear, Semester, ExamUser
 from examc_app.utils.epflldap import ldap_search
 
 
 def parse_exams_data_csv(csv_file):
     try:
-        csv_reader = csv.reader(csv_file.read().decode('utf-8').splitlines(), delimiter=',')
+        csv_reader = csv.reader(csv_file.read().decode('utf-8').splitlines(), delimiter=';')
 
         headers = next(csv_reader)
 
         for row in csv_reader:
-            code_index = headers.index('CODE')
-            name_index = headers.index('NAME')
-            semester_index = headers.index('SEMESTER')
+            code_index = headers.index('COURSE_CODE')
+            name_index = headers.index('COURSE_NAME')
             year_index = headers.index('YEAR')
-            sciper_index = headers.index('SCIPER')
-            firstname_index = headers.index('FIRSTNAME')
-            lastname_index = headers.index('LASTNAME')
-            email_index = headers.index('EMAIL')
+            semester_index = headers.index('SEMESTER')
+            date_index = headers.index('EXAM_DATE')
+            sciper_index = headers.index('TEACHER_SCIPER')
+            firstname_index = headers.index('TEACHER_FIRSTNAME')
+            lastname_index = headers.index('TEACHER_LASTNAME')
+            email_index = headers.index('TEACHER_EMAIL')
             reviewer_index = headers.index('REVIEWER')
 
             code = row[code_index]
             name = row[name_index]
             semester = int(row[semester_index])
-            year = int(row[year_index])
+            year = row[year_index]
+            exam_date = row[date_index]
+            if not exam_date:
+                exam_date = None
 
-            exam, created = Exam.objects.get_or_create(code=code,
-                                                       defaults={'name': name, 'semester': semester, 'year': year})
+            acad_year = AcademicYear.objects.filter(code=year).first()
+            sem = Semester.objects.filter(code=semester).first()
+            exam, created = Exam.objects.get_or_create(code=code,name=name,semester=sem,year=acad_year,date=exam_date)
             if created:
                 exam.save()
 
@@ -38,21 +43,26 @@ def parse_exams_data_csv(csv_file):
             user_firstname = row[firstname_index]
             user_lastname = row[lastname_index]
             user_email = row[email_index]
-            user, created_user = User.objects.get_or_create(username=user_sciper,
-                                                            defaults={'first_name': user_firstname,
-                                                                      'last_name': user_lastname,
-                                                                      'email': user_email})
+
+            user=None
+            users = User.objects.filter(email=user_email)
+            if not users:
+                user, created = User.objects.get_or_create(username=user_sciper,first_name=user_firstname,last_name=user_lastname,email=user_email)
+                user.is_staff=True
+                user.save()
+            else:
+                user = users.first()
 
             if row[reviewer_index] == '1':
-                group_name = "reviewer"
-                reviewer_group = Group.objects.get(name=group_name)
-                reviewer_group.user_set.add(user)
+                group_name = "Reviewer"
             else:
-                group_name = "staff"
-                staff_group = Group.objects.get(name=group_name)
-                staff_group.user_set.add(user)
+                group_name = "Teacher"
 
-                return 'ok'
+            exam_user = ExamUser()
+            exam_user.user = user
+            exam_user.group = Group.objects.get(name=group_name)
+            exam_user.exam = exam
+            exam_user.save()
 
     except Exception as e:
         return f"CSV error : {e}"

@@ -10,6 +10,7 @@ import sys
 import zipfile
 from functools import wraps, partial
 
+from cv2.detail import strip
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
@@ -715,7 +716,7 @@ def saveComment(request):
 
     return HttpResponse(comment.id)
 
-
+@login_required
 def update_page_group_markers(request):
     if request.method == 'POST':
 
@@ -736,3 +737,43 @@ def update_page_group_markers(request):
         return HttpResponse("Markers updated successfully")
     else:
         return HttpResponse("Invalid request method", status=405)
+
+@login_required
+def review_student_pages_group_is_locked(request):
+    pages_group_id = request.POST.get('pages_group_id')
+    copy_no = request.POST.get('copy_no')
+    pages_group = PagesGroup.objects.get(pk=pages_group_id)
+    student = Student.objects.get(copie_no=int(copy_no), exam=pages_group.exam)
+
+    review_lock_qs = ReviewLock.objects.filter(pages_group__id=request.POST.get('pages_group_id'),student=student).exclude(user = request.user)
+    if not review_lock_qs:
+        #remove old lock and create new if not same pages group
+        old_lock_qs = ReviewLock.objects.filter(user=request.user)
+
+        add_new = True
+        if old_lock_qs:
+            for old_lock in old_lock_qs.all():
+                if old_lock.pages_group != pages_group or old_lock.student != student:
+                    old_lock.delete()
+                else:
+                    add_new = False
+
+        if add_new:
+            #add new lock
+            new_lock = ReviewLock()
+            new_lock.user = request.user
+            new_lock.student = student
+            new_lock.pages_group = pages_group
+            new_lock.save()
+        return HttpResponse('')
+
+    return HttpResponse(review_lock_qs.first().user.username)
+
+@login_required
+def remove_review_user_locks(request):
+
+    review_lock_qs = ReviewLock.objects.filter(user = request.user)
+
+    for lock in review_lock_qs.all():
+        lock.delete()
+

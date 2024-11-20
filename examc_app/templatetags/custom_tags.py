@@ -7,10 +7,11 @@ from django import template
 from django.contrib.auth.models import User
 from django.db.models import FloatField, Sum
 from django.db.models.functions import Cast
+from matplotlib.sphinxext.plot_directive import exception_template
 from shapely import Polygon
 
 from django.conf import settings
-from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser
+from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser, ReviewLock
 from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
 
 register = template.Library()

@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import time
+from os.path import isdir
 
 import cv2
 from PIL import Image, ImageStat, ImageEnhance
@@ -441,4 +442,9 @@ def updateCorrectorBoxMarked(pageMarkers):
 #
 #     return marker_intersects
 
-
+def get_exam_copies_from_to(exam):
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    copies_folders = list(filter(lambda x: isdir(f"{scans_dir}\\{x}"), os.listdir(scans_dir)))
+    copies_folders.sort()
+    copies = [copy.lstrip('0') for copy in copies_folders]
+    return copies
