@@ -83,11 +83,11 @@
                                         <td>{{ comex.name }}</td>
                                         <td>{{ comex.year.code }}</td>                             
                                         <td>{{ comex.semester.code }}</td>
-                                        <td colspan="2" id="exam_date_column">
+                                        <td id="exam_date_column-{{ comex.id }}">
                                             {% if comex.date %}
                                                 {{ comex.date|date:"Y-m-d" }}
                                             {% else %}
-                                                <input class="date form-control" type="date" name="exam_date" id="exam_date"  style="width:175px;color:red;" class="form-control" required="" aria-invalid="true" value="{{ comex.date|date:"Y-m-d" }}">
+                                                <input class="date form-control" type="date" name="exam_date" id="exam_date-{{ comex.id }}"  style="width:175px;color:red;" class="form-control" required="" aria-invalid="true" value="{{ comex.date|date:"Y-m-d" }}">
                                                 <a style="color:red">Please select a date !</a>
                                             {% endif %}
                                         </td>
@@ -124,7 +124,7 @@
                                     </tr>
                                     <tr>
                                         <td style="text-align: right;">
-                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>
+                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal-{{ comex.id }}').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>
                                         </td>           
                                         <td>
                                             <ul class="list-group">
@@ -335,61 +335,61 @@
                     </div>
                 </div>
             </div>
+
+            <div class="modal fade" id="manageUsersModal-{{ comex.id }}" tabindex="-1" role="dialog" aria-labelledby="manageUsersModalLabel" aria-hidden="true">
+              <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="manageUsersModalLabel">Manage Users</h5>
+                    <button type="button" class="close" onclick="cancelUsers({{ comex.id }});" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div id="manageUsersModalBody-{{ comex.id }}" class="modal-body">
+                    <h6>Users</h6>
+                    <ul class="list-group" id="currUsersList-{{ comex.id }}">
+                        {% for exam_user in comex.exam_users.all %}
+                            <li id="{{ comex.id }}_{{ exam_user.user.username }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;">
+                                <div>
+                                    <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers({{ comex.id }},'{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
+                                    {{ exam_user.user.username }} - {{ exam_user.user.first_name }}&nbsp;&nbsp;{{ exam_user.user.last_name }} - {{ exam_user.user.email }}
+                                </div>
+                                <div>
+                                    {% for user_group in users_groups_add.all %}
+                                        <div class="form-check form-check-inline" style="margin-top:5px;">
+                                            <input class="form-check-input" type="radio" name="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" id="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" value="{{ user_group.id }}"
+                                                {% if exam_user.group.id == user_group.id %} checked {% endif %}>
+                                            <label class="form-check-label" for="user_group_radio_{{ comex.id }}_{{ exam_user.username }}">{{ user_group.name }}</label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <hr>
+                    <div>
+                        <h6>Add Users</h6>
+                        <input id="newUserEmail-{{ comex.id }}" class="form-control" type="text" placeholder="Email">
+                      </br>
+                      <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap({{ comex.id }});" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
+                    </div>
+                    <ul  class="list-group" id="newUsersList-{{ comex.id }}"></ul>
+                </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers({{ comex.id }});">Cancel</button>
+                    <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers({{ comex.id }});">Validate</button>
+                  </div>
+                </div>
+              </div>
+            </div>
         {% endfor %}
     </div>
 
     <div class="modal fade" tabindex="-1" role="dialog" id="create-scale-modal" style="margin-left:-100px;">
       <div class="modal-dialog" role="document">
-          <div class="modal-content" id="create-scale-modal-content">
+          <div class="modal-content" id="create-scale-modal-content">{{ comex.id }}
 
           </div>
-      </div>
-    </div>
-    
-    <div class="modal fade" id="manageUsersModal" tabindex="-1" role="dialog" aria-labelledby="manageUsersModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="manageUsersModalLabel">Manage Users</h5>
-            <button type="button" class="close" onclick="cancelUsers();" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div id="manageUsersModalBody" class="modal-body">
-            <h6>Users</h6>
-            <ul class="list-group" id="currUsersList">
-                {% for exam_user in exam.exam_users.all %}
-                    <li id="{{ exam_user.user.username }};{{ exam_user.user.first_name }};{{ exam_user.user.last_name }};{{ exam_user.user.email }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;">
-                        <div>
-                            <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers('{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
-                            {{ exam_user.user.username }} - {{ exam_user.user.first_name }} {{ exam_user.user.last_name }} - {{ exam_user.user.email }}
-                        </div>
-                        <div>
-                            {% for user_group in users_groups_add.all %}
-                                <div class="form-check form-check-inline" style="margin-top:5px;">
-                                    <input class="form-check-input" type="radio" name="user_group_radio_{{ exam_user.user.username }}" id="user_group_radio_{{ exam_user.user.id }}_{{ user_group.id }}" value="{{ user_group.id }}"
-                                        {% if exam_user.group.id == user_group.id %} checked {% endif %}>
-                                    <label class="form-check-label" for="user_group_radio_{{ exam_user.user.id }}_{{ user_group.id }}">{{ user_group.name }}</label>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
-            <hr>
-            <div>
-                <h6>Add Users</h6>
-                <input id="newUserEmail" class="form-control" type="text" placeholder="Email">
-              </br>
-              <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap();" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
-            </div>
-            <ul  class="list-group" id="newUsersList"></ul>
-        </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers();">Cancel</button>
-            <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers();">Validate</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -413,32 +413,34 @@
 </style>
 <script>
 
-$("#exam_date").on("change", function() {
+{% for comex in exam.get_common_exams_yc_common %}
+$("#exam_date-{{ comex.id }}").on("change", function() {
     let pickedDate = $("input").val();
-    updateExamDate(pickedDate);
+    updateExamDate({{ comex.id }},pickedDate);
 });
 
-document.getElementById("newUserEmail").addEventListener("keypress", function(event) {
+document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
     // Cancel the default action, if needed
     event.preventDefault();
     // Trigger the button element with a click
-    document.getElementById("search_ldap_bt").click();
+    document.getElementById("search_ldap_bt-{{ comex.id }}").click();
   }
 });
+{% endfor %}
 
-function updateExamDate(date){
+function updateExamDate(exam_id,date){
     $.ajax({
         url: "{% url 'update_exam_date' %}",
         type: "POST",
         dataType: "json",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : {{ exam.pk }},
+            'pk' : exam_id,
             'date' : date,
         },
         complete: function () {
-            $("#exam_date_column").load(location.href + " #exam_date_column" );
+            $("#exam_date_column-"+exam_id).load(location.href + " #exam_date_column-"+exam_id );
         },
         error: (error) => {
             console.log(error);
@@ -446,10 +448,10 @@ function updateExamDate(date){
     });
 }
 
-function searchLdap(){
-    var email = document.getElementById("newUserEmail").value;
+function searchLdap(exam_id){
+    var email = document.getElementById("newUserEmail-"+exam_id).value;
 
-    var add_User_error = document.getElementById("addUserError");
+    var add_User_error = document.getElementById("addUserError-"+exam_id);
     if (typeof(add_User_error) != 'undefined' && add_User_error != null)
     {
       add_User_error.remove();
@@ -460,7 +462,7 @@ function searchLdap(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : {{ exam.pk }},
+            'pk' : exam_id,
             'email' : email,
         },
         success: (data) => {
@@ -469,9 +471,9 @@ function searchLdap(){
                 add_User_error.setAttribute("class","alert alert-warning");
                 add_User_error.setAttribute("role","alert")
                 add_User_error.innerHTML = "User already present as a User for this exam !";
-                document.getElementById("manageUsersModalBody").appendChild(add_User_error);
+                document.getElementById("manageUsersModalBody-"+exam_id).appendChild(add_User_error);
             }else{
-                let list = document.getElementById("newUsersList");
+                let list = document.getElementById("newUsersList-"+exam_id);
                 let li = document.createElement('li');
                 let remove_bt = document.createElement('button')
                 let user_info = document.createElement('div')
@@ -492,8 +494,8 @@ function searchLdap(){
                     username = li_txt.split(" ")[0]
                     users_groups_radios_div = document.createElement('div')
                     users_groups_radios_div.setAttribute("class","form-check form-check-inline");
-                    users_groups_radios_div.innerHTML = '<input class="form-check-input" type="radio" name="user_group_radio_'+username+'" id="user_group_radio_'+username+'_{{ user_group.id }}" value="{{ user_group.id }}" {% if user_group.id == 2 %}checked{% endif %}>'+
-                                                '<label class="form-check-label" for="user_group_radio_'+username+'_{{ user_group.id }}">{{ user_group.name }}</label>'
+                    users_groups_radios_div.innerHTML = '<input class="form-check-input" type="radio" name="user_group_radio_'+exam_id+'_'+username+'" id="user_group_radio_'+exam_id+'_'+username+'_{{ user_group.id }}" value="{{ user_group.id }}" {% if user_group.id == 2 %}checked{% endif %}>'+
+                                                '<label class="form-check-label" for="user_group_radio_'+exam_id+'_'+username+'_{{ user_group.id }}">{{ user_group.name }}</label>'
                     users_groups_div.appendChild(users_groups_radios_div);
                 {% endfor %}
                 li.appendChild(users_groups_div);
@@ -502,7 +504,7 @@ function searchLdap(){
                 li.setAttribute("class","list-group-item");
                 li.setAttribute("style","display: flex;justify-content: space-between;padding:5px;");
                 list.appendChild(li);
-                document.getElementById("newUserEmail").value = "";
+                document.getElementById("newUserEmail-"+exam_id).value = "";
              }
         },
         error: (error) => {
@@ -510,58 +512,62 @@ function searchLdap(){
             add_User_error.setAttribute("class","alert alert-warning");
             add_User_error.setAttribute("role","alert")
             add_User_error.innerHTML = "Cannot find user with this email address in EPFL LDAP !";
-            document.getElementById("manageUsersModalBody").appendChild(add_User_error);
+            document.getElementById("manageUsersModalBody-"+exam_id).appendChild(add_User_error);
             console.log(error);
         }
     });
 }
 
-function validateUsers(username_to_remove = null){
-    var new_users_li = document.getElementById("newUsersList").querySelectorAll("li");
-    var curr_users_li = document.getElementById("currUsersList").querySelectorAll("li");
+function validateUsers(exam_id,username_to_remove = null){
+    var new_users_li = document.getElementById("newUsersList-"+exam_id).querySelectorAll("li");
+    var curr_users_li = document.getElementById("currUsersList-"+exam_id).querySelectorAll("li");
     
     let users = [];
     for(let i=0; i<curr_users_li.length;i++) {
         group_id = null;
-        user = curr_users_li[i].id;
-        user_split = user.split(";")
-        username = user_split[0]
-        firstname = user_split[1]
-        lastname = user_split[2]
-        useremail = user_split[3]
-        if(!username.startsWith("delete_"))
-            group_id = document.querySelector('input[type=radio][name=user_group_radio_'+username+']:checked').value;
+        curr_id = curr_users_li[i].id;
+        user = curr_users_li[i].children[0].innerText;
+        user_split = user.split(" - ");
+        username = user_split[0].trim();
+        firstname = user_split[1].split("  ")[0];
+        lastname = user_split[1].split("  ")[1];
+        useremail = user_split[2];
+        if(!curr_id.startsWith("delete_"))
+            group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
         if(username !== username_to_remove){
+            if(curr_id.startsWith('delete_')){
+                username = 'delete_'+username;
+            }
             users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
         }else{
-            li_id = username+';'+firstname+';'+lastname+';'+useremail;
+            li_id = exam_id+"_"+username;
             li_remove = document.getElementById(li_id);
             li_remove.style.textDecoration = 'line-through';
-            li_remove.id = "delete_"+username+";"+firstname+";"+lastname+";"+useremail;
+            li_remove.id = "delete_"+li_id;
         }
     }
     for(let i=0; i<new_users_li.length;i++) {
-        user = new_users_li[i].id;
-        user_split = user.split(";")
-        username = user_split[0]
-        firstname = user_split[1]
-        lastname = user_split[2]
+        user = new_users_li[i].innerTxt;
+        user_split = user.split(" - ");
+        username = user_split[0].trim();
+        firstname = user_split[1].split("  ")[0];
+        lastname = user_split[2].split("  ")[1];
         useremail = user_split[3]
-        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+username+']:checked').value;
+        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
         users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
     }
 
     if(username_to_remove == null){
-        let list = document.getElementById("newUsersList");
+        let list = document.getElementById("newUsersList-"+exam_id);
         list.innerHTML = '';
-        document.getElementById("newUserEmail").value = '';
+        document.getElementById("newUserEmail-"+exam_id).value = '';
         $.ajax({
             url: "{% url 'update_exam_users' %}",
             type: "POST",
             dataType: "json",
             data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                'pk' : {{ exam.pk }},
+                'pk' : exam_id,
                 'users_list' : users,
             },
             complete: function () {
@@ -577,10 +583,19 @@ function validateUsers(username_to_remove = null){
     }
 }
 
-function cancelUsers(){
-    let list = document.getElementById("newUsersList");
+function cancelUsers(exam_id){
+    var curr_users_li = document.getElementById("currUsersList-"+exam_id).querySelectorAll("li");
+    for(let i=0; i<curr_users_li.length;i++) {
+        curr_id = curr_users_li[i].id;
+        if(curr_id.startsWith('delete_')){
+            li_restore = document.getElementById(curr_id);
+            li_restore.style.textDecoration = '';
+            li_restore.id = curr_id.replace('delete_','');
+        }
+    }
+    let list = document.getElementById("newUsersList-"+exam_id);
     list.innerHTML = '';
-    document.getElementById("newUserEmail").value = '';
+    document.getElementById("newUserEmail-"+exam_id).value = '';
     $('.modal').modal('hide');
 }
 

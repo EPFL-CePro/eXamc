@@ -48,6 +48,8 @@ urlpatterns = [
     path('get_markers_and_comments', views.getMarkersAndComments, name="get_markers_and_comments"),
     path('save_comment', views.saveComment, name="save_comment"),
     path('update_page_group_markers', views.update_page_group_markers, name="update_page_group_markers"),
+    path('review_student_pages_group_is_locked', views.review_student_pages_group_is_locked, name="review_student_pages_group_is_locked"),
+    path('remove_review_user_locks',views.remove_review_user_locks, name="remove_review_user_locks"),
 
     # REVIEW EXPORT
     path('generate_marked_files/<int:pk>', views.generate_marked_files, name="generate_marked_files"),

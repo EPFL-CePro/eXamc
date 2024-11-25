@@ -432,3 +432,9 @@ class Course(models.Model):
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT, related_name='courses')
     year = models.ForeignKey(AcademicYear, on_delete=models.RESTRICT, related_name='courses')
     teachers = models.CharField(max_length=500, blank=True)
+
+class ReviewLock(models.Model):
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='reviewLocks')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='reviewLocks')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewLocks')
+

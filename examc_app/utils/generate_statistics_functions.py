@@ -159,7 +159,7 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
 
                 for student in student_list:
 
-                    grade = 0;
+                    grade = 0
 
                     if student.present:
 
