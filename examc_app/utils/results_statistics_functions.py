@@ -19,18 +19,18 @@ from userprofile.models import UserProfile
 def update_common_exams(pk):
 
     exam = Exam.objects.get(pk=pk)
-    exam.common_exams.clear()
-    commons = Exam.objects.filter(name=exam.name,year__code=exam.year.code,semester__code=exam.semester.code)
-    if commons:
-        commons2 = commons
-        for common in commons:
-            if(common.pk != exam.pk):
-                exam.common_exams.add(common)
-                exam.save()
+    #exam.common_exams.clear()
+    #commons = Exam.objects.filter(name=exam.name,year__code=exam.year.code,semester__code=exam.semester.code)
+    common_list = exam.common_exams
+    if common_list:
+        common_list.add(exam)
+        common_list_bis = common_list
+        for common in common_list.all():
+            if common.pk != exam.pk :
                 common.common_exams.clear()
-                for common2 in commons2:
-                    if(common2.pk != common.pk):
-                        common.common_exams.add(common2)
+                for common_bis in common_list.all():
+                    if common_bis.pk != common.pk:
+                        common.common_exams.add(common_bis)
                         common.save()
     return exam
 

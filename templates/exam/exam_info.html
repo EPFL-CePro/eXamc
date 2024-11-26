@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_tags %}
 {% load render_table from django_tables2 %}
 
 
@@ -24,7 +25,9 @@
                         COMMON
                     {% else %}
                         {{ comex.code }}
-                    {% endif %}
+                        <br>
+                        {{ comex.id|get_exam_teachers_short_str }}
+                   {% endif %}
                 </a>
             </li>
         {% endfor %}
@@ -66,10 +69,8 @@
                                         <th>Semester</th>
                                         <th>Date</th>
                                         {% if comex.common_exams.all %}
-                                            <th>Common</th>
                                             <th>Individual specific</th>
                                         {% endif %}
-                                        <th></th>
                                         <th></th>
                                     </tr>
                                     <tr>
@@ -93,16 +94,6 @@
                                         </td>
                                         {% if comex.common_exams.all %}
                                             <td>
-                                                <ul class="list-group">
-                                                    {% for comex in comex.common_exams.all %}
-                                                        {% if not comex.is_overall %}
-                                                            <li class="list-group-item border-0"
-                                                                style="padding:0px;margin:0px;">{{ comex.code }} {{ comex.name }}</li>
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                </ul>
-                                            </td>
-                                            <td>
                                                 {{ comex.indiv_formula }}
                                                 <br>
                                                 <em>[indiv_max_points];[common_max_points];[formula]
@@ -115,26 +106,20 @@
                                                 </em>
                                             </td>
                                         {% endif %}
-                                        <td style="text-align:right;">
-                                            <button type="button" class="btn btn-light btn-sm"
-                                                    style="background-color: transparent;"
-                                                    onclick="$('#examOptionsModal-{{ comex.id }}').modal('show');"><i
-                                                    class="fas fa-ellipsis-v fa-2xl"></i></button>
-                                        </td>
                                     </tr>
-                                    <tr>
-                                        <td style="text-align: right;">
-                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal-{{ comex.id }}').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>
-                                        </td>           
-                                        <td>
-                                            <ul class="list-group">
-                                                {% for exam_user in comex.exam_users.all %}
-                                                    <li class="list-group-item border-0"
-                                                        style="padding:0px;margin:0px;">{{ exam_user.user.first_name }} {{ exam_user.user.last_name }} ({{ exam_user.group.name }})</li>
-                                                {% endfor %}
-                                            </ul>
-                                        </td>
-                                    </tr>
+{#                                    <tr>#}
+{#                                        <td style="text-align: right;">#}
+{#                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal-{{ comex.id }}').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>#}
+{#                                        </td>           #}
+{#                                        <td>#}
+{#                                            <ul class="list-group">#}
+{#                                                {% for exam_user in comex.exam_users.all %}#}
+{#                                                    <li class="list-group-item border-0"#}
+{#                                                        style="padding:0px;margin:0px;">{{ exam_user.user.first_name }} {{ exam_user.user.last_name }} ({{ exam_user.group.name }})</li>#}
+{#                                                {% endfor %}#}
+{#                                            </ul>#}
+{#                                        </td>#}
+{#                                    </tr>#}
                                 </table>
                             </div>
                         </div>
@@ -148,7 +133,7 @@
                                 </button>
                             </h5>
                         </div>
-                        <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo">
+                        <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo">
                             <div class="card-body">
                                 <table class="table table-striped table-sm">
                                     <thead>
@@ -204,11 +189,11 @@
                                 <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
                                         data-target="#collapseThree" aria-expanded="false"
                                         aria-controls="collapseThree">
-                                    Questions (Total points : {{ sum_questions_points.max_points__sum }})
+                                    Questions (Total points : {{ comex.id|get_sum_questions_points }})
                                 </button>
                             </h5>
                         </div>
-                        <div id="collapseThree" class="collapse show" aria-labelledby="headingThree">
+                        <div id="collapseThree" class="collapse" aria-labelledby="headingThree">
                             <div id="questions_div" class="card-body">
                                 <div id="alert_regen_stats" class="alert alert-danger" role="alert" style="display: none;">
                                   Don't forget to <a id="regen-stats-bt" class="btn btn-dark btn-sm"
@@ -282,6 +267,149 @@
                             </div>
                         </div>
                     </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingFour">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseFour" aria-expanded="false"
+                                        aria-controls="collapseFour">
+                                    Common Exams
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseFour" class="collapse" aria-labelledby="headingFour">
+                            <div id="common_settings_div" class="card-body">
+                                <form id="form-exam-settings-common-{{ comex.id }}" method="post" style="padding:20px;max-width:1500px;" action="{% url 'validate_common_exams_settings' comex.pk %}">
+                                    <div class="row">
+                                        <div class="col-sm-5">
+                                            <h6>Available exams</h6>
+                                        </div>
+                                        <div style="width:70px!important;"></div>
+                                        <div class="col-sm-5">
+                                            <h6>Selected exams</h6>
+                                        </div>
+                                    </div>
+                                    {% csrf_token %}
+                                    <div class="row" style="max-width:1500px;">
+                                        <div class="col-sm-5">
+                                            <select name="{{ comex.id }}_common_from[]" id="{{ comex.id }}_multiselect" class="form-control" size="8" multiple="multiple">
+                                                {% for available_common in comex.get_available_common_exams %}
+                                                <option value="{{ available_common.id }}">{{ available_common.code }} - {{ available_common.name }} - {{ available_common.date }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div style="width:70px!important;">
+                                            <button type="button" id="{{ comex.id }}_multiselect_rightAll" class="btn"><i class="fa-solid fa-angles-right"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_rightSelected" class="btn "><i class="fa-solid fa-angle-right"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_leftSelected" class="btn "><i class="fa-solid fa-angle-left"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_leftAll" class="btn "><i class="fa-solid fa-angles-left"></i></button>
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <select name="{{ comex.id }}_common_to[]" id="{{ comex.id }}_multiselect_to" class="form-control" size="8" multiple="multiple">
+                                                {% for comex in comex.get_common_exams_without_common.all %}
+                                                    <option value="{{ comex.id }}">{{ comex.code }} - {{ comex.name }} - {{ comex.date }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">Cancel</button>
+                                        <button type="submit" class="btn btn-dark btn-sm">Validate</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingFive">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseFive" aria-expanded="true" aria-controls="collapseFive">
+                                    Users
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseFive" class="collapse" aria-labelledby="headingFive">
+                            <div class="card-body">
+                                <div class="row" style="max-width:1500px;">
+                                    <div class="col-sm-6">
+                                        <ul class="list-group" id="currUsersList-{{ comex.id }}">
+                                            {% for exam_user in comex.exam_users.all %}
+                                                <li id="{{ comex.id }}_{{ exam_user.user.username }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;border:1px solid #ebebeb;">
+                                                    <div>
+                                                        <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers({{ comex.id }},'{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
+                                                        {{ exam_user.user.username }} - {{ exam_user.user.first_name }}&nbsp;&nbsp;{{ exam_user.user.last_name }} - {{ exam_user.user.email }}
+                                                    </div>
+                                                    <div>
+                                                        {% for user_group in users_groups_add.all %}
+                                                            <div class="form-check form-check-inline" style="margin-top:5px;">
+                                                                <input class="form-check-input" type="radio" name="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" id="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}-{{ user_group.id }}" value="{{ user_group.id }}"
+                                                                    {% if exam_user.group.id == user_group.id %} checked {% endif %}>
+                                                                <label class="form-check-label" for="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}-{{ user_group.id }}">{{ user_group.name }}</label>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    <div class="col-sm-6" style="background-color: #ebebeb;padding:10px;">
+                                        <h6>Add Users</h6>
+                                        <div style="display:flex;">
+                                            <input id="newUserEmail-{{ comex.id }}" class="form-control" type="text" style="width:400px;" placeholder="Email">
+                                            <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap({{ comex.id }});" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
+                                        </div>
+                                        <hr>
+                                        <ul  class="list-group" id="newUsersList-{{ comex.id }}"></ul>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers({{ comex.id }});">Cancel</button>
+                                    <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers({{ comex.id }});">Validate</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingSix">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link" type="button" data-toggle="collapse"
+                                        data-target="#collapseSix"
+                                        aria-expanded="true" aria-controls="collapseSix">
+                                    Modules
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseSix" class="collapse" aria-labelledby="headingSix">
+                            <div class="card-body">
+                                <form id="form-exam-options-{{ comex.id }}" method="post" style="padding:20px;">
+                                    {% csrf_token %}
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox" name="review_option_{{ comex.id }}" id="review_option_{{ comex.id }}" {% if comex.review_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="review_option_{{ comex.id }}">Review module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="amc_option_{{ comex.id }}" id="amc_option_{{ comex.id }}" {% if comex.amc_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="amc_option_{{ comex.id }}">AMC module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="res_and_stats_option_{{ comex.id }}" id="res_and_stats_option_{{ comex.id }}" {% if comex.res_and_stats_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="res_and_stats_option_{{ comex.id }}">Results & stats module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="prep_option_{{ comex.id }}" id="prep_option_{{ comex.id }}" {% if comex.prep_option == 1 %} checked {% endif %} disabled>
+                                      <label class="custom-control-label" for="prep_option_{{ comex.id }}">Preparation module</label>
+                                    </div>
+                                    <hr>
+                                    <div>
+                                        <button type="button" onclick="updateExamOptions({{ comex.pk }});" class="btn btn-dark btn-sm">Validate</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -299,89 +427,89 @@
               </div>
             </div>
             
-            <div class="modal fade" id="examOptionsModal-{{ comex.id }}" tabindex="-1" aria-labelledby="examOptionsModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="imageModalLabel">Exam options</h5>{{ comex.code }}
-                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
-                        </div>
-                        <div class="modal-body">{{ comex.amc_option }}
-                            <form id="form-exam-options" method="post" style="padding:20px;">
-                                {% csrf_token %}
-                                <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox" name="review_option" id="review_option_check" {% if comex.review_option == 1 %} checked {% endif %}>
-                                  <label class="custom-control-label" for="review_option_check">Review module</label>
-                                </div>
-                                <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox"  name="amc_option" id="amc_option" {% if comex.amc_option == 1 %} checked {% endif %}>
-                                  <label class="custom-control-label" for="amc_option">AMC module</label>
-                                </div>
-                                <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox"  name="res_and_stats_option" id="res_and_stats_option" {% if comex.res_and_stats_option == 1 %} checked {% endif %}>
-                                  <label class="custom-control-label" for="res_and_stats_option">Results & stats module</label>
-                                </div>
-                                <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox"  name="prep_option" id="prep_option" {% if comex.prep_option == 1 %} checked {% endif %} disabled>
-                                  <label class="custom-control-label" for="prep_option">Preparation module</label>
-                                </div>
-                                <div style="text-align: right;">
-                                    <button type="button" onclick="updateExamOptions({{ comex.pk }});" class="btn btn-dark btn-sm">Validate</button>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal fade" id="manageUsersModal-{{ comex.id }}" tabindex="-1" role="dialog" aria-labelledby="manageUsersModalLabel" aria-hidden="true">
-              <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="manageUsersModalLabel">Manage Users</h5>
-                    <button type="button" class="close" onclick="cancelUsers({{ comex.id }});" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
-                  </div>
-                  <div id="manageUsersModalBody-{{ comex.id }}" class="modal-body">
-                    <h6>Users</h6>
-                    <ul class="list-group" id="currUsersList-{{ comex.id }}">
-                        {% for exam_user in comex.exam_users.all %}
-                            <li id="{{ comex.id }}_{{ exam_user.user.username }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;">
-                                <div>
-                                    <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers({{ comex.id }},'{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
-                                    {{ exam_user.user.username }} - {{ exam_user.user.first_name }}&nbsp;&nbsp;{{ exam_user.user.last_name }} - {{ exam_user.user.email }}
-                                </div>
-                                <div>
-                                    {% for user_group in users_groups_add.all %}
-                                        <div class="form-check form-check-inline" style="margin-top:5px;">
-                                            <input class="form-check-input" type="radio" name="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" id="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" value="{{ user_group.id }}"
-                                                {% if exam_user.group.id == user_group.id %} checked {% endif %}>
-                                            <label class="form-check-label" for="user_group_radio_{{ comex.id }}_{{ exam_user.username }}">{{ user_group.name }}</label>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                    <hr>
-                    <div>
-                        <h6>Add Users</h6>
-                        <input id="newUserEmail-{{ comex.id }}" class="form-control" type="text" placeholder="Email">
-                      </br>
-                      <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap({{ comex.id }});" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
-                    </div>
-                    <ul  class="list-group" id="newUsersList-{{ comex.id }}"></ul>
-                </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers({{ comex.id }});">Cancel</button>
-                    <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers({{ comex.id }});">Validate</button>
-                  </div>
-                </div>
-              </div>
-            </div>
+{#            <div class="modal fade" id="examOptionsModal-{{ comex.id }}" tabindex="-1" aria-labelledby="examOptionsModalLabel" aria-hidden="true">#}
+{#                <div class="modal-dialog modal-dialog-centered modal-lg">#}
+{#                    <div class="modal-content">#}
+{#                        <div class="modal-header">#}
+{#                            <h5 class="modal-title" id="imageModalLabel">Exam options</h5>{{ comex.code }}#}
+{#                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>#}
+{#                        </div>#}
+{#                        <div class="modal-body">{{ comex.amc_option }}#}
+{#                            <form id="form-exam-options" method="post" style="padding:20px;">#}
+{#                                {% csrf_token %}#}
+{#                                <div class="custom-control custom-switch mb-3">#}
+{#                                  <input class="custom-control-input" type="checkbox" name="review_option" id="review_option_check" {% if comex.review_option == 1 %} checked {% endif %}>#}
+{#                                  <label class="custom-control-label" for="review_option_check">Review module</label>#}
+{#                                </div>#}
+{#                                <div class="custom-control custom-switch mb-3">#}
+{#                                  <input class="custom-control-input" type="checkbox"  name="amc_option" id="amc_option" {% if comex.amc_option == 1 %} checked {% endif %}>#}
+{#                                  <label class="custom-control-label" for="amc_option">AMC module</label>#}
+{#                                </div>#}
+{#                                <div class="custom-control custom-switch mb-3">#}
+{#                                  <input class="custom-control-input" type="checkbox"  name="res_and_stats_option" id="res_and_stats_option" {% if comex.res_and_stats_option == 1 %} checked {% endif %}>#}
+{#                                  <label class="custom-control-label" for="res_and_stats_option">Results & stats module</label>#}
+{#                                </div>#}
+{#                                <div class="custom-control custom-switch mb-3">#}
+{#                                  <input class="custom-control-input" type="checkbox"  name="prep_option" id="prep_option" {% if comex.prep_option == 1 %} checked {% endif %} disabled>#}
+{#                                  <label class="custom-control-label" for="prep_option">Preparation module</label>#}
+{#                                </div>#}
+{#                                <div style="text-align: right;">#}
+{#                                    <button type="button" onclick="updateExamOptions({{ comex.pk }});" class="btn btn-dark btn-sm">Validate</button>#}
+{#                                </div>#}
+{#                            </form>#}
+{#                        </div>#}
+{#                        <div class="modal-footer">#}
+{#                        </div>#}
+{#                    </div>#}
+{#                </div>#}
+{#            </div>#}
+{##}
+{#            <div class="modal fade" id="manageUsersModal-{{ comex.id }}" tabindex="-1" role="dialog" aria-labelledby="manageUsersModalLabel" aria-hidden="true">#}
+{#              <div class="modal-dialog modal-xl" role="document">#}
+{#                <div class="modal-content">#}
+{#                  <div class="modal-header">#}
+{#                    <h5 class="modal-title" id="manageUsersModalLabel">Manage Users</h5>#}
+{#                    <button type="button" class="close" onclick="cancelUsers({{ comex.id }});" aria-label="Close">#}
+{#                      <span aria-hidden="true">&times;</span>#}
+{#                    </button>#}
+{#                  </div>#}
+{#                  <div id="manageUsersModalBody-{{ comex.id }}" class="modal-body">#}
+{#                    <h6>Users</h6>#}
+{#                    <ul class="list-group" id="currUsersList-{{ comex.id }}">#}
+{#                        {% for exam_user in comex.exam_users.all %}#}
+{#                            <li id="{{ comex.id }}_{{ exam_user.user.username }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;">#}
+{#                                <div>#}
+{#                                    <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers({{ comex.id }},'{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>#}
+{#                                    {{ exam_user.user.username }} - {{ exam_user.user.first_name }}&nbsp;&nbsp;{{ exam_user.user.last_name }} - {{ exam_user.user.email }}#}
+{#                                </div>#}
+{#                                <div>#}
+{#                                    {% for user_group in users_groups_add.all %}#}
+{#                                        <div class="form-check form-check-inline" style="margin-top:5px;">#}
+{#                                            <input class="form-check-input" type="radio" name="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" id="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" value="{{ user_group.id }}"#}
+{#                                                {% if exam_user.group.id == user_group.id %} checked {% endif %}>#}
+{#                                            <label class="form-check-label" for="user_group_radio_{{ comex.id }}_{{ exam_user.username }}">{{ user_group.name }}</label>#}
+{#                                        </div>#}
+{#                                    {% endfor %}#}
+{#                                </div>#}
+{#                            </li>#}
+{#                        {% endfor %}#}
+{#                    </ul>#}
+{#                    <hr>#}
+{#                    <div>#}
+{#                        <h6>Add Users</h6>#}
+{#                        <input id="newUserEmail-{{ comex.id }}" class="form-control" type="text" placeholder="Email">#}
+{#                      </br>#}
+{#                      <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap({{ comex.id }});" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>#}
+{#                    </div>#}
+{#                    <ul  class="list-group" id="newUsersList-{{ comex.id }}"></ul>#}
+{#                </div>#}
+{#                  <div class="modal-footer">#}
+{#                    <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers({{ comex.id }});">Cancel</button>#}
+{#                    <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers({{ comex.id }});">Validate</button>#}
+{#                  </div>#}
+{#                </div>#}
+{#              </div>#}
+{#            </div>#}
         {% endfor %}
     </div>
 
@@ -412,6 +540,85 @@
 }
 </style>
 <script>
+
+$(window).on("load",function(){
+    {% for comex in exam.get_common_exams_yc_common %}   
+        
+        $('#{{ comex.id }}_multiselect').multiselect();
+        
+        $("#create-scale-button").modalForm({
+            formURL: "{% url 'create_scale' comex.pk %}",
+            modalID: "#create-scale-modal"
+        });
+
+        <!--DISPLAY PDF CATALOG -->
+        $('#displayPdfModal-{{ comex.id }}').on('show.bs.modal', function (event) {
+            document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' comex.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
+        })
+
+        <!--QUESTIONS EVENTS-->
+        <!--question-common checkboxes-->
+        {% for question in comex.questions.all %}
+            $('#common-{{ question.pk }}-1').on('click', function() {
+            updateQuestion({{ question.pk }},'common', 1,{{ comex.pk }});
+            });
+            $('#common-{{ question.pk }}-2').on('click', function() {
+            updateQuestion({{ question.pk }},'common', 0,{{ comex.pk }});
+            });
+        {% endfor %}
+
+        <!--question-type button-groups-->
+        {% for question in comex.questions.all %}
+            {% for question_type in question_types %}
+                $('#type-{{ question.pk }}-{{ question_type.pk }}').on('click', function() {
+                updateQuestion({{ question.pk }},'question_type_id', {{ question_type.pk }},{{ comex.pk }});
+            });
+            {% endfor %}
+        {% endfor %}
+
+        <!--question-answers button-groups-->
+        {% for question in comex.questions.all %}
+            {% if question.question_type.id <= 2 %}
+                answers_range = Array.from({ length: {{ question.nb_answers }}+3 }, (value, index) => 1 + index);
+                label_positions = [];
+                for(i in answers_range) {
+                    label_positions.push(100/(answers_range.length-1)*i);
+                }
+                slider = $('#nb-answers-slider-{{ question.pk }}');
+                slider.bootstrapSlider({
+                    ticks: answers_range,
+                    ticks_labels: answers_range,
+                    ticks_positions: label_positions,
+                    ticks_snap_bounds: 1
+                });
+
+
+                $('#nb-answers-{{ question.pk }}').on('slideStop',function(el){
+                    updateQuestion({{ question.pk }},'nb_answers',el.value,{{ comex.pk }});
+
+                });
+            {% endif %}
+        {% endfor %}
+
+        <!--question-max-pts input-->
+        {% for question in comex.questions.all %}
+            $('#maxpts-{{ question.pk }}').on('input', function() {
+            updateQuestion({{ question.pk }},'max_points', this.value,{{ comex.pk }});
+            });
+        {% endfor %}
+    {% endfor %}
+
+    $('a[data-toggle="pill"]').on('show.bs.tab', function(e) {
+        localStorage.setItem('activeTab', $(e.target).attr('href'));
+    });
+    var activeTab = localStorage.getItem('activeTab');
+    if(activeTab && $(activeTab).length > 0){
+        $('#exam-info-pills-tab a[href="' + activeTab + '"]').tab('show');
+    }else{
+        $('#exam-info-pills-tab a[href="#pills-' + {{ exam.get_common_exams_yc_common.0.id }} + '"]').tab('show');
+    }
+
+})
 
 {% for comex in exam.get_common_exams_yc_common %}
 $("#exam_date-{{ comex.id }}").on("change", function() {
@@ -502,7 +709,7 @@ function searchLdap(exam_id){
                 
                 li.setAttribute("id",data);
                 li.setAttribute("class","list-group-item");
-                li.setAttribute("style","display: flex;justify-content: space-between;padding:5px;");
+                li.setAttribute("style","display: flex;justify-content: space-between;padding:5px;border:1px solid #ebebeb;");
                 list.appendChild(li);
                 document.getElementById("newUserEmail-"+exam_id).value = "";
              }
@@ -598,82 +805,6 @@ function cancelUsers(exam_id){
     document.getElementById("newUserEmail-"+exam_id).value = '';
     $('.modal').modal('hide');
 }
-
-$(window).on("load",function(){
-    {% for comex in exam.get_common_exams_yc_common %}
-        $("#create-scale-button").modalForm({
-            formURL: "{% url 'create_scale' comex.pk %}",
-            modalID: "#create-scale-modal"
-        });
-
-        <!--DISPLAY PDF CATALOG -->
-        $('#displayPdfModal-{{ comex.id }}').on('show.bs.modal', function (event) {
-            document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' comex.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
-        })
-
-        <!--QUESTIONS EVENTS-->
-        <!--question-common checkboxes-->
-        {% for question in comex.questions.all %}
-            $('#common-{{ question.pk }}-1').on('click', function() {
-            updateQuestion({{ question.pk }},'common', 1,{{ comex.pk }});
-            });
-            $('#common-{{ question.pk }}-2').on('click', function() {
-            updateQuestion({{ question.pk }},'common', 0,{{ comex.pk }});
-            });
-        {% endfor %}
-
-        <!--question-type button-groups-->
-        {% for question in comex.questions.all %}
-            {% for question_type in question_types %}
-                $('#type-{{ question.pk }}-{{ question_type.pk }}').on('click', function() {
-                updateQuestion({{ question.pk }},'question_type_id', {{ question_type.pk }},{{ comex.pk }});
-            });
-            {% endfor %}
-        {% endfor %}
-
-        <!--question-answers button-groups-->
-        {% for question in comex.questions.all %}
-            {% if question.question_type.id <= 2 %}
-                answers_range = Array.from({ length: {{ question.nb_answers }}+3 }, (value, index) => 1 + index);
-                label_positions = [];
-                for(i in answers_range) {
-                    label_positions.push(100/(answers_range.length-1)*i);
-                }
-                slider = $('#nb-answers-slider-{{ question.pk }}');
-                slider.bootstrapSlider({
-                    ticks: answers_range,
-                    ticks_labels: answers_range,
-                    ticks_positions: label_positions,
-                    ticks_snap_bounds: 1
-                });
-
-
-                $('#nb-answers-{{ question.pk }}').on('slideStop',function(el){
-                    updateQuestion({{ question.pk }},'nb_answers',el.value,{{ comex.pk }});
-
-                });
-            {% endif %}
-        {% endfor %}
-
-        <!--question-max-pts input-->
-        {% for question in comex.questions.all %}
-            $('#maxpts-{{ question.pk }}').on('input', function() {
-            updateQuestion({{ question.pk }},'max_points', this.value,{{ comex.pk }});
-            });
-        {% endfor %}
-    {% endfor %}
-
-    $('a[data-toggle="pill"]').on('show.bs.tab', function(e) {
-        localStorage.setItem('activeTab', $(e.target).attr('href'));
-    });
-    var activeTab = localStorage.getItem('activeTab');
-    if(activeTab && $(activeTab).length > 0){
-        $('#exam-info-pills-tab a[href="' + activeTab + '"]').tab('show');
-    }else{
-        $('#exam-info-pills-tab a[href="#pills-' + {{ exam.get_common_exams_yc_common.0.id }} + '"]').tab('show');
-    }
-
-})
 <!--EXAM AJAX UPDATE FUNCTIONS-->
 function updateQuestion(pk,field,value,exam_pk){
     //get current active tab if overall
@@ -711,7 +842,7 @@ function updateQuestion(pk,field,value,exam_pk){
 }
 
 function updateExamOptions(exam_pk){
-    data = $("#form-exam-options").serialize();
+    data = $("#form-exam-options-"+exam_pk).serialize();
     $.ajax({
             url : "/update_exam_options/"+exam_pk,
             type : "POST",
