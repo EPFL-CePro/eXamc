@@ -332,7 +332,7 @@
                         </div>
                         <div id="collapseFive" class="collapse" aria-labelledby="headingFive">
                             <div class="card-body">
-                                <div class="row" style="max-width:1500px;">
+                                <div class="row">
                                     <div class="col-sm-6">
                                         <ul class="list-group" id="currUsersList-{{ comex.id }}">
                                             {% for exam_user in comex.exam_users.all %}
@@ -542,10 +542,10 @@
 <script>
 
 $(window).on("load",function(){
-    {% for comex in exam.get_common_exams_yc_common %}   
-        
+    {% for comex in exam.get_common_exams_yc_common %}
+
         $('#{{ comex.id }}_multiselect').multiselect();
-        
+
         $("#create-scale-button").modalForm({
             formURL: "{% url 'create_scale' comex.pk %}",
             modalID: "#create-scale-modal"
@@ -692,7 +692,7 @@ function searchLdap(exam_id){
                 });
                 remove_bt.innerHTML = '<i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>'
                 user_info.appendChild(remove_bt);
-                li_txt = data.replace(/;/g,' ');
+                li_txt = data.replace(/;/g,' - ');
                 user_info.appendChild(document.createTextNode(li_txt));
                 li.appendChild(user_info);
                 users_groups_div = document.createElement('div');
@@ -738,7 +738,7 @@ function validateUsers(exam_id,username_to_remove = null){
         username = user_split[0].trim();
         firstname = user_split[1].split("  ")[0];
         lastname = user_split[1].split("  ")[1];
-        useremail = user_split[2];
+        useremail = user_split[2].split("\n")[0];
         if(!curr_id.startsWith("delete_"))
             group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
         if(username !== username_to_remove){
@@ -754,12 +754,12 @@ function validateUsers(exam_id,username_to_remove = null){
         }
     }
     for(let i=0; i<new_users_li.length;i++) {
-        user = new_users_li[i].innerTxt;
+        user = new_users_li[i].innerText;
         user_split = user.split(" - ");
         username = user_split[0].trim();
-        firstname = user_split[1].split("  ")[0];
-        lastname = user_split[2].split("  ")[1];
-        useremail = user_split[3]
+        firstname = user_split[1];
+        lastname = user_split[2];
+        useremail = user_split[3].split("\n")[0];
         group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
         users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
     }
