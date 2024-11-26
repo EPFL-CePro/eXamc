@@ -21,17 +21,18 @@ def update_common_exams(pk):
     exam = Exam.objects.get(pk=pk)
     #exam.common_exams.clear()
     #commons = Exam.objects.filter(name=exam.name,year__code=exam.year.code,semester__code=exam.semester.code)
-    common_list = exam.common_exams
+    common_list = [e for e in exam.common_exams.all()]
     if common_list:
-        common_list.add(exam)
+        common_list.append(exam)
         common_list_bis = common_list
-        for common in common_list.all():
+        for common in common_list:
             if common.pk != exam.pk :
-                common.common_exams.clear()
-                for common_bis in common_list.all():
+                new_commons = []
+                for common_bis in common_list_bis:
                     if common_bis.pk != common.pk:
-                        common.common_exams.add(common_bis)
-                        common.save()
+                        new_commons.append(common_bis)
+                common.common_exams.set(new_commons)
+                common.save()
     return exam
 
 def clamp(n, minn, maxn):

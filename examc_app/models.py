@@ -141,7 +141,7 @@ class Exam(models.Model):
             name = code_split[1]
             semester = Semester.objects.get(code=code_split[4])
             year = AcademicYear.objects.get(code=code_split[2]+"-"+code_split[3])
-            exam = Exam.objects.filter(name__startswith=name,semester=semester, year=year).first()
+            exam = Exam.objects.filter(name__startswith=name,semester=semester, year=year).exclude(code=self.code).first()
 
         exam_code_search_start = exam.code.split('(')[0]
         code_split_end = exam.code.split(')')
@@ -151,7 +151,7 @@ class Exam(models.Model):
         else:
             exams = Exam.objects.filter(code__startswith=exam_code_search_start, year=exam.year, semester=exam.semester)
         available_exams = []
-        common_exams = exam.get_common_exams_yc_common()
+        common_exams = self.get_common_exams_yc_common()
         for exam in exams:
             if not exam in common_exams:
                 available_exams.append(exam)

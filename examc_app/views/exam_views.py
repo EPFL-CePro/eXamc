@@ -354,18 +354,21 @@ def validate_common_exams_settings(request,pk):
     common_exams = Exam.objects.filter(id__in=common_exams_ids)
     exam.common_exams.set(common_exams)
 
-    #get or create overall exam
-    overall_exam, created = Exam.objects.get_or_create( code='000-' + exam.name + '-' + exam.year.code + '-' + str(exam.semester.code))
-    if created:
-        overall_exam.name = exam.name
-        overall_exam.year.code = exam.year.code
-        overall_exam.semester.code = exam.semester.code
-        overall_exam.pdf_catalog_name = exam.pdf_catalog_name
-        overall_exam.date = exam.date
-        overall_exam.overall = True
-        overall_exam.save()
 
-    exam.common_exams.add(overall_exam)
+    #get or create overall exam if not from overall exam
+    if not exam.is_overall():
+        overall_exam, created = Exam.objects.get_or_create( code='000-' + exam.name + '-' + exam.year.code + '-' + str(exam.semester.code))
+        if created:
+            overall_exam.name = exam.name
+            overall_exam.year.code = exam.year.code
+            overall_exam.semester.code = exam.semester.code
+            overall_exam.pdf_catalog_name = exam.pdf_catalog_name
+            overall_exam.date = exam.date
+            overall_exam.overall = True
+            overall_exam.save()
+
+        exam.common_exams.add(overall_exam)
+
     exam.save()
     update_common_exams(pk)
-    return HttpResponse(1)
+    return redirect('../examInfo/' + str(exam.pk))
