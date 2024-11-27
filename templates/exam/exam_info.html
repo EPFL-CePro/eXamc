@@ -264,7 +264,7 @@
                                 </button>
                             </h5>
                         </div>
-                        <div id="collapseFour" class="collapse" aria-labelledby="headingFour-{{ comex.id }}">
+                        <div id="collapseFour-{{ comex.id }}" class="collapse" aria-labelledby="headingFour-{{ comex.id }}">
                             <div id="common_settings_div-{{ comex.id }}" class="card-body">
                                 <form id="form-exam-settings-common-{{ comex.id }}" method="post" style="padding:20px;max-width:1500px;" action="{% url 'validate_common_exams_settings' comex.pk %}">
                                     <div class="row">
@@ -369,7 +369,7 @@
                                 </button>
                             </h5>
                         </div>
-                        <div id="collapseSix" class="collapse" aria-labelledby="headingSix-{{ comex.id }}">
+                        <div id="collapseSix-{{ comex.id }}" class="collapse" aria-labelledby="headingSix-{{ comex.id }}">
                             <div class="card-body">
                                 <form id="form-exam-options-{{ comex.id }}" method="post" style="padding:20px;">
                                     {% csrf_token %}
