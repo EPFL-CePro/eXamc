@@ -368,7 +368,23 @@ def validate_common_exams_settings(request,pk):
             overall_exam.save()
 
         exam.common_exams.add(overall_exam)
+    else:
+        overall_exam = exam
 
     exam.save()
     update_common_exams(pk)
+
+    # if common exam, update overall exam users
+    for comex in overall_exam.common_exams.all():
+        for exam_user in comex.exam_users.all():
+            if not overall_exam.exam_users.filter(user=exam_user.user).exists() and exam_user.group.pk != 3:
+                new_exam_user = ExamUser()
+                new_exam_user.user = exam_user.user
+                new_exam_user.exam = overall_exam
+                new_exam_user.group = exam_user.group
+                new_exam_user.save()
+                overall_exam.exam_users.add(new_exam_user)
+    overall_exam.save()
+
+
     return redirect('../examInfo/' + str(exam.pk))
