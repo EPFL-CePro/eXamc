@@ -160,9 +160,9 @@ def import_students_excel_ANS(request, students_file):
     if list_of_column_names == list_names:
         column_name = True
         messages.success(request, 'Column name: OK', extra_tags='safe')
-    else:
-        column_name = False
-        return messages.error(request, 'Column name: Not Ok', extra_tags='safe')
+    # else:
+    #     column_name = False
+    #     return messages.error(request, 'Column name: Not Ok', extra_tags='safe')
 
     for index, row in df.iterrows():
         ldap_student_entry = ldap_search.get_entry(row[2], 'uniqueIdentifier')
