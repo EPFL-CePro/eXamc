@@ -31,6 +31,10 @@
     <!-- JS palette -->
     <script src="{% static 'js/palette.js' %}"></script>
 
+    <!-- JS print -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <!-- Celery-progress js -->
     <script src="{% static 'js/celery_progress.js' %}"></script>
 
@@ -111,6 +115,27 @@
         } else {
             $('#page-content-wrapper').css('margin-left', '0px');
         }
+    }
+
+    function generatePDF(title,element_id) {
+        let div = document.getElementById(element_id);
+        html2canvas(div).then(canvas => {
+
+            const winHtml = `<!DOCTYPE html>
+                            <html>
+                                <head>
+                                    <title>`+title+`</title>
+                                </head>
+                                <body style="text-align:center;zoom: 30%;">
+                                </body>
+                            </html>`;
+
+            printWindow = window.open('', '_blank', 'height=900, width=1500');
+            printWindow.document.write(winHtml);
+            printWindow.document.body.appendChild(canvas);
+            printWindow.print();
+            printWindow.focus();
+        })
     }
 
 
