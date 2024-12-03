@@ -329,6 +329,8 @@ $(window).on("load",function(){
                 COMMON
                 {% else %}
                 {{ comex.code }}
+                        <br>
+                        {{ comex.id|get_exam_teachers_short_str }}
                 {% endif %}
             </a>
         </li>

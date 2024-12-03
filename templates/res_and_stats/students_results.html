@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_tags %}
 {% block title %}Results{% endblock %}
 
 {% block extra_head %}
@@ -68,6 +69,8 @@ $(window).on("load",function(){
                 <a class="flex-sm-fill text-sm-center nav-link {% if comex == currselected_exam %}active{% endif %}"
                    id="{{ comex.id }}-tab"  href="{% url 'studentsResults' comex.pk %}" >
                     {{ comex.code }}
+                        <br>
+                        {{ comex.id|get_exam_teachers_short_str }}
                 </a>
             </li>
         {% endfor %}

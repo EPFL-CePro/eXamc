@@ -116,6 +116,14 @@ class Exam(models.Model):
 
         return exam_list
 
+    def get_common_exams_without_common(self):
+        """ Return all common exams without the common (000-) """
+        exam_list = Exam.objects.filter(common_exams=self,overall=False)
+        for exam in exam_list.all():
+            print( exam)
+        return exam_list
+
+
     def get_students_results_exams(self):
         """ Return all exams for students results (without global one) """
         exam_list = []
@@ -124,6 +132,30 @@ class Exam(models.Model):
         for comex in self.common_exams.all():
             exam_list.append(comex)
         return exam_list
+
+    def get_available_common_exams(self):
+
+        exam = self
+        if self.is_overall():
+            code_split = self.code.split('-')
+            name = code_split[1]
+            semester = Semester.objects.get(code=code_split[4])
+            year = AcademicYear.objects.get(code=code_split[2]+"-"+code_split[3])
+            exam = Exam.objects.filter(name__startswith=name,semester=semester, year=year).exclude(code=self.code).first()
+
+        exam_code_search_start = exam.code.split('(')[0]
+        code_split_end = exam.code.split(')')
+        if len(code_split_end) > 1:
+            exam_code_search_end = code_split_end[1]
+            exams = Exam.objects.filter(code__startswith=exam_code_search_start, code__endswith=exam_code_search_end, year=exam.year, semester=exam.semester)
+        else:
+            exams = Exam.objects.filter(code__startswith=exam_code_search_start, year=exam.year, semester=exam.semester)
+        available_exams = []
+        common_exams = self.get_common_exams_yc_common()
+        for exam in exams:
+            if not exam in common_exams:
+                available_exams.append(exam)
+        return available_exams
 
 class ExamSection(models.Model):
     """ Stores section data for an exam, related to :model:`examc_app.Exam` """

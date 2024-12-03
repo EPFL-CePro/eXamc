@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_tags %}
 {% load render_table from django_tables2 %}
 
 
@@ -24,7 +25,9 @@
                         COMMON
                     {% else %}
                         {{ comex.code }}
-                    {% endif %}
+                        <br>
+                        {{ comex.id|get_exam_teachers_short_str }}
+                   {% endif %}
                 </a>
             </li>
         {% endfor %}
@@ -37,15 +40,15 @@
 
                 <div class="accordion" id="accordionExamInfo-{{ comex.id }}">
                     <div class="card z-depth-0 bordered">
-                        <div class="card-header" id="headingOne">
+                        <div class="card-header" id="headingOne-{{ comex.id }}">
                             <h5 class="mb-0">
                                 <p style="text-align:left;margin-bottom:-5px;">
                                     <button class="btn btn-link" type="button" data-toggle="collapse"
-                                            data-target="#collapseOne"
-                                            aria-expanded="true" aria-controls="collapseOne">
+                                            data-target="#collapseOne-{{ comex.id }}"
+                                            aria-expanded="true" aria-controls="collapseOne-{{ comex.id }}">
                                         Exam
                                     </button>
-                                    <a id="regen-stats-bt" class="btn btn-dark btn-sm"
+                                    <a id="regen-stats-bt-{{ comex.id }}" class="btn btn-dark btn-sm"
                                        href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
                                                                                     style="margin-right: 5px;"></i>Regen
                                         stats</a>
@@ -56,7 +59,7 @@
                                 </p>
                             </h5>
                         </div>
-                        <div id="collapseOne" class="collapse show" aria-labelledby="headingOne">
+                        <div id="collapseOne-{{ comex.id }}" class="" aria-labelledby="headingOne-{{ comex.id }}">
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
                                     <tr style="border-bottom:.5px solid lightgrey;">
@@ -66,10 +69,8 @@
                                         <th>Semester</th>
                                         <th>Date</th>
                                         {% if comex.common_exams.all %}
-                                            <th>Common</th>
                                             <th>Individual specific</th>
                                         {% endif %}
-                                        <th></th>
                                         <th></th>
                                     </tr>
                                     <tr>
@@ -93,16 +94,6 @@
                                         </td>
                                         {% if comex.common_exams.all %}
                                             <td>
-                                                <ul class="list-group">
-                                                    {% for comex in comex.common_exams.all %}
-                                                        {% if not comex.is_overall %}
-                                                            <li class="list-group-item border-0"
-                                                                style="padding:0px;margin:0px;">{{ comex.code }} {{ comex.name }}</li>
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                </ul>
-                                            </td>
-                                            <td>
                                                 {{ comex.indiv_formula }}
                                                 <br>
                                                 <em>[indiv_max_points];[common_max_points];[formula]
@@ -115,40 +106,21 @@
                                                 </em>
                                             </td>
                                         {% endif %}
-                                        <td style="text-align:right;">
-                                            <button type="button" class="btn btn-light btn-sm"
-                                                    style="background-color: transparent;"
-                                                    onclick="$('#examOptionsModal-{{ comex.id }}').modal('show');"><i
-                                                    class="fas fa-ellipsis-v fa-2xl"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="text-align: right;">
-                                            <button id="manage-users-bt" type="button" class="btn btn-light" title="Manage users" style="padding:0px;padding-left:5px;" onclick="$('#manageUsersModal-{{ comex.id }}').modal('show');"><i class="fa-solid fa-users-gear fa-2xl"></i></button>
-                                        </td>           
-                                        <td>
-                                            <ul class="list-group">
-                                                {% for exam_user in comex.exam_users.all %}
-                                                    <li class="list-group-item border-0"
-                                                        style="padding:0px;margin:0px;">{{ exam_user.user.first_name }} {{ exam_user.user.last_name }} ({{ exam_user.group.name }})</li>
-                                                {% endfor %}
-                                            </ul>
-                                        </td>
                                     </tr>
                                 </table>
                             </div>
                         </div>
                     </div>
                     <div class="card z-depth-0 bordered">
-                        <div class="card-header" id="headingTwo">
+                        <div class="card-header" id="headingTwo-{{ comex.id }}">
                             <h5 class="mb-0">
                                 <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
-                                        data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                                        data-target="#collapseTwo-{{ comex.id }}" aria-expanded="true" aria-controls="collapseTwo-{{ comex.id }}">
                                     Scales
                                 </button>
                             </h5>
                         </div>
-                        <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo">
+                        <div id="collapseTwo-{{ comex.id }}" class="collapse" aria-labelledby="headingTwo-{{ comex.id }}">
                             <div class="card-body">
                                 <table class="table table-striped table-sm">
                                     <thead>
@@ -190,7 +162,7 @@
                                     </tbody>
                                 </table>
                                 {% if user.is_staff %}
-                                    <a target="_blank" id="create-scale-button" class="btn btn-light"
+                                    <a target="_blank" id="create-scale-button-{{ comex.id }}" class="btn btn-light"
                                        style="background-color: transparent" type="button"><i
                                             class="fa-solid fa-circle-plus fa-2xl"
                                             style="margin-right:5px;color:green;"></i></a>
@@ -199,24 +171,24 @@
                         </div>
                     </div>
                     <div class="card z-depth-0 bordered">
-                        <div class="card-header" id="headingThree">
+                        <div class="card-header" id="headingThree-{{ comex.id }}">
                             <h5 class="mb-0">
                                 <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
-                                        data-target="#collapseThree" aria-expanded="false"
-                                        aria-controls="collapseThree">
-                                    Questions (Total points : {{ sum_questions_points.max_points__sum }})
+                                        data-target="#collapseThree-{{ comex.id }}" aria-expanded="false"
+                                        aria-controls="collapseThree-{{ comex.id }}">
+                                    Questions (Total points : {{ comex.id|get_sum_questions_points }})
                                 </button>
                             </h5>
                         </div>
-                        <div id="collapseThree" class="collapse show" aria-labelledby="headingThree">
-                            <div id="questions_div" class="card-body">
-                                <div id="alert_regen_stats" class="alert alert-danger" role="alert" style="display: none;">
-                                  Don't forget to <a id="regen-stats-bt" class="btn btn-dark btn-sm"
+                        <div id="collapseThree-{{ comex.id }}" class="collapse" aria-labelledby="headingThree-{{ comex.id }}">
+                            <div id="questions_div-{{ comex.id }}" class="card-body">
+                                <div id="alert_regen_stats-{{ comex.id }}" class="alert alert-danger" role="alert" style="display: none;">
+                                  Don't forget to <a id="regen-stats-bt-{{ comex.id }}" class="btn btn-dark btn-sm"
                                        href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
                                                                                     style="margin-right: 5px;"></i>Regen
                                         stats</a> after questions and answers changed!
                                 </div>
-                                <table id="questions_dt" class="table table-striped table-sm">
+                                <table id="questions_dt-{{ comex.id }}" class="table table-striped table-sm">
                                     <thead>
                                     <tr>
                                         <th>Question</th>
@@ -282,6 +254,149 @@
                             </div>
                         </div>
                     </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingFour-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseFour-{{ comex.id }}" aria-expanded="false"
+                                        aria-controls="collapseFour-{{ comex.id }}">
+                                    Common Exams
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseFour-{{ comex.id }}" class="collapse" aria-labelledby="headingFour-{{ comex.id }}">
+                            <div id="common_settings_div-{{ comex.id }}" class="card-body">
+                                <form id="form-exam-settings-common-{{ comex.id }}" method="post" style="padding:20px;max-width:1500px;" action="{% url 'validate_common_exams_settings' comex.pk %}">
+                                    <div class="row">
+                                        <div class="col-sm-5">
+                                            <h6>Available exams</h6>
+                                        </div>
+                                        <div style="width:70px!important;"></div>
+                                        <div class="col-sm-5">
+                                            <h6>Selected exams</h6>
+                                        </div>
+                                    </div>
+                                    {% csrf_token %}
+                                    <div class="row" style="max-width:1500px;">
+                                        <div class="col-sm-5">
+                                            <select name="{{ comex.id }}_common_from[]" id="{{ comex.id }}_multiselect" class="form-control" size="8" multiple="multiple">
+                                                {% for available_common in comex.get_available_common_exams %}
+                                                <option value="{{ available_common.id }}">{{ available_common.code }} - {{ available_common.name }} - {{ available_common.date }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div style="width:70px!important;">
+                                            <button type="button" id="{{ comex.id }}_multiselect_rightAll" class="btn"><i class="fa-solid fa-angles-right"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_rightSelected" class="btn "><i class="fa-solid fa-angle-right"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_leftSelected" class="btn "><i class="fa-solid fa-angle-left"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_leftAll" class="btn "><i class="fa-solid fa-angles-left"></i></button>
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <select name="{{ comex.id }}_common_to[]" id="{{ comex.id }}_multiselect_to" class="form-control" size="8" multiple="multiple">
+                                                {% for comex in comex.get_common_exams_without_common.all %}
+                                                    <option value="{{ comex.id }}">{{ comex.code }} - {{ comex.name }} - {{ comex.date }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">Cancel</button>
+                                        <button type="submit" class="btn btn-dark btn-sm">Validate</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingFive-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseFive-{{ comex.id }}" aria-expanded="true" aria-controls="collapseFive-{{ comex.id }}">
+                                    Users
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseFive-{{ comex.id }}" class="collapse" aria-labelledby="headingFive-{{ comex.id }}">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <ul class="list-group" id="currUsersList-{{ comex.id }}">
+                                            {% for exam_user in comex.exam_users.all %}
+                                                <li id="{{ comex.id }}_{{ exam_user.user.username }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;border:1px solid #ebebeb;">
+                                                    <div>
+                                                        <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers({{ comex.id }},'{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
+                                                        {{ exam_user.user.username }} - {{ exam_user.user.first_name }}&nbsp;&nbsp;{{ exam_user.user.last_name }} - {{ exam_user.user.email }}
+                                                    </div>
+                                                    <div>
+                                                        {% for user_group in users_groups_add.all %}
+                                                            <div class="form-check form-check-inline" style="margin-top:5px;">
+                                                                <input class="form-check-input" type="radio" name="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" id="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}-{{ user_group.id }}" value="{{ user_group.id }}"
+                                                                    {% if exam_user.group.id == user_group.id %} checked {% endif %}>
+                                                                <label class="form-check-label" for="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}-{{ user_group.id }}">{{ user_group.name }}</label>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    <div class="col-sm-6" style="background-color: #ebebeb;padding:10px;">
+                                        <h6>Add Users</h6>
+                                        <div style="display:flex;">
+                                            <input id="newUserEmail-{{ comex.id }}" class="form-control" type="text" style="width:400px;" placeholder="Email">
+                                            <button class="btn btn-dark btn-sm" id="search_ldap_bt-{{ comex.id }}" onclick="searchLdap({{ comex.id }});" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
+                                        </div>
+                                        <hr>
+                                        <ul  class="list-group" id="newUsersList-{{ comex.id }}"></ul>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers({{ comex.id }});">Cancel</button>
+                                    <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers({{ comex.id }});">Validate</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingSix-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link" type="button" data-toggle="collapse"
+                                        data-target="#collapseSix-{{ comex.id }}"
+                                        aria-expanded="true" aria-controls="collapseSix-{{ comex.id }}">
+                                    Modules
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseSix-{{ comex.id }}" class="collapse" aria-labelledby="headingSix-{{ comex.id }}">
+                            <div class="card-body">
+                                <form id="form-exam-options-{{ comex.id }}" method="post" style="padding:20px;">
+                                    {% csrf_token %}
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox" name="review_option_{{ comex.id }}" id="review_option_{{ comex.id }}" {% if comex.review_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="review_option_{{ comex.id }}">Review module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="amc_option_{{ comex.id }}" id="amc_option_{{ comex.id }}" {% if comex.amc_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="amc_option_{{ comex.id }}">AMC module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="res_and_stats_option_{{ comex.id }}" id="res_and_stats_option_{{ comex.id }}" {% if comex.res_and_stats_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="res_and_stats_option_{{ comex.id }}">Results & stats module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="prep_option_{{ comex.id }}" id="prep_option_{{ comex.id }}" {% if comex.prep_option == 1 %} checked {% endif %} disabled>
+                                      <label class="custom-control-label" for="prep_option_{{ comex.id }}">Preparation module</label>
+                                    </div>
+                                    <hr>
+                                    <div>
+                                        <button type="button" onclick="updateExamOptions({{ comex.pk }});" class="btn btn-dark btn-sm">Validate</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -294,90 +409,6 @@
                     <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">CLOSE</button>
                   </br>
                     <div id="embedPdf"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="modal fade" id="examOptionsModal-{{ comex.id }}" tabindex="-1" aria-labelledby="examOptionsModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="imageModalLabel">Exam options</h5>{{ comex.code }}
-                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
-                        </div>
-                        <div class="modal-body">{{ comex.amc_option }}
-                            <form id="form-exam-options" method="post" style="padding:20px;">
-                                {% csrf_token %}
-                                <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox" name="review_option" id="review_option_check" {% if comex.review_option == 1 %} checked {% endif %}>
-                                  <label class="custom-control-label" for="review_option_check">Review module</label>
-                                </div>
-                                <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox"  name="amc_option" id="amc_option" {% if comex.amc_option == 1 %} checked {% endif %}>
-                                  <label class="custom-control-label" for="amc_option">AMC module</label>
-                                </div>
-                                <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox"  name="res_and_stats_option" id="res_and_stats_option" {% if comex.res_and_stats_option == 1 %} checked {% endif %}>
-                                  <label class="custom-control-label" for="res_and_stats_option">Results & stats module</label>
-                                </div>
-                                <div class="custom-control custom-switch mb-3">
-                                  <input class="custom-control-input" type="checkbox"  name="prep_option" id="prep_option" {% if comex.prep_option == 1 %} checked {% endif %} disabled>
-                                  <label class="custom-control-label" for="prep_option">Preparation module</label>
-                                </div>
-                                <div style="text-align: right;">
-                                    <button type="button" onclick="updateExamOptions({{ comex.pk }});" class="btn btn-dark btn-sm">Validate</button>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal fade" id="manageUsersModal-{{ comex.id }}" tabindex="-1" role="dialog" aria-labelledby="manageUsersModalLabel" aria-hidden="true">
-              <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="manageUsersModalLabel">Manage Users</h5>
-                    <button type="button" class="close" onclick="cancelUsers({{ comex.id }});" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
-                  </div>
-                  <div id="manageUsersModalBody-{{ comex.id }}" class="modal-body">
-                    <h6>Users</h6>
-                    <ul class="list-group" id="currUsersList-{{ comex.id }}">
-                        {% for exam_user in comex.exam_users.all %}
-                            <li id="{{ comex.id }}_{{ exam_user.user.username }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;">
-                                <div>
-                                    <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers({{ comex.id }},'{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
-                                    {{ exam_user.user.username }} - {{ exam_user.user.first_name }}&nbsp;&nbsp;{{ exam_user.user.last_name }} - {{ exam_user.user.email }}
-                                </div>
-                                <div>
-                                    {% for user_group in users_groups_add.all %}
-                                        <div class="form-check form-check-inline" style="margin-top:5px;">
-                                            <input class="form-check-input" type="radio" name="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" id="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" value="{{ user_group.id }}"
-                                                {% if exam_user.group.id == user_group.id %} checked {% endif %}>
-                                            <label class="form-check-label" for="user_group_radio_{{ comex.id }}_{{ exam_user.username }}">{{ user_group.name }}</label>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                    <hr>
-                    <div>
-                        <h6>Add Users</h6>
-                        <input id="newUserEmail-{{ comex.id }}" class="form-control" type="text" placeholder="Email">
-                      </br>
-                      <button class="btn btn-dark btn-sm" id="search_ldap_bt" onclick="searchLdap({{ comex.id }});" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
-                    </div>
-                    <ul  class="list-group" id="newUsersList-{{ comex.id }}"></ul>
-                </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers({{ comex.id }});">Cancel</button>
-                    <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers({{ comex.id }});">Validate</button>
                   </div>
                 </div>
               </div>
@@ -413,194 +444,40 @@
 </style>
 <script>
 
-{% for comex in exam.get_common_exams_yc_common %}
-$("#exam_date-{{ comex.id }}").on("change", function() {
-    let pickedDate = $("input").val();
-    updateExamDate({{ comex.id }},pickedDate);
-});
-
-document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypress", function(event) {
-  if (event.key === "Enter") {
-    // Cancel the default action, if needed
-    event.preventDefault();
-    // Trigger the button element with a click
-    document.getElementById("search_ldap_bt-{{ comex.id }}").click();
-  }
-});
-{% endfor %}
-
-function updateExamDate(exam_id,date){
-    $.ajax({
-        url: "{% url 'update_exam_date' %}",
-        type: "POST",
-        dataType: "json",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : exam_id,
-            'date' : date,
-        },
-        complete: function () {
-            $("#exam_date_column-"+exam_id).load(location.href + " #exam_date_column-"+exam_id );
-        },
-        error: (error) => {
-            console.log(error);
-        }
-    });
-}
-
-function searchLdap(exam_id){
-    var email = document.getElementById("newUserEmail-"+exam_id).value;
-
-    var add_User_error = document.getElementById("addUserError-"+exam_id);
-    if (typeof(add_User_error) != 'undefined' && add_User_error != null)
-    {
-      add_User_error.remove();
-    }
-
-    $.ajax({
-        url: "{% url 'ldap_search_exam_user_by_email' %}",
-        type: "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : exam_id,
-            'email' : email,
-        },
-        success: (data) => {
-            if(data==="exist"){
-                let add_User_error = document.createElement('div');
-                add_User_error.setAttribute("class","alert alert-warning");
-                add_User_error.setAttribute("role","alert")
-                add_User_error.innerHTML = "User already present as a User for this exam !";
-                document.getElementById("manageUsersModalBody-"+exam_id).appendChild(add_User_error);
-            }else{
-                let list = document.getElementById("newUsersList-"+exam_id);
-                let li = document.createElement('li');
-                let remove_bt = document.createElement('button')
-                let user_info = document.createElement('div')
-                remove_bt.textContent = 'remove';
-                remove_bt.setAttribute("class","btn btn-light btn-sm");
-                remove_bt.setAttribute("style","margin-right:10px;");
-                remove_bt.addEventListener('click', () => {
-                    document.getElementById(data).remove();
-                });
-                remove_bt.innerHTML = '<i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>'
-                user_info.appendChild(remove_bt);
-                li_txt = data.replace(/;/g,' ');
-                user_info.appendChild(document.createTextNode(li_txt));
-                li.appendChild(user_info);
-                users_groups_div = document.createElement('div');
-                users_groups_div.setAttribute("style","margin-top:5px;")
-                {% for user_group in users_groups_add.all %}
-                    username = li_txt.split(" ")[0]
-                    users_groups_radios_div = document.createElement('div')
-                    users_groups_radios_div.setAttribute("class","form-check form-check-inline");
-                    users_groups_radios_div.innerHTML = '<input class="form-check-input" type="radio" name="user_group_radio_'+exam_id+'_'+username+'" id="user_group_radio_'+exam_id+'_'+username+'_{{ user_group.id }}" value="{{ user_group.id }}" {% if user_group.id == 2 %}checked{% endif %}>'+
-                                                '<label class="form-check-label" for="user_group_radio_'+exam_id+'_'+username+'_{{ user_group.id }}">{{ user_group.name }}</label>'
-                    users_groups_div.appendChild(users_groups_radios_div);
-                {% endfor %}
-                li.appendChild(users_groups_div);
-                
-                li.setAttribute("id",data);
-                li.setAttribute("class","list-group-item");
-                li.setAttribute("style","display: flex;justify-content: space-between;padding:5px;");
-                list.appendChild(li);
-                document.getElementById("newUserEmail-"+exam_id).value = "";
-             }
-        },
-        error: (error) => {
-            let add_User_error = document.createElement('div');
-            add_User_error.setAttribute("class","alert alert-warning");
-            add_User_error.setAttribute("role","alert")
-            add_User_error.innerHTML = "Cannot find user with this email address in EPFL LDAP !";
-            document.getElementById("manageUsersModalBody-"+exam_id).appendChild(add_User_error);
-            console.log(error);
-        }
-    });
-}
-
-function validateUsers(exam_id,username_to_remove = null){
-    var new_users_li = document.getElementById("newUsersList-"+exam_id).querySelectorAll("li");
-    var curr_users_li = document.getElementById("currUsersList-"+exam_id).querySelectorAll("li");
-    
-    let users = [];
-    for(let i=0; i<curr_users_li.length;i++) {
-        group_id = null;
-        curr_id = curr_users_li[i].id;
-        user = curr_users_li[i].children[0].innerText;
-        user_split = user.split(" - ");
-        username = user_split[0].trim();
-        firstname = user_split[1].split("  ")[0];
-        lastname = user_split[1].split("  ")[1];
-        useremail = user_split[2];
-        if(!curr_id.startsWith("delete_"))
-            group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
-        if(username !== username_to_remove){
-            if(curr_id.startsWith('delete_')){
-                username = 'delete_'+username;
-            }
-            users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
-        }else{
-            li_id = exam_id+"_"+username;
-            li_remove = document.getElementById(li_id);
-            li_remove.style.textDecoration = 'line-through';
-            li_remove.id = "delete_"+li_id;
-        }
-    }
-    for(let i=0; i<new_users_li.length;i++) {
-        user = new_users_li[i].innerTxt;
-        user_split = user.split(" - ");
-        username = user_split[0].trim();
-        firstname = user_split[1].split("  ")[0];
-        lastname = user_split[2].split("  ")[1];
-        useremail = user_split[3]
-        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
-        users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
-    }
-
-    if(username_to_remove == null){
-        let list = document.getElementById("newUsersList-"+exam_id);
-        list.innerHTML = '';
-        document.getElementById("newUserEmail-"+exam_id).value = '';
-        $.ajax({
-            url: "{% url 'update_exam_users' %}",
-            type: "POST",
-            dataType: "json",
-            data : {
-                'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                'pk' : exam_id,
-                'users_list' : users,
-            },
-            complete: function () {
-                if( username_to_remove == null) {
-                    $('.modal').modal('hide');
-                    location.reload();
-                }
-            },
-            error: (error) => {
-                console.log(error);
-            }
-        });
-    }
-}
-
-function cancelUsers(exam_id){
-    var curr_users_li = document.getElementById("currUsersList-"+exam_id).querySelectorAll("li");
-    for(let i=0; i<curr_users_li.length;i++) {
-        curr_id = curr_users_li[i].id;
-        if(curr_id.startsWith('delete_')){
-            li_restore = document.getElementById(curr_id);
-            li_restore.style.textDecoration = '';
-            li_restore.id = curr_id.replace('delete_','');
-        }
-    }
-    let list = document.getElementById("newUsersList-"+exam_id);
-    list.innerHTML = '';
-    document.getElementById("newUserEmail-"+exam_id).value = '';
-    $('.modal').modal('hide');
-}
-
 $(window).on("load",function(){
+
+    // Get saved data from sessionStorage
+    if(sessionStorage.length > 0){
+        let selectedCollapse_json = sessionStorage.getItem('selectedCollapse_list');
+        let selectedCollapse_list = JSON.parse(selectedCollapse_json);
+        $('.accordion .collapse').removeClass('show');
+        for(selectedCollapse of selectedCollapse_list){
+            $(selectedCollapse).addClass('show');
+        }
+    }else{
+        selectedCollapse_list = [];
+        selectedCollapse_list.push("#collapseOne");
+        $("#collapseOne").addClass('show');
+        sessionStorage.setItem('selectedCollapse_list', JSON.stringify(selectedCollapse_list));
+    }
+    //To set, which one will be opened
+    $('.accordion .btn-link').on('click', function(){
+        let target = $(this).data('target');
+        let selectedCollapse_list = JSON.parse(sessionStorage.getItem('selectedCollapse_list'));
+        if(selectedCollapse_list.includes(target)){
+            selectedCollapse_list.splice(selectedCollapse_list.indexOf(target), 1);
+        }else{
+            selectedCollapse_list.push(target);
+        }
+
+        //Save data to sessionStorage
+        sessionStorage.setItem('selectedCollapse_list', JSON.stringify(selectedCollapse_list));
+    });
+
     {% for comex in exam.get_common_exams_yc_common %}
+
+        $('#{{ comex.id }}_multiselect').multiselect();
+
         $("#create-scale-button").modalForm({
             formURL: "{% url 'create_scale' comex.pk %}",
             modalID: "#create-scale-modal"
@@ -674,6 +551,192 @@ $(window).on("load",function(){
     }
 
 })
+
+{% for comex in exam.get_common_exams_yc_common %}
+$("#exam_date-{{ comex.id }}").on("change", function() {
+    let pickedDate = $("input").val();
+    updateExamDate({{ comex.id }},pickedDate);
+});
+
+document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("search_ldap_bt-{{ comex.id }}").click();
+  }
+});
+{% endfor %}
+
+function updateExamDate(exam_id,date){
+    $.ajax({
+        url: "{% url 'update_exam_date' %}",
+        type: "POST",
+        dataType: "json",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : exam_id,
+            'date' : date,
+        },
+        complete: function () {
+            $("#exam_date_column-"+exam_id).load(location.href + " #exam_date_column-"+exam_id );
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function searchLdap(exam_id){
+    var email = document.getElementById("newUserEmail-"+exam_id).value;
+
+    var add_User_error = document.getElementById("addUserError-"+exam_id);
+    if (typeof(add_User_error) != 'undefined' && add_User_error != null)
+    {
+      add_User_error.remove();
+    }
+
+    $.ajax({
+        url: "{% url 'ldap_search_exam_user_by_email' %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'pk' : exam_id,
+            'email' : email,
+        },
+        success: (data) => {
+            if(data==="exist"){
+                let add_User_error = document.createElement('div');
+                add_User_error.setAttribute("class","alert alert-warning");
+                add_User_error.setAttribute("role","alert")
+                add_User_error.innerHTML = "User already present as a User for this exam !";
+                document.getElementById("manageUsersModalBody-"+exam_id).appendChild(add_User_error);
+            }else{
+                let list = document.getElementById("newUsersList-"+exam_id);
+                let li = document.createElement('li');
+                let remove_bt = document.createElement('button')
+                let user_info = document.createElement('div')
+                remove_bt.textContent = 'remove';
+                remove_bt.setAttribute("class","btn btn-light btn-sm");
+                remove_bt.setAttribute("style","margin-right:10px;");
+                remove_bt.addEventListener('click', () => {
+                    document.getElementById(data).remove();
+                });
+                remove_bt.innerHTML = '<i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>'
+                user_info.appendChild(remove_bt);
+                li_txt = data.replace(/;/g,' - ');
+                user_info.appendChild(document.createTextNode(li_txt));
+                li.appendChild(user_info);
+                users_groups_div = document.createElement('div');
+                users_groups_div.setAttribute("style","margin-top:5px;")
+                {% for user_group in users_groups_add.all %}
+                    username = li_txt.split(" ")[0]
+                    users_groups_radios_div = document.createElement('div')
+                    users_groups_radios_div.setAttribute("class","form-check form-check-inline");
+                    users_groups_radios_div.innerHTML = '<input class="form-check-input" type="radio" name="user_group_radio_'+exam_id+'_'+username+'" id="user_group_radio_'+exam_id+'_'+username+'_{{ user_group.id }}" value="{{ user_group.id }}" {% if user_group.id == 2 %}checked{% endif %}>'+
+                                                '<label class="form-check-label" for="user_group_radio_'+exam_id+'_'+username+'_{{ user_group.id }}">{{ user_group.name }}</label>'
+                    users_groups_div.appendChild(users_groups_radios_div);
+                {% endfor %}
+                li.appendChild(users_groups_div);
+                
+                li.setAttribute("id",data);
+                li.setAttribute("class","list-group-item");
+                li.setAttribute("style","display: flex;justify-content: space-between;padding:5px;border:1px solid #ebebeb;");
+                list.appendChild(li);
+                document.getElementById("newUserEmail-"+exam_id).value = "";
+             }
+        },
+        error: (error) => {
+            let add_User_error = document.createElement('div');
+            add_User_error.setAttribute("class","alert alert-warning");
+            add_User_error.setAttribute("role","alert")
+            add_User_error.innerHTML = "Cannot find user with this email address in EPFL LDAP !";
+            document.getElementById("manageUsersModalBody-"+exam_id).appendChild(add_User_error);
+            console.log(error);
+        }
+    });
+}
+
+function validateUsers(exam_id,username_to_remove = null){
+    var new_users_li = document.getElementById("newUsersList-"+exam_id).querySelectorAll("li");
+    var curr_users_li = document.getElementById("currUsersList-"+exam_id).querySelectorAll("li");
+    
+    let users = [];
+    for(let i=0; i<curr_users_li.length;i++) {
+        group_id = null;
+        curr_id = curr_users_li[i].id;
+        user = curr_users_li[i].children[0].innerText;
+        user_split = user.split(" - ");
+        username = user_split[0].trim();
+        firstname = user_split[1].split("  ")[0];
+        lastname = user_split[1].split("  ")[1];
+        useremail = user_split[2].split("\n")[0];
+        if(!curr_id.startsWith("delete_"))
+            group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
+        if(username !== username_to_remove){
+            if(curr_id.startsWith('delete_')){
+                username = 'delete_'+username;
+            }
+            users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+        }else{
+            li_id = exam_id+"_"+username;
+            li_remove = document.getElementById(li_id);
+            li_remove.style.textDecoration = 'line-through';
+            li_remove.id = "delete_"+li_id;
+        }
+    }
+    for(let i=0; i<new_users_li.length;i++) {
+        user = new_users_li[i].innerText;
+        user_split = user.split(" - ");
+        username = user_split[0].trim();
+        firstname = user_split[1];
+        lastname = user_split[2];
+        useremail = user_split[3].split("\n")[0];
+        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
+        users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+    }
+
+    if(username_to_remove == null){
+        let list = document.getElementById("newUsersList-"+exam_id);
+        list.innerHTML = '';
+        document.getElementById("newUserEmail-"+exam_id).value = '';
+        $.ajax({
+            url: "{% url 'update_exam_users' %}",
+            type: "POST",
+            dataType: "json",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'pk' : exam_id,
+                'users_list' : users,
+            },
+            complete: function () {
+                if( username_to_remove == null) {
+                    $('.modal').modal('hide');
+                    location.reload();
+                }
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
+}
+
+function cancelUsers(exam_id){
+    var curr_users_li = document.getElementById("currUsersList-"+exam_id).querySelectorAll("li");
+    for(let i=0; i<curr_users_li.length;i++) {
+        curr_id = curr_users_li[i].id;
+        if(curr_id.startsWith('delete_')){
+            li_restore = document.getElementById(curr_id);
+            li_restore.style.textDecoration = '';
+            li_restore.id = curr_id.replace('delete_','');
+        }
+    }
+    let list = document.getElementById("newUsersList-"+exam_id);
+    list.innerHTML = '';
+    document.getElementById("newUserEmail-"+exam_id).value = '';
+    $('.modal').modal('hide');
+}
 <!--EXAM AJAX UPDATE FUNCTIONS-->
 function updateQuestion(pk,field,value,exam_pk){
     //get current active tab if overall
@@ -711,7 +774,7 @@ function updateQuestion(pk,field,value,exam_pk){
 }
 
 function updateExamOptions(exam_pk){
-    data = $("#form-exam-options").serialize();
+    data = $("#form-exam-options-"+exam_pk).serialize();
     $.ajax({
             url : "/update_exam_options/"+exam_pk,
             type : "POST",

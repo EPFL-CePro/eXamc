@@ -4,6 +4,7 @@ from django import forms
 import os
 
 from django.conf import settings
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, ModelForm, formset_factory
 from django_ckeditor_5.widgets import CKEditor5Widget
@@ -256,3 +257,4 @@ class ldapForm(forms.Form):
         widget=forms.RadioSelect(attrs={'data-tooltip': "Choose LDAP search."}),
         initial='sciper'
     )
+

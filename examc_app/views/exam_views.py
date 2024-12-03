@@ -11,6 +11,7 @@ from examc_app.models import *
 from examc_app.tables import ExamSelectTable
 from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
+from examc_app.utils.results_statistics_functions import update_common_exams
 from examc_app.views.global_views import menu_access_required
 from examc_app.tasks import generate_statistics
 from userprofile.models import UserProfile
@@ -71,6 +72,47 @@ class ExamInfoView(DetailView):
             context['sum_questions_points'] = exam.questions.all().aggregate(Sum('max_points'))
             context['users_groups_add'] = users_groups_add
             context['task_id'] = task_id
+            return context
+        else:
+            context['user_allowed'] = False
+            return context
+
+
+@method_decorator(login_required(login_url='/'), name='dispatch')
+class ExamSettingsView(DetailView):
+    model = Exam
+    template_name = 'exam/exam_settings.html'
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = self.get_context_data(object=self.object)
+        exam = Exam.objects.get(pk=context.get("object").id)
+        exam_user = ExamUser.objects.filter(exam=exam, user=self.request.user).first()
+
+        # redirect to review if reviewer
+        if not self.request.user.is_superuser and exam_user.group.pk == 3:
+            return redirect(reverse('reviewView', kwargs={'pk': exam.pk}))
+
+        return self.render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        context = super(ExamSettingsView, self).get_context_data(**kwargs)
+        exam = Exam.objects.get(pk=context.get("object").id)
+
+        users_groups_add = Group.objects.filter(pk__in=[2,3,4])
+
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+
+        if user_allowed(exam,self.request.user.id):
+            context['user_allowed'] = True
+            context['common_list'] = None
+            context['current_url'] = "examSettings"
+            context['exam'] = exam
+            context['users_groups_add'] = users_groups_add
             return context
         else:
             context['user_allowed'] = False
@@ -280,17 +322,18 @@ def update_exam_options(request,pk):
         exam.amc_option = False
         exam.res_and_stats_option = False
         exam.prep_option = False
-        if 'review_option' in request.POST:
+        if 'review_option_'+str(pk) in request.POST:
             exam.review_option = True
-        if 'amc_option' in request.POST:
+        if 'amc_option_'+str(pk) in request.POST:
             exam.amc_option = True
-        if 'res_and_stats_option' in request.POST:
+        if 'res_and_stats_option_'+str(pk) in request.POST:
             exam.res_and_stats_option = True
-        if 'prep_option' in request.POST:
+        if 'prep_option_'+str(pk) in request.POST:
             exam.prep_option = True
 
         exam.save()
         return HttpResponse('ok')
+
 
 # QUESTIONS MANAGEMENT
 # ------------------------------------------
@@ -303,3 +346,45 @@ def update_question(request):
     question.save()
 
     return HttpResponse(1)
+
+@login_required
+def validate_common_exams_settings(request,pk):
+    exam = Exam.objects.get(pk=pk)
+    common_exams_ids = request.POST.getlist(str(pk)+'_common_to[]')
+    common_exams = Exam.objects.filter(id__in=common_exams_ids)
+    exam.common_exams.set(common_exams)
+
+
+    #get or create overall exam if not from overall exam
+    if not exam.is_overall():
+        overall_exam, created = Exam.objects.get_or_create( code='000-' + exam.name + '-' + exam.year.code + '-' + str(exam.semester.code))
+        if created:
+            overall_exam.name = exam.name
+            overall_exam.year.code = exam.year.code
+            overall_exam.semester.code = exam.semester.code
+            overall_exam.pdf_catalog_name = exam.pdf_catalog_name
+            overall_exam.date = exam.date
+            overall_exam.overall = True
+            overall_exam.save()
+
+        exam.common_exams.add(overall_exam)
+    else:
+        overall_exam = exam
+
+    exam.save()
+    update_common_exams(pk)
+
+    # if common exam, update overall exam users
+    for comex in overall_exam.common_exams.all():
+        for exam_user in comex.exam_users.all():
+            if not overall_exam.exam_users.filter(user=exam_user.user).exists() and exam_user.group.pk != 3:
+                new_exam_user = ExamUser()
+                new_exam_user.user = exam_user.user
+                new_exam_user.exam = overall_exam
+                new_exam_user.group = exam_user.group
+                new_exam_user.save()
+                overall_exam.exam_users.add(new_exam_user)
+    overall_exam.save()
+
+
+    return redirect('../examInfo/' + str(exam.pk))

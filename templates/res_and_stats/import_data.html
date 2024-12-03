@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_tags %}
 
 {% load crispy_forms_tags %}
 {% block title %}Import{% endblock %}
@@ -12,6 +13,8 @@
                 <a class="flex-sm-fill text-sm-center nav-link {% if comex == currselected_exam %}active{% endif %}"
                    id="{{ comex.id }}-tab"  href="{% url 'import_data_4_stats' comex.pk %}" >
                     {{ comex.code }}
+                        <br>
+                        {{ comex.id|get_exam_teachers_short_str }}
                 </a>
             </li>
         {% endfor %}
