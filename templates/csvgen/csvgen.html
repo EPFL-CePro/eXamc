@@ -56,130 +56,139 @@
 </head>
 <body>
 <main>{% endcomment %}
- {% block content %}
+{% block content %}
     <script type="text/javascript">
 
 
-        $(window).on("load",function(){
+        $(window).on("load", function () {
 
 
-            $('#datatable').DataTable( {
-                "paging":   false
-            } );
+            $('#datatable').DataTable({
+                "paging": false
+            });
 
-            $("#excel_file").on("change", function() {
+            $("#excel_file").on("change", function () {
                 var fileName = $(this).val().split("\\").pop();
                 $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
             });
 
-            $('#download_bt').on('click', function() {
+            $('#download_bt').on('click', function () {
                 var studArray = $('#datatable').DataTable().rows().data().toArray();
                 download_csv(studArray);
             });
 
-            function download_csv(studArray){
-            $.ajax({
-              url : "{% url 'export_csv' %}",
-              type : "POST",
-              data : {
-                'csrfmiddlewaretoken' : "{{  csrf_token  }}",
-                'students_list': JSON.stringify(studArray),
-                'choice': "{{ csv_type_AMC }}"
-              },
-              xhrFields:{
-                responseType: 'blob'
-              },
-               complete: function () {
-                $('#spinner-div').hide()},
-              success: function (response){
-                alert('CSV file will be downloaded');
-                var link = document.createElement('a');
-                link.href = window.URL.createObjectURL(response)
-                link.download = 'students_list.csv';
-                document.body.appendChild(link);
-                link.click();
-              },
-              error: function (xhr, status, error) {
+            function download_csv(studArray) {
+                $.ajax({
+                    url: "{% url 'export_csv' %}",
+                    type: "POST",
+                    data: {
+                        'csrfmiddlewaretoken': "{{  csrf_token  }}",
+                        'students_list': JSON.stringify(studArray),
+                        'choice': "{{ csv_type_AMC }}"
+                    },
+                    xhrFields: {
+                        responseType: 'blob'
+                    },
+                    complete: function () {
+                        $('#spinner-div').hide()
+                    },
+                    success: function (response) {
+                        alert('CSV file will be downloaded');
+                        var link = document.createElement('a');
+                        link.href = window.URL.createObjectURL(response)
+                        link.download = 'students_list.csv';
+                        document.body.appendChild(link);
+                        link.click();
+                    },
+                    error: function (xhr, status, error) {
 
-                     alert('err');
-                }
-            });
-          }
+                        alert('err');
+                    }
+                });
+            }
         });
-<!--   $(document).ready(function () {-->
-<!--        $(document).ajaxStart(function () {-->
-<!--            $("#pageloader").fadeIn();-->
-<!--        });-->
+        <!--   $(document).ready(function () {-->
+        <!--        $(document).ajaxStart(function () {-->
+        <!--            $("#pageloader").fadeIn();-->
+        <!--        });-->
 
-<!--        $(document).ajaxStop(function () {-->
-<!--            $("#pageloader").fadeOut();-->
-<!--        });-->
+        <!--        $(document).ajaxStop(function () {-->
+        <!--            $("#pageloader").fadeOut();-->
+        <!--        });-->
 
-<!--        $('#myform').on('submit', function () {-->
-<!--            return true;-->
-<!--        });-->
-<!--    });-->
+        <!--        $('#myform').on('submit', function () {-->
+        <!--            return true;-->
+        <!--        });-->
+        <!--    });-->
 
-    function submitForm(){
-        $("#loading-modal").modal('show');
-        $("#myform").submit();
-        $("#loading-modal").modal('hide');
-    }
+        function submitForm() {
+            $("#loading-modal").modal('show');
+            $("#myform").submit();
+            $("#loading-modal").modal('hide');
+        }
 
 
     </script>
 
-     <div id="csv_gen_div">
-   <div class="jumbotron text-center">
-    <h1>CSV GENERATOR</h1>
-    <form id="myform" action="{% url 'import_students_excel' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
-        {% csrf_token %}
-        <div class="form-row align-items-center">
-            <div class="col-md-8">
-                    <input type="file"
-                           accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                           name="students_excel_file" id="excel_file" class="custom-file-input form-control">
-                    <label class="custom-file-label" for="excel_file">Choose students Excel file</label>
+    <div id="csv_gen_div">
+        <div class="jumbotron text-center">
+            <h1>CSV GENERATOR</h1>
+            <form id="myform" action="{% url 'import_students_excel' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+                {% csrf_token %}
+                <div class="row g-3 align-items-center mb-3">
+                     <div class="col-md-8">
+                        <div class="input-group">
+                            <input type="file" accept=".xlsx, .xls" name="students_excel_file" id="excel_file"
+                                   class="form-control" aria-label="Upload Excel file">
+                            <label class="custom-file-label" for="excel_file">Choose file</label>
+                        </div>
+                    </div>
+
+                    <!-- Submit button -->
+                    <div class="col-auto">
+                        <button class="btn btn-dark btn-sm d-flex align-items-center" type="button" onclick="submitForm();">
+                            <i class="bi bi-upload me-2"></i> Upload </button>
+                    </div>
+
+                    <!-- Download link -->
+                    <div class="col-auto">
+                        <a href="{% static 'templates.zip' %}" class="btn btn-dark btn-sm" download>
+                            <i class="bi bi-download me-2"></i> Download example CSV </a>
+                    </div>
                 </div>
-                <div class="col-md-3 col-sm-3 col-xs-12 col-md-offset-3">
-                    <button class="btn btn-primary" type="button" onclick="submitForm();"><span class="glyphicon glyphicon-upload"
-                                                          style="margin-right:5px;"></span>Upload
-                    </button>
-                </div>
-            </div>
-        </form>
+            </form>
 
 
-<br>
+            <br>
 
-        <label for="choice">Choose the type of file:</label>
-        <select class="btn btn-primary" name="choice" id="choice"
-                onChange="window.document.location.href=this.options[this.selectedIndex].value;">
-            {% if csv_type_AMC == "a" %}
-            <option value="{% url 'change_csv_type' 'a' %}" selected>AMC</option>
-            <option value="{% url 'change_csv_type' 'b' %}">ANS</option>
-            {% else %}
-            <option value="{% url 'change_csv_type' 'a' %}">AMC</option>
-            <option value="{% url 'change_csv_type' 'b' %}" selected>ANS</option>
-            {% endif %}
-        </select>
+            <label for="choice">Choose the type of file:</label>
+            <select class="btn btn-dark btn-sm" name="choice" id="choice"
+                    onChange="window.document.location.href=this.options[this.selectedIndex].value;">
+                {% if csv_type_AMC == "a" %}
+                    <option value="{% url 'change_csv_type' 'a' %}" selected>AMC</option>
+                    <option value="{% url 'change_csv_type' 'b' %}">ANS</option>
+                {% else %}
+                    <option value="{% url 'change_csv_type' 'a' %}">AMC</option>
+                    <option value="{% url 'change_csv_type' 'b' %}" selected>ANS</option>
+                {% endif %}
+            </select>
 
             <br>
 
             {% for message in messages %}
-            <li class="{{ message.tags }}">
-                {% if 'safe' in message.tags %}
-                {{ message|safe }}
-                {% else %}
-                {{ message }}
-                {% endif %}
-            </li>
+                <li class="{{ message.tags }}">
+                    {% if 'safe' in message.tags %}
+                        {{ message|safe }}
+                    {% else %}
+                        {{ message }}
+                    {% endif %}
+                </li>
             {% endfor %}
             {% if column_name and column_number %}
-            <button class="btn btn-success" type="button" id="download_bt"><span class="glyphicon glyphicon-upload"
-                                                                                 style="margin-right:5px;"></span>Download
-                csv
-            </button>
+                <button class="btn btn-success" type="button" id="download_bt"><span class="glyphicon glyphicon-upload"
+                                                                                     style="margin-right:5px;"></span>Download
+                    csv
+                </button>
             {% endif %}
         </div>
     </div>
@@ -198,67 +207,67 @@
     </div>
 
     {% if students_list %}
-    <div>
-        <table id="datatable" class="table table-sm table-striped" style="margin-left:50px; text-align: left; ">
-            <thead class="thead-dark" style="text-align: left">
-            <tr>
+        <div>
+            <table id="datatable" class="table table-sm table-striped" style="margin-left:50px; text-align: left; ">
+                <thead class="thead-dark" style="text-align: left">
+                <tr>
 
-                {% if csv_type_AMC == 'a' %}
-                <th>ID</th>
-                <th>SCIPER</th>
-                <th>NAME</th>
-                <th>EMAIL</th>
-                <th>SEAT</th>
-                <th>ROOM</th>
+                    {% if csv_type_AMC == 'a' %}
+                        <th>ID</th>
+                        <th>SCIPER</th>
+                        <th>NAME</th>
+                        <th>EMAIL</th>
+                        <th>SEAT</th>
+                        <th>ROOM</th>
 
-                {% else %}
-                <th>CLASS_NAME</th>
-                <th>EMAIL</th>
-                <th>SCIPER</th>
-                <th>LAST_NAME</th>
-                <th>FIRST_NAME</th>
+                    {% else %}
+                        <th>CLASS_NAME</th>
+                        <th>EMAIL</th>
+                        <th>SCIPER</th>
+                        <th>LAST_NAME</th>
+                        <th>FIRST_NAME</th>
 
-                {% endif %}
-            </tr>
-            </thead>
-            <tbody>
-            <!--Displaying the converted table-->
-            {% for student in students_list %}
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody>
+                <!--Displaying the converted table-->
+                {% for student in students_list %}
 
-            <tr>
-                {% if csv_type_AMC == 'a' %}
-                <td>{{ student.0 }}</td>
-                <td>{{ student.1 }}</td>
-                <td>{{ student.2 }}</td>
-                <td>{{ student.5 }}</td>
-                <td>{{ student.6 }}</td>
-                <td>{{ student.8 }}</td>
+                    <tr>
+                        {% if csv_type_AMC == 'a' %}
+                            <td>{{ student.0 }}</td>
+                            <td>{{ student.1 }}</td>
+                            <td>{{ student.2 }}</td>
+                            <td>{{ student.5 }}</td>
+                            <td>{{ student.6 }}</td>
+                            <td>{{ student.8 }}</td>
 
-                {% else %}
-                <td>{{ student.7 }}</td>
-                <td>{{ student.5 }}</td>
-                <td>{{ student.1 }}</td>
-                <td>{{ student.3 }}</td>
-                <td>{{ student.4 }}</td>
-                {% endif %}
+                        {% else %}
+                            <td>{{ student.7 }}</td>
+                            <td>{{ student.5 }}</td>
+                            <td>{{ student.1 }}</td>
+                            <td>{{ student.3 }}</td>
+                            <td>{{ student.4 }}</td>
+                        {% endif %}
 
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% endif %}
 
 
     <div class="modal fade" tabindex="-1" role="dialog" id="loading-modal">
-              <div class="modal-dialog modal-sm" role="document" style="width:350px;">
+        <div class="modal-dialog modal-sm" role="document" style="width:350px;">
 
 
-                      <img src="{% static 'images_csvgen/30.gif' %}" style="width: 80%; height: 80%; alignment-baseline: middle;">
-                     </div>
-              </div>
-          </div>
-     </div>
+            <img src="{% static 'images_csvgen/30.gif' %}" style="width: 80%; height: 80%; alignment-baseline: middle;">
+        </div>
+    </div>
+    </div>
+    </div>
 {% endblock %}
 {#</main>#}
 {##}
