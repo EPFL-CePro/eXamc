@@ -10,7 +10,8 @@ from django_tables2 import SingleTableView
 from examc_app.models import *
 from examc_app.tables import ExamSelectTable
 from examc_app.utils.epflldap import ldap_search
-from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
+from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, \
+    convert_html_to_latex, exam_generate_preview, update_folders_paths
 from examc_app.utils.results_statistics_functions import update_common_exams
 from examc_app.views.global_views import menu_access_required
 from examc_app.tasks import generate_statistics
@@ -202,25 +203,6 @@ def update_exam_users(request):
 
 @login_required
 @menu_access_required
-def update_exam_date(request):
-    """
-           Update exam date.
-
-           This function is used to update exam date
-
-           :param request: The HTTP request object.
-
-               Args:
-                    request: The HTTP request object.
-           """
-    exam = Exam.objects.get(pk=request.POST.get('pk'))
-    exam.date = request.POST.get('date')
-    exam.save()
-
-    return redirect('examInfo', pk=exam.pk)
-
-@login_required
-@menu_access_required
 def update_exam_info(request):
     """
            Update exam info.
@@ -232,13 +214,27 @@ def update_exam_info(request):
                Args:
                     request: The HTTP request object.
            """
+
+    ex_date = request.POST.get('date')
+    ex_code = request.POST.get('code')
+    ex_name = request.POST.get('name')
+    ex_semester_id = request.POST.get('semester_id')
+    ex_year_id = request.POST.get('year_id')
+
     exam = Exam.objects.get(pk=request.POST.get('pk'))
+
+    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     exam.date = request.POST.get('date')
     exam.code = request.POST.get('code')
     exam.name = request.POST.get('name')
     exam.semester_id = request.POST.get('semester_id')
     exam.year_id = request.POST.get('year_id')
     exam.save()
+
+    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date
+
+    if old_folder_path != new_folder_path:
+        update_folders_paths(old_folder_path, new_folder_path)
 
     return redirect('examInfo', pk=exam.pk)
 

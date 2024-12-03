@@ -1,3 +1,4 @@
+import os.path
 import shutil
 
 import pypandoc
@@ -7,6 +8,7 @@ from django.db.models.fields import IntegerField
 from django.db.models.functions import Cast
 from num2words import num2words
 
+from django.conf import settings
 from examc_app.models import ExamUser
 from examc_app.utils.amc_functions import get_amc_project_path, amc_update_documents, get_amc_exam_pdf_url
 from examc_app.utils.epflldap.ldap_search import ldap_search_by_sciper
@@ -206,3 +208,12 @@ def search_and_replace(file_path, search_word, replace_word):
 
    with open(file_path, 'w') as file:
       file.write(updated_contents)
+
+def update_folders_paths(old_path,new_path):
+
+    if os.path.exists(str(settings.SCANS_ROOT)+old_path):
+        shutil.move(str(settings.SCANS_ROOT)+old_path, str(settings.SCANS_ROOT)+new_path)
+    if os.path.exists(str(settings.MARKED_SCANS_ROOT)+old_path):
+        shutil.move(str(settings.MARKED_SCANS_ROOT)+old_path, str(settings.MARKED_SCANS_ROOT)+new_path)
+    if os.path.exists(str(settings.AMC_PROJECTS_ROOT)+old_path):
+        shutil.move(str(settings.AMC_PROJECTS_ROOT)+old_path, str(settings.AMC_PROJECTS_ROOT)+new_path)

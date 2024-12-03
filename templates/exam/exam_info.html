@@ -571,13 +571,6 @@ $(window).on("load",function(){
             {% endif %}
         {% endfor %}
 
-{##}
-{#        <!--question-max-pts input-->#}
-{#        {% for question in comex.questions.all %}#}
-{#            $('#maxpts-{{ question.pk }}').on('input', function() {#}
-{#            updateQuestion({{ question.pk }},'max_points', this.value,{{ comex.pk }});#}
-{#            });#}
-{#        {% endfor %}#}
     {% endfor %}
 
     $('a[data-toggle="pill"]').on('show.bs.tab', function(e) {
@@ -788,41 +781,6 @@ function cancelUsers(exam_id){
     $('#loadingModal').modal('hide');
 }
 
-{#function updateQuestion(pk,field,value,exam_pk){#}
-{#    //get current active tab if overall#}
-{#    {% if comex.common_exams %}#}
-{#        var activeNavPills = "#pills-"+exam_pk#}
-{#    {% endif %}#}
-{#    $('#loadingModal').modal('show');#}
-{#    $.ajax({#}
-{#            url : "{% url 'update_question' %}",#}
-{#            type : "POST",#}
-{#            data : {#}
-{#                'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
-{#                'pk' : pk,#}
-{#                'field' : field,#}
-{#                'value' : value#}
-{#            },#}
-{#            beforeSend : function(){#}
-{##}
-{#            },#}
-{#            complete: function () {#}
-{##}
-{#            },#}
-{#            success : function(result) {#}
-{#                $('#loadingModal').modal('hide');#}
-{#                sessionStorage.setItem("regen_stats", "true");#}
-{#                sessionStorage.setItem("scrolly",document.documentElement.scrollTop);#}
-{#                window.location.href = "{% url 'examInfo' exam.pk %}?dataUpdated=true";#}
-{##}
-{##}
-{#            },#}
-{#            error: (error) => {#}
-{#                console.log(error);#}
-{#            }#}
-{#    });#}
-{#}#}
-
 function updateQuestions(exam_pk){
     table = document.getElementById("questions_dt-"+exam_pk);
     var rows = table.rows;
@@ -912,10 +870,6 @@ function updateExamOptions(exam_pk){
             }
         });
 }
-
-{#window.onload = function() {#}
-{#    #}
-{#}#}
 
 
 </script>
