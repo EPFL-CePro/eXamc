@@ -59,6 +59,7 @@ CSV_TO_JPG_MAP = {
     'CM_1106.csv': 'CM_1106.jpg',
     'CM_1111.csv': 'CM1111.jpg',
     'CM_1112.csv': 'CM1112.jpg',
+    'CM_1113.csv': 'CM1113.jpg',
     'CM_1120.csv': 'CM_1120.jpg',
     'CM_1121.csv': 'CM_1121.jpg',
     'CO_01.csv': 'CO_01.jpg',
