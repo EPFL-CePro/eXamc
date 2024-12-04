@@ -10,7 +10,8 @@ from django_tables2 import SingleTableView
 from examc_app.models import *
 from examc_app.tables import ExamSelectTable
 from examc_app.utils.epflldap import ldap_search
-from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
+from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, \
+    convert_html_to_latex, exam_generate_preview, update_folders_paths
 from examc_app.utils.results_statistics_functions import update_common_exams
 from examc_app.views.global_views import menu_access_required
 from examc_app.tasks import generate_statistics
@@ -56,6 +57,8 @@ class ExamInfoView(DetailView):
         exam = Exam.objects.get(pk=context.get("object").id)
 
         users_groups_add = Group.objects.filter(pk__in=[2,3,4])
+        semesters = Semester.objects.all()
+        years = AcademicYear.objects.all()
 
         if exam.common_exams:
             for common_exam in exam.common_exams.all():
@@ -71,6 +74,8 @@ class ExamInfoView(DetailView):
             context['question_types'] = QuestionType.objects.all()
             context['sum_questions_points'] = exam.questions.all().aggregate(Sum('max_points'))
             context['users_groups_add'] = users_groups_add
+            context['semesters'] = semesters
+            context['years'] = years
             context['task_id'] = task_id
             return context
         else:
@@ -196,24 +201,40 @@ def update_exam_users(request):
 
     return redirect('examInfo', pk=exam.pk)
 
-
-
 @login_required
 @menu_access_required
-def update_exam_date(request):
+def update_exam_info(request):
     """
-           Update exam date.
+           Update exam info.
 
-           This function is used to update exam date
+           This function is used to update exam info
 
            :param request: The HTTP request object.
 
                Args:
                     request: The HTTP request object.
            """
+
+    ex_date = request.POST.get('date')
+    ex_code = request.POST.get('code')
+    ex_name = request.POST.get('name')
+    ex_semester_id = request.POST.get('semester_id')
+    ex_year_id = request.POST.get('year_id')
+
     exam = Exam.objects.get(pk=request.POST.get('pk'))
+
+    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     exam.date = request.POST.get('date')
+    exam.code = request.POST.get('code')
+    exam.name = request.POST.get('name')
+    exam.semester_id = request.POST.get('semester_id')
+    exam.year_id = request.POST.get('year_id')
     exam.save()
+
+    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date
+
+    if old_folder_path != new_folder_path:
+        update_folders_paths(old_folder_path, new_folder_path)
 
     return redirect('examInfo', pk=exam.pk)
 
@@ -344,6 +365,37 @@ def update_question(request):
     value = request.POST['value']
     setattr(question, field_name, value)
     question.save()
+
+    return HttpResponse(1)
+
+@login_required
+def update_questions(request):
+    data = json.loads(request.POST.get('data'))
+    for question in data:
+        quest = Question.objects.get(pk=question['QUESTION'])
+        if 'ANSWERS' in question:
+            quest.nb_answers = question['ANSWERS']
+        quest.max_points = question['MAX POINTS']
+        if quest.question_type_id != question['TYPE']:
+            old_qtype = quest.question_type_id
+            quest.question_type_id = question['TYPE']
+            if quest.question_type_id in (1,2) and quest.nb_answers == 0 or old_qtype == 3:
+                quest.nb_answers = 4
+            elif quest.question_type_id == 3:
+                quest.nb_answers = 2
+            else:
+                quest.nb_answers = 0
+        if 'COMMON' in question:
+            quest.common = True if question['COMMON'] == 1 else False
+        quest.save()
+
+        print(question)
+        print(quest)
+    # exam = Question.objects.get(pk=request.POST['pk'])
+    # field_name = request.POST['field']
+    # value = request.POST['value']
+    # setattr(question, field_name, value)
+    # question.save()
 
     return HttpResponse(1)
 

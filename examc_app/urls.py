@@ -9,7 +9,7 @@ from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 urlpatterns = [
     # EXAM INFO
     path('update_exam_users', views.update_exam_users, name="update_exam_users"),
-    path('update_exam_date', views.update_exam_date, name="update_exam_date"),
+    path('update_exam_info', views.update_exam_info, name="update_exam_info"),
     path('examInfo/<int:pk>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
     path('examSettings/<int:pk>', login_required(views.ExamSettingsView.as_view(), login_url='/'), name="examSettings"),
     path('examInfo/<int:pk>/<str:task_id>', login_required(views.ExamInfoView.as_view(), login_url='/'), name="examInfo"),
@@ -89,7 +89,8 @@ urlpatterns = [
     # RESULTS & STATISTICS
     path('catalogPdf/<int:pk>', views.display_catalog, name="catalogPdf"),
     path('catalogPdf/<int:pk>/<slug:searchFor>', views.display_catalog, name="catalogPdf"),
-    path('update_question', views.update_question, name="update_question"),
+    #path('update_question', views.update_question, name="update_question"),
+    path('update_questions', views.update_questions, name="update_questions"),
     path('update_student_present/<int:pk>/<int:value>', views.update_student_present, name="update_student_present"),
     path('generateStats/<int:pk>', views.generate_stats, name="generate_stats"),
     path('generalStats/<int:pk>', views.general_statistics_view, name="generalStats"),

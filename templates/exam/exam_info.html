@@ -63,11 +63,11 @@
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
                                     <tr style="border-bottom:.5px solid lightgrey;">
-                                        <th>Code</th>
-                                        <th>Name</th>
-                                        <th>Year</th>
-                                        <th>Semester</th>
-                                        <th>Date</th>
+                                        <th style="padding-left:25px;">Code</th>
+                                        <th style="padding-left:25px;">Name</th>
+                                        <th style="padding-left:25px;">Year</th>
+                                        <th style="padding-left:25px;">Semester</th>
+                                        <th style="padding-left:25px;">Date</th>
                                         {% if comex.common_exams.all %}
                                             <th>Individual specific</th>
                                         {% endif %}
@@ -78,19 +78,28 @@
                                             {% if comex.is_overall %}
                                                 GLOBAL
                                             {% else %}
-                                                {{ comex.code }}
+                                                <input class="form-control" type="text" name="exam_code_{{ comex.id }}" id="exam_code_{{ comex.id }}" required  style="" class="form-control" required="" aria-invalid="true" value="{{ comex.code }}">
                                             {% endif %}
                                         </td>
-                                        <td>{{ comex.name }}</td>
-                                        <td>{{ comex.year.code }}</td>                             
-                                        <td>{{ comex.semester.code }}</td>
+                                        <td>
+                                            <input class="form-control" type="text" size="100" name="exam_name_{{ comex.id }}" id="exam_name_{{ comex.id }}" required  style="" class="form-control" required="" aria-invalid="true" value="{{ comex.name }}">
+                                        </td>
+                                        <td>                                            
+                                            <select class="form-control" name="exam_year_{{ comex.id }}" id="exam_year_{{ comex.id }}" required>
+                                                {% for year in years %}
+                                                <option value="{{ year.id }}" {% if year.id == comex.year.id %}selected{% endif %}>{{ year.code }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>                             
+                                        <td>                                       
+                                            <select class="form-control" name="exam_semester_{{ comex.id }}" id="exam_semester_{{ comex.id }}" required>
+                                                {% for semester in semesters %}
+                                                <option value="{{ semester.id }}" {% if semester.id == comex.semester.id %}selected{% endif %}>{{ semester.code }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
                                         <td id="exam_date_column-{{ comex.id }}">
-                                            {% if comex.date %}
-                                                {{ comex.date|date:"Y-m-d" }}
-                                            {% else %}
-                                                <input class="date form-control" type="date" name="exam_date" id="exam_date-{{ comex.id }}"  style="width:175px;color:red;" class="form-control" required="" aria-invalid="true" value="{{ comex.date|date:"Y-m-d" }}">
-                                                <a style="color:red">Please select a date !</a>
-                                            {% endif %}
+                                            <input class="date form-control" type="date" name="exam_date_{{ comex.id }}" id="exam_date_{{ comex.id }}"  style="" class="form-control" required aria-invalid="true" value="{{ comex.date|date:"Y-m-d" }}">
                                         </td>
                                         {% if comex.common_exams.all %}
                                             <td>
@@ -108,6 +117,11 @@
                                         {% endif %}
                                     </tr>
                                 </table>
+                                <hr>
+                                <div>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">Cancel</button>
+                                    <button type="button" onclick="updateExamInfo({{ comex.id }});" class="btn btn-dark btn-sm">Validate</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -186,7 +200,7 @@
                                   Don't forget to <a id="regen-stats-bt-{{ comex.id }}" class="btn btn-dark btn-sm"
                                        href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
                                                                                     style="margin-right: 5px;"></i>Regen
-                                        stats</a> after questions and answers changed!
+                                        stats</a> after questions changed!
                                 </div>
                                 <table id="questions_dt-{{ comex.id }}" class="table table-striped table-sm">
                                     <thead>
@@ -195,7 +209,9 @@
                                         <th>Type</th>
                                         <th>Answers</th>
                                         <th>Max Points</th>
-                                        <th>Common</th>
+                                        {% if comex.common_exams.all %}
+                                            <th>Common</th>
+                                        {% endif %}
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -206,6 +222,7 @@
                                                 <div class="btn-group-sm" role="group">
                                                     {% for question_type in question_types.all %}
                                                         <button id="type-{{ question.pk }}-{{ question_type.pk }}"
+                                                                name="type-{{ question.pk }}"
                                                                 type="button"
                                                                 {% if question.question_type.pk == question_type.pk %}
                                                                 class="btn btn-dark btn-sm focus" {% else %}
@@ -230,6 +247,7 @@
                                                        value="{{ question.max_points }}" step=".01"
                                                        style="width:100px;" class="form-control form-control-sm"
                                                     {% if not user.is_staff %} disabled {% endif %}></td>
+                                            {% if comex.common_exams.all %}
                                             <td>
                                                 <div class="btn-group-sm" role="group">
                                                     <button id="common-{{ question.pk }}-1" type="button"
@@ -247,10 +265,17 @@
                                                             {% if question.common %}style="color:lightgray;"{% endif %}></i>
                                                     </button>
                                                 </div>
+                                            </td>
+                                            {% endif %}
                                         </tr>
                                     {% endfor %}
                                     </tbody>
                                 </table>
+                                <hr>
+                                <div>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">Cancel</button>
+                                    <button type="button" onclick="updateQuestions({{ comex.id }});" class="btn btn-dark btn-sm">Validate</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -446,6 +471,19 @@
 
 $(window).on("load",function(){
 
+    var regen_stats = sessionStorage.getItem("regen_stats");
+    var exam_pk = sessionStorage.getItem("exam_pk");
+    if (regen_stats) {
+        sessionStorage.removeItem("regen_stats");
+        $('#alert_regen_stats-'+exam_pk).attr('style','');
+    }else
+        $('#alert_regen_stats-'+exam_pk).attr('style','display:none;');
+    var scroll_y = sessionStorage.getItem("scrolly");
+    if (scroll_y){
+        document.documentElement.scrollTop = scroll_y;
+        sessionStorage.removeItem("scrolly");
+    }
+    
     // Get saved data from sessionStorage
     if(sessionStorage.length > 0){
         let selectedCollapse_json = sessionStorage.getItem('selectedCollapse_list');
@@ -492,10 +530,11 @@ $(window).on("load",function(){
         <!--question-common checkboxes-->
         {% for question in comex.questions.all %}
             $('#common-{{ question.pk }}-1').on('click', function() {
-            updateQuestion({{ question.pk }},'common', 1,{{ comex.pk }});
-            });
+                $('#common-{{ question.pk }}-1').attr('class','btn btn-dark btn-sm');
+            })
+            
             $('#common-{{ question.pk }}-2').on('click', function() {
-            updateQuestion({{ question.pk }},'common', 0,{{ comex.pk }});
+                $('#common-{{ question.pk }}-2').attr('class','btn btn-outline-dark btn-sm disabled');
             });
         {% endfor %}
 
@@ -503,15 +542,21 @@ $(window).on("load",function(){
         {% for question in comex.questions.all %}
             {% for question_type in question_types %}
                 $('#type-{{ question.pk }}-{{ question_type.pk }}').on('click', function() {
-                updateQuestion({{ question.pk }},'question_type_id', {{ question_type.pk }},{{ comex.pk }});
-            });
+                    {% for qtype in question_types %}
+                        {% if qtype.pk == question_type.pk %}
+                        $('#type-{{ question.pk }}-{{ qtype.pk }}').attr('class','btn btn-dark btn-sm');
+                        {% else %}
+                         $('#type-{{ question.pk }}-{{ qtype.pk }}').attr('class','btn btn-outline-dark btn-sm disabled');
+                        {% endif %}
+                    {% endfor %}
+                });
             {% endfor %}
         {% endfor %}
 
-        <!--question-answers button-groups-->
+        <!--question-answers button-groups-->#}
         {% for question in comex.questions.all %}
             {% if question.question_type.id <= 2 %}
-                answers_range = Array.from({ length: {{ question.nb_answers }}+3 }, (value, index) => 1 + index);
+                answers_range = Array.from({length: 12}, (_, i) => i + 1);//{ length: {{ question.nb_answers }}+3 }, (value, index) => 1 + index);
                 label_positions = [];
                 for(i in answers_range) {
                     label_positions.push(100/(answers_range.length-1)*i);
@@ -523,21 +568,9 @@ $(window).on("load",function(){
                     ticks_positions: label_positions,
                     ticks_snap_bounds: 1
                 });
-
-
-                $('#nb-answers-{{ question.pk }}').on('slideStop',function(el){
-                    updateQuestion({{ question.pk }},'nb_answers',el.value,{{ comex.pk }});
-
-                });
             {% endif %}
         {% endfor %}
 
-        <!--question-max-pts input-->
-        {% for question in comex.questions.all %}
-            $('#maxpts-{{ question.pk }}').on('input', function() {
-            updateQuestion({{ question.pk }},'max_points', this.value,{{ comex.pk }});
-            });
-        {% endfor %}
     {% endfor %}
 
     $('a[data-toggle="pill"]').on('show.bs.tab', function(e) {
@@ -553,10 +586,6 @@ $(window).on("load",function(){
 })
 
 {% for comex in exam.get_common_exams_yc_common %}
-$("#exam_date-{{ comex.id }}").on("change", function() {
-    let pickedDate = $("input").val();
-    updateExamDate({{ comex.id }},pickedDate);
-});
 
 document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
@@ -568,18 +597,31 @@ document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypres
 });
 {% endfor %}
 
-function updateExamDate(exam_id,date){
+function updateExamInfo(exam_id){
+    $('#loadingModal').modal('show');
+    date_el = document.getElementById('exam_date_'+exam_id);
+    date = document.getElementById('exam_date_'+exam_id).value;
+    code = document.getElementById('exam_code_'+exam_id).value;
+    name = document.getElementById('exam_name_'+exam_id).value;
+    year_id = document.getElementById('exam_year_'+exam_id).value;
+    semester_id = document.getElementById('exam_semester_'+exam_id).value;
     $.ajax({
-        url: "{% url 'update_exam_date' %}",
+        url: "{% url 'update_exam_info' %}",
         type: "POST",
         dataType: "json",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
             'pk' : exam_id,
             'date' : date,
+            'code' : code,
+            'name' : name, 
+            'year_id' : year_id,
+            'semester_id' : semester_id,
         },
         complete: function () {
-            $("#exam_date_column-"+exam_id).load(location.href + " #exam_date_column-"+exam_id );
+            $('#loadingModal').modal('hide');
+            location.reload();
+            //$("#exam_date_column-"+exam_id).load(location.href + " #exam_date_column-"+exam_id );
         },
         error: (error) => {
             console.log(error);
@@ -697,6 +739,7 @@ function validateUsers(exam_id,username_to_remove = null){
     }
 
     if(username_to_remove == null){
+        $('#loadingModal').modal('show');
         let list = document.getElementById("newUsersList-"+exam_id);
         list.innerHTML = '';
         document.getElementById("newUserEmail-"+exam_id).value = '';
@@ -711,7 +754,7 @@ function validateUsers(exam_id,username_to_remove = null){
             },
             complete: function () {
                 if( username_to_remove == null) {
-                    $('.modal').modal('hide');
+                    $('#loadingModal').modal('hide');
                     location.reload();
                 }
             },
@@ -735,37 +778,70 @@ function cancelUsers(exam_id){
     let list = document.getElementById("newUsersList-"+exam_id);
     list.innerHTML = '';
     document.getElementById("newUserEmail-"+exam_id).value = '';
-    $('.modal').modal('hide');
+    $('#loadingModal').modal('hide');
 }
-<!--EXAM AJAX UPDATE FUNCTIONS-->
-function updateQuestion(pk,field,value,exam_pk){
-    //get current active tab if overall
-    {% if comex.common_exams %}
-        var activeNavPills = "#pills-"+exam_pk
-    {% endif %}
+
+function updateQuestions(exam_pk){
+    table = document.getElementById("questions_dt-"+exam_pk);
+    var rows = table.rows;
+    const headers = [];
+    const jsonData = [];
+
+    // Extract headers
+    for (let i = 0; i < rows[0].cells.length; i++) {
+        headers.push(rows[0].cells[i].innerText);
+    }
+
+    // Extract data
+    for (let i = 1; i < rows.length; i++) {
+        const rowObject = {};
+        const cells = rows[i].cells;
+        const question_id = rows[i].id.split('-')[1]
+        for (let j = 0; j < cells.length; j++) {
+            switch(j){
+                case 0: 
+                    rowObject[headers[j]] = question_id;
+                    break;
+                case 1:
+                case 4:
+                    button_elements = document.getElementsByName('type-'+question_id);
+                    for (let k = 0; k < button_elements.length; k++){
+                        button_element = button_elements[k];
+                        if( button_element.classList.contains('btn-dark')) {
+                            rowObject[headers[j]] = k+1;
+                        }
+                    }
+                    break;
+                case 2:
+                    let nb_answers;
+                    slider = document.getElementById('nb-answers-slider-'+question_id)
+                    if(slider){
+                        nb_answers = slider.value;
+                    }
+                    rowObject[headers[j]] = nb_answers;
+                    break
+                case 3:
+                    rowObject[headers[j]] = cells[j].children[0].value;
+                    break;
+            }
+        }
+        jsonData.push(rowObject);
+    }
     $('#loadingModal').modal('show');
     $.ajax({
-            url : "{% url 'update_question' %}",
+            url : "{% url 'update_questions' %}",
             type : "POST",
             data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                'pk' : pk,
-                'field' : field,
-                'value' : value
-            },
-            beforeSend : function(){
-
-            },
-            complete: function () {
-
+                'exam_pk' : exam_pk,
+                'data' : JSON.stringify(jsonData, null, 2),
             },
             success : function(result) {
                 $('#loadingModal').modal('hide');
+                sessionStorage.setItem("exam_pk", exam_pk);
                 sessionStorage.setItem("regen_stats", "true");
                 sessionStorage.setItem("scrolly",document.documentElement.scrollTop);
                 window.location.href = "{% url 'examInfo' exam.pk %}?dataUpdated=true";
-
-
             },
             error: (error) => {
                 console.log(error);
@@ -793,19 +869,6 @@ function updateExamOptions(exam_pk){
                 console.log(error);
             }
         });
-}
-
-window.onload = function() {
-    var regen_stats = sessionStorage.getItem("regen_stats");
-    if (regen_stats) {
-        sessionStorage.removeItem("regen_stats");
-        $('#alert_regen_stats').show();
-    }
-    var scroll_y = sessionStorage.getItem("scrolly");
-    if (scroll_y){
-        document.documentElement.scrollTop = scroll_y;
-        sessionStorage.removeItem("scrolly");
-    }
 }
 
 
