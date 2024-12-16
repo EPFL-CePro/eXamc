@@ -676,16 +676,16 @@ def add_unrecognized_page_to_project(exam,copy,question,extra,img_filename):
             #create extra folder for copy if not exist
             Path(copy_extra_folder_path).mkdir(parents=True, exist_ok=True)
 
-            #list files and get last extraNumber
-            last_exNum = 0
+            # #list files and get last extraNumber
+            # last_exNum = 0
+            #
+            # for f in os.listdir(copy_extra_folder_path):
+            #     curr_page = int(f.split("/")[-1].split(".")[0].split("x")[0].split("_")[-1])
+            #     curr_exNum = int(f.split("/")[-1].split(".")[0].split("x")[1])
+            #     if curr_page == page and curr_exNum > last_exNum:
+            #         last_exNum = curr_exNum
 
-            for f in os.listdir(copy_extra_folder_path):
-                curr_page = int(f.split("/")[-1].split(".")[0].split("x")[0].split("_")[-1])
-                curr_exNum = int(f.split("/")[-1].split(".")[0].split("x")[1])
-                if curr_page == page and curr_exNum > last_exNum:
-                    last_exNum = curr_exNum
-
-            new_exNum = str(last_exNum + 1).zfill(2)
+            # new_exNum = str(last_exNum + 1).zfill(2)
             #filename = "copy_"+str(copy).zfill(4)+"_"+str(page).zfill(2)+"x"+new_exNum+".jpg"
 
             #move to extra folder
@@ -700,7 +700,7 @@ def get_students_csv_headers(exam):
 
         students_file = get_amc_option_by_key(exam,"listeetudiants").replace("%PROJET",amc_data_path)
 
-        with open(students_file) as csv_file:
+        with open(students_file,'r', encoding="utf-8") as csv_file:
 
             csv_reader = csv.DictReader(csv_file)
             dict_from_csv = dict(list(csv_reader)[0])

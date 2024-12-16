@@ -23,6 +23,7 @@
   </li>
 </ul>
 
+{% if exam_pages_groups_formset %}
 <div class="tab-content" id="pills-tabContent">
   <div class="tab-pane fade show {% if curr_tab == 'groups' %}active{% endif %}" id="pills-pages-groups" role="tabpanel" aria-labelledby="pills-pages-groups-tab">
     {% include "./manage_exam_pages_groups.html" %}
@@ -31,6 +32,12 @@
     {% include "./manage_exam_reviewers.html" %}
   </div>
 </div>
+{% else %}
+<div class="alert alert-warning">
+  <h4 class="alert-heading">Warning!</h4>
+  <p class="mb-0">No AMC project found! Please upload AMC project zip folder from the left menu "AMC"->"Import data".</p>
+</div>    
+{% endif %}
 {% endblock %}
 
 

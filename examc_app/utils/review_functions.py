@@ -1,4 +1,5 @@
 import base64
+import csv
 import imghdr
 import io
 import pathlib
@@ -126,6 +127,24 @@ def import_scans(exam, path,progress_recorder,process_count,process_number):
 
     return result
 
+def create_students_from_amc(exam):
+    students_csv_file_path = get_amc_project_path(exam,False)+"/students.csv"
+    if os.path.exists(students_csv_file_path):
+        line_nr = 0
+        headers = None
+        with open(students_csv_file_path, newline='') as csv_file:
+            for fields in csv.reader(csv_file, delimiter=','):
+                line_nr += 1
+                if line_nr == 1:
+                    headers = fields
+                else:
+                    if fields[0]:
+                        copy_no = fields[headers.index('ID')]
+                        sciper = fields[headers.index('SCIPER')]
+                        name = fields[headers.index('NAME')]
+                        Student.objects.get_or_create(copie_no=copy_no,sciper=sciper,name=name,exam=exam)
+
+
 
 def delete_old_scans(exam):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
@@ -177,40 +196,41 @@ def get_scans_pathes_by_group(pagesGroup):
 
     scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
 
-    for dir in sorted(os.listdir(scans_dir)):
-        for filename in sorted(os.listdir(scans_dir + "/" + dir)):
-            split_filename = filename.split('_')
-            copy_no = split_filename[-2]
-            page_no_real = split_filename[-1].replace('.jpg','')
-            # get only two first char to prevent extra pages with a,b,c suffixes
-            page_no_int = int(page_no_real[0:2])
+    if os.path.exists(scans_dir):
+        for dir in sorted(os.listdir(scans_dir)):
+            for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+                split_filename = filename.split('_')
+                copy_no = split_filename[-2]
+                page_no_real = split_filename[-1].replace('.jpg','')
+                # get only two first char to prevent extra pages with a,b,c suffixes
+                page_no_int = int(page_no_real[0:2])
 
-            amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
-            from_p = amc_questions_pages[0]['page']
-            to_p = from_p+pagesGroup.nb_pages-1
-            if page_no_int >= from_p and page_no_int <= to_p:
-                marked = False
-                comment = None
-                if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
-                    comment = True
-                pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
-                                                      page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
-                if pageMarkers:
-                    if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
-                        marked = True
+                amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
+                from_p = amc_questions_pages[0]['page']
+                to_p = from_p+pagesGroup.nb_pages-1
+                if page_no_int >= from_p and page_no_int <= to_p:
+                    marked = False
+                    comment = None
+                    if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
+                        comment = True
+                    pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
+                                                          page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
+                    if pageMarkers:
+                        if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
+                            marked = True
 
-                    #marked_by = pageMarkers.get_users_with_date()
+                        #marked_by = pageMarkers.get_users_with_date()
 
-                scans_path_dict = {}
-                scans_path_dict["copy_no"] = copy_no
-                scans_path_dict["page_no"] = page_no_real.lstrip("0")
-                scans_path_dict["path"] = scans_url + "/" + dir + "/" + filename
-                scans_path_dict["marked"] = marked
-                scans_path_dict["comment"] = comment
-                #scans_path_dict["marked_by"] = marked_by
-                scans_pathes.append(scans_path_dict)
+                    scans_path_dict = {}
+                    scans_path_dict["copy_no"] = copy_no
+                    scans_path_dict["page_no"] = page_no_real.lstrip("0")
+                    scans_path_dict["path"] = scans_url + "/" + dir + "/" + filename
+                    scans_path_dict["marked"] = marked
+                    scans_path_dict["comment"] = comment
+                    #scans_path_dict["marked_by"] = marked_by
+                    scans_pathes.append(scans_path_dict)
 
-    scans_pathes = sorted(scans_pathes, key=lambda k: (k['copy_no'], float(k['page_no'])))
+        scans_pathes = sorted(scans_pathes, key=lambda k: (k['copy_no'], float(k['page_no'])))
     return scans_pathes
 
 #

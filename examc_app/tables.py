@@ -53,4 +53,4 @@ class ExamSelectTable(tables.Table):
         model = Exam
         template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-sm", "id":"select_exam_table_id"}
-        fields = ("id","code", "name", "year", "semester", "teachers", "select")
+        fields = ("id","code", "name", "year", "semester", "date", "teachers", "select")
