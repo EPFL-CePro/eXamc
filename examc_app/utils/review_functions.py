@@ -132,7 +132,7 @@ def create_students_from_amc(exam):
     if os.path.exists(students_csv_file_path):
         line_nr = 0
         headers = None
-        with open(students_csv_file_path, newline='') as csv_file:
+        with open(students_csv_file_path, newline='', encoding="utf-8") as csv_file:
             for fields in csv.reader(csv_file, delimiter=','):
                 line_nr += 1
                 if line_nr == 1:
