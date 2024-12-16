@@ -19,6 +19,7 @@ from examc_app.forms import SeatingForm
 from examc_app.utils.rooms_plans_functions import generate_plan
 
 CSV_TO_JPG_MAP = {
+    'AAC_006.csv': 'AAC_006.jpg',
     'AAC_120.csv': 'AAC_120.jpg',
     'AAC_132.csv': 'AAC_132.jpg',
     'AAC_137.csv': 'AAC_137.jpg',
@@ -59,8 +60,10 @@ CSV_TO_JPG_MAP = {
     'CM_1106.csv': 'CM_1106.jpg',
     'CM_1111.csv': 'CM1111.jpg',
     'CM_1112.csv': 'CM1112.jpg',
+    'CM_1113.csv': 'CM1113.jpg',
     'CM_1120.csv': 'CM_1120.jpg',
     'CM_1121.csv': 'CM_1121.jpg',
+    'CM_1221.csv': 'CM_1221.jpg',
     'CO_01.csv': 'CO_01.jpg',
     'CO_02.csv': 'CO_02.jpg',
     'CO_03.csv': 'CO_03.jpg',
