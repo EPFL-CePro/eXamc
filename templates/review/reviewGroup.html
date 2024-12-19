@@ -83,9 +83,9 @@
             </table>
         </div>
     </div>
-    <div class="list-group" id="test" style="height:100%;margin-left:5px" >
+    <div class="list-group" id="test" style="height:100%;margin-left:5px;width:60vw;" >
         <div id="pagination" class="list-group list-group-horizontal"></div>
-        <div id="markerjs_div" style="height:95%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;">
+        <div id="markerjs_div" style="height:95%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;padding-top:5px;">
             <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
                 <img id="source_img" style=""/>
                 <img id="marked_img" style="max-width:100%;position: absolute;"/>
@@ -103,7 +103,7 @@
             <div style="float:right;width:100%;">
                 <a title="Discussion" id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" style="float:right;"  data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
                     <i id="comment-icon" class="fas fa-comments fa-lg" style="margin-left:10px;"></i>
-                    <i id="collapse-d-icon" class="fa mr-3" style="color:grey;"></i>
+                    <i id="collapse-c-icon" class="fa mr-3" style="color:grey;"></i>
                 </a>
                 <div id="comments-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
                     <div>
@@ -461,7 +461,7 @@ function draw_corrector_boxes(data){
         }
     }
     corr_height = max_y/imgRatio - y_pos + 10;//pos_y_max - pos_y_min;
-    corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:500px;z-index:999");
+    corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:75%;z-index:999");
 }
 
 function createMarker4CorrBox(left,top,width,height){
@@ -636,14 +636,14 @@ $(window).on("load",function(){
 
 });
 document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
-    var commentIcon = $( "#comment-icon" );
-    var collapseIcon = $( "#collapse-d-icon" );
+    var expandIcon = $( "#comment-icon" );
+    var collapseIcon = $( "#collapse-c-icon" );
     if(collapseIcon.hasClass('fa-angle-double-left')){
         collapseIcon.removeClass('fa-angle-double-left');
-        commentIcon.show();
+        expandIcon.show();
     }else{
-        collapseIcon.addClass('angle-double-left');
-        commentIcon.hide();
+        collapseIcon.addClass("fa-angle-double-left");
+        expandIcon.hide();
     }
 
 });

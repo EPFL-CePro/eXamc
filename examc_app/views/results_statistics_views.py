@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
 
 from examc_app.forms import ExportResultsForm
+from examc_app.utils.amc_functions import get_amc_catalog_pdf_path
 from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import *
@@ -351,10 +352,15 @@ def display_catalog(request, pk):
         exam = exam.common_exams.all().first()
     cat_name = exam.code + '_' + str(exam.year.code) + '_' + str(exam.semester.code) + '_catalog.pdf'
     cat_path = str(settings.CATALOG_ROOT)+'/'+str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'_'+exam.date.strftime("%Y%m%d") +'/'+cat_name
+    if not os.path.exists(cat_path):
+      #try to find it in amc dir
+      cat_path = get_amc_catalog_pdf_path(exam)
+
     try:
-        return FileResponse(open(cat_path, 'rb'), content_type='application/pdf')
+        response = FileResponse(open(cat_path, 'rb'), content_type='application/pdf')
+        return response
     except FileNotFoundError:
-        raise Http404('not found')
+        raise HttpResponse("No catalog found !")
 
 # other
 # -----------------------------------------

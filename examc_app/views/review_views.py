@@ -139,30 +139,39 @@ class ReviewSettingsView(DetailView):
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
-        curr_tab = "groups"
-        if self.kwargs.get("curr_tab") != '':
-            curr_tab = self.kwargs.get("curr_tab")
-        # formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-        #     {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
-        formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam,group__pk__in=[2,3,4]))
-
-        questions = get_questions(get_amc_project_path(exam, True)+"/data/")
-        questions_choices = [ (q['name'],q['name']) for q in questions]
-        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-            {'id': None, 'group_name': 'Select', 'page_from': -1}], form_kwargs={"questions_choices": questions_choices})
-
-        grading_help_group_form = ckeditorForm()
-        grading_help_group_form.initial['ckeditor_txt'] = ''
-
         if user_allowed(exam, self.request.user.id):
-            context['user_allowed'] = True
-            context['current_url'] = "reviewSettings"
-            context['exam'] = exam
-            context['exam_reviewers_formset'] = formsetReviewers
-            context['exam_pages_groups_formset'] = formsetPagesGroups
-            context['curr_tab'] = curr_tab
-            context['gh_group_form'] = grading_help_group_form
-            return context
+            curr_tab = "groups"
+            if self.kwargs.get("curr_tab") != '':
+                curr_tab = self.kwargs.get("curr_tab")
+            # formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
+            #     {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
+            formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam,group__pk__in=[2,3,4]))
+
+            amc_project_path = get_amc_project_path(exam,False)
+            if amc_project_path:
+                questions = get_questions(get_amc_project_path(exam, True)+"/data/")
+                questions_choices = [ (q['name'],q['name']) for q in questions]
+                formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
+                    {'id': None, 'group_name': 'Select', 'page_from': -1}], form_kwargs={"questions_choices": questions_choices})
+
+                grading_help_group_form = ckeditorForm()
+                grading_help_group_form.initial['ckeditor_txt'] = ''
+
+                context['user_allowed'] = True
+                context['current_url'] = "reviewSettings"
+                context['exam'] = exam
+                context['exam_reviewers_formset'] = formsetReviewers
+                context['exam_pages_groups_formset'] = formsetPagesGroups
+                context['curr_tab'] = curr_tab
+                context['gh_group_form'] = grading_help_group_form
+                return context
+            else:
+
+                context['user_allowed'] = True
+                context['current_url'] = "reviewSettings"
+                context['exam'] = exam
+                context['curr_tab'] = curr_tab
+                return context
         else:
             context['user_allowed'] = False
             context['current_url'] = "reviewSettings"

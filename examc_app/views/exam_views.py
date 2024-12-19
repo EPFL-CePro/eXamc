@@ -6,7 +6,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, DetailView
-from django_tables2 import SingleTableView
+from django_tables2 import SingleTableView, LazyPaginator
 from examc_app.models import *
 from examc_app.tables import ExamSelectTable
 from examc_app.utils.epflldap import ldap_search
@@ -23,7 +23,7 @@ class ExamSelectView(SingleTableView):
     model = Exam
     template_name = 'exam/exam_select.html'
     table_class = ExamSelectTable
-    table_pagination = False
+    #table_pagination = False
 
     def get_queryset(self):
         qs = Exam.objects.filter(overall=False).all()

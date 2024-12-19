@@ -13,7 +13,7 @@ from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import generate_marked_pdfs
+from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc
 
 
 @login_required
@@ -28,6 +28,8 @@ def upload_amc_project(request, pk):
         zip_file = request.FILES['amc_project_zip_file']
 
         message = create_amc_project_dir_from_zip(exam,zip_file)
+
+        create_students_from_amc(exam)
 
         return render(request, 'amc/upload_amc_project.html', {
             'exam': exam,

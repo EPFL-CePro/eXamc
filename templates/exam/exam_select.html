@@ -16,16 +16,20 @@
     </div>
 </div>
 <script>
+
 $('#select_exam_table_id').DataTable( {
-        paging:   false,
-       scrollY: '79vh',
-       order:[],
-    } );
+    paging:   true,
+    pageLength:50,
+    "bLengthChange": false,
+    "bInfo" : false,
+    scrollY: '79vh',
+    order:[],
+} );
 $("tr").click(function() {
     tr = this;
     td = tr.childNodes[1];
     url = td.childNodes[0].innerHTML;
     window.location =  url;
-    });
+});
 </script>
 {% endblock %}

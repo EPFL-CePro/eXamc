@@ -103,7 +103,7 @@
                 {% csrf_token %}
                 <div class="form-group align-items-center">
                     <div class="col-md-10">
-                        <label for="amc_scans" class="custom-file-label form-control-sm">Select scans</label>
+                        <label for="amc_scans_zip_file" class="custom-file-label form-control-sm">Select scans</label>
                         <input type="file" class="custom-file-input" name="amc_scans_zip_file" id="amc_scans_zip_file" accept=".zip" required/>
                     </div>
                 </div>
@@ -160,7 +160,7 @@
             {% csrf_token %}
             <div class="form-group align-items-center">
                 <div class="form-group">
-                    <label for="copy">Copy Nr.</label>
+                    <label for="inputGroupSelectCopy">Copy Nr.</label>
                     <select class="form-control" size="5" data-live-search="true"  id="inputGroupSelectCopy" name="copy" id="copy" required>
                         <option selected></option>
                         {% for copy in data_copies %}
@@ -169,7 +169,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="question">Question</label>
+                    <label for="inputGroupSelectQuestion">Question</label>
                     <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="question" id="question" required>
                         <option selected>
                         {% for question in data_questions %}
@@ -179,7 +179,7 @@
                 </div>
                 <div class="form-group">
                     <label for="extra">add as extra page</label>
-                    <input type="checkbox" id="extra" name="extra">
+                    <input type="checkbox" id="extra" name="extra" checked disabled>
                 </div>
                 <div class="form-group" hidden>
                    <input type="text" id="unrecognized_img_src" name="unrecognized_img_src"/>
@@ -538,8 +538,9 @@ function showAddUnrecognizedPageDialog(img_src){
                 var tr2remove = document.getElementById(img_src);
                 tr2remove.remove();
                 $('#addUnrecognizedPageDialog').modal('hide');
-                //$('#errorDataCaptureDialog').modal('hide');
-                //showErrorDataCaptureDialog('Unrecognized pages');
+                //$("#errorDataCaptureDialog").load(location.href + " #errorDataCaptureDialog");
+                $('#errorDataCaptureDialog').modal('hide');
+                showErrorDataCaptureDialog('Unrecognized pages');
             },
             error: function (data) {
                 console.log('An error occurred.');

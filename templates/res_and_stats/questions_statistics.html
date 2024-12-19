@@ -238,8 +238,6 @@ $(document).ready(function() {
     {% endfor %}
   {% endif %}
 
-
-
 $(window).on("load",function(){
     <!-- allow moving modal -->
     $(".modal-dialog").draggable({
@@ -251,7 +249,9 @@ $(window).on("load",function(){
 
       document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' currselected_exam.pk %}#search="+questionCode+" toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:600px;\" frameborder=\"0\">";
 
+        
     })
+
 
     {% if mcq_questions or open_questions %}
       {% for question in mcq_questions %}

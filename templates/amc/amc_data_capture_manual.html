@@ -63,7 +63,7 @@
               <tr id="table-scan-row-{{ row.copy }}-{{ row.page }}">
                 <td>{{ row.copy }}</td>
                 <td> {{ row.page }}</td>
-                <td>{{ row.mse }}</td>
+                <td>{{ row.mse|floatformat:2 }}</td>
                 <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{% if row.sensitivity %}{{ row.sensitivity }}{% else %}-{% endif %}</td>
                 <td style="display:none;">{{ row.source }}</td>
                 <td style="display:none;">{{ row.questions_ids }}</td>

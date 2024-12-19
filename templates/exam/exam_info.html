@@ -516,7 +516,7 @@ $(window).on("load",function(){
 
         $('#{{ comex.id }}_multiselect').multiselect();
 
-        $("#create-scale-button").modalForm({
+        $("#create-scale-button-{{ comex.id }}").modalForm({
             formURL: "{% url 'create_scale' comex.pk %}",
             modalID: "#create-scale-modal"
         });
