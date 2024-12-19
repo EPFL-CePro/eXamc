@@ -18,64 +18,41 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
             draw_shape = draw_option
             special_case_name = str(settings.ROOMS_PLANS_ROOT) + "/csv_special_numbers/" + special_case
 
-            # Load the original image for this iteration
+            # Charger l'image d'origine
             image = Image.open(image_name)
             draw = ImageDraw.Draw(image)
 
-            if number_option == "continuous":
-                i = n
-                with open(csv_name) as csvfile:
-                    for x, y in csv.reader(csvfile, delimiter=','):
-                        coordx = int(x)
-                        coordy = int(y)
-                        string = f'{i}'
+            # Lire les numéros spéciaux à ignorer
+            skipped_numbers = set()
+            if skip_option == "skip":
+                with open(special_case_name) as csvspecial:
+                    skipped_numbers = {row[0] for row in csv.reader(csvspecial, delimiter=',')}
 
-                        if skip_option == "skip":
-                            with open(special_case_name) as csvspecial:
-                                for row in csv.reader(csvspecial, delimiter=','):
-                                    if string == f'{row[0]}':
-                                        i += 1
-                                        string = f'{i}'
+            i = n  # Numéro actuel
+            with open(csv_name) as csvfile:
+                for x, y in csv.reader(csvfile, delimiter=','):
+                    coordx = int(x)
+                    coordy = int(y)
 
-                        if draw_shape == "circle":
-                            draw.ellipse([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
-                                         outline='black')
-                        elif draw_shape == "square":
-                            draw.rectangle([(coordx - 9, coordy - 9), (coordx + 9, coordy + 9)], fill='white',
-                                           outline='black')
-
-                        draw.text((coordx + 1, coordy), string, fill='red', anchor='mm', font=font)
+                    # Passer les numéros à ignorer
+                    while str(i) in skipped_numbers:
                         i += 1
-                        if i > m:
-                            break
 
-            elif number_option == "special":
-                i = n
-                with open(csv_name) as csvfile:
-                    for x, y in csv.reader(csvfile, delimiter=','):
-                        coordx = int(x)
-                        coordy = int(y)
-                        string = ""
+                    string = f'{i}'
 
-                        with open(special_case_name) as csvspecial:
-                            for k, row in enumerate(csv.reader(csvspecial, delimiter=','), start=1):
-                                if k == i:
-                                    string = f'{row[0]}'
-                                    break
+                    # Dessiner la forme (cercle ou carré)
+                    if draw_shape == "circle":
+                        draw.ellipse([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
+                                     outline='black')
+                    elif draw_shape == "square":
+                        draw.rectangle([(coordx - 9, coordy - 9), (coordx + 9, coordy + 9)], fill='white',
+                                       outline='black')
 
-                        if draw_shape == "circle":
-                            draw.ellipse([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
-                                         outline='black')
-                        elif draw_shape == "square":
-                            draw.rectangle([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
-                                           outline='black')
+                    # Ajouter le numéro
+                    draw.text((coordx + 1, coordy), string, fill='red', anchor='mm', font=font)
+                    i += 1  # Incrémenter pour le prochain siège
 
-                        draw.text((coordx + 1, coordy), string, fill='black', anchor='mm', font=font)
-                        i += 1
-                        if i > m:
-                            break
-
-            # Save each modified image under its unique name
+            # Sauvegarder l'image modifiée
             image.save(export_name)
 
         return 'ok'
@@ -83,3 +60,4 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
     except Exception as e:
         print(f"Error in generate_plan: {e}")
         return str(e)
+
