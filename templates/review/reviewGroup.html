@@ -461,7 +461,7 @@ function draw_corrector_boxes(data){
         }
     }
     corr_height = max_y/imgRatio - y_pos + 10;//pos_y_max - pos_y_min;
-    corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:500px;z-index:999");
+    corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:75%;z-index:999");
 }
 
 function createMarker4CorrBox(left,top,width,height){
