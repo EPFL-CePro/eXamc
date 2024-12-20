@@ -43,11 +43,11 @@
 
 
     <div id="pages_group_list" style="background-color:#f1f1f1;">
-        <a id="expandCollapseGroupListBt" type="button" data-bs-toggle="collapse" style="margin:5px 5px 5px 5px;float:right;" data-bs-target="#pages_group_list_table_div" aria-expanded="False" aria-controls="pages_group_list_table_div">
+        <a id="expandCollapseGroupListBt" type="button" data-bs-toggle="collapse" style="margin:5px 5px 5px 5px;float:right;" data-bs-target="#pages_group_list_table_div" aria-expanded="True" aria-controls="pages_group_list_table_div">
             <i id="expand-group-list-icon" class="fa-lg" style="color:grey;"></i>
-            <i id="collapse-group-list-icon" class="fa mr-3" style="color:grey;"></i>
+            <i id="collapse-group-list-icon" class="fa mr-3 fa-angle-double-left" style="color:grey;"></i>
         </a>
-        <div id="pages_group_list_table_div" class="collapse collapse-horizontal">
+        <div id="pages_group_list_table_div" class="collapse collapse-horizontal show">
             <table class="table table-striped table-sm" id="table-copies-pages">
                 <thead>
                 <tr>
@@ -500,7 +500,7 @@ function createMarker4CorrBox(left,top,width,height){
 
 function initCopyPagesTableOnClickRowEvent(refresh){
 
-    $("#table-copies-pages").on('click', 'tr', function () {
+    $("#table-copies-pages").off().on('click', 'tr', function () {
         createPagination({{ scans_pathes_list|length }}, parseFloat(this.cells[1].innerText));
     });
 
@@ -585,6 +585,29 @@ function saveComment(data){
     return data;
 }
 
+function deleteComment(data){
+    copy_no = currSourceIdSplit[1];
+
+    $.ajax({
+        url : "{% url 'save_comment' %}",
+        type : "POST",
+        async:false,
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'comment_id' : data.id,
+            'group_id' : {{ pages_group.id }},
+            'copy_no' : copy_no,
+            'delete' : true
+        },
+        success: (deleted) => {
+            {#comments.slice(-1).id = comment_id;#}
+            {#data.id = comment_id;#}
+        },
+    });
+
+    return data;
+}
+
 function initComments(commentsArray){
     $('#comments-container').comments({
         profilePictureURL: 'fa-solid fa-circle-user fa-2xs',
@@ -613,6 +636,12 @@ function initComments(commentsArray){
                 success(saveComment(data));
             }, 500);
         },
+        deleteComment: function(data, success, error) {
+            setTimeout(function() {
+                success(deleteComment(data));
+
+            }, 500);
+        },
     });
 };
 
@@ -626,11 +655,11 @@ $(window).on("load",function(){
     setTimeout(() => { document.getElementById("copy_{{scans_pathes_list.0.copy_no}}_{{scans_pathes_list.0.page_no}}").click()},350);
     {% endif %}
 
-    var expandIcon = $( "#expand-group-list-icon" );
-    var collapseIcon = $( "#collapse-group-list-icon" );
-    expandIcon.addClass("fa-solid fa-table-list")
-    expandIcon.show();
-    collapseIcon.hide();
+    {#var expandIcon = $( "#expand-group-list-icon" );#}
+    {#var collapseIcon = $( "#collapse-group-list-icon" );#}
+    {#expandIcon.addClass("fa-angle-double-left).show()");#}
+    {#expandIcon.show();#}
+    {#collapseIcon.hide();#}
     SidebarCollapse();
     
 

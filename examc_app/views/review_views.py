@@ -703,27 +703,31 @@ def getMarkersAndComments(request):
 
 @login_required
 def saveComment(request):
-    comment_data = json.loads(request.POST['comment'])
-    if not comment_data['id'].startswith('c'):
-        comment = PagesGroupComment.objects.get(pk=comment_data['id'])
-        comment.content = comment_data['content']
-        comment.modified = datetime.now()
-        comment.save()
+    if request.POST['delete']:
+        PagesGroupComment.objects.get(pk=request.POST['comment_id']).delete()
     else:
-        comment = PagesGroupComment()
-        comment.is_new = True
-        comment.content = comment_data['content']
-        comment.created = datetime.now()
-        comment.user_id = request.user.id
-        comment.pages_group_id = request.POST['group_id']
-        comment.copy_no = request.POST['copy_no']
-        if comment_data['parent']:
-            comment.parent_id = int(comment_data['parent'])
-        comment.save()
+        comment_data = json.loads(request.POST['comment'])
+        if not comment_data['id'].startswith('c'):
+            comment = PagesGroupComment.objects.get(pk=comment_data['id'])
+            comment.content = comment_data['content']
+            comment.modified = datetime.now()
+            comment.save()
+        else:
+            comment = PagesGroupComment()
+            comment.is_new = True
+            comment.content = comment_data['content']
+            comment.created = datetime.now()
+            comment.user_id = request.user.id
+            comment.pages_group_id = request.POST['group_id']
+            comment.copy_no = request.POST['copy_no']
+            if comment_data['parent']:
+                comment.parent_id = int(comment_data['parent'])
+            comment.save()
 
-    print(comment)
+        print(comment)
 
-    return HttpResponse(comment.id)
+        return HttpResponse(comment.id)
+    return HttpResponse('deleted')
 
 @login_required
 def update_page_group_markers(request):
