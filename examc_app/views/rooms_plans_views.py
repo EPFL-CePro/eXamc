@@ -43,6 +43,7 @@ CSV_TO_JPG_MAP = {
     'CE_3_soft.csv': 'CE_1_3.jpg',
     'CE_1100.csv': 'CE_1100.jpg',
     'CE_1101.csv': 'CE_1101.jpg',
+    'CE_1103.csv': 'CE_1103.jpg',
     'CE_1104.csv': 'CE_1104.jpg',
     'CE_1105.csv': 'CE_1105.jpg',
     'CE_1106.csv': 'CE_1106.jpg',
