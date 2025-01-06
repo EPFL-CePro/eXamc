@@ -18,67 +18,43 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
             draw_shape = draw_option
             special_case_name = str(settings.ROOMS_PLANS_ROOT) + "/csv_special_numbers/" + special_case
 
-            # Load the original image for this iteration
+            # Charger l'image originale pour cette itération
             image = Image.open(image_name)
             draw = ImageDraw.Draw(image)
 
-            # Handle "continuous" numbering
-            if number_option == "continuous":
-                i = n
-                with open(csv_name) as csvfile:
-                    for x, y in csv.reader(csvfile, delimiter=','):
-                        coordx = int(x)
-                        coordy = int(y)
-                        string = f'{i}'
+            # Charger les numéros à skipper si skipping_option == "skip"
+            skip_numbers = []
+            if skip_option == "skip" and special_case:
+                with open(special_case_name) as csvspecial:
+                    skip_numbers = [int(row[0]) for row in csv.reader(csvspecial, delimiter=',')]
 
-                        if skip_option == "skip" and special_case:
-                            # Check if the current seat number exists in the special case file
-                            with open(special_case_name) as csvspecial:
-                                special_numbers = [row[0] for row in csv.reader(csvspecial, delimiter=',')]
-                                if string in special_numbers:
-                                    # Fill the seat but keep the numbering continuous
-                                    string = f'{i}'  # Keep the current number unchanged
+            # Gérer le "continuous" numbering
+            current_number = n  # Commence à partir du premier numéro
+            with open(csv_name) as csvfile:
+                for x, y in csv.reader(csvfile, delimiter=','):
+                    coordx = int(x)
+                    coordy = int(y)
 
-                        if draw_shape == "circle":
-                            draw.ellipse([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
-                                         outline='black')
-                        elif draw_shape == "square":
-                            draw.rectangle([(coordx - 9, coordy - 9), (coordx + 9, coordy + 9)], fill='white',
-                                           outline='black')
+                    # Déterminer si le numéro doit être skippé
+                    while skip_option == "skip" and current_number in skip_numbers:
+                        current_number += 1  # Sauter ce numéro
 
-                        draw.text((coordx + 1, coordy), string, fill='red', anchor='mm', font=font)
-                        i += 1
-                        if i > m:
-                            break
+                    # Dessiner la forme (place toujours dessinée)
+                    if draw_shape == "circle":
+                        draw.ellipse([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
+                                     outline='black')
+                    elif draw_shape == "square":
+                        draw.rectangle([(coordx - 9, coordy - 9), (coordx + 9, coordy + 9)], fill='white',
+                                       outline='black')
 
-            # Handle "special" numbering
-            elif number_option == "special":
-                i = n
-                with open(csv_name) as csvfile:
-                    for x, y in csv.reader(csvfile, delimiter=','):
-                        coordx = int(x)
-                        coordy = int(y)
-                        string = ""
+                    # Dessiner le numéro uniquement si on ne l'a pas skippé
+                    draw.text((coordx + 1, coordy), str(current_number), fill='red', anchor='mm', font=font)
 
-                        with open(special_case_name) as csvspecial:
-                            for k, row in enumerate(csv.reader(csvspecial, delimiter=','), start=1):
-                                if k == i:
-                                    string = f'{row[0]}'
-                                    break
+                    current_number += 1  # Passer au numéro suivant
+                    if current_number > m:
+                        break
 
-                        if draw_shape == "circle":
-                            draw.ellipse([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
-                                         outline='black')
-                        elif draw_shape == "square":
-                            draw.rectangle([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
-                                           outline='black')
-
-                        draw.text((coordx + 1, coordy), string, fill='black', anchor='mm', font=font)
-                        i += 1
-                        if i > m:
-                            break
-
-            # Save each modified image under its unique name
+            # Sauvegarder l'image modifiée
             image.save(export_name)
 
         return 'ok'
@@ -86,4 +62,5 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
     except Exception as e:
         print(f"Error in generate_plan: {e}")
         return str(e)
+
 

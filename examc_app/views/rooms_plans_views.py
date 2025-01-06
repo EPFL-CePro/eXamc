@@ -219,7 +219,7 @@ class GenerateRoomPlanView(FormView):
                     if fill_all_seats:
                         if i == 0:
                             first_seat_number = form.cleaned_data['first_seat_number']
-                            last_seat_number = first_seat_number + total_seats - 1
+                            last_seat_number = first_seat_number + total_seats + 1000 - 1
                         else:
                             first_seat_number = last_seat_number + 1
                             last_seat_number = last_seat_number + total_seats - 1
