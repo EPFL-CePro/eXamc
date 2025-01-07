@@ -28,18 +28,32 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
                 with open(special_case_name) as csvspecial:
                     skip_numbers = [int(row[0]) for row in csv.reader(csvspecial, delimiter=',')]
 
-            # Gérer le "continuous" numbering
-            current_number = n  # Commence à partir du premier numéro
+            # Charger les numéros spéciaux si nécessaire
+            special_numbers = []
+            if number_option == "special":
+                with open(special_case_name) as csvspecial:
+                    special_numbers = [row[0] for row in csv.reader(csvspecial, delimiter=',')]
+
+            # Gérer la numérotation
+            current_number = n
             with open(csv_name) as csvfile:
-                for x, y in csv.reader(csvfile, delimiter=','):
+                for i, (x, y) in enumerate(csv.reader(csvfile, delimiter=','), start=1):
                     coordx = int(x)
                     coordy = int(y)
 
-                    # Déterminer si le numéro doit être skippé
-                    while skip_option == "skip" and current_number in skip_numbers:
-                        current_number += 1  # Sauter ce numéro
+                    # Déterminer le texte à dessiner
+                    if number_option == "special":
+                        if i <= len(special_numbers):
+                            text = special_numbers[i - 1]  # Numéro spécial correspondant
+                        else:
+                            text = ""  # Si on dépasse la liste des numéros spéciaux
+                    else:
+                        # Déterminer si le numéro doit être skippé
+                        while skip_option == "skip" and current_number in skip_numbers:
+                            current_number += 1  # Sauter ce numéro
+                        text = str(current_number)  # Numérotation continue
 
-                    # Dessiner la forme (place toujours dessinée)
+                    # Dessiner la forme
                     if draw_shape == "circle":
                         draw.ellipse([(coordx - 11, coordy - 11), (coordx + 11, coordy + 11)], fill='white',
                                      outline='black')
@@ -47,10 +61,14 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
                         draw.rectangle([(coordx - 9, coordy - 9), (coordx + 9, coordy + 9)], fill='white',
                                        outline='black')
 
-                    # Dessiner le numéro uniquement si on ne l'a pas skippé
-                    draw.text((coordx + 1, coordy), str(current_number), fill='red', anchor='mm', font=font)
+                    # Dessiner le numéro
+                    draw.text((coordx + 1, coordy), text, fill='black', anchor='mm', font=font)
 
-                    current_number += 1  # Passer au numéro suivant
+                    # Incrémenter le numéro pour le mode standard
+                    if number_option != "special":
+                        current_number += 1
+
+                    # Arrêter si on dépasse le dernier numéro
                     if current_number > m:
                         break
 
@@ -62,5 +80,3 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
     except Exception as e:
         print(f"Error in generate_plan: {e}")
         return str(e)
-
-
