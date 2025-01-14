@@ -115,15 +115,15 @@ def count_csv_lines(file_path):
         print(f"Error reading CSV file: {e}")
         return None
 
-def csv_countlines(file_path):
-    try:
-        with open(file_path, 'r',newline='') as file:
-            reader = csv.reader(file)
-            line = sum(1 for row in reader)
-            return line
-    except Exception as e:
-        print(f"Error reading CSV file: {e}")
-        return None
+# def csv_countlines(file_path):
+#     try:
+#         with open(file_path, 'r',newline='') as file:
+#             reader = csv.reader(file)
+#             line = sum(1 for row in reader)
+#             return line
+#     except Exception as e:
+#         print(f"Error reading CSV file: {e}")
+#         return None
 
 
 def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count_csv_lines):
@@ -180,15 +180,11 @@ class GenerateRoomPlanView(FormView):
         shape_to_draw = form.cleaned_data['shape_to_draw']
         fill_all_seats = form.cleaned_data['fill_all_seats']
 
-
-
         special_files_paths = []
         current_seat_number = first_seat_number
         export_files = []
         export_files_url = []
         user_token = get_user_token(self.request)
-
-
 
         zip_filename = f'seat_map_{user_token}_export.zip'
         zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
@@ -203,8 +199,6 @@ class GenerateRoomPlanView(FormView):
                 file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "csv_special_numbers", special_file_path)
                 if os.path.isfile(file_path):
                     os.remove(file_path)
-
-
 
             if special_file:
                 fs = FileSystemStorage(location=str(settings.ROOMS_PLANS_ROOT) + '/csv_special_numbers')
