@@ -77,6 +77,7 @@ CSV_TO_JPG_MAP = {
     'GC_A3_31.csv': 'GC_A3_31.jpg',
     'GC_B3_31.csv': 'GC_B3_31.jpg',
     'GC_C3_30.csv': 'GC_C3_30.jpg',
+    'GR_A3_32.csv': 'GR_A3_32.jpg',
     'GR_B3_30.csv': 'GR_B3_30.jpg',
     'INF_1.csv': 'INF1.jpg',
     'INJ_218.csv': 'INJ_218.jpg',
@@ -113,6 +114,16 @@ def count_csv_lines(file_path):
     except Exception as e:
         print(f"Error reading CSV file: {e}")
         return None
+
+# def csv_countlines(file_path):
+#     try:
+#         with open(file_path, 'r',newline='') as file:
+#             reader = csv.reader(file)
+#             line = sum(1 for row in reader)
+#             return line
+#     except Exception as e:
+#         print(f"Error reading CSV file: {e}")
+#         return None
 
 
 def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count_csv_lines):
@@ -194,6 +205,8 @@ class GenerateRoomPlanView(FormView):
                 filename = fs.save(special_file.name, special_file)
                 special_file_path = fs.path(filename)
                 special_files_paths.append(special_file_path)
+                # special_file_number = count_csv_lines(str(special_file_path))
+                # print(special_file_number)
                 self.request.session['special_file_path'] = special_file_path
             else:
                 special_file = self.request.session.get('special_file_path')
@@ -219,7 +232,7 @@ class GenerateRoomPlanView(FormView):
                     if fill_all_seats:
                         if i == 0:
                             first_seat_number = form.cleaned_data['first_seat_number']
-                            last_seat_number = first_seat_number + total_seats - 1
+                            last_seat_number = first_seat_number + total_seats + 1000 - 1
                         else:
                             first_seat_number = last_seat_number + 1
                             last_seat_number = last_seat_number + total_seats - 1
