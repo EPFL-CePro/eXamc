@@ -13,7 +13,8 @@ from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc
+from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, \
+    create_scans_folder_structure_json
 
 
 @login_required
@@ -79,6 +80,9 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
 
             has_results = get_amc_results_file_path(exam)
 
+            scans_list_json = create_scans_folder_structure_json(exam)
+            scans_list_json_string = json.dumps(scans_list_json)
+
             context['number_of_copies_param'] = amc_option_nb_copies
             context['copy_count'] = number_of_copies
             context['exam_pdf_path'] = amc_exam_pdf_path
@@ -105,6 +109,7 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             context['has_results'] = has_results
             context['task_id'] = task_id
             context['curr_tab'] = curr_tab
+            context['scans_list_json'] = scans_list_json_string
 
     else:
         context['user_allowed'] = False

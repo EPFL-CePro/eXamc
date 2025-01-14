@@ -737,7 +737,7 @@ def update_page_group_markers(request):
         pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_pk'])
         scan_markers, created = PageMarkers.objects.get_or_create(copie_no='CORR-BOX',
                                                                   pages_group=pages_group,
-                                                                  page_no=pages_group.page_from,
+                                                                  nb_pages=pages_group.nb_pages,
                                                                   exam=exam)
         markers = json.loads(request.POST['markers'])
         if markers["markers"]:
@@ -746,6 +746,12 @@ def update_page_group_markers(request):
             scan_markers.save()
         else:
             scan_markers.delete()
+
+        # update page markers users entry
+        page_markers_user, created = PageMarkersUser.objects.get_or_create(pageMarkers=scan_markers,
+                                                                           user=request.user)
+        page_markers_user.modified = datetime.now()
+        page_markers_user.save()
 
         return HttpResponse("Markers updated successfully")
     else:

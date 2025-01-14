@@ -694,6 +694,9 @@ def add_unrecognized_page_to_project(exam,copy,question,extra,img_filename):
             #remove as unrecognized page
             delete_unrecognized_page(amc_data_path+'/data/',img_filename)
 
+        else:
+            one=1#todo
+
 def get_students_csv_headers(exam):
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:

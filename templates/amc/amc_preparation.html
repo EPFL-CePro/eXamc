@@ -1,7 +1,6 @@
 
 {% load custom_tags %}
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.css" integrity="sha512-A81ejcgve91dAWmCGseS60zjrAdohm7PTcAjjiDWtw3Tcj91PNMa1gJ/ImrhG+DbT5V+JQ5r26KT5+kgdVTb5w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <div style="padding:10px;width:800px;">
     <div class="mb-3">
         <button type="button" class="btn btn-dark btn-sm" onclick="openSelectSourceFileDialog();" ><i class="fas fa-pencil-alt"></i> Edit source files</button>
@@ -86,7 +85,6 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js" integrity="sha512-Hyk+1XSRfagqzuSHE8M856g295mX1i5rfSV5yRugcYFlvQiE3BKgg5oFRfX45s7I8qzMYFa8gbFy9xMFbX7Lqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 {{ project_dir_dict|json_script:"json_amc_proj_dir" }}
 <script>
 let amc_updating_documents = false;

@@ -119,7 +119,8 @@
             <h6>eXamc Review (this app)</h6>
             <div class="form-group">
                <div class="col-md-8">
-                    <button onclick="callAutomaticDataCapture_process(true)" class="btn btn-primary btn-sm">Import</button>
+                    <button onclick="callAutomaticDataCapture_process(true)" class="btn btn-primary btn-sm">Import All</button>
+                   <button onclick="openSelectPagesToImportDialog();" class="btn btn-primary btn-sm">Select pages to import</button>
                 </div>
             </div>
         </div>
@@ -207,10 +208,25 @@
         <h6 class="modal-title">Scan</h6>
       </div>
       <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
-          <img id="scanImage"></div>
+          <img id="scanImage">
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary btn-sm" onclick="$('#scanImageDialog').modal('hide');">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="selectPagesToImportDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Select pages</h6>
+      </div>
+      <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
+          <div id="tree"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="">Import</button>
       </div>
     </div>
   </div>
@@ -265,6 +281,117 @@ $('#amc_scans_zip_file').on('change',function(){
     initCopyPagesTableOnClickRowEvent(true);
     $("#table-copies-pages tbody tr:first").trigger('click');
 {% endif %}
+
+ $('#tree').treeview({
+        data:[amc_dir_json],
+        collapseIcon:'fas fa-minus',
+        expandIcon:'fas fa-plus',
+        levels:2,
+        onNodeSelected: function(event, data) {
+
+        }
+    });
+ 
+function openSelectPagesToImportDialog(){
+
+    var defaultData = [
+          {
+            text: 'Parent 1',
+            href: '#parent1',
+            tags: ['4'],
+            nodes: [
+              {
+                text: 'Child 1',
+                href: '#child1',
+                tags: ['2'],
+                nodes: [
+                  {
+                    text: 'Grandchild 1',
+                    href: '#grandchild1',
+                    tags: ['0']
+                  },
+                  {
+                    text: 'Grandchild 2',
+                    href: '#grandchild2',
+                    tags: ['0']
+                  }
+                ]
+              },
+              {
+                text: 'Child 2',
+                href: '#child2',
+                tags: ['0']
+              }
+            ]
+          },
+          {
+            text: 'Parent 2',
+            href: '#parent2',
+            tags: ['0']
+          },
+          {
+            text: 'Parent 3',
+            href: '#parent3',
+             tags: ['0']
+          },
+          {
+            text: 'Parent 4',
+            href: '#parent4',
+            tags: ['0']
+          },
+          {
+            text: 'Parent 5',
+            href: '#parent5'  ,
+            tags: ['0']
+          }
+        ];
+
+
+
+    {#var data = [#}
+    {#          {#}
+    {#            text: "Parent 1",#}
+    {#            nodes: [#}
+    {#              {#}
+    {#                text: "Child 1",#}
+    {#              },#}
+    {#              {#}
+    {#                text: "Child 2",#}
+    {#              },#}
+    {#              {#}
+    {#                text: "Child 3",#}
+    {#              },#}
+    {#            ]#}
+    {#          },#}
+    {#          {#}
+    {#            text: "Parent 2"#}
+    {#          },#}
+    {#          {#}
+    {#            text: "Parent 3"#}
+    {#          },#}
+    {#          {#}
+    {#            text: "Parent 4"#}
+    {#          },#}
+    {#          {#}
+    {#            text: "Parent 5"#}
+    {#          }#}
+    {#        ];#}
+    {#$('#tree').treeview({data: data});#}
+
+    {#copy_pages_data = JSON.parse('{{ scans_list_json | escapejs }}')#}
+    {#$('#tree').treeview({#}
+    {#    data: copy_pages_data,#}
+    {#    selectedBackColor:'#494949',#}
+    {#    borderColor:'#eceeef',#}
+        {#onNodeSelected: function(event, data) {#}
+        {#    alert('selected');#}
+        {#},#}
+        {#onNodeUnselected: function(event,data){#}
+        {#    alert('unselected');#}
+        {#},#}
+    {#});#}
+    $('#selectPagesToImportDialog').modal('show');
+}
 
 
 function initCopyPagesTableOnClickRowEvent(refresh){
@@ -365,10 +492,10 @@ function showErrorDataCaptureDialog(title){
             var tr = document.createElement('tr');
             var th = document.createElement('th') ;
             th.appendChild(document.createTextNode('Copy'));
-            tr.appendChild(td);
+            tr.appendChild(th);
             var th = document.createElement('th') ;
             th.appendChild(document.createTextNode('Page'));
-            tr.appendChild(td);
+            tr.appendChild(th);
             tableHead.appendChild(tr);
             {% for copy in missing_pages %}
               {% for page in copy.missing_pages %}
@@ -395,7 +522,7 @@ function showErrorDataCaptureDialog(title){
             tr.appendChild(document.createElement('th'));
             tableHead.appendChild(tr);
             {% for page in unrecognized_pages %}
-                var scanSrc = "{{ page.source }}";
+                var scanSrc = "{{ page.filepath }}";
                 var tr = document.createElement('tr');
                 tr.setAttribute('id',scanSrc);
                 var td = document.createElement('td') ;
