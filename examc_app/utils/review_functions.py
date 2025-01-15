@@ -475,17 +475,18 @@ def get_exam_copies_from_to(exam):
 def create_scans_folder_structure_json(exam):
     scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     result = []
-    for entry in os.listdir(scans_dir_path):
-        entry_path = os.path.join(scans_dir_path, entry)
-        copy = {'text': 'Copy '+entry,
-                #'selectable': False,
-                #'state': {'expanded': False},
-                  'nodes': []}
-        for child in os.listdir(entry_path):
-            copy['nodes'].append({'text': 'File '+child})#,'selectable':True})
+    if os.path.exists(scans_dir_path):
+        for entry in os.listdir(scans_dir_path):
+            entry_path = os.path.join(scans_dir_path, entry)
+            copy = {'text': 'Copy '+entry,
+                    #'selectable': False,
+                    #'state': {'expanded': False},
+                      'nodes': []}
+            for child in os.listdir(entry_path):
+                copy['nodes'].append({'text': 'File '+child})#,'selectable':True})
 
-        result.append(copy)
+            result.append(copy)
 
-        if len(result) == 10:
-            return result
+            if len(result) == 10:
+                return result
     return result

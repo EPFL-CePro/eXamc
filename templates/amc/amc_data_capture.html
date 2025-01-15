@@ -522,7 +522,7 @@ function showErrorDataCaptureDialog(title){
             tr.appendChild(document.createElement('th'));
             tableHead.appendChild(tr);
             {% for page in unrecognized_pages %}
-                var scanSrc = "{{ page.filepath }}";
+                var scanSrc = "{{ page.source }}";
                 var tr = document.createElement('tr');
                 tr.setAttribute('id',scanSrc);
                 var td = document.createElement('td') ;
