@@ -203,7 +203,7 @@ def import_csv_data(self, temp_csv_file_path, exam_pk):
 
 
 @shared_task(bind=True)
-def import_exam_scans(self, zip_file_path, exam_pk):
+def import_exam_scans(self, zip_file_path, exam_pk,delete_old):
     """
     Extracts and imports scanned files for an exam upload.
 
@@ -239,6 +239,9 @@ def import_exam_scans(self, zip_file_path, exam_pk):
 
         zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(
             exam.semester.code) + "_" + exam.code
+
+        if os.path.exists(zip_path):
+            shutil.rmtree(zip_path)
         tmp_extract_path = zip_path + "/tmp_extract"
 
         # extract zip file in tmp dir
@@ -255,7 +258,7 @@ def import_exam_scans(self, zip_file_path, exam_pk):
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
             process_count) + ' - Importing scans...')
 
-        result = import_scans(exam, tmp_extract_path,progress_recorder,process_count,process_number)
+        result = import_scans(exam, tmp_extract_path,delete_old,progress_recorder,process_count,process_number)
         process_number = result[1]
         nb_copies = result[0]
 

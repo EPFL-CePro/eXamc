@@ -20,15 +20,20 @@
         If this is not the case, you can run the update via the "Update documents" button and then the layout detection via the "Layout detection" button.
     </div>
     {% else %}
-    <div class="alert alert-danger" role="alert" style="padding:20px;">
-        <h4 style="color:darkred;margin-bottom:20px;">
-            <i class="fa-solid fa-skull-crossbones fa-2xl" style="color:darkred"></i>Warning
-        </h4>
-        Importing scans will automatically deleting old scans. Any annotations and comments relating to them will also be deleted! <br/><br/>
-        If you want to keep a record of these data, you can export them (before importing them again!) via the ‘Review -> Export marked scans’ menu.
-    </div>
     <form id="uploadScansForm" method="post" action="{% url 'upload_scans' pk=exam.pk %}" enctype="multipart/form-data">
         {% csrf_token %}
+        <div class="alert alert-danger" role="alert" style="padding:20px;">
+            <div class="custom-control custom-switch mb-3">
+              <input class="custom-control-input" type="checkbox"  name="delete_old_data" id="delete_old_data">
+              <label class="custom-control-label" for="delete_old_data">Delete old data before upload</label>
+            </div>
+            <hr>
+            <h4 style="color:darkred;margin-bottom:20px;">
+                <i class="fa-solid fa-skull-crossbones fa-2xl" style="color:darkred"></i>Warning
+            </h4>
+            If you check this, old scans, annotations and comments relating to them will be deleted! <br/><br/>
+            If you want to keep a record of these data, you can export them (before importing them again!) via the ‘Review -> Export marked scans’ menu.
+        </div>
         <div class="form-group">
             <div class="col-md-8">
                 <input type="file" name="exams_zip_file" id="exams_zip_file" accept=".zip" required class="custom-file-input form-control">
