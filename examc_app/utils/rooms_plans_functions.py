@@ -29,7 +29,12 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
             special_numbers = []
             if number_option == "special":
                 with open(special_case_name) as csvspecial:
-                    special_numbers = [row[0] for row in csv.reader(csvspecial, delimiter=',')]
+                    special_numbers = [(row[0]) for row in csv.reader(csvspecial, delimiter=',')]
+
+            # if number_option == "skip_places":
+            #     skip_numbers = skip_places
+
+
 
             current_number = n
             with open(csv_name) as csvfile:

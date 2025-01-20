@@ -241,6 +241,13 @@ class SeatingForm(forms.Form):
         widget=forms.RadioSelect(attrs={'data-tooltip': "Choose the shape to draw."}),
         initial='circle'
     )
+    # skipping_place = forms.ChoiceField(
+    #     choices=[('0','0'), ('2', '2'), ('3', '3')],
+    #     label='Skipping Place',
+    #     help_text="Choose the skipping numbers.",
+    #     widget=forms.RadioSelect(attrs={'data-tooltip': "Choose the skipping numbers."}),
+    #     initial='0'
+    # )
 
 
 class ldapForm(forms.Form):
