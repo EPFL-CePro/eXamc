@@ -157,6 +157,17 @@ def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count
         print(f"Error calculating seat numbers: {e}")
         return None, None
 
+def skip_places(csv_files,num_to_skip, count_csv_lines):
+    try:
+        seats = []
+        for file in csv_files:
+            seats.append(count_csv_lines(file) + num_to_skip)
+        print(seats)
+        return seats
+    except Exception as e:
+        print(f"Error calculating seat numbers: {e}")
+        return None, None
+
 
 def get_user_token(request):
     if 'user_token' not in request.session:
@@ -179,6 +190,7 @@ class GenerateRoomPlanView(FormView):
         special_file = form.cleaned_data['special_file']
         shape_to_draw = form.cleaned_data['shape_to_draw']
         fill_all_seats = form.cleaned_data['fill_all_seats']
+        # skip_place = form.cleaned_data['skipping_place']
 
         special_files_paths = []
         current_seat_number = first_seat_number
@@ -246,6 +258,12 @@ class GenerateRoomPlanView(FormView):
                         last_seat_number = first_seat_number + total_seats - 1
                     else:
                         last_seat_number = form.cleaned_data['last_seat_number']
+                # skip every two places
+                # elif skip_place == '2':
+                #     first_seat_number = 1
+                #     if fill_all_seats:
+                #         last_seat_number = skip_places(csv_file_paths, 2, count_csv_lines)
+
 
                 else:
                     if fill_all_seats:
