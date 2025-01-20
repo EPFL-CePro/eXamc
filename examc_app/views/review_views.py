@@ -219,6 +219,8 @@ class ReviewSettingsView(DetailView):
                         if form.cleaned_data["nb_pages"] > -1 :
                             pagesGroup.exam = exam
                             pagesGroup.save()
+            else:
+                print(formset.errors)
 
         formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam))
 
@@ -565,6 +567,9 @@ def upload_scans(request, pk, task_id=None):
             amc_ok = False
 
     if request.method == 'POST':
+        delete_old_data = False
+        if 'delete_old_data' in request.POST.keys() and request.POST['delete_old_data'] == 'on':
+            delete_old_data = True
         if 'exams_zip_file' not in request.FILES:
             messages.error(request, "No zip file provided.")
             return redirect(f'../upload_scans/{exam.pk}')
@@ -579,7 +584,7 @@ def upload_scans(request, pk, task_id=None):
             for chunk in zip_file.chunks():
                 temp_file.write(chunk)
 
-        task = import_exam_scans.delay(temp_file_path, pk)
+        task = import_exam_scans.delay(temp_file_path, pk,delete_old_data)
         task_id = task.task_id
        # message = start_upload_scans(request, exam.pk, temp_file_path)
 
@@ -737,7 +742,7 @@ def update_page_group_markers(request):
         pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_pk'])
         scan_markers, created = PageMarkers.objects.get_or_create(copie_no='CORR-BOX',
                                                                   pages_group=pages_group,
-                                                                  page_no=pages_group.page_from,
+                                                                  nb_pages=pages_group.nb_pages,
                                                                   exam=exam)
         markers = json.loads(request.POST['markers'])
         if markers["markers"]:
@@ -746,6 +751,12 @@ def update_page_group_markers(request):
             scan_markers.save()
         else:
             scan_markers.delete()
+
+        # update page markers users entry
+        page_markers_user, created = PageMarkersUser.objects.get_or_create(pageMarkers=scan_markers,
+                                                                           user=request.user)
+        page_markers_user.modified = datetime.now()
+        page_markers_user.save()
 
         return HttpResponse("Markers updated successfully")
     else:

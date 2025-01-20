@@ -58,8 +58,16 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
                 for obj in decodedObjects:
                     if str(obj.type) == 'QRCODE' and 'CePROExamsQRC' in str(obj.data):
                         data = obj.data.decode("utf-8").split(',')
-                        copy_nr = data[1]
+
+                        #spec david to remove later
+                        if 'F-' in data[1]:
+                            copy_nr = data[1].replace('F-', '')
+                        else:
+                            copy_nr = int(data[1])+19
+
+                        #copy_nr = data[1]
                         page_nr = data[2]
+                        extra_i = 0
             else:
                 extra_i += 1
 
@@ -99,22 +107,25 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
     return [copy_count,process_number]
 
 
-def import_scans(exam, path,progress_recorder,process_count,process_number):
+def import_scans(exam, path,delete_old,progress_recorder,process_count,process_number):
     print("* Start importing scans")
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     os.makedirs(scans_dir, exist_ok=True)
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Deleting old scans...')
     process_number += 1
-    delete_old_scans(exam)
+    if delete_old:
+        delete_old_scans(exam)
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Deleting old annotations...')
     process_number += 1
-    PageMarkers.objects.filter(exam=exam).delete()
+    if delete_old:
+        PageMarkers.objects.filter(exam=exam).delete()
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Deleting old comments...')
     process_number += 1
-    PagesGroupComment.objects.filter(pages_group__exam=exam).delete()
+    if delete_old:
+        PagesGroupComment.objects.filter(pages_group__exam=exam).delete()
     count = 0
     for tmp_scan in os.listdir(path):
         count += 1
@@ -468,3 +479,25 @@ def get_exam_copies_from_to(exam):
     copies_folders.sort()
     copies = [copy.lstrip('0') for copy in copies_folders]
     return copies
+
+
+
+
+def create_scans_folder_structure_json(exam):
+    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    result = []
+    if os.path.exists(scans_dir_path):
+        for entry in os.listdir(scans_dir_path):
+            entry_path = os.path.join(scans_dir_path, entry)
+            copy = {'text': 'Copy '+entry,
+                    #'selectable': False,
+                    #'state': {'expanded': False},
+                      'nodes': []}
+            for child in os.listdir(entry_path):
+                copy['nodes'].append({'text': 'File '+child})#,'selectable':True})
+
+            result.append(copy)
+
+            if len(result) == 10:
+                return result
+    return result

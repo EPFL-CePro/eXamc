@@ -250,7 +250,7 @@ class ScoringStrategy(models.Model):
 class PagesGroup(models.Model):
     """ Stores pages group data, representing pages for questions, related to :model:`examc_app.Exam` """
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='pagesGroup')
-    group_name = models.CharField(max_length=20, default='0')
+    group_name = models.CharField(max_length=50, default='0')
     nb_pages = models.IntegerField(default=0)
     #page_to = models.IntegerField(default=0)
     grading_help = models.TextField(default='')
