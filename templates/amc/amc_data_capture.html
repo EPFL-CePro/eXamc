@@ -85,6 +85,7 @@
             </tbody>
           </table>
         </div>
+    </div>
 </div>
 <div class="modal" id="confirmAutomaticDataCaptureModal" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
@@ -346,50 +347,6 @@ function openSelectPagesToImportDialog(){
           }
         ];
 
-
-
-    {#var data = [#}
-    {#          {#}
-    {#            text: "Parent 1",#}
-    {#            nodes: [#}
-    {#              {#}
-    {#                text: "Child 1",#}
-    {#              },#}
-    {#              {#}
-    {#                text: "Child 2",#}
-    {#              },#}
-    {#              {#}
-    {#                text: "Child 3",#}
-    {#              },#}
-    {#            ]#}
-    {#          },#}
-    {#          {#}
-    {#            text: "Parent 2"#}
-    {#          },#}
-    {#          {#}
-    {#            text: "Parent 3"#}
-    {#          },#}
-    {#          {#}
-    {#            text: "Parent 4"#}
-    {#          },#}
-    {#          {#}
-    {#            text: "Parent 5"#}
-    {#          }#}
-    {#        ];#}
-    {#$('#tree').treeview({data: data});#}
-
-    {#copy_pages_data = JSON.parse('{{ scans_list_json | escapejs }}')#}
-    {#$('#tree').treeview({#}
-    {#    data: copy_pages_data,#}
-    {#    selectedBackColor:'#494949',#}
-    {#    borderColor:'#eceeef',#}
-        {#onNodeSelected: function(event, data) {#}
-        {#    alert('selected');#}
-        {#},#}
-        {#onNodeUnselected: function(event,data){#}
-        {#    alert('unselected');#}
-        {#},#}
-    {#});#}
     $('#selectPagesToImportDialog').modal('show');
 }
 
