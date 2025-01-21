@@ -58,14 +58,7 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
                 for obj in decodedObjects:
                     if str(obj.type) == 'QRCODE' and 'CePROExamsQRC' in str(obj.data):
                         data = obj.data.decode("utf-8").split(',')
-
-                        #spec david to remove later
-                        if 'F-' in data[1]:
-                            copy_nr = data[1].replace('F-', '')
-                        else:
-                            copy_nr = int(data[1])+19
-
-                        #copy_nr = data[1]
+                        copy_nr = data[1]
                         page_nr = data[2]
                         extra_i = 0
             else:
@@ -217,29 +210,30 @@ def get_scans_pathes_by_group(pagesGroup):
                 page_no_int = int(page_no_real[0:2])
 
                 amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
-                from_p = amc_questions_pages[0]['page']
-                to_p = from_p+pagesGroup.nb_pages-1
-                if page_no_int >= from_p and page_no_int <= to_p:
-                    marked = False
-                    comment = None
-                    if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
-                        comment = True
-                    pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
-                                                          page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
-                    if pageMarkers:
-                        if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
-                            marked = True
+                if amc_questions_pages:
+                    from_p = amc_questions_pages[0]['page']
+                    to_p = from_p+pagesGroup.nb_pages-1
+                    if page_no_int >= from_p and page_no_int <= to_p:
+                        marked = False
+                        comment = None
+                        if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
+                            comment = True
+                        pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
+                                                              page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
+                        if pageMarkers:
+                            if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
+                                marked = True
 
-                        #marked_by = pageMarkers.get_users_with_date()
+                            #marked_by = pageMarkers.get_users_with_date()
 
-                    scans_path_dict = {}
-                    scans_path_dict["copy_no"] = copy_no
-                    scans_path_dict["page_no"] = page_no_real.lstrip("0")
-                    scans_path_dict["path"] = scans_url + "/" + dir + "/" + filename
-                    scans_path_dict["marked"] = marked
-                    scans_path_dict["comment"] = comment
-                    #scans_path_dict["marked_by"] = marked_by
-                    scans_pathes.append(scans_path_dict)
+                        scans_path_dict = {}
+                        scans_path_dict["copy_no"] = copy_no
+                        scans_path_dict["page_no"] = page_no_real.lstrip("0")
+                        scans_path_dict["path"] = scans_url + "/" + dir + "/" + filename
+                        scans_path_dict["marked"] = marked
+                        scans_path_dict["comment"] = comment
+                        #scans_path_dict["marked_by"] = marked_by
+                        scans_pathes.append(scans_path_dict)
 
         scans_pathes = sorted(scans_pathes, key=lambda k: (k['copy_no'], float(k['page_no'])))
     return scans_pathes
