@@ -39,7 +39,10 @@
     <div>
 
     </div>
-<div class="d-flex" style="height:93vh;">
+<style>
+:focus { outline: none; }
+</style>
+<div id="reviewGroup_div" class="d-flex" tabindex="0" style="height:93vh;">
 
 
     <div id="pages_group_list" style="background-color:#f1f1f1;">
@@ -175,7 +178,7 @@ function createPagination(pages, page) {
 
     // Show the Previous button only if you are on a page other than the first
     if (page > 1) {
-        str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+', '+(page-1)+')">Previous</a>';
+        str += '<a id="previous_page" class="list-group-item list-group-item-action" onclick="createPagination('+pages+', '+(page-1)+')">Previous</a>';
     }
 
     // Show the very first page followed by a "..." at the beginning of the
@@ -211,7 +214,7 @@ function createPagination(pages, page) {
     }
     // Show the Next button only if you are on a page other than the last
     if (page < pages) {
-        str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+(page+1)+')">Next</a>';
+        str += '<a id="next_page" class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+(page+1)+')">Next</a>';
     }
 
     // Return the pagination string to be outputted in the pug templates
@@ -383,7 +386,10 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
                         $("#corr_box_div").css("display","none");
                         if(corrector_boxes.length > 0) {
                             $("#corr_box_div").css("display","block");
-                            draw_corrector_boxes(corrector_boxes);
+                            setTimeout(() => {
+                                draw_corrector_boxes(corrector_boxes);
+                            }, 100);
+                            //draw_corrector_boxes(corrector_boxes);
                         }
                         initComments(comments);
                     }
@@ -661,6 +667,25 @@ $(window).on("load",function(){
     {#expandIcon.show();#}
     {#collapseIcon.hide();#}
     SidebarCollapse();
+
+    $('#reviewGroup_div').on('keydown', function(event) {
+        switch (event.key) {
+            case "ArrowLeft":
+            case "ArrowUp":
+                previous_bt = document.getElementById('previous_page');
+                if (previous_bt != null) {
+                    previous_bt.click();
+                }
+                break;
+            case "ArrowRight":
+            case "ArrowDown":
+                next_bt = document.getElementById('next_page');
+                if (next_bt != null) {
+                    next_bt.click();
+                }
+                break;
+        }
+    }).focus();
     
 
 });

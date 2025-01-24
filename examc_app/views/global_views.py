@@ -23,9 +23,16 @@ def getCommonExams(request, pk):
 def home(request):
     user_info = request.user.__dict__
     user_info.update(request.user.__dict__)
+
+    last_connection_users = []
+    if request.user.is_superuser:
+        for u in User.objects.all().order_by('-last_login'):
+            if u.last_login:
+                last_connection_users.append({"username":u.get_username(),"last_login" : u.last_login.strftime('%Y-%m-%d %H:%M:%S')})
     return render(request, 'home.html', {
         'user': request.user,
         'user_info': user_info,
+        'last_connection_users': last_connection_users,
     })
 
 

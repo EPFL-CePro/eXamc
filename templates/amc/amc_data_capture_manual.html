@@ -4,6 +4,10 @@
 {% block title %}AMC Manual Data Capture{% endblock %}
 {% block content %}
 {% if data_pages %}
+
+<style>
+:focus { outline: none; }
+</style>
     <div style="width: 800px;">
         <div style="width: 50%; height: 50px; float: left; ">
             <h3>Manual Data Capture</h3>
@@ -12,7 +16,7 @@
             <a style="margin-left:150px;" href="{% url 'amc_view' exam.pk '#dataCapture-tab' %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to AMC Data Capture</a>
         </div>
     </div>
-    <div class="d-flex">
+    <div id="amcDataCapture_div" tabindex="0" class="d-flex">
         <div id="scan_page" style="height:95vh;">
             <canvas id="canvasScan"></canvas>
         </div>
@@ -86,6 +90,19 @@ $(window).on("load",function(){
     document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click();    
     setTimeout(() => {document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click(); },350);
 
+    $('#amcDataCapture_div').on('keydown', function(event) {
+        switch (event.key) {
+            case "ArrowLeft":
+            case "ArrowUp":
+                go_to_previews();
+                break;
+            case "ArrowRight":
+            case "ArrowDown":
+                go_to_next();
+                break;
+        }
+    }).focus();
+
 });
 
 
@@ -149,7 +166,7 @@ function setScanCanvas(data,scan_src,copy,page){
     if(canvasWidth > canvasHeight*75/100){
         canvasWidth = canvasHeight*75/100;
     }
-    canvasRatio = imgScan.height / canvasHeight
+
     
     //ratio = imgScan.naturalWidth / imgScan.naturalHeight
 
@@ -165,7 +182,7 @@ function setScanCanvas(data,scan_src,copy,page){
     sleep(100).then(() => {
 
         ctxImg.drawImage(imgScan, 0, 0, canvasWidth, canvasHeight);
-    
+        canvasRatio = imgScan.height / canvasHeight
         if(data) {
             var data_obj = JSON.parse(data);
             elements = [];
@@ -196,7 +213,7 @@ function setScanCanvas(data,scan_src,copy,page){
                         ctxImg.closePath();
                         elemBottom = pos.y / canvasRatio;
                         c4 = [pos.x / canvasRatio, pos.y / canvasRatio];
-                        
+
                         // draw yellow and blue lines for E and V (invalid and empty)
                         if (pos.why && pos.why !== '') {
                             // Define a start Point-->
@@ -228,7 +245,7 @@ function setScanCanvas(data,scan_src,copy,page){
                         } else{
                             ctxImg.strokeStyle = '#33a3ff';
                             ctxImg.lineWidth = 1;
-                            }
+                        }
 
                         ctxImg.stroke();
                         ctxImg.restore();
@@ -250,12 +267,12 @@ function setScanCanvas(data,scan_src,copy,page){
                         break;
                 }
             }
-    
+
             // Add canvas event listener for `click` events.
             canvasScan.addEventListener('click', function (event) {
                 var x = event.offsetX,
                     y = event.offsetY;
-    
+
                 // Collision detection between clicked offset and element.
                 elements.forEach(function (element) {
                     if (y > element.top && y < element.top + element.height
@@ -263,11 +280,11 @@ function setScanCanvas(data,scan_src,copy,page){
                         update_amc_mark_zone(element);
                     }
                 });
-    
-            }, false);
-        }  
-    });
 
+            }, false);
+        }
+
+    })
 }
 
 function initCopyPagesTableOnClickRowEvent(refresh){

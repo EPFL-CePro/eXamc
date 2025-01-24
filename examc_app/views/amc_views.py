@@ -265,7 +265,7 @@ def import_scans_from_review(request,pk):
 
     tmp_file_list = open(file_list_path, "w")
 
-    files = glob.glob(scans_dir + '/**/*.*', recursive=True)
+    files = sorted(glob.glob(scans_dir + '/**/*.*', recursive=True))
     for file in files:
         marked_file_path = file.replace(scans_dir,marked_dir).rsplit('/', 1)[0]
         marked_file_path += "/marked_"+file.replace('.jpeg', '.png').split('/')[-1]
