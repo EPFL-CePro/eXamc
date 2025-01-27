@@ -92,6 +92,11 @@ def find_value_dict_by_key(dict,search_key):
         elif key == search_key:
             return value
 
+    # try searching in global by addind 'defaut_' in pre key name
+    if not key_value and not search_key.startswith("defaut_"):
+        key_value = find_value_dict_by_key(dict,'defaut_'+search_key)
+
+
     return key_value
 
 def get_project_dir_info(exam):

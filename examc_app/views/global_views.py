@@ -1,3 +1,4 @@
+import pytz
 import requests
 from django.conf import settings
 from django.contrib import messages
@@ -28,7 +29,8 @@ def home(request):
     if request.user.is_superuser:
         for u in User.objects.all().order_by('-last_login'):
             if u.last_login:
-                last_connection_users.append({"username":u.get_username(),"last_login" : u.last_login.strftime('%Y-%m-%d %H:%M:%S')})
+                datetime_zone = u.last_login.astimezone(pytz.timezone(settings.TIME_ZONE))
+                last_connection_users.append({"username":u.get_username(),"last_login" : datetime_zone.strftime('%Y-%m-%d %H:%M:%S')})
     return render(request, 'home.html', {
         'user': request.user,
         'user_info': user_info,
