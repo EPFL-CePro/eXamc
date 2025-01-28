@@ -249,22 +249,26 @@
                                                     {% if not user.is_staff %} disabled {% endif %}></td>
                                             {% if comex.common_exams.all %}
                                             <td>
-                                                <div class="btn-group-sm" role="group">
-                                                    <button id="common-{{ question.pk }}-1" type="button"
-                                                            class="btn btn-light btn-sm"
-                                                            style="background-color: transparent;"
-                                                            {% if not user.is_staff %} disabled {% endif %}><i
-                                                            class="fa-solid fa-circle-check fa-2xl"
-                                                            {% if not question.common %}style="color:lightgray;"{% endif %}></i>
-                                                    </button>
-                                                    <button id="common-{{ question.pk }}-2" type="button"
-                                                            class="btn btn-light btn-sm"
-                                                            style="background-color: transparent;"
-                                                            {% if not user.is_staff %} disabled {% endif %}><i
-                                                            class="fa-solid fa-circle-xmark fa-2xl"
-                                                            {% if question.common %}style="color:lightgray;"{% endif %}></i>
-                                                    </button>
-                                                </div>
+                                            <div class="custom-control custom-switch mb-3">
+                                                <input class="custom-control-input" type="checkbox" name="common-{{ question.pk }}" id="common-{{ question.pk }}" {% if question.common %} checked {% endif %}>
+                                                <label class="custom-control-label" for="common-{{ question.pk }}"></label>
+                                            </div>
+{#                                                <div class="btn-group-sm" role="group">#}
+{#                                                    <button id="common-{{ question.pk }}-1" type="button"#}
+{#                                                            class="btn btn-light btn-sm"#}
+{#                                                            style="background-color: transparent;"#}
+{#                                                            {% if not user.is_staff %} disabled {% endif %}><i#}
+{#                                                            class="fa-solid fa-circle-check fa-2xl"#}
+{#                                                            {% if not question.common %}style="color:lightgray;"{% endif %}></i>#}
+{#                                                    </button>#}
+{#                                                    <button id="common-{{ question.pk }}-2" type="button"#}
+{#                                                            class="btn btn-light btn-sm"#}
+{#                                                            style="background-color: transparent;"#}
+{#                                                            {% if not user.is_staff %} disabled {% endif %}><i#}
+{#                                                            class="fa-solid fa-circle-xmark fa-2xl"#}
+{#                                                            {% if question.common %}style="color:lightgray;"{% endif %}></i>#}
+{#                                                    </button>#}
+{#                                                </div>#}
                                             </td>
                                             {% endif %}
                                         </tr>
@@ -803,7 +807,6 @@ function updateQuestions(exam_pk){
                     rowObject[headers[j]] = question_id;
                     break;
                 case 1:
-                case 4:
                     button_elements = document.getElementsByName('type-'+question_id);
                     for (let k = 0; k < button_elements.length; k++){
                         button_element = button_elements[k];
@@ -823,6 +826,9 @@ function updateQuestions(exam_pk){
                 case 3:
                     rowObject[headers[j]] = cells[j].children[0].value;
                     break;
+                case 4:
+                    common_element = document.getElementById('common-'+question_id);
+                    rowObject[headers[j]] = common_element.checked;
             }
         }
         jsonData.push(rowObject);

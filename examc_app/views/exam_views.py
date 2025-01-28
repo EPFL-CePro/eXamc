@@ -386,7 +386,7 @@ def update_questions(request):
             else:
                 quest.nb_answers = 0
         if 'COMMON' in question:
-            quest.common = True if question['COMMON'] == 1 else False
+            quest.common = True if question['COMMON'] else False
         quest.save()
 
         print(question)
