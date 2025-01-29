@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -163,6 +163,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../review/review-review.html">Review</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../review/review-settings.html">Settings</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Settings</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../review/review-settings-pages-groups.html">Pages groups</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../review/review-settings-pages-groups.html#review-settings-pages-groups">Review Settings - Pages Groups</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../review/review-settings-pages-groups.html#grading-help">Grading Help</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../review/review-settings-reviewers.html">Reviewers</a></li>
 </ul>
 </li>
@@ -211,7 +213,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -219,20 +221,50 @@
         <article role="main">
           <section id="seating-map">
 <h1>Seating map<a class="headerlink" href="#seating-map" title="Link to this heading">#</a></h1>
-<p>The room plan module is used to create a numbering seating map. Many options to configure are available.</p>
+<p>The seating map is a visual representation of the room layout. It shows the position of each student in the room.</p>
+<p>This application (This server is accessible only by VPN) is used to create your seating plan based on the room and the number of students. There are several options that can be applied.</p>
+<p>This web app is under development, please contact <a class="reference external" href="mailto:lucile&#46;pinard&#37;&#52;&#48;epfl&#46;ch">lucile<span>&#46;</span>pinard<span>&#64;</span>epfl<span>&#46;</span>ch</a> for any question</p>
+<section id="options">
+<h2>Options:<a class="headerlink" href="#options" title="Link to this heading">#</a></h2>
+<section id="numbering-option">
+<h3>Numbering option:<a class="headerlink" href="#numbering-option" title="Link to this heading">#</a></h3>
+<p>There are two options that can be used, continuous or special. Continuous is the normal way to fill the room. The special option is used to create a room with special numbers (like A12, 24, E, …). It will fill a room with the numbers that are in the CSV file. The CSV file must be created with one number per line.</p>
+</section>
+<section id="skipping-option">
+<h3>Skipping option:<a class="headerlink" href="#skipping-option" title="Link to this heading">#</a></h3>
+<p>The skip option is used to skip some numbers. A CSV file is uploaded with one number per line, and the program will skip these numbers without leaving space in the room plan. With the same file, it is possible to create a room plan with the special numbers.</p>
+<p>To use the “skipping option”, please check the “fill all seat” button and put the number one in the “first seat number”.</p>
+</section>
+<section id="fill-all-seats">
+<h3>Fill all seats:<a class="headerlink" href="#fill-all-seats" title="Link to this heading">#</a></h3>
+<p>The Fill All Seats option will fill all the seats in the selected rooms. It starts from the first written seat number.</p>
+</section>
+<section id="special-file">
+<h3>Special file:<a class="headerlink" href="#special-file" title="Link to this heading">#</a></h3>
+<p>The special file entry is activated when the special or skip options are selected. A CSV file containing the extra numbers.</p>
+<p>To use “special file” option, please check the “fill all seat” button and put the number one in the “first seat number”.</p>
+</section>
+<section id="shape-to-draw">
+<h3>Shape to draw:<a class="headerlink" href="#shape-to-draw" title="Link to this heading">#</a></h3>
+<p>There are two types of shape that can be used to number the seating plan, circle and square. These are two different shapes of numbering the plan.</p>
+</section>
+</section>
+<section id="procedure">
+<h2>Procedure:<a class="headerlink" href="#procedure" title="Link to this heading">#</a></h2>
 <ul class="simple">
-<li><p>Room</p></li>
-<li><p>Numbering option</p></li>
-<li><p>Skip option</p></li>
-<li><p>Fill all seat</p></li>
-<li><p>First seat number</p></li>
-<li><p>Last seat number</p></li>
-<li><p>Shape to draw</p></li>
+<li><p>Select rooms</p></li>
+<li><p>Select the required options</p></li>
+<li><p>Upload CSV file if special file entry appears</p></li>
+<li><p>Check the fill all seats</p></li>
+<li><p>Enter first seat number</p></li>
+<li><p>Preview the file</p></li>
+<li><p>Download file</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Info bubbles are available directly on the page</p>
 </div>
+</section>
 </section>
 
         </article>
@@ -278,8 +310,35 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Seating map</a><ul>
+<li><a class="reference internal" href="#options">Options:</a><ul>
+<li><a class="reference internal" href="#numbering-option">Numbering option:</a></li>
+<li><a class="reference internal" href="#skipping-option">Skipping option:</a></li>
+<li><a class="reference internal" href="#fill-all-seats">Fill all seats:</a></li>
+<li><a class="reference internal" href="#special-file">Special file:</a></li>
+<li><a class="reference internal" href="#shape-to-draw">Shape to draw:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#procedure">Procedure:</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

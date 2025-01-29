@@ -134,7 +134,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -213,7 +213,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -221,18 +221,35 @@
         <article role="main">
           <section id="exam-info">
 <h1>Exam info<a class="headerlink" href="#exam-info" title="Link to this heading">#</a></h1>
-<p>This page is used to manage preferences of the exam and to have a global view of the stats.</p>
-<a class="reference internal image-reference" href="../../_images/exam_info_global.png"><img alt="../../_images/exam_info_global.png" src="../../_images/exam_info_global.png" style="width: 600px;" /></a>
-<p>First, a date should be added to the exam. After that, the date will be displayed in grey, which means that the date is ok.</p>
-<a class="reference internal image-reference" href="../../_images/date.png"><img alt="../../_images/date.png" src="../../_images/date.png" style="width: 400px;" /></a>
-<p>By clicking on the 3 dots on the right hand side of the screen, you can manage which modules are displayed on the sidebar.</p>
-<a class="reference internal image-reference" href="../../_images/exam_options.png"><img alt="../../_images/exam_options.png" src="../../_images/exam_options.png" style="width: 600px;" /></a>
-<p>By clicking on the users icon, you can manage users of the exam, by adding them as teachers, reviewers or assistants.
-The search is done in the ldap database and in the app database, if the user is not an EPFL member, please contact the eXamc admin.</p>
-<a class="reference internal image-reference" href="../../_images/manage_users.png"><img alt="../../_images/manage_users.png" src="../../_images/manage_users.png" style="width: 600px;" /></a>
+<p>This page is used to manage preferences of the exam.
+There are 6 sections: EXAM, SCALE, QUESTIONS, COMMON EXAMS, USERS AND MODULES.</p>
+<a class="reference internal image-reference" href="../../_images/exam_infos_global.png"><img alt="../../_images/exam_infos_global.png" src="../../_images/exam_infos_global.png" style="width: 600px;" /></a>
+<section id="exam">
+<h2>Exam<a class="headerlink" href="#exam" title="Link to this heading">#</a></h2>
+<p>First, a date should be added to the exam.</p>
+<a class="reference internal image-reference" href="../../_images/date.png"><img alt="../../_images/date.png" src="../../_images/date.png" style="width: 600px;" /></a>
+</section>
+<section id="scale">
+<h2>Scale<a class="headerlink" href="#scale" title="Link to this heading">#</a></h2>
 <p>The scale can be added by clicking on the green cross. First enter a name and then the number of points.
 It is possible to add extra points to the exam by adding on the “points to add”.</p>
 <a class="reference internal image-reference" href="../../_images/add_scale.png"><img alt="../../_images/add_scale.png" src="../../_images/add_scale.png" style="width: 600px;" /></a>
+</section>
+<section id="questions">
+<h2>Questions<a class="headerlink" href="#questions" title="Link to this heading">#</a></h2>
+<p>The questions section is used to manage the total points of each question.</p>
+</section>
+<section id="users">
+<h2>Users<a class="headerlink" href="#users" title="Link to this heading">#</a></h2>
+<p>By clicking on the users icon, you can manage users of the exam, by adding them as teachers, reviewers or assistants.
+The search is done in the ldap database and in the app database, if the user is not an EPFL member, please contact the eXamc admin.</p>
+<a class="reference internal image-reference" href="../../_images/manage_users.png"><img alt="../../_images/manage_users.png" src="../../_images/manage_users.png" style="width: 600px;" /></a>
+</section>
+<section id="modules">
+<h2>Modules<a class="headerlink" href="#modules" title="Link to this heading">#</a></h2>
+<p>The modules section is used to manage the modules of the website for the correction of the exam.</p>
+<a class="reference internal image-reference" href="../../_images/modules.png"><img alt="../../_images/modules.png" src="../../_images/modules.png" style="width: 600px;" /></a>
+</section>
 </section>
 
         </article>
@@ -278,8 +295,31 @@ It is possible to add extra points to the exam by adding on the “points to add
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Exam info</a><ul>
+<li><a class="reference internal" href="#exam">Exam</a></li>
+<li><a class="reference internal" href="#scale">Scale</a></li>
+<li><a class="reference internal" href="#questions">Questions</a></li>
+<li><a class="reference internal" href="#users">Users</a></li>
+<li><a class="reference internal" href="#modules">Modules</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
