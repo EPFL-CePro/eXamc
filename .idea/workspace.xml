@@ -4,27 +4,36 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="doc">
-      <change afterPath="$PROJECT_DIR$/docs/source/modules/exam_info/images/date.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/modules/review/images/review_pages_groups.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/eXamc.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/eXamc.iml" afterDir="false" />
+    <list default="true" id="b7c900aa-c63e-43c0-ac46-84d47a166c2c" name="Changes" comment="room_plan int removed">
+      <change afterPath="$PROJECT_DIR$/docs/source/modules/exam_info/images/exam_infos_global.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/source/modules/exam_info/images/modules.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/modules/amc/amc_app.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/amc/amc_app.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/modules/exam_info/exam_info.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/exam_info/exam_info.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/images/pages_groups.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/modules/review/review-settings-pages-groups.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/review/review-settings-pages-groups.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/modules/exam_info/images/date.png" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/exam_info/images/date.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/modules/exam_info/images/exam_info_global.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/modules/open_exam/open_exam.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/open_exam/open_exam.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/modules/room_plan/room_plan.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/modules/room_plan/room_plan.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/environment.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/environment.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/amc/amc_app.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/amc/amc_app.doctree" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/exam_info/exam_info.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/exam_info/exam_info.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-settings-pages-groups.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/review/review-settings-pages-groups.doctree" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_images/review_pages_groups.png" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_images/review_pages_groups.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/open_exam/open_exam.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/open_exam/open_exam.doctree" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/room_plan/room_plan.doctree" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/doctrees/modules/room_plan/room_plan.doctree" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_images/exam_info_global.png" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_images/exam_info_global.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/amc/amc_app.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/amc/amc_app.rst.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/exam_info/exam_info.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/exam_info/exam_info.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-settings-pages-groups.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/review/review-settings-pages-groups.rst.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/genindex.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/genindex.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/open_exam/open_exam.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/open_exam/open_exam.rst.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/room_plan/room_plan.rst.txt" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/_sources/modules/room_plan/room_plan.rst.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/amc.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/amc.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/amc_app.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/amc/amc_app.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/exam_info/exam_info.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/exam_info/exam_info.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings-pages-groups.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings-pages-groups.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/review/review-settings.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/search.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/search.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/open_exam/open_exam.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/open_exam/open_exam.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/modules/room_plan/room_plan.html" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/modules/room_plan/room_plan.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examc_app/static/docs/html/searchindex.js" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/static/docs/html/searchindex.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/utils/rooms_plans_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/utils/rooms_plans_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/examc_app/views/rooms_plans_views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rooms_plans/csv_special_numbers/ME251seats_2.csv" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,49 +78,50 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "DefaultHtmlFileTemplate": "HTML File",
-    "Django Server.eXamc.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form.executor": "Run",
-    "Django tests.Test: examc_app.tests.test_forms.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_models.StudentTestCase.executor": "Debug",
-    "Django tests.Test: examc_app.tests.test_models.executor": "Debug",
-    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.pycharm.django.structure.promotion.once.per.project": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "django.template.preview.state": "SHOW_EDITOR",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/lucile/eXamc/docs/source/modules/exam_info/images",
-    "list.type.of.created.stylesheet": "CSS",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Django Server.eXamc.executor&quot;: &quot;Run&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_export_results_form.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.FormsTestCase.test_login_pages_form.executor&quot;: &quot;Run&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_forms.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.StudentQuestionAnswerTestCase.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.StudentTestCase.executor&quot;: &quot;Debug&quot;,
+    &quot;Django tests.Test: examc_app.tests.test_models.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.pycharm.django.structure.promotion.once.per.project&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;django.template.preview.state&quot;: &quot;SHOW_EDITOR&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/lucile/eXamc/docs/source/modules/exam_info/images&quot;,
+    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/docs/source/modules/exam_info/images" />
-      <recent name="$PROJECT_DIR$/docs/source/modules/review/images" />
-      <recent name="$PROJECT_DIR$/docs/source/modules/amc/images" />
-      <recent name="$PROJECT_DIR$/docs/source/modules/results/images" />
-      <recent name="$PROJECT_DIR$/docs/source/modules/create_exam/images" />
+      <recent name="$PROJECT_DIR$/rooms_plans/csv" />
+      <recent name="$PROJECT_DIR$/rooms_plans/map" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/examc_app/static" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/docs/source/modules/review" />
-      <recent name="$PROJECT_DIR$/docs/source/modules/review/images" />
-      <recent name="$PROJECT_DIR$/docs/source/modules/exam_info/images" />
-      <recent name="$PROJECT_DIR$/docs/source/modules/exam_info" />
-      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/rooms_plans/map" />
+      <recent name="$PROJECT_DIR$/rooms_plans/csv" />
+      <recent name="$PROJECT_DIR$/examc_app/static" />
+      <recent name="$PROJECT_DIR$/rooms_plans/export" />
+      <recent name="$PROJECT_DIR$/rooms_plans" />
     </key>
   </component>
   <component name="RunManager" selected="Django Server.eXamc">
@@ -246,8 +256,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-PY-242.23726.102" />
-        <option value="bundled-python-sdk-5e1850174b45-399fe30bd8c1-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-242.23726.102" />
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-PY-243.22562.180" />
+        <option value="bundled-python-sdk-85c76a3b01b3-9a18a617cbe4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.22562.180" />
       </set>
     </attachedChunks>
   </component>
@@ -277,39 +287,20 @@
       <workItem from="1730363250559" duration="43640000" />
       <workItem from="1730886564951" duration="5229000" />
       <workItem from="1730901973335" duration="4334000" />
-      <workItem from="1730987577485" duration="15517000" />
-    </task>
-    <task id="LOCAL-00001" summary="test models">
-      <option name="closed" value="true" />
-      <created>1715073801179</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1715073801179</updated>
-    </task>
-    <task id="LOCAL-00002" summary="test and doc">
-      <option name="closed" value="true" />
-      <created>1715172133307</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1715172133307</updated>
-    </task>
-    <task id="LOCAL-00003" summary="minor changes">
-      <option name="closed" value="true" />
-      <created>1715172223956</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1715172223956</updated>
-    </task>
-    <task id="LOCAL-00004" summary="review documentation">
-      <option name="closed" value="true" />
-      <created>1715610189761</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1715610189761</updated>
+      <workItem from="1730987577485" duration="30083000" />
+      <workItem from="1732046605556" duration="4524000" />
+      <workItem from="1732195647927" duration="21269000" />
+      <workItem from="1733123836524" duration="251000" />
+      <workItem from="1733141789248" duration="16265000" />
+      <workItem from="1733912953358" duration="3900000" />
+      <workItem from="1734082298867" duration="3914000" />
+      <workItem from="1734598407518" duration="10743000" />
+      <workItem from="1736147902956" duration="6349000" />
+      <workItem from="1736246996038" duration="2250000" />
+      <workItem from="1736410401074" duration="2428000" />
+      <workItem from="1736751970189" duration="27829000" />
+      <workItem from="1737617228468" duration="21869000" />
+      <workItem from="1738070371643" duration="5662000" />
     </task>
     <task id="LOCAL-00005" summary="upd">
       <option name="closed" value="true" />
@@ -559,7 +550,151 @@
       <option name="project" value="LOCAL" />
       <updated>1731071747553</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="doc">
+      <option name="closed" value="true" />
+      <created>1731306683676</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1731306683676</updated>
+    </task>
+    <task id="LOCAL-00037" summary="overflow">
+      <option name="closed" value="true" />
+      <created>1731590441001</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1731590441001</updated>
+    </task>
+    <task id="LOCAL-00038" summary="download csv file">
+      <option name="closed" value="true" />
+      <created>1732542348618</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1732542348618</updated>
+    </task>
+    <task id="LOCAL-00039" summary="download csv file">
+      <option name="closed" value="true" />
+      <created>1732606109857</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1732606109857</updated>
+    </task>
+    <task id="LOCAL-00040" summary="csvgen_views.py">
+      <option name="closed" value="true" />
+      <created>1733213474568</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1733213474568</updated>
+    </task>
+    <task id="LOCAL-00041" summary="csvgen_views.py">
+      <option name="closed" value="true" />
+      <created>1733217195910</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1733217195910</updated>
+    </task>
+    <task id="LOCAL-00042" summary="csvgen">
+      <option name="closed" value="true" />
+      <created>1733219335016</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1733219335016</updated>
+    </task>
+    <task id="LOCAL-00043" summary="csvgen zip">
+      <option name="closed" value="true" />
+      <created>1733231953505</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1733231953505</updated>
+    </task>
+    <task id="LOCAL-00044" summary="CM_1113">
+      <option name="closed" value="true" />
+      <created>1733308119587</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1733308119587</updated>
+    </task>
+    <task id="LOCAL-00045" summary="AAC-006">
+      <option name="closed" value="true" />
+      <created>1733913452013</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1733913452013</updated>
+    </task>
+    <task id="LOCAL-00046" summary="CM1 221">
+      <option name="closed" value="true" />
+      <created>1734084602027</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1734084602027</updated>
+    </task>
+    <task id="LOCAL-00047" summary="room_plan skip">
+      <option name="closed" value="true" />
+      <created>1734602659203</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1734602659203</updated>
+    </task>
+    <task id="LOCAL-00048" summary="room_plan view added room">
+      <option name="closed" value="true" />
+      <created>1734698256239</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1734698256239</updated>
+    </task>
+    <task id="LOCAL-00049" summary="room_plan skip option">
+      <option name="closed" value="true" />
+      <created>1736152136766</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1736152136766</updated>
+    </task>
+    <task id="LOCAL-00050" summary="room_plan special option">
+      <option name="closed" value="true" />
+      <created>1736247603939</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1736247603939</updated>
+    </task>
+    <task id="LOCAL-00051" summary="room_plan add GR A3 32">
+      <option name="closed" value="true" />
+      <created>1736764333825</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1736764333826</updated>
+    </task>
+    <task id="LOCAL-00052" summary="room_plan red color">
+      <option name="closed" value="true" />
+      <created>1736836086334</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1736836086334</updated>
+    </task>
+    <task id="LOCAL-00053" summary="room_plan int removed">
+      <option name="closed" value="true" />
+      <created>1737355077412</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1737355077412</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -578,21 +713,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="review documentation" />
-    <MESSAGE value="upd" />
-    <MESSAGE value="script room map" />
-    <MESSAGE value="script room map v1" />
-    <MESSAGE value="script room map v1.1" />
-    <MESSAGE value="added font" />
-    <MESSAGE value="seating map v1.2" />
-    <MESSAGE value="seating map v1.3" />
-    <MESSAGE value="seating map v1.4" />
-    <MESSAGE value="seating map v1.5" />
-    <MESSAGE value="seating map v1.6" />
-    <MESSAGE value="seating map v1.7" />
-    <MESSAGE value="seating map v1.8" />
-    <MESSAGE value="minor changes" />
-    <MESSAGE value="button room plan added" />
     <MESSAGE value="preview images" />
     <MESSAGE value="survey and csv" />
     <MESSAGE value="merge" />
@@ -603,10 +723,32 @@
     <MESSAGE value="room plan usertoken" />
     <MESSAGE value="ul overflow" />
     <MESSAGE value="doc" />
-    <option name="LAST_COMMIT_MESSAGE" value="doc" />
+    <MESSAGE value="overflow" />
+    <MESSAGE value="download csv file" />
+    <MESSAGE value="csvgen_views.py" />
+    <MESSAGE value="csvgen" />
+    <MESSAGE value="csvgen zip" />
+    <MESSAGE value="CM_1113" />
+    <MESSAGE value="AAC-006" />
+    <MESSAGE value="CM1 221" />
+    <MESSAGE value="room_plan skip" />
+    <MESSAGE value="room_plan view added room" />
+    <MESSAGE value="room_plan skip option" />
+    <MESSAGE value="room_plan special option" />
+    <MESSAGE value="room_plan add GR A3 32" />
+    <MESSAGE value="room_plan red color" />
+    <MESSAGE value="room_plan int removed" />
+    <option name="LAST_COMMIT_MESSAGE" value="room_plan int removed" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/examc_app/views/csvgen_views.py</url>
+          <line>146</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+      </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">

@@ -34,8 +34,6 @@ def generate_plan(csv_data, image_file, csv_file, export_file, numbering_option,
             # if number_option == "skip_places":
             #     skip_numbers = skip_places
 
-
-
             current_number = n
             with open(csv_name) as csvfile:
                 for i, (x, y) in enumerate(csv.reader(csvfile, delimiter=','), start=1):

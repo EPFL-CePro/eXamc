@@ -171,8 +171,9 @@ def import_students_excel_ANS(request, students_file):
             first_name = ldap_student_entry.get('givenName', [''])[0]
             first_name = first_name.split(' ')[0]
             last_name = ldap_student_entry.get('sn', [''])[0]
+            email = ldap_student_entry.get('mail', [''])[0]
 
-            student_row = [None, row[2], None, last_name, first_name, row[1], None, row[0], None]
+            student_row = [None, row[2], None, last_name, first_name, email, None, row[0], None]
             ans_students_list.append(student_row)
         else:
             messages.error(request, f'Student with sciper {row[2]} not found in LDAP.', extra_tags='safe')
