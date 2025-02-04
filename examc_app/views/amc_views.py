@@ -13,8 +13,7 @@ from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, \
-    create_scans_folder_structure_json
+from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
 
 
 @login_required
@@ -80,8 +79,8 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
 
             has_results = get_amc_results_file_path(exam)
 
-            scans_list_json = create_scans_folder_structure_json(exam)
-            scans_list_json_string = json.dumps(scans_list_json)
+            scans_list = get_scans_list(exam)
+            scans_list_json_string = json.dumps(scans_list)
 
             context['number_of_copies_param'] = amc_option_nb_copies
             context['copy_count'] = number_of_copies
@@ -109,7 +108,7 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             context['has_results'] = has_results
             context['task_id'] = task_id
             context['curr_tab'] = curr_tab
-            context['scans_list_json'] = scans_list_json_string
+            context['scans_list_json'] = json.loads(scans_list_json_string)
 
     else:
         context['user_allowed'] = False
@@ -224,6 +223,20 @@ def call_amc_automatic_data_capture(request,from_review):
     zip_file = request.FILES['amc_scans_zip_file']
 
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,False,file_list_path=None))
+
+def import_scans_from_review_pages(request,pk):
+    exam = Exam.objects.get(pk=pk)
+    scans_list = request.POST.getlist('pages_list[]')
+    amc_proj_path = get_amc_project_path(exam, False)
+    file_list_path = amc_proj_path + "/list-file"
+    if os.path.exists(file_list_path):
+        os.remove(file_list_path)
+
+    with open(file_list_path, "w") as f:
+        for scan in scans_list:
+            f.write(scan + "\n")
+
+    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
 def import_scans_from_review(request,pk):
     exam = Exam.objects.get(pk=pk)

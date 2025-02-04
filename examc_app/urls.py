@@ -69,6 +69,7 @@ urlpatterns = [
     path('call_amc_layout_detection', views.call_amc_layout_detection, name="call_amc_layout_detection"),
     path('call_amc_automatic_data_capture', views.call_amc_automatic_data_capture, name="call_amc_automatic_data_capture"),
     path('import_scans_from_review/<int:pk>', views.import_scans_from_review, name="import_scans_from_review"),
+    path('import_scans_from_review_pages/<int:pk>', views.import_scans_from_review_pages, name="import_scans_from_review_pages"),
     path('call_amc_annotate', views.call_amc_annotate, name="call_amc_annotate"),
     path('open_amc_exam_pdf/<int:pk>', views.open_amc_exam_pdf, name="open_amc_exam_pdf"),
     path('open_amc_catalog_pdf/<int:pk>', views.open_amc_catalog_pdf, name="open_amc_catalog_pdf"),

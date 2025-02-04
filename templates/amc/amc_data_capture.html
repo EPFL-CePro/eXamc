@@ -88,49 +88,93 @@
     </div>
 </div>
 <div class="modal" id="confirmAutomaticDataCaptureModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h6 class="modal-title">Automatic Data Capture</h6>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" style="padding:20px;">
-        <p>From where do you want to import scans ?</p>
-        <hr/>
-        <div style="margin-top:50px;">
-            <h6>Local file system</h6>
-            <p>(.zip)</p>
-            <form id="amcScansFromLocalFrm" method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="form-group align-items-center">
-                    <div class="col-md-10">
-                        <label for="amc_scans_zip_file" class="custom-file-label form-control-sm">Select scans</label>
-                        <input type="file" class="custom-file-input" name="amc_scans_zip_file" id="amc_scans_zip_file" accept=".zip" required/>
-                    </div>
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Automatic Data Capture</h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:20px;">
+                <p>From where do you want to import scans ?</p>
+                <hr/>
+                <div style="margin-top:50px;">
+                    <h6>Local file system</h6>
+                    <p>(.zip)</p>
+                    <form id="amcScansFromLocalFrm" method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="form-group align-items-center">
+                            <div class="col-md-10">
+                                <label for="amc_scans_zip_file" class="custom-file-label form-control-sm">Select
+                                    scans</label>
+                                <input type="file" class="custom-file-input" name="amc_scans_zip_file"
+                                       id="amc_scans_zip_file" accept=".zip" required/>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-md-8">
+                                <button class="btn btn-primary btn-sm" type="submit">Import</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                <div class="form-group">
-                   <div class="col-md-8">
-                        <button class="btn btn-primary btn-sm" type="submit">Import</button>
+                <hr/>
+                <div style="margin-top:50px;">
+                    <h6>eXamc Review (this app)</h6>
+                    <div class="form-group">
+                        <div>
+                            <button onclick="callAutomaticDataCapture_process(true,true)" class="btn btn-primary btn-sm">
+                                Import All
+                            </button>
+                            <hr/>
+                            <div>
+                                <h6>Select pages to import</h6>
+                                <div class="row">
+                                    <div class="col">
+                                         <h6>Copy</h6>
+                                    </div>
+                                    <div class="col">
+                                        <h6>Page <sup style="text-transform: lowercase">*annotated</sup></h6>
+                                    </div>
+                                    <div style="width:70px!important;"></div>
+                                    <div class="col">
+                                        <h6>Selected pages</h6>
+                                    </div>
+                                </div>
+                                {% csrf_token %}
+                                <div class="row" style="max-width:1500px;">
+                                    <div class="col">
+                                        <div id="copies-list" style="background-color: transparent;"></div>
+                                    </div>
+                                    <div class="col">
+                                        <select name="scans_to_import_from[]" id="scans_to_import_multiselect" class="form-control" size="8" multiple="multiple">
+                                        </select>
+                                    </div>
+                                    <div style="width:70px!important;">
+                                        <button type="button" id="scans_to_import_multiselect_rightAll" class="btn"><i class="fa-solid fa-angles-right"></i></button>
+                                        <button type="button" id="scans_to_import_multiselect_rightSelected" class="btn "><i class="fa-solid fa-angle-right"></i></button>
+                                        <button type="button" id="scans_to_import_multiselect_leftSelected" class="btn "><i class="fa-solid fa-angle-left"></i></button>
+                                        <button type="button" id="scans_to_import_multiselect_leftAll" class="btn "><i class="fa-solid fa-angles-left"></i></button>
+                                    </div>
+                                    <div class="col">
+                                        <select name="scans_to_import_to[]" id="scans_to_import_multiselect_to" class="form-control" size="8" multiple="multiple">
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <button onclick="callAutomaticDataCapture_process(true,false)" class="btn btn-primary btn-sm">Import selected</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </form>
-        </div>
-          <hr/>
-        <div style="margin-top:50px;">
-            <h6>eXamc Review (this app)</h6>
-            <div class="form-group">
-               <div class="col-md-8">
-                    <button onclick="callAutomaticDataCapture_process(true)" class="btn btn-primary btn-sm">Import All</button>
-                   <button onclick="openSelectPagesToImportDialog();" class="btn btn-primary btn-sm">Select pages to import</button>
                 </div>
             </div>
+            <div class="modal-footer">
+                <button type="button" id="closeConfirmAutomaticDataCaptureModalBt" class="btn btn-secondary btn-sm"
+                        data-dismiss="modal">Cancel
+            </button>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="closeConfirmAutomaticDataCaptureModalBt" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-      </div>
+        </div>
     </div>
-  </div>
 </div>
 <div class="modal" id="errorDataCaptureDialog" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-xl" role="document">
@@ -217,21 +261,6 @@
     </div>
   </div>
 </div>
-<div class="modal" id="selectPagesToImportDialog" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-xl" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h6 class="modal-title">Select pages</h6>
-      </div>
-      <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
-          <div id="tree"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" onclick="">Import</button>
-      </div>
-    </div>
-  </div>
-</div>
 <div class="modal" id="zoomDataCaptureDiagnosisDialog" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -264,7 +293,45 @@
     </div>
   </div>
 </div>
+{{ scans_list_json|json_script:"json_scans_list" }}
 <script>
+
+var scans_list_json = JSON.parse(document.getElementById('json_scans_list').textContent);
+$(window).on("load",function() {
+    setSelectableCopyListHTML();
+    setSelectableCopyPageListHTML(0);
+
+    $('#scans_to_import_multiselect').multiselect();
+});
+
+function setSelectableCopyListHTML(){
+    //init copies list for scans to select
+    copies_list = '<select class="form-control" size="8">';
+    for(var i = 0; i < scans_list_json.length; i++){
+        copies_list += '<option value="'+i+'" onclick="setSelectableCopyPageListHTML('+i+')" class="">'+scans_list_json[i].copy+'</option>'
+    }
+    copies_list += '</select>';
+    document.getElementById('copies-list').innerHTML = copies_list;
+}
+
+function setSelectableCopyPageListHTML(copy){
+    files_list = '';
+    //files_list += '<select name="scans_to_import_from[]" id="scans_to_import_multiselect" class="" size="8" multiple="multiple">';
+
+    scans_to_import_multiselect = $('#scans_to_import_multiselect')[0];
+
+    for(var i = 0; i < scans_list_json[copy].pages.length; i++) {
+        file = scans_list_json[copy].pages[i].page;
+        path = scans_list_json[copy].pages[i].path;
+        files_list += '<option value="'+path+'" class="">'+file+'</option>';
+    }
+    //files_list += '</select>';
+    scans_to_import_multiselect.innerHTML = files_list;
+
+    //document.getElementById('copy-pages-file-list').innerHTML = files_list;
+
+}
+
 $('#amc_scans_zip_file').on('change',function(){
     filename = this.value.split("\\").slice(-1);
     $(this).siblings(".custom-file-label").addClass("selected").html(filename);
@@ -282,73 +349,6 @@ $('#amc_scans_zip_file').on('change',function(){
     initCopyPagesTableOnClickRowEvent(true);
     $("#table-copies-pages tbody tr:first").trigger('click');
 {% endif %}
-
- $('#tree').treeview({
-        data:[amc_dir_json],
-        collapseIcon:'fas fa-minus',
-        expandIcon:'fas fa-plus',
-        levels:2,
-        onNodeSelected: function(event, data) {
-
-        }
-    });
- 
-function openSelectPagesToImportDialog(){
-
-    var defaultData = [
-          {
-            text: 'Parent 1',
-            href: '#parent1',
-            tags: ['4'],
-            nodes: [
-              {
-                text: 'Child 1',
-                href: '#child1',
-                tags: ['2'],
-                nodes: [
-                  {
-                    text: 'Grandchild 1',
-                    href: '#grandchild1',
-                    tags: ['0']
-                  },
-                  {
-                    text: 'Grandchild 2',
-                    href: '#grandchild2',
-                    tags: ['0']
-                  }
-                ]
-              },
-              {
-                text: 'Child 2',
-                href: '#child2',
-                tags: ['0']
-              }
-            ]
-          },
-          {
-            text: 'Parent 2',
-            href: '#parent2',
-            tags: ['0']
-          },
-          {
-            text: 'Parent 3',
-            href: '#parent3',
-             tags: ['0']
-          },
-          {
-            text: 'Parent 4',
-            href: '#parent4',
-            tags: ['0']
-          },
-          {
-            text: 'Parent 5',
-            href: '#parent5'  ,
-            tags: ['0']
-          }
-        ];
-
-    $('#selectPagesToImportDialog').modal('show');
-}
 
 
 function initCopyPagesTableOnClickRowEvent(refresh){
@@ -377,7 +377,7 @@ amcScansFromLocalFrm.addEventListener("submit", (e) => {
     callAutomaticDataCapture_process(false);
 })
 
-function callAutomaticDataCapture_process(from_review) {
+function callAutomaticDataCapture_process(from_review,all_from_review=false) {
     $("#closeConfirmAutomaticDataCaptureModalBt").click();
     amc_process_modal_title = document.getElementById('amc_process_modal_title');
     amc_process_modal_title.innerHTML = "Automatic data capture processing";
@@ -385,28 +385,57 @@ function callAutomaticDataCapture_process(from_review) {
     amc_process_modal_body.text('');
     $('#amc_process_modal').modal('show');
     if(from_review) {
-        $.ajax({
-            url: "{% url 'import_scans_from_review' exam.pk %}",
-            type: "POST",
-            data : {
-               'csrfmiddlewaretoken' : '{{ csrf_token }}',
-            },
-            xhrFields: {
-                // This triggers each time progress is made on the request
-                onprogress: function(event) {
-                    amc_process_modal_body.html('');
-                    var response = event.currentTarget.responseText;
-                    amc_process_modal_body.html(response.replace('\n','<br/>'));
-                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+        if(all_from_review){
+            $.ajax({
+                url: "{% url 'import_scans_from_review' exam.pk %}",
+                type: "POST",
+                data : {
+                   'csrfmiddlewaretoken' : '{{ csrf_token }}',
+                },
+                xhrFields: {
+                    // This triggers each time progress is made on the request
+                    onprogress: function(event) {
+                        amc_process_modal_body.html('');
+                        var response = event.currentTarget.responseText;
+                        amc_process_modal_body.html(response.replace('\n','<br/>'));
+                        amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                    }
+                },
+                success: function() {
+                    amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                },
+                error: function() {
+                    amc_process_modal_body.html('<p>Error occurred</p>');
                 }
-            },
-            success: function() {
-                amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
-            },
-            error: function() {
-                amc_process_modal_body.html('<p>Error occurred</p>');
-            }
-        });
+            });
+        }else{
+            let selectedPagesSelect = $('#scans_to_import_multiselect_to');
+            let selectedPagesValues = $.map(selectedPagesSelect.find('option'), function(o) { return o.value; });
+            $.ajax({
+                url: "{% url 'import_scans_from_review_pages' exam.pk %}",
+                type: "POST",
+                data : {
+                   'csrfmiddlewaretoken' : '{{ csrf_token }}',
+                    'pages_list' : selectedPagesValues
+                },
+                xhrFields: {
+                    // This triggers each time progress is made on the request
+                    onprogress: function(event) {
+                        amc_process_modal_body.html('');
+                        var response = event.currentTarget.responseText;
+                        amc_process_modal_body.html(response.replace('\n','<br/>'));
+                        amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                    }
+                },
+                success: function() {
+                    amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                },
+                error: function() {
+                    amc_process_modal_body.html('<p>Error occurred</p>');
+                }
+            });
+
+        }
     }else{
         frmData = new FormData($("#amcScansFromLocalFrm")[0])
         frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
