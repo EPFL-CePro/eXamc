@@ -13,7 +13,7 @@
             <h3>Manual Data Capture</h3>
         </div>
         <div style="margin-left: 50%; height: 50px; text-align:right;">
-            <a style="margin-left:150px;" href="{% url 'amc_view' common_exam_selected.pk '#dataCapture-tab' %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to AMC Data Capture</a>
+            <a style="margin-left:150px;" href="{% url 'amc_view' exam_selected.pk '#dataCapture-tab' %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to AMC Data Capture</a>
         </div>
     </div>
     <div id="amcDataCapture_div" tabindex="0" class="d-flex">
@@ -316,7 +316,7 @@ function get_amc_marks_positions(copy,page,scan_src){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ common_exam_selected.pk }},
+            'exam_pk' : {{ exam_selected.pk }},
             'copy' : copy,
             'page' : page
         },
@@ -335,7 +335,7 @@ function update_amc_mark_zone(element){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ common_exam_selected.pk }},
+            'exam_pk' : {{ exam_selected.pk }},
             'zoneid' : element.zoneid,
             'corner' : element.corner,
             'copy' : element.copy,

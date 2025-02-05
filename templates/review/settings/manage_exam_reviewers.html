@@ -88,7 +88,7 @@
 {#        type: "POST",#}
 {#        data : {#}
 {#            'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
-{#            'pk' : {{ common_exam_selected.pk }},#}
+{#            'pk' : {{ exam_selected.pk }},#}
 {#            'email' : email,#}
 {#        },#}
 {#        success: (data) => {#}
@@ -147,7 +147,7 @@
 {#        dataType: "json",#}
 {#        data : {#}
 {#            'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
-{#            'pk' : {{ common_exam_selected.pk }},#}
+{#            'pk' : {{ exam_selected.pk }},#}
 {#            'reviewer_list' : reviewers,#}
 {#        },#}
 {#        complete: function () {#}

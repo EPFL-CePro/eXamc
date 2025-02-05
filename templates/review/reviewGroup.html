@@ -30,7 +30,7 @@
 {%  if scans_pathes_list %}
 <div class="row" style="height:50px;">
     <div class="column" style="width:300px;margin-left:15px;">
-        <a href="{% url 'reviewView' common_exam_selected.pk %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
+        <a href="{% url 'reviewView' exam_selected.pk %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
     </div>
     <div class="column" style="margin-left:50px;">
         <h3><i class="fas fa-glasses fa-l" style="margin-right:10px;"></i>Review {{ pages_group.group_name }}</h3>
@@ -280,7 +280,7 @@ function setMarkerArea(target) {
         markedImage.src = event.dataUrl;
         // save the state of MarkerArea
         //maState = event.state;
-        //updateMarkers(markerArea,"{{ common_exam_selected.pk }}","{{ pages_group.pk }}");
+        //updateMarkers(markerArea,"{{ exam_selected.pk }}","{{ pages_group.pk }}");
     });
 
     markerArea.addEventListener("close", (event) => {
@@ -291,7 +291,7 @@ function setMarkerArea(target) {
     imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
     copy_no = currSourceIdSplit[1];
     page_no = currSourceIdSplit[2];
-    result = getMarkersAndComments("{{ common_exam_selected.pk }}",copy_no,page_no,sourceImage.getAttribute("src"));
+    result = getMarkersAndComments("{{ exam_selected.pk }}",copy_no,page_no,sourceImage.getAttribute("src"));
     if(result){
 
         markerArea.show();
@@ -332,7 +332,7 @@ function markerChange(){
         context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
         var dataUrl = canvas.toDataURL('image/jpeg')
         markedImage.src = dataUrl;
-        updateMarkers(markerArea,"{{ common_exam_selected.pk }}","{{ pages_group.pk }}");
+        updateMarkers(markerArea,"{{ exam_selected.pk }}","{{ pages_group.pk }}");
     });
 }
 

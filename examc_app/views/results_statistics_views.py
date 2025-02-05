@@ -60,15 +60,15 @@ def update_student_present(request,pk,value):
 @login_required
 def import_data_4_stats(request,pk,task_id=None):
     exam = Exam.objects.get(pk=pk)
-    currexam = exam
+    exam_selected = exam
 
     common_list = get_common_list(exam)
 
     if exam.is_overall():
-        currexam = common_list[1]
+        exam_selected = common_list[1]
         common_list.remove(exam)
     elif common_list:
-        currexam = exam
+        exam_selected = exam
         exam = common_list[0]
         if len(common_list) > 1:
             common_list.remove(exam)
@@ -76,8 +76,9 @@ def import_data_4_stats(request,pk,task_id=None):
     return render(request, 'res_and_stats/import_data.html',
                   {"user_allowed": user_allowed(exam,request.user.id),
                    "exam":exam,
-                   "currselected_exam":currexam,
+                   "exam_selected":exam_selected,
                    "common_list":common_list,
+                   "nav_url":'import_data_4_stats',
                    "task_id":task_id})
 
 @login_required
@@ -117,13 +118,23 @@ def upload_catalog_pdf(request, pk):
 
 @login_required
 def export_data(request,pk):
-    EXAM = Exam.objects.get(pk=pk)
+    exam = Exam.objects.get(pk=pk)
+    exam_selected = exam
+    common_list = get_common_list(exam)
+    if exam.is_overall():
+        exam_selected = common_list[1]
+        common_list.remove(exam)
+    elif common_list:
+        exam_selected = exam
+        exam = common_list[0]
+        if len(common_list) > 1:
+            common_list.remove(exam)
 
-    if user_allowed(EXAM,request.user.id):
+    if user_allowed(exam,request.user.id):
 
         if request.method == 'POST':
 
-            if EXAM and EXAM.scaleStatistics:
+            if exam and exam.scaleStatistics:
 
                 # delete old tmp folders and zips
                 for filename in os.listdir(str(settings.EXPORT_TMP_ROOT)):
@@ -136,7 +147,7 @@ def export_data(request,pk):
                     except Exception as e:
                         print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-                form = ExportResultsForm(request.POST,exam=EXAM)
+                form = ExportResultsForm(request.POST,exam=exam)
                 logger.info(form)
                 if form.is_valid():
 
@@ -145,10 +156,10 @@ def export_data(request,pk):
                     scale = Scale.objects.get(pk=scale_pk)
 
                     common_exams = []
-                    if EXAM.overall:
+                    if exam.overall:
                         common_exams = form.cleaned_data['common_exams']
                     else:
-                        common_exams.append(EXAM.pk)
+                        common_exams.append(exam.pk)
 
                     isaCsv = form.cleaned_data['exportIsaCsv']
                     scalePdf = form.cleaned_data['exportExamScalePdf']
@@ -188,23 +199,24 @@ def export_data(request,pk):
 
         # if a GET (or any other method) we'll create a blank form
         else:
-            common_list = get_common_list(EXAM)
-            if EXAM and EXAM.scaleStatistics:
-                form = ExportResultsForm(exam=EXAM)
+            if exam and exam.scaleStatistics:
+                form = ExportResultsForm(exam=exam)
             else:
                 form = ExportResultsForm()
 
             return render(request, 'res_and_stats/export_results.html', {"user_allowed":True,
                                                           "form": form,
-                                                          "exam" : EXAM,
+                                                          "exam" : exam,
+                                                         "exam_selected" : exam_selected,
                                                           "common_list":common_list,
-                                                          "current_url": "export_data"})
+                                                          "nav_url": "export_data"})
     else:
         return render(request, 'res_and_stats/export_results.html', {"user_allowed":False,
                                                       "form": None,
-                                                      "exam" : EXAM,
+                                                      "exam" : exam,
+                                                         "exam_selected" : exam_selected,
                                                       "common_list":None,
-                                                      "current_url": "export_data"})
+                                                      "nav_url": "export_data"})
 
 # STATISTICS
 # ------------------------------------------
@@ -249,19 +261,19 @@ def general_statistics_view(request,pk):
             return render(request, "res_and_stats/general_statistics.html",
                           {"user_allowed":True,
                            "exam" : exam,
-                           "currselected_exam": currexam,
+                           "exam_selected": currexam,
                            "grade_list": grade_list,
                            "absent": sum_all_students - currexam.present_students,
                            "common_list": common_list,
                            "correlation_list":correlation_list,
-                           "current_url": "generalStats"})
+                           "nav_url": "generalStats"})
         else:
             return render(request, "res_and_stats/general_statistics.html",
-                          {"user_allowed":True,"exam": exam, "grade_list": None, "absent": 0})
+                          {"user_allowed":True,"exam": exam, "grade_list": None, "absent": 0,"nav_url": "generalStats"})
 
     else:
         return render(request, "res_and_stats/general_statistics.html",
-                      {"user_allowed":False,"scaleStatistics": None, "grade_list": None, "absent": 0})
+                      {"user_allowed":False,"scaleStatistics": None, "grade_list": None, "absent": 0,"nav_url": "generalStats"})
 
 
 @login_required
@@ -286,13 +298,13 @@ def students_results_view(request, pk, task_id=None):
                           {"user_allowed":True,
                            "exam" : exam,
                            "common_list": common_list,
-                           "currselected_exam" : currexam,
-                           "current_url": "studentsResults",
+                           "exam_selected" : currexam,
+                           "nav_url": "studentsResults",
                            "task_id":task_id})
         else:
-            return render(request, "res_and_stats/students_results.html", {"user_allowed":True, "scales": None, "students": None})
+            return render(request, "res_and_stats/students_results.html", {"user_allowed":True, "scales": None, "students": None,"nav_url": "studentsResults"})
     else:
-        return render(request, "res_and_stats/students_results.html", {"user_allowed":False, "scales": None, "students": None})
+        return render(request, "res_and_stats/students_results.html", {"user_allowed":False, "scales": None, "students": None,"nav_url": "studentsResults"})
 
 
 @login_required
@@ -327,19 +339,19 @@ def questions_statistics_view(request,pk):
             return render(request, "res_and_stats/questions_statistics.html",
                           {"user_allowed":True,
                            "exam": exam,
-                           "currselected_exam" : currexam,
+                           "exam_selected" : currexam,
                            "discriminatory_factor": discriminatory_factor, "discriminatory_qty": discriminatory_qty,
                            "mcq_questions": mcq_questions,
                            "open_questions": open_questions,
                            "questionsStatsByTeacher": question_stat_by_teacher_list,
                            "common_list" : common_list,
-                           "current_url": "questionsStats"})
+                           "nav_url": "questionsStats"})
         else:
             return render(request, "res_and_stats/questions_statistics.html",
-                          {"user_allowed":True,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
+                          {"user_allowed":True,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None,"nav_url": "questionsStats"})
     else:
         return render(request, "res_and_stats/questions_statistics.html",
-                      {"user_allowed":False,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None})
+                      {"user_allowed":False,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None,"nav_url": "questionsStats"})
 
 
 # PDF

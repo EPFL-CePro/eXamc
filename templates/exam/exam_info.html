@@ -14,27 +14,10 @@
 
     
 {% if user_allowed %}
-    <ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="exam-info-pills-tab" role="tablist"
-        style="margin-bottom:10px;">
-        {% for comex in exam.get_common_exams_yc_common %}
-            <li class="nav-item" role="presentation">
-                <a class="flex-sm-fill text-sm-center nav-link {% if comex.is_overall %}active{% endif %}"
-                   id="{{ comex.id }}-tab" data-toggle="pill" href="#pills-{{ comex.id }}" role="tab"
-                   aria-controls="pills-{{ comex.id }}" aria-selected="true">
-                    {% if comex.is_overall %}
-                        COMMON
-                    {% else %}
-                        {{ comex.code }}
-                        <br>
-                        {{ comex.id|get_exam_teachers_short_str }}
-                   {% endif %}
-                </a>
-            </li>
-        {% endfor %}
-    </ul>
+
     <div class="tab-content" id="exam-info-pills-tabContent">
         {% for comex in exam.get_common_exams_yc_common %}
-            <div class="tab-pane fade {% if comex.is_overall %}show active{% endif %}" id="pills-{{ comex.id }}" role="tabpanel" aria-labelledby="pills-{{ comex.id }}-tab">
+            <div class="tab-pane fade {% if comex.pk == exam_selected.pk %}show active{% endif %}" id="pills-{{ comex.id }}" role="tabpanel" aria-labelledby="pills-{{ comex.id }}-tab">
 
                 <h4><i class="fa-solid fa-book-open fa-l" style="margin-right:5px;"></i>Exam Info</h4>
 

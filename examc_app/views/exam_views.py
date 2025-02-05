@@ -60,6 +60,7 @@ class ExamInfoView(DetailView):
         semesters = Semester.objects.all()
         years = AcademicYear.objects.all()
 
+        exam_selected = exam
         if exam.common_exams:
             for common_exam in exam.common_exams.all():
                 if common_exam.is_overall():
@@ -69,8 +70,9 @@ class ExamInfoView(DetailView):
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
             context['common_list'] = None
-            context['current_url'] = "examInfo"
+            context['nav_url'] = "examInfo"
             context['exam'] = exam
+            context['exam_selected'] = exam_selected
             context['question_types'] = QuestionType.objects.all()
             context['sum_questions_points'] = exam.questions.all().aggregate(Sum('max_points'))
             context['users_groups_add'] = users_groups_add
@@ -115,7 +117,7 @@ class ExamSettingsView(DetailView):
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
             context['common_list'] = None
-            context['current_url'] = "examSettings"
+            context['nav_url'] = "examSettings"
             context['exam'] = exam
             context['users_groups_add'] = users_groups_add
             return context
@@ -215,12 +217,6 @@ def update_exam_info(request):
                     request: The HTTP request object.
            """
 
-    ex_date = request.POST.get('date')
-    ex_code = request.POST.get('code')
-    ex_name = request.POST.get('name')
-    ex_semester_id = request.POST.get('semester_id')
-    ex_year_id = request.POST.get('year_id')
-
     exam = Exam.objects.get(pk=request.POST.get('pk'))
 
     old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
@@ -266,13 +262,12 @@ class ScaleCreateView(CreateView):
         task_id = task.task_id
 
         return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': exam.pk, 'task_id': task_id}))
-        # generate_statistics(exam)
-        # return redirect('../examInfo/' + str(exam.pk))
 
     def get_context_data(self, **kwargs):
         context = super(ScaleCreateView, self).get_context_data(**kwargs)
         context['pk'] = self.kwargs['pk']
         return context
+
 @login_required
 def delete_exam_scale(request, scale_pk, exam_pk):
     scale_to_delete = Scale.objects.get(pk=scale_pk)
@@ -295,8 +290,6 @@ def delete_exam_scale(request, scale_pk, exam_pk):
     task_id = task.task_id
 
     return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': exam_pk, 'task_id': task_id}))
-    # generate_statistics(exam_to_manage)    #
-    # return redirect('../../examInfo/' + str(exam_pk))
 
 
 @login_required
@@ -388,14 +381,6 @@ def update_questions(request):
         if 'COMMON' in question:
             quest.common = True if question['COMMON'] else False
         quest.save()
-
-        print(question)
-        print(quest)
-    # exam = Question.objects.get(pk=request.POST['pk'])
-    # field_name = request.POST['field']
-    # value = request.POST['value']
-    # setattr(question, field_name, value)
-    # question.save()
 
     return HttpResponse(1)
 

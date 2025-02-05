@@ -39,12 +39,12 @@ def home(request):
 
 
 @login_required
-def select_exam(request, pk, current_url=None):
+def select_exam(request, pk, nav_url=None):
     url_string = '../'
-    if current_url is None:
+    if nav_url is None:
         return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
     else:
-        return HttpResponseRedirect(reverse(current_url, kwargs={'pk': str(pk)}))
+        return HttpResponseRedirect(reverse(nav_url, kwargs={'pk': str(pk)}))
 
 
 ### global views ###

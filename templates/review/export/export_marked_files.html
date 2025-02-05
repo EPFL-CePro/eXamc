@@ -16,24 +16,7 @@
 {% block content %}
 
 {% if user_allowed %}
-<ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="amc-pills-tab"
-    style="margin-bottom:10px;">
-    {% for comex in exam.get_common_exams_yc_common %}
-        <li class="nav-item" role="presentation">
-            <a class="flex-sm-fill text-sm-center nav-link {% if comex.id == common_exam_selected.id %}active{% endif %}"
-               id="{{ comex.id }}-tab"
-               href="{% url 'generate_marked_files' comex.pk %}">
-                {% if comex.is_overall %}
-                    COMMON
-                {% else %}
-                    {{ comex.code }}
-                    <br>
-                    {{ comex.id|get_exam_teachers_short_str }}
-               {% endif %}
-            </a>
-        </li>
-    {% endfor %}
-</ul>
+
 <h4><i class="fas fa-cloud-download-alt fa-l" style="margin-right:5px;"></i>Export marked files</h4>
 
 <style>
@@ -48,7 +31,7 @@
 </style>
 
 <div id="export_marked_files_div" style="padding:20px">
-  <form action="{% url 'generate_marked_files' common_exam_selected.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal" style="margin-top:20px;">
+  <form action="{% url 'generate_marked_files' exam_selected.pk %}" method="POST" enctype="multipart/form-data" class="form-horizontal" style="margin-top:20px;">
       {% csrf_token %}
       <h6>File type:</h6>
       {% for radio in form.export_type %}

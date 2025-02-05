@@ -20,7 +20,7 @@ from examc_app.utils.review_functions import generate_marked_pdfs, create_studen
 def upload_amc_project(request, pk):
     exam = Exam.objects.get(pk=pk)
 
-    common_exam_selected = exam
+    exam_selected = exam
     if exam.common_exams:
         for common_exam in exam.common_exams.all():
             if common_exam.is_overall():
@@ -30,7 +30,7 @@ def upload_amc_project(request, pk):
     if request.method == 'POST':
         if 'amc_project_zip_file' not in request.FILES:
             message = "No zip file provided."
-            return render(request, 'amc/upload_amc_project.html', {'exam': exam,'message': message})
+            return render(request, 'amc/upload_amc_project.html', {'exam': exam,'message': message,"nav_url":"upload_amc_project"})
 
         zip_file = request.FILES['amc_project_zip_file']
 
@@ -40,11 +40,12 @@ def upload_amc_project(request, pk):
 
         return render(request, 'amc/upload_amc_project.html', {
             'exam': exam,
-            'common_exam_selected': common_exam_selected,
+            'exam_selected': exam_selected,
+            'nav_url': "upload_amc_project",
             'message': message
         })
 
-    return render(request, 'amc/upload_amc_project.html', {'exam': exam, 'common_exam_selected': common_exam_selected})
+    return render(request, 'amc/upload_amc_project.html', {'exam': exam, 'exam_selected': exam_selected,'nav_url': "upload_amc_project"})
 
 @login_required
 def amc_view(request, pk,curr_tab=None, task_id=None):
@@ -116,7 +117,7 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             context['curr_tab'] = curr_tab
             context['scans_list_json'] = json.loads(scans_list_json_string)
 
-        context['common_exam_selected'] = exam
+        context['exam_selected'] = exam
         if exam.common_exams:
             for common_exam in exam.common_exams.all():
                 if common_exam.is_overall():
@@ -124,6 +125,7 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
                     break
         context['exam'] = exam
         context['user_allowed'] = True
+        context['nav_url'] = 'amc_view'
 
     else:
         context['user_allowed'] = False
@@ -137,15 +139,24 @@ def amc_data_capture_manual(request,pk):
     amc_data_path = get_amc_project_path(exam, False)
 
     context = {}
+    context['nav_url'] = 'amc_data_capture_manual'
     if user_allowed(exam, request.user.id):
-        context['exam'] = exam
-        context['user_allowed'] = True
+
         if amc_data_path:
 
             data = get_amc_data_capture_manual_data(exam)
 
             context['data_pages'] = data[0]
             context['data_questions'] = data[1]
+
+        context['exam_selected'] = exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+        context['exam'] = exam
+        context['user_allowed'] = True
     else:
         context['user_allowed'] = False
 
@@ -361,11 +372,6 @@ def call_amc_mark(request):
 
     return StreamingHttpResponse(amc_mark_subprocess(request, exam, update_scoring_strategy))
    # result = amc_mark(exam,update_scoring_strategy)
-
-    if not 'ERR:' in result:
-        return HttpResponse('yes')
-    else:
-        return HttpResponse(result)
 
 @login_required
 def call_amc_automatic_association(request):
