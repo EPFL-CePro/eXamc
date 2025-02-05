@@ -14,8 +14,8 @@
     <div class="mb-3">
         <button type="button" class="btn btn-dark btn-sm" onclick="amcUpdateDocuments_process();"><i class="fas fa-sync-alt"></i> Update documents</button>
         <div class="mb-3" style="text-align:right;">
-            <a href="{% url 'open_amc_exam_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm" style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
-            <a href="{% url 'open_amc_catalog_pdf' exam.pk %}" target="_blank" class="btn btn-dark btn-sm"><i class="fas fa-file-pdf"></i> Catalog</a>
+            <a href="{% url 'open_amc_exam_pdf' common_exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm" style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
+            <a href="{% url 'open_amc_catalog_pdf' common_exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm"><i class="fas fa-file-pdf"></i> Catalog</a>
         </div>
         {% if update_documents_msg %}
         <div class="alert alert-success" id="update-documents-msg" role="alert" style="margin-top:20px;text-align:center;overflow-y: auto;max-height:200px;">{{ update_documents_msg }}</div>
@@ -133,7 +133,7 @@ function openEditSourceDialog(filepath){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'filepath' : filepath
         },
         success: (data) => {
@@ -157,7 +157,7 @@ function saveEditedSourceFile(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'data' : data,
             'filepath' : filepath
         },
@@ -184,7 +184,7 @@ function amcUpdateDocuments_process() {
         url: '{% url "call_amc_update_documents" %}', // Django URL for your view
        data : {
             'csrfmiddlewaretoken' : '{{ csrf_token }}',
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'nb_copies' : nb_copies
         },
         complete: function(data){
@@ -210,7 +210,7 @@ function amcUpdateDocuments_process() {
 
 function display_amc_log_file(el){
      $.ajax({
-        url: "{% url 'view_amc_log_file' exam.pk %}",
+        url: "{% url 'view_amc_log_file' common_exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}"
@@ -242,7 +242,7 @@ function amcUpdateDocuments(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'nb_copies' : nb_copies 
         },
         {#success: (data) => {#}
@@ -268,7 +268,7 @@ function amcLayoutDetection(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }}
+            'exam_pk' : {{ common_exam_selected.pk }}
         },
         success: (data) => {
             upd_layout_det_msg_el = document.getElementById('layout-detection-msg');

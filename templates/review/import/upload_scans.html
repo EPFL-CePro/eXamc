@@ -1,9 +1,28 @@
 
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_tags %}
 {% block title %}Upload scans{% endblock %}
 
 {% block content %}
+<ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="amc-pills-tab"
+    style="margin-bottom:10px;">
+    {% for comex in exam.get_common_exams_yc_common %}
+        <li class="nav-item" role="presentation">
+            <a class="flex-sm-fill text-sm-center nav-link {% if comex.id == common_exam_selected.id %}active{% endif %}"
+               id="{{ comex.id }}-tab"
+               href="{% url 'upload_scans' comex.pk %}">
+                {% if comex.is_overall %}
+                    COMMON
+                {% else %}
+                    {{ comex.code }}
+                    <br>
+                    {{ comex.id|get_exam_teachers_short_str }}
+               {% endif %}
+            </a>
+        </li>
+    {% endfor %}
+</ul>
 <h4><i class="fas fa-cloud-upload-alt fa-l" style="margin-right:5px;"></i>Upload scans</h4>
 <div id="uploadScansDiv" style="padding:10px;width:100%;color:#000;">
     {% if not amc_ok %}
@@ -20,7 +39,7 @@
         If this is not the case, you can run the update via the "Update documents" button and then the layout detection via the "Layout detection" button.
     </div>
     {% else %}
-    <form id="uploadScansForm" method="post" action="{% url 'upload_scans' pk=exam.pk %}" enctype="multipart/form-data">
+    <form id="uploadScansForm" method="post" action="{% url 'upload_scans' pk=common_exam_selected.pk %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="alert alert-danger" role="alert" style="padding:20px;">
             <div class="custom-control custom-switch mb-3">
@@ -63,7 +82,7 @@ function call_amc_automatic_datacapture_process(){
     amc_process_modal_body.text('');
     $('#amc_process_modal').modal('show');    
     $.ajax({
-        url: "{% url 'import_scans_from_review' exam.pk %}",
+        url: "{% url 'import_scans_from_review' common_exam_selected.pk %}",
         type: "POST",
         data : {
            'csrfmiddlewaretoken' : '{{ csrf_token }}',

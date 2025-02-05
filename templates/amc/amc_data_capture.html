@@ -8,7 +8,7 @@
             <img src="{% static 'img/amc_icons/amc-auto-capture.svg' %}" width="16px" height="16px" style="margin-right:10px;"/>
             Automatic
         </button>
-        <a href="{% url 'amc_data_capture_manual' exam.pk %}" class="btn btn-dark btn-sm">
+        <a href="{% url 'amc_data_capture_manual' common_exam_selected.pk %}" class="btn btn-dark btn-sm">
             <img src="{% static 'img/amc_icons/amc-manual-capture.svg' %}" width="16px" height="16px" style="margin-right:10px;"/>
             Manual
         </a>
@@ -231,7 +231,7 @@
                    <input type="text" id="unrecognized_img_src" name="unrecognized_img_src"/>
                 </div>
                 <div class="form-group" hidden>
-                   <input type="text" id="exam_pk" name="exam_pk" value="{{ exam.pk }}"/>
+                   <input type="text" id="exam_pk" name="exam_pk" value="{{ common_exam_selected.pk }}"/>
                 </div>
             </div>
             <div class="form-group" style="text-align:right;">
@@ -387,7 +387,7 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
     if(from_review) {
         if(all_from_review){
             $.ajax({
-                url: "{% url 'import_scans_from_review' exam.pk %}",
+                url: "{% url 'import_scans_from_review' common_exam_selected.pk %}",
                 type: "POST",
                 data : {
                    'csrfmiddlewaretoken' : '{{ csrf_token }}',
@@ -412,7 +412,7 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
             let selectedPagesSelect = $('#scans_to_import_multiselect_to');
             let selectedPagesValues = $.map(selectedPagesSelect.find('option'), function(o) { return o.value; });
             $.ajax({
-                url: "{% url 'import_scans_from_review_pages' exam.pk %}",
+                url: "{% url 'import_scans_from_review_pages' common_exam_selected.pk %}",
                 type: "POST",
                 data : {
                    'csrfmiddlewaretoken' : '{{ csrf_token }}',
@@ -439,9 +439,9 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
     }else{
         frmData = new FormData($("#amcScansFromLocalFrm")[0])
         frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-        frmData.append('exam_pk', {{ exam.pk }});
+        frmData.append('exam_pk', {{ common_exam_selected.pk }});
         $.ajax({
-            url: "{% url 'import_scans_from_review' exam.pk %}",
+            url: "{% url 'import_scans_from_review' common_exam_selected.pk %}",
             type: "POST",
             data:frmData,
             contentType: false,
@@ -574,7 +574,7 @@ function openCopyPageZoomsDialog(copy,page){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'copy' : copy,
             'page' : page},
         success: (data) => {
@@ -678,7 +678,7 @@ function update_amc_mark_zone(zoneid,copy,page){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'zoneid' : zoneid,
             'copy' : copy,
             'page' : page

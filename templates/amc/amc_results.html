@@ -47,7 +47,7 @@
         </form>
         {% if annotated_papers_available %}
         <div class="form-group col" style="text-align: right;">
-            <a  type="button" href="{% url 'download_annotated_pdf' exam.pk %}" class="btn btn-dark btn-sm" target="_blank"><i class="fas fa-file-pdf fa-lg" style="margin-right:5px;"></i>Download annotated papers</a>
+            <a  type="button" href="{% url 'download_annotated_pdf' common_exam_selected.pk %}" class="btn btn-dark btn-sm" target="_blank"><i class="fas fa-file-pdf fa-lg" style="margin-right:5px;"></i>Download annotated papers</a>
             <button  type="button" onclick="openSendAnnotatedPapersDialog();" class="btn btn-dark btn-sm"><i class="fas fa-envelope fa-lg" style="margin-right:5px;"></i>Send annotated papers</button>
         </div>
         {% endif %}
@@ -116,7 +116,7 @@ function call_amc_annotate() {
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'single_file' : single_file,
         },
         success: (data) => {
@@ -135,7 +135,7 @@ function generate_amc_results() {
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
         },
         success: (data) => {
             window.location.reload();
@@ -159,7 +159,7 @@ function openSendAnnotatedPapersDialog(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
         },
         success: (data) => {
             data_json = JSON.parse(data);
@@ -274,7 +274,7 @@ function call_amc_send_annotated_papers(){
 
         data.push({name:"selected-students",value:JSON.stringify(students_selected)})
         $.ajax({
-                url : "{% url 'call_amc_send_annotated_papers' exam.pk %}",
+                url : "{% url 'call_amc_send_annotated_papers' common_exam_selected.pk %}",
                 type : "POST",
                 data : data,
                 success: (data) => {

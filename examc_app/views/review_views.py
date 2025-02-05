@@ -51,8 +51,14 @@ class ReviewView(DetailView):
 
             context['user_allowed'] = True
             context['current_url'] = "review"
-            context['exam'] = exam
             context['exam_pages_group_list'] = pages_groups
+            context['common_exam_selected'] = exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
+            context['exam'] = exam
             return context
         else:
             context['user_allowed'] = False
@@ -92,11 +98,17 @@ class ReviewGroupView(DetailView):
         if user_allowed(pages_group.exam, self.request.user.id):
             context['user_allowed'] = True
             context['current_url'] = "reviewGroup"
-            context['exam'] = pages_group.exam
             context['pages_group'] = pages_group
             context['scans_pathes_list'] = scans_pathes_list
             context['currpage'] = current_page
             context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
+            context['common_exam_selected'] = pages_group.exam
+            if pages_group.exam.common_exams:
+                for common_exam in pages_group.exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
+            context['exam'] = exam
             return context
         else:
             context['user_allowed'] = False
@@ -159,19 +171,24 @@ class ReviewSettingsView(DetailView):
 
                 context['user_allowed'] = True
                 context['current_url'] = "reviewSettings"
-                context['exam'] = exam
                 context['exam_reviewers_formset'] = formsetReviewers
                 context['exam_pages_groups_formset'] = formsetPagesGroups
                 context['curr_tab'] = curr_tab
                 context['gh_group_form'] = grading_help_group_form
-                return context
             else:
 
                 context['user_allowed'] = True
                 context['current_url'] = "reviewSettings"
-                context['exam'] = exam
                 context['curr_tab'] = curr_tab
-                return context
+
+            context['common_exam_selected'] = exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
+            context['exam'] = exam
+            return context
         else:
             context['user_allowed'] = False
             context['current_url'] = "reviewSettings"
@@ -486,8 +503,16 @@ def generate_marked_files(request, pk, task_id=None):
                 task_id = task.task_id
 
                 form = ExportMarkedFilesForm()
+
+                common_exam_selected = exam
+                if exam.common_exams:
+                    for common_exam in exam.common_exams.all():
+                        if common_exam.is_overall():
+                            exam = common_exam
+                            break
                 return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                     "form": form,
+                    "common_exam_selected": common_exam_selected,
                     "exam": exam,
                     "current_url": "generate_marked_files",
                     "task_id": task_id})
@@ -504,14 +529,28 @@ def generate_marked_files(request, pk, task_id=None):
         # if a GET (or any other method) we'll create a blank form
         else:
             form = ExportMarkedFilesForm()
+            common_exam_selected = exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
             return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                                                                               "form": form,
                                                                               "exam": exam,
+                                                                                "common_exam_selected": common_exam_selected,
                                                                               "current_url": "generate_marked_files"})
     else:
+        common_exam_selected = exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
         return render(request, 'review/export/export_marked_files.html', {"user_allowed": False,
                                                                           "form": None,
                                                                           "exam": exam,
+                                                                            "common_exam_selected": common_exam_selected,
                                                                           "current_url": "generate_marked_files"})
 
 @login_required
@@ -588,15 +627,31 @@ def upload_scans(request, pk, task_id=None):
         task_id = task.task_id
        # message = start_upload_scans(request, exam.pk, temp_file_path)
 
+        common_exam_selected = exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+
         return render(request, 'review/import/upload_scans.html', {
             'exam': exam,
+            'common_exam_selected': common_exam_selected,
             'files': [],
             'message': '',
             'task_id':task_id,
             'amc_ok':amc_ok
         })
 
-    return render(request, 'review/import/upload_scans.html', {'exam': exam,'amc_ok':amc_ok,
+
+
+    common_exam_selected = exam
+    if exam.common_exams:
+        for common_exam in exam.common_exams.all():
+            if common_exam.is_overall():
+                exam = common_exam
+                break
+    return render(request, 'review/import/upload_scans.html', {'exam': exam,'common_exam_selected':common_exam_selected,'amc_ok':amc_ok,
                                                                'files': []})
 
 @login_required

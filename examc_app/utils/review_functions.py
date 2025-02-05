@@ -497,6 +497,4 @@ def get_scans_list(exam):
 
             result.append(copy)
 
-            if len(result) == 10:
-                return result
     return result

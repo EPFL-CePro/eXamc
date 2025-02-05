@@ -64,7 +64,7 @@
 {#        </tr>#}
 {#      </tbody>#}
 {#    </table>#}
-{#    <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' exam.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>#}
+{#    <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' common_exam_selected.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>#}
 {#</form>#}
 
 
@@ -120,7 +120,7 @@
         </tr>
       </tbody>
     </table>
-    <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' exam.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>
+    <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' common_exam_selected.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>
 </form>
 
 
@@ -379,7 +379,7 @@ function saveGradingHelp(group_id){
 {#        data : {#}
 {#            #}
 {#            'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
-{#            'exam_pk' : {{ exam.pk }},#}
+{#            'exam_pk' : {{ common_exam_selected.pk }},#}
 {#            'pages_group_pk' : modalCorrectorBoxGroupPk,#}
 {#            'markers' : markers,#}
 {#            'filename' : filename#}

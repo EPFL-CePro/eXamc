@@ -20,6 +20,13 @@ from examc_app.utils.review_functions import generate_marked_pdfs, create_studen
 def upload_amc_project(request, pk):
     exam = Exam.objects.get(pk=pk)
 
+    common_exam_selected = exam
+    if exam.common_exams:
+        for common_exam in exam.common_exams.all():
+            if common_exam.is_overall():
+                exam = common_exam
+                break
+
     if request.method == 'POST':
         if 'amc_project_zip_file' not in request.FILES:
             message = "No zip file provided."
@@ -33,10 +40,11 @@ def upload_amc_project(request, pk):
 
         return render(request, 'amc/upload_amc_project.html', {
             'exam': exam,
+            'common_exam_selected': common_exam_selected,
             'message': message
         })
 
-    return render(request, 'amc/upload_amc_project.html', {'exam': exam})
+    return render(request, 'amc/upload_amc_project.html', {'exam': exam, 'common_exam_selected': common_exam_selected})
 
 @login_required
 def amc_view(request, pk,curr_tab=None, task_id=None):
@@ -46,8 +54,6 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
 
     context = {}
     if user_allowed(exam, request.user.id):
-        context['exam'] = exam
-        context['user_allowed'] = True
         if amc_data_path:
             # get amc options and infos
             amc_option_nb_copies = get_amc_option_by_key(exam,'nombre_copies')
@@ -109,6 +115,15 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             context['task_id'] = task_id
             context['curr_tab'] = curr_tab
             context['scans_list_json'] = json.loads(scans_list_json_string)
+
+        context['common_exam_selected'] = exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+        context['exam'] = exam
+        context['user_allowed'] = True
 
     else:
         context['user_allowed'] = False

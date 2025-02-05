@@ -1,14 +1,33 @@
 
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_tags %}
 {% block title %}Upload AMC project{% endblock %}
 
 {% block content %}
 <body>
+<ul class="nav nav-pills nav-fill flex-column flex-sm-row border" id="amc-pills-tab"
+    style="margin-bottom:10px;">
+    {% for comex in exam.get_common_exams_yc_common %}
+        <li class="nav-item" role="presentation">
+            <a class="flex-sm-fill text-sm-center nav-link {% if comex.id == common_exam_selected.id %}active{% endif %}"
+               id="{{ comex.id }}-tab"
+               href="{% url 'upload_amc_project' comex.pk %}">
+                {% if comex.is_overall %}
+                    COMMON
+                {% else %}
+                    {{ comex.code }}
+                    <br>
+                    {{ comex.id|get_exam_teachers_short_str }}
+               {% endif %}
+            </a>
+        </li>
+    {% endfor %}
+</ul>
 <div id="uploadAMCProjectDiv" style="padding:10px;width:100%;margin-top:100px;color:#000;">
     <h3>Upload AMC projects .zip file</h3>
 
-    <form id="uploadAMCProjectForm" method="post" action="{% url 'upload_amc_project' pk=exam.pk %}" enctype="multipart/form-data">
+    <form id="uploadAMCProjectForm" method="post" action="{% url 'upload_amc_project' pk=common_exam_selected.pk %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-group">
             <div class="col-md-8">

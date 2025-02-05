@@ -172,7 +172,7 @@ function amc_update_students_file (e) {
         formData = new FormData(form);
         ok = 1;
         $.ajax({
-            url: "{% url 'amc_update_students_file' exam.pk %}",
+            url: "{% url 'amc_update_students_file' common_exam_selected.pk %}",
             type: "POST",
             data : formData,
             processData: false,
@@ -185,7 +185,7 @@ function amc_update_students_file (e) {
                     error_div.innerHTML = data;
                 }else{
                     error_div.setAttribute('hidden',"");
-                    location.replace("{% url 'amc_view' exam.pk %}");
+                    location.replace("{% url 'amc_view' common_exam_selected.pk %}");
                 }               
             },
             error: (error) => {
@@ -206,7 +206,7 @@ function amc_mark() {
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'update_scoring_strategy' : update_scoring_strategy,
         },
             xhrFields: {
@@ -234,7 +234,7 @@ function amc_automatic_association() {
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'assoc_primary_key' : assoc_primary_key,
         },
         success: (data) => {
@@ -253,7 +253,7 @@ function openManualAssociationDialog(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
         },
         success: (data) => {
             full_data = JSON.parse(data)
@@ -336,7 +336,7 @@ function setManualAssociation(copy_nr, event){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'copy_nr' : copy_nr,
             'student_id' : event.target.value,
         },
@@ -358,7 +358,7 @@ function openEditStudentsListDialog(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'filepath' : 'students_list'
         },
         success: (data) => {
@@ -385,7 +385,7 @@ function saveStudentsListFile(){
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam.pk }},
+            'exam_pk' : {{ common_exam_selected.pk }},
             'data' : data,
             'filepath' : filepath,
             'is_students_list': true,
@@ -398,7 +398,7 @@ function saveStudentsListFile(){
                 error_div.innerHTML = data;
             }else{
                 error_div.setAttribute('hidden',"");
-                location.replace("{% url 'amc_view' exam.pk %}");
+                location.replace("{% url 'amc_view' common_exam_selected.pk %}");
             }     
             $('#edit_students_list_modal').modal('hide');
         },
