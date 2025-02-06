@@ -191,7 +191,7 @@ def export_data(request,pk):
                     # process the data in form.cleaned_data as required
                     # ...
                     # redirect to a new URL:
-                    return HttpResponseRedirect(request.path_info)
+                    #return HttpResponseRedirect(request.path_info)
                 else:
                     logger.info("INVALID")
                     logger.info(form.errors)

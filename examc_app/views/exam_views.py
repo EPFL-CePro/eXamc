@@ -326,7 +326,7 @@ def set_final_scale(request, pk,all_common=0):
                     comex_scale.final = False
                 comex_scale.save()
 
-    return redirect('../../examInfo/' + str(scale.exam.pk))
+    return redirect('../../examInfo/' + str(final_scale.exam.pk))
 
 
 @login_required

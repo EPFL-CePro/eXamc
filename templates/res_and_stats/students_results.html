@@ -52,7 +52,7 @@ $(window).on("load",function(){
                             <th>Present</th>
                             <th>Points</th>
                             {% for scale in exam_selected.scales.all|dictsort:"name" %}
-                                <th>{{ scale.name }}</th>
+                                <th>{{ scale.name }} {% if scale.final %} <i class="fa-solid fa-circle-check fa-xs"></i>{% endif %}</th>
                             {% endfor %}
                         </tr>
                     </thead>

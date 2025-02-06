@@ -23,7 +23,7 @@
         {% for scale_stat in exam_selected.scaleStatistics.all %}
         {% if scale_stat.section == 'global' %}
         <tr>
-          <th>{{ scale_stat.scale.name }}</th>
+          <th>{{ scale_stat.scale.name }}{% if scale_stat.scale.final %} <i class="fa-solid fa-circle-check fa-xs"></i>{% endif %}</th>
           <th>{{ scale_stat.average }}</th>
           <th>{{ scale_stat.median }}</th>
           <th>{{ scale_stat.stddev }}</th>
