@@ -82,7 +82,7 @@
                                             </select>
                                         </td>
                                         <td id="exam_date_column-{{ comex.id }}">
-                                            <input class="date form-control" type="date" name="exam_date_{{ comex.id }}" id="exam_date_{{ comex.id }}"  style="" class="form-control" required aria-invalid="true" value="{{ comex.date|date:"Y-m-d" }}">
+                                            <input class="date form-control" type="date" name="exam_date_{{ comex.id }}" id="exam_date_{{ comex.id }}"  style="" class="form-control" required aria-invalid="true" value="{{ comex.date|date:'Y-m-d' }}">
                                         </td>
                                         {% if comex.common_exams.all %}
                                             <td>
@@ -142,11 +142,15 @@
                                                        style="background-color: transparent;"><i
                                                         class="fa-solid fa-circle-check fa-2xl"></i></a></td>
                                             {% else %}
-                                                <td><a class="btn btn-light btn-sm"
-                                                       href="{% url 'set_final_scale' scale.pk %}"
+                                                <td><button class="btn btn-light btn-sm"
+                                                       {% if comex.common_exams %}
+                                                       onclick="setFinalScaleCommon({{ scale.pk }});"
+                                                       {% else %}
+                                                        href="{% url 'set_final_scale' scale.pk 0 %}"
+                                                       {% endif %}
                                                        style="background-color: transparent;"><i
                                                         class="fa-solid fa-circle-xmark fa-2xl"
-                                                        style="color:lightgray;"></i></a></td>
+                                                        style="color:lightgray;"></i></button></td>
                                             {% endif %}
                                             {% if user.is_staff %}
                                                 <td><a class="btn btn-light btn-sm"
@@ -236,29 +240,13 @@
                                                 <input class="custom-control-input" type="checkbox" name="common-{{ question.pk }}" id="common-{{ question.pk }}" {% if question.common %} checked {% endif %}>
                                                 <label class="custom-control-label" for="common-{{ question.pk }}"></label>
                                             </div>
-{#                                                <div class="btn-group-sm" role="group">#}
-{#                                                    <button id="common-{{ question.pk }}-1" type="button"#}
-{#                                                            class="btn btn-light btn-sm"#}
-{#                                                            style="background-color: transparent;"#}
-{#                                                            {% if not user.is_staff %} disabled {% endif %}><i#}
-{#                                                            class="fa-solid fa-circle-check fa-2xl"#}
-{#                                                            {% if not question.common %}style="color:lightgray;"{% endif %}></i>#}
-{#                                                    </button>#}
-{#                                                    <button id="common-{{ question.pk }}-2" type="button"#}
-{#                                                            class="btn btn-light btn-sm"#}
-{#                                                            style="background-color: transparent;"#}
-{#                                                            {% if not user.is_staff %} disabled {% endif %}><i#}
-{#                                                            class="fa-solid fa-circle-xmark fa-2xl"#}
-{#                                                            {% if question.common %}style="color:lightgray;"{% endif %}></i>#}
-{#                                                    </button>#}
-{#                                                </div>#}
                                             </td>
                                             {% endif %}
                                         </tr>
                                     {% endfor %}
                                     </tbody>
                                 </table>
-                                <hr>
+                                <hr/>
                                 <div>
                                     <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">Cancel</button>
                                     <button type="button" onclick="updateQuestions({{ comex.id }});" class="btn btn-dark btn-sm">Validate</button>
@@ -418,9 +406,27 @@
                 <div class="modal-content" style="width:1050px;height:1050px;">
             
                   <div class="modal-body">
-                    <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">CLOSE</button>
+                    <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">Close</button>
                   </br>
                     <div id="embedPdf"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal fade" id="setFinalScaleCommonModal" tabindex="-1" role="dialog">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Final scale for common exams</h5>
+                  </div>
+                  <div class="modal-body">
+                      <p>Do you want to set this final scale for all common exams ?</p>
+                  </div>
+                  <div class="modal-footer">
+                    <a id="validateFinalScaleCommonAll" type="button" class="btn btn-dark btn-sm">Yes, for all!</a>
+                    <a id="validateFinalScaleCommonIndiv" type="button" class="btn btn-dark btn-sm">No, only for this exam!</a>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="$('#setFinalScaleCommonModal').modal('hide');" style="margin-left:50px;">Close</button>
                   </div>
                 </div>
               </div>
@@ -513,8 +519,8 @@ $(window).on("load",function(){
             document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' comex.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
         })
 
-        <!--QUESTIONS EVENTS-->
-        <!--question-common checkboxes-->
+        <!-- QUESTIONS EVENTS -->
+        <!-- question-common checkboxes -->
         {% for question in comex.questions.all %}
             $('#common-{{ question.pk }}-1').on('click', function() {
                 $('#common-{{ question.pk }}-1').attr('class','btn btn-dark btn-sm');
@@ -583,6 +589,12 @@ document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypres
   }
 });
 {% endfor %}
+
+function setFinalScaleCommon(scale_pk){
+    $('#validateFinalScaleCommonAll').attr('href','/set_final_scale/'+scale_pk+'/1');
+    $('#validateFinalScaleCommonIndiv').attr('href','/set_final_scale/'+scale_pk+'/0');
+    $('#setFinalScaleCommonModal').modal('show');
+}
 
 function updateExamInfo(exam_id){
     $('#loadingModal').modal('show');

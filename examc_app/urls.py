@@ -16,7 +16,7 @@ urlpatterns = [
     path('update_exam_options/<int:pk>', views.update_exam_options, name='update_exam_options'),
     path('create_scale/<int:pk>', login_required(views.ScaleCreateView.as_view()), name="create_scale"),
     path('delete_exam_scale/<int:scale_pk>/<int:exam_pk>', views.delete_exam_scale, name="delete_exam_scale"),
-    path('set_final_scale/<int:pk>', views.set_final_scale, name="set_final_scale"),
+    path('set_final_scale/<int:pk>/<int:all_common>', views.set_final_scale, name="set_final_scale"),
     path('validate_common_exams_settings/<int:pk>',views.validate_common_exams_settings, name="validate_common_exams_settings"),
 
     # PREPARATION
