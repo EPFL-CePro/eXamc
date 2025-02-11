@@ -342,6 +342,27 @@ def get_pages_group_grading_help(request):
 
     return HttpResponse(pages_group.grading_help)
 
+@login_required
+@menu_access_required
+def get_pages_group_grading(request):
+    """
+      Get the grading help.
+
+      This view function retrieves the grading help for a pages group identified by its primary key. It returns
+      the grading help as an HTTP response.
+
+      Args:
+          request: The HTTP request object containing the primary key 'pk' of the pages group.
+
+      Returns:
+          HttpResponse: An HTTP response containing the grading help for the pages group.
+      """
+
+    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
+
+
+    return HttpResponse(pages_group.grading_help)
+
 
 # @login_required
 # @menu_access_required
@@ -800,4 +821,10 @@ def remove_review_user_locks(request):
 
     for lock in review_lock_qs.all():
         lock.delete()
+
+@login_required
+def calculate_final_checkBox(request):
+    pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_id'])
+    exam = Exam.objects.get(pk=request.POST['exam_id'])
+    final_check = request.POST['final_check']
 

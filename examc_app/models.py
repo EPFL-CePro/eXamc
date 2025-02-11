@@ -470,3 +470,23 @@ class ReviewLock(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='reviewLocks')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewLocks')
 
+
+class Checkbox(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='checkboxes')
+    label = models.CharField(max_length=100, blank=False)
+    points = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
+
+    def __str__(self):
+        return self.label
+
+class CheckboxAnswer(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='checkbox_answers')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='checkbox_answers')
+    checkbox = models.ForeignKey(Checkbox, on_delete=models.CASCADE, related_name='checkbox_answers')
+    is_checked = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.checkbox.label + " " + str(self.is_checked)
+
+
+
