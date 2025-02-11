@@ -41,7 +41,7 @@ urlpatterns = [
     path('add_new_pages_group/<int:pk>', views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
-    path('get_pages_group_grading', views.get_pages_group_grading, name="get_pages_group_grading"),
+    # path('get_pages_group_grading', views.get_pages_group_grading, name="get_pages_group_grading"),
     path('delete_pages_group/<int:pages_group_pk>', views.delete_pages_group, name="delete_pages_group"),
 
     # REVIEW
