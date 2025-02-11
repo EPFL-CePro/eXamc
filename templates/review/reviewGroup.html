@@ -771,38 +771,38 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
 
 });
 
-document.getElementById("expandCollapseGradingBt").addEventListener("click", function(event) {
-    var gradingIcon = $( "#grading-help-icon" );
-    var collapseIcon = $( "#collapse-gh-icon" );
-    if(collapseIcon.hasClass('fa-angle-double-left')){
-        collapseIcon.removeClass('fa-angle-double-left');
-        gradingIcon.show();
-    }else{
-        collapseIcon.addClass('fa-angle-double-left');
-        gradingIcon.hide();
-
-
-        $.ajax({
-            url: "{% url 'get_pages_group_grading' %}",
-            type: "POST",
-            data : {
-                'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                'pk' : {{ pages_group.id }},
-            },
-            success: (data) => {
-                document.getElementById("grading").innerHTML = data;
-                window.MathJax.typeset();
-            },
-            error: (error) => {
-                console.log(error);
-            }
-        });
-
-
-
-    }
-
-});
+{#document.getElementById("expandCollapseGradingBt").addEventListener("click", function(event) {#}
+{#    var gradingIcon = $( "#grading-help-icon" );#}
+{#    var collapseIcon = $( "#collapse-gh-icon" );#}
+{#    if(collapseIcon.hasClass('fa-angle-double-left')){#}
+{#        collapseIcon.removeClass('fa-angle-double-left');#}
+{#        gradingIcon.show();#}
+{#    }else{#}
+{#        collapseIcon.addClass('fa-angle-double-left');#}
+{#        gradingIcon.hide();#}
+{##}
+{##}
+{#        $.ajax({#}
+{#            url: "{% url 'get_pages_group_grading' %}",#}
+{#            type: "POST",#}
+{#            data : {#}
+{#                'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
+{#                'pk' : {{ pages_group.id }},#}
+{#            },#}
+{#            success: (data) => {#}
+{#                document.getElementById("grading").innerHTML = data;#}
+{#                window.MathJax.typeset();#}
+{#            },#}
+{#            error: (error) => {#}
+{#                console.log(error);#}
+{#            }#}
+{#        });#}
+{##}
+{##}
+{##}
+{#    }#}
+{##}
+{#});#}
 
 
 window.onbeforeunload = function(){

@@ -87,6 +87,7 @@ class ReviewGroupView(DetailView):
     template_name = 'review/reviewGroup.html'
 
     def get_context_data(self, **kwargs):
+
         context = super(ReviewGroupView, self).get_context_data(**kwargs)
 
         pages_group = PagesGroup.objects.get(pk=context.get("object").id)
@@ -108,7 +109,7 @@ class ReviewGroupView(DetailView):
                     if common_exam.is_overall():
                         exam = common_exam
                         break
-            context['exam'] = exam
+            context['exam'] = Exam
             return context
         else:
             context['user_allowed'] = False
