@@ -7,11 +7,11 @@
   {% for scale in exam.scales.all %}
   {% if scale.pk == first_scale.pk %}
   <li class="nav-item" role="presentation">
-    <a class="flex-sm-fill text-sm-center nav-link active" id="comVsInd-{{ scale.pk }}-tab" data-toggle="pill" href="#pills-comVsInd-{{ scale.pk }}" role="tab" aria-controls="pills-comVsInd-{{ scale.pk }}" aria-selected="true">{{ scale.name }}</a>
+    <a class="flex-sm-fill text-sm-center nav-link active" id="comVsInd-{{ scale.pk }}-tab" data-toggle="pill" href="#pills-comVsInd-{{ scale.pk }}" role="tab" aria-controls="pills-comVsInd-{{ scale.pk }}" aria-selected="true">{{ scale.name }}{% if scale.final %} <i class="fa-solid fa-circle-check fa-xs"></i>{% endif %}</a>
   </li>
   {% else %}
   <li class="nav-item" role="presentation">
-    <a class="flex-sm-fill text-sm-center nav-link" id="comVsInd-{{ scale.pk }}-tab" data-toggle="pill" href="#pills-comVsInd-{{ scale.pk }}" role="tab" aria-controls="pills-comVsInd-{{ scale.pk }}" aria-selected="false">{{ scale.name }}</a>
+    <a class="flex-sm-fill text-sm-center nav-link" id="comVsInd-{{ scale.pk }}-tab" data-toggle="pill" href="#pills-comVsInd-{{ scale.pk }}" role="tab" aria-controls="pills-comVsInd-{{ scale.pk }}" aria-selected="false">{{ scale.name }}{% if scale.final %} <i class="fa-solid fa-circle-check fa-xs"></i>{% endif %}</a>
   </li>
   {% endif %}
   {% endfor %}

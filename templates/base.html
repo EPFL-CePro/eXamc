@@ -192,13 +192,13 @@
                     </div>
                 </li>   
                 {% if exam %}
-                    <a {% if user|more_arg:exam|is_allowed:'preparation' %} href="{% url 'examInfo' exam.pk %}" {% endif %}class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="height:auto;background-color: #1d2124;margin-top:20px;">
-                        <span title="{{ exam.code }}" class="fa-solid fa-book-open" style="margin-right: 5px;"></span>
-                        <span class="menu-collapsed" style="margin-right:5px;">{% if exam.is_overall %}{{ exam.name }}{% else %}{{ exam.code }}{% endif %}</span>
+                    <a {% if user|more_arg:exam|is_allowed:'preparation' %} href="{% url 'examInfo' exam_selected.pk %}" {% endif %}class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="height:auto;background-color: #1d2124;margin-top:20px;">
+                        <span title="{{ exam_selected.code }}" class="fa-solid fa-book-open" style="margin-right: 5px;"></span>
+                        <span class="menu-collapsed" style="margin-right:5px;">{% if exam_selected.is_overall %}{{ exam_selected.name }}{% else %}{{ exam_selected.code }}{% endif %}</span>
                     </a>
                     {% if user|more_arg:exam|is_allowed:'preparation' %}
-                        {% if exam.has_prep_option %}
-                        <a href="{% url 'exam_preparation' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
+                        {% if exam_selected.has_prep_option %}
+                        <a href="{% url 'exam_preparation' exam_selected.pk %}" class="bg-dark list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-start align-items-center">
                                 <span class="fas fa-edit" style="margin-right:5px;"></span>
                                 <span class="menu-collapsed" style="margin-right:5px;">Preparation</span>
@@ -209,7 +209,7 @@
                     {% endif %}
                     {% endif %}
                     {% if user|more_arg:exam|is_allowed:'review'  %}
-                        {% if exam.has_review_option %}
+                        {% if exam_selected.has_review_option %}
                          <li class="bg-dark list-group-item list-group-item-action" >
                             <div class="d-flex w-100 justify-content-start align-items-center">
                                 <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -217,12 +217,12 @@
                                     <span class="menu-collapsed" style="margin-right:5px;">Review</span>
                                 </a>
                                 <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'reviewView' exam.pk %}" style="padding-top:15px;"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'reviewView' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a></li>
                                      <div class="bg-secondary dropdown-divider"></div>
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'reviewSettingsView' exam.pk 'groups' %}" style="padding-top:15px;"><i class="fas fa-cogs" style="margin-right:5px;"></i>Settings</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'reviewSettingsView' exam_selected.pk 'groups' %}" style="padding-top:15px;"><i class="fas fa-cogs" style="margin-right:5px;"></i>Settings</a></li>
                                      <div class="bg-secondary dropdown-divider"></div>
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'upload_scans' exam.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload scans</a></li>
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'generate_marked_files' exam.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export marked scans</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'upload_scans' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload scans</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'generate_marked_files' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export marked scans</a></li>
                               </ul>
                             </div>
                         </li>
@@ -230,7 +230,7 @@
                     <hr class="hr-sidebar">
                     {% endif %}
                     {% if user|more_arg:exam|is_allowed:'amc'  %}
-                        {% if exam.has_amc_option %}
+                        {% if exam_selected.has_amc_option %}
                         <li class="bg-dark list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-start align-items-center">
                                 <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -239,10 +239,10 @@
                                 </a>
                                 <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
 
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'amc_view' exam.pk %}" style="padding-top:15px;">
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'amc_view' exam_selected.pk %}" style="padding-top:15px;">
                                         <img src="{% static 'img/amc_icons/amc.ico' %}" style="margin-right:5px;"/>AMC</a></li>
                                     <div class="bg-secondary dropdown-divider"></div>
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'upload_amc_project' exam.pk %}" style="padding-top:15px;">
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'upload_amc_project' exam_selected.pk %}" style="padding-top:15px;">
                                         <i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Import data</a></li>
                                 </ul>
                             </div>
@@ -251,8 +251,8 @@
                         {% endif %}
                     {% endif %}
                     {% if user|more_arg:exam|is_allowed:'res_and_stats'  %}
-                        {% if exam.has_res_and_stats_option %}
-                        <a href="{% url 'studentsResults' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
+                        {% if exam_selected.has_res_and_stats_option %}
+                        <a href="{% url 'studentsResults' exam_selected.pk %}" class="bg-dark list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-start align-items-center">
                                 <span class="fas fa-th-list" style="margin-right:5px;"></span>
                                 <span class="menu-collapsed" style="margin-right:5px;">Results</span>
@@ -265,20 +265,20 @@
                                     <span class="menu-collapsed" style="margin-right:5px;">Statistics</span>
                                 </a>
                                 <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
-                                    {%  if exam.scales.all %}
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'generalStats' exam.pk %}" style="padding-top:15px;"><i class="fas fa-chart-line" style="margin-right:5px;"></i>Global</a></li>
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'questionsStats' exam.pk %}" style="padding-top:15px;"><i class="fas fa-chart-area" style="margin-right:5px;"></i>Questions</a></li>
+                                    {%  if exam_selected.scales.all %}
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'generalStats' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-chart-line" style="margin-right:5px;"></i>Global</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'questionsStats' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-chart-area" style="margin-right:5px;"></i>Questions</a></li>
                                     {% endif %}
                               </ul>
                             </div>
                         </li>
-                         <a href="{% url 'import_data_4_stats' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
+                         <a href="{% url 'import_data_4_stats' exam_selected.pk %}" class="bg-dark list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-start align-items-center">
                                 <span class="fas fa-cloud-upload-alt" style="margin-right:5px;"></span>
                                 <span class="menu-collapsed" style="margin-right:5px;">Import data</span>
                             </div>
                         </a>
-                         <a href="{% url 'export_data' exam.pk %}" class="bg-dark list-group-item list-group-item-action">
+                         <a href="{% url 'export_data' exam_selected.pk %}" class="bg-dark list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-start align-items-center">
                                 <span class="fas fa-cloud-download-alt" style="margin-right:5px;"></span>
                                 <span class="menu-collapsed" style="margin-right:5px;">Export results</span>
@@ -333,6 +333,29 @@
         <div id="page-content-wrapper">
         
             <div class="container-fluid">
+                <!-- exams navbar : display common exams list or single exam if no common -->
+                {% if nav_url != 'amc_data_capture_manual' and nav_url != 'reviewGroup' %}
+                <ul class="nav nav-pills nav-fill flex-column flex-sm-row" id="amc-pills-tab"
+                    style="margin-bottom:10px;">
+                    {% for comex in exam.get_common_exams_yc_common %}
+                        <li class="nav-item" role="presentation" style="background-color: #f7f7f9;margin:1px;">
+                            <a class="flex-sm-fill text-sm-center nav-link {% if comex.id == exam_selected.id %}active{% endif %}"
+                               id="{{ comex.id }}-tab"
+                               href="{% if curr_tab %}{% url nav_url comex.pk curr_tab %}{% else %}{% url nav_url comex.pk %}{% endif %}">
+                                {% if comex.is_overall %}
+                                    {{ comex.name }} (S{{ comex.semester.code }} {{ comex.year.code }} )
+                                    <br>
+                                    COMMON
+                                {% else %}
+                                    {{ comex.code }} {{ comex.name }} (S{{ comex.semester.code }} {{ comex.year.code }} )
+                                    <br>
+                                    {{ comex.id|get_exam_teachers_short_str }}
+                               {% endif %}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
                 <!-- Page Content -->
                 {% block content %}
         

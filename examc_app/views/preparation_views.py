@@ -74,7 +74,7 @@ def create_exam_project(request):
             logger.info(form.errors)
             return render(request, 'exam/create_exam_project.html', {"user_allowed": True,
                                                                    "form": form,
-                                                                   "current_url": "create_exam_project"})
+                                                                   "nav_url": "create_exam_project"})
 
     # if a GET (or any other method) we'll create a blank form
     else:
@@ -82,7 +82,7 @@ def create_exam_project(request):
 
         return render(request, 'exam/create_exam_project.html', {"user_allowed": True,
                                                                "form": form,
-                                                               "current_url": "create_exam_project"})
+                                                               "nav_url": "create_exam_project"})
 
 @login_required
 def exam_preparation_view(request,pk):
@@ -118,7 +118,8 @@ def exam_preparation_view(request,pk):
                     "fp_txt_form":first_page_text_form,
                     "sh_txt_frm_list":section_txt_frm_list,
                     "qu_txt_frm_list":question_txt_frm_list,
-                    "an_txt_frm_list":answer_txt_frm_list})
+                    "an_txt_frm_list":answer_txt_frm_list,
+                    "nav_url": "exam_preparation"})
 
 @login_required
 def exam_add_section(request,exam_pk):
@@ -133,8 +134,6 @@ def exam_add_section(request,exam_pk):
     section.save()
 
     return exam_preparation_view
-
-    #return render(request, 'exam/exam_preparation.html', {"user_allowed": True,"exam":exam})
 
 @login_required
 def exam_add_section_question(request):
@@ -202,7 +201,7 @@ def exam_add_section_question(request):
             logger.info(form.errors)
             return render(request, 'exam/create_exam_project.html', {"user_allowed": True,
                                                                      "form": form,
-                                                                     "current_url": "create_exam_project"})
+                                                                     "nav_url": "create_exam_project"})
 
     # if a GET (or any other method) we'll create a blank form
     elif request.method == 'GET':

@@ -13,18 +13,24 @@ from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, \
-    create_scans_folder_structure_json
+from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
 
 
 @login_required
 def upload_amc_project(request, pk):
     exam = Exam.objects.get(pk=pk)
 
+    exam_selected = exam
+    if exam.common_exams:
+        for common_exam in exam.common_exams.all():
+            if common_exam.is_overall():
+                exam = common_exam
+                break
+
     if request.method == 'POST':
         if 'amc_project_zip_file' not in request.FILES:
             message = "No zip file provided."
-            return render(request, 'amc/upload_amc_project.html', {'exam': exam,'message': message})
+            return render(request, 'amc/upload_amc_project.html', {'exam': exam,'message': message,"nav_url":"upload_amc_project"})
 
         zip_file = request.FILES['amc_project_zip_file']
 
@@ -34,10 +40,12 @@ def upload_amc_project(request, pk):
 
         return render(request, 'amc/upload_amc_project.html', {
             'exam': exam,
+            'exam_selected': exam_selected,
+            'nav_url': "upload_amc_project",
             'message': message
         })
 
-    return render(request, 'amc/upload_amc_project.html', {'exam': exam})
+    return render(request, 'amc/upload_amc_project.html', {'exam': exam, 'exam_selected': exam_selected,'nav_url': "upload_amc_project"})
 
 @login_required
 def amc_view(request, pk,curr_tab=None, task_id=None):
@@ -47,8 +55,6 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
 
     context = {}
     if user_allowed(exam, request.user.id):
-        context['exam'] = exam
-        context['user_allowed'] = True
         if amc_data_path:
             # get amc options and infos
             amc_option_nb_copies = get_amc_option_by_key(exam,'nombre_copies')
@@ -80,8 +86,8 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
 
             has_results = get_amc_results_file_path(exam)
 
-            scans_list_json = create_scans_folder_structure_json(exam)
-            scans_list_json_string = json.dumps(scans_list_json)
+            scans_list = get_scans_list(exam)
+            scans_list_json_string = json.dumps(scans_list)
 
             context['number_of_copies_param'] = amc_option_nb_copies
             context['copy_count'] = number_of_copies
@@ -109,7 +115,17 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             context['has_results'] = has_results
             context['task_id'] = task_id
             context['curr_tab'] = curr_tab
-            context['scans_list_json'] = scans_list_json_string
+            context['scans_list_json'] = json.loads(scans_list_json_string)
+
+        context['exam_selected'] = exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+        context['exam'] = exam
+        context['user_allowed'] = True
+        context['nav_url'] = 'amc_view'
 
     else:
         context['user_allowed'] = False
@@ -123,15 +139,24 @@ def amc_data_capture_manual(request,pk):
     amc_data_path = get_amc_project_path(exam, False)
 
     context = {}
+    context['nav_url'] = 'amc_data_capture_manual'
     if user_allowed(exam, request.user.id):
-        context['exam'] = exam
-        context['user_allowed'] = True
+
         if amc_data_path:
 
             data = get_amc_data_capture_manual_data(exam)
 
             context['data_pages'] = data[0]
             context['data_questions'] = data[1]
+
+        context['exam_selected'] = exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+        context['exam'] = exam
+        context['user_allowed'] = True
     else:
         context['user_allowed'] = False
 
@@ -224,6 +249,20 @@ def call_amc_automatic_data_capture(request,from_review):
     zip_file = request.FILES['amc_scans_zip_file']
 
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,False,file_list_path=None))
+
+def import_scans_from_review_pages(request,pk):
+    exam = Exam.objects.get(pk=pk)
+    scans_list = request.POST.getlist('pages_list[]')
+    amc_proj_path = get_amc_project_path(exam, False)
+    file_list_path = amc_proj_path + "/list-file"
+    if os.path.exists(file_list_path):
+        os.remove(file_list_path)
+
+    with open(file_list_path, "w") as f:
+        for scan in scans_list:
+            f.write(scan + "\n")
+
+    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
 def import_scans_from_review(request,pk):
     exam = Exam.objects.get(pk=pk)
@@ -333,11 +372,6 @@ def call_amc_mark(request):
 
     return StreamingHttpResponse(amc_mark_subprocess(request, exam, update_scoring_strategy))
    # result = amc_mark(exam,update_scoring_strategy)
-
-    if not 'ERR:' in result:
-        return HttpResponse('yes')
-    else:
-        return HttpResponse(result)
 
 @login_required
 def call_amc_automatic_association(request):

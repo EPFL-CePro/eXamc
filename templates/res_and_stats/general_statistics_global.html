@@ -4,8 +4,8 @@
     <table id="distribution_dt" class="table table-striped table-sm">
       <thead>
         <tr>
-          <th colspan="2">Students : {% if currselected_exam.is_overall %}{{ currselected_exam.get_sum_common_students }}{% else %}{{ currselected_exam.students.all|length }}{% endif %} </th>
-          <th colspan="2">Present :  {{ currselected_exam.present_students }} </th>
+          <th colspan="2">Students : {% if exam_selected.is_overall %}{{ exam_selected.get_sum_common_students }}{% else %}{{ exam_selected.students.all|length }}{% endif %} </th>
+          <th colspan="2">Present :  {{ exam_selected.present_students }} </th>
           <th colspan="4">Absent : {{ absent }} </th>
           <th colspan="17"/>
         </tr>
@@ -20,10 +20,10 @@
         </tr>
       </thead>
       <tbody>
-        {% for scale_stat in currselected_exam.scaleStatistics.all %}
+        {% for scale_stat in exam_selected.scaleStatistics.all %}
         {% if scale_stat.section == 'global' %}
         <tr>
-          <th>{{ scale_stat.scale.name }}</th>
+          <th>{{ scale_stat.scale.name }}{% if scale_stat.scale.final %} <i class="fa-solid fa-circle-check fa-xs"></i>{% endif %}</th>
           <th>{{ scale_stat.average }}</th>
           <th>{{ scale_stat.median }}</th>
           <th>{{ scale_stat.stddev }}</th>

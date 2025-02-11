@@ -475,23 +475,26 @@ def get_exam_copies_from_to(exam):
     return copies
 
 
-
-
-def create_scans_folder_structure_json(exam):
-    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+def get_scans_list(exam):
+    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir_path = scans_dir_path.replace(' ', '_')
     result = []
     if os.path.exists(scans_dir_path):
-        for entry in os.listdir(scans_dir_path):
+        list_dir_copies = sorted(os.listdir(scans_dir_path))
+        for entry in list_dir_copies:
             entry_path = os.path.join(scans_dir_path, entry)
-            copy = {'text': 'Copy '+entry,
-                    #'selectable': False,
-                    #'state': {'expanded': False},
-                      'nodes': []}
-            for child in os.listdir(entry_path):
-                copy['nodes'].append({'text': 'File '+child})#,'selectable':True})
+            copy = {'copy': entry,
+                      'pages': []}
+            list_dir_pages = sorted(os.listdir(entry_path))
+            for child in list_dir_pages:
+                #check if marked page exist
+                marked_scan_path = (entry_path+"/marked_"+child).replace('scans','marked_scans')
+                page = child.replace('.jpg','').replace('_',' ')
+                if os.path.exists(marked_scan_path):
+                    copy['pages'].append({'page': page+'*','path':marked_scan_path})
+                else:
+                    copy['pages'].append({'page': page,'path':entry_path+"/"+child})
 
             result.append(copy)
 
-            if len(result) == 10:
-                return result
     return result

@@ -11,7 +11,7 @@ from matplotlib.sphinxext.plot_directive import exception_template
 from shapely import Polygon
 
 from django.conf import settings
-from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser, ReviewLock
+from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser, ReviewLock, Scale
 from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
 
 register = template.Library()
@@ -242,9 +242,10 @@ def get_exam_teachers_short_str(exam_id):
     exam = Exam.objects.get(pk=exam_id)
     teachers_str = ''
     for exam_user in exam.exam_users.all():
-        if teachers_str:
-            teachers_str += ', '
-        teachers_str += exam_user.user.first_name[0]+"."+exam_user.user.last_name
+        if exam_user.group.id == 2:
+            if teachers_str:
+                teachers_str += ', '
+            teachers_str += exam_user.user.first_name[0]+"."+exam_user.user.last_name
 
     return teachers_str
 

@@ -64,6 +64,8 @@ def generate_scale_pdf(exam,scale,folder_path):
     #get max decimal places of students points
     all_pts = Student.objects.filter(exam=exam).values_list('points',flat=True)
     maxD = get_max_decimal_places(all_pts)
+    if maxD > 3:
+        maxD = 3
 
     if maxD > 0:
         decimal_string_from = f"{0.000000:.{maxD}f}"

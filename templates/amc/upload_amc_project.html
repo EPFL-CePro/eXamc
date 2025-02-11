@@ -1,6 +1,7 @@
 
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_tags %}
 {% block title %}Upload AMC project{% endblock %}
 
 {% block content %}
@@ -8,7 +9,7 @@
 <div id="uploadAMCProjectDiv" style="padding:10px;width:100%;margin-top:100px;color:#000;">
     <h3>Upload AMC projects .zip file</h3>
 
-    <form id="uploadAMCProjectForm" method="post" action="{% url 'upload_amc_project' pk=exam.pk %}" enctype="multipart/form-data">
+    <form id="uploadAMCProjectForm" method="post" action="{% url 'upload_amc_project' pk=exam_selected.pk %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-group">
             <div class="col-md-8">

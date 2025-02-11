@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, ModelForm, formset_factory
+from django.utils.safestring import mark_safe
 from django_ckeditor_5.widgets import CKEditor5Widget
 
 from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser
@@ -114,8 +115,14 @@ class ExportResultsForm(forms.Form):
                 self.fields['common_exams'] = forms.MultipleChoiceField(
                         widget=forms.CheckboxSelectMultiple(attrs={'class': "custom-radio-list form-check-inline"}),
                         choices=[ (c.pk,c.code+" "+c.exam_users.first().user.last_name) for c in exam.common_exams.all()],required=False)
+            choices = []
+            for s in exam.scales.all():
+                text = s.name
+                if s.final:
+                    text = s.name +' <i class="fa-solid fa-circle-check fa-xs"></i>'
+                choices.append((s.pk, mark_safe(text)))
 
-            self.fields['scale'].choices=[ (s.pk, s.name) for s in exam.scales.all()]
+            self.fields['scale'].choices=choices#[ (s.pk, s.name) for s in exam.scales.all()]
 
 
 

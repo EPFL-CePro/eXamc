@@ -10,7 +10,6 @@
 
 {% block content %}
 <h3><i class="fa fa-glasses fa-l" style="margin-right:5px;"></i>Review Summary</h3>
-
 <table class="table table-striped table-sm">
   <thead>
     <tr>
@@ -32,7 +31,7 @@
       <td style="text-align: center;">{{ pages_group.nb_pages }}</td>
         <td style="text-align: center;">
             <ul class="list-group list-group-flush" style="width:70%;margin-left:15%">
-            {% for exam_user in exam.exam_users.all %}
+            {% for exam_user in exam_selected.exam_users.all %}
                 {% if pages_group in exam_user.pages_groups.all %}
                     <li class="list-group-item d-flex justify-content-between align-items-center" style="background-color: transparent;">
                         {{ exam_user.user.first_name|slice:":1" }}. {{ exam_user.user.last_name }}

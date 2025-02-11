@@ -50,13 +50,19 @@ class ReviewView(DetailView):
                     pages_groups = user_exam.first().pages_groups.all()
 
             context['user_allowed'] = True
-            context['current_url'] = "review"
-            context['exam'] = exam
+            context['nav_url'] = "reviewView"
             context['exam_pages_group_list'] = pages_groups
+            context['exam_selected'] = exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
+            context['exam'] = exam
             return context
         else:
             context['user_allowed'] = False
-            context['current_url'] = "review"
+            context['nav_url'] = "reviewView"
             context['exam'] = exam
             return context
 
@@ -91,16 +97,22 @@ class ReviewGroupView(DetailView):
         scans_pathes_list = get_scans_pathes_by_group(pages_group)
         if user_allowed(pages_group.exam, self.request.user.id):
             context['user_allowed'] = True
-            context['current_url'] = "reviewGroup"
-            context['exam'] = pages_group.exam
+            context['nav_url'] = "reviewGroup"
             context['pages_group'] = pages_group
             context['scans_pathes_list'] = scans_pathes_list
             context['currpage'] = current_page
             context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
+            context['exam_selected'] = pages_group.exam
+            if pages_group.exam.common_exams:
+                for common_exam in pages_group.exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
+            context['exam'] = exam
             return context
         else:
             context['user_allowed'] = False
-            context['current_url'] = "review"
+            context['nav_url'] = "reviewGroup"
             context['exam'] = pages_group.exam
             context['pages_group'] = pages_group
             return context
@@ -158,23 +170,28 @@ class ReviewSettingsView(DetailView):
                 grading_help_group_form.initial['ckeditor_txt'] = ''
 
                 context['user_allowed'] = True
-                context['current_url'] = "reviewSettings"
-                context['exam'] = exam
+                context['nav_url'] = "reviewSettingsView"
                 context['exam_reviewers_formset'] = formsetReviewers
                 context['exam_pages_groups_formset'] = formsetPagesGroups
                 context['curr_tab'] = curr_tab
                 context['gh_group_form'] = grading_help_group_form
-                return context
             else:
 
                 context['user_allowed'] = True
-                context['current_url'] = "reviewSettings"
-                context['exam'] = exam
+                context['nav_url'] = "reviewSettingsView"
                 context['curr_tab'] = curr_tab
-                return context
+
+            context['exam_selected'] = exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
+            context['exam'] = exam
+            return context
         else:
             context['user_allowed'] = False
-            context['current_url'] = "reviewSettings"
+            context['nav_url'] = "reviewSettingsView"
             context['exam'] = exam
             return context
 
@@ -232,7 +249,7 @@ class ReviewSettingsView(DetailView):
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
-            context['current_url'] = "reviewSettings"
+            context['nav_url'] = "reviewSettingsView"
             context['exam'] = exam
             context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
@@ -240,7 +257,7 @@ class ReviewSettingsView(DetailView):
             context['error_msg'] = error_msg
         else:
             context['user_allowed'] = False
-            context['current_url'] = "reviewSettings"
+            context['nav_url'] = "reviewSettingsView"
             context['exam'] = exam
             return context
 
@@ -270,7 +287,7 @@ def add_new_pages_group(request, pk):
     new_group.nb_pages = -1
     new_group.save()
 
-    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups"}))
+    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups",'nav_url':""}))
 
 
 @login_required
@@ -344,132 +361,6 @@ def get_pages_group_grading_help(request):
 
 @login_required
 @menu_access_required
-def get_pages_group_grading(request):
-    """
-      Get the grading help.
-
-      This view function retrieves the grading help for a pages group identified by its primary key. It returns
-      the grading help as an HTTP response.
-
-      Args:
-          request: The HTTP request object containing the primary key 'pk' of the pages group.
-
-      Returns:
-          HttpResponse: An HTTP response containing the grading help for the pages group.
-      """
-
-    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
-
-
-    return HttpResponse(pages_group.grading_help)
-
-
-# @login_required
-# @menu_access_required
-# def edit_pages_group_corrector_box(request):
-#     """
-#     Edit the corrector box of a pages group.
-#
-#     This view function edits the corrector box of a pages group identified by its primary key. It receives the
-#     new corrector box value from the HTTP POST request and updates the pages group accordingly. After the update,
-#     it redirects the user back to the review settings view.
-#
-#     Args:
-#         request: The HTTP request object containing the primary key ('pk') of the pages group
-#             and the new corrector box value ('corrector_box').
-#
-#     Returns:
-#         HttpResponseRedirect: A redirection to the review settings view after the corrector box update.
-#     """
-#     pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
-#     pages_group.correctorBoxMarked = request.POST['corrector_box']
-#     pages_group.save()
-#
-#     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
-#
-#
-# @login_required
-# @menu_access_required
-# def get_pages_group_rectangle_data(request):
-#     """
-#     Get rectangle data for a pages group.
-#
-#     This view function retrieves rectangle data (markers) for a pages group identified by its primary key. It expects
-#     the group ID to be sent via an HTTP POST request. If successful, it returns JSON data containing the image path
-#     and the markers. If no image path is found, it returns an empty response.
-#
-#     Args:
-#         request: The HTTP request object.
-#
-#     Returns:
-#         HttpResponse: A JSON response containing the image path and markers, or an empty response if no image path is found.
-#     """
-#     if request.method == 'POST':
-#         data_dict = {}
-#         pagesGroup = PagesGroup.objects.get(pk=request.POST.get('group_id'))
-#         marker_corr_box_qs = PageMarkers.objects.filter(exam=pagesGroup.exam, pages_group=pagesGroup,copie_no='CORR-BOX')
-#         marker_corr_box = None
-#         if marker_corr_box_qs:
-#             marker_corr_box = marker_corr_box_qs.first().markers
-#         img_path = get_scans_path_for_group(pagesGroup)
-#         if img_path:
-#             data_dict['img_path'] = img_path
-#             data_dict['markers'] = marker_corr_box
-#             return HttpResponse(json.dumps(data_dict))
-#         else:
-#             return HttpResponse(img_path)
-
-#
-# @login_required
-# @menu_access_required
-# def add_new_reviewers(request):
-#     """
-#            Add new reviewers to review group.
-#
-#            This function is used to add a new reviewers to review group and add to a specific question. After adding reviewers,
-#             it redirects the user back to the review settings view.
-#
-#            :param request: The HTTP request object.
-#            :return: A rendered HTML page displaying the new reviewer.
-#
-#                Args:
-#                     request: The HTTP request object.
-#
-#                 Returns:
-#                     return: A rendered HTML page displaying the new reviewer.
-#            """
-#     exam = Exam.objects.get(pk=request.POST.get('pk'))
-#     reviewers = request.POST.getlist('reviewer_list[]')
-#     reviewer_group, created = Group.objects.get_or_create(name='reviewer')
-#     for reviewer in reviewers:
-#         user_list = reviewer.split(";")
-#         users = User.objects.filter(email=user_list[3]).all()
-#         if users:
-#             user = users.first()
-#         else:
-#             user = User()
-#
-#         user.username = user_list[0]
-#         user.first_name = user_list[1]
-#         user.last_name = user_list[2]
-#         user.email = user_list[3]
-#         user.save()
-#         user.groups.add(reviewer_group)
-#         user.save()
-#
-#         examReviewer = Reviewer()
-#         examReviewer.user = user
-#         examReviewer.exam = exam
-#         examReviewer.save()
-#         examReviewer.pages_groups.set(exam.pagesGroup.all())
-#         examReviewer.save()
-#         print(examReviewer)
-#
-#     return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "reviewers"}))
-
-
-@login_required
-@menu_access_required
 def generate_marked_files(request, pk, task_id=None):
     """
           Export all the marked files.
@@ -507,10 +398,18 @@ def generate_marked_files(request, pk, task_id=None):
                 task_id = task.task_id
 
                 form = ExportMarkedFilesForm()
+
+                exam_selected = exam
+                if exam.common_exams:
+                    for common_exam in exam.common_exams.all():
+                        if common_exam.is_overall():
+                            exam = common_exam
+                            break
                 return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                     "form": form,
+                    "exam_selected": exam_selected,
                     "exam": exam,
-                    "current_url": "generate_marked_files",
+                    "nav_url": "generate_marked_files",
                     "task_id": task_id})
 
 
@@ -525,15 +424,29 @@ def generate_marked_files(request, pk, task_id=None):
         # if a GET (or any other method) we'll create a blank form
         else:
             form = ExportMarkedFilesForm()
+            exam_selected = exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
             return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                                                                               "form": form,
                                                                               "exam": exam,
-                                                                              "current_url": "generate_marked_files"})
+                                                                                "exam_selected": exam_selected,
+                                                                              "nav_url": "generate_marked_files"})
     else:
+        exam_selected = exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
         return render(request, 'review/export/export_marked_files.html', {"user_allowed": False,
                                                                           "form": None,
                                                                           "exam": exam,
-                                                                          "current_url": "generate_marked_files"})
+                                                                            "exam_selected": exam_selected,
+                                                                          "nav_url": "generate_marked_files"})
 
 @login_required
 def download_marked_files(request,filename):
@@ -609,16 +522,33 @@ def upload_scans(request, pk, task_id=None):
         task_id = task.task_id
        # message = start_upload_scans(request, exam.pk, temp_file_path)
 
+        exam_selected = exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+
         return render(request, 'review/import/upload_scans.html', {
             'exam': exam,
+            'exam_selected': exam_selected,
             'files': [],
             'message': '',
             'task_id':task_id,
-            'amc_ok':amc_ok
+            'amc_ok':amc_ok,
+            'nav_url':'upload_scans'
         })
 
-    return render(request, 'review/import/upload_scans.html', {'exam': exam,'amc_ok':amc_ok,
-                                                               'files': []})
+
+
+    exam_selected = exam
+    if exam.common_exams:
+        for common_exam in exam.common_exams.all():
+            if common_exam.is_overall():
+                exam = common_exam
+                break
+    return render(request, 'review/import/upload_scans.html', {'exam': exam,'exam_selected':exam_selected,'amc_ok':amc_ok,
+                                                               'files': [],'nav_url':'upload_scans'})
 
 @login_required
 def saveMarkers(request):
@@ -644,19 +574,6 @@ def saveMarkers(request):
 
 
         scan_markers.save()
-
-        # [# check if marker in corrector box marker
-        # marker_corrector_box = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group,
-        #                                                  copie_no='CORR-BOX').first()
-        #
-        # marked = False
-        # if marker_corrector_box:
-        #     if int(marker_corrector_box.page_no) == int(scan_markers.page_no):
-        #         corrector_box_checked_list = check_if_markers_intersect(marker_corrector_box.markers, scan_markers.markers)
-        #         if corrector_box_checked_list and len(corrector_box_checked_list) > 0:
-        #             marked = True
-        #             for corrector_box in corrector_box_checked_list:
-        #                 scan_markers.markers = ]scan_markers.markers.replace(corrector_box['old'].replace(" ",""),corrector_box['new'])
 
         scan_markers.correctorBoxMarked = False
         if "HighlightMarker" in scan_markers.markers:
