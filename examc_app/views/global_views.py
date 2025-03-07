@@ -97,3 +97,7 @@ def user_allowed(exam, user_id):
     else:
         return False
 
+
+def test(request):
+    return render(request,'testing/test2.html')
+
