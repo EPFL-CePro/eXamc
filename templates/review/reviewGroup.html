@@ -139,9 +139,28 @@
                     <div id="grading-help" style="padding:10px;border:1px solid lightgray;background-color: white;"></div>
                 </div>
             </div>
+            <hr>
+        </div>
+{% comment %}        <div class="row">
+            <div style="float:right">
+                <a title="Grading " id="expandCollapseGradingBt" type="button" data-bs-toggle="collapse" style="float:right;" data-bs-target="#grading-div" aria-expanded="false" aria-controls="grading-div">
+                    <i id="grading-icon" class="fa-solid fa-clone" style="margin-left:10px;"></i>
+                    <i id="collapse-g-icon" class="fa mr-3" style="color:grey;"></i>
+                </a>
+                <div id="grading-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
+                    <div>
+                        <p class="table th">
+                            <i class="fa-solid fa-clone"></i>
+                            GRADING
+                        </p>
+                    </div>
+                    <hr>
+                    <div id="grading" style="padding:10px;border:1px solid lightgray;background-color: white;"></div>
+                </div>
+            </div>
 
         </div>
-    </div>
+    </div>{% endcomment %}
 
 </div>
 
@@ -821,6 +840,40 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
     }
 
 });
+
+{#document.getElementById("expandCollapseGradingBt").addEventListener("click", function(event) {#}
+{#    var gradingIcon = $( "#grading-help-icon" );#}
+{#    var collapseIcon = $( "#collapse-gh-icon" );#}
+{#    if(collapseIcon.hasClass('fa-angle-double-left')){#}
+{#        collapseIcon.removeClass('fa-angle-double-left');#}
+{#        gradingIcon.show();#}
+{#    }else{#}
+{#        collapseIcon.addClass('fa-angle-double-left');#}
+{#        gradingIcon.hide();#}
+{##}
+{##}
+{#        $.ajax({#}
+{#            url: "{% url 'get_pages_group_grading' %}",#}
+{#            type: "POST",#}
+{#            data : {#}
+{#                'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
+{#                'pk' : {{ pages_group.id }},#}
+{#            },#}
+{#            success: (data) => {#}
+{#                document.getElementById("grading").innerHTML = data;#}
+{#                window.MathJax.typeset();#}
+{#            },#}
+{#            error: (error) => {#}
+{#                console.log(error);#}
+{#            }#}
+{#        });#}
+{##}
+{##}
+{##}
+{#    }#}
+{##}
+{#});#}
+
 
 window.onbeforeunload = function(){
     {#$.ajax({#}

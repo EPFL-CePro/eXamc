@@ -95,7 +95,6 @@ class ReviewGroupView(DetailView):
 
         # Get scans file path dict by pages groups
         scans_pathes_list = get_scans_pathes_by_group(pages_group)
-#        scans_pathes_list_new = get_scans_pathes_by_exam(pages_group.exam)
         if user_allowed(pages_group.exam, self.request.user.id):
             context['user_allowed'] = True
             context['nav_url'] = "reviewGroup"
@@ -103,12 +102,6 @@ class ReviewGroupView(DetailView):
             context['scans_pathes_list'] = scans_pathes_list
             context['currpage'] = current_page
             context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
-
-            #### TESTING DISPLAYING FULL COPIE JPGS ####
-            # merged_scans = json.dumps(scans_pathes_list_new)
-            # context["json_merged_scans"] = merged_scans
-            #### END TESTING DISPLAYING FULL COPIE JPGS ###
-
             context['exam_selected'] = pages_group.exam
             exam = pages_group.exam
             if exam.common_exams:
@@ -760,4 +753,10 @@ def get_copy_page(request):
 
 
 
+
+@login_required
+def calculate_final_checkBox(request):
+    pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_id'])
+    exam = Exam.objects.get(pk=request.POST['exam_id'])
+    final_check = request.POST['final_check']
 
