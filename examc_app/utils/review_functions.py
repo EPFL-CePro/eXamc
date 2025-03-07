@@ -7,11 +7,14 @@ import os
 import re
 import shutil
 import time
+from fileinput import filename
 from os.path import isdir
 
 import cv2
 from PIL import Image, ImageStat, ImageEnhance
 from django.conf import settings
+from django.http import HttpResponse
+from docutils.nodes import entry
 from fpdf import FPDF
 
 from examc_app.models import *
@@ -189,6 +192,47 @@ def get_scans_path_for_group(pagesGroup):
             if page_no_int == pagesGroup.page_from:
                 return scans_url + "/" + dir + "/" + filename
 
+#### TESTING DISPLAYING FULL COPIE JPGS ####
+def get_scans_pathes_by_exam(exam):
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_url = "../../scans/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+
+    #scans_markers_qs = PageMarkers.objects.filter(exam=exam,copy_no=copy_nr)
+    scans_pathes = []
+    if os.path.exists(scans_dir):
+        for dir in sorted(os.listdir(scans_dir)):
+            # files = []
+            # for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+            #     if not filename.endswith("full.jpg"):
+            #         files.append(scans_dir + "/"+dir+"/"+filename)
+            #
+            # scans = [Image.open(x) for x in files]
+            # widths, heights = zip(*(i.size for i in scans))
+            #
+            # total_width = max(widths)
+            # max_height = sum(heights)
+            #
+            # merged_scans = Image.new('RGB', (total_width, max_height))
+            #
+            # y_offset = 0
+            # for im in scans:
+            #     merged_scans.paste(im, (0,y_offset))
+            #     y_offset += im.height
+            #
+            # merged_scans.save(scans_dir+"/"+dir+"/"+dir+"_full.jpg")
+            scans_path_dict = {}
+            scans_path_dict["copy_no"] = dir
+            scans_path_dict["path"] = scans_url+"/"+dir+"/"+dir+"_full.jpg"
+            # scans_path_dict["marked"] = marked
+            # scans_path_dict["comment"] = comment
+            # scans_path_dict["marked_by"] = marked_by
+            scans_pathes.append(scans_path_dict)
+
+    return scans_pathes
+#### END TESTING DISPLAYING FULL COPIE JPGS ###
+
 
 def get_scans_pathes_by_group(pagesGroup):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
@@ -203,37 +247,38 @@ def get_scans_pathes_by_group(pagesGroup):
     if os.path.exists(scans_dir):
         for dir in sorted(os.listdir(scans_dir)):
             for filename in sorted(os.listdir(scans_dir + "/" + dir)):
-                split_filename = filename.split('_')
-                copy_no = split_filename[-2]
-                page_no_real = split_filename[-1].replace('.jpg','')
-                # get only two first char to prevent extra pages with a,b,c suffixes
-                page_no_int = int(page_no_real[0:2])
+                if not filename.endswith("full.jpg"):
+                    split_filename = filename.split('_')
+                    copy_no = split_filename[-2]
+                    page_no_real = split_filename[-1].replace('.jpg','')
+                    # get only two first char to prevent extra pages with a,b,c suffixes
+                    page_no_int = int(page_no_real[0:2])
 
-                amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
-                if amc_questions_pages:
-                    from_p = amc_questions_pages[0]['page']
-                    to_p = from_p+pagesGroup.nb_pages-1
-                    if page_no_int >= from_p and page_no_int <= to_p:
-                        marked = False
-                        comment = None
-                        if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
-                            comment = True
-                        pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
-                                                              page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
-                        if pageMarkers:
-                            if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
-                                marked = True
+                    amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
+                    if amc_questions_pages:
+                        from_p = amc_questions_pages[0]['page']
+                        to_p = from_p+pagesGroup.nb_pages-1
+                        if page_no_int >= from_p and page_no_int <= to_p:
+                            marked = False
+                            comment = None
+                            if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
+                                comment = True
+                            pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
+                                                                  page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
+                            if pageMarkers:
+                                if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
+                                    marked = True
 
-                            #marked_by = pageMarkers.get_users_with_date()
+                                #marked_by = pageMarkers.get_users_with_date()
 
-                        scans_path_dict = {}
-                        scans_path_dict["copy_no"] = copy_no
-                        scans_path_dict["page_no"] = page_no_real.lstrip("0")
-                        scans_path_dict["path"] = scans_url + "/" + dir + "/" + filename
-                        scans_path_dict["marked"] = marked
-                        scans_path_dict["comment"] = comment
-                        #scans_path_dict["marked_by"] = marked_by
-                        scans_pathes.append(scans_path_dict)
+                            scans_path_dict = {}
+                            scans_path_dict["copy_no"] = copy_no
+                            scans_path_dict["page_no"] = page_no_real.lstrip("0")
+                            scans_path_dict["path"] = scans_url + "/" + dir + "/" + filename
+                            scans_path_dict["marked"] = marked
+                            scans_path_dict["comment"] = comment
+                            #scans_path_dict["marked_by"] = marked_by
+                            scans_pathes.append(scans_path_dict)
 
         scans_pathes = sorted(scans_pathes, key=lambda k: (k['copy_no'], float(k['page_no'])))
     return scans_pathes
@@ -396,77 +441,6 @@ def updateCorrectorBoxMarked(pageMarkers):
     for marker in markers:
         return None
 
-
-# def check_if_markers_intersect(corrector_box_marker_set, other_marker_set):
-#     corr_box_marker_data = json.loads(corrector_box_marker_set)['markers']
-#     other_markers_data = json.loads(other_marker_set)['markers']
-#     corr_box_coords = None
-#     for marker in corr_box_marker_data:
-#         left = marker['left']
-#         top = marker['top']
-#         width = marker['width']
-#         height = marker['height']
-#         a = (left, top)
-#         b = (left + width, top)
-#         c = (left + width, top + height)
-#         d = (left, top + height)
-#         corr_box_coords = [a, b, c, d]
-#
-#     other_coords = []
-#     for marker in other_markers_data:
-#         if marker['typeName'] == 'ArrowMarker':
-#             left = marker['x1']
-#             top = marker['y1']
-#             width = marker['x2']-left
-#             height = marker['y2']-top
-#             a = (left, top)
-#             b = (left + width, top)
-#             c = (left + width, top + height)
-#             d = (left, top + height)
-#         else:
-#             left = marker['left']
-#             top = marker['top']
-#             width = marker['width']
-#             height = marker['height']
-#             a = (left, top)
-#             b = (left + width, top)
-#             c = (left + width, top + height)
-#             d = (left, top + height)
-#         other_coords.append([marker,[a, b, c, d]])
-#
-#     corr_box_polygon = Polygon(corr_box_coords)
-#
-#     marker_intersects = []
-#     for other_coord in other_coords:
-#         other_polygon = Polygon(other_coord[1])
-#
-#         if other_polygon.intersects(corr_box_polygon):
-#             #change fill color to black to ensure good detection with AMC
-#             old_marker_str = json.dumps(other_coord[0])
-#             new_marker = other_coord[0]
-#             if(new_marker['typeName'] == 'FreehandMarker'):
-#                 dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
-#                 img_data = dataUrlPattern.match(new_marker['drawingImgUrl']).group(2)
-#                 img_data = base64.b64decode(img_data)
-#                 img_file = Image.open(io.BytesIO(img_data))
-#                 img_file = img_file.convert("L")
-#                 enhancer = ImageEnhance.Brightness(img_file)
-#                 # to reduce brightness by 50%, use factor 0.5
-#                 img_file = enhancer.enhance(0.5)
-#                 buffered = io.BytesIO()
-#                 img_file.save(buffered, format="PNG")
-#                 img_str = base64.b64encode(buffered.getvalue())
-#                 img_data_url =  u'data:image/png;base64,'+img_str.decode('utf-8')
-#
-#
-#                 new_marker['drawingImgUrl'] = img_data_url
-#             else:
-#                 new_marker['fillColor'] = 'black'
-#
-#             marker_intersects.append({"old": old_marker_str, "new": json.dumps(new_marker)})
-#
-#     return marker_intersects
-
 def get_exam_copies_from_to(exam):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     copies_folders = list(filter(lambda x: isdir(f"{scans_dir}\\{x}"), os.listdir(scans_dir)))
@@ -498,3 +472,35 @@ def get_scans_list(exam):
             result.append(copy)
 
     return result
+
+def get_scans_list_by_copy(exam,copy_nr):
+    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir_path = scans_dir_path.replace(' ', '_')
+    scans_dir_path += "/"+copy_nr
+    result = []
+    if os.path.exists(scans_dir_path):
+        list_dir_copies = sorted(os.listdir(scans_dir_path))
+        for entry in list_dir_copies:
+            entry_path = os.path.join(scans_dir_path, entry)
+            page = entry.replace('.jpg', '').split('_').pop().lstrip('0')
+            if int(page) != 1:
+                result.append({'copy_no':copy_nr,'page_no':page})
+    return result
+
+def get_scan_url(exam,copy_nr,page_nr):
+    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir_path = scans_dir_path.replace(' ', '_')
+    scans_dir_path += "/" + copy_nr
+    scans_url = "../../scans/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_url += "/"+ copy_nr + "/"
+
+    scan_url = ''
+    if os.path.exists(scans_dir_path):
+        list_dir_copies = sorted(os.listdir(scans_dir_path))
+        for entry in list_dir_copies:
+            entry_path = os.path.join(scans_dir_path, entry)
+            page = entry.replace('.jpg', '').split('_').pop().lstrip('0')
+            if page == page_nr:
+                scan_url = scans_url+entry
+                break
+    return scan_url

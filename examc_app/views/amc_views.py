@@ -89,6 +89,7 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             scans_list = get_scans_list(exam)
             scans_list_json_string = json.dumps(scans_list)
 
+            exam_nb_pages = max(data[0], key=lambda x:x['page'])['page']
             context['number_of_copies_param'] = amc_option_nb_copies
             context['copy_count'] = number_of_copies
             context['exam_pdf_path'] = amc_exam_pdf_path
@@ -116,6 +117,7 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
             context['task_id'] = task_id
             context['curr_tab'] = curr_tab
             context['scans_list_json'] = json.loads(scans_list_json_string)
+            context['exam_nb_pages'] = range(1,exam_nb_pages,1)
 
         context['exam_selected'] = exam
         if exam.common_exams:

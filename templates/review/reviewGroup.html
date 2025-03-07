@@ -86,8 +86,9 @@
             </table>
         </div>
     </div>
-    <div class="list-group" id="test" style="height:100%;margin-left:5px;width:60vw;" >
+    <div class="list-group" id="test" style="height:100%;margin-left:5px;width:60vw;position:relative;" >
         <div id="pagination" class="list-group list-group-horizontal"></div>
+        <div id="copy_page_select" style="z-index:99;position:absolute;margin-top:100px;right:20px;background-color: gray;padding:2px;"></div>
         <div id="markerjs_div" style="height:95%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;padding-top:5px;">
             <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
                 <img id="source_img" style=""/>
@@ -147,6 +148,7 @@
 
 <script>
 
+
 window.MathJax = {
   tex: {
     inlineMath: [['$$', '$$'], ['\\(', '\\)']],
@@ -156,6 +158,11 @@ window.MathJax = {
 };
 let sourceImage, markedImage, targetRoot, maState, currSourceElementId, currSourceIdSplit, markerArea;
 let group_pathes = JSON.parse('{{json_group_scans_pathes|safe }}');
+
+
+{##### TESTING DISPLAYING FULL COPIE JPGS #####}
+{#let group_pathes_new = JSON.parse('{{json_merged_scans|safe }}');#}
+{##### END TESTING DISPLAYING FULL COPIE JPGS #####}
 
 window.addEventListener('resize', function(event) {
 
@@ -174,7 +181,10 @@ function createPagination(pages, page) {
 
     let str = ''//'<ul class="list-group list-group-horizontal">';
 
-    setSourceScan(group_pathes[page-1]["path"], "");
+    setSourceScan(group_pathes[page-1]["path"],false);
+    {##### TESTING DISPLAYING FULL COPIE JPGS #####}
+    {#setSourceScan(group_pathes_new[page-1]["path"],group_pathes[page-1]["path"], "");#}
+    {##### END TESTING DISPLAYING FULL COPIE JPGS #####}
 
     // Show the Previous button only if you are on a page other than the first
     if (page > 1) {
@@ -219,7 +229,7 @@ function createPagination(pages, page) {
 
     // Return the pagination string to be outputted in the pug templates
     document.getElementById("pagination").innerHTML = str;
-    if(setMarkerArea()){;
+    if(setMarkerArea()){
         // hide HiglightMarker if visible (marker used for corrector boxes but not available for reviewers
         hl_marker_elements = document.querySelectorAll('[data-type-name="HighlightMarker"]');
         for(el of hl_marker_elements){
@@ -234,7 +244,7 @@ function createPagination(pages, page) {
     }
 }
 
-function setSourceScan(scan_path){
+function setSourceScan(scan_path,from_copy){
     old_source = document.getElementById("source_img").src;
     sourceImage = document.getElementById("source_img");
     sourceImage.src = scan_path;
@@ -244,17 +254,27 @@ function setSourceScan(scan_path){
     markedImage.src = scan_path;
 
     // change current and last source element background color
-    currSourceIdSplit = scan_path.split('/').pop().replace('.jpg','').split('_');
-    currSourceElementId = currSourceIdSplit[0]+"_"+currSourceIdSplit[1]+"_"+parseFloat(currSourceIdSplit[2]);
-    
-    currSourceIdSplit.push(document.getElementById(currSourceElementId).cells[0].innerText);
-    if (old_source){
-        lastSourceIdSplit = old_source.split('/').pop().replace('.jpg','').split('_');
-        lastSourceElementId =
-        lastSourceIdSplit[0]+"_"+lastSourceIdSplit[1]+"_"+parseFloat(lastSourceIdSplit[2]);
-        document.getElementById(lastSourceElementId).style.backgroundColor = "";
+    currSourceIdSplit = scan_path.split('/').pop().replace('.jpg', '').split('_');
+    currSourceElementId = currSourceIdSplit[0] + "_" + currSourceIdSplit[1] + "_" + parseFloat(currSourceIdSplit[2]);
+
+    if(!from_copy) {
+        currEl = document.getElementById(currSourceElementId)
+        currSourceIdSplit.push(document.getElementById(currSourceElementId).cells[0].innerText);
     }
-    document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
+    if (old_source && !from_copy) {
+        lastSourceIdSplit = old_source.split('/').pop().replace('.jpg', '').split('_');
+        lastSourceElementId =
+            lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + parseFloat(lastSourceIdSplit[2]);
+
+        lastEl = document.getElementById(lastSourceElementId);
+        if(lastEl) {
+            lastEl.style.backgroundColor = "";
+        }
+    }
+    if(!from_copy) {
+        document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
+    }
+
 }
 
 function setMarkerArea(target) {
@@ -345,6 +365,48 @@ function addMarkersImageProcess(src){
   })
 }
 
+function initCopyPagesSelectpicker(pages,curr_page){
+    const selectElDiv = document.getElementById('copy_page_select');
+    selectElDiv.innerHTML = "";
+    const selectEl = document.createElement('select');
+    selectEl.className = 'selectpicker form-control';
+    selectEl.style.width  = '100px'
+    pages.forEach(pageData => {
+        const optionEl = document.createElement('option');
+        optionEl.value = pageData.copy_no+"-"+pageData.page_no;
+        optionEl.textContent = "page "+pageData.page_no;
+        if(Number(curr_page) === Number(pageData.page_no)){
+            optionEl.selected = true;
+        }
+        selectEl.appendChild(optionEl);
+    })
+    selectEl.addEventListener('change', () => {
+        copy_nr = selectEl.value.split('-')[0]
+        page_nr = selectEl.value.split('-')[1]
+        changeCopyPage({{ pages_group.exam.pk }},copy_nr, page_nr);
+    });
+    selectElDiv.append(selectEl);
+    $('.selectpicker').selectpicker();
+}
+
+function changeCopyPage(exam_pk,copy_no,page_no){
+    $.ajax({
+        url : "{% url 'get_copy_page' %}",
+        type : "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'exam_pk' : exam_pk,
+            'copy_no' : copy_no,
+            //'curr_row': curr_row,
+            'page_no' : page_no,
+        },
+        success: (copyPageUrl) => {
+            setSourceScan(copyPageUrl,true);
+            setMarkerArea();
+        },
+    });
+}
+
 function getMarkersAndComments(pk,copy_no,page_no,filename){
     result = false;
     var markers;
@@ -360,7 +422,9 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
         success: (data) => {
             if(data===''){
                 td_el = document.getElementById('copy_'+copy_no+'_'+Number(page_no)+'_id');
-                td_el.style.display = 'None';
+                if(td_el) {
+                    td_el.style.display = 'None';
+                }
                 //td_el = document.getElementById('copy_'+copy_no+'_'+Number(page_no)+'_id');
                 //td_el.innerText=td_el.getAttribute('name');
                 $.ajax({
@@ -392,6 +456,8 @@ function getMarkersAndComments(pk,copy_no,page_no,filename){
                             //draw_corrector_boxes(corrector_boxes);
                         }
                         initComments(comments);
+                        pages=JSON.parse(data_full.copy_pages);
+                        initCopyPagesSelectpicker(pages,page_no);
                     }
                     result = true;
                 },
@@ -530,7 +596,10 @@ function updateMarkers(markerArea, exam_pk, pages_group_pk){
     saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,sourceImage.getAttribute("src"),id_no);
 
     initCopyPagesTableOnClickRowEvent(true);
-    document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
+    currEl = document.getElementById(currSourceElementId)
+    if(currEl) {
+        currEl.style.backgroundColor = "yellow";
+    }
 
 }
 
@@ -553,10 +622,12 @@ function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,file
         },
         success: (marked) => {
             marked_info_element = document.getElementById(currSourceElementId+"_marked");
-            marked_info_element.innerHTML = "";
-            if(marked === 'True'){
-                marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
-            }   
+            if(marked_info_element) {
+                marked_info_element.innerHTML = "";
+                if (marked === 'True') {
+                    marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
+                }
+            }
 
         },
     });
@@ -686,7 +757,6 @@ $(window).on("load",function(){
                 break;
         }
     }).focus();
-    
 
 });
 document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
@@ -753,16 +823,16 @@ document.getElementById("expandCollapseGradingHelpBt").addEventListener("click",
 });
 
 window.onbeforeunload = function(){
-    $.ajax({
-        url : "{% url 'remove_review_user_locks' %}",
-        type: "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-        },
-        error: (error) => {
-            console.log(error);
-        }
-    });
+    {#$.ajax({#}
+    {#    url : "{% url 'remove_review_user_locks' %}",#}
+    {#    type: "POST",#}
+    {#    data : {#}
+    {#        'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
+    {#    },#}
+    {#    error: (error) => {#}
+    {#        console.log(error);#}
+    {#    }#}
+    {#});#}
 };
 
 </script>

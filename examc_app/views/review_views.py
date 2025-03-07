@@ -95,6 +95,7 @@ class ReviewGroupView(DetailView):
 
         # Get scans file path dict by pages groups
         scans_pathes_list = get_scans_pathes_by_group(pages_group)
+#        scans_pathes_list_new = get_scans_pathes_by_exam(pages_group.exam)
         if user_allowed(pages_group.exam, self.request.user.id):
             context['user_allowed'] = True
             context['nav_url'] = "reviewGroup"
@@ -102,9 +103,16 @@ class ReviewGroupView(DetailView):
             context['scans_pathes_list'] = scans_pathes_list
             context['currpage'] = current_page
             context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
+
+            #### TESTING DISPLAYING FULL COPIE JPGS ####
+            # merged_scans = json.dumps(scans_pathes_list_new)
+            # context["json_merged_scans"] = merged_scans
+            #### END TESTING DISPLAYING FULL COPIE JPGS ###
+
             context['exam_selected'] = pages_group.exam
-            if pages_group.exam.common_exams:
-                for common_exam in pages_group.exam.common_exams.all():
+            exam = pages_group.exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
                     if common_exam.is_overall():
                         exam = common_exam
                         break
@@ -562,7 +570,7 @@ def saveMarkers(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     pages_group = PagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
-                                                              page_no=request.POST['page_no'], pages_group=pages_group,
+                                                              page_no=request.POST['page_no'], #pages_group=pages_group,
                                                               exam=exam)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
@@ -640,6 +648,7 @@ def getMarkersAndComments(request):
     comments = PagesGroupComment.objects.filter(pages_group=request.POST['group_id'],
                                                 copy_no=request.POST['copy_no']).all()
     data_dict["comments"] = [comment.serialize(request.user.id) for comment in comments]
+    data_dict["copy_pages"] = json.dumps(get_scans_list_by_copy(exam,copy_no))
 
     return HttpResponse(json.dumps(data_dict))
 
@@ -738,4 +747,17 @@ def remove_review_user_locks(request):
 
     for lock in review_lock_qs.all():
         lock.delete()
+
+@login_required
+def get_copy_page(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    copy_nr = request.POST.get('copy_no')
+    page_nr = request.POST.get('page_no')
+
+    scan_url = get_scan_url(exam, copy_nr, page_nr)
+
+    return HttpResponse(scan_url)
+
+
+
 
