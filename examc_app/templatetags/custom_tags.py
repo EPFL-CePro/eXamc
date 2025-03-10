@@ -253,3 +253,11 @@ def get_exam_teachers_short_str(exam_id):
 def get_sum_questions_points(exam_id):
     exam = Exam.objects.get(pk=exam_id)
     return exam.questions.all().aggregate(Sum('max_points')).get('max_points__sum')
+
+@register.simple_tag
+def get_logo_url():
+    settings_module = settings.SETTINGS_MODULE
+    if settings_module.endswith(".prod"):
+        return settings.STATIC_URL + "img/eXamc_bg_transp_200.png"
+    else:
+        return settings.STATIC_URL + "img/eXamc_bg_transp_200_dev.png"
