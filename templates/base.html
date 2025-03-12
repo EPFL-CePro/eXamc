@@ -155,7 +155,7 @@
                 <li class="bg-dark list-group-item-action" >
                     <div class="d-flex w-100 " style="padding: 15px">
                         <img id="examc_logo_small" src="{% static 'img/eXamc_bg_transp_square_72.png' %}" style="width:30px;height: 30px; align-content: center"/>
-                        <span class="menu-collapsed" style="margin-right:5px;"><img id="examc_logo" src="{% static 'img/eXamc_bg_transp_200.png' %}" style="margin-left:-30px;width:100%;background-color: #000000"/></span>
+                        <span class="menu-collapsed" style="margin-right:5px;"><img id="examc_logo" src="{% get_logo_url %}" style="margin-left:-30px;width:100%;background-color: #000000"/></span>
                     </div>
                 </li>
                 {% if user.is_authenticated %}                    

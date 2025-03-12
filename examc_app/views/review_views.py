@@ -87,7 +87,6 @@ class ReviewGroupView(DetailView):
     template_name = 'review/reviewGroup.html'
 
     def get_context_data(self, **kwargs):
-
         context = super(ReviewGroupView, self).get_context_data(**kwargs)
 
         pages_group = PagesGroup.objects.get(pk=context.get("object").id)
@@ -104,12 +103,13 @@ class ReviewGroupView(DetailView):
             context['currpage'] = current_page
             context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
             context['exam_selected'] = pages_group.exam
-            if pages_group.exam.common_exams:
-                for common_exam in pages_group.exam.common_exams.all():
+            exam = pages_group.exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
                     if common_exam.is_overall():
                         exam = common_exam
                         break
-            context['exam'] = Exam
+            context['exam'] = exam
             return context
         else:
             context['user_allowed'] = False
@@ -563,7 +563,7 @@ def saveMarkers(request):
     exam = Exam.objects.get(pk=request.POST['exam_pk'])
     pages_group = PagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
-                                                              page_no=request.POST['page_no'], pages_group=pages_group,
+                                                              page_no=request.POST['page_no'], #pages_group=pages_group,
                                                               exam=exam)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
@@ -641,6 +641,7 @@ def getMarkersAndComments(request):
     comments = PagesGroupComment.objects.filter(pages_group=request.POST['group_id'],
                                                 copy_no=request.POST['copy_no']).all()
     data_dict["comments"] = [comment.serialize(request.user.id) for comment in comments]
+    data_dict["copy_pages"] = json.dumps(get_scans_list_by_copy(exam,copy_no))
 
     return HttpResponse(json.dumps(data_dict))
 
@@ -739,6 +740,19 @@ def remove_review_user_locks(request):
 
     for lock in review_lock_qs.all():
         lock.delete()
+
+@login_required
+def get_copy_page(request):
+    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    copy_nr = request.POST.get('copy_no')
+    page_nr = request.POST.get('page_no')
+
+    scan_url = get_scan_url(exam, copy_nr, page_nr)
+
+    return HttpResponse(scan_url)
+
+
+
 
 @login_required
 def calculate_final_checkBox(request):
