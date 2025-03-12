@@ -20,6 +20,8 @@ from examc_app.utils.rooms_plans_functions import generate_plan
 
 CSV_TO_JPG_MAP = {
     'AAC_006.csv': 'AAC_006.jpg',
+    'AAC_020.csv': 'AAC_020.jpg',
+    'AAC_114.csv': 'AAC_114.jpg',
     'AAC_120.csv': 'AAC_120.jpg',
     'AAC_132.csv': 'AAC_132.jpg',
     'AAC_137.csv': 'AAC_137.jpg',
@@ -88,6 +90,8 @@ CSV_TO_JPG_MAP = {
     'INM_200.csv': 'INM_200.jpg',
     'INM_202.csv': 'INM_202.jpg',
     'MA_A1_10.csv': 'MA_A1_10.jpg',
+    'MA_A3_30.csv': 'MA_A3_30.jpg',
+    'MA_A3_31.csv': 'MA_A3_31.jpg',
     'MA_A1_12.csv': 'MA_A1_12.jpg',
     'ME_B3_31.csv': 'ME_B3_31.jpg',
     'MXF_014.csv': 'MXF_014.jpg',
