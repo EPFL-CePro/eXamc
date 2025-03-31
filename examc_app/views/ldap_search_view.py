@@ -43,7 +43,14 @@ def upload_excel_generate_csv(request):
 
             for index, row in df.iterrows():
 
-                ldap_entries = ldap_search.get_entry(row[0], search_choice)
+                name_parts = row[0].split(" ", 1)  # Sépare en deux parties seulement
+                if len(name_parts) == 2:
+                    search_value = f"{name_parts[1]} {name_parts[0]}"  # Inverse Nom <-> Prénom
+                else:
+                    search_value = row[0]  # Si on ne peut pas séparer, garder tel quel
+
+                ldap_entries = ldap_search.get_entry(search_value, search_choice)
+
                 print(ldap_entries)
                 if ldap_entries:
 
