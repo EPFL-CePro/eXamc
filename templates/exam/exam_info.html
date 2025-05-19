@@ -478,7 +478,7 @@ $(window).on("load",function(){
     }
     
     // Get saved data from sessionStorage
-    if(sessionStorage.length > 0){
+    if(sessionStorage.getItem("selectedCollapse_list") !== null) {
         let selectedCollapse_json = sessionStorage.getItem('selectedCollapse_list');
         let selectedCollapse_list = JSON.parse(selectedCollapse_json);
         $('.accordion .collapse').removeClass('show');
