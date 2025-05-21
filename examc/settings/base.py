@@ -15,7 +15,6 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 import os
 
-from examc.celery import app
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -46,7 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
-    'django_tequila',
+    #'django_tequila',
     'userprofile',
     'sslserver',
     'django_tables2',
@@ -58,6 +57,7 @@ INSTALLED_APPS = [
     'celery',
     'celery_progress',
     'maintenance_mode',
+    'mozilla_django_oidc',
 ]
 
 MIDDLEWARE = [
@@ -69,9 +69,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_tequila.middleware.TequilaMiddleware',
+    #'django_tequila.middleware.TequilaMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
-    'maintenance_mode.middleware.MaintenanceModeMiddleware'
+    'maintenance_mode.middleware.MaintenanceModeMiddleware',
+    'login_required.middleware.LoginRequiredMiddleware'
 ]
 
 ROOT_URLCONF = 'examc.urls'
@@ -118,26 +119,29 @@ MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static/'
 
-# Scans folder
+# Signed files expiration timeout ms
+SIGNED_FILES_EXPIRATION_TIMEOUT = 300
+SIGNED_FILES_URL = '/protected/'
+
 SCANS_ROOT = BASE_DIR / 'scans/'
-SCANS_URL = '/scans/'
+#SCANS_URL = '/protected/scans/'
 
 # Marked scans folder
 MARKED_SCANS_ROOT = BASE_DIR / 'marked_scans/'
-MARKED_SCANS_URL = '/marked_scans/'
+#MARKED_SCANS_URL = '/protected/marked_scans/'
 
 # Autoupload folder
-AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload/'
-AUTOUPLOAD_URL = '/autoupload/'
+#AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload/'
+#AUTOUPLOAD_URL = '/autoupload/'
 
 # Export marked files folder tmp
 EXPORT_TMP_ROOT = BASE_DIR / 'export_tmp/'
-EXPORT_TMP_URL = '/export_tmp/'
+#EXPORT_TMP_URL = '/export_tmp/'
 SCALE_PDF_TEMPLATE = BASE_DIR / 'templates/res_and_stats/scale_pdf.html'
 
 # pdf catalogs folder
-CATALOG_ROOT = BASE_DIR / 'catalogs'
-CATALOG_URL = '/catalogs/'
+CATALOG_ROOT = BASE_DIR / 'catalogs/'
+#CATALOG_URL = '/catalogs/'
 
 # AMC projects folder
 AMC_PROJECTS_ROOT = BASE_DIR / 'amc_projects/'
@@ -153,20 +157,56 @@ DOCUMENTATION_URL = '/docs/build/html/'
 # Django-tequila specifics
 AUTH_PROFILE_MODULE = "userprofile.UserProfile"
 
-AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 'django_tequila.django_backend.TequilaBackend',)
+# OLD TEQUILA
+#AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 'django_tequila.django_backend.TequilaBackend',)
+# TEQUILA_SERVICE_NAME = "django_tequila_service"
+# TEQUILA_SERVER_URL = "https://tequila.epfl.ch"
+# TEQUILA_NEW_USER_INACTIVE = False
+# TEQUILA_CLEAN_URL = True
+# TEQUILA_STRONG_AUTHENTICATION = False
+# TEQUILA_ALLOWED_REQUEST_HOSTS = None
+# TEQUILA_ALLOW_GUESTS = False
+# LOGIN_URL = "/login"
+# LOGIN_REDIRECT_URL = "/"
+# LOGOUT_URL = "/"
+# LOGIN_REDIRECT_IF_NOT_ALLOWED = "/not_allowed"
+# LOGIN_REDIRECT_TEXT_IF_NOT_ALLOWED = "Not allowed : please contact your admin"
 
-TEQUILA_SERVICE_NAME = "django_tequila_service"
-TEQUILA_SERVER_URL = "https://tequila.epfl.ch"
-TEQUILA_NEW_USER_INACTIVE = False
-TEQUILA_CLEAN_URL = True
-TEQUILA_STRONG_AUTHENTICATION = False
-TEQUILA_ALLOWED_REQUEST_HOSTS = None
-TEQUILA_ALLOW_GUESTS = False
-LOGIN_URL = "/login"
+# NEW ENTRA ID
+####################################################
+# Authentication settings
+####################################################
+AUTHENTICATION_BACKENDS = ("mozilla_django_oidc.auth.OIDCAuthenticationBackend","django.contrib.auth.backends.ModelBackend")
+TENANT_ID = os.environ["TENANT_ID"]
+
+OIDC_RP_CLIENT_ID = os.environ["OIDC_RP_CLIENT_ID"]
+OIDC_RP_CLIENT_SECRET = os.environ["OIDC_RP_CLIENT_SECRET"]
+
+AUTH_DOMAIN = f"https://login.microsoftonline.com/{TENANT_ID}"
+OIDC_OP_AUTHORIZATION_ENDPOINT = f"{AUTH_DOMAIN}/oauth2/v2.0/authorize"
+OIDC_OP_TOKEN_ENDPOINT = f"{AUTH_DOMAIN}/oauth2/v2.0/token"
+OIDC_OP_JWKS_ENDPOINT = f"{AUTH_DOMAIN}/discovery/v2.0/keys"
+OIDC_OP_USER_ENDPOINT = "https://graph.microsoft.com/oidc/userinfo"
+OIDC_RP_SIGN_ALGO = "RS256"
+LOGIN_URL = "/"
 LOGIN_REDIRECT_URL = "/"
-LOGOUT_URL = "/"
-LOGIN_REDIRECT_IF_NOT_ALLOWED = "/not_allowed"
-LOGIN_REDIRECT_TEXT_IF_NOT_ALLOWED = "Not allowed : please contact your admin"
+LOGOUT_REDIRECT_URL = "/"
+
+# Only use this setting if you want to store the access token in the session
+# To use access token to call API
+#OIDC_STORE_ACCESS_TOKEN = True
+
+LOGIN_REQUIRED_IGNORE_PATHS = [
+    r'/$',
+    r'/$',
+    r'^/oidc/.*$',  # All OIDC-related URLs
+    r'^/admin/.*$',
+    r'^/admin$',
+    r'^/static/.*$',
+    r'^/media/.*$',
+
+]
+LOGIN_REQUIRED_REDIRECT_FIELD_NAME = 'next_url'
 
 # Email configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -219,7 +259,7 @@ LOGGING = {
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-#CELERY_TASK_ALWAYS_EAGER  = True # True to debug task
+CELERY_TASK_ALWAYS_EAGER  = True # True to debug task
 # CELERY_BROKER_URL = 'redis://localhost:6379'
 # CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 # CELERY_ACCEPT_CONTENT = ['application/json']

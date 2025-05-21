@@ -13,30 +13,25 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser
 from .utils.global_functions import get_course_teachers_string
 
+class SwitchWidget(forms.CheckboxInput):
+    def render(self, name, value, attrs=None, renderer=None):
+        attrs = {**(attrs or {}), 'class': 'custom-control-input'}
+        if 'id' not in attrs:
+            attrs['id'] = f'id_{name}'
+        checkbox_html = super().render(name, value, attrs)
+        label_html = (
+            f'<label class="custom-control-label" '
+            f'for="{attrs["id"]}"></label>'
+        )
+        return mark_safe(
+            f'<div class="custom-control custom-switch mb-3" style="width:150px;text-align:center;">'
+            f'{checkbox_html}'
+            f'{label_html}'
+            f'</div>'
+        )
 
 class UploadScansForm(forms.Form):
     files = forms.FileField(widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
-
-
-# class ManagePagesGroupsForm(forms.ModelForm):
-#     class Meta:
-#         model = PagesGroup
-#         fields = ['group_name', 'nb_pages']
-#
-#     def __init__(self, *args, **kwargs):
-#         super(ManagePagesGroupsForm, self).__init__(*args, **kwargs)
-#         # you can iterate all fields here
-#         for fname, f in self.fields.items():
-#             f.widget.attrs['class'] = 'form-control'
-#             if fname == 'group_name':
-#                 f.widget.attrs['style'] = 'width:300px;'
-#             else:
-#                 f.widget.attrs['style'] = 'width:100px;'
-#
-#
-# PagesGroupsFormSet = modelformset_factory(
-#     PagesGroup, form=ManagePagesGroupsForm,  extra=0
-# )
 
 class ManagePagesGroupsForm(forms.ModelForm):
     class Meta:
@@ -48,7 +43,7 @@ class ManagePagesGroupsForm(forms.ModelForm):
         self.fields['group_name'] = forms.ChoiceField(label='Question', choices=questions_choices, widget=forms.Select(
             attrs={'class': "selectpicker form-control", 'size': 5}), required=True)
         self.fields['nb_pages'] = forms.IntegerField(label='Nb pages',
-                                      widget=forms.NumberInput(attrs={'class': "form-control", 'id': "page_from", 'style':'width:100px'}),
+                                      widget=forms.NumberInput(attrs={'class': "form-control", 'id': "nb_pages", 'style':'width:100px'}),
                                       required=True, min_value=1)
 
 PagesGroupsFormSet = modelformset_factory(
@@ -56,21 +51,27 @@ PagesGroupsFormSet = modelformset_factory(
 )
 
 class ManageReviewersForm(forms.ModelForm):
+    # override the field to give it our SwitchWidget
+    review_blocked = forms.BooleanField(
+        required=False,
+        widget=SwitchWidget(),
+        label='Block review',
+    )
+
     class Meta:
         model = ExamUser
-        fields = ['user', 'pages_groups']
+        fields = ['user', 'pages_groups', 'review_blocked']
 
     def __init__(self, *args, **kwargs):
         super(ManageReviewersForm, self).__init__(*args, **kwargs)
         # filter many to many pagesgroup to get only for curr exam
         self.pages_groups_choices = PagesGroup.objects.filter(exam=kwargs.pop('instance').exam)
         self.fields['pages_groups'].queryset = self.pages_groups_choices
-        # you can iterate all fields here
-        for fname, f in self.fields.items():
-            f.widget.attrs['style'] = 'width:300px;'
-            f.widget.attrs['class'] = 'form-control'
-            if fname == 'user':
-                f.disabled = True
+        self.fields['user'].widget.attrs['class'] = 'form-control'
+        self.fields['user'].widget.attrs['style'] = 'width:300px'
+        self.fields['pages_groups'].disabled = True
+        self.fields['pages_groups'].widget.attrs['class'] = 'form-control'
+        self.fields['pages_groups'].widget.attrs['style'] = 'width:300px'
 
 
 ReviewersFormSet = modelformset_factory(ExamUser, form=ManageReviewersForm, extra=0)

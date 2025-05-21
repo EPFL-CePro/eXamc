@@ -15,62 +15,6 @@
 
 {% load custom_tags %}
 
-{#<form enctype= 'multipart/form-data' id="form-groups" method="POST">#}
-{#    {% csrf_token %}#}
-{#    {{ exam_pages_groups_formset.management_form }}#}
-{#    <button type="submit" title="Save groups" name="submit-groups" style="margin:20px;" class="btn btn-dark btn-sm"><i class="fas fa-floppy-disk fa-2xl" style="margin-right:10px;"></i>Save</button>#}
-{#    {% if error_msg %}#}
-{#        <div class="alert alert-danger " role="alert" style="margin:20px;text-align:center;">{{ error_msg }}</div>#}
-{#    {% endif %}#}
-{#    <table class="table" style="max-width:500px">#}
-{#      <thead>#}
-{#        <tr>#}
-{#            {% for field in exam_pages_groups_formset.initial_forms.0 %}#}
-{#            {% if field.label != 'Id' %}#}
-{#            <th scope="col">{{ field.label }}</th>#}
-{#            {% endif %}#}
-{#            {% endfor %}#}
-{#            <th scope="col">Delete</th>#}
-{#            <th scope="col">Grading Help</th>#}
-{#        </tr>#}
-{#      </thead>#}
-{#      <tbody id="group-tbody">#}
-{#        {% for form in exam_pages_groups_formset.initial_forms %}#}
-{#        <tr id="group-form">#}
-{#            {% for hidden in form.hidden_fields %}#}
-{#                {{ hidden }}#}
-{#            {% endfor %}#}
-{#            {% for field in form.visible_fields %}#}
-{#                <td>{{ field }}</td>#}
-{#            {% endfor %}#}
-{#            #}
-{#            <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>#}
-{#            <td><button type="button" id="grading-help-bt" title="Grading Help" class="btn btn-light" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )"><i class="fas fa-question-circle fa-xl"></i></button></td>#}
-{#            <td><button type="button" id="corrector-box-bt" title="Corrector Boxes" class="btn btn-light" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})"><i class="fas fa-highlighter fa-xl" style="color:#7A03CCFF;"></i></button></td>#}
-{#        </tr>#}
-{#        {% endfor %}#}
-{#        <tr class="exam_pages_groups_formset_empty_form" hidden>#}
-{#            {% for hidden in exam_pages_groups_formset.extra_forms.0.hidden_fields %}#}
-{#                {{ hidden }}#}
-{#            {% endfor %}#}
-{#            {% for field in exam_pages_groups_formset.extra_forms.0.visible_fields %}#}
-{#                {% if field.label == 'Delete' %}#}
-{#                <td style="text-align:center;padding-top:35px">{{ field }}</td>#}
-{#            {% else %}#}
-{#                <td>{{ field }}</td>#}
-{#            {% endif %}#}
-{#            {% endfor %}#}
-{#            {% load static %}#}
-{#        </tr>#}
-{#      </tbody>#}
-{#    </table>#}
-{#    <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' exam_selected.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>#}
-{#</form>#}
-
-
-
-
-
 <form enctype= 'multipart/form-data' id="form-groups" method="POST">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
@@ -100,7 +44,7 @@
                 <td>{{ field }}</td>
             {% endfor %}
 
-            <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
+            <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value exam_selected.pk %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
             <td><button type="button" id="grading-help-bt" title="Grading Help" class="btn btn-light" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )"><i class="fas fa-question-circle fa-xl"></i></button></td>
 {#            <td><button type="button" id="corrector-box-bt" title="Corrector Boxes" class="btn btn-light" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})"><i class="fas fa-highlighter fa-xl" style="color:#7A03CCFF;"></i></button></td>#}
         </tr>
@@ -122,9 +66,6 @@
     </table>
     <a id="add-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Group" href="{% url 'add_new_pages_group' exam_selected.pk %}"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>
 </form>
-
-
-
 
 
 <div id="grading-help-modal" class="modal" tabindex="-1" role="dialog">
@@ -223,12 +164,12 @@ const quill = new Quill('#grading-help', {
 // Open Grading Help Modal
 function openGradingHelpDialog(group_id){
      $.ajax({
-        url: "{% url 'get_pages_group_grading_help' %}",
+        url: "{% url 'get_pages_group_grading_help' exam_selected.pk %}",
         async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : group_id,
+            'group_pk' : group_id,
         },
         success: (data) => {
             quill.container.firstChild.innerHTML = data
@@ -247,12 +188,12 @@ function cancelGradingHelp(){
 
 function saveGradingHelp(group_id){
     $.ajax({
-        url: "{% url 'edit_pages_group_grading_help' %}",
+        url: "{% url 'edit_pages_group_grading_help' exam_selected.pk %}",
         async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : $('#grading-help-group-id').val(),
+            'group_pk' : $('#grading-help-group-id').val(),
             'grading_help' : quill.container.firstChild.innerHTML,
         },
         success: (data) => {
@@ -264,156 +205,6 @@ function saveGradingHelp(group_id){
     });
 }
 
-{#// Marker.js configuration remains the same#}
-{#let markerArea, sourceImage, targetRoot, maState, modalCorrectorBoxGroupPk;#}
-{##}
-{#function setSourceImage(source) {#}
-{#  sourceImage = source;#}
-{#  targetRoot = source.parentElement;#}
-{#}#}
-{##}
-{#function showMarkerArea(target) {#}
-{#  markerArea = new markerjs2.MarkerArea(sourceImage);#}
-{#  markerArea.targetRoot = targetRoot;#}
-{#  markerArea.availableMarkerTypes = ["HighlightMarker"];#}
-{#  markerArea.settings.defaultHighlightColor = 'purple';#}
-{#  markerArea.settings.defaultHighlightOpacity = 0.45;#}
-{#  markerArea.uiStyleSettings.resultButtonBlockVisible = false;#}
-{#  markerArea.uiStyleSettings.hideToolbox = true;#}
-{#  #}
-{#  markerArea.addEventListener("render", (event) => {#}
-{#    target.src = event.dataUrl;#}
-{#    maState = event.state;#}
-{#    console.log(maState);#}
-{#   });#}
-{#  markerArea.addEventListener("close", (event) => {#}
-{#    showMarkerArea(target);#}
-{#  }); #}
-{#      #}
-{#    markerArea.addEventListener("markerdeselect", (event) => {#}
-{#        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));#}
-{#    });#}
-{#    #}
-{#    markerArea.addEventListener("markerdelete", (event) => {#}
-{#        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));#}
-{#    });#}
-{#    #}
-{#    markerArea.addEventListener("markerchange", (event) => {#}
-{#        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));#}
-{#    });#}
-{#    #}
-{#  markerArea.show();#}
-{#  if (maState) {#}
-{#    markerArea.restoreState(maState);#}
-{#  }#}
-{#}#}
-{##}
-{##}
-{#function markerDeselect(){#}
-{#    svgData = new XMLSerializer().serializeToString(markerArea.markerImage);#}
-{#    svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));#}
-{#    svgDataUrl = `data:image/svg+xml;charset=utf-8;base64,${svgDataBase64}`;#}
-{##}
-{#    addMarkersImageProcess(svgDataUrl).then(img => {#}
-{#        var canvas = document.createElement('canvas')#}
-{##}
-{#        canvas.setAttribute('width', markerArea.target.naturalWidth)#}
-{#        canvas.setAttribute('height', markerArea.target.naturalHeight)#}
-{##}
-{#        var context = canvas.getContext('2d')#}
-{#        context.drawImage(markerArea.target, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)#}
-{#        context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)#}
-{#        var dataUrl = canvas.toDataURL('image/png')#}
-{#        markedImage.src = dataUrl;#}
-{#        updateMarkers(JSON.stringify(markerArea.getState()),sourceImage.getAttribute("src"));#}
-{#    });#}
-{#}#}
-{##}
-{#function addMarkersImageProcess(src){#}
-{#  return new Promise((resolve, reject) => {#}
-{#    let img = new Image()#}
-{#    img.onload = () => resolve(img)#}
-{#    img.onerror = reject#}
-{#    img.src = src#}
-{#  })#}
-{#}#}
-{##}
-{#// Attach shown event listener specifically to image modal#}
-{#$('#imageModal').on('shown.bs.modal', function() {#}
-{#    const modalImage = document.getElementById('imgScan');#}
-{#    setSourceImage(modalImage);#}
-{#    showMarkerArea(modalImage);#}
-{#});#}
-{##}
-{#function openModalCorrectorBox(group_id) {#}
-{#    $.ajax({#}
-{#        type: 'POST',#}
-{#        url: "{% url 'get_pages_group_rectangle_data' %}",#}
-{#        data: {#}
-{#            'group_id': group_id,#}
-{#            'csrfmiddlewaretoken': '{{ csrf_token }}'#}
-{#        },#}
-{#        success: (data) => {#}
-{#            data_list = JSON.parse(data)#}
-{#            var imgScan = document.getElementById('imgScan');#}
-{#            imgScan.src = data_list.img_path;#}
-{#            modalCorrectorBoxGroupPk = group_id;#}
-{#            //if(data_list.markers !== '') {#}
-{#                maState = JSON.parse(data_list.markers);#}
-{#            //}#}
-{#            var imageModal = new bootstrap.Modal(document.getElementById('imageModal'));#}
-{#            imageModal.show();                #}
-{#        },      #}
-{#        error: function(error) {#}
-{#            console.log(error);#}
-{#        }#}
-{#    });#}
-{#}#}
-{##}
-{#function updateMarkers(markers,filename){#}
-{#    var state = JSON.stringify(markerArea.getState());#}
-{#    $.ajax({#}
-{#        url : "{% url 'update_page_group_markers' %}",#}
-{#        async : false,#}
-{#        type : "POST",#}
-{#        data : {#}
-{#            #}
-{#            'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
-{#            'exam_pk' : {{ exam_selected.pk }},#}
-{#            'pages_group_pk' : modalCorrectorBoxGroupPk,#}
-{#            'markers' : markers,#}
-{#            'filename' : filename#}
-{#        },#}
-{#        beforeSend : function(){#}
-{#            $('#loadingModal').modal('show');#}
-{#        },#}
-{#        success: function (response) {#}
-{#            console.log('Success');#}
-{#        },#}
-{#        error: function (error) {#}
-{#            console.log(error);#}
-{#        },#}
-{#        complete: function () {#}
-{#            $('#loadingModal').modal('hide');#}
-{#            //markerArea.restoreState(maState);#}
-{#        }#}
-{#    });#}
-{#}#}
-{#const maStateData = JSON.stringify(maState);#}
-{#$.ajax({#}
-{#    type: 'POST',#}
-{#    url: '{% url 'maState_data' %}',#}
-{#    data: {#}
-{#        'maState_data': maStateData,#}
-{#        'csrfmiddlewaretoken': '{{ csrf_token }}' },#}
-{#    dataType: 'json',#}
-{#    success:(data) => {#}
-{#        console.log('success', data);#}
-{#    },#}
-{#    error: (error) => {#}
-{#        console.log('error:', error);#}
-{#    }#}
-{#}); #}
 
 
 

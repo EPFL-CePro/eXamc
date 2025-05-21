@@ -8,7 +8,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_POST
 
+from examc_app.decorators import exam_permission_required
 from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
@@ -16,9 +18,10 @@ from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
 
 
-@login_required
-def upload_amc_project(request, pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage'])
+def upload_amc_project(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
 
     exam_selected = exam
     if exam.common_exams:
@@ -47,9 +50,10 @@ def upload_amc_project(request, pk):
 
     return render(request, 'amc/upload_amc_project.html', {'exam': exam, 'exam_selected': exam_selected,'nav_url': "upload_amc_project"})
 
-@login_required
-def amc_view(request, pk,curr_tab=None, task_id=None):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage'])
+def amc_view(request, exam_pk,curr_tab=None, task_id=None):
+    exam = Exam.objects.get(pk=exam_pk)
 
     amc_data_path = get_amc_project_path(exam, False)
 
@@ -134,9 +138,10 @@ def amc_view(request, pk,curr_tab=None, task_id=None):
 
     return render(request, 'amc/amc.html',  context)
 
-@login_required
-def amc_data_capture_manual(request,pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage'])
+def amc_data_capture_manual(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
 
     amc_data_path = get_amc_project_path(exam, False)
 
@@ -164,10 +169,11 @@ def amc_data_capture_manual(request,pk):
 
     return render(request, 'amc/amc_data_capture_manual.html', context)
 
-@login_required
-def get_amc_marks_positions(request):
+#@login_required
+@exam_permission_required(['manage'])
+def get_amc_marks_positions(request,exam_pk):
 
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    exam = Exam.objects.get(pk=exam_pk)
     copy = request.POST['copy']
     page = request.POST['page']
 
@@ -176,9 +182,10 @@ def get_amc_marks_positions(request):
     return HttpResponse(json.dumps(data_positions))
 
 
-@login_required
-def update_amc_mark_zone(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def update_amc_mark_zone(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     zoneid = request.POST['zoneid']
     copy = request.POST['copy']
     page = request.POST['page']
@@ -187,9 +194,10 @@ def update_amc_mark_zone(request):
 
     return HttpResponse('')
 
-@login_required
-def edit_amc_file(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def edit_amc_file(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     filepath = request.POST['filepath']
     if filepath == 'students_list':
         filepath = get_amc_option_by_key(exam,'listeetudiants').replace("%PROJET",get_amc_project_path(exam,False))
@@ -203,10 +211,11 @@ def edit_amc_file(request):
         f.close()
         return HttpResponse(file_contents)
 
-@login_required
-def save_amc_edited_file(request):
+#@login_required
+@exam_permission_required(['manage'])
+def save_amc_edited_file(request,exam_pk):
     data = request.POST['data']
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    exam = Exam.objects.get(pk=exam_pk)
     filepath = request.POST['filepath']
     if 'is_students_list' in request.POST:
         tmp_filepath = get_amc_project_path(exam,False)+'/_tmp_students.csv'
@@ -229,31 +238,33 @@ def save_amc_edited_file(request):
         f.close()
         return HttpResponse('ok')
 
-@login_required
-def call_amc_update_documents(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def call_amc_update_documents(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     nb_copies = request.POST['nb_copies']
 
     result = amc_update_documents(exam,nb_copies,False)
 
     return HttpResponse(result)
 
-@login_required
-def call_amc_layout_detection(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def call_amc_layout_detection(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     result = amc_layout_detection(exam)
     if not 'ERR:' in result:
         result = get_amc_layout_detection_info(exam)
     return HttpResponse(result)
 
-def call_amc_automatic_data_capture(request,from_review):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+def call_amc_automatic_data_capture(request,from_review,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     zip_file = request.FILES['amc_scans_zip_file']
 
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,False,file_list_path=None))
 
-def import_scans_from_review_pages(request,pk):
-    exam = Exam.objects.get(pk=pk)
+def import_scans_from_review_pages(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     scans_list = request.POST.getlist('pages_list[]')
     amc_proj_path = get_amc_project_path(exam, False)
     file_list_path = amc_proj_path + "/list-file"
@@ -266,8 +277,8 @@ def import_scans_from_review_pages(request,pk):
 
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
-def import_scans_from_review(request,pk):
-    exam = Exam.objects.get(pk=pk)
+def import_scans_from_review(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
 
     amc_proj_path = get_amc_project_path(exam, False)
     file_list_path = amc_proj_path + "/list-file"
@@ -321,34 +332,36 @@ def import_scans_from_review(request,pk):
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
 
-def open_amc_exam_pdf(request,pk):
-    exam = Exam.objects.get(pk=pk)
+def open_amc_exam_pdf(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     file_path = get_amc_exam_pdf_path(exam)
     try:
         return FileResponse(open(file_path, 'rb'), content_type='application/pdf')
     except FileNotFoundError:
         raise Http404('not found')
 
-def open_amc_catalog_pdf(request,pk):
-    exam = Exam.objects.get(pk=pk)
+def open_amc_catalog_pdf(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     file_path = get_amc_catalog_pdf_path(exam)
     try:
         return FileResponse(open(file_path, 'rb'), content_type='application/pdf')
     except FileNotFoundError:
         raise Http404('not found')
 
-@login_required
-def view_amc_log_file(request,pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage'])
+def view_amc_log_file(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     amc_log_file_path = get_amc_project_path(exam,False)+"/amc-compiled.log"
     f = open(amc_log_file_path, 'r', encoding='latin-1')
     file_contents = f.read()
     f.close()
     return HttpResponse(file_contents)
 
-@login_required
-def get_amc_zooms(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def get_amc_zooms(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     copy = request.POST['copy']
     page = request.POST['page']
 
@@ -356,9 +369,10 @@ def get_amc_zooms(request):
 
     return HttpResponse(json.dumps(zooms_data))
 
-@login_required
-def add_unrecognized_page(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def add_unrecognized_page(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     question = request.POST['question']
     copy = request.POST['copy']
     extra = request.POST['extra']
@@ -367,17 +381,19 @@ def add_unrecognized_page(request):
 
     return HttpResponse(True)
 
-@login_required
-def call_amc_mark(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def call_amc_mark(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     update_scoring_strategy = request.POST['update_scoring_strategy']
 
     return StreamingHttpResponse(amc_mark_subprocess(request, exam, update_scoring_strategy))
    # result = amc_mark(exam,update_scoring_strategy)
 
-@login_required
-def call_amc_automatic_association(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def call_amc_automatic_association(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     assoc_primary_key = request.POST['assoc_primary_key']
 
     result = amc_automatic_association(exam,assoc_primary_key)
@@ -387,9 +403,10 @@ def call_amc_automatic_association(request):
     else:
         return HttpResponse(result)
 
-@login_required
-def amc_update_students_file(request,pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage'])
+def amc_update_students_file(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     students_list_csv = request.FILES['students_list_csv']
     amc_project_dir = get_amc_project_path(exam,False)
     if amc_project_dir :
@@ -410,9 +427,10 @@ def amc_update_students_file(request,pk):
 
     return HttpResponse('ok')
 
-@login_required
-def call_amc_annotate(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def call_amc_annotate(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     single_file = request.POST['single_file']
     if single_file == '1':
         single_file = True
@@ -423,9 +441,10 @@ def call_amc_annotate(request):
 
     return HttpResponse(result)
 
-@login_required
-def download_annotated_pdf(request,pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage'])
+def download_annotated_pdf(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     zip_file_path = create_annotated_zip(exam)
 
     if zip_file_path:
@@ -434,9 +453,10 @@ def download_annotated_pdf(request,pk):
     else:
         return HttpResponse('ZIP file not created !')
 
-@login_required
-def call_amc_generate_results(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def call_amc_generate_results(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     result = amc_generate_results(exam)
 
     if not 'ERR:' in result:
@@ -451,15 +471,16 @@ def call_amc_generate_results(request):
     else:
         return HttpResponse(result)
 
-@login_required
-def amc_manual_association_data(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+#@login_required
+@exam_permission_required(['manage'])
+def amc_manual_association_data(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     data = get_amc_manual_association_data(exam)
 
     return HttpResponse(json.dumps(data))
 
-def amc_set_manual_association(requst):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+def amc_set_manual_association(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     copy_nr = request.POST['copy_nr']
     student_id = request.POST['student_id']
 
@@ -467,25 +488,24 @@ def amc_set_manual_association(requst):
 
     return HttpResponse(result)
 
-def amc_send_annotated_papers_data(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+def amc_send_annotated_papers_data(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     data = get_amc_send_annotated_papers_data(exam)
 
     return HttpResponse(json.dumps(data))
 
-@login_required
-def call_amc_send_annotated_papers(request,pk):
-    if request.method == 'POST':
-        exam = Exam.objects.get(pk=pk)
-        selected_students = json.loads(request.POST['selected-students'])
-        email_subject = request.POST['email-subject']
-        email_body = request.POST['email-body']
-        email_column = request.POST['email-column']
+#@login_required
+@require_POST
+@exam_permission_required(['manage'])
+def call_amc_send_annotated_papers(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+    selected_students = json.loads(request.POST['selected-students'])
+    email_subject = request.POST['email-subject']
+    email_body = request.POST['email-body']
+    email_column = request.POST['email-column']
 
-        result = amc_send_annotated_papers(exam,selected_students,email_subject,email_body,email_column)
-
-
-        return HttpResponse(json.dumps(result))
+    result = amc_send_annotated_papers(exam,selected_students,email_subject,email_body,email_column)
+    return HttpResponse(json.dumps(result))
 
 
 

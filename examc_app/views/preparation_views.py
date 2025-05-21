@@ -10,8 +10,6 @@ from django.conf import settings
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, ckeditorForm
 from examc_app.models import *
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
-from examc_app.views.global_views import menu_access_required
-
 
 @login_required
 def create_exam_project(request):
@@ -209,6 +207,8 @@ def exam_add_section_question(request):
 
         return HttpResponse(form.as_p())
 
+    return HttpResponse(None)
+
 @login_required
 def exam_update_section(request):
     section = ExamSection.objects.get(pk=request.POST.get('section_pk'))
@@ -220,7 +220,6 @@ def exam_update_section(request):
     return HttpResponse('ok')
 
 @login_required
-@menu_access_required
 def get_header_section_txt(request):
     """
       Get the section header text.

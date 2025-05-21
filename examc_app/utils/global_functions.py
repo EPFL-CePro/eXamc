@@ -3,6 +3,7 @@ import shutil
 
 import pypandoc
 from django.contrib.auth.models import User
+from django.core.signing import Signer
 from django.db.models import Q, Max
 from django.db.models.fields import IntegerField
 from django.db.models.functions import Cast
@@ -12,7 +13,6 @@ from django.conf import settings
 from examc_app.models import ExamUser
 from examc_app.utils.amc_functions import get_amc_project_path, amc_update_documents, get_amc_exam_pdf_url
 from examc_app.utils.epflldap.ldap_search import ldap_search_by_sciper
-
 
 def user_allowed(exam, user_id):
     user = User.objects.get(pk=user_id)
@@ -217,3 +217,4 @@ def update_folders_paths(old_path,new_path):
         shutil.move(str(settings.MARKED_SCANS_ROOT)+old_path, str(settings.MARKED_SCANS_ROOT)+new_path)
     if os.path.exists(str(settings.AMC_PROJECTS_ROOT)+old_path):
         shutil.move(str(settings.AMC_PROJECTS_ROOT)+old_path, str(settings.AMC_PROJECTS_ROOT)+new_path)
+

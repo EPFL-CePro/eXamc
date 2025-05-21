@@ -22,7 +22,7 @@
         If this is not the case, you can run the update via the "Update documents" button and then the layout detection via the "Layout detection" button.
     </div>
     {% else %}
-    <form id="uploadScansForm" method="post" action="{% url 'upload_scans' pk=exam_selected.pk %}" enctype="multipart/form-data">
+    <form id="uploadScansForm" method="post" action="{% url 'upload_scans' exam_pk=exam_selected.pk %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="alert alert-danger" role="alert" style="padding:20px;">
             <div class="custom-control custom-switch mb-3">

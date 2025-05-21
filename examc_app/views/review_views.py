@@ -21,20 +21,23 @@ from django.utils.decorators import method_decorator
 from django.views.generic import DetailView
 from shapely.geometry import Polygon
 
+from examc_app.decorators import exam_permission_required
 from examc_app.forms import *
+from examc_app.mixins import ExamPermissionAndRedirectMixin
 from examc_app.models import *
+from examc_app.signing import verify_and_get_path
 from examc_app.tasks import import_exam_scans, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
 from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import *
-from examc_app.views import menu_access_required
 
-
-@method_decorator(login_required(login_url='/'), name='dispatch')
-class ReviewView(DetailView):
+#@method_decorator(login_required(login_url='/'), name='dispatch')
+class ReviewView(ExamPermissionAndRedirectMixin,DetailView):
     model = Exam
     template_name = 'review/review.html'
+    pk_url_kwarg = 'exam_pk'
+    perm_codenames = ['manage','review']
 
     def get_context_data(self, **kwargs):
         context = super(ReviewView, self).get_context_data(**kwargs)
@@ -67,8 +70,8 @@ class ReviewView(DetailView):
             return context
 
 
-@method_decorator(login_required(login_url='/'), name='dispatch')
-class ReviewGroupView(DetailView):
+#@method_decorator(login_required(login_url='/'), name='dispatch')
+class ReviewGroupView(ExamPermissionAndRedirectMixin,DetailView):
     """
         View for managing review group for a specific exam.
 
@@ -76,32 +79,37 @@ class ReviewGroupView(DetailView):
         administrators to configure page groups for the exam.
 
         Attributes:
-            model (ExamPagesGroup): The model class associated with the view.
+            model (Exam): The model class associated with the view.
             template_name : The name of the template used for rendering the view.
 
         Methods:
             get_context_data: Overrides the base class method to provide additional context data for rendering the view.
             post: Handles POST requests for updating review settings.
 """
-    model = PagesGroup
+    model = Exam
     template_name = 'review/reviewGroup.html'
+    pk_url_kwarg = 'exam_pk'
+    perm_codenames = ['manage','review']
 
     def get_context_data(self, **kwargs):
         context = super(ReviewGroupView, self).get_context_data(**kwargs)
 
-        pages_group = PagesGroup.objects.get(pk=context.get("object").id)
+        pages_group = PagesGroup.objects.get(pk=self.kwargs.get('group_pk'))
 
         current_page = self.kwargs['currpage']
 
         # Get scans file path dict by pages groups
-        scans_pathes_list = get_scans_pathes_by_group(pages_group)
+        #scans_pathes_list = get_scans_pathes_by_group(pages_group)
+        copies_pages_list = get_copies_pages_by_group(pages_group)
         if user_allowed(pages_group.exam, self.request.user.id):
             context['user_allowed'] = True
             context['nav_url'] = "reviewGroup"
             context['pages_group'] = pages_group
-            context['scans_pathes_list'] = scans_pathes_list
+            #context['scans_pathes_list'] = scans_pathes_list
+            context['copies_pages_list'] = copies_pages_list
+            context['json_copies_pages_list'] = json.dumps(copies_pages_list)
             context['currpage'] = current_page
-            context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
+            #context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
             context['exam_selected'] = pages_group.exam
             exam = pages_group.exam
             if exam.common_exams:
@@ -119,8 +127,8 @@ class ReviewGroupView(DetailView):
             return context
 
 
-@method_decorator(login_required(login_url='/'), name='dispatch')
-class ReviewSettingsView(DetailView):
+#@method_decorator(login_required(login_url='/'), name='dispatch')
+class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
     """
     View for managing review settings for a specific exam.
 
@@ -138,6 +146,8 @@ class ReviewSettingsView(DetailView):
     model = Exam
     template_name = 'review/settings/reviewSettings.html'
     error_msg = None
+    pk_url_kwarg = 'exam_pk'
+    perm_codenames = ['manage']
 
     def get_context_data(self, **kwargs):
         """
@@ -156,8 +166,6 @@ class ReviewSettingsView(DetailView):
             curr_tab = "groups"
             if self.kwargs.get("curr_tab") != '':
                 curr_tab = self.kwargs.get("curr_tab")
-            # formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-            #     {'id': None, 'group_name': '[New]', 'page_from': -1, 'page_to': -1}])
             formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam,group__pk__in=[2,3,4]))
 
             amc_project_path = get_amc_project_path(exam,False)
@@ -165,7 +173,7 @@ class ReviewSettingsView(DetailView):
                 questions = get_questions(get_amc_project_path(exam, True)+"/data/")
                 questions_choices = [ (q['name'],q['name']) for q in questions]
                 formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-                    {'id': None, 'group_name': 'Select', 'page_from': -1}], form_kwargs={"questions_choices": questions_choices})
+                    {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
 
                 grading_help_group_form = ckeditorForm()
                 grading_help_group_form.initial['ckeditor_txt'] = ''
@@ -207,7 +215,7 @@ class ReviewSettingsView(DetailView):
             HttpResponse: A response containing the updated view or an error message.
         """
         self.object = self.get_object()
-        exam = Exam.objects.get(pk=self.kwargs['pk'])
+        exam = Exam.objects.get(pk=self.kwargs['exam_pk'])
         error_msg = ''
 
         if "submit-reviewers" in self.request.POST:
@@ -245,12 +253,18 @@ class ReviewSettingsView(DetailView):
         questions = get_questions(get_amc_project_path(exam, True)+"/data/")
         questions_choices = [ (q['name'],q['name']) for q in questions]
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-            {'id': None, 'group_name': 'Select', 'page_from': -1}], form_kwargs={"questions_choices": questions_choices})
+            {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
             context['nav_url'] = "reviewSettingsView"
+            context['exam_selected'] = exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
             context['exam'] = exam
             context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
@@ -259,15 +273,21 @@ class ReviewSettingsView(DetailView):
         else:
             context['user_allowed'] = False
             context['nav_url'] = "reviewSettingsView"
+            context['exam_selected'] = exam
+            if exam.common_exams:
+                for common_exam in exam.common_exams.all():
+                    if common_exam.is_overall():
+                        exam = common_exam
+                        break
             context['exam'] = exam
             return context
 
         return self.render_to_response(context=context)
 
-
-@login_required
-@menu_access_required
-def add_new_pages_group(request, pk):
+# @login_required
+# @menu_access_required
+@exam_permission_required(['manage'])
+def add_new_pages_group(request, exam_pk):
     """
         Add a new pages group for an exam.
 
@@ -281,19 +301,20 @@ def add_new_pages_group(request, pk):
         Returns:
             HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
         """
-    exam = Exam.objects.get(pk=pk)
+    exam = Exam.objects.get(pk=exam_pk)
     new_group = PagesGroup()
     new_group.exam = exam
     new_group.group_name = 'Select...'
     new_group.nb_pages = -1
     new_group.save()
 
-    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam.pk), 'curr_tab': "groups",'nav_url':""}))
+    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
 
 
-@login_required
-@menu_access_required
-def delete_pages_group(request, pages_group_pk):
+# @login_required
+# @menu_access_required
+@exam_permission_required(['manage'])
+def delete_pages_group(request, group_pk, exam_pk):
     """
        Delete a pages group.
 
@@ -307,17 +328,17 @@ def delete_pages_group(request, pages_group_pk):
        Returns:
            HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
        """
-    pages_group = PagesGroup.objects.get(pk=pages_group_pk)
-    exam_pk = pages_group.exam.pk
+    pages_group = PagesGroup.objects.get(pk=group_pk)
     pages_group.delete()
 
-    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(exam_pk), 'curr_tab': "groups"}))
+    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
 
 
 
-@login_required
-@menu_access_required
-def edit_pages_group_grading_help(request):
+# @login_required
+# @menu_access_required
+@exam_permission_required(['manage'])
+def edit_pages_group_grading_help(request,exam_pk):
     """
        Edit the grading help.
 
@@ -330,16 +351,17 @@ def edit_pages_group_grading_help(request):
        Returns:
            HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
        """
-    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
+    pages_group = PagesGroup.objects.get(pk=request.POST.get('group_pk'))
     pages_group.grading_help = request.POST['grading_help']
     pages_group.save()
 
-    return redirect(reverse('reviewSettingsView', kwargs={'pk': str(pages_group.exam.pk), 'curr_tab': "groups"}))
+    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
 
 
-@login_required
-@menu_access_required
-def get_pages_group_grading_help(request):
+# @login_required
+# @menu_access_required
+@exam_permission_required(['manage','review'])
+def get_pages_group_grading_help(request,exam_pk):
     """
       Get the grading help.
 
@@ -353,16 +375,17 @@ def get_pages_group_grading_help(request):
           HttpResponse: An HTTP response containing the grading help for the pages group.
       """
 
-    pages_group = PagesGroup.objects.get(pk=request.POST['pk'])
+    pages_group = PagesGroup.objects.get(pk=request.POST.get('group_pk'))
     # grading_help_group_form = ckeditorForm()
     # grading_help_group_form.initial['ckeditor_txt'] = pages_group.grading_help
 
 
     return HttpResponse(pages_group.grading_help)
 
-@login_required
-@menu_access_required
-def generate_marked_files(request, pk, task_id=None):
+# @login_required
+# @menu_access_required
+@exam_permission_required(['manage'])
+def generate_marked_files(request, exam_pk, task_id=None):
     """
           Export all the marked files.
 
@@ -375,7 +398,7 @@ def generate_marked_files(request, pk, task_id=None):
         Returns:
             return: A rendered HTML page and the zipped folder if the user is allowed to export the file.
           """
-    exam = Exam.objects.get(pk=pk)
+    exam = Exam.objects.get(pk=exam_pk)
 
     if user_allowed(exam, request.user.id):
 
@@ -449,13 +472,15 @@ def generate_marked_files(request, pk, task_id=None):
                                                                             "exam_selected": exam_selected,
                                                                           "nav_url": "generate_marked_files"})
 
-@login_required
-def download_marked_files(request,filename):
+#@login_required
+@exam_permission_required(['manage'])
+def download_marked_files(request,filename, exam_pk):
     zip_file = open(str(settings.EXPORT_TMP_ROOT)+"/"+filename, 'rb')
     return FileResponse(zip_file)
 
 # TESTING
 # ------------------------------------------
+
 @login_required
 def testing(request):
     user_info = request.user.__dict__
@@ -471,8 +496,9 @@ def testing(request):
 #
 
 
-@login_required
-def upload_scans(request, pk, task_id=None):
+#@login_required
+@exam_permission_required(['manage'])
+def upload_scans(request, exam_pk, task_id=None):
     """
            Handles the upload of scanned files for a specific exam.
 
@@ -488,7 +514,7 @@ def upload_scans(request, pk, task_id=None):
             return: A rendered HTML page displaying the upload status and any error messages.
            """
 
-    exam = Exam.objects.get(pk=pk)
+    exam = Exam.objects.get(pk=exam_pk)
 
     # check if amc project exists and documents are compiled. if not inform user and set field readlonly
     amc_ok = True
@@ -519,7 +545,7 @@ def upload_scans(request, pk, task_id=None):
             for chunk in zip_file.chunks():
                 temp_file.write(chunk)
 
-        task = import_exam_scans.delay(temp_file_path, pk,delete_old_data)
+        task = import_exam_scans.delay(temp_file_path, exam_pk,delete_old_data)
         task_id = task.task_id
        # message = start_upload_scans(request, exam.pk, temp_file_path)
 
@@ -551,8 +577,8 @@ def upload_scans(request, pk, task_id=None):
     return render(request, 'review/import/upload_scans.html', {'exam': exam,'exam_selected':exam_selected,'amc_ok':amc_ok,
                                                                'files': [],'nav_url':'upload_scans'})
 
-@login_required
-def saveMarkers(request):
+@exam_permission_required(['manage','review'])
+def saveMarkers(request, exam_pk):
     """  Save the markers and comments for a given exam page group.
         This function saves the markers and comments provided by the user for a specific exam page group.
         Args:
@@ -560,7 +586,7 @@ def saveMarkers(request):
         Returns:
             return: A HTTP response indicating the success of the operation.
     """
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+    exam = Exam.objects.get(pk=exam_pk)
     pages_group = PagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
                                                               page_no=request.POST['page_no'], #pages_group=pages_group,
@@ -571,8 +597,10 @@ def saveMarkers(request):
     marked = False
     if markers["markers"]:
         scan_markers.markers = request.POST['markers']
-        scan_markers.filename = request.POST['filename']
-
+        fn = request.POST['filename'].replace("/protected/","")[:-1]
+        fn = verify_and_get_path(fn)
+        fn = str(fn).replace(str(settings.BASE_DIR),"../..")
+        scan_markers.filename = fn
 
         scan_markers.save()
 
@@ -610,17 +638,21 @@ def saveMarkers(request):
 
     return HttpResponse(marked)
 
-
-@login_required
-def getMarkersAndComments(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+@exam_permission_required(['manage','review'])
+def getMarkersAndComments(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     data_dict = {}
+
+
 
     copy_no = request.POST['copy_no']
     page_no = request.POST['page_no']
+
+    # get img signed url
+    scan_url = get_scan_url(exam, copy_no, page_no)
+    data_dict["copyPageUrl"] = scan_url
     try:
-        scan_markers = PageMarkers.objects.get(copie_no=copy_no, page_no=page_no,
-                                               filename=request.POST['filename'], exam=exam)
+        scan_markers = PageMarkers.objects.get(copie_no=copy_no, page_no=page_no,exam=exam)
         if scan_markers.markers:
             data_dict["markers"] = scan_markers.markers
             markers = json.loads(scan_markers.markers)
@@ -646,9 +678,9 @@ def getMarkersAndComments(request):
     return HttpResponse(json.dumps(data_dict))
 
 
-@login_required
-def saveComment(request):
-    if request.POST['delete']:
+@exam_permission_required(['manage','review'])
+def saveComment(request,exam_pk):
+    if 'delete' in request.POST:
         PagesGroupComment.objects.get(pk=request.POST['comment_id']).delete()
     else:
         comment_data = json.loads(request.POST['comment'])
@@ -674,11 +706,11 @@ def saveComment(request):
         return HttpResponse(comment.id)
     return HttpResponse('deleted')
 
-@login_required
-def update_page_group_markers(request):
+@exam_permission_required(['manage','review'])
+def update_page_group_markers(request,exam_pk):
     if request.method == 'POST':
 
-        exam = Exam.objects.get(pk=request.POST['exam_pk'])
+        exam = Exam.objects.get(pk=exam_pk)
         pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_pk'])
         scan_markers, created = PageMarkers.objects.get_or_create(copie_no='CORR-BOX',
                                                                   pages_group=pages_group,
@@ -702,8 +734,8 @@ def update_page_group_markers(request):
     else:
         return HttpResponse("Invalid request method", status=405)
 
-@login_required
-def review_student_pages_group_is_locked(request):
+@exam_permission_required(['manage','review'])
+def review_student_pages_group_is_locked(request,exam_pk):
     pages_group_id = request.POST.get('pages_group_id')
     copy_no = request.POST.get('copy_no')
     pages_group = PagesGroup.objects.get(pk=pages_group_id)
@@ -733,30 +765,20 @@ def review_student_pages_group_is_locked(request):
 
     return HttpResponse(review_lock_qs.first().user.username)
 
-@login_required
-def remove_review_user_locks(request):
+@exam_permission_required(['manage','review'])
+def remove_review_user_locks(request,exam_pk):
 
     review_lock_qs = ReviewLock.objects.filter(user = request.user)
 
     for lock in review_lock_qs.all():
         lock.delete()
 
-@login_required
-def get_copy_page(request):
-    exam = Exam.objects.get(pk=request.POST['exam_pk'])
+@exam_permission_required(['manage','review'])
+def get_copy_page(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     copy_nr = request.POST.get('copy_no')
     page_nr = request.POST.get('page_no')
 
     scan_url = get_scan_url(exam, copy_nr, page_nr)
 
     return HttpResponse(scan_url)
-
-
-
-
-@login_required
-def calculate_final_checkBox(request):
-    pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_id'])
-    exam = Exam.objects.get(pk=request.POST['exam_id'])
-    final_check = request.POST['final_check']
-

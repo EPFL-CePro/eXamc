@@ -3,6 +3,7 @@
 import _io
 import csv
 import io
+import operator
 import os
 from decimal import *
 
@@ -10,6 +11,7 @@ import numpy as np
 import pdfkit
 from django.conf import settings
 from django.db.models import Sum
+from django.db.models.functions import Cast
 from django.template.loader import get_template
 
 from examc_app.models import *
@@ -377,3 +379,51 @@ def import_exams_csv(csv_file):
         line_nr += 1
 
     return True
+
+def get_common_list(exam):
+    common_list = []
+    common_list.append(exam)
+    if exam.common_exams.all():
+        commons = list(exam.common_exams.all())
+        common_list.extend(commons)
+        common_list.sort(key=operator.attrgetter('code'))
+    return common_list
+
+def get_questions_stats_by_teacher(exam):
+    question_stat_list = []
+
+    com_questions = Question.objects.filter(common=True,exam=exam)
+
+    for question in com_questions:
+        question_stat = {'question':question}
+        teacher_list = []
+
+        for comex in exam.common_exams.all():
+            exam_user = ExamUser.objects.filter(exam=comex,group__id=2).first()
+            teacher = {'teacher':exam_user.user.last_name.replace("-","_")}
+
+            section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
+            teacher.update({'sections':section_list})
+
+            present_students = comex.present_students if comex.present_students > 0 else 1
+            answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
+
+            na_answers = 0
+            new_answer_list = []
+            for answer in answer_list.iterator():
+                if answer.get('ticked') == '' or (question.question_type == 1 and len(answer.get('ticked')) > 1):
+                    na_answers += comex.present_students*answer.get('percent')/100
+                else:
+                    new_answer_list.append({'ticked':answer.get('ticked'),'percent':answer.get('percent')})
+            na_answers = na_answers if na_answers > 0 else 1
+            new_answer_list.append({'ticked':'NA','percent':100/present_students*na_answers})
+
+
+            teacher.update({'answers':new_answer_list})
+
+            teacher_list.append(teacher)
+
+        question_stat.update({'teachers':teacher_list})
+        question_stat_list.append(question_stat)
+
+    return question_stat_list

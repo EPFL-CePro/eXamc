@@ -3,6 +3,7 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
+
      {% if user.is_authenticated %}
         <div class="jumbotron text-center">
             <h1>eXamc</h1>
@@ -34,7 +35,7 @@
 
         <div class="jumbotron text-center">
             <h1>EXAMS-Stats</h1>
-            <a type="button" class="btn btn-dark" href="/login">EPFL(Tequila) login</a>
+            <a type="button" class="btn btn-dark" href="/oidc/authenticate">EPFL(Entra ID) login</a>
             <a type="button" class="btn btn-dark" href="/login_form">login</a>
             <br>
             <br>

@@ -36,3 +36,6 @@ DATABASES = {
     }
 }
 
+# Private storage server
+PRIVATE_STORAGE_SERVER = "apache"
+
