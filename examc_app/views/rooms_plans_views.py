@@ -20,6 +20,8 @@ from examc_app.utils.rooms_plans_functions import generate_plan
 
 CSV_TO_JPG_MAP = {
     'AAC_006.csv': 'AAC_006.jpg',
+    'AAC_020.csv': 'AAC_020.jpg',
+    'AAC_114.csv': 'AAC_114.jpg',
     'AAC_120.csv': 'AAC_120.jpg',
     'AAC_132.csv': 'AAC_132.jpg',
     'AAC_137.csv': 'AAC_137.jpg',
@@ -80,15 +82,19 @@ CSV_TO_JPG_MAP = {
     'GC_C3_30.csv': 'GC_C3_30.jpg',
     'GR_A3_32.csv': 'GR_A3_32.jpg',
     'GR_B3_30.csv': 'GR_B3_30.jpg',
-    'INF_1.csv': 'INF1.jpg',
+    'INF_1.csv': 'INF_1.jpg',
+    'INF_2.csv': 'INF_2.jpg',
     'INJ_218.csv': 'INJ_218.jpg',
     'INM_10.csv': 'INM_10.jpg',
     'INM_11.csv': 'INM_11.jpg',
     'INM_200.csv': 'INM_200.jpg',
     'INM_202.csv': 'INM_202.jpg',
     'MA_A1_10.csv': 'MA_A1_10.jpg',
+    'MA_A3_30.csv': 'MA_A3_30.jpg',
+    'MA_A3_31.csv': 'MA_A3_31.jpg',
     'MA_A1_12.csv': 'MA_A1_12.jpg',
     'ME_B3_31.csv': 'ME_B3_31.jpg',
+    'MXF_014.csv': 'MXF_014.jpg',
     'PO_01_exam.csv': 'PO_01_exam.jpg',
     'PO_01_old.csv': 'PO_01_old.jpg',
     'PO_01_old_exam.csv': 'PO_01_old.jpg',
@@ -115,16 +121,6 @@ def count_csv_lines(file_path):
     except Exception as e:
         print(f"Error reading CSV file: {e}")
         return None
-
-# def csv_countlines(file_path):
-#     try:
-#         with open(file_path, 'r',newline='') as file:
-#             reader = csv.reader(file)
-#             line = sum(1 for row in reader)
-#             return line
-#     except Exception as e:
-#         print(f"Error reading CSV file: {e}")
-#         return None
 
 
 def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count_csv_lines):
@@ -226,12 +222,8 @@ class GenerateRoomPlanView(FormView):
 
             csv_file_paths = [str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file for csv_file in csv_files]
             F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
-                                                                                                      for f in
-                                                                                                      csv_file_paths]),
-                                          count_csv_lines)
-
+                                                                                                      for f in csv_file_paths]),count_csv_lines)
             csv_data = []
-
             for i in range(len(csv_files)):
                 image_file = image_files[i]
                 csv_file = csv_files[i]
@@ -311,6 +303,7 @@ class GenerateRoomPlanView(FormView):
                                   {'export_files': export_files_url, 'form': form, 'special_file': special_file})
                 else:
                     return HttpResponse("No export files found.", status=404)
+            return None
 
         elif self.request.POST.get('action') == 'download':
             zip_filename = f'seat_map_{user_token}_export.zip'
@@ -323,3 +316,4 @@ class GenerateRoomPlanView(FormView):
                 return response
             else:
                 return HttpResponse("No ZIP file found.", status=404)
+        return None

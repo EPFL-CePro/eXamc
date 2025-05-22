@@ -191,13 +191,15 @@ def get_pages_group_graded_count_txt(pages_group_id,user_id=None):
     if os.path.exists(scans_path):
         scans_folders = [x for x in os.listdir(scans_path) if x != '0000']
         count_copies = len(scans_folders)
-
-        if user_id == 0:
-            return str(int(count_graded)) + " / " + str(count_copies)
-        elif user_id and user_id != 0:
-            return int(100/count_copies*count_graded)
-        else:
-            return int(100/count_copies*count_graded)
+        try:
+            if user_id == 0:
+                return str(int(count_graded)) + " / " + str(count_copies)
+            elif user_id and user_id != 0:
+                return int(100/count_copies*count_graded)
+            else:
+                return int(100/count_copies*count_graded)
+        except ZeroDivisionError:
+            return 0
     else:
         return 0
 
@@ -266,3 +268,16 @@ def get_logo_url():
 def is_review_blocked(user_id,exam_id):
     exam_user = ExamUser.objects.get(exam_id=exam_id, user_id=user_id)
     return exam_user.review_blocked
+
+def get_by_first_element(lst, value):
+    """
+    Returns the first sublist where item[0] == value.
+    Usage: {{ my_list|get_by_first_element:9 }}
+    """
+    try:
+        for item in lst:
+            if item[0] == value:
+                return item
+    except Exception:
+        return None
+    return None
