@@ -1,6 +1,5 @@
 from dateutil.utils import today
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
@@ -18,7 +17,6 @@ from examc_app.utils.global_functions import get_course_teachers_string, add_cou
     convert_html_to_latex, exam_generate_preview, update_folders_paths
 from examc_app.utils.results_statistics_functions import update_common_exams
 from examc_app.tasks import generate_statistics
-from userprofile.models import UserProfile
 
 
 #@method_decorator(login_required(login_url='/'), name='dispatch')

@@ -34,7 +34,3 @@ DATABASES = {
         },
     }
 }
-
-# disable tequila strong authentication local
-TEQUILA_STRONG_AUTHENTICATION = False
-

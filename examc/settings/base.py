@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_extensions',
     #'django_tequila',
-    'userprofile',
+    #'to_delete_userprofile',
     'sslserver',
     'django_tables2',
     'crispy_forms',
@@ -69,10 +69,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    #'django_tequila.middleware.TequilaMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'maintenance_mode.middleware.MaintenanceModeMiddleware',
-    'login_required.middleware.LoginRequiredMiddleware'
+    'login_required.middleware.LoginRequiredMiddleware',
 ]
 
 ROOT_URLCONF = 'examc.urls'
@@ -154,8 +153,8 @@ AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
 DOCUMENTATION_ROOT = BASE_DIR / 'docs/build/html/'
 DOCUMENTATION_URL = '/docs/build/html/'
 
-# Django-tequila specifics
-AUTH_PROFILE_MODULE = "userprofile.UserProfile"
+# # Django-tequila specifics
+# AUTH_PROFILE_MODULE = "to_delete_userprofile.UserProfile"
 
 # OLD TEQUILA
 #AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 'django_tequila.django_backend.TequilaBackend',)
@@ -197,6 +196,7 @@ LOGOUT_REDIRECT_URL = "/"
 #OIDC_STORE_ACCESS_TOKEN = True
 
 LOGIN_REQUIRED_IGNORE_PATHS = [
+    r'/login_form/',
     r'/$',
     r'/$',
     r'^/oidc/.*$',  # All OIDC-related URLs

@@ -21,7 +21,6 @@ from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import *
 from examc_app.views import ExamInfoView
-from userprofile.models import *
 
 ## testing
 from examc_app.tasks import import_csv_data, generate_statistics

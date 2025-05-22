@@ -35,8 +35,8 @@
 
         <div class="jumbotron text-center">
             <h1>EXAMS-Stats</h1>
-            <a type="button" class="btn btn-dark" href="/oidc/authenticate">EPFL(Entra ID) login</a>
-            <a type="button" class="btn btn-dark" href="/login_form">login</a>
+            <a type="button" class="btn btn-dark" href="{% url 'oidc_authentication_init' %}">EPFL(Entra ID) login</a>
+            <a type="button" class="btn btn-dark" href="{% url 'login_form' %}">login</a>
             <br>
             <br>
             <a type="button" class="btn btn-dark" href="/generate_room_plan">Room plan</a>

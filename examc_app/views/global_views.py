@@ -6,13 +6,13 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.models import User
 from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, HttpResponse, FileResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_GET
-from django_tequila.django_backend import User
 
 from examc_app.forms import LoginForm
 from examc_app.signing import verify_and_get_path
@@ -58,20 +58,24 @@ def select_exam(request, pk, nav_url=None):
 #         return view_func(request, *args, **kwargs)
 #     return wrapped_view
 
-def log_in(request, my_task=None):
+def log_in(request):
+    ok = 2
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-            user = authenticate(request, username=username, password=password)
-            if user:
+            user = authenticate(
+                request,
+                username=form.cleaned_data['username'],
+                password=form.cleaned_data['password']
+            )
+            if user is not None:
                 login(request, user)
                 return redirect('home')
             else:
                 messages.error(request, "Invalid username or password")
     else:
         form = LoginForm()
+
     return render(request, 'login_form.html', {'form': form})
 
 # @login_required
@@ -87,7 +91,6 @@ def log_in(request, my_task=None):
 #         logout(request)
 #         return redirect(settings.LOGIN_URL)
 
-@login_required
 def documentation_view(request):
     doc_index_content = open(str(settings.DOCUMENTATION_ROOT)+"/index.html")
     return render(request, 'index.html')
