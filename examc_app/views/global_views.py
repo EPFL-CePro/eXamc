@@ -16,7 +16,6 @@ from django.views.decorators.http import require_GET
 
 from examc_app.forms import LoginForm
 from examc_app.signing import verify_and_get_path
-from examc_app.utils.amc.detect_layout import detect_layout
 from examc_app.utils.results_statistics_functions import update_common_exams
 
 ### admin views ###
@@ -116,6 +115,6 @@ def serve_signed_file(request, token):
     return FileResponse(open(full_path, "rb"), as_attachment=False)
 
 def test(request):
-    detect_layout()
+    #detect_layout()
     return render(request,'index.html')
 
