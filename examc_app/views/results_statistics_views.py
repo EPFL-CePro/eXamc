@@ -13,13 +13,14 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
 
+from examc_app.decorators import exam_permission_required
 from examc_app.forms import ExportResultsForm
+from examc_app.signing import make_token_for
 from examc_app.utils.amc_functions import get_amc_catalog_pdf_path
 from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import *
 from examc_app.views import ExamInfoView
-from userprofile.models import *
 
 ## testing
 from examc_app.tasks import import_csv_data, generate_statistics
@@ -29,10 +30,11 @@ logger = logging.getLogger(__name__)
 
 
 # STUDENTS MANAGEMENT
-@login_required
-def update_student_present(request,pk,value):
+#@login_required
+@exam_permission_required(['manage','see_results'])
+def update_student_present(request,exam_pk,student_pk,value):
 
-    student = Student.objects.get(pk=pk)
+    student = Student.objects.get(pk=student_pk)
 
     logger.info(value)
 
@@ -46,20 +48,21 @@ def update_student_present(request,pk,value):
     student.save()
     student.exam.save()
 
-    exam = Exam.objects.get(pk=student.exam.pk)
+    exam = Exam.objects.get(pk=exam_pk)
 
-    task = generate_statistics.delay(student.exam.pk)
+    task = generate_statistics.delay(exam_pk)
     task_id = task.task_id
 
-    return students_results_view(request,student.exam.pk,task_id)
+    return students_results_view(request,exam_pk=exam_pk,task_id=task_id)
 
     # generate_statistics(student.exam)
     #
     # return HttpResponse(1)
 
-@login_required
-def import_data_4_stats(request,pk,task_id=None):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage'])
+def import_data_4_stats(request,exam_pk,task_id=None):
+    exam = Exam.objects.get(pk=exam_pk)
     exam_selected = exam
 
     common_list = get_common_list(exam)
@@ -81,8 +84,9 @@ def import_data_4_stats(request,pk,task_id=None):
                    "nav_url":'import_data_4_stats',
                    "task_id":task_id})
 
-@login_required
-def upload_amc_csv(request, pk):
+#@login_required
+@exam_permission_required(['manage'])
+def upload_amc_csv(request, exam_pk):
     csv_file = request.FILES["amc_csv_file"]
     temp_csv_file_name = "tmp_upload_amc_csv_"+datetime.datetime.now().strftime("%Y%m%d%H%M%S")+".csv"
     temp_csv_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, temp_csv_file_name)
@@ -93,17 +97,15 @@ def upload_amc_csv(request, pk):
         for chunk in csv_file.chunks():
             temp_file.write(chunk)
 
-    task = import_csv_data.delay(temp_csv_file_path, pk)
+    task = import_csv_data.delay(temp_csv_file_path, exam_pk)
     task_id = task.task_id
 
-    # if not result == True:
-    #     messages.error(request, "Unable to upload file. " + result)
+    return import_data_4_stats(request,exam_pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk))
 
-    return import_data_4_stats(request,pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk))
-
-@login_required
-def upload_catalog_pdf(request, pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage'])
+def upload_catalog_pdf(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     catalog = request.FILES["catalog_pdf_file"]
 
     filename = exam.code+'_'+str(exam.year.code)+'_'+str(exam.semester.code)+'_catalog.pdf'
@@ -116,9 +118,10 @@ def upload_catalog_pdf(request, pk):
 
     return redirect('../import_data_4_stats/' + str(exam.pk))
 
-@login_required
-def export_data(request,pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage','see_results'])
+def export_data(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     exam_selected = exam
     common_list = get_common_list(exam)
     if exam.is_overall():
@@ -171,8 +174,8 @@ def export_data(request,pk):
                     os.makedirs(export_path, exist_ok=True)
                     logger.info(os.path.dirname(export_path))
 
-                    for exam_pk in common_exams:
-                        exam = Exam.objects.get(pk=exam_pk)
+                    for exam_id in common_exams:
+                        exam = Exam.objects.get(pk=exam_id)
                         if isaCsv:
                             generate_isa_csv(exam,scale,export_path)
                         if scalePdf:
@@ -218,11 +221,14 @@ def export_data(request,pk):
                                                       "common_list":None,
                                                       "nav_url": "export_data"})
 
+    return HttpResponse(None)
+
 # STATISTICS
 # ------------------------------------------
-@login_required
-def generate_stats(request, pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage','see_results'])
+def generate_stats(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     #generate_statistics(exam)
 
     task = generate_statistics.delay(exam.pk)
@@ -231,12 +237,13 @@ def generate_stats(request, pk):
     # if not result == True:
     #     messages.error(request, "Unable to upload file. " + result)
 
-    return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': pk, 'task_id': task_id}))
+    return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': exam_pk, 'task_id': task_id}))
     #return redirect('../examInfo/' + str(exam.pk))
 
-@login_required
-def general_statistics_view(request,pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage','see_results'])
+def general_statistics_view(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     currexam = exam
 
     if user_allowed(exam,request.user.id):
@@ -276,9 +283,10 @@ def general_statistics_view(request,pk):
                       {"user_allowed":False,"scaleStatistics": None, "grade_list": None, "absent": 0,"nav_url": "generalStats"})
 
 
-@login_required
-def students_results_view(request, pk, task_id=None):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage','see_results'])
+def students_results_view(request, exam_pk, task_id=None):
+    exam = Exam.objects.get(pk=exam_pk)
     currexam = exam
 
     if user_allowed(exam,request.user.id):
@@ -307,9 +315,10 @@ def students_results_view(request, pk, task_id=None):
         return render(request, "res_and_stats/students_results.html", {"user_allowed":False, "scales": None, "students": None,"nav_url": "studentsResults"})
 
 
-@login_required
-def questions_statistics_view(request,pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage','see_results'])
+def questions_statistics_view(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     currexam = exam
 
     if user_allowed(exam,request.user.id):
@@ -357,74 +366,22 @@ def questions_statistics_view(request,pk):
 # PDF
 # ------------------------------------------
 @xframe_options_exempt
-@login_required
-def display_catalog(request, pk):
-    exam = Exam.objects.get(pk=pk)
+#@login_required
+@exam_permission_required(['manage','see_results'])
+def display_catalog(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
     if exam.is_overall():
         exam = exam.common_exams.all().first()
     cat_name = exam.code + '_' + str(exam.year.code) + '_' + str(exam.semester.code) + '_catalog.pdf'
-    cat_path = str(settings.CATALOG_ROOT)+'/'+str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'_'+exam.date.strftime("%Y%m%d") +'/'+cat_name
+    cat_url = str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'_'+exam.date.strftime("%Y%m%d") +'/'+cat_name
+    cat_path = str(settings.CATALOG_ROOT)+'/'+cat_url
     if not os.path.exists(cat_path):
       #try to find it in amc dir
       cat_path = get_amc_catalog_pdf_path(exam)
-
     try:
         response = FileResponse(open(cat_path, 'rb'), content_type='application/pdf')
         return response
     except FileNotFoundError:
         raise HttpResponse("No catalog found !")
-
-# other
-# -----------------------------------------
-#@login_required
-def get_common_list(exam):
-    common_list = []
-    common_list.append(exam)
-    if exam.common_exams.all():
-        commons = list(exam.common_exams.all())
-        common_list.extend(commons)
-        common_list.sort(key=operator.attrgetter('code'))
-    return common_list
-
-def get_questions_stats_by_teacher(exam):
-    question_stat_list = []
-
-    com_questions = Question.objects.filter(common=True,exam=exam)
-
-    for question in com_questions:
-        question_stat = {'question':question}
-        teacher_list = []
-
-        for comex in exam.common_exams.all():
-            exam_user = ExamUser.objects.filter(exam=comex,group__id=2).first()
-            teacher = {'teacher':exam_user.user.last_name.replace("-","_")}
-
-            section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
-            teacher.update({'sections':section_list})
-
-            present_students = comex.present_students if comex.present_students > 0 else 1
-            answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
-
-            na_answers = 0
-            new_answer_list = []
-            for answer in answer_list.iterator():
-                if answer.get('ticked') == '' or (question.question_type == 1 and len(answer.get('ticked')) > 1):
-                    na_answers += comex.present_students*answer.get('percent')/100
-                else:
-                    new_answer_list.append({'ticked':answer.get('ticked'),'percent':answer.get('percent')})
-            na_answers = na_answers if na_answers > 0 else 1
-            new_answer_list.append({'ticked':'NA','percent':100/present_students*na_answers})
-
-
-            teacher.update({'answers':new_answer_list})
-
-            teacher_list.append(teacher)
-
-        question_stat.update({'teachers':teacher_list})
-        question_stat_list.append(question_stat)
-
-    return question_stat_list
-
-
 
 ## TESTING

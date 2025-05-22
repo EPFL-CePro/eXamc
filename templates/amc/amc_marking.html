@@ -202,11 +202,10 @@ function amc_mark() {
     $('#amc_process_modal').modal('show');
     update_scoring_strategy = document.getElementById('update_marking_scale').checked;
     $.ajax({
-        url: "{% url 'call_amc_mark' %}",
+        url: "{% url 'call_amc_mark' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'update_scoring_strategy' : update_scoring_strategy,
         },
             xhrFields: {
@@ -230,11 +229,10 @@ function amc_automatic_association() {
     $('#loadingModal').modal('show');
     assoc_primary_key = document.getElementById('automatic_assoc_primary_key').value;
     $.ajax({
-        url: "{% url 'call_amc_automatic_association' %}",
+        url: "{% url 'call_amc_automatic_association' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'assoc_primary_key' : assoc_primary_key,
         },
         success: (data) => {
@@ -249,11 +247,10 @@ function openManualAssociationDialog(){
     var table_body = document.getElementById('manual-association-table-tbody')
     removeAllChildNodes(table_body);
     $.ajax({
-        url: "{% url 'amc_manual_association_data' %}",
+        url: "{% url 'amc_manual_association_data' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
         },
         success: (data) => {
             full_data = JSON.parse(data)
@@ -331,12 +328,11 @@ function openManualAssociationDialog(){
 
 function setManualAssociation(copy_nr, event){
     $.ajax({
-        url: "{% url 'amc_set_manual_association' %}",
+        url: "{% url 'amc_set_manual_association' exam_selected.pk %}",
         async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'copy_nr' : copy_nr,
             'student_id' : event.target.value,
         },
@@ -354,11 +350,10 @@ function setManualAssociation(copy_nr, event){
 }
 function openEditStudentsListDialog(){
     $.ajax({
-        url: "{% url 'edit_amc_file' %}",
+        url: "{% url 'edit_amc_file' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'filepath' : 'students_list'
         },
         success: (data) => {
@@ -380,12 +375,11 @@ function saveStudentsListFile(){
     filepath = document.getElementById('students_list_filepath').innerText
     $('#loadingModal').modal('show');
     $.ajax({
-        url: "{% url 'save_amc_edited_file' %}",
+        url: "{% url 'save_amc_edited_file' exam_selected.pk %}",
         async : false,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'data' : data,
             'filepath' : filepath,
             'is_students_list': true,

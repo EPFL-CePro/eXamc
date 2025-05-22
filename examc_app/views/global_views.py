@@ -1,21 +1,25 @@
+import os
+
 import pytz
 import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.models import User
+from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
-from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, HttpResponse, FileResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django_tequila.django_backend import User
+from django.views.decorators.http import require_GET
 
 from examc_app.forms import LoginForm
+from examc_app.signing import verify_and_get_path
+from examc_app.utils.amc.detect_layout import detect_layout
 from examc_app.utils.results_statistics_functions import update_common_exams
 
-
 ### admin views ###
-@login_required
 def getCommonExams(request, pk):
     update_common_exams(pk)
 
@@ -38,7 +42,6 @@ def home(request):
     })
 
 
-@login_required
 def select_exam(request, pk, nav_url=None):
     url_string = '../'
     if nav_url is None:
@@ -48,27 +51,31 @@ def select_exam(request, pk, nav_url=None):
 
 
 ### global views ###
-def menu_access_required(view_func):
-    def wrapped_view(request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
-            return HttpResponseForbidden("You don't have permission to access this page.")
-        return view_func(request, *args, **kwargs)
-    return wrapped_view
+# def menu_access_required(view_func):
+#     def wrapped_view(request, *args, **kwargs):
+#         if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
+#             return HttpResponseForbidden("You don't have permission to access this page.")
+#         return view_func(request, *args, **kwargs)
+#     return wrapped_view
 
-def log_in(request, my_task=None):
+def log_in(request):
+    ok = 2
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-            user = authenticate(request, username=username, password=password)
-            if user:
+            user = authenticate(
+                request,
+                username=form.cleaned_data['username'],
+                password=form.cleaned_data['password']
+            )
+            if user is not None:
                 login(request, user)
                 return redirect('home')
             else:
                 messages.error(request, "Invalid username or password")
     else:
         form = LoginForm()
+
     return render(request, 'login_form.html', {'form': form})
 
 # @login_required
@@ -84,7 +91,6 @@ def log_in(request, my_task=None):
 #         logout(request)
 #         return redirect(settings.LOGIN_URL)
 
-@login_required
 def documentation_view(request):
     doc_index_content = open(str(settings.DOCUMENTATION_ROOT)+"/index.html")
     return render(request, 'index.html')
@@ -97,7 +103,19 @@ def user_allowed(exam, user_id):
     else:
         return False
 
+@require_GET
+def serve_signed_file(request, token):
+    try:
+        full_path = verify_and_get_path(
+            token,
+            max_age=settings.SIGNED_FILES_EXPIRATION_TIMEOUT
+        )
+    except (BadSignature, SignatureExpired, FileNotFoundError):
+        raise Http404("Link invalid or expired")
+
+    return FileResponse(open(full_path, "rb"), as_attachment=False)
 
 def test(request):
-    return render(request,'testing/test2.html')
+    detect_layout()
+    return render(request,'index.html')
 

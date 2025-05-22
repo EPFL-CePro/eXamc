@@ -19,7 +19,6 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from django.urls import path, include
-from django_tequila.urls import urlpatterns as django_tequila_urlpatterns
 
 from examc_app import views
 from examc_app.admin import ExamAdmin, CourseAdmin
@@ -30,19 +29,20 @@ urlpatterns = ([
     path('', include('examc_app.urls')),
     path('', views.home, name='home'),
     path('login_form/', views.log_in, name='login_form'),
-    #path('logout/', views.logout_view,name='logout'),
     path('home',views.home, name='home'),
     path('admin/exam/import_exams_data/', ExamAdmin.import_exams_csv_data),
     path('admin/course/import_courses_data/', CourseAdmin.import_courses_json_data),
-    path('examSelect', login_required(views.ExamSelectView.as_view(), login_url='/'), name="examSelect"),
-    path('select_exam/<int:pk>', login_required(views.select_exam), name="select_exam"),
+    path('examSelect', views.ExamSelectView.as_view(), name="examSelect"),
+    path('select_exam/<int:pk>', views.select_exam, name="select_exam"),
     path('getCommonExams/<int:pk>', views.getCommonExams, name="getCommonExams"),
-    path('documentation',login_required(views.documentation_view), name="documentation"),
-] + static(settings.SCANS_URL, document_root=settings.SCANS_ROOT)
-    + static(settings.MARKED_SCANS_URL, document_root=settings.MARKED_SCANS_ROOT)
-    + static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
+    path('documentation',views.documentation_view, name="documentation"),
+    path('oidc/', include('mozilla_django_oidc.urls')),
+    #Signed files url
+    path("protected/<path:token>/", views.serve_signed_file, name="serve_signed_scan"),
+    ] #+ static(settings.MARKED_SCANS_URL, document_root=settings.MARKED_SCANS_ROOT)
+    #+ static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
    + static(settings.DOCUMENTATION_URL, document_root=settings.DOCUMENTATION_ROOT)
    + static(settings.ROOMS_PLANS_URL, document_root=settings.ROOMS_PLANS_ROOT)
 )
 
-urlpatterns += django_tequila_urlpatterns
+# urlpatterns += django_tequila_urlpatterns

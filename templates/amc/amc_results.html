@@ -112,11 +112,10 @@ function call_amc_annotate() {
     $('#ajax_info_modal').modal('show')
     single_file = Number(document.getElementById('annotate_one_all_student').checked);
     $.ajax({
-        url: "{% url 'call_amc_annotate' %}",
+        url: "{% url 'call_amc_annotate' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'single_file' : single_file,
         },
         success: (data) => {
@@ -131,11 +130,10 @@ function call_amc_annotate() {
 
 function generate_amc_results() {
     $.ajax({
-        url: "{% url 'call_amc_generate_results' %}",
+        url: "{% url 'call_amc_generate_results' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
         },
         success: (data) => {
             window.location.reload();
@@ -155,11 +153,10 @@ function openSendAnnotatedPapersDialog(){
     removeAllChildNodes(table_body);
     removeAllChildNodes(table_head);
     $.ajax({
-        url: "{% url 'amc_send_annotated_papers_data' %}",
+        url: "{% url 'amc_send_annotated_papers_data' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
         },
         success: (data) => {
             data_json = JSON.parse(data);

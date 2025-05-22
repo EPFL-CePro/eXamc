@@ -202,7 +202,7 @@
         <h6 class="modal-title">Add unrecognized page to...</h6>
       </div>
       <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
-        <form id="addUnrecognizedPageFrm" method="POST" action="{% url 'add_unrecognized_page' %}">
+        <form id="addUnrecognizedPageFrm" method="POST" action="{% url 'add_unrecognized_page' exam_selected.pk %}">
             {% csrf_token %}
             <div class="form-group align-items-center">
                 <div class="form-group">
@@ -570,11 +570,10 @@ function showErrorDataCaptureDialog(title){
 
 function openCopyPageZoomsDialog(copy,page){
     $.ajax({
-        url: "{% url 'get_amc_zooms' %}",
+        url: "{% url 'get_amc_zooms' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'copy' : copy,
             'page' : page},
         success: (data) => {
@@ -674,11 +673,10 @@ function removeAllChildNodes(parent) {
 
 function update_amc_mark_zone(zoneid,copy,page){
     $.ajax({
-        url: "{% url 'update_amc_mark_zone' %}",
+        url: "{% url 'update_amc_mark_zone' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'zoneid' : zoneid,
             'copy' : copy,
             'page' : page

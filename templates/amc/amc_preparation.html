@@ -129,11 +129,10 @@ function openSelectSourceFileDialog(){
 function openEditSourceDialog(filepath){
     $('#select_source_file_modal').modal('hide');
     $.ajax({
-        url: "{% url 'edit_amc_file' %}",
+        url: "{% url 'edit_amc_file' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'filepath' : filepath
         },
         success: (data) => {
@@ -153,11 +152,10 @@ function saveEditedSourceFile(){
     data = document.getElementById('amc_source_text').value;
     filepath = document.getElementById('edit_source_modal_filepath').innerText
     $.ajax({
-        url: "{% url 'save_amc_edited_file' %}",
+        url: "{% url 'save_amc_edited_file' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'data' : data,
             'filepath' : filepath
         },
@@ -181,10 +179,9 @@ function amcUpdateDocuments_process() {
     $('#amc_process_modal').modal('show');
     $.ajax({
         type: 'POST',
-        url: '{% url "call_amc_update_documents" %}', // Django URL for your view
+        url: '{% url "call_amc_update_documents" exam_selected.pk %}',
        data : {
             'csrfmiddlewaretoken' : '{{ csrf_token }}',
-            'exam_pk' : {{ exam_selected.pk }},
             'nb_copies' : nb_copies
         },
         complete: function(data){
@@ -238,11 +235,10 @@ function amcUpdateDocuments(){
     //$('#ajax_info_modal').modal('show');
     nb_copies = document.getElementById('number_of_copies_param').value;
     $.ajax({
-        url: "{% url 'call_amc_update_documents' %}",
+        url: "{% url 'call_amc_update_documents' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }},
             'nb_copies' : nb_copies 
         },
         {#success: (data) => {#}
@@ -264,11 +260,10 @@ function amcUpdateDocuments(){
 function amcLayoutDetection(){
     $('#loadingModal').modal('show');
     $.ajax({
-        url: "{% url 'call_amc_layout_detection' %}",
+        url: "{% url 'call_amc_layout_detection' exam_selected.pk %}",
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : {{ exam_selected.pk }}
         },
         success: (data) => {
             upd_layout_det_msg_el = document.getElementById('layout-detection-msg');

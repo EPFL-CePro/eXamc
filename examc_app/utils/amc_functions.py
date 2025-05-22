@@ -523,6 +523,8 @@ def get_amc_data_capture_manual_data(exam):
 
         return [data_pages, data_questions, data_copies]
 
+    return None
+
 def get_extra_pages(amc_extra_pages_path,amc_extra_pages_url=None,student=None):
     extra_pages_data = []
     if not amc_extra_pages_url:

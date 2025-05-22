@@ -27,869 +27,887 @@
 {% endblock %}
 
 {% block content %}
-{%  if scans_pathes_list %}
-<div class="row" style="height:50px;">
-    <div class="column" style="width:300px;margin-left:15px;">
-        <a href="{% url 'reviewView' exam_selected.pk %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
+{% if user.pk|is_review_blocked:exam_selected.pk %}
+    <div class="alert alert-warning" role="alert">
+        You are currently blocked for Review! <br><br> Please contact the teacher to be unblocked.
     </div>
-    <div class="column" style="margin-left:50px;">
-        <h3><i class="fas fa-glasses fa-l" style="margin-right:10px;"></i>Review {{ pages_group.group_name }}</h3>
-    </div>
-</div>
-    <div>
-
-    </div>
-<style>
-:focus { outline: none; }
-</style>
-<div id="reviewGroup_div" class="d-flex" tabindex="0" style="height:93vh;">
-
-
-    <div id="pages_group_list" style="background-color:#f1f1f1;">
-        <a id="expandCollapseGroupListBt" type="button" data-bs-toggle="collapse" style="margin:5px 5px 5px 5px;float:right;" data-bs-target="#pages_group_list_table_div" aria-expanded="True" aria-controls="pages_group_list_table_div">
-            <i id="expand-group-list-icon" class="fa-lg" style="color:grey;"></i>
-            <i id="collapse-group-list-icon" class="fa mr-3 fa-angle-double-left" style="color:grey;"></i>
-        </a>
-        <div id="pages_group_list_table_div" class="collapse collapse-horizontal show">
-            <table class="table table-striped table-sm" id="table-copies-pages">
-                <thead>
-                <tr>
-                    <th></th>
-                    <th>id</th>
-                    <th>Copy</th>
-                    <th>Page</th>
-                    <th>Graded</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for page in scans_pathes_list %}
-                <tr id="copy_{{page.copy_no}}_{{page.page_no}}">
-                    <td>
-                        <i id="copy_{{page.copy_no}}_{{page.page_no}}_id" name="{{ forloop.counter }}" class="fa-solid fa-lock fa-xs" style="display:None; color: #df8134;"></i>
-                    </td>
-                    <td style="text-align:left;">
-                        {{ forloop.counter }}
-                    </td>
-                    <td style="text-align:left;">{{ page.copy_no }}</td>
-                    <td style="text-align:center;">{{ page.page_no }}</td>
-                    <td id="copy_{{page.copy_no}}_{{page.page_no}}_marked" >{% if page.marked %}<i class="fa-solid fa-circle-check fa-lg"
-                                               style="padding-left:25px;">{% endif %}</i></td>
-                    <td>
-                        {% if page.comment %}
-                        <i class="fas fa-comments fa-lg"></i>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+{% else %}
+    {%  if copies_pages_list %}
+    <div class="row" style="height:50px;">
+        <div class="column" style="width:300px;margin-left:15px;">
+            <a href="{% url 'reviewView' exam_selected.pk %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
+        </div>
+        <div class="column" style="margin-left:50px;">
+            <h3><i class="fas fa-glasses fa-l" style="margin-right:10px;"></i>Review {{ pages_group.group_name }}</h3>
         </div>
     </div>
-    <div class="list-group" id="test" style="height:100%;margin-left:5px;width:60vw;position:relative;" >
-        <div id="pagination" class="list-group list-group-horizontal"></div>
-        <div id="copy_page_select" style="z-index:99;position:absolute;margin-top:100px;right:20px;background-color: gray;padding:2px;"></div>
-        <div id="markerjs_div" style="height:95%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;padding-top:5px;">
-            <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
-                <img id="source_img" style=""/>
-                <img id="marked_img" style="max-width:100%;position: absolute;"/>
-                <div id="corr_box_div" style="position:absolute;z-index:999;">
-                    <svg id="corrector_boxes_svg" style="width:100%;height:100%;">
+        <div>
 
-                    </svg>
-                </div>
-
-            </div>
         </div>
-    </div>
-    <div style="background-color:#f1f1f1;padding:20px;max-width:1250px;">
-        <div class="row">
-            <div style="float:right;width:100%;">
-                <a title="Discussion" id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" style="float:right;"  data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
-                    <i id="comment-icon" class="fas fa-comments fa-lg" style="margin-left:10px;"></i>
-                    <i id="collapse-c-icon" class="fa mr-3" style="color:grey;"></i>
-                </a>
-                <div id="comments-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
-                    <div>
-                        <p class="table th">
+    <style>
+    :focus { outline: none; }
+    </style>
+    <div id="reviewGroup_div" class="d-flex" tabindex="0" style="height:93vh;">
+
+
+        <div id="pages_group_list" style="background-color:#f1f1f1;">
+            <a id="expandCollapseGroupListBt" type="button" data-bs-toggle="collapse" style="margin:5px 5px 5px 5px;float:right;" data-bs-target="#pages_group_list_table_div" aria-expanded="True" aria-controls="pages_group_list_table_div">
+                <i id="expand-group-list-icon" class="fa-lg" style="color:grey;"></i>
+                <i id="collapse-group-list-icon" class="fa mr-3 fa-angle-double-left" style="color:grey;"></i>
+            </a>
+            <div id="pages_group_list_table_div" class="collapse collapse-horizontal show">
+                <table class="table table-striped table-sm" id="table-copies-pages">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>id</th>
+                        <th>Copy</th>
+                        <th>Page</th>
+                        <th>Graded</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for page in copies_pages_list %}
+                    <tr id="copy_{{page.copy_no}}_{{page.page_no}}">
+                        <td>
+                            <i id="copy_{{page.copy_no}}_{{page.page_no}}_id" name="{{ forloop.counter }}" class="fa-solid fa-lock fa-xs" style="display:None; color: #df8134;"></i>
+                        </td>
+                        <td style="text-align:left;">
+                            {{ forloop.counter }}
+                        </td>
+                        <td style="text-align:left;">{{ page.copy_no }}</td>
+                        <td style="text-align:center;">{{ page.page_no }}</td>
+                        <td id="copy_{{page.copy_no}}_{{page.page_no}}_marked" >{% if page.marked %}<i class="fa-solid fa-circle-check fa-lg"
+                                                   style="padding-left:25px;">{% endif %}</i></td>
+                        <td>
+                            {% if page.comment %}
                             <i class="fas fa-comments fa-lg"></i>
-                            DISCUSSION
-                        </p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="list-group" id="test" style="height:100%;margin-left:5px;width:60vw;position:relative;" >
+            <div id="pagination" class="list-group list-group-horizontal"></div>
+            <div id="copy_page_select" style="z-index:99;position:absolute;margin-top:100px;right:20px;background-color: gray;padding:2px;"></div>
+            <div id="markerjs_div" style="height:95%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;padding-top:5px;">
+                <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
+                    <img id="source_img" style=""/>
+                    <img id="marked_img" style="max-width:100%;position: absolute;"/>
+                    <div id="corr_box_div" style="position:absolute;z-index:999;">
+                        <svg id="corrector_boxes_svg" style="width:100%;height:100%;">
+
+                        </svg>
                     </div>
-                    <hr>
-                    <div id="comments-container" style="padding:5px;"></div>
+
                 </div>
             </div>
         </div>
-        <hr>
-        <div class="row">
-            <div style="float:right">
-                <a title="Grading help" id="expandCollapseGradingHelpBt" type="button" data-bs-toggle="collapse" style="float:right;" data-bs-target="#grading-help-div" aria-expanded="false" aria-controls="grading-help-div">
-                    <i id="grading-help-icon" class="fas fa-question-circle fa-lg" style="margin-left:10px;"></i>
-                    <i id="collapse-gh-icon" class="fa mr-3" style="color:grey;"></i>
-                </a>
-                <div id="grading-help-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
-                    <div>
-                        <p class="table th">
-                            <i class="fas fa-question-circle fa-lg"></i>
-                            GRADING HELP
-                        </p>
+        <div style="background-color:#f1f1f1;padding:20px;max-width:1250px;">
+            <div class="row">
+                <div style="float:right;width:100%;">
+                    <a title="Discussion" id="expandCollapseCommentsBt" type="button" data-bs-toggle="collapse" style="float:right;"  data-bs-target="#comments-div" aria-expanded="false" aria-controls="comments-div">
+                        <i id="comment-icon" class="fas fa-comments fa-lg" style="margin-left:10px;"></i>
+                        <i id="collapse-c-icon" class="fa mr-3" style="color:grey;"></i>
+                    </a>
+                    <div id="comments-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
+                        <div>
+                            <p class="table th">
+                                <i class="fas fa-comments fa-lg"></i>
+                                DISCUSSION
+                            </p>
+                        </div>
+                        <hr>
+                        <div id="comments-container" style="padding:5px;"></div>
                     </div>
-                    <hr>
-                    <div id="grading-help" style="padding:10px;border:1px solid lightgray;background-color: white;"></div>
                 </div>
             </div>
             <hr>
-        </div>
-{% comment %}        <div class="row">
-            <div style="float:right">
-                <a title="Grading " id="expandCollapseGradingBt" type="button" data-bs-toggle="collapse" style="float:right;" data-bs-target="#grading-div" aria-expanded="false" aria-controls="grading-div">
-                    <i id="grading-icon" class="fa-solid fa-clone" style="margin-left:10px;"></i>
-                    <i id="collapse-g-icon" class="fa mr-3" style="color:grey;"></i>
-                </a>
-                <div id="grading-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
-                    <div>
-                        <p class="table th">
-                            <i class="fa-solid fa-clone"></i>
-                            GRADING
-                        </p>
+            <div class="row">
+                <div style="float:right">
+                    <a title="Grading help" id="expandCollapseGradingHelpBt" type="button" data-bs-toggle="collapse" style="float:right;" data-bs-target="#grading-help-div" aria-expanded="false" aria-controls="grading-help-div">
+                        <i id="grading-help-icon" class="fas fa-question-circle fa-lg" style="margin-left:10px;"></i>
+                        <i id="collapse-gh-icon" class="fa mr-3" style="color:grey;"></i>
+                    </a>
+                    <div id="grading-help-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
+                        <div>
+                            <p class="table th">
+                                <i class="fas fa-question-circle fa-lg"></i>
+                                GRADING HELP
+                            </p>
+                        </div>
+                        <hr>
+                        <div id="grading-help" style="padding:10px;border:1px solid lightgray;background-color: white;"></div>
                     </div>
-                    <hr>
-                    <div id="grading" style="padding:10px;border:1px solid lightgray;background-color: white;"></div>
                 </div>
+                <hr>
             </div>
+    {% comment %}        <div class="row">
+                <div style="float:right">
+                    <a title="Grading " id="expandCollapseGradingBt" type="button" data-bs-toggle="collapse" style="float:right;" data-bs-target="#grading-div" aria-expanded="false" aria-controls="grading-div">
+                        <i id="grading-icon" class="fa-solid fa-clone" style="margin-left:10px;"></i>
+                        <i id="collapse-g-icon" class="fa mr-3" style="color:grey;"></i>
+                    </a>
+                    <div id="grading-div" class="collapse collapse-horizontal" style="margin-left:5px;background-color:#f1f1f1;width:25%;min-width:600px;">
+                        <div>
+                            <p class="table th">
+                                <i class="fa-solid fa-clone"></i>
+                                GRADING
+                            </p>
+                        </div>
+                        <hr>
+                        <div id="grading" style="padding:10px;border:1px solid lightgray;background-color: white;"></div>
+                    </div>
+                </div>
 
-        </div>
-    </div>{% endcomment %}
+            </div>
+        </div>{% endcomment %}
 
-</div>
-
-
-<script>
-
-
-window.MathJax = {
-  tex: {
-    inlineMath: [['$$', '$$'], ['\\(', '\\)']],
-    displayMath: [['\\[', '\\]']],
-
-  }
-};
-let sourceImage, markedImage, targetRoot, maState, currSourceElementId, currSourceIdSplit, markerArea;
-let group_pathes = JSON.parse('{{json_group_scans_pathes|safe }}');
-
-
-{##### TESTING DISPLAYING FULL COPIE JPGS #####}
-{#let group_pathes_new = JSON.parse('{{json_merged_scans|safe }}');#}
-{##### END TESTING DISPLAYING FULL COPIE JPGS #####}
-
-window.addEventListener('resize', function(event) {
-
-    location.reload();
-}, true);
-
-// save references to the original image and its parent div (positioning root)
-function setSourceImage(source) {
-    sourceImage = source;
-    targetRoot = source.parentElement;
-}
-
-function createPagination(pages, page) {
+    </div>
 
 
+    <script>
 
-    let str = ''//'<ul class="list-group list-group-horizontal">';
 
-    setSourceScan(group_pathes[page-1]["path"],false);
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$$', '$$'], ['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+
+      }
+    };
+    let sourceImage, markedImage, targetRoot, maState, currSourceElementId, currSourceIdSplit, markerArea, from_copy_orig_id;
+    let group_copies_pages_list = JSON.parse('{{json_copies_pages_list|safe }}');
+
+
     {##### TESTING DISPLAYING FULL COPIE JPGS #####}
-    {#setSourceScan(group_pathes_new[page-1]["path"],group_pathes[page-1]["path"], "");#}
+    {#let group_pathes_new = JSON.parse('{{json_merged_scans|safe }}');#}
     {##### END TESTING DISPLAYING FULL COPIE JPGS #####}
 
-    // Show the Previous button only if you are on a page other than the first
-    if (page > 1) {
-        str += '<a id="previous_page" class="list-group-item list-group-item-action" onclick="createPagination('+pages+', '+(page-1)+')">Previous</a>';
+    window.addEventListener('resize', function(event) {
+
+        location.reload();
+    }, true);
+
+    // save references to the original image and its parent div (positioning root)
+    function setSourceImage(source) {
+        sourceImage = source;
+        targetRoot = source.parentElement;
     }
 
-    // Show the very first page followed by a "..." at the beginning of the
-    // pagination section (after the Previous button)
-    if (page > 1) {
-        str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+', 1)">1</a>';
-        if (page > 2) {
-            str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+(page-2)+')">...</a>';
-        }
-    }
-    // Determine how many pages to show after the current page index
-    if (page === 1) {
-        <!-- pageCutHigh += 1; -->
-    } else if (page === 2) {
-        <!-- pageCutHigh += 0; -->
-    }
-    // Determine how many pages to show before the current page index
-    if (page === pages) {
-        <!-- pageCutLow -= 1; -->
-    } else if (page === pages-1) {
-        <!-- pageCutLow -= 0; -->
-    }
-    // active page
-    str += '<a class="list-group-item list-group-item-action active" onclick="createPagination('+pages+', '+page+')">'+page +'</a>';
+    function createPagination(pages, page) {
 
-    // Show the very last page preceded by a "..." at the end of the pagination
-    // section (before the Next button)
-    if (page < pages-1) {
-        if (page < pages-2) {
-            str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+(page+2)+')">...</a>';
-        }
-        str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+pages+')">'+pages+'</a>';
-    }
-    // Show the Next button only if you are on a page other than the last
-    if (page < pages) {
-        str += '<a id="next_page" class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+(page+1)+')">Next</a>';
-    }
 
-    // Return the pagination string to be outputted in the pug templates
-    document.getElementById("pagination").innerHTML = str;
-    if(setMarkerArea()){
-        // hide HiglightMarker if visible (marker used for corrector boxes but not available for reviewers
-        hl_marker_elements = document.querySelectorAll('[data-type-name="HighlightMarker"]');
-        for(el of hl_marker_elements){
-            el.style = "display:none;";
-        }
-    }else{
-        if(page<pages){
-            createPagination(pages,page+1);
-        }else {
-            createPagination(pages, 1);
-        }
-    }
-}
 
-function setSourceScan(scan_path,from_copy){
-    old_source = document.getElementById("source_img").src;
-    sourceImage = document.getElementById("source_img");
-    sourceImage.src = scan_path;
-    targetRoot = sourceImage.parentElement;
-    old_marked = document.getElementById("marked_img").src;
-    markedImage = document.getElementById("marked_img");
-    markedImage.src = scan_path;
+        let str = ''//'<ul class="list-group list-group-horizontal">';
 
-    // change current and last source element background color
-    currSourceIdSplit = scan_path.split('/').pop().replace('.jpg', '').split('_');
-    currSourceElementId = currSourceIdSplit[0] + "_" + currSourceIdSplit[1] + "_" + parseFloat(currSourceIdSplit[2]);
+        //setSourceScan(group_copies_pages_list[page-1]["path"],false);
+        {##### TESTING DISPLAYING FULL COPIE JPGS #####}
+        {#setSourceScan(group_pathes_new[page-1]["path"],group_pathes[page-1]["path"], "");#}
+        {##### END TESTING DISPLAYING FULL COPIE JPGS #####}
 
-    if(!from_copy) {
-        currEl = document.getElementById(currSourceElementId)
-        currSourceIdSplit.push(document.getElementById(currSourceElementId).cells[0].innerText);
-    }
-    if (old_source && !from_copy) {
-        lastSourceIdSplit = old_source.split('/').pop().replace('.jpg', '').split('_');
-        lastSourceElementId =
-            lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + parseFloat(lastSourceIdSplit[2]);
-
-        lastEl = document.getElementById(lastSourceElementId);
-        if(lastEl) {
-            lastEl.style.backgroundColor = "";
-        }
-    }
-    if(!from_copy) {
-        document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
-    }
-
-}
-
-function setMarkerArea(target) {
-    markerArea = new markerjs2.MarkerArea(sourceImage);
-    markerArea.uiStyleSettings.redoButtonVisible = true;
-    markerArea.uiStyleSettings.notesButtonVisible = true;
-    markerArea.uiStyleSettings.zoomButtonVisible = true;
-    markerArea.uiStyleSettings.zoomOutButtonVisible = true;
-    markerArea.uiStyleSettings.clearButtonVisible = true;
-    markerArea.uiStyleSettings.resultButtonBlockVisible = false;
-    markerArea.uiStyleSettings.notesButtonVisible = false;
-    markerArea.settings.defaultColorSet = ['#ac0000', 'black', 'blue'];
-    markerArea.settings.defaultFillColor = '#ac0000';
-    markerArea.settings.defaultStrokeColor = '#ac0000';
-    markerArea.settings.newFreehandMarkerOnPointerUp = true;
-    markerArea.availableMarkerTypes = ['FreehandMarker', 'HighlightMarker','TextMarker'];//'LineMarker','RectangleMarker','EllipseMarker','CoverMarker','EllipseFrameMarker',...markerArea.BASIC_MARKER_TYPES,'CalloutMarker',];
-
-    // since the container div is set to position: relative it is now our positioning root
-    // end we have to let marker.js know that
-    markerArea.targetRoot = targetRoot;
-
-    markerArea.addEventListener("render", (event) => {
-        markedImage.src = event.dataUrl;
-        // save the state of MarkerArea
-        //maState = event.state;
-        //updateMarkers(markerArea,"{{ exam_selected.pk }}","{{ pages_group.pk }}");
-    });
-
-    markerArea.addEventListener("close", (event) => {
-        setMarkerArea();
-    });
-
-    //get Markers (state) if exist
-    imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
-    copy_no = currSourceIdSplit[1];
-    page_no = currSourceIdSplit[2];
-    result = getMarkersAndComments("{{ exam_selected.pk }}",copy_no,page_no,sourceImage.getAttribute("src"));
-    if(result){
-
-        markerArea.show();
-        // if previous state is present - restore it
-        if (maState) {
-            markerArea.restoreState(maState);
+        // Show the Previous button only if you are on a page other than the first
+        if (page > 1) {
+            str += '<a id="previous_page" class="list-group-item list-group-item-action" onclick="createPagination('+pages+', '+(page-1)+')">Previous</a>';
         }
 
-        markerArea.addEventListener("markerdeselect", (event) => {
-            markerChange();
+        // Show the very first page followed by a "..." at the beginning of the
+        // pagination section (after the Previous button)
+        if (page > 1) {
+            str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+', 1)">1</a>';
+            if (page > 2) {
+                str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+(page-2)+')">...</a>';
+            }
+        }
+        // Determine how many pages to show after the current page index
+        if (page === 1) {
+            <!-- pageCutHigh += 1; -->
+        } else if (page === 2) {
+            <!-- pageCutHigh += 0; -->
+        }
+        // Determine how many pages to show before the current page index
+        if (page === pages) {
+            <!-- pageCutLow -= 1; -->
+        } else if (page === pages-1) {
+            <!-- pageCutLow -= 0; -->
+        }
+        // active page
+        str += '<a class="list-group-item list-group-item-action active" onclick="createPagination('+pages+', '+page+')">'+page +'</a>';
+
+        // Show the very last page preceded by a "..." at the end of the pagination
+        // section (before the Next button)
+        if (page < pages-1) {
+            if (page < pages-2) {
+                str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+(page+2)+')">...</a>';
+            }
+            str += '<a class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+pages+')">'+pages+'</a>';
+        }
+        // Show the Next button only if you are on a page other than the last
+        if (page < pages) {
+            str += '<a id="next_page" class="list-group-item list-group-item-action" onclick="createPagination('+pages+','+(page+1)+')">Next</a>';
+        }
+
+        // Return the pagination string to be outputted in the pug templates
+        document.getElementById("pagination").innerHTML = str;
+
+        copy_no = group_copies_pages_list[page-1]["copy_no"];
+        page_no = group_copies_pages_list[page-1]["page_no"];
+        if(setMarkerArea(copy_no,page_no)){
+            // hide HiglightMarker if visible (marker used for corrector boxes but not available for reviewers
+            hl_marker_elements = document.querySelectorAll('[data-type-name="HighlightMarker"]');
+            for(el of hl_marker_elements){
+                el.style = "display:none;";
+            }
+        }else{
+            if(page<pages){
+                createPagination(pages,page+1);
+            }else {
+                createPagination(pages, 1);
+            }
+        }
+    }
+
+    function setSourceScan(scan_path,from_copy){
+        if(from_copy){
+            lastSourceIdSplit = old_source.replace(/\/+$/, '').split('/').pop().split(':')[0].replace('.jpg', '').split('_');
+            from_copy_orig_id = lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + lastSourceIdSplit[2];
+        }
+        old_source = document.getElementById("source_img").src;
+        sourceImage = document.getElementById("source_img");
+        sourceImage.src = scan_path;
+        targetRoot = sourceImage.parentElement;
+        old_marked = document.getElementById("marked_img").src;
+        markedImage = document.getElementById("marked_img");
+        markedImage.src = scan_path;
+
+        // change current and last source element background color
+        currSourceIdSplit = scan_path.replace(/\/+$/, '').split('/').pop().split(':')[0].replace('.jpg', '').split('_');
+        currSourceElementId = currSourceIdSplit[0] + "_" + currSourceIdSplit[1] + "_" + currSourceIdSplit[2];
+
+        if(!from_copy) {
+            currEl = document.getElementById(currSourceElementId)
+            currSourceIdSplit.push(document.getElementById(currSourceElementId).cells[0].innerText);
+        }
+        if (old_source && !from_copy) {
+            if(from_copy_orig_id !== null){
+                lastSourceElementId = from_copy_orig_id;
+                from_copy_orig_id = null;
+            }else {
+                lastSourceIdSplit = old_source.replace(/\/+$/, '').split('/').pop().split(':')[0].replace('.jpg', '').split('_');
+                lastSourceElementId =
+                    lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + lastSourceIdSplit[2];
+            }
+
+            lastEl = document.getElementById(lastSourceElementId);
+            if(lastEl) {
+                lastEl.style.backgroundColor = "";
+            }
+        }
+        if(!from_copy) {
+            document.getElementById(currSourceElementId).style.backgroundColor = "yellow";
+        }
+
+    }
+
+    function setMarkerArea(copy_no,page_no,from_copy=false) {
+
+        result_ok = getMarkersAndComments("{{ exam_selected.pk }}",copy_no,page_no,from_copy);//,sourceImage.getAttribute("src"));
+        if(markerArea){
+            markerArea.close();
+            delete markerArea;
+        }
+        markerArea = new markerjs2.MarkerArea(sourceImage);
+        markerArea.uiStyleSettings.redoButtonVisible = true;
+        markerArea.uiStyleSettings.notesButtonVisible = true;
+        markerArea.uiStyleSettings.zoomButtonVisible = true;
+        markerArea.uiStyleSettings.zoomOutButtonVisible = true;
+        markerArea.uiStyleSettings.clearButtonVisible = true;
+        markerArea.uiStyleSettings.resultButtonBlockVisible = false;
+        markerArea.uiStyleSettings.notesButtonVisible = false;
+        markerArea.settings.defaultColorSet = ['#ac0000', 'black', 'blue'];
+        markerArea.settings.defaultFillColor = '#ac0000';
+        markerArea.settings.defaultStrokeColor = '#ac0000';
+        markerArea.settings.newFreehandMarkerOnPointerUp = true;
+        markerArea.availableMarkerTypes = ['FreehandMarker', 'HighlightMarker','TextMarker'];//'LineMarker','RectangleMarker','EllipseMarker','CoverMarker','EllipseFrameMarker',...markerArea.BASIC_MARKER_TYPES,'CalloutMarker',];
+
+        // since the container div is set to position: relative it is now our positioning root
+        // end we have to let marker.js know that
+        markerArea.targetRoot = targetRoot;
+
+        markerArea.addEventListener("render", (event) => {
+            markedImage.src = event.dataUrl;
+            // save the state of MarkerArea
+            //maState = event.state;
+            //updateMarkers(markerArea,"{{ exam_selected.pk }}","{{ pages_group.pk }}");
         });
 
-        markerArea.addEventListener("markerdelete", (event) => {
-            markerChange();
+        markerArea.addEventListener("close", (event) => {
+            //setMarkerArea(copy_no,page_no);
         });
 
-        return true;
+        //get Markers (state) if exist
+        {#imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');#}
+        {#copy_no = currSourceIdSplit[1];#}
+        {#page_no = currSourceIdSplit[2];#}
+        {#result_ok = getMarkersAndComments("{{ exam_selected.pk }}",copy_no,page_no);//,sourceImage.getAttribute("src"));#}
+        if(result_ok){
 
-    }else{
-        return false;
+            markerArea.show();
+            // if previous state is present - restore it
+            if (maState) {
+                markerArea.restoreState(maState);
+            }
+
+            markerArea.addEventListener("markerdeselect", (event) => {
+                markerChange();
+            });
+
+            markerArea.addEventListener("markerdelete", (event) => {
+                markerChange();
+            });
+
+            return true;
+
+        }else{
+            return false;
+        }
+
     }
 
-}
+    function markerChange(){
+        svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
+        svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));
+        svgDataUrl = `data:image/svg+xml;charset=utf-8;base64,${svgDataBase64}`;
 
-function markerChange(){
-    svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
-    svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));
-    svgDataUrl = `data:image/svg+xml;charset=utf-8;base64,${svgDataBase64}`;
+        addMarkersImageProcess(svgDataUrl).then(img => {
+            var canvas = document.createElement('canvas')
 
-    addMarkersImageProcess(svgDataUrl).then(img => {
-        var canvas = document.createElement('canvas')
+            canvas.setAttribute('width', markerArea.target.naturalWidth)
+            canvas.setAttribute('height', markerArea.target.naturalHeight)
 
-        canvas.setAttribute('width', markerArea.target.naturalWidth)
-        canvas.setAttribute('height', markerArea.target.naturalHeight)
+            var context = canvas.getContext('2d')
+            context.drawImage(markerArea.target, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
+            context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
+            var dataUrl = canvas.toDataURL('image/jpeg')
+            markedImage.src = dataUrl;
+            updateMarkers(markerArea,"{{ exam_selected.pk }}","{{ pages_group.pk }}");
+        });
+    }
 
-        var context = canvas.getContext('2d')
-        context.drawImage(markerArea.target, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
-        context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
-        var dataUrl = canvas.toDataURL('image/jpeg')
-        markedImage.src = dataUrl;
-        updateMarkers(markerArea,"{{ exam_selected.pk }}","{{ pages_group.pk }}");
-    });
-}
+    function addMarkersImageProcess(src){
+      return new Promise((resolve, reject) => {
+        let img = new Image()
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = src
+      })
+    }
 
-function addMarkersImageProcess(src){
-  return new Promise((resolve, reject) => {
-    let img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = reject
-    img.src = src
-  })
-}
+    function initCopyPagesSelectpicker(pages,curr_page){
+        const selectElDiv = document.getElementById('copy_page_select');
+        selectElDiv.innerHTML = "";
+        const selectEl = document.createElement('select');
+        selectEl.className = 'selectpicker form-control';
+        selectEl.style.width  = '100px'
+        pages.forEach(pageData => {
+            const optionEl = document.createElement('option');
+            optionEl.value = pageData.copy_no+"-"+pageData.page_no;
+            optionEl.textContent = "page "+pageData.page_no;
+            if(Number(curr_page) === Number(pageData.page_no)){
+                optionEl.selected = true;
+            }
+            selectEl.appendChild(optionEl);
+        })
+        selectEl.addEventListener('change', () => {
+            copy_nr = selectEl.value.split('-')[0]
+            page_nr = selectEl.value.split('-')[1]
+            changeCopyPage({{ pages_group.exam.pk }},copy_nr, page_nr);
+        });
+        selectElDiv.append(selectEl);
+        $('.selectpicker').selectpicker();
+    }
 
-function initCopyPagesSelectpicker(pages,curr_page){
-    const selectElDiv = document.getElementById('copy_page_select');
-    selectElDiv.innerHTML = "";
-    const selectEl = document.createElement('select');
-    selectEl.className = 'selectpicker form-control';
-    selectEl.style.width  = '100px'
-    pages.forEach(pageData => {
-        const optionEl = document.createElement('option');
-        optionEl.value = pageData.copy_no+"-"+pageData.page_no;
-        optionEl.textContent = "page "+pageData.page_no;
-        if(Number(curr_page) === Number(pageData.page_no)){
-            optionEl.selected = true;
-        }
-        selectEl.appendChild(optionEl);
-    })
-    selectEl.addEventListener('change', () => {
-        copy_nr = selectEl.value.split('-')[0]
-        page_nr = selectEl.value.split('-')[1]
-        changeCopyPage({{ pages_group.exam.pk }},copy_nr, page_nr);
-    });
-    selectElDiv.append(selectEl);
-    $('.selectpicker').selectpicker();
-}
+    function changeCopyPage(exam_pk,copy_no,page_no){
+        $.ajax({
+            url : "{% url 'get_copy_page' exam_selected.pk %}",
+            type : "POST",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'copy_no' : copy_no,
+                //'curr_row': curr_row,
+                'page_no' : page_no,
+            },
+            success: (copyPageUrl) => {
+                setMarkerArea(copy_no,page_no,true);
+            },
+        });
+    }
 
-function changeCopyPage(exam_pk,copy_no,page_no){
-    $.ajax({
-        url : "{% url 'get_copy_page' %}",
-        type : "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : exam_pk,
-            'copy_no' : copy_no,
-            //'curr_row': curr_row,
-            'page_no' : page_no,
-        },
-        success: (copyPageUrl) => {
-            setSourceScan(copyPageUrl,true);
-            setMarkerArea();
-        },
-    });
-}
+    function getMarkersAndComments(pk,copy_no,page_no,from_copy=false){
+        result = false;
+        var markers;
+        $.ajax({
+            url: "{% url 'review_student_pages_group_is_locked' exam_selected.pk %}",
+            async:false,
+            type: "POST",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'pages_group_id' : {{ pages_group.id }},
+                'copy_no' : copy_no,
+            },
+            success: (data) => {
+                if(data===''){
+                    td_el = document.getElementById('copy_'+copy_no+'_'+Number(page_no)+'_id');
+                    if(td_el) {
+                        td_el.style.display = 'None';
+                    }
+                    //td_el = document.getElementById('copy_'+copy_no+'_'+Number(page_no)+'_id');
+                    //td_el.innerText=td_el.getAttribute('name');
+                    $.ajax({
+                    url: "{% url 'get_markers_and_comments' exam_selected.pk %}",
+                    async:false,
+                    type: "POST",
+                    data : {
+                        'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                        'copy_no' : copy_no,
+                        'page_no' : ""+page_no,
+                        //'filename' : filename,
+                        'group_id' : {{ pages_group.id }}
+                    },
+                    success: (data) => {
+                        markers="None";
+                        if(data!="None"){
+                            data_full = JSON.parse(data);
 
-function getMarkersAndComments(pk,copy_no,page_no,filename){
-    result = false;
-    var markers;
-    $.ajax({
-        url: "{% url 'review_student_pages_group_is_locked'  %}",
-        async:false,
-        type: "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pages_group_id' : {{ pages_group.id }},
-            'copy_no' : copy_no,
-        },
-        success: (data) => {
-            if(data===''){
-                td_el = document.getElementById('copy_'+copy_no+'_'+Number(page_no)+'_id');
-                if(td_el) {
-                    td_el.style.display = 'None';
+                            setSourceScan(data_full.copyPageUrl,from_copy);
+
+                            maState=JSON.parse(data_full.markers);
+                            comments=data_full.comments;
+                            corrector_boxes = JSON.parse(data_full.corrector_boxes);
+                            $("#corrector_boxes_svg").empty();
+                            $("#corr_box_div").css("display","none");
+                            if(corrector_boxes.length > 0) {
+                                $("#corr_box_div").css("display","block");
+                                setTimeout(() => {
+                                    draw_corrector_boxes(corrector_boxes);
+                                }, 100);
+                                //draw_corrector_boxes(corrector_boxes);
+                            }
+                            initComments(comments);
+                            pages=JSON.parse(data_full.copy_pages);
+                            initCopyPagesSelectpicker(pages,page_no);
+                        }
+                        result = true;
+                    },
+                    error: (error) => {
+                        console.log(error);
+                    }
+                });
+                }else{
+                    td_el = document.getElementById('copy_'+copy_no+'_'+Number(page_no)+'_id');
+                    td_el.style.display = 'block';// '<i class="fa-solid fa-lock" style="color: #df8134;"><a style="font-weight: normal;color:#626262;">'+td_el.getAttribute('name')+'<\i>';
+                    //td_el.innerHTML=inner_html;
+                    result = false;
                 }
-                //td_el = document.getElementById('copy_'+copy_no+'_'+Number(page_no)+'_id');
-                //td_el.innerText=td_el.getAttribute('name');
-                $.ajax({
-                url: "{% url 'get_markers_and_comments' %}",
-                async:false,
+
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        })
+        return result;
+    }
+
+    function draw_corrector_boxes(data){
+        //add rect box corrector
+        corrector_boxes_svg = document.getElementById('corrector_boxes_svg');
+        var svgns = "http://www.w3.org/2000/svg";
+
+        imgRatio = sourceImage.naturalHeight / sourceImage.height;
+
+        const corr_box_div = document.getElementById('corr_box_div');
+        min_x = Math.min.apply(Math, data.map(function (event) {
+                    return event.x;
+                }));
+        min_y = Math.min.apply(Math, data.map(function (event) {
+                    return event.y;
+                }));
+        max_y = Math.max.apply(Math, data.map(function (event) {
+                    return event.y;
+                }));
+        x_pos = min_x/imgRatio - 10
+        y_pos = min_y/imgRatio - 10
+        pos_y_min = 0
+        pos_y_max = 0
+        for (let pos of data) {
+            if(pos.y > pos_y_max){
+                pos_y_max = pos.y;
+            }else if(pos_y_min === 0 || pos.y < pos_y_min){
+                pos_y_min = pos.y;
+            }
+
+            if(pos.corner === 1){
+                pol_left = pos.x/imgRatio;
+                pol_top = pos.y/imgRatio;
+                var polygon = document.createElementNS(svgns, 'polygon');
+            }
+            var point = corrector_boxes_svg.createSVGPoint();
+            point.x = (pos.x)/imgRatio-x_pos;
+            point.y = pos.y/imgRatio-y_pos;
+            polygon.points.appendItem(point)
+
+            if(pos.corner==2){
+                pol_width = (pos.x/imgRatio)-pol_left;
+            }
+
+            if(pos.corner === 4){
+                pol_height = (pos.y/imgRatio)-pol_top;
+                corrector_boxes_svg.appendChild(polygon);
+                polygon.setAttribute('fill','transparent');
+                polygon.setAttribute('stroke', 'purple');
+                polygon.setAttribute('stroke-width','3');
+                polygon.setAttribute('opacity','0.7');
+                polygon.setAttribute('onclick',"createMarker4CorrBox("+pol_left+","+pol_top+","+pol_width+","+pol_height+");");
+            }
+        }
+        corr_height = max_y/imgRatio - y_pos + 10;//pos_y_max - pos_y_min;
+        corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:75%;z-index:999");
+    }
+
+    function createMarker4CorrBox(left,top,width,height){
+
+        new_marker = markerArea.addNewMarker(markerjs2.HighlightMarker);
+        new_marker.left=left;
+        new_marker.top=top;
+        new_marker.width=width;
+        new_marker.height=height;
+        new_marker.fillColor="black";
+        new_marker.opacity=1;
+        new_marker.createVisual();
+        push_marker = true
+        for(i in markerArea.markers){
+
+            if(markerArea.markers[i].typeName === 'HighlightMarker'){
+                push_marker = false
+                if(markerArea.markers[i].left !== left || markerArea.markers[i].top !== top
+                    ||markerArea.markers[i].width !== width || markerArea.markers[i].height !== height){
+                    push_marker = true;
+                }
+                delete markerArea.markers[i];
+            }
+        }
+        if(push_marker){
+            markerArea.markers.push(new_marker);
+        }
+
+        markerArea.
+        maState = markerArea.getState();
+        markerArea.restoreState(markerArea.getState())
+        markerChange();
+        //markerArea.restoreState(markerArea.getState());
+
+    }
+
+    function initCopyPagesTableOnClickRowEvent(refresh){
+
+        $("#table-copies-pages").off().on('click', 'tr', function () {
+            createPagination({{ copies_pages_list|length }}, parseFloat(this.cells[1].innerText));
+        });
+
+        if(!refresh){
+            var table = $("#table-copies-pages").DataTable( {
+                scrollY: '85vh',
+                "dom": 'rtip',
+                "lengthChange": false,
+                "paging": false,
+            } );
+        }
+    }
+
+
+    function updateMarkers(markerArea, exam_pk, pages_group_pk){
+        imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
+        copy_no = currSourceIdSplit[1];
+        page_no = currSourceIdSplit[2];
+        id_no = currSourceIdSplit[3]
+
+        saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,sourceImage.getAttribute("src"),id_no);
+
+        initCopyPagesTableOnClickRowEvent(true);
+        currEl = document.getElementById(currSourceElementId)
+        if(currEl) {
+            currEl.style.backgroundColor = "yellow";
+        }
+
+    }
+
+    function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,filename,curr_row){
+        $.ajax({
+            url : "{% url 'save_markers' exam_selected.pk %}",
+            type : "POST",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'reviewGroup_pk' : group_pk,
+                'curr_row': curr_row,
+                'copy_no' : copy_no,
+                'page_no' : ""+page_no,
+                'markers' : markers,
+                'marked_img_dataUrl' : marked_img_dataUrl,
+                'filename' : filename
+            },
+            beforeSend : function(){
+            },
+            success: (marked) => {
+                marked_info_element = document.getElementById(currSourceElementId+"_marked");
+                if(marked_info_element) {
+                    marked_info_element.innerHTML = "";
+                    if (marked === 'True') {
+                        marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
+                    }
+                }
+
+            },
+        });
+    }
+
+    function saveComment(data){
+        copy_no = currSourceIdSplit[1];
+
+        // Convert pings to human readable format
+        $(Object.keys(data.pings)).each(function(index, userId) {
+            var fullname = data.pings[userId];
+            var pingText = '@' + fullname;
+            data.content = data.content.replace(new RegExp('@' + userId, 'g'), pingText);
+        });
+
+        $.ajax({
+            url : "{% url 'save_comment' exam_selected.pk %}",
+            type : "POST",
+            async:false,
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'comment' : JSON.stringify(data),
+                'group_id' : {{ pages_group.id }},
+                'copy_no' : copy_no
+            },
+            success: (comment_id) => {
+                comments.slice(-1).id = comment_id;
+                data.id = comment_id;
+            },
+        });
+
+        return data;
+    }
+
+    function deleteComment(data){
+        copy_no = currSourceIdSplit[1];
+
+        $.ajax({
+            url : "{% url 'save_comment' exam_selected.pk %}",
+            type : "POST",
+            async:false,
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'comment_id' : data.id,
+                'group_id' : {{ pages_group.id }},
+                'copy_no' : copy_no,
+                'delete' : true
+            },
+            success: (deleted) => {
+                {#comments.slice(-1).id = comment_id;#}
+                {#data.id = comment_id;#}
+            },
+        });
+
+        return data;
+    }
+
+    function initComments(commentsArray){
+        $('#comments-container').comments({
+            profilePictureURL: 'fa-solid fa-circle-user fa-2xs',
+            currentUserId: {{ user.id }},
+            roundProfilePictures: true,
+            textareaRows: 1,
+            enableAttachments: false,
+            enableHashtags: false,
+            enableUpvoting: false,
+            enableEditing: true,
+            enableDeleting: true,
+            scrollContainer: $(window),
+            getComments: function(success, error) {
+                setTimeout(function() {
+                    success(commentsArray);
+                }, 500);
+            },
+            postComment: function(data, success, error) {
+                setTimeout(function() {
+                    success(saveComment(data));
+
+                }, 500);
+            },
+            putComment: function(data, success, error) {
+                setTimeout(function() {
+                    success(saveComment(data));
+                }, 500);
+            },
+            deleteComment: function(data, success, error) {
+                setTimeout(function() {
+                    success(deleteComment(data));
+
+                }, 500);
+            },
+        });
+    };
+
+
+    $(window).on("load",function(){
+        initCopyPagesTableOnClickRowEvent(false);
+        {% if currpage > 0 %}
+        createPagination({{ copies_pages_list|length }}, {{ currpage }});
+        {% else %}
+        document.getElementById("copy_{{copies_pages_list.0.copy_no}}_{{copies_pages_list.0.page_no}}").click();
+        setTimeout(() => { document.getElementById("copy_{{copies_pages_list.0.copy_no}}_{{copies_pages_list.0.page_no}}").click()},350);
+        {% endif %}
+
+        SidebarCollapse();
+
+        $('#reviewGroup_div').on('keydown', function(event) {
+            switch (event.key) {
+                case "ArrowLeft":
+                case "ArrowUp":
+                    previous_bt = document.getElementById('previous_page');
+                    if (previous_bt != null) {
+                        previous_bt.click();
+                    }
+                    break;
+                case "ArrowRight":
+                case "ArrowDown":
+                    next_bt = document.getElementById('next_page');
+                    if (next_bt != null) {
+                        next_bt.click();
+                    }
+                    break;
+            }
+        }).focus();
+
+    });
+    document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
+        var expandIcon = $( "#comment-icon" );
+        var collapseIcon = $( "#collapse-c-icon" );
+        if(collapseIcon.hasClass('fa-angle-double-left')){
+            collapseIcon.removeClass('fa-angle-double-left');
+            expandIcon.show();
+        }else{
+            collapseIcon.addClass("fa-angle-double-left");
+            expandIcon.hide();
+        }
+
+    });
+
+    document.getElementById("expandCollapseGroupListBt").addEventListener("click", function(event) {
+        var expandIcon = $( "#expand-group-list-icon" );
+        var collapseIcon = $( "#collapse-group-list-icon" );
+        if(collapseIcon.hasClass('fa-angle-double-left')){
+            collapseIcon.removeClass('fa-angle-double-left');
+            expandIcon.addClass("fa-solid fa-table-list")
+            expandIcon.show();
+            collapseIcon.hide();
+        }else{
+            expandIcon.removeClass('fa-solid fa-table-list');
+            collapseIcon.addClass("fa-angle-double-left")
+            collapseIcon.show();
+            expandIcon.hide();
+        }
+
+    });
+
+    document.getElementById("expandCollapseGradingHelpBt").addEventListener("click", function(event) {
+        var gradingHelpIcon = $( "#grading-help-icon" );
+        var collapseIcon = $( "#collapse-gh-icon" );
+        if(collapseIcon.hasClass('fa-angle-double-left')){
+            collapseIcon.removeClass('fa-angle-double-left');
+            gradingHelpIcon.show();
+        }else{
+            collapseIcon.addClass('fa-angle-double-left');
+            gradingHelpIcon.hide();
+
+
+            $.ajax({
+                url: "{% url 'get_pages_group_grading_help' exam_selected.pk %}",
                 type: "POST",
                 data : {
                     'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                    'exam_pk' : pk,
-                    'copy_no' : copy_no,
-                    'page_no' : ""+page_no,
-                    'filename' : filename,
-                    'group_id' : {{ pages_group.id }}
+                    'group_pk' : {{ pages_group.id }},
                 },
                 success: (data) => {
-                    markers="None";
-                    if(data!="None"){
-                        data_full = JSON.parse(data);
-                        maState=JSON.parse(data_full.markers);
-                        comments=data_full.comments;
-                        corrector_boxes = JSON.parse(data_full.corrector_boxes);
-                        $("#corrector_boxes_svg").empty();
-                        $("#corr_box_div").css("display","none");
-                        if(corrector_boxes.length > 0) {
-                            $("#corr_box_div").css("display","block");
-                            setTimeout(() => {
-                                draw_corrector_boxes(corrector_boxes);
-                            }, 100);
-                            //draw_corrector_boxes(corrector_boxes);
-                        }
-                        initComments(comments);
-                        pages=JSON.parse(data_full.copy_pages);
-                        initCopyPagesSelectpicker(pages,page_no);
-                    }
-                    result = true;
+                    document.getElementById("grading-help").innerHTML = data;
+                    window.MathJax.typeset();
                 },
                 error: (error) => {
                     console.log(error);
                 }
             });
-            }else{
-                td_el = document.getElementById('copy_'+copy_no+'_'+Number(page_no)+'_id');
-                td_el.style.display = 'block';// '<i class="fa-solid fa-lock" style="color: #df8134;"><a style="font-weight: normal;color:#626262;">'+td_el.getAttribute('name')+'<\i>';
-                //td_el.innerHTML=inner_html;
-                result = false;
-            }
 
-        },
-        error: (error) => {
-            console.log(error);
-        }
-    })
-    return result;
-}
 
-function draw_corrector_boxes(data){
-    //add rect box corrector
-    corrector_boxes_svg = document.getElementById('corrector_boxes_svg');
-    var svgns = "http://www.w3.org/2000/svg";
 
-    imgRatio = sourceImage.naturalHeight / sourceImage.height;
-
-    const corr_box_div = document.getElementById('corr_box_div');
-    min_x = Math.min.apply(Math, data.map(function (event) {
-                return event.x;
-            }));
-    min_y = Math.min.apply(Math, data.map(function (event) {
-                return event.y;
-            }));
-    max_y = Math.max.apply(Math, data.map(function (event) {
-                return event.y;
-            }));
-    x_pos = min_x/imgRatio - 10
-    y_pos = min_y/imgRatio - 10
-    pos_y_min = 0
-    pos_y_max = 0
-    for (let pos of data) {        
-        if(pos.y > pos_y_max){
-            pos_y_max = pos.y;
-        }else if(pos_y_min === 0 || pos.y < pos_y_min){
-            pos_y_min = pos.y;
-        }
-        
-        if(pos.corner === 1){
-            pol_left = pos.x/imgRatio;
-            pol_top = pos.y/imgRatio;
-            var polygon = document.createElementNS(svgns, 'polygon');
-        }
-        var point = corrector_boxes_svg.createSVGPoint();
-        point.x = (pos.x)/imgRatio-x_pos;
-        point.y = pos.y/imgRatio-y_pos;
-        polygon.points.appendItem(point)
-        
-        if(pos.corner==2){
-            pol_width = (pos.x/imgRatio)-pol_left;            
         }
 
-        if(pos.corner === 4){
-            pol_height = (pos.y/imgRatio)-pol_top; 
-            corrector_boxes_svg.appendChild(polygon);
-            polygon.setAttribute('fill','transparent');
-            polygon.setAttribute('stroke', 'purple');
-            polygon.setAttribute('stroke-width','3');
-            polygon.setAttribute('opacity','0.7');
-            polygon.setAttribute('onclick',"createMarker4CorrBox("+pol_left+","+pol_top+","+pol_width+","+pol_height+");");
-        }
-    }
-    corr_height = max_y/imgRatio - y_pos + 10;//pos_y_max - pos_y_min;
-    corrector_boxes_svg.parentElement.setAttribute('style',"position:absolute;top:"+y_pos+"px;left:"+x_pos+"px;height:"+corr_height+"px;width:75%;z-index:999");
-}
-
-function createMarker4CorrBox(left,top,width,height){
-    
-    new_marker = markerArea.addNewMarker(markerjs2.HighlightMarker);
-    new_marker.left=left;
-    new_marker.top=top;
-    new_marker.width=width;
-    new_marker.height=height;
-    new_marker.fillColor="black";
-    new_marker.opacity=1;
-    new_marker.createVisual();
-    push_marker = true
-    for(i in markerArea.markers){
-    
-        if(markerArea.markers[i].typeName === 'HighlightMarker'){
-            push_marker = false
-            if(markerArea.markers[i].left !== left || markerArea.markers[i].top !== top 
-                ||markerArea.markers[i].width !== width || markerArea.markers[i].height !== height){
-                push_marker = true;
-            }
-            delete markerArea.markers[i];
-        }
-    }
-    if(push_marker){
-        markerArea.markers.push(new_marker);
-    }
-    
-    markerArea.
-    maState = markerArea.getState();
-    markerArea.restoreState(markerArea.getState())
-    markerChange();
-    //markerArea.restoreState(markerArea.getState());
-    
-}
-
-function initCopyPagesTableOnClickRowEvent(refresh){
-
-    $("#table-copies-pages").off().on('click', 'tr', function () {
-        createPagination({{ scans_pathes_list|length }}, parseFloat(this.cells[1].innerText));
     });
 
-    if(!refresh){
-        var table = $("#table-copies-pages").DataTable( {
-            scrollY: '85vh',
-            "dom": 'rtip',
-            "lengthChange": false,
-            "paging": false,
-        } );
-    }
-}
-
-
-function updateMarkers(markerArea, exam_pk, pages_group_pk){
-    imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
-    copy_no = currSourceIdSplit[1];
-    page_no = currSourceIdSplit[2];
-    id_no = currSourceIdSplit[3]
-
-    saveMarkers(exam_pk, pages_group_pk,copy_no,page_no,JSON.stringify(markerArea.getState()),markedImage.src,sourceImage.getAttribute("src"),id_no);
-
-    initCopyPagesTableOnClickRowEvent(true);
-    currEl = document.getElementById(currSourceElementId)
-    if(currEl) {
-        currEl.style.backgroundColor = "yellow";
-    }
-
-}
-
-function saveMarkers(pk,group_pk,copy_no,page_no,markers,marked_img_dataUrl,filename,curr_row){
-    $.ajax({
-        url : "{% url 'save_markers' %}",
-        type : "POST",
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'exam_pk' : pk,
-            'reviewGroup_pk' : group_pk,
-            'curr_row': curr_row,
-            'copy_no' : copy_no,
-            'page_no' : ""+page_no,
-            'markers' : markers,
-            'marked_img_dataUrl' : marked_img_dataUrl,
-            'filename' : filename
-        },
-        beforeSend : function(){
-        },
-        success: (marked) => {
-            marked_info_element = document.getElementById(currSourceElementId+"_marked");
-            if(marked_info_element) {
-                marked_info_element.innerHTML = "";
-                if (marked === 'True') {
-                    marked_info_element.innerHTML = '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
-                }
-            }
-
-        },
-    });
-}
-
-function saveComment(data){
-    copy_no = currSourceIdSplit[1];
-
-    // Convert pings to human readable format
-    $(Object.keys(data.pings)).each(function(index, userId) {
-        var fullname = data.pings[userId];
-        var pingText = '@' + fullname;
-        data.content = data.content.replace(new RegExp('@' + userId, 'g'), pingText);
-    });
-
-    $.ajax({
-        url : "{% url 'save_comment' %}",
-        type : "POST",
-        async:false,
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'comment' : JSON.stringify(data),
-            'group_id' : {{ pages_group.id }},
-            'copy_no' : copy_no
-        },
-        success: (comment_id) => {
-            comments.slice(-1).id = comment_id;
-            data.id = comment_id;
-        },
-    });
-
-    return data;
-}
-
-function deleteComment(data){
-    copy_no = currSourceIdSplit[1];
-
-    $.ajax({
-        url : "{% url 'save_comment' %}",
-        type : "POST",
-        async:false,
-        data : {
-            'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'comment_id' : data.id,
-            'group_id' : {{ pages_group.id }},
-            'copy_no' : copy_no,
-            'delete' : true
-        },
-        success: (deleted) => {
-            {#comments.slice(-1).id = comment_id;#}
-            {#data.id = comment_id;#}
-        },
-    });
-
-    return data;
-}
-
-function initComments(commentsArray){
-    $('#comments-container').comments({
-        profilePictureURL: 'fa-solid fa-circle-user fa-2xs',
-        currentUserId: {{ user.id }},
-        roundProfilePictures: true,
-        textareaRows: 1,
-        enableAttachments: false,
-        enableHashtags: false,
-        enableUpvoting: false,
-        enableEditing: true,
-        enableDeleting: true,
-        scrollContainer: $(window),
-        getComments: function(success, error) {
-            setTimeout(function() {
-                success(commentsArray);
-            }, 500);
-        },
-        postComment: function(data, success, error) {
-            setTimeout(function() {
-                success(saveComment(data));
-                
-            }, 500);
-        },
-        putComment: function(data, success, error) {
-            setTimeout(function() {
-                success(saveComment(data));
-            }, 500);
-        },
-        deleteComment: function(data, success, error) {
-            setTimeout(function() {
-                success(deleteComment(data));
-
-            }, 500);
-        },
-    });
-};
-
-
-$(window).on("load",function(){
-    initCopyPagesTableOnClickRowEvent(false);
-    {% if currpage > 0 %}
-    createPagination({{ scans_pathes_list|length }}, {{ currpage }});
-    {% else %}
-    document.getElementById("copy_{{scans_pathes_list.0.copy_no}}_{{scans_pathes_list.0.page_no}}").click();
-    setTimeout(() => { document.getElementById("copy_{{scans_pathes_list.0.copy_no}}_{{scans_pathes_list.0.page_no}}").click()},350);
-    {% endif %}
-
-    {#var expandIcon = $( "#expand-group-list-icon" );#}
-    {#var collapseIcon = $( "#collapse-group-list-icon" );#}
-    {#expandIcon.addClass("fa-angle-double-left).show()");#}
-    {#expandIcon.show();#}
-    {#collapseIcon.hide();#}
-    SidebarCollapse();
-
-    $('#reviewGroup_div').on('keydown', function(event) {
-        switch (event.key) {
-            case "ArrowLeft":
-            case "ArrowUp":
-                previous_bt = document.getElementById('previous_page');
-                if (previous_bt != null) {
-                    previous_bt.click();
-                }
-                break;
-            case "ArrowRight":
-            case "ArrowDown":
-                next_bt = document.getElementById('next_page');
-                if (next_bt != null) {
-                    next_bt.click();
-                }
-                break;
-        }
-    }).focus();
-
-});
-document.getElementById("expandCollapseCommentsBt").addEventListener("click", function(event) {
-    var expandIcon = $( "#comment-icon" );
-    var collapseIcon = $( "#collapse-c-icon" );
-    if(collapseIcon.hasClass('fa-angle-double-left')){
-        collapseIcon.removeClass('fa-angle-double-left');
-        expandIcon.show();
-    }else{
-        collapseIcon.addClass("fa-angle-double-left");
-        expandIcon.hide();
-    }
-
-});
-
-document.getElementById("expandCollapseGroupListBt").addEventListener("click", function(event) {
-    var expandIcon = $( "#expand-group-list-icon" );
-    var collapseIcon = $( "#collapse-group-list-icon" );
-    if(collapseIcon.hasClass('fa-angle-double-left')){
-        collapseIcon.removeClass('fa-angle-double-left');
-        expandIcon.addClass("fa-solid fa-table-list")
-        expandIcon.show();
-        collapseIcon.hide();
-    }else{
-        expandIcon.removeClass('fa-solid fa-table-list');
-        collapseIcon.addClass("fa-angle-double-left")
-        collapseIcon.show();
-        expandIcon.hide();
-    }
-
-});
-
-document.getElementById("expandCollapseGradingHelpBt").addEventListener("click", function(event) {
-    var gradingHelpIcon = $( "#grading-help-icon" );
-    var collapseIcon = $( "#collapse-gh-icon" );
-    if(collapseIcon.hasClass('fa-angle-double-left')){
-        collapseIcon.removeClass('fa-angle-double-left');
-        gradingHelpIcon.show();
-    }else{
-        collapseIcon.addClass('fa-angle-double-left');
-        gradingHelpIcon.hide();
-
-
-        $.ajax({
-            url: "{% url 'get_pages_group_grading_help' %}",
-            type: "POST",
-            data : {
-                'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                'pk' : {{ pages_group.id }},
-            },
-            success: (data) => {
-                document.getElementById("grading-help").innerHTML = data;
-                window.MathJax.typeset();
-            },
-            error: (error) => {
-                console.log(error);
-            }
-        });
-
-
-
-    }
-
-});
-
-{#document.getElementById("expandCollapseGradingBt").addEventListener("click", function(event) {#}
-{#    var gradingIcon = $( "#grading-help-icon" );#}
-{#    var collapseIcon = $( "#collapse-gh-icon" );#}
-{#    if(collapseIcon.hasClass('fa-angle-double-left')){#}
-{#        collapseIcon.removeClass('fa-angle-double-left');#}
-{#        gradingIcon.show();#}
-{#    }else{#}
-{#        collapseIcon.addClass('fa-angle-double-left');#}
-{#        gradingIcon.hide();#}
-{##}
-{##}
-{#        $.ajax({#}
-{#            url: "{% url 'get_pages_group_grading' %}",#}
-{#            type: "POST",#}
-{#            data : {#}
-{#                'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
-{#                'pk' : {{ pages_group.id }},#}
-{#            },#}
-{#            success: (data) => {#}
-{#                document.getElementById("grading").innerHTML = data;#}
-{#                window.MathJax.typeset();#}
-{#            },#}
-{#            error: (error) => {#}
-{#                console.log(error);#}
-{#            }#}
-{#        });#}
-{##}
-{##}
-{##}
-{#    }#}
-{##}
-{#});#}
-
-
-window.onbeforeunload = function(){
-    {#$.ajax({#}
-    {#    url : "{% url 'remove_review_user_locks' %}",#}
-    {#    type: "POST",#}
-    {#    data : {#}
-    {#        'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
-    {#    },#}
-    {#    error: (error) => {#}
-    {#        console.log(error);#}
+    {#document.getElementById("expandCollapseGradingBt").addEventListener("click", function(event) {#}
+    {#    var gradingIcon = $( "#grading-help-icon" );#}
+    {#    var collapseIcon = $( "#collapse-gh-icon" );#}
+    {#    if(collapseIcon.hasClass('fa-angle-double-left')){#}
+    {#        collapseIcon.removeClass('fa-angle-double-left');#}
+    {#        gradingIcon.show();#}
+    {#    }else{#}
+    {#        collapseIcon.addClass('fa-angle-double-left');#}
+    {#        gradingIcon.hide();#}
+    {##}
+    {##}
+    {#        $.ajax({#}
+    {#            url: "{% url 'get_pages_group_grading' %}",#}
+    {#            type: "POST",#}
+    {#            data : {#}
+    {#                'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
+    {#                'pk' : {{ pages_group.id }},#}
+    {#            },#}
+    {#            success: (data) => {#}
+    {#                document.getElementById("grading").innerHTML = data;#}
+    {#                window.MathJax.typeset();#}
+    {#            },#}
+    {#            error: (error) => {#}
+    {#                console.log(error);#}
+    {#            }#}
+    {#        });#}
+    {##}
+    {##}
+    {##}
     {#    }#}
+    {##}
     {#});#}
-};
 
-</script>
-{% else %}
-<div class="alert alert-warning" role="alert" style="margin-top:20px;text-align:center;">There is no scans uploaded !</div>
+
+    window.onbeforeunload = function(){
+        {#$.ajax({#}
+        {#    url : "{% url 'remove_review_user_locks' %}",#}
+        {#    type: "POST",#}
+        {#    data : {#}
+        {#        'csrfmiddlewaretoken' : "{{ csrf_token }}",#}
+        {#    },#}
+        {#    error: (error) => {#}
+        {#        console.log(error);#}
+        {#    }#}
+        {#});#}
+    };
+
+    </script>
+    {% else %}
+    <div class="alert alert-warning" role="alert" style="margin-top:20px;text-align:center;">No scans uploaded !</div>
+    {% endif %}
 {% endif %}
-{% endblock %}
+    {% endblock %}

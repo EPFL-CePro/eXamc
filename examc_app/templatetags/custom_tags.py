@@ -51,9 +51,9 @@ def is_allowed(_user_exam,option):
     elif option == 'amc':
         group_ids_allowed = [2,4]
     elif option =='res_and_stats':
-        group_ids_allowed = [2,4]
+        group_ids_allowed = [2,4,5,6]
     elif option =='review':
-        group_ids_allowed = [2,4]
+        group_ids_allowed = [2,3,4]
 
     try:
         exam_user = ExamUser.objects.get(exam=exam, user=auth_user, group__in=group_ids_allowed)
@@ -265,6 +265,10 @@ def get_logo_url():
         return settings.STATIC_URL + "img/eXamc_bg_transp_200_dev.png"
 
 @register.filter
+def is_review_blocked(user_id,exam_id):
+    exam_user = ExamUser.objects.get(exam_id=exam_id, user_id=user_id)
+    return exam_user.review_blocked
+
 def get_by_first_element(lst, value):
     """
     Returns the first sublist where item[0] == value.

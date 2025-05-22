@@ -142,15 +142,15 @@
                                                        style="background-color: transparent;"><i
                                                         class="fa-solid fa-circle-check fa-2xl"></i></a></td>
                                             {% else %}
-                                                <td><button class="btn btn-light btn-sm"
-                                                       {% if comex.common_exams %}
-                                                       onclick="setFinalScaleCommon({{ scale.pk }});"
+                                                <td><a class="btn btn-light btn-sm"
+                                                       {% if comex.common_exams.all %}
+                                                       onclick="setFinalScaleCommon({{ scale.pk }},{{ comex.pk }});"
                                                        {% else %}
-                                                        href="{% url 'set_final_scale' scale.pk 0 %}"
+                                                        href="{% url 'set_final_scale' scale.pk comex.pk 0 %}"
                                                        {% endif %}
                                                        style="background-color: transparent;"><i
                                                         class="fa-solid fa-circle-xmark fa-2xl"
-                                                        style="color:lightgray;"></i></button></td>
+                                                        style="color:lightgray;"></i></a></td>
                                             {% endif %}
                                             {% if user.is_staff %}
                                                 <td><a class="btn btn-light btn-sm"
@@ -341,7 +341,7 @@
                                             {% endfor %}
                                         </ul>
                                     </div>
-                                    <div class="col-sm-6" style="background-color: #ebebeb;padding:10px;">
+                                    <div class="col-sm-6" style="background-color: #ebebeb;padding:10px;" id="addUserDiv">
                                         <h6>Add Users</h6>
                                         <div style="display:flex;">
                                             <input id="newUserEmail-{{ comex.id }}" class="form-control" type="text" style="width:400px;" placeholder="Email">
@@ -590,9 +590,9 @@ document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypres
 });
 {% endfor %}
 
-function setFinalScaleCommon(scale_pk){
-    $('#validateFinalScaleCommonAll').attr('href','/set_final_scale/'+scale_pk+'/1');
-    $('#validateFinalScaleCommonIndiv').attr('href','/set_final_scale/'+scale_pk+'/0');
+function setFinalScaleCommon(scale_pk, exam_pk){
+    $('#validateFinalScaleCommonAll').attr('href','/set_final_scale/'+scale_pk+'/'+exam_pk+'/1');
+    $('#validateFinalScaleCommonIndiv').attr('href','/set_final_scale/'+scale_pk+'/'+exam_pk+'/0');
     $('#setFinalScaleCommonModal').modal('show');
 }
 
@@ -605,12 +605,11 @@ function updateExamInfo(exam_id){
     year_id = document.getElementById('exam_year_'+exam_id).value;
     semester_id = document.getElementById('exam_semester_'+exam_id).value;
     $.ajax({
-        url: "{% url 'update_exam_info' %}",
+        url: "/update_exam_info/"+exam_id,
         type: "POST",
         dataType: "json",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : exam_id,
             'date' : date,
             'code' : code,
             'name' : name, 
@@ -638,11 +637,10 @@ function searchLdap(exam_id){
     }
 
     $.ajax({
-        url: "{% url 'ldap_search_exam_user_by_email' %}",
+        url: '/ldap_search_exam_user_by_email/'+exam_id,
         type: "POST",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
-            'pk' : exam_id,
             'email' : email,
         },
         success: (data) => {
@@ -692,8 +690,7 @@ function searchLdap(exam_id){
             add_User_error.setAttribute("class","alert alert-warning");
             add_User_error.setAttribute("role","alert")
             add_User_error.innerHTML = "Cannot find user with this email address in EPFL LDAP !";
-            document.getElementById("manageUsersModalBody-"+exam_id).appendChild(add_User_error);
-            console.log(error);
+            document.getElementById("addUserDiv").appendChild(add_User_error);
         }
     });
 }
@@ -743,12 +740,11 @@ function validateUsers(exam_id,username_to_remove = null){
         list.innerHTML = '';
         document.getElementById("newUserEmail-"+exam_id).value = '';
         $.ajax({
-            url: "{% url 'update_exam_users' %}",
+            url: '/update_exam_users/'+exam_id,
             type: "POST",
             dataType: "json",
             data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                'pk' : exam_id,
                 'users_list' : users,
             },
             complete: function () {
@@ -830,11 +826,10 @@ function updateQuestions(exam_pk){
     }
     $('#loadingModal').modal('show');
     $.ajax({
-            url : "{% url 'update_questions' %}",
+            url : '/update_questions/'+exam_pk,
             type : "POST",
             data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                'exam_pk' : exam_pk,
                 'data' : JSON.stringify(jsonData, null, 2),
             },
             success : function(result) {

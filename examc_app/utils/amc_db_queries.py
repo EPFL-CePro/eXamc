@@ -507,3 +507,20 @@ def update_capture_page_src(amc_data_path,student,page,new_filename):
     response = db.execute_query(query_str)
 
     return response
+
+
+
+
+################################################
+# AMC CONVERT
+################################################
+
+def get_page_layout_boxes(amc_data_path,student, page_nr):
+    db = AMC_DB(amc_data_path + "layout.sqlite")
+    query_str = ("SELECT * FROM layout_box WHERE student = "+student+" AND page = "+page_nr+" ORDER BY question, answer")
+
+    response = db.execute_query(query_str)
+    colname_layout_boxes = [d[0] for d in response.description]
+    layout_boxes_details = [dict(zip(colname_layout_boxes, r)) for r in response.fetchall()]
+
+    return layout_boxes_details

@@ -21,11 +21,10 @@ from examc_app.models import *
 import pyzbar.pyzbar as pyzbar
 from datetime import datetime
 
+from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries import get_questions, get_question_start_page_by_student
 from examc_app.utils.amc_functions import get_amc_project_path
 
-
-# from examc_app.views import *
 
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
 def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,process_number):
@@ -177,21 +176,6 @@ def delete_old_scans(exam):
             except Exception as e:
                 print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-def get_scans_path_for_group(pagesGroup):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
-        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
-    scans_url = "../../scans/" + str(pagesGroup.exam.year.code) + "/" + str(
-        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
-
-    for dir in sorted(os.listdir(scans_dir)):
-        for filename in sorted(os.listdir(scans_dir + "/" + dir)):
-            split_filename = filename.split('_')
-            page_no_real = split_filename[-1].split('.')[0].replace('x', '.')
-            # get only two first char to prevent extra pages with a,b,c suffixes
-            page_no_int = int(page_no_real[0:2])
-            if page_no_int == pagesGroup.page_from:
-                return scans_url + "/" + dir + "/" + filename
-
 #### TESTING DISPLAYING FULL COPIE JPGS ####
 def get_scans_pathes_by_exam(exam):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
@@ -235,10 +219,11 @@ def get_scans_pathes_by_exam(exam):
 
 
 def get_scans_pathes_by_group(pagesGroup):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(pagesGroup.exam.year.code) + "/" + str(
-        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
-    scans_url = "../../scans/" + str(pagesGroup.exam.year.code) + "/" + str(
-        pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
+
+
+    project_subdir = str(pagesGroup.exam.year.code) + "/" + str(pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
+    scans_dir = str(settings.SCANS_ROOT) + "/" + project_subdir
+    #scans_url = str(settings.SCANS_URL) + project_subdir
 
     scans_pathes = []
 
@@ -274,7 +259,7 @@ def get_scans_pathes_by_group(pagesGroup):
                             scans_path_dict = {}
                             scans_path_dict["copy_no"] = copy_no
                             scans_path_dict["page_no"] = page_no_real.lstrip("0")
-                            scans_path_dict["path"] = scans_url + "/" + dir + "/" + filename
+                            scans_path_dict["path"] = make_token_for(project_subdir+"/"+dir+"/"+filename,str(settings.SCANS_ROOT))
                             scans_path_dict["marked"] = marked
                             scans_path_dict["comment"] = comment
                             #scans_path_dict["marked_by"] = marked_by
@@ -283,55 +268,52 @@ def get_scans_pathes_by_group(pagesGroup):
         scans_pathes = sorted(scans_pathes, key=lambda k: (k['copy_no'], float(k['page_no'])))
     return scans_pathes
 
-#
-# def generate_marked_files_zip(exam, export_type):
-#     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
-#     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code
-#     export_tmp_dir = str(settings.EXPORT_TMP_ROOT) + "/" + str(exam.year.code) + "_" + str(
-#         exam.semester.code) + "_" + exam.code + "_" + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
-#
-#     task_id = None
-#
-#     if not os.path.exists(export_tmp_dir):
-#         os.mkdir(export_tmp_dir)
-#
-#     # list files from scans dir
-#     for dir in sorted(os.listdir(scans_dir)):
-#
-#         copy_export_subdir = export_tmp_dir + "/" + dir
-#
-#         if not os.path.exists(copy_export_subdir):
-#             os.mkdir(copy_export_subdir)
-#
-#         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
-#             # check if a marked file exist, if yes copy it, or copy original scans
-#
-#             marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
-#             if os.path.exists(marked_file_path):
-#                 shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
-#             else:
-#                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
-#
-#     if int(export_type) > 1:
-#         task = generate_marked_pdfs.delay(export_tmp_dir, export_type)
-#         task_id = task.task_id
-#         #generate_marked_pdfs(export_tmp_dir, export_type)
-#
-#         #remove subfolders with img
-#         for root, dirs, files in os.walk(export_tmp_dir):
-#             for name in dirs:
-#                 shutil.rmtree(os.path.join(root, name))
-#
-#     # zip folder
-#     zipf = zipfile.ZipFile(export_tmp_dir + ".zip", 'w', zipfile.ZIP_DEFLATED)
-#     zipdir(export_tmp_dir, zipf)
-#     zipf.close()
-#
-#     #remove tmp folder not zipped
-#     shutil.rmtree(export_tmp_dir)
-#
-#     return [task_id,export_tmp_dir + ".zip"]
+def get_copies_pages_by_group(pagesGroup):
 
+
+    project_subdir = str(pagesGroup.exam.year.code) + "/" + str(pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
+    scans_dir = str(settings.SCANS_ROOT) + "/" + project_subdir
+
+    copies_pages_list = []
+
+    scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
+
+    if os.path.exists(scans_dir):
+        for dir in sorted(os.listdir(scans_dir)):
+            for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+                if not filename.endswith("full.jpg"):
+                    split_filename = filename.split('_')
+                    copy_no = split_filename[-2]
+                    page_no_real = split_filename[-1].replace('.jpg', '')
+                    # get only two first char to prevent extra pages with a,b,c suffixes
+                    page_no_int = int(page_no_real[0:2])
+
+                    amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
+                    if amc_questions_pages:
+                        from_p = amc_questions_pages[0]['page']
+                        to_p = from_p+pagesGroup.nb_pages-1
+                        if page_no_int >= from_p and page_no_int <= to_p:
+                            marked = False
+                            comment = None
+                            if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
+                                comment = True
+                            pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
+                                                                  page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
+                            if pageMarkers:
+                                if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
+                                    marked = True
+
+                                #marked_by = pageMarkers.get_users_with_date()
+
+                            copy_page_dict = {}
+                            copy_page_dict["copy_no"] = copy_no
+                            copy_page_dict["page_no"] = page_no_real
+                            copy_page_dict["marked"] = marked
+                            copy_page_dict["comment"] = comment
+                            copies_pages_list.append(copy_page_dict)
+
+        copies_pages_list = sorted(copies_pages_list, key=lambda k: (k['copy_no'], float(k['page_no'])))
+    return copies_pages_list
 
 def generate_marked_pdfs(exam,files_path, with_comments=False, progress_recorder=None):
     scans_count = len(os.listdir(files_path))
@@ -368,7 +350,7 @@ def generate_marked_pdfs(exam,files_path, with_comments=False, progress_recorder
 
         if with_comments == '1':
 
-            pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam,copy_no=subdir).order_by('copy_no','pages_group__page_from','parent_id')
+            pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam,copy_no=subdir).order_by('copy_no','pages_group__group_name','parent_id')
             if pages_comments:
                 pdf.add_page()
 
@@ -482,7 +464,7 @@ def get_scans_list_by_copy(exam,copy_nr):
         list_dir_copies = sorted(os.listdir(scans_dir_path))
         for entry in list_dir_copies:
             entry_path = os.path.join(scans_dir_path, entry)
-            page = entry.replace('.jpg', '').split('_').pop().lstrip('0')
+            page = entry.replace('.jpg', '').split('_').pop()
             if int(page) != 1:
                 result.append({'copy_no':copy_nr,'page_no':page})
     return result
@@ -491,7 +473,7 @@ def get_scan_url(exam,copy_nr,page_nr):
     scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     scans_dir_path = scans_dir_path.replace(' ', '_')
     scans_dir_path += "/" + copy_nr
-    scans_url = "../../scans/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_url = str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     scans_url += "/"+ copy_nr + "/"
 
     scan_url = ''
@@ -499,8 +481,8 @@ def get_scan_url(exam,copy_nr,page_nr):
         list_dir_copies = sorted(os.listdir(scans_dir_path))
         for entry in list_dir_copies:
             entry_path = os.path.join(scans_dir_path, entry)
-            page = entry.replace('.jpg', '').split('_').pop().lstrip('0')
+            page = entry.replace('.jpg', '').split('_').pop()
             if page == page_nr:
-                scan_url = scans_url+entry
+                scan_url = make_token_for(scans_url+entry,str(settings.SCANS_ROOT))
                 break
     return scan_url
