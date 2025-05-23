@@ -557,6 +557,7 @@ def get_amc_scan_url(request,exam_pk):
             print("******** home *********** "+str(Path.home())+" **************************")
             print("********* path ********** " + scan_path + " **************************")
             app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
+            print("********* app_home_path ********** " + app_home_path + " **************************")
             scan_path = scan_path.replace(app_home_path,'')
 
             print("********* path ********** " + scan_path + " **************************")
