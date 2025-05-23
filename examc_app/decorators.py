@@ -31,6 +31,9 @@ def exam_permission_required(
         def _wrapped(request, *args, **kwargs):
             exam = get_object_or_404(Exam, pk=kwargs.get(exam_kw))
 
+            if request.user.is_superuser:
+                return view_func(request, *args, **kwargs)
+
             # fetch the user’s groups *for this exam*
             group_ids = ExamUser.objects.filter(
                 user=request.user, exam=exam
@@ -56,7 +59,6 @@ def exam_permission_required(
             if not allowed:
                 return TemplateResponse(request, "no_access.html", {"message": f"No permission for {perm_codenames}."}, status=403)
 
-            # inject the exam for convenience
             return view_func(request, *args, **kwargs)
         return _wrapped
     return decorator

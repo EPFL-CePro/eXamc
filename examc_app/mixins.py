@@ -28,6 +28,10 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
         # 1) load exam
         exam = get_object_or_404(Exam, pk=kwargs.get(self.exam_kw))
 
+        # 1x) admin skip checks
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+
         # 2) collect this user’s groups for the exam
         group_ids = ExamUser.objects.filter(
             user=request.user, exam=exam
