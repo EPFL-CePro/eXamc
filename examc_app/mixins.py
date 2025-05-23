@@ -62,9 +62,9 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
                 return super().dispatch(request, *args, **kwargs)
             # next‐best fallbacks
             if has(['review']):
-                return redirect(reverse('reviewView', kwargs={'pk': exam.pk}))
+                return redirect(reverse('reviewView', kwargs={'exam_pk': exam.pk}))
             if has(['see_results']):
-                return redirect(reverse('studentResults', kwargs={'pk': exam.pk}))
+                return redirect(reverse('studentResults', kwargs={'exam_pk': exam.pk}))
             # nothing else
             return self._no_access("You don’t have access to this exam.")
 
