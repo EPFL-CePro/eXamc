@@ -554,20 +554,22 @@ def get_amc_scan_url(request,exam_pk):
         scan_path = select_amc_scan_path(amc_data_path,copy_nr,page_nr)
 
         if '%HOME' in scan_path:
-            print("******************* "+str(Path.home())+" **************************")
-
+            print("******** home *********** "+str(Path.home())+" **************************")
+            print("********* path ********** " + scan_path + " **************************")
             app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
             scan_path = scan_path.replace(app_home_path,'')
 
+            print("********* path ********** " + scan_path + " **************************")
+
             #tmp local
-            scan_path = scan_path.replace("%HOME/html/eXamc/","")
+            #scan_path = scan_path.replace("%HOME/html/eXamc/","")
             print("******************* " + scan_path + " **************************")
 
             scan_root = str(settings.SCANS_ROOT)
             if scan_path.startswith(str(settings.MARKED_SCANS_ROOT).split('/')[-1]):
                 scan_root = str(settings.MARKED_SCANS_ROOT)
             scan_path = scan_path.split('/', 1)[1]
-            print("*********** " + scan_path + " ********************")
+            print("***** path ****** " + scan_path + " ********************")
             scan_path = make_token_for(scan_path,scan_root)
 
     return HttpResponse(scan_path)
