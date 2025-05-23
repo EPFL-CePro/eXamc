@@ -23,15 +23,18 @@ def verify_and_get_path(token: str, max_age=None) -> Path:
     Unsigns the token, checks age, and returns the absolute filesystem path.
     Raises BadSignature / SignatureExpired / FileNotFoundError if invalid.
     """
-    rel_path = signer.unsign(token, max_age=max_age)
+    file_root = token.split('/').pop()
+    rel_path = signer.unsign(token.rsplit('/', 1)[0], max_age=max_age)
 
-    if rel_path.endswith(str(settings.SCANS_ROOT).split('/')[-1]):
+    if file_root == str(settings.SCANS_ROOT).split('/')[-1]:
         full = settings.SCANS_ROOT / rel_path
-    elif rel_path.endswith(str(settings.CATALOG_ROOT).split('/')[-1]):
+    elif file_root == str(settings.MARKED_SCANS_ROOT).split('/')[-1]:
+        full = settings.MARKED_SCANS_ROOT / rel_path
+    elif file_root == str(settings.CATALOG_ROOT).split('/')[-1]:
         full = settings.CATALOG_ROOT / rel_path
-    elif rel_path.endswith(str(settings.AMC_PROJECTS_ROOT).split('/')[-1]):
+    elif file_root == str(settings.AMC_PROJECTS_ROOT).split('/')[-1]:
         full = settings.AMC_PROJECTS_ROOT / rel_path
-    elif rel_path.endswith(str(settings.CATALOG_ROOT).split('/')[-1]):
+    elif file_root == str(settings.CATALOG_ROOT).split('/')[-1]:
         full = settings.EXPORT_TMP_ROOT / rel_path
     else:
         full = ''

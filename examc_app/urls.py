@@ -85,6 +85,8 @@ urlpatterns = [
     path('amc_set_manual_association/<int:exam_pk>',views.amc_set_manual_association, name="amc_set_manual_association"),
     path('amc_send_annotated_papers_data/<int:exam_pk>',views.amc_send_annotated_papers_data, name="amc_send_annotated_papers_data"),
     path('call_amc_send_annotated_papers/<int:exam_pk>', views.call_amc_send_annotated_papers, name="call_amc_send_annotated_papers"),
+    path('get_amc_scan_url/<int:exam_pk>', views.get_amc_scan_url, name="get_amc_scan_url"),
+    path('get_unrecognized_pages/<int:exam_pk>', views.get_unrecognized_pages, name="get_unrecognized_pages"),
 
     # RESULTS & STATISTICS
     path('catalogPdf/<int:exam_pk>', views.display_catalog, name="catalogPdf"),

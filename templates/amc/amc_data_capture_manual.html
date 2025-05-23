@@ -57,7 +57,6 @@
                 <th data-sortable="true">Page</th>
                 <th data-sortable="true">MSE</th>
                 <th data-sortable="true">Sensitivity</th>
-                <th style="display:none;">source</th>
                 <th style="display:none;">questions</th>
                 <th data-sortable="true">Man</th>
               </tr>
@@ -69,7 +68,6 @@
                 <td> {{ row.page }}</td>
                 <td>{{ row.mse|floatformat:2 }}</td>
                 <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{% if row.sensitivity %}{{ row.sensitivity }}{% else %}-{% endif %}</td>
-                <td style="display:none;">{{ row.source }}</td>
                 <td style="display:none;">{{ row.questions_ids }}</td>
                 <td style="text-align: center;">{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
               </tr>
@@ -179,7 +177,7 @@ function setScanCanvas(data,scan_src,copy,page){
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    sleep(100).then(() => {
+    sleep(250).then(() => {
 
         ctxImg.drawImage(imgScan, 0, 0, canvasWidth, canvasHeight);
         canvasRatio = imgScan.height / canvasHeight
@@ -293,7 +291,7 @@ function initCopyPagesTableOnClickRowEvent(refresh){
         $(document.getElementById(curr_selected_id)).css('background','');
         $(this).css('background', 'yellow');
         if(!this.cells[4].innerText.includes("/scans/extra/")){
-            get_amc_marks_positions(this.cells[0].innerText,this.cells[1].innerText,this.cells[4].innerText);
+            get_amc_scan_url(this.cells[0].innerText,this.cells[1].innerText);
         }else{
             setScanCanvas(null,this.cells[4].innerText,this.cells[0].innerText,this.cells[1].innerText);
         }        
@@ -308,6 +306,24 @@ function initCopyPagesTableOnClickRowEvent(refresh){
             "paging": false
         } );
     }
+}
+
+function get_amc_scan_url(copy,page){
+    $.ajax({
+        url: "{% url 'get_amc_scan_url' exam_selected.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'copy' : copy,
+            'page' : page
+        },
+        success: (amc_scan_url) => {
+            get_amc_marks_positions(copy, page, amc_scan_url);
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
 }
 
 function get_amc_marks_positions(copy,page,scan_src){

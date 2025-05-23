@@ -82,7 +82,7 @@ def amc_view(request, exam_pk,curr_tab=None, task_id=None):
                 data_capture_message = "Data capture from "+str(number_of_copies-number_of_incomplete_copies)+" complete and "+str(number_of_incomplete_copies)+" incomplete papers"
             else:
                 data_capture_message = "Data capture from "+str(number_of_copies)+" complete papers"
-            unrecognized_pages = amc_data_capture_summary[2]
+            nb_unrecognized_pages = amc_data_capture_summary[2]
 
             overwritten_pages = amc_data_capture_summary[3]
 
@@ -107,7 +107,7 @@ def amc_view(request, exam_pk,curr_tab=None, task_id=None):
             context['data_copies'] = data[2]
             context['data_capture_message'] = data_capture_message
             context['missing_pages'] = missing_pages
-            context['unrecognized_pages'] = unrecognized_pages
+            context['nb_unrecognized_pages'] = nb_unrecognized_pages
             context['overwritten_pages'] = overwritten_pages
             context['students_list'] = students_list
             context['students_list_headers'] = get_students_csv_headers(exam)
@@ -181,6 +181,37 @@ def get_amc_marks_positions(request,exam_pk):
 
     return HttpResponse(json.dumps(data_positions))
 
+@require_POST
+@exam_permission_required(['manage'])
+def get_unrecognized_pages(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+    amc_project_path = get_amc_project_path(exam, False)
+    unrecognized_pages = None
+    if amc_project_path:
+        amc_data_path = amc_project_path + "/data/"
+
+        unrecognized_pages = select_unrecognized_pages(amc_data_path)
+
+        for unrecognized_page in unrecognized_pages:
+            file_path = unrecognized_page['filepath']
+            if '%HOME' in file_path:
+                print("******************* " + str(Path.home()) + " **************************")
+
+                app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
+                file_path = file_path.replace(app_home_path, '')
+                print("******************* " + file_path + " **************************")
+
+                # tmp local
+                file_path = file_path.replace("%HOME/html/eXamc/", "")
+                file_root = str(settings.SCANS_ROOT)
+                if file_path.startswith(str(settings.MARKED_SCANS_ROOT).split('/')[-1]):
+                    file_root = str(settings.MARKED_SCANS_ROOT)
+                file_path = file_path.split('/', 1)[1]
+                file_path = make_token_for(file_path, file_root)
+
+                unrecognized_page['filepath'] = file_path
+
+    return HttpResponse(json.dumps(unrecognized_pages))
 
 #@login_required
 @exam_permission_required(['manage'])
@@ -507,5 +538,32 @@ def call_amc_send_annotated_papers(request, exam_pk):
     result = amc_send_annotated_papers(exam,selected_students,email_subject,email_body,email_column)
     return HttpResponse(json.dumps(result))
 
+@require_POST
+@exam_permission_required(['manage'])
+def get_amc_scan_url(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+    copy_nr = request.POST['copy']
+    page_nr = request.POST['page']
+    amc_project_path = get_amc_project_path(exam, False)
+    scan_path = None
+    if amc_project_path:
+        amc_data_path = amc_project_path + "/data/"
+        scan_path = select_amc_scan_path(amc_data_path,copy_nr,page_nr)
 
+        if '%HOME' in scan_path:
+            print("******************* "+str(Path.home())+" **************************")
+
+            app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
+            scan_path = scan_path.replace(app_home_path,'')
+            print("******************* " + scan_path + " **************************")
+
+            #tmp local
+            scan_path = scan_path.replace("%HOME/html/eXamc/","")
+            scan_root = str(settings.SCANS_ROOT)
+            if scan_path.startswith(str(settings.MARKED_SCANS_ROOT).split('/')[-1]):
+                scan_root = str(settings.MARKED_SCANS_ROOT)
+            scan_path = scan_path.split('/', 1)[1]
+            scan_path = make_token_for(scan_path,scan_root)
+
+    return HttpResponse(scan_path)
 

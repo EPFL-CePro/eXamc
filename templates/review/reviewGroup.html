@@ -273,7 +273,7 @@
 
     function setSourceScan(scan_path,from_copy){
         if(from_copy){
-            lastSourceIdSplit = old_source.replace(/\/+$/, '').split('/').pop().split(':')[0].replace('.jpg', '').split('_');
+            lastSourceIdSplit = old_source.split('.jpg')[0].split("/").pop().split('_');
             from_copy_orig_id = lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + lastSourceIdSplit[2];
         }
         old_source = document.getElementById("source_img").src;
@@ -285,7 +285,8 @@
         markedImage.src = scan_path;
 
         // change current and last source element background color
-        currSourceIdSplit = scan_path.replace(/\/+$/, '').split('/').pop().split(':')[0].replace('.jpg', '').split('_');
+        currSourceIdSplit = scan_path.split('.jpg')[0].split("/").pop().split('_');
+        //currSourceIdSplit = scan_path.replace(/\/+$/, '').split('/').pop().split('.jpg')[0].split('_');
         currSourceElementId = currSourceIdSplit[0] + "_" + currSourceIdSplit[1] + "_" + currSourceIdSplit[2];
 
         if(!from_copy) {
@@ -297,7 +298,7 @@
                 lastSourceElementId = from_copy_orig_id;
                 from_copy_orig_id = null;
             }else {
-                lastSourceIdSplit = old_source.replace(/\/+$/, '').split('/').pop().split(':')[0].replace('.jpg', '').split('_');
+                lastSourceIdSplit = old_source.split('.jpg')[0].split("/").pop().split('_');
                 lastSourceElementId =
                     lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + lastSourceIdSplit[2];
             }

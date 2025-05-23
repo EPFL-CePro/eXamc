@@ -29,10 +29,10 @@
         {% else %}
         <div class="alert alert-warning" id="data-exist_msg" role="alert" style="text-align:center;">No data</div>
         {% endif %}
-        {%  if unrecognized_pages %}
+        {%  if nb_unrecognized_pages > 0 %}
         <div class="alert alert-dark" id="data-exist_msg" role="alert" style="text-align:center;">
             <a type="button"  onclick="showErrorDataCaptureDialog('Unrecognized pages')"  class="btn btn-sm">
-                {{ unrecognized_pages|length }} scans where not recognized !<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
+                {{ nb_unrecognized_pages }} scans where not recognized !<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
             </a>
         </div>
         {% endif %}
@@ -59,7 +59,6 @@
                 <th data-sortable="true">Sensitivity</th>
                 <th data-sortable="true">Man</th>
                 <th></th>
-                <th style="display:none;width:0px;">source</th>
                 <th style="display:none;width:0px;">questions</th>
               </tr>
             </thead>
@@ -78,7 +77,6 @@
                     </button>
 
                 </td>
-                <td style="display:none;">{{ row.source }}</td>
                 <td style="display:none;">{{ row.questions_ids }}</td>
               </tr>
               {% endfor %}
@@ -499,38 +497,7 @@ function showErrorDataCaptureDialog(title){
         }
         case 'Unrecognized pages':
         {
-            var tr = document.createElement('tr');
-            var th = document.createElement('th') ;
-            th.appendChild(document.createTextNode('File'));
-            tr.appendChild(th);
-            th.appendChild(document.createTextNode('Image'));
-            tr.appendChild(th);
-            tr.appendChild(document.createElement('th'));
-            tableHead.appendChild(tr);
-            {% for page in unrecognized_pages %}
-                var scanSrc = "{{ page.source }}";
-                var tr = document.createElement('tr');
-                tr.setAttribute('id',scanSrc);
-                var td = document.createElement('td') ;
-                td.appendChild(document.createTextNode('{{ page.filename }}'));
-                tr.appendChild(td);
-                var td = document.createElement('td');
-                var img = document.createElement('img');
-                img.setAttribute('src', scanSrc);
-                img.setAttribute('onclick', 'window.open("'+scanSrc+'", "_blank");');
-                img.setAttribute('width', '500');                                                                                 
-                td.appendChild(img)
-                tr.appendChild(td)
-                var td = document.createElement('td');
-                var addBt = document.createElement('button');
-                addBt.setAttribute('class', 'btn btn-primary btn-sm');
-                addBt.setAttribute('type', 'button');
-                addBt.setAttribute('onclick', 'showAddUnrecognizedPageDialog("'+scanSrc+'")');
-                addBt.innerText="Add this page to...";
-                td.appendChild(addBt);
-                tr.appendChild(td);
-                tableBody.appendChild(tr);
-            {% endfor %}  
+            get_unrecognized_pages_dt(tableHead,tableBody);
             break;            
         }
         case 'Overwritten pages':
@@ -566,6 +533,55 @@ function showErrorDataCaptureDialog(title){
     
     $('#errorDataCaptureDialog').modal('show');
     
+}
+
+function get_unrecognized_pages_dt(tableHead,tableBody){
+    $.ajax({
+        url: "{% url 'get_unrecognized_pages' exam_selected.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken': "{{ csrf_token }}",
+        },
+        success: (data) => {
+            var tr = document.createElement('tr');
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('File'));
+            tr.appendChild(th);
+            th.appendChild(document.createTextNode('Image'));
+            tr.appendChild(th);
+            tr.appendChild(document.createElement('th'));
+            tableHead.appendChild(tr);
+            unrecognized_list = JSON.parse(data);
+            for(var i = 0; i < unrecognized_list.length; i++) {
+                var scanSrc = unrecognized_list[i].filepath;
+                var tr = document.createElement('tr');
+                tr.setAttribute('id',scanSrc);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode(unrecognized_list[i].filename));
+                tr.appendChild(td);
+                var td = document.createElement('td');
+                var img = document.createElement('img');
+                img.setAttribute('src', scanSrc);
+                img.setAttribute('onclick', 'window.open("'+scanSrc+'", "_blank");');
+                img.setAttribute('width', '500');
+                td.appendChild(img)
+                tr.appendChild(td)
+                var td = document.createElement('td');
+                var addBt = document.createElement('button');
+                addBt.setAttribute('class', 'btn btn-primary btn-sm');
+                addBt.setAttribute('type', 'button');
+                addBt.setAttribute('onclick', 'showAddUnrecognizedPageDialog("'+scanSrc+'")');
+                addBt.innerText="Add this page to...";
+                td.appendChild(addBt);
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
+            }
+
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
 }
 
 function openCopyPageZoomsDialog(copy,page){

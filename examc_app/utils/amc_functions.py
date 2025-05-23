@@ -24,6 +24,8 @@ from django.core.validators import validate_email
 from django.template.loader import get_template
 from setuptools import glob
 
+from examc_app.decorators import exam_permission_required
+from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries import *
 
 # Get an instance of a logger
@@ -496,10 +498,10 @@ def get_amc_data_capture_manual_data(exam):
         data_pages += extra_pages
         data_pages = sorted(data_pages, key=lambda k: (float(k['copy']), float(k['page'])))
 
-        if data_pages and '%HOME' in data_pages[0]['source']:
-            app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
-            for data in data_pages:
-                data['source'] = data['source'].replace(app_home_path,'')
+        # if data_pages and '%HOME' in data_pages[0]['source']:
+        #     app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
+        #     for data in data_pages:
+        #         data['source'] = data['source'].replace(app_home_path,'')
 
         data_copies = []
         for data in data_pages:
@@ -624,12 +626,7 @@ def get_automatic_data_capture_summary(exam):
 
         if nb_copies > 0:
             data_missing_pages = select_missing_pages(amc_data_path)
-            data_unrecognized_pages = select_unrecognized_pages(amc_data_path,amc_data_url)
-
-        if data_unrecognized_pages and '%HOME' in data_unrecognized_pages[0]['filepath']:
-            app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
-            for data in data_unrecognized_pages:
-                data['source'] = data['filepath'].replace(app_home_path,'')
+            nb_unrecognized_pages = count_unrecognized_pages(amc_data_path)
 
         prev_stud = None
         incomplete_copies = []
@@ -650,7 +647,7 @@ def get_automatic_data_capture_summary(exam):
 
         data_overwritten_pages = select_overwritten_pages(amc_data_path)
 
-    return [nb_copies, incomplete_copies,data_unrecognized_pages,data_overwritten_pages]
+    return [nb_copies, incomplete_copies,nb_unrecognized_pages,data_overwritten_pages]
 
 def get_copy_page_zooms(exam,copy,page):
     amc_data_path = get_amc_project_path(exam, False)

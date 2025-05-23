@@ -56,7 +56,7 @@ def select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold):
                 "   mse as mse, "
                 "   timestamp_auto, "
                 "   timestamp_manual, "
-                "   REPLACE(src,'%PROJET','" + amc_data_url + "') as source, "
+                #"   REPLACE(src,'%PROJET','" + amc_data_url + "') as source, "
                 "   (SELECT ROUND(10*("+str(amc_threshold)+" - MIN(ABS(1.0 * cz.black / cz.total - "+str(amc_threshold)+"))) / "+str(amc_threshold)+",2) FROM capture_zone cz WHERE cz.student = cp.student AND cz.page = cp.page AND cz.total > 0 AND cz.type = 4) as sensitivity "
                 "FROM capture_page cp "
                 "ORDER BY copy, page")
@@ -69,6 +69,17 @@ def select_manual_datacapture_pages(amc_data_path,amc_data_url,amc_threshold):
     db.close()
 
     return data_pages
+
+def select_amc_scan_path(amc_data_path,copy_no,page_no):
+    db = AMC_DB(amc_data_path + "capture.sqlite")
+    query_str = "SELECT src FROM capture_page cp WHERE page = "+page_no+" AND student = "+copy_no
+    scan_path = ''
+    response = db.execute_query(query_str)
+    if response:
+        scan_path = response.fetchall()[0]['src']
+    db.close()
+
+    return scan_path
 
 def select_manual_datacapture_questions(amc_data_path, data):
 
@@ -243,11 +254,24 @@ def select_missing_pages(amc_data_path):
 
     return data_missing_pages
 
-def select_unrecognized_pages(amc_data_path,amc_data_url):
+def count_unrecognized_pages(amc_data_path):
     db = AMC_DB(amc_data_path + "capture.sqlite")
 
-    query_str = ("SELECT REPLACE(filename,'%PROJET','" + amc_data_url + "') as filename FROM capture_failed")
+    query_str = ("SELECT COUNT(filename) as count FROM capture_failed")
 
+    nb_unrecognized = 0
+    response = db.execute_query(query_str)
+    if response:
+        nb_unrecognized = response.fetchall()[0]["count"]
+
+    db.close()
+
+    return nb_unrecognized
+
+def select_unrecognized_pages(amc_data_path):
+
+    db = AMC_DB(amc_data_path + "capture.sqlite")
+    query_str = "SELECT filename FROM capture_failed"
     response = db.execute_query(query_str)
     data_unrecognized_pages = []
     if response:
@@ -258,7 +282,7 @@ def select_unrecognized_pages(amc_data_path,amc_data_url):
     db.close()
 
     for p in data_unrecognized_pages:
-        data_unrecognized_pages_list.append({ "filename" : p["filename"].split('/')[-1], "filepath" : p["filename"]})
+        data_unrecognized_pages_list.append({"filename": p["filename"].split('/')[-1], "filepath": p["filename"]})
 
     return data_unrecognized_pages_list
 

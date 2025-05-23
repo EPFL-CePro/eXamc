@@ -130,7 +130,7 @@ MARKED_SCANS_ROOT = BASE_DIR / 'marked_scans/'
 #MARKED_SCANS_URL = '/protected/marked_scans/'
 
 # Autoupload folder
-#AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload/'
+AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload/'
 #AUTOUPLOAD_URL = '/autoupload/'
 
 # Export marked files folder tmp
