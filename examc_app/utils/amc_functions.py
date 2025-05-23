@@ -622,7 +622,7 @@ def get_automatic_data_capture_summary(exam):
         nb_copies = select_nb_copies(amc_data_path)
 
         data_missing_pages = []
-        data_unrecognized_pages = []
+        nb_unrecognized_pages = []
 
         if nb_copies > 0:
             data_missing_pages = select_missing_pages(amc_data_path)
@@ -647,7 +647,9 @@ def get_automatic_data_capture_summary(exam):
 
         data_overwritten_pages = select_overwritten_pages(amc_data_path)
 
-    return [nb_copies, incomplete_copies,nb_unrecognized_pages,data_overwritten_pages]
+        return [nb_copies, incomplete_copies,nb_unrecognized_pages,data_overwritten_pages]
+
+    return None
 
 def get_copy_page_zooms(exam,copy,page):
     amc_data_path = get_amc_project_path(exam, False)
