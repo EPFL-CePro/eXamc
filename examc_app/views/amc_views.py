@@ -200,7 +200,7 @@ def get_unrecognized_pages(request,exam_pk):
                 print("******************* " + str(Path.home()) + " **************************")
 
                 app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
-                file_path = file_path.replace(app_home_path, '')
+                file_path = file_path.replace(app_home_path+'/', '')
                 print("******************* " + file_path + " **************************")
 
                 # tmp local
