@@ -22,7 +22,7 @@ SECRET_KEY = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['vpaavpvm0011.xaas.epfl.ch']
+ALLOWED_HOSTS = ['examc-dev.epfl.ch']
 
 DATABASES = {
     'default': {

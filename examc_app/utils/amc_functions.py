@@ -18,6 +18,7 @@ import xmltodict
 from PIL import Image
 from PyPDF2 import PdfReader, PdfWriter
 from django.conf import settings
+from django.contrib.admin.utils import unquote
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
@@ -25,7 +26,7 @@ from django.template.loader import get_template
 from setuptools import glob
 
 from examc_app.decorators import exam_permission_required
-from examc_app.signing import make_token_for
+from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries import *
 
 # Get an instance of a logger
@@ -105,22 +106,22 @@ def get_project_dir_info(exam):
 
     project_dir = get_amc_project_path(exam,False)
 
-    data = path_to_dict(project_dir,[])
+    data = path_to_dict(project_dir,[],project_dir)
     project_dir_dict = data[0]
     project_files_dict_list = data[1]
 
 
     return [project_dir_dict,project_files_dict_list]
 
-def path_to_dict(path,dir_files_dict_list):
+def path_to_dict(path,dir_files_dict_list,amc_project_path):
     text = os.path.basename(path)
     dir_node=None
     if path and os.path.isdir(path):
         dir_node = {'text':text,'href':'#pills-'+text,'nodes':[]}
-        new_dir_files_node = {'folder':text,'files':latex_files_to_list(path)}
+        new_dir_files_node = {'folder':text,'files':latex_files_to_list(path,amc_project_path)}
         dir_files_dict_list.append(new_dir_files_node)
         for dir in sorted(os.listdir(path), key = lambda x:x.upper()):
-            data = path_to_dict(os.path.join(path,dir),dir_files_dict_list)
+            data = path_to_dict(os.path.join(path,dir),dir_files_dict_list,amc_project_path)
             if(data[0]):
                 dir_node['nodes'].append(data[0])
             if(data[1]):
@@ -134,12 +135,12 @@ def path_to_dict(path,dir_files_dict_list):
             del dir_node['nodes']
     return [dir_node,dir_files_dict_list]
 
-def latex_files_to_list(path):
+def latex_files_to_list(path,amc_project_path):
     extensions = ('.tex')
     file_list = []
     for file in sorted(os.listdir(path),key = lambda x:x.upper()):
         if os.path.isfile(os.path.join(path,file)) and file.endswith(extensions):
-            path_str = path+"/"+file#(path+file).replace('/','//')
+            path_str = os.path.relpath(path+"/"+file,amc_project_path)#(path+file).replace('/','//')
             file_list.append([os.path.basename(file),path_str])
 
     return file_list
@@ -671,34 +672,36 @@ def get_copy_page_zooms(exam,copy,page):
 
     return zooms_data
 
-def add_unrecognized_page_to_project(exam,copy,question,extra,img_filename):
+def add_unrecognized_page_to_project(exam,copy,page,extra,img_filename):
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:
 
         if extra:
 
-            page = select_copy_question_page(amc_data_path+'/data/', copy, question)
+            #page = select_copy_question_page(amc_data_path+'/data/', copy, question)
             copy_extra_folder_path = amc_data_path + "/scans/extra/" + copy.zfill(4)
             #create extra folder for copy if not exist
             Path(copy_extra_folder_path).mkdir(parents=True, exist_ok=True)
 
             # #list files and get last extraNumber
-            # last_exNum = 0
+            last_exNum = 0
             #
-            # for f in os.listdir(copy_extra_folder_path):
-            #     curr_page = int(f.split("/")[-1].split(".")[0].split("x")[0].split("_")[-1])
-            #     curr_exNum = int(f.split("/")[-1].split(".")[0].split("x")[1])
-            #     if curr_page == page and curr_exNum > last_exNum:
-            #         last_exNum = curr_exNum
+            for f in os.listdir(copy_extra_folder_path):
+                curr_page = int(f.split('_')[-1].split(".")[0])
+                curr_exNum = int(f.split(".")[1])
+                if curr_page == page and curr_exNum > last_exNum:
+                    last_exNum = curr_exNum
 
-            # new_exNum = str(last_exNum + 1).zfill(2)
-            #filename = "copy_"+str(copy).zfill(4)+"_"+str(page).zfill(2)+"x"+new_exNum+".jpg"
+            new_exNum = str(last_exNum + 1)
+            filename = "copy_"+str(copy).zfill(4)+"_"+str(page)+"."+new_exNum+".jpg"
 
+            #get scan path unsigned
+            extra_path = str(verify_and_get_path(unquote(img_filename.replace('/protected/?token=',''))))
             #move to extra folder
-            shutil.move(str(settings.BASE_DIR)+img_filename, copy_extra_folder_path+'/'+img_filename.split('/')[-1])
+            shutil.copy(extra_path, copy_extra_folder_path+'/'+extra_path.split('/')[-1].replace('marked_',''))
 
             #remove as unrecognized page
-            delete_unrecognized_page(amc_data_path+'/data/',img_filename)
+            delete_unrecognized_page(amc_data_path+'/data/',extra_path)
 
         else:
             one=1#todo
@@ -1057,8 +1060,12 @@ def get_amc_manual_association_data(exam):
         data_assoc = select_associations(amc_data_path,amc_assoc_img_path)
 
         students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
-        file = open(students_list, "r")
+        file = open(students_list, "r",encoding='utf-8')
         students_data = list(csv.reader(file, delimiter=","))
+
+        # signing images
+        for assoc in data_assoc:
+            assoc["image_path"] = make_token_for(assoc["image_path"].replace('/amc_projects/',''),'assoc')
 
         return {"data_assoc":json.dumps(data_assoc),"data_students":json.dumps(students_data)}
 

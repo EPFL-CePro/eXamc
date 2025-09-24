@@ -1,12 +1,15 @@
 import os
+from datetime import datetime
 
 import pytz
 import requests
+from celery import shared_task
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
+from django.contrib.sessions.models import Session
 from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, HttpResponse, FileResponse
@@ -15,6 +18,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET
 
 from examc_app.forms import LoginForm
+from examc_app.models import ReviewLock
 from examc_app.signing import verify_and_get_path
 from examc_app.utils.results_statistics_functions import update_common_exams
 
@@ -103,7 +107,10 @@ def user_allowed(exam, user_id):
         return False
 
 @require_GET
-def serve_signed_file(request, token):
+def serve_signed_file(request):
+    token = request.GET.get("token")
+    if not token:
+        raise Http404("Missing token")
     try:
         full_path = verify_and_get_path(
             token,
@@ -113,6 +120,11 @@ def serve_signed_file(request, token):
         raise Http404("Link invalid or expired")
 
     return FileResponse(open(full_path, "rb"), as_attachment=False)
+
+def force_oidc_logout(request):
+    if request.user.is_authenticated:
+        logout(request)
+    return render(request, 'oidc_auto_logout.html')
 
 def test(request):
     #detect_layout()

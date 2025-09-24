@@ -213,8 +213,8 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="inputGroupSelectQuestion">Question</label>
-                    <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="question" id="question" required>
+                    <label for="inputGroupSelectQuestion">Page</label>
+                    <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="unrec_page" id="unrec_page" required>
                         <option selected>
                         {% for page in exam_nb_pages %}
                             <option value="{{ page }}">Page {{ page }}</option>
@@ -554,6 +554,7 @@ function get_unrecognized_pages_dt(tableHead,tableBody){
             unrecognized_list = JSON.parse(data);
             for(var i = 0; i < unrecognized_list.length; i++) {
                 var scanSrc = unrecognized_list[i].filepath;
+                scanSrc = "/"+scanSrc.split('/')[1]+"/"+scanSrc.split('/')[3];
                 var tr = document.createElement('tr');
                 tr.setAttribute('id',scanSrc);
                 var td = document.createElement('td') ;

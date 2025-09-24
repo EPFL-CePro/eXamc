@@ -31,6 +31,8 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
         # 1x) admin skip checks
         if request.user.is_superuser:
             return super().dispatch(request, *args, **kwargs)
+        elif request.user.is_anonymous:
+            return self._no_access("You are not an authenticated user.")
 
         # 2) collect this user’s groups for the exam
         group_ids = ExamUser.objects.filter(

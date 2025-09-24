@@ -64,7 +64,7 @@ def amc_view(request, exam_pk,curr_tab=None, task_id=None):
             amc_option_nb_copies = get_amc_option_by_key(exam,'nombre_copies')
             amc_update_documents_msg = get_amc_update_document_info(exam)
             amc_layout_detection_msg = get_amc_layout_detection_info(exam)
-            amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
+            #amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
             amc_catalog_pdf_path = get_amc_catalog_pdf_path(exam)
 
             # get project dir list
@@ -95,10 +95,10 @@ def amc_view(request, exam_pk,curr_tab=None, task_id=None):
 
             exam_nb_pages = 1
             if data[0] and len(data[0])>0:
-                exam_nb_pages = max(data[0], key=lambda x:x['page'])['page']
+                exam_nb_pages = max(data[0],key=lambda x: float(x['page']))['page']
             context['number_of_copies_param'] = amc_option_nb_copies
             context['copy_count'] = number_of_copies
-            context['exam_pdf_path'] = amc_exam_pdf_path
+            #context['exam_pdf_path'] = amc_exam_pdf_path
             context['catalog_pdf_path'] = amc_catalog_pdf_path
             context['update_documents_msg'] = amc_update_documents_msg
             context['layout_detection_msg'] = amc_layout_detection_msg
@@ -206,13 +206,13 @@ def get_unrecognized_pages(request,exam_pk):
                 # tmp local
                 #file_path = file_path.replace("%HOME/html/eXamc/", "")
 
-                file_root = str(settings.SCANS_ROOT)
-                if file_path.startswith(str(settings.MARKED_SCANS_ROOT).split('/')[-1]):
-                    file_root = str(settings.MARKED_SCANS_ROOT)
-                file_path = file_path.split('/', 1)[1]
-                file_path = make_token_for(file_path, file_root)
+            file_root = str(settings.SCANS_ROOT)
+            if file_path.startswith(str(settings.MARKED_SCANS_ROOT)):
+                file_root = str(settings.MARKED_SCANS_ROOT)
+            file_path = make_token_for(os.path.relpath(file_path,file_root), file_root)
 
-                unrecognized_page['filepath'] = file_path
+            unrecognized_page['filepath'] = file_path
+
 
     return HttpResponse(json.dumps(unrecognized_pages))
 
@@ -232,15 +232,16 @@ def update_amc_mark_zone(request,exam_pk):
 @exam_permission_required(['manage'])
 def edit_amc_file(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
-    filepath = request.POST['filepath']
-    if filepath == 'students_list':
+    amc_project_path = get_amc_project_path(exam, False)
+    if request.POST['filepath'] == 'students_list':
         filepath = get_amc_option_by_key(exam,'listeetudiants').replace("%PROJET",get_amc_project_path(exam,False))
         f = open(filepath, 'r')
         file_contents = f.read()
         f.close()
-        return HttpResponse(json.dumps([filepath, file_contents]))
+        return HttpResponse(json.dumps([os.path.relpath(filepath, amc_project_path), file_contents]))
     else:
-        f = open(request.POST['filepath'], 'r', encoding='utf-8')
+        filepath = amc_project_path + "/" + request.POST['filepath']
+        f = open(filepath, 'r', encoding='utf-8')
         file_contents = f.read()
         f.close()
         return HttpResponse(file_contents)
@@ -250,11 +251,12 @@ def edit_amc_file(request,exam_pk):
 def save_amc_edited_file(request,exam_pk):
     data = request.POST['data']
     exam = Exam.objects.get(pk=exam_pk)
-    filepath = request.POST['filepath']
+    amc_project_path = get_amc_project_path(exam, False)
+    filepath = amc_project_path + "/" + request.POST['filepath']
     if 'is_students_list' in request.POST:
         tmp_filepath = get_amc_project_path(exam,False)+'/_tmp_students.csv'
         shutil.copyfile(filepath, tmp_filepath)
-        f = open(tmp_filepath, 'r+')
+        f = open(tmp_filepath, 'r+', encoding="utf-8")
         f.truncate(0)
         f.write(data)
         f.close()
@@ -266,7 +268,8 @@ def save_amc_edited_file(request,exam_pk):
             check += " -- file not updated !"
         return HttpResponse(check)
     else:
-        f = open(filepath, 'r+')
+        filepath = amc_project_path + "/" + request.POST['filepath']
+        f = open(filepath, 'r+', encoding="utf-8")
         f.truncate(0)
         f.write(data)
         f.close()
@@ -291,12 +294,14 @@ def call_amc_layout_detection(request,exam_pk):
         result = get_amc_layout_detection_info(exam)
     return HttpResponse(result)
 
+@exam_permission_required(['manage'])
 def call_amc_automatic_data_capture(request,from_review,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     zip_file = request.FILES['amc_scans_zip_file']
 
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,False,file_list_path=None))
 
+@exam_permission_required(['manage'])
 def import_scans_from_review_pages(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     scans_list = request.POST.getlist('pages_list[]')
@@ -311,6 +316,7 @@ def import_scans_from_review_pages(request, exam_pk):
 
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
+@exam_permission_required(['manage'])
 def import_scans_from_review(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
 
@@ -366,6 +372,7 @@ def import_scans_from_review(request, exam_pk):
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
 
+@exam_permission_required(['manage'])
 def open_amc_exam_pdf(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     file_path = get_amc_exam_pdf_path(exam)
@@ -374,6 +381,7 @@ def open_amc_exam_pdf(request, exam_pk):
     except FileNotFoundError:
         raise Http404('not found')
 
+@exam_permission_required(['manage'])
 def open_amc_catalog_pdf(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     file_path = get_amc_catalog_pdf_path(exam)
@@ -407,11 +415,11 @@ def get_amc_zooms(request,exam_pk):
 @exam_permission_required(['manage'])
 def add_unrecognized_page(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
-    question = request.POST['question']
+    page = request.POST['unrec_page']
     copy = request.POST['copy']
     extra = request.POST['extra']
     img_filename = request.POST['unrecognized_img_src']#.split('/')[-1]
-    add_unrecognized_page_to_project(exam,copy,question,extra,img_filename)
+    add_unrecognized_page_to_project(exam,copy,page,extra,img_filename)
 
     return HttpResponse(True)
 
@@ -550,28 +558,46 @@ def get_amc_scan_url(request,exam_pk):
     amc_project_path = get_amc_project_path(exam, False)
     scan_path = None
     if amc_project_path:
-        amc_data_path = amc_project_path + "/data/"
-        scan_path = select_amc_scan_path(amc_data_path,copy_nr,page_nr)
 
-        if '%HOME' in scan_path:
-            print("******** home *********** "+str(Path.home())+" **************************")
-            print("********* path ********** " + scan_path + " **************************")
-            app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
-            print("********* app_home_path ********** " + app_home_path + " **************************")
-            scan_path = scan_path.replace(app_home_path+'/','')
+        if '.' in page_nr:
+            #extra page
+            scan_root = str(amc_project_path) + "/scans/extra/"
+            scan_path = scan_root + copy_nr.zfill(4) + "/copy_" + copy_nr.zfill(4) + "_" + page_nr + ".jpg"
 
-            print("********* path ********** " + scan_path + " **************************")
+        else:
 
-            #tmp local
-            #scan_path = scan_path.replace("%HOME/html/eXamc/","")
-            print("******************* " + scan_path + " **************************")
+            amc_data_path = amc_project_path + "/data/"
+            scan_path = select_amc_scan_path(amc_data_path,copy_nr,page_nr)
+
+            if '%HOME' in scan_path:
+                print("******** home *********** "+str(Path.home())+" **************************")
+                print("********* path ********** " + scan_path + " **************************")
+                app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
+                print("********* app_home_path ********** " + app_home_path + " **************************")
+                scan_path = scan_path.replace(app_home_path+'/','')
+
+                print("********* path ********** " + scan_path + " **************************")
+
+                #tmp local
+                #scan_path = scan_path.replace("%HOME/html/eXamc/","")
+                print("******************* " + scan_path + " **************************")
 
             scan_root = str(settings.SCANS_ROOT)
-            if scan_path.startswith(str(settings.MARKED_SCANS_ROOT).split('/')[-1]):
+            if scan_path.startswith(str(settings.MARKED_SCANS_ROOT)):
                 scan_root = str(settings.MARKED_SCANS_ROOT)
-            scan_path = scan_path.split('/', 1)[1]
-            print("***** path ****** " + scan_path + " ********************")
-            scan_path = make_token_for(scan_path,scan_root)
+
+
+        scan_path = make_token_for(os.path.relpath(scan_path, scan_root), scan_root)
+
+            #scan_path['filepath'] = scan_path
+
+            # scan_root = str(settings.SCANS_ROOT)
+            # if scan_path.startswith(str(settings.MARKED_SCANS_ROOT).split('/')[-1]):
+            #     scan_root = str(settings.MARKED_SCANS_ROOT)
+            # scan_path = scan_path.split('/', 1)[1]
+            #
+            # print("***** path ****** " + scan_path + " ********************")
+            #scan_path = make_token_for(scan_path,scan_root)
 
     return HttpResponse(scan_path)
 

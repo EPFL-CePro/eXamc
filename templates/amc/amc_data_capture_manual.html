@@ -144,7 +144,7 @@ $(window).on("load",function(){
 
 
 function setScanCanvas(data,scan_src,copy,page){
-    imgScan.src = scan_src;
+    imgScan.src = "/"+scan_src.split('/')[1]+"/"+scan_src.split('/')[3];
 
     //remove canvas element and recreate
     canvasScan.remove();

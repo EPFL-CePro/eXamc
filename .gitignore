@@ -19,7 +19,6 @@ lib64/
 parts/
 sdist/
 var/
-scans/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
@@ -104,12 +103,12 @@ celerybeat.pid
 
 # Environments
 .env.local
+.env.prod
+.env.dev
 .venv
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -129,43 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# scans subfolders
-scans/*
-
-marked_scans/*
-
 .idea
 
-amc_projects/*/
-!amc_projects/config
-/examc_app/migrations/0001_initial.py
-/examc_app/migrations/0002_exam_amc_option_exam_res_and_stats_option_and_more.py
-/examc_app/migrations/0003_remove_exam_pdf_catalog_name_and_more.py
-/examc_app/migrations/0004_historicalpagesgroup_rectangle_pagesgroup_rectangle.py
-/examc_app/migrations/0005_alter_historicalpagesgroup_rectangle_and_more.py
-/examc_app/migrations/0006_academicyear_semester_alter_exam_semester_and_more.py
-/examc_app/migrations/0007_alter_exam_semester_alter_exam_year_and_more.py
-/examc_app/migrations/0008_exam_date_historicalexam_date.py
-/examc_app/migrations/0009_alter_exam_date_alter_historicalexam_date.py
-/examc_app/migrations/0010_alter_semester_code.py
-/examc_app/migrations/0011_alter_exam_semester_alter_exam_year_course.py
-/examc_app/migrations/0012_alter_course_code.py
-/examc_app/migrations/0013_alter_course_name.py
-/examc_app/migrations/0014_questiontype_and_more.py
-/examc_app/migrations/0015_historicalquestion_question_typexx_and_more.py
-/examc_app/migrations/0016_remove_historicalquestion_question_type_and_more.py
-/examc_app/migrations/0017_rename_question_typexx_historicalquestion_question_type_and_more.py
-/examc_app/migrations/0018_historicalquestion_question_text_and_more.py
-/examc_app/migrations/0019_historicalquestionanswer_is_correct_and_more.py
-/examc_app/migrations/0020_exam_prep_option_historicalexam_prep_option.py
-/examc_app/migrations/0021_remove_historicalquestion_formula_and_more.py
-/examc_app/migrations/0022_exam_first_page_text_historicalexam_first_page_text.py
-/examc_app/migrations/0023_alter_historicalquestionanswer_code_and_more.py
-/examc_app/migrations/0024_examsection_section_number_examsection_title_and_more.py
-/examc_app/migrations/0025_alter_examsection_name_and_more.py
-/examc_app/migrations/0026_remove_examsection_name_and_more.py
-/examc_app/migrations/0027_examsection_test_historicalexamsection_test.py
-/examc_app/migrations/0028_remove_examsection_test_and_more.py
+/examc_app/migrations/*/
 /node_modules/.bin/acorn
 /node_modules/.bin/escodegen
 /node_modules/.bin/esgenerate
@@ -7293,12 +7258,11 @@ fabric.properties
 #   intended to run in multiple environments; otherwise, check them in:
 # .python-version
 export_tmp/
-examc_app/migrations/
+examc_app/migrations/*/
 catalogs/
 autoupload/
 .env.dev
 .env.prod
-examc/celery.py
 manage.py
 rooms_plans/export/
 static/

@@ -1,0 +1,6 @@
+<form id="oidc-logout-form" method="post" action="{% url 'oidc_logout' %}">
+  {% csrf_token %}
+</form>
+<script>
+  document.getElementById('oidc-logout-form').submit();
+</script>

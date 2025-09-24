@@ -12,11 +12,12 @@ from time import sleep
 
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
+from django.contrib.sessions.models import Session
 from django.http import FileResponse
 from fpdf import FPDF
 
 from django.conf import settings
-from examc_app.models import Student, StudentQuestionAnswer, Question, Exam
+from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock
 from examc_app.utils.amc_functions import amc_automatic_data_capture
 from examc_app.utils.generate_statistics_functions import generate_exam_stats, update_overall_common_exam
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
@@ -397,3 +398,18 @@ def generate_statistics(self,exam_pk):
         print(exception)
         raise exception
 
+@shared_task
+def cleanup_review_locks():
+    # Get active user IDs from sessions
+    active_user_ids = set()
+    now = datetime.now()
+
+    for session in Session.objects.filter(expire_date__gt=now):
+        data = session.get_decoded()
+        uid = data.get('_auth_user_id')
+        if uid:
+            active_user_ids.add(int(uid))
+
+    # Delete ReviewLocks where user is no longer active
+    deleted_count, _ = ReviewLock.objects.exclude(user_id__in=active_user_ids).delete()
+    return f"Deleted {deleted_count} review locks from logged-out users."

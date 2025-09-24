@@ -58,7 +58,7 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
             decodedObjects = pyzbar.decode(im)
             if len(decodedObjects) > 0:
                 for obj in decodedObjects:
-                    if str(obj.type) == 'QRCODE' and 'CePROExamsQRC' in str(obj.data):
+                    if str(obj.type) == 'QRCODE' and ('CePROExamsQRC' in str(obj.data) or 'eXamcQRC' in str(obj.data)):
                         data = obj.data.decode("utf-8").split(',')
                         copy_nr = data[1]
                         page_nr = data[2]
@@ -144,7 +144,7 @@ def create_students_from_amc(exam):
                 if line_nr == 1:
                     headers = fields
                 else:
-                    if fields[0]:
+                    if len(fields) > 0 and fields[0]:
                         copy_no = fields[headers.index('ID')]
                         sciper = fields[headers.index('SCIPER')]
                         name = fields[headers.index('NAME')]
@@ -465,7 +465,7 @@ def get_scans_list_by_copy(exam,copy_nr):
         for entry in list_dir_copies:
             entry_path = os.path.join(scans_dir_path, entry)
             page = entry.replace('.jpg', '').split('_').pop()
-            if int(page) != 1:
+            if page != '1':
                 result.append({'copy_no':copy_nr,'page_no':page})
     return result
 

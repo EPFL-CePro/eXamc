@@ -55,11 +55,19 @@ def is_allowed(_user_exam,option):
     elif option =='review':
         group_ids_allowed = [2,3,4]
 
-    try:
-        exam_user = ExamUser.objects.get(exam=exam, user=auth_user, group__in=group_ids_allowed)
+    exam_user = ExamUser.objects.filter(exam=exam, user=auth_user, group__in=group_ids_allowed)
+
+    if not exam_user and exam.common_exams:
+        for comex in exam.common_exams.all():
+            exam_user = ExamUser.objects.filter(exam=comex, user=auth_user,group__in=group_ids_allowed).first()
+            if exam_user:
+                break
+
+    if exam_user:
         return True
-    except ExamUser.DoesNotExist:
+    else:
         return False
+
 
 @register.filter
 def is_admin(user):
@@ -192,12 +200,15 @@ def get_pages_group_graded_count_txt(pages_group_id,user_id=None):
         scans_folders = [x for x in os.listdir(scans_path) if x != '0000']
         count_copies = len(scans_folders)
         try:
+            print("copies: "+str(count_copies))
+            print("graded: "+str(count_graded))
+            print("100/c*g: "+str(round(int(100/count_copies*count_graded))))
             if user_id == 0:
                 return str(int(count_graded)) + " / " + str(count_copies)
             elif user_id and user_id != 0:
-                return int(100/count_copies*count_graded)
+                return round(100/count_copies*count_graded)
             else:
-                return int(100/count_copies*count_graded)
+                return round(100/count_copies*count_graded)
         except ZeroDivisionError:
             return 0
     else:
@@ -266,8 +277,12 @@ def get_logo_url():
 
 @register.filter
 def is_review_blocked(user_id,exam_id):
-    exam_user = ExamUser.objects.get(exam_id=exam_id, user_id=user_id)
-    return exam_user.review_blocked
+    user = User.objects.get(id=user_id)
+    if user.is_superuser:
+        return False
+    else:
+        exam_user = ExamUser.objects.get(exam_id=exam_id, user_id=user_id)
+        return exam_user.review_blocked
 
 def get_by_first_element(lst, value):
     """

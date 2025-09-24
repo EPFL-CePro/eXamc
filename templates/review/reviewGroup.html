@@ -273,19 +273,21 @@
 
     function setSourceScan(scan_path,from_copy){
         if(from_copy){
-            lastSourceIdSplit = old_source.split('.jpg')[0].split("/").pop().split('_');
+            lastSourceIdSplit = old_source.split('_');
             from_copy_orig_id = lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + lastSourceIdSplit[2];
         }
-        old_source = document.getElementById("source_img").src;
+        src_url = "/"+scan_path.split('/')[1]+"/"+scan_path.split('/')[3];
+        old_source = document.getElementById("source_img").alt;
         sourceImage = document.getElementById("source_img");
-        sourceImage.src = scan_path;
+        sourceImage.src = src_url
+        sourceImage.alt = scan_path.split("/")[2]
         targetRoot = sourceImage.parentElement;
         old_marked = document.getElementById("marked_img").src;
         markedImage = document.getElementById("marked_img");
-        markedImage.src = scan_path;
+        markedImage.src = src_url;
 
         // change current and last source element background color
-        currSourceIdSplit = scan_path.split('.jpg')[0].split("/").pop().split('_');
+        currSourceIdSplit = scan_path.split("/")[2].split('_');
         //currSourceIdSplit = scan_path.replace(/\/+$/, '').split('/').pop().split('.jpg')[0].split('_');
         currSourceElementId = currSourceIdSplit[0] + "_" + currSourceIdSplit[1] + "_" + currSourceIdSplit[2];
 
@@ -298,9 +300,7 @@
                 lastSourceElementId = from_copy_orig_id;
                 from_copy_orig_id = null;
             }else {
-                lastSourceIdSplit = old_source.split('.jpg')[0].split("/").pop().split('_');
-                lastSourceElementId =
-                    lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + lastSourceIdSplit[2];
+                lastSourceElementId = old_source;
             }
 
             lastEl = document.getElementById(lastSourceElementId);
@@ -495,7 +495,7 @@
                                 $("#corr_box_div").css("display","block");
                                 setTimeout(() => {
                                     draw_corrector_boxes(corrector_boxes);
-                                }, 100);
+                                }, 300);
                                 //draw_corrector_boxes(corrector_boxes);
                             }
                             initComments(comments);

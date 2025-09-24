@@ -42,7 +42,7 @@ def select_count_layout_pages(amc_data_path):
     db = AMC_DB(amc_data_path + "layout.sqlite")
     query_str = "SELECT count(*) FROM layout_page"
     response = db.execute_query(query_str)
-    nb_pages_detected = 0;
+    nb_pages_detected = 0
     if response:
         nb_pages_detected = response.fetchall()[0][0]
     db.close()
@@ -514,6 +514,20 @@ def get_question_start_page_by_student(amc_data_path,question_name,student_id):
     qp_details = [dict(zip(colname_qp, r)) for r in response.fetchall()]
 
     return qp_details
+
+def get_question_name_by_student_page(amc_data_path,student_id,page_no):
+    db = AMC_DB(amc_data_path + "layout.sqlite")
+    query_str = ("SELECT DISTINCT q.name FROM layout_box b"
+                 " INNER JOIN layout_question q ON q.question = b.question"
+                 " WHERE b.page = " + str(page_no) + " AND b.student = " + str(student_id))
+
+    response = db.execute_query(query_str)
+    rows = response.fetchall()
+    if rows:
+        qname = rows[0]['name']
+    else:
+        qname = get_question_name_by_student_page(amc_data_path,student_id,page_no-1)
+    return qname
 
 def select_capture_pages(amc_data_path):
     db = AMC_DB(amc_data_path + "capture.sqlite")

@@ -587,9 +587,10 @@ def saveMarkers(request, exam_pk):
             return: A HTTP response indicating the success of the operation.
     """
     exam = Exam.objects.get(pk=exam_pk)
-    pages_group = PagesGroup.objects.get(pk=request.POST['reviewGroup_pk'])
+    question_name = get_question_name_by_student_page(get_amc_project_path(exam, True)+"/data/",int(request.POST['copy_no']),int(request.POST['page_no']))
+    pages_group = PagesGroup.objects.get(exam=exam,group_name=question_name)
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
-                                                              page_no=request.POST['page_no'], #pages_group=pages_group,
+                                                              page_no=request.POST['page_no'], pages_group=pages_group,
                                                               exam=exam)
     dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
     ImageData = request.POST.get('marked_img_dataUrl')
@@ -597,7 +598,7 @@ def saveMarkers(request, exam_pk):
     marked = False
     if markers["markers"]:
         scan_markers.markers = request.POST['markers']
-        fn = request.POST['filename'].replace("/protected/","")[:-1]
+        fn = request.POST['filename'].replace("/protected/?token=","").replace('%3A',':')
         fn = verify_and_get_path(fn)
         fn = str(fn).replace(str(settings.BASE_DIR),"../..")
         scan_markers.filename = fn
@@ -642,8 +643,6 @@ def saveMarkers(request, exam_pk):
 def getMarkersAndComments(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     data_dict = {}
-
-
 
     copy_no = request.POST['copy_no']
     page_no = request.POST['page_no']

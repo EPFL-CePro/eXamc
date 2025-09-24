@@ -38,7 +38,8 @@ urlpatterns = ([
     path('documentation',views.documentation_view, name="documentation"),
     path('oidc/', include('mozilla_django_oidc.urls')),
     #Signed files url
-    path("protected/<path:token>/", views.serve_signed_file, name="serve_signed_scan"),
+    path("protected/", views.serve_signed_file, name="serve_signed_file"),
+    path('force-logout/', views.force_oidc_logout, name='force_oidc_logout'),
     ] #+ static(settings.MARKED_SCANS_URL, document_root=settings.MARKED_SCANS_ROOT)
     #+ static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
    + static(settings.DOCUMENTATION_URL, document_root=settings.DOCUMENTATION_ROOT)

@@ -48,6 +48,12 @@ class ExamInfoView(ExamPermissionAndRedirectMixin,DetailView):
         exam = Exam.objects.get(pk=context.get("object").id)
         exam_user = ExamUser.objects.filter(exam=exam, user=self.request.user).first()
 
+        if not exam_user and exam.common_exams:
+            for comex in exam.common_exams.all():
+                exam_user = ExamUser.objects.filter(exam=comex,user=self.request.user).first()
+                if exam_user:
+                    break
+
         # redirect to review if reviewer
         if exam_user and not self.request.user.is_superuser and exam_user.group.pk == 3:
             return redirect(reverse('reviewView', kwargs={'exam_pk': exam.pk}))
@@ -160,9 +166,6 @@ def update_exam_users(request,exam_pk):
                 user.last_name = user_list[2]
                 user.email = user_list[3]
                 user.save()
-                user_profile = UserProfile.objects.get(user=user)
-                user_profile.sciper = user.username
-                user_profile.save()
 
             exam_user, created = ExamUser.objects.get_or_create(user=user, exam=exam)
             exam_user.group = Group.objects.get(pk=user_list[4])
@@ -170,7 +173,7 @@ def update_exam_users(request,exam_pk):
                 exam_user.pages_groups.set(PagesGroup.objects.filter(exam=exam).all())
             exam_user.save()
 
-    return redirect('examInfo', pk=exam.pk)
+    return redirect('examInfo', exam_pk=exam.pk)
 
 #@login_required
 @exam_permission_required(['manage'])
@@ -192,7 +195,7 @@ def update_exam_info(request,exam_pk):
         exam_date = exam.date.strftime("%Y-%m-%d")
     else:
         exam_date = today().strftime("%Y-%m-%d")
-    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam_date
+    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam_date#.replace("-","")
     exam.date = exam_date
     exam.code = request.POST.get('code')
     exam.name = request.POST.get('name')
@@ -200,12 +203,12 @@ def update_exam_info(request,exam_pk):
     exam.year_id = request.POST.get('year_id')
     exam.save()
 
-    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date
+    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.replace("-","")
 
     if old_folder_path != new_folder_path:
         update_folders_paths(old_folder_path, new_folder_path)
 
-    return redirect('examInfo', pk=exam.pk)
+    return redirect('examInfo', exam_pk=exam.pk)
 
 #@method_decorator(login_required, name='dispatch')
 class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):

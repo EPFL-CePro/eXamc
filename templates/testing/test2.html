@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>PDF Viewer PDF.js</title>
+		<meta charset="UTF-8" />
+	</head>
+	<body>
+		<div id="app">
+			<div role="toolbar" id="toolbar">
+				<div id="pager">
+					<button data-pager="prev">prev</button>
+					<button data-pager="next">next</button>
+				</div>
+				<div id="page-mode">
+					<label>
+						Page Mode
+						<input type="number" value="1" min="1" />
+					</label>
+				</div>
+			</div>
+			<div id="viewport-container">
+				<div role="main" id="viewport"></div>
+			</div>
+		</div>
+
+		<!-- Load PDF.js library -->
+		<script
+			src="https://unpkg.com/pdfjs-dist@latest/build/pdf.min.mjs"
+			type="module"
+		></script>
+		<script src="{% static 'testing/testPdfViewer.js' %}" type="module"></script>
+	</body>
+</html>

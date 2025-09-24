@@ -23,6 +23,10 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# Session timeout after 1h of inactivity. Middleware is managing auto-logout on inactivity
+SESSION_COOKIE_AGE = 3600 #86400  # seconds
+SESSION_SAVE_EVERY_REQUEST = True  # resets timeout on each request
+SESSION_ENGINE = 'django.contrib.sessions.backends.db' #This stores sessions in the django_session table, allowing you to check who is still logged in
 CSRF_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 15768000 #6mois
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -56,6 +60,7 @@ INSTALLED_APPS = [
     'django_ckeditor_5',
     'celery',
     'celery_progress',
+    'django_celery_beat',
     'maintenance_mode',
     'mozilla_django_oidc',
 ]
@@ -71,8 +76,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'maintenance_mode.middleware.MaintenanceModeMiddleware',
-    'login_required.middleware.LoginRequiredMiddleware',
+    #'login_required.middleware.LoginRequiredMiddleware',
+    'examc_app.middleware.auto_logout.AutoLogoutMiddleware',
 ]
+
+AUTO_LOGOUT_DELAY = 1800 # seconds
 
 ROOT_URLCONF = 'examc.urls'
 
@@ -122,11 +130,14 @@ STATIC_ROOT = BASE_DIR / 'static/'
 SIGNED_FILES_EXPIRATION_TIMEOUT = 300
 SIGNED_FILES_URL = '/protected/'
 
-SCANS_ROOT = BASE_DIR / 'scans/'
+# Private media root
+PRIVATE_MEDIA_ROOT = Path("/srv/examc/private_media")
+
+SCANS_ROOT = PRIVATE_MEDIA_ROOT / 'scans/'
 #SCANS_URL = '/protected/scans/'
 
 # Marked scans folder
-MARKED_SCANS_ROOT = BASE_DIR / 'marked_scans/'
+MARKED_SCANS_ROOT = PRIVATE_MEDIA_ROOT / 'marked_scans/'
 #MARKED_SCANS_URL = '/protected/marked_scans/'
 
 # Autoupload folder
@@ -143,7 +154,7 @@ CATALOG_ROOT = BASE_DIR / 'catalogs/'
 #CATALOG_URL = '/catalogs/'
 
 # AMC projects folder
-AMC_PROJECTS_ROOT = BASE_DIR / 'amc_projects/'
+AMC_PROJECTS_ROOT = PRIVATE_MEDIA_ROOT / 'amc_projects/'
 AMC_PROJECTS_URL = '/amc_projects/'
 
 # AMC config file
@@ -260,6 +271,7 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ALWAYS_EAGER  = True # True to debug task
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 # CELERY_BROKER_URL = 'redis://localhost:6379'
 # CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 # CELERY_ACCEPT_CONTENT = ['application/json']
