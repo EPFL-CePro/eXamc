@@ -1,0 +1,37 @@
+<br/>
+<ul class="nav nav-pills flex-column flex-md-row border" id="scheme-pills-{{ pages_group.id }}" >
+  {% for gs in grading_schemes %}
+      <li class="nav-item" role="presentation">
+        <a type="button"
+                class="nav-link {% if current_grading_scheme and current_grading_scheme.id == gs.id %}active{% endif %}"
+                aria-selected="{% if current_grading_scheme and current_grading_scheme.id == gs.id %}true{% else %}false{% endif %}"
+                hx-get="{% url 'grading_scheme_panel' exam_selected.id gs.id %}"
+                hx-target="#scheme-panel-{{ gs.pages_group.id }}"
+                hx-swap="innerHTML"
+                {% if current_grading_scheme and current_grading_scheme.id == gs.id %}hx-trigger="load once, click"{% endif %}
+                hx-on:click="
+                const list = this.closest('#scheme-pills-{{ pages_group.id }}');
+                list.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected','false'); });
+                this.classList.add('active'); this.setAttribute('aria-selected','true');
+              ">
+          {{ gs.name }}
+        </a>
+      </li>
+  {% endfor %}
+    <li class="nav-item" role="presentation">
+        <a id="add-form" class="nav-link" title="Add grading scheme"
+           hx-post="{% url 'add_new_grading_scheme' exam_selected.pk pages_group.id %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-target="#grading-scheme-panel"
+              hx-swap="innerHTML">
+            <i class="fa-solid fa-circle-plus fa-xl" style="color:green;"></i>
+        </a>
+    </li>
+</ul>
+
+<div id="scheme-panel-{{ pages_group.id }}" class="tab-content"></div>
+
+</div>
+
+<script>
+</script>

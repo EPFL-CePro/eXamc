@@ -13,6 +13,7 @@ from os.path import isdir
 import cv2
 from PIL import Image, ImageStat, ImageEnhance
 from django.conf import settings
+from django.db.models import Sum
 from django.http import HttpResponse
 from docutils.nodes import entry
 from fpdf import FPDF
@@ -486,3 +487,50 @@ def get_scan_url(exam,copy_nr,page_nr):
                 scan_url = make_token_for(scans_url+entry,str(settings.SCANS_ROOT))
                 break
     return scan_url
+
+def get_grading_scheme_checkboxes(grading_scheme_id, copy_nr):
+    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    grading_scheme_checkboxes_qs = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme)
+    grading_scheme_checkboxes_list = []
+    item_id = None
+
+    for checkbox in grading_scheme_checkboxes_qs:
+        try:
+            pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(
+                pages_group=grading_scheme.pages_group,
+                copy_nr=copy_nr,
+                gradingSchemeCheckBox=checkbox
+            )
+            checked = True
+            item_id = pggsc.id
+            adjustment = pggsc.adjustment
+        except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
+            checked = False
+            item_id = checkbox.id
+            adjustment = 0
+
+        grading_scheme_checkbox = {"item_id":item_id, "points":checkbox.points,"name":checkbox.name,"description":checkbox.description,"checked":checked,"adjustment":adjustment}
+
+        grading_scheme_checkboxes_list.append(grading_scheme_checkbox)
+
+    return grading_scheme_checkboxes_list
+
+def other_grading_scheme_used(grading_scheme, copy_nr):
+    pages_group_gs_checkedboxes = PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=grading_scheme.pages_group, copy_nr=copy_nr).exclude(gradingSchemeCheckBox__questionGradingScheme=grading_scheme)
+    if pages_group_gs_checkedboxes:
+        return pages_group_gs_checkedboxes[0].gradingSchemeCheckBox.questionGradingScheme
+    return None
+
+def get_question_points(grading_scheme, copy_nr):
+    points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,
+                                                          pagesGroupGradingSchemeCheckedBoxes__copy_nr=copy_nr).aggregate(points__sum=Sum('points'))['points__sum']
+    if not points:
+        points = 0
+    try:
+        adjust = PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=grading_scheme.pages_group,
+                                                               gradingSchemeCheckBox__name="ADJ", copy_nr=copy_nr)
+        points += adjust.adjustment
+    except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
+        pass
+
+    return points

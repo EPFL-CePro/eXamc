@@ -31,7 +31,7 @@
         {% for pages_group in exam_pages_group_list %}
         <tr>
             <td style="padding-left:20px;">
-                <a class="btn btn-dark btn-sm" href="{% url 'reviewGroup' pages_group.exam.pk pages_group.pk 0 %}"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a>
+                <a class="btn btn-dark btn-sm" href="{% url 'reviewGroup' pages_group.exam.pk pages_group.pk 0 0 %}"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a>
             </td>
           <td>{{ pages_group.group_name }}</td>
           <td style="text-align: center;">{{ pages_group.nb_pages }}</td>

@@ -23,6 +23,7 @@ SECRET_KEY = os.environ['SECRET_KEY']
 DEBUG = True
 
 ALLOWED_HOSTS = ['examc-dev.epfl.ch']
+SITE_URL = "https://examc-dev.epfl.ch"
 
 DATABASES = {
     'default': {

@@ -10,7 +10,8 @@ from django.forms import modelformset_factory, ModelForm, formset_factory
 from django.utils.safestring import mark_safe
 from django_ckeditor_5.widgets import CKEditor5Widget
 
-from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser
+from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser, QuestionGradingScheme, \
+    QuestionGradingSchemeCheckBox
 from .utils.global_functions import get_course_teachers_string
 
 class SwitchWidget(forms.CheckboxInput):
@@ -36,7 +37,7 @@ class UploadScansForm(forms.Form):
 class ManagePagesGroupsForm(forms.ModelForm):
     class Meta:
         model = PagesGroup
-        fields = ['group_name', 'nb_pages']
+        fields = ['group_name', 'nb_pages', 'use_grading_scheme']
 
     def __init__(self, questions_choices, *args, **kwargs):
         super(ManagePagesGroupsForm, self).__init__(*args, **kwargs)
@@ -45,6 +46,7 @@ class ManagePagesGroupsForm(forms.ModelForm):
         self.fields['nb_pages'] = forms.IntegerField(label='Nb pages',
                                       widget=forms.NumberInput(attrs={'class': "form-control", 'id': "nb_pages", 'style':'width:100px'}),
                                       required=True, min_value=1)
+        self.fields['use_grading_scheme'] = forms.BooleanField(label='Use grading scheme', widget=SwitchWidget(),required=False)
 
 PagesGroupsFormSet = modelformset_factory(
     PagesGroup, form=ManagePagesGroupsForm,  extra=0
@@ -272,4 +274,47 @@ class ldapForm(forms.Form):
         widget=forms.RadioSelect(attrs={'data-tooltip': "Choose LDAP search."}),
         initial='sciper'
     )
+
+
+## Grading Schemes
+
+class GradingSchemeForm(forms.ModelForm):
+    class Meta:
+        model = QuestionGradingScheme
+        fields = ['name', 'max_points', 'description']
+
+    def __init__(self, *args, **kwargs):
+        super(GradingSchemeForm, self).__init__(*args, **kwargs)
+        for fname, f in self.fields.items():
+            f.widget.attrs['class'] = 'form-control'
+            if fname == 'name':
+                f.widget.attrs['style'] = 'min-width:300px'
+            if fname == 'description':
+                f.widget.attrs['rows'] = 1
+                f.widget.attrs['style'] = 'min-width:400px'
+            if fname == 'max_points':
+                f.widget.attrs['style'] = 'min-width:150px'
+                f.widget.attrs['readonly'] = True
+
+
+GradingSchemeFormSet = modelformset_factory(QuestionGradingScheme, form=GradingSchemeForm, extra=0)
+
+class GradingSchemeCheckBoxForm(forms.ModelForm):
+    class Meta:
+        model = QuestionGradingSchemeCheckBox
+        fields = ['name', 'points', 'description']
+
+    def __init__(self, *args, **kwargs):
+        super(GradingSchemeCheckBoxForm, self).__init__(*args, **kwargs)
+        for fname, f in self.fields.items():
+            f.widget.attrs['class'] = 'form-control'
+            if fname == 'name':
+                f.widget.attrs['style'] = 'min-width:300px'
+            if fname == 'points':
+                f.widget.attrs['style'] = 'min-width:150px'
+            if fname == 'description':
+                f.widget.attrs['rows'] = 1
+                f.widget.attrs['style'] = 'min-width:400px;'
+
+GradingSchemeCheckboxFormSet=modelformset_factory(QuestionGradingSchemeCheckBox, form=GradingSchemeCheckBoxForm, extra=0)
 

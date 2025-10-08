@@ -11,7 +11,8 @@ from matplotlib.sphinxext.plot_directive import exception_template
 from shapely import Polygon
 
 from django.conf import settings
-from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser, ReviewLock, Scale
+from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser, ReviewLock, \
+    Scale, PagesGroupGradingSchemeCheckedBox
 from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
 
 register = template.Library()
@@ -296,3 +297,4 @@ def get_by_first_element(lst, value):
     except Exception:
         return None
     return None
+

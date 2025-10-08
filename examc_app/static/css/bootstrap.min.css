@@ -3977,7 +3977,7 @@ input[type="button"].btn-block {
  border-bottom:1px solid #eceeef
 }
 .nav-tabs .nav-item {
- margin-bottom:-1px
+ margin-bottom:-1px;
 }
 .nav-tabs .nav-link {
  border:1px solid transparent
@@ -9501,7 +9501,9 @@ a.text-dark:focus {
  border-width:1px 0 0 0
 }
 .nav-item {
- margin-right:2rem
+ margin-right:2rem;
+ background-color: #f7f7f9;
+ margin:1px;
 }
 .btn {
  font-size:0.765625rem;

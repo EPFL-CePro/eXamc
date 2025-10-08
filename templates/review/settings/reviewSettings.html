@@ -20,6 +20,9 @@
   <li class="nav-item" role="presentation">
     <a class="flex-sm-fill text-sm-center nav-link {% if curr_tab == 'reviewers' %}active{% endif %}" id="reviewers-tab" data-toggle="pill" href="#pills-reviewers" role="tab" aria-controls="pills-reviewers" aria-selected="{% if curr_tab == 'reviewers' %}true{% else %}false{% endif %}">Reviewers</a>
   </li>
+  <li class="nav-item" role="presentation">
+    <a class="flex-sm-fill text-sm-center nav-link {% if curr_tab == 'grading-schemes' %}active{% endif %}" id="grading-schemes-tab" data-toggle="pill" href="#pills-grading-schemes" role="tab" aria-controls="pills-grading-schemes" aria-selected="{% if curr_tab == 'grading-schemes' %}true{% else %}false{% endif %}">Grading Schemes</a>
+  </li>
 </ul>
 
 {% if exam_pages_groups_formset %}
@@ -29,6 +32,9 @@
   </div>
   <div class="tab-pane fade show {% if curr_tab == 'reviewers' %}active{% endif %}" id="pills-reviewers" role="tabpanel" aria-labelledby="pills-reviewers-tab">
     {% include "./manage_exam_reviewers.html" %}
+  </div>
+  <div class="tab-pane fade show {% if curr_tab == 'grading-schemes' %}active{% endif %}" id="pills-grading-schemes" role="tabpanel" aria-labelledby="pills-grading-schemes-tab">
+    {% include "./manage_grading_schemes.html" %}
   </div>
 </div>
 {% else %}

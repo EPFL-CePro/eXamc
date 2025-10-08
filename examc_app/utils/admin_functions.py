@@ -48,7 +48,6 @@ def parse_exams_data_csv(csv_file):
             users = User.objects.filter(email=user_email)
             if not users:
                 user, created = User.objects.get_or_create(username=user_sciper,first_name=user_firstname,last_name=user_lastname,email=user_email)
-                user.is_staff=True
                 user.save()
             else:
                 user = users.first()

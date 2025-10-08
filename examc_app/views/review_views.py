@@ -8,14 +8,16 @@ import os
 import re
 import sys
 import zipfile
+from decimal import Decimal
 from functools import wraps, partial
 
 from cv2.detail import strip
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.db.models import Sum
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import DetailView
@@ -98,6 +100,16 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin,DetailView):
 
         current_page = self.kwargs['currpage']
 
+        grading_schemes = None
+        if pages_group.use_grading_scheme:
+            grading_schemes = pages_group.gradingSchemes.all()
+        current_grading_scheme = self.kwargs['current_grading_scheme']
+        if grading_schemes and not current_grading_scheme:
+            if grading_schemes:
+                current_grading_scheme = grading_schemes.first()
+            else:
+                current_grading_scheme = 0
+
         # Get scans file path dict by pages groups
         #scans_pathes_list = get_scans_pathes_by_group(pages_group)
         copies_pages_list = get_copies_pages_by_group(pages_group)
@@ -118,6 +130,8 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin,DetailView):
                         exam = common_exam
                         break
             context['exam'] = exam
+            context['grading_schemes'] = grading_schemes
+            context['current_grading_scheme'] = current_grading_scheme
             return context
         else:
             context['user_allowed'] = False
@@ -168,11 +182,14 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
                 curr_tab = self.kwargs.get("curr_tab")
             formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam,group__pk__in=[2,3,4]))
 
+
             amc_project_path = get_amc_project_path(exam,False)
             if amc_project_path:
+                pagesGroups = PagesGroup.objects.filter(exam=exam)
+                grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
                 questions = get_questions(get_amc_project_path(exam, True)+"/data/")
                 questions_choices = [ (q['name'],q['name']) for q in questions]
-                formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
+                formsetPagesGroups = PagesGroupsFormSet(queryset=pagesGroups, initial=[
                     {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
 
                 grading_help_group_form = ckeditorForm()
@@ -184,6 +201,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
                 context['exam_pages_groups_formset'] = formsetPagesGroups
                 context['curr_tab'] = curr_tab
                 context['gh_group_form'] = grading_help_group_form
+                context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
             else:
 
                 context['user_allowed'] = True
@@ -781,3 +799,252 @@ def get_copy_page(request,exam_pk):
     scan_url = get_scan_url(exam, copy_nr, page_nr)
 
     return HttpResponse(scan_url)
+
+
+############ Grading schemes settings
+@exam_permission_required(['manage'])
+def grading_scheme_pages_group(request, exam_pk, pages_group_id: int,current_grading_scheme_id=None):
+    grading_schemes = QuestionGradingScheme.objects.filter(pages_group_id=pages_group_id, pages_group__use_grading_scheme=True)
+    pages_group = PagesGroup.objects.get(pk=pages_group_id)
+    if current_grading_scheme_id:
+        current_grading_scheme = QuestionGradingScheme.objects.get(pk=current_grading_scheme_id)
+    else:
+        current_grading_scheme = grading_schemes[0]
+    return render(
+        request,
+        "review/settings/_grading_scheme_pages_group.html",
+        {"exam_selected":pages_group.exam,"pages_group": pages_group, "grading_schemes": grading_schemes, "current_grading_scheme": current_grading_scheme},
+    )
+
+@exam_permission_required(['manage'])
+def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
+    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+
+    if request.method == "POST":
+        grading_scheme_form = GradingSchemeForm(request.POST, instance=grading_scheme)
+        saved = grading_scheme_form.is_valid()
+        if saved:
+            grading_scheme_form.save()
+            grading_schemes = QuestionGradingScheme.objects.filter(pages_group=grading_scheme.pages_group)
+            return render(
+                request,
+                "review/settings/_grading_scheme_pages_group.html",
+                {"exam_selected": grading_scheme.pages_group.exam, "pages_group": grading_scheme.pages_group, "grading_schemes": grading_schemes,
+                 "current_grading_scheme": grading_scheme, "saved": saved},
+            )
+        else:
+            print(grading_scheme_form.errors)
+    else:
+        grading_scheme_form = GradingSchemeForm(instance=grading_scheme)
+        saved = False
+
+        return render(request, "review/settings/_grading_scheme_panel.html", {"exam_selected": grading_scheme.pages_group.exam, "grading_scheme": grading_scheme, "grading_scheme_form": grading_scheme_form})
+
+@exam_permission_required(['manage'])
+def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
+    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).exclude(name="ADJ")
+    if request.method == "POST":
+        formset = GradingSchemeCheckboxFormSet(request.POST, queryset=grading_scheme_checkboxes.all())
+        saved = formset.is_valid()
+        if saved:
+            formset.save()
+        else:
+            print(formset.errors)
+    else:
+        formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[
+                    {'id': None, 'name': 'new', 'points': 0}])
+        saved = False
+
+    points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).aggregate(points__sum=Sum('points'))['points__sum']
+
+    return render(request, "review/settings/_grading_scheme_checkboxes.html", {"exam_selected":grading_scheme.pages_group.exam,"grading_scheme": grading_scheme, "grading_scheme_checkboxes_formset": formset, "saved": saved, "points": points})
+
+@exam_permission_required(['manage'])
+def add_new_grading_scheme_checkbox(request, exam_pk, grading_scheme_id):
+    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).aggregate(points__sum=Sum('points'))['points__sum']
+
+    QuestionGradingSchemeCheckBox.objects.create(
+        questionGradingScheme=grading_scheme,
+        name="NEW",
+        points=0,
+    )
+    # Return the UPDATED partial
+    formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme.checkboxes.all(), initial=[{'id': None, 'name': 'new', 'points': 0}])
+    saved = False
+
+    return render(request, "review/settings/_grading_scheme_checkboxes.html", {"exam_selected": grading_scheme.pages_group.exam, "grading_scheme": grading_scheme,"grading_scheme_checkboxes_formset": formset, "saved": saved, "points": points})
+
+@exam_permission_required(['manage'])
+def delete_grading_scheme_checkbox(request, exam_pk, grading_scheme_checkbox_id):
+    grading_scheme_checkbox = QuestionGradingSchemeCheckBox.objects.get(pk=grading_scheme_checkbox_id)
+
+    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_checkbox.questionGradingScheme.id)
+    grading_scheme_checkbox.delete()
+    points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).aggregate(points__sum=Sum('points'))['points__sum']
+    formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme.checkboxes.all(),
+                                           initial=[{'id': None, 'name': 'new', 'points': 1}])
+    saved = False
+
+    return render(request, "review/settings/_grading_scheme_checkboxes.html",
+                  {"exam_selected": grading_scheme.pages_group.exam, "grading_scheme": grading_scheme,
+                   "grading_scheme_checkboxes_formset": formset, "saved": saved, "points":points})
+
+
+
+@exam_permission_required(['manage'])
+def add_new_grading_scheme(request, exam_pk, pages_group_id):
+    pages_group = PagesGroup.objects.get(pk=pages_group_id)
+    exam = Exam.objects.get(pk=exam_pk)
+    amc_data_path = get_amc_project_path(exam, True) + "/data/"
+    max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, None))
+
+    grading_scheme = QuestionGradingScheme.objects.create(
+        pages_group=pages_group,
+        name="NEW",
+        max_points=max_points,
+    )
+
+    # create adjustment checkbox
+    QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ADJ", description="Adjustment", points=0)
+
+    grading_schemes = QuestionGradingScheme.objects.filter(pages_group_id=pages_group_id)
+    pages_group = PagesGroup.objects.get(pk=pages_group_id)
+    return render(
+        request,
+        "review/settings/_grading_scheme_pages_group.html",
+        {"exam_selected": pages_group.exam, "pages_group": pages_group, "grading_schemes": grading_schemes,
+         "current_grading_scheme": grading_scheme},
+    )
+
+@exam_permission_required(['manage'])
+def delete_grading_scheme(request, exam_pk, grading_scheme_id):
+    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    pages_group = grading_scheme.pages_group
+    grading_scheme.delete()
+    grading_schemes = pages_group.gradingSchemes.all()
+    current_grading_scheme = grading_schemes[0]
+
+    return render(request,"review/settings/_grading_scheme_pages_group.html",
+        {"exam_selected": pages_group.exam, "pages_group": pages_group, "grading_schemes": grading_schemes,
+         "current_grading_scheme": current_grading_scheme},
+    )
+
+########### Grading Scheme Review Group
+@exam_permission_required(['review'])
+def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
+    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    used_grading_scheme = other_grading_scheme_used(grading_scheme,copy_nr)
+    if used_grading_scheme:
+        grading_scheme = used_grading_scheme
+    points = get_question_points(grading_scheme, copy_nr)
+
+    resp = render(
+        request,
+        "review/_review_grading_scheme_panel.html",
+        {
+            "exam_selected": grading_scheme.pages_group.exam,
+            "grading_scheme": grading_scheme,
+            "copy_nr": copy_nr,
+            "points": points,
+            "current_grading_scheme": grading_scheme,
+        },
+    )
+    # Tell the client which scheme is actually in effect and points:
+    resp["X-Used-Grading-Scheme-Id"] = str(grading_scheme.id)
+    resp["X-Points"] = str(points)
+    return resp
+
+@exam_permission_required(['review'])
+def review_grading_scheme_checkboxes(request, exam_pk, grading_scheme_id, copy_nr):
+    grading_scheme_checkboxes = get_grading_scheme_checkboxes(grading_scheme_id, copy_nr)
+    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+
+    return render(request, "review/_review_grading_scheme_checkboxes.html", {"exam_selected":grading_scheme.pages_group.exam,"grading_scheme": grading_scheme, "grading_scheme_checkboxes": grading_scheme_checkboxes})
+
+@exam_permission_required(['review'])
+def update_pages_group_check_box(request,exam_pk):
+    copy_nr = request.POST.get('copy_nr')
+    item_id_str = request.POST.get('item_id')
+    checked = request.POST.get('checked') == 'true'
+    pages_group = PagesGroup.objects.get(pk=int(request.POST.get('pages_group_id')))
+    adjustment = request.POST.get('adjustment')
+    if adjustment == '':
+        adjustment = 0
+    grading_scheme = QuestionGradingScheme.objects.get(pk=int(request.POST.get('grading_scheme_id')))
+    pggsc = None
+    points_rnd = ''
+
+    update = False
+
+    points_before = points = float(get_question_points(grading_scheme, copy_nr))
+
+    item_id_split = item_id_str.split("-")
+
+    # if len(item_id_split) == 2:
+    #     if adjustment != "0" and checked:
+    #         pggsc, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox=None)
+    #         pggsc.adjustment = adjustment
+    #         pggsc.save()
+    #         update = True
+    # elif adjustment != "":
+    #     if checked:
+    #         if item_id_split[2] == '0':
+    #             PagesGroupGradingSchemeCheckedBox.objects.create(adjustment=adjustment,pages_group=pages_group, copy_nr=copy_nr)
+    #         else:
+    #             pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(pk=item_id_split[2])
+    #             pggsc.adjustment = adjustment
+    #             pggsc.save()
+    #     else:
+    #         if item_id_split[2] == '0':
+    #             pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox=None).delete()
+    #         else:
+    #             pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(pk=item_id_split[2]).delete()
+    #
+    #     update = True
+    #
+    # else:
+    item_id = item_id_split[2]
+    if checked:
+        if adjustment != '':
+            pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group, copy_nr=copy_nr,gradingSchemeCheckBox_id=item_id)
+            pggscb.adjustment = adjustment
+            pggscb.save()
+        else:
+            PagesGroupGradingSchemeCheckedBox.objects.create(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id,adjustment=0)
+    else:
+        try:
+            PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id).delete()
+        except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
+            # try:
+            #     PagesGroupGradingSchemeCheckedBox.objects.get(pk=item_id).delete()
+            # except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
+            pass
+
+    update = True
+
+    points = float(get_question_points(grading_scheme, copy_nr))
+    if update and points_before != points:
+        exam = Exam.objects.get(pk=exam_pk)
+        amc_data_path = get_amc_project_path(exam, True) + "/data/"
+        question_page = select_copy_question_page(amc_data_path,copy_nr,pages_group.group_name)
+        max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
+        amc_corr_boxes = select_marks_positions(amc_data_path,int(copy_nr),question_page,None)
+
+
+        if points > 0:
+            points_per_box = max_points / (len(amc_corr_boxes) /4 - 1)
+            nb_boxes = len(amc_corr_boxes) / 4 - 1
+            round_value = 1/points_per_box
+
+            points_rnd = round(points*round_value)/round_value
+
+            box_to_check = round(points_rnd/(max_points/nb_boxes))
+        else:
+            points_rnd = 0
+            box_to_check = 0
+        return HttpResponse(json.dumps([box_to_check,points_rnd,max_points]))
+
+    return HttpResponse('')
+

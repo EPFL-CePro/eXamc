@@ -260,6 +260,7 @@ class PagesGroup(models.Model):
     group_name = models.CharField(max_length=50, default='0')
     nb_pages = models.IntegerField(default=0)
     grading_help = models.TextField(default='')
+    use_grading_scheme = models.BooleanField(default=False)
     history = HistoricalRecords()
 
     def __str__(self):
@@ -463,6 +464,35 @@ class ReviewLock(models.Model):
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='reviewLocks')
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='reviewLocks')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewLocks')
+
+
+###########################
+# Grading Schemes
+###########################
+class QuestionGradingScheme(models.Model):
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='gradingSchemes')
+    name = models.CharField(max_length=100)
+    max_points = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    description = models.TextField(default='')
+    history = HistoricalRecords()
+
+class QuestionGradingSchemeCheckBox(models.Model):
+    questionGradingScheme = models.ForeignKey(QuestionGradingScheme, on_delete=models.CASCADE, related_name='checkboxes')
+    name = models.CharField(max_length=100)
+    points = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    description = models.TextField(default='')
+    history = HistoricalRecords()
+
+#############################
+# Review Grading Schemes Checked Boxes
+#############################
+class PagesGroupGradingSchemeCheckedBox(models.Model):
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='pagesGroupGradingSchemeCheckedBoxes')
+    gradingSchemeCheckBox = models.ForeignKey(QuestionGradingSchemeCheckBox, on_delete=models.CASCADE, related_name='pagesGroupGradingSchemeCheckedBoxes', null=True)
+    copy_nr = models.CharField(max_length=10, default='0')
+    adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    history = HistoricalRecords()
+
 
 #############################
 # AMC MODELS

@@ -67,6 +67,9 @@
     <!-- CSS menubars -->
     <link rel="stylesheet" href="{% static 'css/menubars.css' %}">
 
+    <!-- CSS eXamc -->
+    <link rel="stylesheet" href="{% static 'css/examc.css' %}">
+
     <!-- CSS fontawesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
@@ -341,7 +344,7 @@
                 <ul class="nav nav-pills nav-fill flex-column flex-sm-row" id="amc-pills-tab"
                     style="margin-bottom:10px;">
                     {% for comex in exam.get_common_exams_yc_common %}
-                        <li class="nav-item" role="presentation" style="background-color: #f7f7f9;margin:1px;">
+                        <li class="nav-item" role="presentation">
                             <a class="flex-sm-fill text-sm-center nav-link {% if comex.id == exam_selected.id %}active{% endif %}"
                                id="{{ comex.id }}-tab"
                                href="{% if curr_tab %}{% url nav_url comex.pk curr_tab %}{% else %}{% url nav_url comex.pk %}{% endif %}">
@@ -433,6 +436,10 @@
       </div>
     </div>
 
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script>
+  if (window.htmx) { htmx.logAll(); }             // logs all HTMX events to console
+</script>
 </body>
 </html>
 

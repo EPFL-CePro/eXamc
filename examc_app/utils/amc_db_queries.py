@@ -164,6 +164,20 @@ def select_marks_positions(amc_data_path,copy,page,seuil):
     if scoring_exists:
         query_str += ", sc.why "
 
+    # subquery computes per-zone sort keys from the same filtered set of positions
+    keys_subquery = (
+            "SELECT cp2.zoneid, "
+            "       MIN(cp2.y) AS y_key, "
+            "       MIN(cp2.x) AS x_key "
+            "FROM capture_position cp2 "
+            "WHERE cp2.type = 1 "
+            "  AND cp2.zoneid IN ("
+            "        SELECT cz2.zoneid "
+            "        FROM capture_zone cz2 "
+            "        WHERE cz2.student = " + str(copy) + " AND cz2.page = " + str(page) + ") "
+                                                                                          "GROUP BY cp2.zoneid"
+    )
+
     query_str +=  ("FROM capture_position cp "
                  "INNER JOIN capture_zone cz ON cz.zoneid = cp.zoneid ")
 
@@ -174,11 +188,13 @@ def select_marks_positions(amc_data_path,copy,page,seuil):
         query_str += ("LEFT OUTER JOIN scoring.scoring_score sc ON sc.student = " + str(copy) + " AND sc.question = cz.id_a ")
 
 
-    query_str += ("WHERE cp.zoneid in "
-            "   (SELECT cz2.zoneid from capture_zone cz2 WHERE cz2.student = " + str(copy) + " AND cz2.page = " + str(page) + ") "
+    query_str += (
+             " JOIN (" + keys_subquery + ") zk ON zk.zoneid = cp.zoneid "
+             " WHERE cp.zoneid in "
+             "   (SELECT cz2.zoneid from capture_zone cz2 WHERE cz2.student = " + str(copy) + " AND cz2.page = " + str(page) + ") "
              "AND cp.type = 1 "
              "AND cz.type = 4 "
-             "ORDER BY cp.zoneid, cp.corner ")
+             "ORDER BY zk.y_key DESC, zk.x_key DESC, cp.corner ASC")
 
     response = db.execute_query(query_str)
     data_positions = []
@@ -546,7 +562,20 @@ def update_capture_page_src(amc_data_path,student,page,new_filename):
 
     return response
 
+def get_question_max_points(amc_data_path,question_name,copy_nr):
+    db = AMC_DB(amc_data_path + "scoring.sqlite")
+    db.cur.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
+    query_str = ("SELECT strategy FROM scoring_question sc"
+                 " INNER JOIN layout_question lq ON lq.question = sc.question"
+                 " WHERE lq.name = '" + str(question_name) + "'")
 
+    if copy_nr:
+        query_str += " AND sc.student = " + str(copy_nr)
+
+    response = db.execute_query(query_str)
+    strategy = response.fetchall()[0]['strategy']
+    max_points = strategy.split("=")[1]
+    return max_points
 
 
 ################################################

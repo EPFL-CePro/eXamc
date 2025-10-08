@@ -40,10 +40,19 @@ urlpatterns = [
     path('edit_pages_group_grading_help/<int:exam_pk>', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help/<int:exam_pk>', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
     path('delete_pages_group/<int:group_pk>/<int:exam_pk>', views.delete_pages_group, name="delete_pages_group"),
+    path("grading_scheme_pages_group/<int:exam_pk>/<int:pages_group_id>",views.grading_scheme_pages_group,name="grading_scheme_pages_group"),
+    path("grading_scheme_pages_group/<int:exam_pk>/<int:pages_group_id>/<int:current_grading_scheme_id>",views.grading_scheme_pages_group,name="grading_scheme_pages_group"),
+    path("grading_scheme_panel/<int:exam_pk>/<int:grading_scheme_id>", views.grading_scheme_panel, name="grading_scheme_panel"),
+    path("grading_scheme_checkboxes/<int:exam_pk>/<int:grading_scheme_id>", views.grading_scheme_checkboxes, name="grading_scheme_checkboxes"),
+    path("delete_grading_scheme_checkbox/<int:exam_pk>/<int:grading_scheme_checkbox_id>", views.delete_grading_scheme_checkbox,name="delete_grading_scheme_checkbox"),
+    path("delete_grading_scheme/<int:exam_pk>/<int:grading_scheme_id>", views.delete_grading_scheme,name="delete_grading_scheme"),
+    path("add_new_grading_scheme_checkbox/<int:exam_pk>/<int:grading_scheme_id>", views.add_new_grading_scheme_checkbox,name="add_new_grading_scheme_checkbox"),
+    path("add_new_grading_scheme/<int:exam_pk>/<int:pages_group_id>", views.add_new_grading_scheme,name="add_new_grading_scheme"),
+
 
     # REVIEW
     path('review/<int:exam_pk>', views.ReviewView.as_view(), name="reviewView"),
-    path('reviewGroup/<int:exam_pk>/<int:group_pk>/<str:currpage>', views.ReviewGroupView.as_view(), name="reviewGroup"),
+    path('reviewGroup/<int:exam_pk>/<int:group_pk>/<str:currpage>/<int:current_grading_scheme>', views.ReviewGroupView.as_view(), name="reviewGroup"),
     path('save_markers/<int:exam_pk>', views.saveMarkers, name="save_markers"),
     path('get_markers_and_comments/<int:exam_pk>', views.getMarkersAndComments, name="get_markers_and_comments"),
     path('save_comment/<int:exam_pk>', views.saveComment, name="save_comment"),
@@ -51,6 +60,9 @@ urlpatterns = [
     path('review_student_pages_group_is_locked/<int:exam_pk>', views.review_student_pages_group_is_locked, name="review_student_pages_group_is_locked"),
     path('remove_review_user_locks/<int:exam_pk>',views.remove_review_user_locks, name="remove_review_user_locks"),
     path('get_copy_page/<int:exam_pk>',views.get_copy_page,name="get_copy_page"),
+    path('review_grading_scheme_panel/<int:exam_pk>/<int:grading_scheme_id>/<str:copy_nr>', views.review_grading_scheme_panel, name="review_grading_scheme_panel"),
+    path('review_grading_scheme_checkboxes/<int:exam_pk>/<int:grading_scheme_id>/<str:copy_nr>', views.review_grading_scheme_checkboxes, name="review_grading_scheme_checkboxes"),
+    path('update_pages_group_check_box/<int:exam_pk>',views.update_pages_group_check_box, name="update_pages_group_check_box"),
 
     # REVIEW EXPORT
     path('generate_marked_files/<int:exam_pk>', views.generate_marked_files, name="generate_marked_files"),

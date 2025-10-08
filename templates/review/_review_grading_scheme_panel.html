@@ -1,0 +1,27 @@
+<div class="review-grading-scheme-split-vert" id="scheme-wrapper-{{ grading_scheme.id }}">
+    <div class="pane">
+        <div class="card">
+            <div class="card-body">
+                <h6 id="gsc-points-{{ grading_scheme.id }}">{{ points }} / {{ grading_scheme.max_points }}</h6>
+                <p>{{ grading_scheme.description }}</p>
+            </div>
+        </div>
+    </div>
+    <!-- Draggable divider -->
+    <div class="divider" id="scheme-divider" aria-label="Resize panels" role="separator"></div>
+    <!-- Checkboxes (lazy) -->
+    <div class="pane">
+        <div class="card" style="height:100%;">
+            <div class="card-header fw-semibold">Points</div>
+            <div class="card-body"
+                 id="chk-panel-{{ grading_scheme.id }}"
+                 hx-get="{% url 'review_grading_scheme_checkboxes' exam_selected.id grading_scheme.id copy_nr %}"
+                 hx-trigger="load once"
+                 hx-target="this"
+                 hx-swap="innerHTML"
+                 style="overflow-y:auto;">
+                <div class="text-muted">Loading…</div>
+            </div>
+        </div>
+    </div>
+</div>

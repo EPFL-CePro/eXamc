@@ -126,9 +126,6 @@
                                         <th>Total points</th>
                                         <th>Points to add</th>
                                         <th>Final</th>
-                                        {% if user.is_staff %}
-                                            <th>Delete</th>
-                                        {% endif %}
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -152,22 +149,20 @@
                                                         class="fa-solid fa-circle-xmark fa-2xl"
                                                         style="color:lightgray;"></i></a></td>
                                             {% endif %}
-                                            {% if user.is_staff %}
-                                                <td><a class="btn btn-light btn-sm"
-                                                       href="{% url 'delete_exam_scale' scale.pk comex.pk %}"><i
-                                                        class="fa-solid fa-circle-minus fa-2xl"
-                                                        style="margin-right:5px;color:red;"></i></a></td>
-                                            {% endif %}
+                                            <td><a class="btn btn-light btn-sm"
+                                                   href="{% url 'delete_exam_scale' scale.pk comex.pk %}"><i
+                                                    class="fa-solid fa-circle-minus fa-2xl"
+                                                    style="margin-right:5px;color:red;"></i></a></td>
+
                                         </tr>
                                     {% endfor %}
                                     </tbody>
                                 </table>
-                                {% if user.is_staff %}
                                     <a target="_blank" id="create-scale-button-{{ comex.id }}" class="btn btn-light"
                                        style="background-color: transparent" type="button"><i
                                             class="fa-solid fa-circle-plus fa-2xl"
                                             style="margin-right:5px;color:green;"></i></a>
-                                {% endif %}
+
                             </div>
                         </div>
                     </div>
@@ -212,9 +207,9 @@
                                                                 name="type-{{ question.pk }}"
                                                                 type="button"
                                                                 {% if question.question_type.pk == question_type.pk %}
-                                                                class="btn btn-dark btn-sm focus" {% else %}
-                                                                class="btn btn-outline-dark btn-sm disabled"{% endif %}
-                                                                {% if not user.is_staff %} disabled {% endif %}>
+                                                                class="btn btn-dark btn-sm focus"
+                                                                {% else %}
+                                                                class="btn btn-outline-dark btn-sm disabled" {% endif %}>
                                                             {{ question_type.code }}</button>
                                                     {% endfor %}
                                                 </div>
@@ -232,8 +227,7 @@
                                             </td>
                                             <td><input id="maxpts-{{ question.pk }}" type="number" min="0"
                                                        value="{{ question.max_points }}" step=".01"
-                                                       style="width:100px;" class="form-control form-control-sm"
-                                                    {% if not user.is_staff %} disabled {% endif %}></td>
+                                                       style="width:100px;" class="form-control form-control-sm"/></td>
                                             {% if comex.common_exams.all %}
                                             <td>
                                             <div class="custom-control custom-switch mb-3">

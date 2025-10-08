@@ -1,0 +1,35 @@
+</br>
+<h6>GRADING SCHEMES</h6>
+<ul class="nav nav-pills flex-column flex-md-row border"
+    id="gs-pages-groups-pills"
+    role="tablist">
+  {% for group in grading_schemes_pages_groups %}
+    <li class="nav-item" role="presentation">
+      <a type="button"
+              class="flex-sm-fill text-sm-center nav-link {% if forloop.first %}active{% endif %}"
+              id="gs-pages-group-{{ group.id }}-tab"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+              hx-get="{% url 'grading_scheme_pages_group' exam_selected.id group.id %}"
+              hx-target="#grading-scheme-panel"
+              hx-swap="innerHTML"
+              hx-on:click="
+                const list = this.closest('#gs-pages-groups-pills');
+                list.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected','false'); });
+                this.classList.add('active'); this.setAttribute('aria-selected','true');
+              "
+             {% if forloop.first %}hx-trigger="load once, click"{% endif %}>
+        {{ group.group_name }}
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+
+<div id="grading-scheme-panel" class="tab-content"></div>
+
+<script>
+  (function(){
+    const first = document.querySelector('#gs-pages-groups-pills .nav-link');
+    if (first) first.click();
+  }());
+
+</script>

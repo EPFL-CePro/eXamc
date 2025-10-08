@@ -164,29 +164,11 @@ AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
 DOCUMENTATION_ROOT = BASE_DIR / 'docs/build/html/'
 DOCUMENTATION_URL = '/docs/build/html/'
 
-# # Django-tequila specifics
-# AUTH_PROFILE_MODULE = "to_delete_userprofile.UserProfile"
-
-# OLD TEQUILA
-#AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 'django_tequila.django_backend.TequilaBackend',)
-# TEQUILA_SERVICE_NAME = "django_tequila_service"
-# TEQUILA_SERVER_URL = "https://tequila.epfl.ch"
-# TEQUILA_NEW_USER_INACTIVE = False
-# TEQUILA_CLEAN_URL = True
-# TEQUILA_STRONG_AUTHENTICATION = False
-# TEQUILA_ALLOWED_REQUEST_HOSTS = None
-# TEQUILA_ALLOW_GUESTS = False
-# LOGIN_URL = "/login"
-# LOGIN_REDIRECT_URL = "/"
-# LOGOUT_URL = "/"
-# LOGIN_REDIRECT_IF_NOT_ALLOWED = "/not_allowed"
-# LOGIN_REDIRECT_TEXT_IF_NOT_ALLOWED = "Not allowed : please contact your admin"
-
 # NEW ENTRA ID
 ####################################################
 # Authentication settings
 ####################################################
-AUTHENTICATION_BACKENDS = ("mozilla_django_oidc.auth.OIDCAuthenticationBackend","django.contrib.auth.backends.ModelBackend")
+AUTHENTICATION_BACKENDS = ("examc_app.auth_backend.ExamcOIDCBackend","django.contrib.auth.backends.ModelBackend")
 TENANT_ID = os.environ["TENANT_ID"]
 
 OIDC_RP_CLIENT_ID = os.environ["OIDC_RP_CLIENT_ID"]

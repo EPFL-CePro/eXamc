@@ -54,7 +54,6 @@ def add_course_teachers_ldap(teachers):
                 user.first_name = user_entry['givenName'][0]
                 user.last_name = user_entry['sn'][0]
                 user.email = user_entry['mail'][0]
-                user.is_staff = True
                 user.is_active = True
                 user.save()
 

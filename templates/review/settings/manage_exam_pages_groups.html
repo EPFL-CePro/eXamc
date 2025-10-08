@@ -41,7 +41,9 @@
                 {{ hidden }}
             {% endfor %}
             {% for field in form.visible_fields %}
-                <td>{{ field }}</td>
+                <td>
+                    {{ field }}
+                </td>
             {% endfor %}
 
             <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value exam_selected.pk %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
@@ -54,10 +56,20 @@
                 {{ hidden }}
             {% endfor %}
             {% for field in exam_pages_groups_formset.extra_forms.0.visible_fields %}
-                {% if field.label == 'Delete' %}
-                <td style="text-align:center;padding-top:35px">{{ field }}</td>
+            {% if field.label == 'Delete' %}
+                <td style="text-align:center;padding-top:35px">
+                    {{ field }}</td>
             {% else %}
-                <td>{{ field }}</td>
+                <td>
+                    {% if field.name == "use_grading_scheme" %}
+                    <div class="custom-control custom-switch mb-0">
+                        {{ field }}
+                        <label class="custom-control-label" for="{{ field.id_for_label }}"></label>
+                      </div>
+                    {% else %}
+                    {{ field }}
+                    {% endif %}
+                </td>
             {% endif %}
             {% endfor %}
             {% load static %}

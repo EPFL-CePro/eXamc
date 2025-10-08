@@ -66,17 +66,17 @@ $(window).on("load",function(){
                                   <div class="btn-group btn-group-toggle" data-toggle="buttons" style="margin-left:-20px;">
                                   {% if student.present %}
                                     <label class="btn btn-light btn-sm active" style="background-color: transparent;">
-                                      <a href="{% url 'update_student_present' exam_selected.pk student.pk 1 %}"><input type="radio" name="options" id="present-{{student.pk}}-1" checked {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl"></i></a>
+                                      <a href="{% url 'update_student_present' exam_selected.pk student.pk 1 %}"><input type="radio" name="options" id="present-{{student.pk}}-1" checked ><i class="fa-solid fa-circle-check fa-2xl"></i></a>
                                     </label>
                                     <label class="btn btn-light btn-sm" style="background-color: transparent;">
-                                         <a href="{% url 'update_student_present' exam_selected.pk student.pk 0 %}"><input type="radio" name="options" id="present-{{student.pk}}-0" {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i></a>
+                                         <a href="{% url 'update_student_present' exam_selected.pk student.pk 0 %}"><input type="radio" name="options" id="present-{{student.pk}}-0"><i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i></a>
                                     </label>
                                   {% else %}
                                     <label class="btn btn-light btn-sm" style="background-color: transparent;">
-                                        <a href="{% url 'update_student_present' exam_selected.pk student.pk 1 %}"><input type="radio" name="options" id="present-{{student.pk}}-1" {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-check fa-2xl" style="color:lightgray;"></i></a>
+                                        <a href="{% url 'update_student_present' exam_selected.pk student.pk 1 %}"><input type="radio" name="options" id="present-{{student.pk}}-1" ><i class="fa-solid fa-circle-check fa-2xl" style="color:lightgray;"></i></a>
                                     </label>
                                     <label class="btn btn-light btn-sm active" style="background-color: transparent;">
-                                        <a href="{% url 'update_student_present' exam_selected.pk student.pk 0 %}"><input type="radio" name="options" id="present-{{student.pk}}-0" checked {% if not user.is_staff %} disabled {% endif %}><i class="fa-solid fa-circle-xmark fa-2xl"></i></a>
+                                        <a href="{% url 'update_student_present' exam_selected.pk student.pk 0 %}"><input type="radio" name="options" id="present-{{student.pk}}-0" checked ><i class="fa-solid fa-circle-xmark fa-2xl"></i></a>
                                     </label>
                                   {% endif %}
                                   </div>

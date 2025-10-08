@@ -1,0 +1,56 @@
+<style>
+    .table-no-right-pad :is(th, td) {
+        padding-inline-end: 0; /* = padding-right in LTR, padding-left in RTL */
+    }
+    /* remove top border for the first body row */
+    .table-no-right-pad tbody tr:first-child > th,
+    .table-no-right-pad tbody tr:first-child > td {
+        border-top: 0 !important;
+    }
+</style>
+<table class="table table-md table-fixed-cols table-no-right-pad" id="review-grading-scheme-checkboxes-dt">
+    <colgroup>
+        <col style="width:50px;">
+        <col style="width:50px;">
+        <col>
+    </colgroup>
+    <tbody>
+    {% for gsc in grading_scheme_checkboxes %}
+        <tr>
+            <td style="padding-bottom: 0px;">
+                <div class="custom-control custom-switch mb-3">
+                    <input class="custom-control-input" type="checkbox"
+                           id="check-gsc-{{ gsc.item_id }}"
+                           name="check-gsc-{{ gsc.item_id }}"
+                           {% if gsc.checked %}checked{% endif %}
+                           onchange="updatePagesGroupCheckBox(this.id, this.checked, null)"/>
+                    <label class="custom-control-label" for="check-gsc-{{ gsc.item_id }}"></label>
+                </div>
+            </td>
+            {% if gsc.name == 'ADJ' %}
+                <td colspan="2" style="padding-bottom: 0px;">
+                    <input class="form-control form-control-sm d-inline-block w-auto mr-2" type="number"
+                           id="adj-gsc-{{ gsc.item_id }}"
+                           name="adj-gsc-{{ gsc.item_id }}"
+                           step="0.01"
+                           style="width:100px;"
+                           onchange="updatePagesGroupCheckBox(this.id, null, this.value)"
+                           value="{{ gsc.adjustment }}"/> {{ gsc.description }}
+                </td>
+                </tr>
+            {% else %}
+                <td style="padding-bottom: 0px;">
+                    {{ gsc.points }}
+                </td>
+                <td style="padding-right:20px;">
+                    {{ gsc.name }}
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" style="border-top:None;padding-top:0px;padding-left:70px;padding-right:20px;">{{ gsc.description }}</td>
+            </tr>
+            {% endif %}
+
+    {% endfor %}
+    </tbody>
+</table>
