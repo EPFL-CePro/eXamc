@@ -1,0 +1,36 @@
+/* Review grading Scheme css */
+.review-grading-scheme-split-vert {
+    height: 85vh;
+    width: 500px;
+    display: grid;
+    grid-template-rows: var(--top, 100px) 6px 1fr;
+}
+
+/* Make the two panes scroll independently */
+.review-grading-scheme-split-vert > .pane {
+    overflow: auto;
+}
+
+/* The draggable bar between the panes */
+.review-grading-scheme-split-vert .divider {
+    background: #d9d9d9;
+    cursor: row-resize;
+    position: relative;
+}
+
+/* a small handle (optional) */
+.review-grading-scheme-split-vert .divider::after {
+    content: "";
+    position: absolute;
+    inset: 0 45%;
+    border-left: 2px solid #bcbcbc;
+    border-right: 2px solid #bcbcbc;
+}
+
+/* nicer dragging feel */
+.dragging {
+    user-select: none;
+    cursor: row-resize;
+}
+
+#commentsModal .modal-header.handle { cursor: move; }
