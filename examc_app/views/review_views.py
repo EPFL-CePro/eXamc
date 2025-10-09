@@ -111,17 +111,14 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin,DetailView):
                 current_grading_scheme = 0
 
         # Get scans file path dict by pages groups
-        #scans_pathes_list = get_scans_pathes_by_group(pages_group)
         copies_pages_list = get_copies_pages_by_group(pages_group)
         if user_allowed(pages_group.exam, self.request.user.id):
             context['user_allowed'] = True
             context['nav_url'] = "reviewGroup"
             context['pages_group'] = pages_group
-            #context['scans_pathes_list'] = scans_pathes_list
             context['copies_pages_list'] = copies_pages_list
             context['json_copies_pages_list'] = json.dumps(copies_pages_list)
             context['currpage'] = current_page
-            #context['json_group_scans_pathes'] = json.dumps(scans_pathes_list)
             context['exam_selected'] = pages_group.exam
             exam = pages_group.exam
             if exam.common_exams:
