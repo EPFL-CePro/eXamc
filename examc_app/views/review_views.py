@@ -809,7 +809,10 @@ def grading_scheme_pages_group(request, exam_pk, pages_group_id: int,current_gra
     if current_grading_scheme_id:
         current_grading_scheme = QuestionGradingScheme.objects.get(pk=current_grading_scheme_id)
     else:
-        current_grading_scheme = grading_schemes[0]
+        if grading_schemes:
+            current_grading_scheme = grading_schemes[0]
+        else:
+            current_grading_scheme = None
     return render(
         request,
         "review/settings/_grading_scheme_pages_group.html",
@@ -924,7 +927,10 @@ def delete_grading_scheme(request, exam_pk, grading_scheme_id):
     pages_group = grading_scheme.pages_group
     grading_scheme.delete()
     grading_schemes = pages_group.gradingSchemes.all()
-    current_grading_scheme = grading_schemes[0]
+    if grading_schemes:
+        current_grading_scheme = grading_schemes[0]
+    else:
+        current_grading_scheme = None
 
     return render(request,"review/settings/_grading_scheme_pages_group.html",
         {"exam_selected": pages_group.exam, "pages_group": pages_group, "grading_schemes": grading_schemes,
