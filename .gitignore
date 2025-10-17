@@ -102,9 +102,9 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env.local
-.env.prod
 .env.dev
+.env.prod
+.env.test
 .venv
 env/
 venv/
@@ -7095,7 +7095,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env.local
+.env.dev
 .venv
 env/
 venv/
@@ -7257,12 +7257,42 @@ fabric.properties
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
 # .python-version
-export_tmp/
 examc_app/migrations/*/
 catalogs/
 autoupload/
-.env.dev
-.env.prod
 manage.py
 rooms_plans/export/
 static/
+examc/wsgi.py
+
+# Envs (ne JAMAIS versionner)
+.env
+.env.*         # .env.dev, .env.test, .env.prod, etc.
+!.env.example  # on garde un modèle public
+
+# Dumps et seeds (lourds/sensibles)
+deploy/db/*.sql
+deploy/db/*.sql.gz
+deploy/db/*.tar
+deploy/db/*.tar.gz
+
+# Artefacts courants
+__pycache__/
+*.pyc
+celery_schedule/
+media/
+export_tmp/
+static/          # si collectstatic génère ici (sinon adapte)
+*.sqlite3
+
+# IDE / OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# certs
+certs/
+*.crt
+*.key
+*.pem
