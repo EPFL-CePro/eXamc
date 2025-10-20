@@ -1,0 +1,52 @@
+services:
+  web:
+    user: "0"
+    environment:
+      DEBUG: "1"
+      COLLECTSTATIC: "0"            # en dev, OK ; mets "1" si tu veux simuler prod
+      PRIVATE_MEDIA_ROOT: /private_media
+    volumes:
+      - ../:/app
+      - static_volume:/static
+      - media_volume:/media
+      - /srv/examc/private_media:/private_media   # host -> container (rw)
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
+
+  nginx:
+    volumes:
+      - ../deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/static:ro
+      - media_volume:/media:ro
+      - /srv/examc/private_media:/private_media:ro
+    ports:
+      - "8000:80"
+
+  mysql:
+    restart: unless-stopped
+    ports:
+      - "3307:3306"   # utile si client local
+    volumes:
+      - ../deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
+
+  redis:
+    restart: unless-stopped
+
+  celery:
+    user: "0"
+    environment:
+      PRIVATE_MEDIA_ROOT: /private_media
+    volumes:
+      - ../:/app
+      - static_volume:/static
+      - media_volume:/media
+      - /srv/examc/private_media:/private_media
+
+  celery_beat:
+    user: "0"
+    environment:
+      PRIVATE_MEDIA_ROOT: /private_media
+    volumes:
+      - ../:/app
+      - static_volume:/static
+      - media_volume:/media
+      - /srv/examc/private_media:/private_media

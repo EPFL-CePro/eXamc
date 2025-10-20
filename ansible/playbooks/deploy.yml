@@ -1,0 +1,41 @@
+- hosts: app
+  become: true
+  vars_files:
+    - "../group_vars/{{ env }}/app.yml"
+    - "../group_vars/{{ env }}/vault.yml"
+  vars:
+    repo_url: "git@github.com:EPFL-CePro/eXamc.git"
+    repo_version: "main"
+    env_path: "/opt/examc/.env"
+  tasks:
+    - name: Ensure app dir exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Checkout application repository
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ repo_version }}"
+        force: true
+
+    - name: Render remote .env
+      ansible.builtin.template:
+        src: "../templates/.env.j2"
+        dest: "{{ env_path }}"
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Compose up (uses env_file inside compose)
+      ansible.builtin.shell: |
+        COMPOSE_PROJECT_NAME={{ compose_project_name }} \
+        ENV_FILE=.env \
+        docker compose -f {{ app_dir }}/compose/base.yml -f {{ app_dir }}/compose/{{ env }}.yml \
+          up -d --build
+  args:
+    chdir: "{{ app_dir }}"
+  when: not ansible_check_mode

@@ -1,0 +1,38 @@
+# examc/compose/prod.yml
+services:
+  web:
+    restart: unless-stopped
+    environment:
+      DEBUG: "0"
+      ALLOWED_HOSTS: "examc.epfl.ch"
+    depends_on: []   # pas de dépendance DB si managée
+
+  nginx:
+    restart: unless-stopped
+    volumes:
+      - ../deploy/nginx/nginx.ssl.prod.conf:/etc/nginx/nginx.conf:ro
+      - /srv/certs/prod:/etc/nginx/certs:ro
+      - static_volume:/static:ro    # nginx lit ici
+      - media_volume:/media:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+  # DB managée => on neutralise le service local
+  mysql:
+    deploy:
+      replicas: 0
+
+  redis:
+    restart: unless-stopped
+
+  celery:
+    restart: unless-stopped
+    environment:
+      CELERY_LOGLEVEL: "INFO"
+      CELERY_CONCURRENCY: "4"
+
+  celery_beat:
+    restart: unless-stopped
+    environment:
+      CELERY_LOGLEVEL: "INFO"

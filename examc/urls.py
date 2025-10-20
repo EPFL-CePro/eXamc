@@ -18,11 +18,15 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.urls import path, include
 
 from examc_app import views
 from examc_app.admin import ExamAdmin, CourseAdmin
 
+
+def healthz(_request):  # simple 200
+    return HttpResponse("ok", content_type="text/plain")
 urlpatterns = ([
     path('admin/doc/', include('django.contrib.admindocs.urls')),
     path('admin/', admin.site.urls),
@@ -40,6 +44,7 @@ urlpatterns = ([
     #Signed files url
     path("protected/", views.serve_signed_file, name="serve_signed_file"),
     path('force-logout/', views.force_oidc_logout, name='force_oidc_logout'),
+    path("healthz/", healthz, name="healthz"),
     ] #+ static(settings.MARKED_SCANS_URL, document_root=settings.MARKED_SCANS_ROOT)
     #+ static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
    + static(settings.DOCUMENTATION_URL, document_root=settings.DOCUMENTATION_ROOT)

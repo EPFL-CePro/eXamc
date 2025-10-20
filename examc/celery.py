@@ -1,14 +1,21 @@
 from __future__ import absolute_import, unicode_literals
 
+from pathlib import Path
+
 from celery import Celery
 
 from django.conf import settings
 import os
 from dotenv import load_dotenv
 
-dotenv_path = os.path.join(os.path.dirname(__file__),'../.env.local')
-load_dotenv(dotenv_path)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examc.settings.local')
+if os.getenv("DJANGO_DOTENV", "0") == "1":
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(Path(__file__).resolve().parent / ".env")
+    except Exception:
+        pass
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examc.settings')
 
 app = Celery('examc') #, backend='redis://localhost:6379', broker='redis://localhost:6379')
 

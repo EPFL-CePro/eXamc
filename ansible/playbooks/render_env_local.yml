@@ -1,0 +1,21 @@
+- name: Render .env locally from template
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - "../group_vars/{{ env }}/app.yml"
+    - "../group_vars/{{ env }}/vault.yml"
+  tasks:
+    - name: Ensure parent dir exists
+      ansible.builtin.file:
+        path: "{{ dest | dirname }}"
+        state: directory
+        mode: "0755"
+      when: (dest | dirname) not in ['', '.']
+
+    - name: Render .env locally
+      ansible.builtin.template:
+        src: "../templates/.env.j2"
+        dest: "{{ dest }}"
+        mode: "0600"
+      no_log: true

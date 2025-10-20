@@ -31,7 +31,7 @@ def getCommonExams(request, pk):
 def home(request):
     user_info = request.user.__dict__
     user_info.update(request.user.__dict__)
-
+    print("XXXXXXXXXXXXXX "+str(settings.BASE_DIR))
     last_connection_users = []
     if request.user.is_superuser:
         for u in User.objects.all().order_by('-last_login'):

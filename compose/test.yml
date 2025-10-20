@@ -1,0 +1,34 @@
+# examc/compose/test.yml
+services:
+  web:
+    restart: unless-stopped
+    environment:
+      DEBUG: "0"
+      ALLOWED_HOSTS: "examc-test.epfl.ch"
+  nginx:
+    restart: unless-stopped
+    volumes:
+      - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
+      - /srv/certs/test:/etc/nginx/certs:ro  # place tes certs ici
+      - static_volume:/static:ro    # nginx lit ici
+      - media_volume:/media:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+  mysql:
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  celery:
+    restart: unless-stopped
+    environment:
+      CELERY_LOGLEVEL: "INFO"
+      CELERY_CONCURRENCY: "4"
+
+  celery_beat:
+    restart: unless-stopped
+    environment:
+      CELERY_LOGLEVEL: "INFO"

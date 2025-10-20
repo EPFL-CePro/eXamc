@@ -1,0 +1,44 @@
+% Suppress begin-question texts
+\renewcommand{\AMCbeginQuestion}[2]{\QuestionText{#1}}
+\def\QuestionText{\TEXT}
+\def\TEXT#1{}
+\def\NOTEXT#1{}
+\setlength\parindent{0pt}
+%*******************************************************************%
+
+
+%% Leave at least 2 empty lines after the \bigskip
+\addtocounter{AMCquestionaff}{1}
+
+\element{section_3}{
+\begin{description}
+\item[Question~\theAMCquestionaff :] \textit{This question is worth 8 points.}
+\end{description}
+\correctorEight{OPEN-A}{~}
+\correctorStop
+
+\noindent
+We remind you that ...
+
+Determine ...
+
+\OpenGrid{19cm}
+\FullPageOpenGrid
+}
+
+\element{section_3}{
+\begin{description}
+\item[Question~\theAMCquestionaff :] \textit{This question is worth 2 points.}
+\end{description}
+\correctorTwoHalf{OPEN-B}{~}
+\correctorStop
+
+\noindent
+We remind you that ...
+
+Determine ...
+
+\OpenBox{19cm}
+\FullPageOpenBox
+}
+\setgroupmode{section_3}{fixed}

@@ -15,24 +15,47 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+from dotenv import load_dotenv
 
-# SECURITY
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+# ----- helpers env
+def env(key, default=None): return os.getenv(key, default)
+def env_bool(key, default="0"): return str(os.getenv(key, default)).lower() in ("1","true","yes","on")
+def env_int(key, default="0"):
+    try: return int(os.getenv(key, default))
+    except (TypeError, ValueError): return int(default)
+
+# Optional: load .env only for local dev (outside Docker)
+if os.getenv("DJANGO_DOTENV", "0") == "1":
+    load_dotenv(BASE_DIR / ".env")  # allows manage.py runserver locally without Compose
+
+
+# BASIC SECURITY
+SECRET_KEY = env("SECRET_KEY")
+DEBUG = env_bool("DEBUG","0")
+
+ALLOWED_HOSTS = env("ALLOWED_HOSTS", "*").split(",")
+CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS.split(",") if CSRF_TRUSTED_ORIGINS else []
+
+# OTHER SECURITY
 X_FRAME_OPTIONS = 'SAMEORIGIN'
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", "0" if DEBUG else "1")
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", "0" if DEBUG else "1")
+CSRF_COOKIE_SECURE    = env_bool("CSRF_COOKIE_SECURE", "0" if DEBUG else "1")
+SECURE_HSTS_SECONDS   = 0 if DEBUG else 15768000 #6mois
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_HSTS_PRELOAD = True
+SECURE_BROWSER_XSS_FILTER = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # Session timeout after 1h of inactivity. Middleware is managing auto-logout on inactivity
 SESSION_COOKIE_AGE = 3600 #86400  # seconds
 SESSION_SAVE_EVERY_REQUEST = True  # resets timeout on each request
 SESSION_ENGINE = 'django.contrib.sessions.backends.db' #This stores sessions in the django_session table, allowing you to check who is still logged in
-CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 15768000 #6mois
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_HSTS_PRELOAD = True
-SECURE_BROWSER_XSS_FILTER = True
+
 # MAX UPLOAD SIZE 10MB (default 2.5MB not enough for review)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
 
@@ -49,8 +72,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
-    #'django_tequila',
-    #'to_delete_userprofile',
     'sslserver',
     'django_tables2',
     'crispy_forms',
@@ -100,13 +121,31 @@ TEMPLATES = [
     },
 ]
 
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": env("MYSQL_DATABASE", "examc"),
+        "USER": env("MYSQL_USER", "appuser"),
+        "PASSWORD": env("MYSQL_PASSWORD", ""),
+        "HOST": env("DB_HOST", "db"),    # en local hors Docker: 127.0.0.1
+        "PORT": env("DB_PORT", "3306"),
+        "OPTIONS": {
+            "autocommit": True,
+            "charset": "utf8mb4",
+        },
+        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", "600"),
+    }
+}
+
+
 WSGI_APPLICATION = 'examc.wsgi.application'
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Europe/Berlin'
+TIME_ZONE = env("TZ",'Europe/Zurich')
 
 USE_I18N = True
 
@@ -124,14 +163,16 @@ MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static/'
+STATIC_ROOT = os.environ.get("STATIC_ROOT", "/static")
 
 # Signed files expiration timeout ms
 SIGNED_FILES_EXPIRATION_TIMEOUT = 300
 SIGNED_FILES_URL = '/protected/'
 
 # Private media root
-PRIVATE_MEDIA_ROOT = Path("/srv/examc/private_media")
+PRIVATE_MEDIA_ROOT = Path(os.environ.get("PRIVATE_MEDIA_ROOT", "/private_media"))
+# If using Nginx X-Accel-Redirect:
+PRIVATE_MEDIA_URL = "/_protected/"
 
 SCANS_ROOT = PRIVATE_MEDIA_ROOT / 'scans/'
 #SCANS_URL = '/protected/scans/'
@@ -169,10 +210,9 @@ DOCUMENTATION_URL = '/docs/build/html/'
 # Authentication settings
 ####################################################
 AUTHENTICATION_BACKENDS = ("examc_app.auth_backend.ExamcOIDCBackend","django.contrib.auth.backends.ModelBackend")
-TENANT_ID = os.environ["TENANT_ID"]
-
-OIDC_RP_CLIENT_ID = os.environ["OIDC_RP_CLIENT_ID"]
-OIDC_RP_CLIENT_SECRET = os.environ["OIDC_RP_CLIENT_SECRET"]
+OIDC_RP_CLIENT_ID = env("OIDC_RP_CLIENT_ID", "")
+OIDC_RP_CLIENT_SECRET = env("OIDC_RP_CLIENT_SECRET", "")
+TENANT_ID = env("TENANT_ID", "")
 
 AUTH_DOMAIN = f"https://login.microsoftonline.com/{TENANT_ID}"
 OIDC_OP_AUTHORIZATION_ENDPOINT = f"{AUTH_DOMAIN}/oauth2/v2.0/authorize"
@@ -249,17 +289,12 @@ LOGGING = {
 }
 
 # Celery & Redis
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-
-CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "False").lower() == "true"
-
-# Beat scheduler (si django-celery-beat est installé)
-CELERY_BEAT_SCHEDULER = os.getenv(
-    "CELERY_BEAT_SCHEDULER",
-    "django_celery_beat.schedulers:DatabaseScheduler"
-)
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", "0")
+CELERY_BEAT_SCHEDULER = env("CELERY_BEAT_SCHEDULER", "django_celery_beat.schedulers:DatabaseScheduler")
 
 ## CKEDITOR Configuration
 CKEDITOR_5_CONFIGS = {

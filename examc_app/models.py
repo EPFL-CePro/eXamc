@@ -7,15 +7,15 @@ from django.db import models
 from django.db.models import Count
 from django.utils import timezone
 from django_ckeditor_5.fields import CKEditor5Field
-from simple_history import register
+# from simple_history import register
 from simple_history.models import HistoricalRecords
 
 logger = logging.getLogger(__name__)
 
 User.__str__ = lambda user_instance: user_instance.first_name + " " + user_instance.last_name
 
-# history tracker for third-party model
-register(User)
+# # history tracker for third-party model
+# register(User)
 
 
 
@@ -53,7 +53,7 @@ class Exam(models.Model):
     pdf_catalog_name = models.CharField(max_length=200, blank=True,null=True)
 
     class Meta:
-        unique_together = ('code', 'semester', 'year')
+        unique_together = ('code', 'date')
         ordering = ['-year', '-semester', 'code']
         verbose_name = "Exam"
 
@@ -87,13 +87,6 @@ class Exam(models.Model):
         """ Return the sum of all common students. """
         value = self.common_exams.all().filter(overall=False).aggregate(total=Count('students'))['total']
         return value
-
-    # def get_teachers(self):
-    #     teachers = ''
-    #     for user in self.users.all():
-    #         if teachers:
-    #             teachers += ', '
-    #         teachers += user.last_name
 
     def __str__(self):
         return self.code + "-" + self.name + " " + self.year.code + " " + str(self.semester.code)
@@ -188,7 +181,7 @@ class Question(models.Model):
     question_type = models.ForeignKey(QuestionType, on_delete=models.CASCADE,related_name='questions',blank=False,null=True)
     max_points = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     nb_answers = models.IntegerField(default=2)
-    correct_answer = models.CharField(max_length=15)
+    correct_answer = models.CharField(max_length=15,null=True)
     discriminatory_factor = models.IntegerField(default=0)
     upper_correct = models.IntegerField(default=0)
     lower_correct = models.IntegerField(default=0)
@@ -284,7 +277,7 @@ class PagesGroupComment(models.Model):
     created = models.DateTimeField(auto_now_add=True, blank=True)
     modified = models.DateTimeField(blank=True, null=True)
     content = models.TextField()
-    is_new = models.BooleanField()
+    is_new = models.BooleanField(default=False)
     history = HistoricalRecords()
 
     def serialize(self, curr_user_id):

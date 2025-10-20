@@ -1,5 +1,6 @@
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.db import transaction
 from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -17,11 +18,45 @@ class CsvImportForm(forms.Form):
 class JsonImportForm(forms.Form):
     json_file = forms.FileField()
 
+from simple_history.signals import (
+    pre_create_historical_record,
+    post_create_historical_record,
+)
+
+
+@admin.action(description="Delete selected exams (per-exam commits)")
+def delete_selected_per_exam(modeladmin, request, queryset):
+    # Capture IDs first so we don't mutate the queryset while iterating it
+    exam_ids = list(queryset.values_list('pk', flat=True))
+    from django.db.models.signals import pre_delete, post_delete
+    from django.contrib import messages
+
+    # Disconnect signals for specific models
+    for model in [Exam, ExamUser, Question, QuestionAnswer]:
+        pre_delete.disconnect(receiver=pre_create_historical_record, sender=model)
+        post_delete.disconnect(receiver=post_create_historical_record, sender=model)
+
+    deleted = 0
+    for pk in exam_ids:
+        # Each exam delete happens in its own transaction/commit
+        with transaction.atomic():
+            # Use a filtered delete to avoid fetching the whole object
+            count, _ = Exam.objects.filter(pk=pk).delete()
+            deleted += count
+
+    # Reconnect after
+    for model in [Exam, ExamUser, Question, QuestionAnswer]:
+        pre_delete.connect(receiver=pre_create_historical_record, sender=model)
+        post_delete.connect(receiver=post_create_historical_record, sender=model)
+
+    messages.success(request, f"Deleted {deleted} exam(s) with per-exam commits.")
 
 @admin.register(Exam)
 class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display = ["code", "name", "semester", "year",'show_commons', 'get_common_exams_button']
     filter_horizontal = ('common_exams',)
+
+    actions = [delete_selected_per_exam]
 
     def show_commons(self, obj):
             return_str = ''

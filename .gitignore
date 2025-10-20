@@ -101,10 +101,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env.dev
-.env.prod
-.env.test
 .venv
 env/
 venv/
@@ -7094,8 +7090,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env.dev
 .venv
 env/
 venv/
@@ -7271,10 +7265,11 @@ examc/wsgi.py
 !.env.example  # on garde un modèle public
 
 # Dumps et seeds (lourds/sensibles)
-deploy/db/*.sql
-deploy/db/*.sql.gz
-deploy/db/*.tar
-deploy/db/*.tar.gz
+# ignorer tout ce qui est dans deploy/db
+deploy/db/*
+
+# garder un fichier “marqueur” pour que le dossier existe dans le repo
+!deploy/db/.gitkeep
 
 # Artefacts courants
 __pycache__/

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<global>
+  <AutoCapture_window_size>1379x947+2700+327</AutoCapture_window_size>
+  <CreateProjectModel_window_size>600x600+3590+410</CreateProjectModel_window_size>
+  <CreateProjectOption_window_size>325x352+3904+436</CreateProjectOption_window_size>
+  <FilterDetails_window_size>590x272+3201+639</FilterDetails_window_size>
+  <Mailing_window_size>1175x873+2537+161</Mailing_window_size>
+  <Main_window_size>554x828+3048+142</Main_window_size>
+  <Overwritten_window_size>235x177+1376+294</Overwritten_window_size>
+  <Preferences_window_size>1051x1012+4067+73</Preferences_window_size>
+  <ProjectManager_window_size>773x477+3764+254</ProjectManager_window_size>
+  <SMTP></SMTP>
+  <SelectStudents_window_size>806x934+3852+448</SelectStudents_window_size>
+  <Unrecognized_window_size>1508x1381+3170+11</Unrecognized_window_size>
+  <annote_chsign>4</annote_chsign>
+  <annote_ecart>5.5</annote_ecart>
+  <annote_font_name>Linux Libertine O 12</annote_font_name>
+  <ascii_filenames>1</ascii_filenames>
+  <assoc_ncols>4</assoc_ncols>
+  <assoc_window_size></assoc_window_size>
+  <box_size_proportion>0.8</box_size_proportion>
+  <bw_threshold>0.8</bw_threshold>
+  <checklayout_window_size>899x1304+2813+48</checklayout_window_size>
+  <conserve_taille>1</conserve_taille>
+  <csv_name_headers></csv_name_headers>
+  <csv_surname_headers></csv_surname_headers>
+  <csv_viewer>libreoffice</csv_viewer>
+  <defaut_annote_rtl></defaut_annote_rtl>
+  <defaut_encodage_csv>UTF-8</defaut_encodage_csv>
+  <defaut_encodage_liste>UTF-8</defaut_encodage_liste>
+  <defaut_moteur_latex_b>pdflatex</defaut_moteur_latex_b>
+  <defaut_name_field_type></defaut_name_field_type>
+  <defaut_note_arrondi>sup</defaut_note_arrondi>
+  <defaut_note_grain>0.25</defaut_note_grain>
+  <defaut_note_max>6</defaut_note_max>
+  <defaut_note_max_plafond>1</defaut_note_max_plafond>
+  <defaut_note_min></defaut_note_min>
+  <defaut_note_null>0</defaut_note_null>
+  <defaut_seuil>0.1</defaut_seuil>
+  <defaut_seuil_up>1</defaut_seuil_up>
+  <defaut_verdict>%(ID)
+Score: %S/%M</defaut_verdict>
+  <defaut_verdict_q>&quot;%s/%m&quot;</defaut_verdict_q>
+  <defaut_verdict_qc>&quot;X&quot;</defaut_verdict_qc>
+  <delimiteur_decimal>,</delimiteur_decimal>
+  <df_annotatedemail_email_subject>Correction de votre test blanc d'algèbre linéaire</df_annotatedemail_email_subject>
+  <df_annotatedemail_email_text>
+      Hello,
+
+Please find enclosed the correction of your exam.
+
+If you have any questions about your paper, please do not hesitate to contact your teacher.
+
+Regards</df_annotatedemail_email_text>
+  <df_annotatedemail_email_use_html></df_annotatedemail_email_use_html>
+  <df_subjectemail_email_subject>Exam questions</df_subjectemail_email_subject>
+  <df_subjectemail_email_text>Please find enclosed your question sheet.
+Regards.</df_subjectemail_email_text>
+  <df_subjectemail_email_use_html></df_subjectemail_email_use_html>
+  <dir_opener>dolphin %d</dir_opener>
+  <email_bcc>ludovic.bonivento@epfl.ch</email_bcc>
+  <email_cc></email_cc>
+  <email_delay>0</email_delay>
+  <email_sender>noreply-cepro-exams@epfl.ch</email_sender>
+  <email_sendmail_path>/usr/sbin/sendmail</email_sendmail_path>
+  <email_smtp_host>mail.epfl.ch</email_smtp_host>
+  <email_smtp_port>25</email_smtp_port>
+  <email_smtp_ssl>starttls</email_smtp_ssl>
+  <email_smtp_user>noreply-cepro-exams</email_smtp_user>
+  <email_transport>SMTP</email_transport>
+  <embedded_format>jpeg</embedded_format>
+  <embedded_jpeg_quality>75</embedded_jpeg_quality>
+  <embedded_max_size>1000x1500</embedded_max_size>
+  <encodage_interne>UTF-8</encodage_interne>
+  <encodage_latex>UTF-8</encodage_latex>
+  <force_convert></force_convert>
+  <html_browser>sensible-browser %u</html_browser>
+  <ignore_red></ignore_red>
+  <img_viewer>gwenview</img_viewer>
+  <imprimante></imprimante>
+  <mailing_window_size></mailing_window_size>
+  <manual_window_size>1284x1310+2377+39</manual_window_size>
+  <manuel_image_type>xpm</manuel_image_type>
+  <marks_window_size>1221x461+311+192</marks_window_size>
+  <methode_impression>CUPS</methode_impression>
+  <n_procs>0</n_procs>
+  <nonascii_projectnames></nonascii_projectnames>
+  <notify_annotation>1</notify_annotation>
+  <notify_capture>1</notify_capture>
+  <notify_command></notify_command>
+  <notify_desktop>1</notify_desktop>
+  <notify_documents></notify_documents>
+  <notify_grading>1</notify_grading>
+  <ods_viewer>libreoffice</ods_viewer>
+  <options_impression>
+    <number-up>1</number-up>
+    <print_answersheet></print_answersheet>
+    <repertoire>/tmp</repertoire>
+    <sides>two-sided-long-edge</sides>
+  </options_impression>
+  <pdf_viewer>okular</pdf_viewer>
+  <preferences_window_size></preferences_window_size>
+  <prepare_catalog></prepare_catalog>
+  <prepare_indiv_solution></prepare_indiv_solution>
+  <prepare_solution></prepare_solution>
+  <print_command_pdf>lpr %f</print_command_pdf>
+  <print_extract_with>gs</print_extract_with>
+  <printer_useful_options>Staple Stapling StapleLocation StapleSet StapleOption</printer_useful_options>
+  <project_icon_size>16</project_icon_size>
+  <projects_home>%HOME/MC-Projects</projects_home>
+  <projects_list_window_size>773x477+3764+254</projects_list_window_size>
+  <rep_modeles>/home/ludo/.AMC.d/Models</rep_modeles>
+  <rep_projets>/home/ludo/CEPRO/Workspace/GITHUB_KedroX/eXamc/examc/amc_projects/2024/1</rep_projets>
+  <saisie_dpi>150</saisie_dpi>
+  <seuil_eqm>3</seuil_eqm>
+  <seuil_sens>8</seuil_sens>
+  <symbole_0_0_color>#000000000000</symbole_0_0_color>
+  <symbole_0_0_type>none</symbole_0_0_type>
+  <symbole_0_1_color>#a5a51d1d2d2d</symbole_0_1_color>
+  <symbole_0_1_type>circle</symbole_0_1_type>
+  <symbole_1_0_color>#1a1a5f5fb4b4</symbole_1_0_color>
+  <symbole_1_0_type>circle</symbole_1_0_type>
+  <symbole_1_1_color>#2626a2a26969</symbole_1_1_color>
+  <symbole_1_1_type>circle</symbole_1_1_type>
+  <symboles_indicatives></symboles_indicatives>
+  <symboles_trait>2</symboles_trait>
+  <tex_editor>texmaker</tex_editor>
+  <tolerance_marque_inf>0.2</tolerance_marque_inf>
+  <tolerance_marque_sup>0.2</tolerance_marque_sup>
+  <try_three>1</try_three>
+  <txt_editor>kate</txt_editor>
+  <vector_scan_density>250</vector_scan_density>
+  <view_empty_color>#7878ffffeded</view_empty_color>
+  <view_invalid_color>#ffffefef3b3b</view_invalid_color>
+  <xml_viewer>kate</xml_viewer>
+  <zoom_window_factor>1</zoom_window_factor>
+  <zoom_window_height>400</zoom_window_height>
+  <zooms_edit_mode>0</zooms_edit_mode>
+  <zooms_ncols>4</zooms_ncols>
+</global>
