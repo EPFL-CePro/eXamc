@@ -3,7 +3,7 @@ services:
     user: "0"
     environment:
       DEBUG: "1"
-      COLLECTSTATIC: "0"            # en dev, OK ; mets "1" si tu veux simuler prod
+      COLLECTSTATIC: "0"            # in dev, OK
       PRIVATE_MEDIA_ROOT: /private_media
     volumes:
       - ../:/app

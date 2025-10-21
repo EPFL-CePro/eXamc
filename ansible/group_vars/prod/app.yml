@@ -1,11 +1,13 @@
 env_name: "prod"
 app_dir: "/opt/examc"
 compose_project_name: "examc_prod"
+compose_profiles: ""
 
 debug: false
 secure_ssl_redirect: true
 session_cookie_secure: true
 csrf_cookie_secure: true
+use_ssl: true
 
 allowed_hosts:
   - "examc.epfl.ch"
@@ -16,7 +18,7 @@ csrf_trusted_origins:
 tz: "Europe/Zurich"
 private_media_root: "/private_media"
 
-db_host: "mysql"
+db_host: "10.95.33.52"
 db_port: 3306
 
 celery_broker_url: "redis://redis:6379/0"

@@ -1,9 +1,10 @@
 env_name: "dev"
-
 debug: true
 secure_ssl_redirect: false
 session_cookie_secure: false
 csrf_cookie_secure: false
+use_ssl: false
+compose_profiles: "mysql-dockerized"
 
 allowed_hosts:
   - "localhost"

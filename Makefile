@@ -29,6 +29,11 @@ export ENV_FILE := .env.${ENV}
 COMPOSE_FILES := -f compose/base.yml -f compose/$(ENV).yml
 export COMPOSE_PROJECT_NAME := $(PROJECT)
 
+# Enable mysql-dockerized profile **only** for dev
+ifeq ($(ENV),dev)
+  export COMPOSE_PROFILES := mysql-dockerized
+endif
+
 # Optionnal Seed file (DB) ('make seed')
 SEED_FILE ?= deploy/db/dev-seed.sql.gz
 

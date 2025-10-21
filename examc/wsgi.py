@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Charge automatiquement .env.dev si présent (utile en dev local hors Docker)
-default_env = os.path.join(os.path.dirname(__file__), "../../../backup_envs/.env.dev")
+default_env = os.path.join(os.path.dirname(__file__), "../.env.dev")
 if os.path.exists(default_env):
     load_dotenv(default_env)
 

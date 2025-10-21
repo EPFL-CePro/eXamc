@@ -2,6 +2,7 @@ name: examc
 
 services:
   mysql:
+    profiles: ["mysql-dockerized"]
     image: mysql:8.4
     env_file:
       - ../${ENV_FILE:-.env.dev}
