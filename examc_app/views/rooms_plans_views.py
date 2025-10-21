@@ -20,6 +20,7 @@ from examc_app.utils.rooms_plans_functions import generate_plan
 
 CSV_TO_JPG_MAP = {
     'AAC_006.csv': 'AAC_006.jpg',
+    'AAC_008.csv': 'AAC_008.jpg',
     'AAC_020.csv': 'AAC_020.jpg',
     'AAC_114.csv': 'AAC_114.jpg',
     'AAC_120.csv': 'AAC_120.jpg',
