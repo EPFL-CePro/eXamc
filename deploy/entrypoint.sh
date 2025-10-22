@@ -10,6 +10,13 @@ echo "[entrypoint] DB_HOST=${DB_HOST:-unset} DB_PORT=${DB_PORT:-unset}"
 echo "[entrypoint] STATIC_ROOT=${STATIC_ROOT:-/static} MEDIA_ROOT=${MEDIA_ROOT:-/media} PRIVATE_MEDIA_ROOT=${PRIVATE_MEDIA_ROOT:-/private_media}"
 echo "[entrypoint] CMD to exec: $*"
 
+# ---- Default command if none passed ----
+if [ "$#" -eq 0 ] || [ -z "${1:-}" ]; then
+  # Pick your preferred default here (gunicorn recommended in prod)
+  set -- gunicorn examc.wsgi:application --bind 0.0.0.0:8000 --workers "${GUNICORN_WORKERS:-3}" --timeout "${GUNICORN_TIMEOUT:-120}"
+fi
+echo "[entrypoint] CMD to exec: $*"
+
 # --- Wait for DB (configurable) ---
 WAIT_FOR_DB="${WAIT_FOR_DB:-1}"
 WAIT_HOST="${DB_HOST:-mysql}"
@@ -39,21 +46,23 @@ sys.exit(1)
 PY
 fi
 
-# --- Ensure user & permissions ---
-id app >/dev/null 2>&1 || useradd -m -u 1000 -s /bin/bash app || true
+# --- Ensure user & permissions (only if root) ---
 if [ "$(id -u)" -eq 0 ]; then
+  id app >/dev/null 2>&1 || useradd -m -u 1000 -s /bin/bash app || true
   mkdir -p /static /media /private_media
   chown -R app:app /static /media /private_media /app || true
+  # Run migrations/collectstatic as 'app'
+  runuser -u app -- bash -lc "python manage.py migrate --noinput"
+  if [ "${COLLECTSTATIC:-1}" = "1" ]; then
+    runuser -u app -- bash -lc "python manage.py collectstatic --noinput"
+  fi
+  # Hand over to app user
+  exec runuser -u app -- "$@"
+else
+  # Already non-root: run directly
+  python manage.py migrate --noinput
+  if [ "${COLLECTSTATIC:-1}" = "1" ]; then
+    python manage.py collectstatic --noinput
+  fi
+  exec "$@"
 fi
-
-# --- helpers to run as app ---
-run_as_app() { runuser -u app -- bash -lc "$*"; }
-
-# --- DB migrations & static collection (as 'app') ---
-run_as_app "python manage.py migrate --noinput"
-if [ "${COLLECTSTATIC:-1}" = "1" ]; then
-  run_as_app "python manage.py collectstatic --noinput"
-fi
-
-# --- hand over to the main process (runserver/gunicorn) ---
-exec runuser -u app -- "$@"
