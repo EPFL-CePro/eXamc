@@ -9,12 +9,10 @@ services:
     restart: unless-stopped
     volumes:
       - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
-      - /srv/certs/test:/etc/nginx/certs:ro  # certs
+      - /srv/certs/:/etc/nginx/certs:ro  # certs
       - static_volume:/static:ro    # nginx static
       - media_volume:/media:ro
       - /srv/examc/private_media:/private_media:ro
-      - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/etc/nginx/certs:ro
     ports:
       - "8080:80"
       - "8443:443"
