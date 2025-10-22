@@ -8,8 +8,8 @@ services:
   nginx:
     restart: unless-stopped
     volumes:
+      - /srv/examc/certs/:/etc/nginx/certs:ro  # certs
       - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
-      - /srv/certs/:/etc/nginx/certs:ro  # certs
       - static_volume:/static:ro    # nginx static
       - media_volume:/media:ro
       - /srv/examc/private_media:/private_media:ro
