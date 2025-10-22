@@ -41,8 +41,8 @@ services:
       WAIT_FOR_DB: "1"
       WAIT_FOR_DB_TIMEOUT: "600"
       # Toujours définir explicitement l’hôte/port DB vus par les conteneurs
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
     volumes:
       - static_volume:/static
       - media_volume:/media
@@ -84,8 +84,8 @@ services:
     environment:
       WAIT_FOR_DB: "1"
       WAIT_FOR_DB_TIMEOUT: "600"
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
     depends_on:
       redis:
         condition: service_started
@@ -111,8 +111,8 @@ services:
     environment:
       WAIT_FOR_DB: "1"
       WAIT_FOR_DB_TIMEOUT: "600"
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
     depends_on:
       redis:
         condition: service_started

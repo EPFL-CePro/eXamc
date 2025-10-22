@@ -5,6 +5,8 @@ services:
       DEBUG: "1"
       COLLECTSTATIC: "0"            # in dev, OK
       PRIVATE_MEDIA_ROOT: /private_media
+      DB_HOST: mysql
+      DB_PORT: 3306
     volumes:
       - ../:/app
       - static_volume:/static
@@ -38,18 +40,28 @@ services:
     user: "0"
     environment:
       PRIVATE_MEDIA_ROOT: /private_media
+      DB_HOST: mysql
+      DB_PORT: 3306
     volumes:
       - ../:/app
       - static_volume:/static
       - media_volume:/media
       - /srv/examc/private_media:/private_media
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   celery_beat:
     user: "0"
     environment:
       PRIVATE_MEDIA_ROOT: /private_media
+      DB_HOST: mysql
+      DB_PORT: 3306
     volumes:
       - ../:/app
       - static_volume:/static
       - media_volume:/media
       - /srv/examc/private_media:/private_media
+    depends_on:
+      mysql:
+        condition: service_healthy
