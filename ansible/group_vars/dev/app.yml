@@ -5,6 +5,7 @@ session_cookie_secure: false
 csrf_cookie_secure: false
 use_ssl: false
 compose_profiles: "mysql-dockerized"
+compose_project_name: "examc"
 
 allowed_hosts:
   - "localhost"

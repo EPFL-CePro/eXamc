@@ -1,6 +1,6 @@
 env_name: "test"
 app_dir: "/opt/examc"
-compose_project_name: "examc_test"
+compose_project_name: "examc"
 compose_profiles: ""
 
 debug: false
