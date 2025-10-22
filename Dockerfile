@@ -57,7 +57,7 @@ RUN if [ "$APPLY_SSL_PATCH" = "1" ]; then \
 
 # User non-root
 RUN groupadd -g 1000 app && useradd -m -u 1000 -g 1000 app
-USER app
+USER root
 
 # Gunicorn conf
 ENV GUNICORN_CMD_ARGS="--config deploy/gunicorn.conf.py"
