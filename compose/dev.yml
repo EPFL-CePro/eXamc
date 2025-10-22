@@ -11,6 +11,9 @@ services:
       - media_volume:/media
       - /srv/examc/private_media:/private_media   # host -> container (rw)
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   nginx:
     volumes:

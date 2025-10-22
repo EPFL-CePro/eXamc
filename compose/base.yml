@@ -49,8 +49,6 @@ services:
       # /app est monté en dev.yml
       # /private_media est monté en dev.yml
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
         condition: service_started
     # healthcheck: teste l'app depuis l'intérieur du conteneur
@@ -89,8 +87,6 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
         condition: service_started
     command: >
@@ -118,8 +114,6 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
         condition: service_started
     command: >
