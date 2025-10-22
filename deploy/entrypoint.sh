@@ -17,7 +17,8 @@ WAIT_PORT="${DB_PORT:-3306}"
 WAIT_TIMEOUT="${WAIT_FOR_DB_TIMEOUT:-180}"
 
 if [ "$WAIT_FOR_DB" = "1" ]; then
-python - <<PY
+  export WAIT_HOST WAIT_PORT WAIT_TIMEOUT
+  python - <<PY
 import os, time, sys, socket
 host=os.environ.get("WAIT_HOST","mysql")
 port=int(os.environ.get("WAIT_PORT","3306"))
