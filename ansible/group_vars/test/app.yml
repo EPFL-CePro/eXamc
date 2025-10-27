@@ -10,7 +10,7 @@ csrf_cookie_secure: true
 use_ssl: true
 
 allowed_hosts: ["examc-test.epfl.ch","localhost","127.0.0.1"]
-csrf_trusted_origins: ["https://examc-test.epfl.ch:8443"]
+csrf_trusted_origins: ["https://examc-test.epfl.ch"]
 
 tz: "Europe/Zurich"
 private_media_root: "/private_media"
