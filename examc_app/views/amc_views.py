@@ -69,6 +69,7 @@ def amc_view(request, exam_pk,curr_tab=None, task_id=None):
 
             # get project dir list
             project_dir_info = get_project_dir_info(exam)
+            print('****************** project_dir_dir : '+project_dir_info[0])
             project_dir_dict = project_dir_info[0]
             project_dir_files_list = project_dir_info[1]
 
