@@ -2,10 +2,9 @@
 services:
   web:
     restart: unless-stopped
-
     # healthcheck
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS 'Host: examc-test.epfl.ch' http://127.0.0.1:8000/healthz/ || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -H 'Host: examc-test.epfl.ch' http://127.0.0.1:8000/healthz/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
