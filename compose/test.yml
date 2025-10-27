@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       DEBUG: "0"
-      ALLOWED_HOSTS: "examc-test.epfl.ch"
+      ALLOWED_HOSTS: ["examc-test.epfl.ch","localhost","127.0.0.1"]
   nginx:
     restart: unless-stopped
     volumes:
