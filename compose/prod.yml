@@ -2,9 +2,6 @@
 services:
   web:
     restart: unless-stopped
-    environment:
-      DEBUG: "0"
-      ALLOWED_HOSTS: "examc.epfl.ch"
     depends_on: []   # pas de dépendance DB si managée
     # healthcheck: teste l'app depuis l'intérieur du conteneur
     healthcheck:
