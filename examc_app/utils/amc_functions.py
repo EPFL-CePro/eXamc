@@ -474,7 +474,7 @@ def get_amc_catalog_pdf_path(exam):
 def get_amc_project_path(exam,even_if_not_exist):
     amc_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+str(exam.year.code)+"/"+str(exam.semester.code)+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")
 
-    print('****************** amc_project_path : ' + amc_projet_path)
+    print('****************** amc_project_path : ' + amc_project_path)
     if os.path.isdir(amc_project_path):
         return amc_project_path
     elif even_if_not_exist:
