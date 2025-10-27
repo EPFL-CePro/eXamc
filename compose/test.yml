@@ -18,8 +18,8 @@ services:
       - media_volume:/media:ro
       - /srv/examc/private_media:/private_media:ro
     ports:
-      - "8080:80"
-      - "8443:443"
+      - "127.0.0.1:8080:80"
+      #- "8443:443"
 
   mysql:
     profiles: ["mysql-dockerized"]

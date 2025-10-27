@@ -30,6 +30,10 @@ def env_int(key, default="0"):
 # Optional: load .env only for local dev (outside Docker)
 if os.getenv("DJANGO_DOTENV", "0") == "1":
     load_dotenv(BASE_DIR / ".env")  # allows manage.py runserver locally without Compose
+else:
+    # Otherwise (prod/test) set port forwarding
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
 
 
 # BASIC SECURITY
