@@ -3,6 +3,10 @@ services:
   web:
     user: "1000:2770"
     restart: unless-stopped
+    volumes:
+      - static_volume:/static:ro    # static
+      - media_volume:/media:ro
+      - /srv/examc/private_media:/private_media:rw
     # healthcheck
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS -H 'Host: examc-test.epfl.ch' http://127.0.0.1:8000/healthz/ || exit 1"]

@@ -75,7 +75,7 @@ def convert_html_to_latex(html_string):
     # remove \tightlist
     latex_content = latex_content.replace("\\tightlist","")
     # add total_pages command if exist
-    latex_content = latex_content.replace("{[}TOTAL\_PAGES{]}","\\totalPages\\")
+    latex_content = latex_content.replace("{[}TOTAL\\_PAGES{]}","\\totalPages\\")
     # remove verbatim for latex code parts
     latex_content = latex_content.replace("\\begin{verbatim}",'')
     latex_content = latex_content.replace("\\end{verbatim}", '')
@@ -119,7 +119,7 @@ def exam_generate_preview(exam):
             header = section.header_text
             header_tex = convert_html_to_latex(header.encode('utf-8'))
             search_and_replace(amc_project_path+"/section_header_"+str(section_id)+".tex","<HEADER-TEXT>",header_tex)
-            sections_tex_input += "\n \input{./section_header_"+str(section_id)+".tex}"
+            sections_tex_input += "\n \\input{./section_header_"+str(section_id)+".tex}"
 
             # section title
             search_and_replace(amc_project_path+"/section_header_"+str(section_id)+".tex","<HEADER-TITLE>",section.title)
@@ -181,7 +181,7 @@ def exam_generate_preview(exam):
                     section_file.write("\\end{"+question_cmd+"}\n")
                 section_file.write("}\n\n")
 
-            sections_tex_input += "\n \insertgroup{section_"+str(section_id)+"}"
+            sections_tex_input += "\n \\insertgroup{section_"+str(section_id)+"}"
 
             section_file.close()
             sections_file.write("\\input{section_" + str(section_id) + ".tex} \n")
