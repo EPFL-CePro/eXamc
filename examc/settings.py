@@ -34,6 +34,7 @@ else:
     # Otherwise (prod/test) set port forwarding
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     USE_X_FORWARDED_HOST = True
+    SESSION_COOKIE_SAMESITE = "Lax"
 
 
 # BASIC SECURITY
