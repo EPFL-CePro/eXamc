@@ -105,7 +105,6 @@ def find_value_dict_by_key(dict,search_key):
 def get_project_dir_info(exam):
 
     project_dir = get_amc_project_path(exam,False)
-    print('****************** project_dir : ' + project_dir)
 
     data = path_to_dict(project_dir,[],project_dir)
     project_dir_dict = data[0]
@@ -474,19 +473,12 @@ def get_amc_catalog_pdf_path(exam):
 def get_amc_project_path(exam,even_if_not_exist):
     amc_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+str(exam.year.code)+"/"+str(exam.semester.code)+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")
 
-    if os.path.isdir("/private_media/amc_projects/2024-2025"):
-        print('====================== OK')
-    else:
-        print('====================== NOT OK')
     print('****************** amc_project_path : ' + amc_project_path)
     if os.path.isdir(amc_project_path):
-        print('############ is dir')
         return amc_project_path
     elif even_if_not_exist:
-        print('########## even_if_not_exist')
         return amc_project_path
     else:
-        print('############ None')
         return None
 
 def get_amc_project_url(exam):
