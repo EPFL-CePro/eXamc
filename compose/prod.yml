@@ -6,6 +6,13 @@ services:
       DEBUG: "0"
       ALLOWED_HOSTS: "examc.epfl.ch"
     depends_on: []   # pas de dépendance DB si managée
+    # healthcheck: teste l'app depuis l'intérieur du conteneur
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H 'Host: examc.epfl.ch' http://127.0.0.1:8000/healthz/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   nginx:
     restart: unless-stopped

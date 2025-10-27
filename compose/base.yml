@@ -51,14 +51,6 @@ services:
     depends_on:
       redis:
         condition: service_started
-    # healthcheck: teste l'app depuis l'intérieur du conteneur
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-    restart: unless-stopped
 
   nginx:
     image: nginx:1.27

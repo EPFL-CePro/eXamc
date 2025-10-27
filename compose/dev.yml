@@ -16,6 +16,14 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    # healthcheck:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
 
   nginx:
     volumes:
