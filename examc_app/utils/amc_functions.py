@@ -476,10 +476,13 @@ def get_amc_project_path(exam,even_if_not_exist):
 
     print('****************** amc_project_path : ' + amc_project_path)
     if os.path.isdir(amc_project_path):
+        print('############ is dir')
         return amc_project_path
     elif even_if_not_exist:
+        print('########## even_if_not_exist')
         return amc_project_path
     else:
+        print('############ None')
         return None
 
 def get_amc_project_url(exam):
