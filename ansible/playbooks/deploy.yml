@@ -87,7 +87,7 @@
 
     - name: Compose up (uses env_file inside compose)
       ansible.builtin.shell: |
-        COMPOSE_PROFILES= {{ compose_profiles | default('') }} \
+        COMPOSE_PROFILES={{ compose_profiles | default('') }} \
         COMPOSE_PROJECT_NAME={{ compose_project_name }} \
         ENV_FILE=.env.{{ env }} \
         docker compose -f {{ app_dir }}/compose/base.yml -f {{ app_dir }}/compose/{{ env }}.yml \
