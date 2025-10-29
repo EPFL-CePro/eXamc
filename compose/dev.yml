@@ -13,9 +13,9 @@ services:
       - media_volume:/media
       - /srv/examc/private_media:/private_media   # host -> container (rw)
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
-    depends_on:
-      mysql:
-        condition: service_healthy
+#    depends_on:
+#      mysql:
+#        condition: service_healthy
     # healthcheck:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
@@ -55,9 +55,9 @@ services:
       - static_volume:/static
       - media_volume:/media
       - /srv/examc/private_media:/private_media
-    depends_on:
-      mysql:
-        condition: service_healthy
+#    depends_on:
+#      mysql:
+#        condition: service_healthy
 
   celery_beat:
     user: "0"
@@ -70,6 +70,6 @@ services:
       - static_volume:/static
       - media_volume:/media
       - /srv/examc/private_media:/private_media
-    depends_on:
-      mysql:
-        condition: service_healthy
+#    depends_on:
+#      mysql:
+#        condition: service_healthy

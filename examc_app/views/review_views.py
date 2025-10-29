@@ -843,7 +843,7 @@ def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
 @exam_permission_required(['manage'])
 def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
-    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).exclude(name="ADJ")
+    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False)
     if request.method == "POST":
         formset = GradingSchemeCheckboxFormSet(request.POST, queryset=grading_scheme_checkboxes.all())
         saved = formset.is_valid()
@@ -871,7 +871,8 @@ def add_new_grading_scheme_checkbox(request, exam_pk, grading_scheme_id):
         points=0,
     )
     # Return the UPDATED partial
-    formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme.checkboxes.all(), initial=[{'id': None, 'name': 'new', 'points': 0}])
+    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False)
+    formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[{'id': None, 'name': 'new', 'points': 0}])
     saved = False
 
     return render(request, "review/settings/_grading_scheme_checkboxes.html", {"exam_selected": grading_scheme.pages_group.exam, "grading_scheme": grading_scheme,"grading_scheme_checkboxes_formset": formset, "saved": saved, "points": points})
@@ -907,7 +908,7 @@ def add_new_grading_scheme(request, exam_pk, pages_group_id):
     )
 
     # create adjustment checkbox
-    QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ADJ", description="Adjustment", points=0)
+    QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ADJ", description="Adjustment", points=0, adjustment=True)
 
     grading_schemes = QuestionGradingScheme.objects.filter(pages_group_id=pages_group_id)
     pages_group = PagesGroup.objects.get(pk=pages_group_id)

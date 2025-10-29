@@ -474,6 +474,7 @@ class QuestionGradingSchemeCheckBox(models.Model):
     name = models.CharField(max_length=100)
     points = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     description = models.TextField(default='')
+    adjustment = models.BooleanField(default=0)
     history = HistoricalRecords()
 
 #############################
