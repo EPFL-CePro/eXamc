@@ -189,15 +189,14 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
                 formsetPagesGroups = PagesGroupsFormSet(queryset=pagesGroups, initial=[
                     {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
 
-                grading_help_group_form = ckeditorForm()
-                grading_help_group_form.initial['ckeditor_txt'] = ''
+                summernote_media_form = GradingSchemeCheckBoxForm()  # empty instance, just for .media
 
                 context['user_allowed'] = True
                 context['nav_url'] = "reviewSettingsView"
                 context['exam_reviewers_formset'] = formsetReviewers
                 context['exam_pages_groups_formset'] = formsetPagesGroups
                 context['curr_tab'] = curr_tab
-                context['gh_group_form'] = grading_help_group_form
+                context['summernote_media_form'] = summernote_media_form
                 context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
             else:
 
@@ -270,6 +269,8 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
             {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
 
+        grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
+
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam, self.request.user.id):
             context['user_allowed'] = True
@@ -284,6 +285,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
             context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
             context['curr_tab'] = curr_tab
+            context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
             context['error_msg'] = error_msg
         else:
             context['user_allowed'] = False
@@ -843,7 +845,7 @@ def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
 @exam_permission_required(['manage'])
 def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
-    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False)
+    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False).exclude(name='ZERO')
     if request.method == "POST":
         formset = GradingSchemeCheckboxFormSet(request.POST, queryset=grading_scheme_checkboxes.all())
         saved = formset.is_valid()
@@ -907,8 +909,9 @@ def add_new_grading_scheme(request, exam_pk, pages_group_id):
         max_points=max_points,
     )
 
-    # create adjustment checkbox
+    # create adjustment checkbox and zero pts checkbox
     QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ADJ", description="Adjustment", points=0, adjustment=True)
+    QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ZERO", descriptoin="Zero", points=0, adjustment=False)
 
     grading_schemes = QuestionGradingScheme.objects.filter(pages_group_id=pages_group_id)
     pages_group = PagesGroup.objects.get(pk=pages_group_id)
@@ -974,6 +977,7 @@ def update_pages_group_check_box(request,exam_pk):
     checked = request.POST.get('checked') == 'true'
     pages_group = PagesGroup.objects.get(pk=int(request.POST.get('pages_group_id')))
     adjustment = request.POST.get('adjustment')
+    zero = request.POST.get('zero')
     if adjustment == '':
         adjustment = 0
     grading_scheme = QuestionGradingScheme.objects.get(pk=int(request.POST.get('grading_scheme_id')))
@@ -985,30 +989,6 @@ def update_pages_group_check_box(request,exam_pk):
     points_before = points = float(get_question_points(grading_scheme, copy_nr))
 
     item_id_split = item_id_str.split("-")
-
-    # if len(item_id_split) == 2:
-    #     if adjustment != "0" and checked:
-    #         pggsc, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox=None)
-    #         pggsc.adjustment = adjustment
-    #         pggsc.save()
-    #         update = True
-    # elif adjustment != "":
-    #     if checked:
-    #         if item_id_split[2] == '0':
-    #             PagesGroupGradingSchemeCheckedBox.objects.create(adjustment=adjustment,pages_group=pages_group, copy_nr=copy_nr)
-    #         else:
-    #             pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(pk=item_id_split[2])
-    #             pggsc.adjustment = adjustment
-    #             pggsc.save()
-    #     else:
-    #         if item_id_split[2] == '0':
-    #             pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox=None).delete()
-    #         else:
-    #             pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(pk=item_id_split[2]).delete()
-    #
-    #     update = True
-    #
-    # else:
     item_id = item_id_split[2]
     if checked:
         if adjustment != '':
@@ -1021,9 +1001,6 @@ def update_pages_group_check_box(request,exam_pk):
         try:
             PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id).delete()
         except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
-            # try:
-            #     PagesGroupGradingSchemeCheckedBox.objects.get(pk=item_id).delete()
-            # except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
             pass
 
     update = True

@@ -189,12 +189,12 @@ def select_marks_positions(amc_data_path,copy,page,seuil):
 
 
     query_str += (
-             " JOIN (" + keys_subquery + ") zk ON zk.zoneid = cp.zoneid "
+             # " JOIN (" + keys_subquery + ") zk ON zk.zoneid = cp.zoneid "
              " WHERE cp.zoneid in "
              "   (SELECT cz2.zoneid from capture_zone cz2 WHERE cz2.student = " + str(copy) + " AND cz2.page = " + str(page) + ") "
              "AND cp.type = 1 "
              "AND cz.type = 4 "
-             "ORDER BY zk.y_key DESC, zk.x_key DESC, cp.corner ASC")
+             "ORDER BY cz.id_b")#zk.y_key DESC, zk.x_key DESC, cp.corner ASC")
 
     response = db.execute_query(query_str)
     data_positions = []

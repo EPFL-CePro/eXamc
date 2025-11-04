@@ -262,6 +262,7 @@ def amc_layout_detection(exam):
         return result.stdout
 
 def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file_list_path=None):
+    print('******************** start datacapture')
     project_path = get_amc_project_path(exam, False)
     tmp_dir_path = None
 
@@ -287,6 +288,7 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
 
             file_list_path = tmp_dir_path + "/list-file"
             tmp_file_list = open(file_list_path, "a+")
+            print('******************* '+file_list_path)
 
             files = glob.glob(tmp_extract_path + '/**/*.*', recursive=True)
             for file in files:
@@ -334,8 +336,9 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
 
     if tmp_dir_path:
         shutil.rmtree(tmp_dir_path)
-    if file_list_path:
-        os.remove(file_list_path)
+    print(file_list_path)
+    # if file_list_path:
+    #     os.remove(file_list_path)
     if errors:
         yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
 
@@ -758,7 +761,45 @@ def get_automatic_association_code(exam):
 #     else:
 #         return result.stdout
 
+def amc_mark(exam,update_scoring_strategy):
+    print("************** Start marking")
+    if update_scoring_strategy == 'true':
+        result = amc_update_documents(exam,None,True)
 
+    project_path = get_amc_project_path(exam, False)
+    threshold = get_amc_option_by_key(exam, "seuil")
+    threshold_up = get_amc_option_by_key(exam, 'seuil_up')
+    grain = get_amc_option_by_key(exam, "note_grain")
+    round_grade = get_amc_option_by_key(exam, "note_arrondi")
+    notemin = get_amc_option_by_key(exam, "note_min")
+    notemax = get_amc_option_by_key(exam, "note_max")
+    plafond = get_amc_option_by_key(exam, "note_max_plafond")
+    yield "Start marking ...\n"
+
+    command = ['auto-multiple-choice note '
+                             '--data "' + project_path + '/data/" '
+                             '--seuil ' + threshold + ' '
+                             '--seuil-up '  + threshold_up + ' '
+                             '--grain ' + grain + ' '
+                             '--arrondi ' + round_grade + ' '
+                             '--notemin ' + notemin + ' '
+                             '--notemax ' + notemax + ' '
+                             '--plafond ' + plafond + ' ']
+    errors = ''
+    with subprocess.Popen(command,shell=True,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+        with open(project_path+'/amc-compiled.amc', 'r') as file:
+            # Read each line in the file
+            for line in file:
+                if 'ETU' in line:
+                    info_str = 'Student Nr. '+line.split('=')[1].split('}')[0] + ' \n'
+                    print(info_str)
+                    yield info_str
+
+        if  process.returncode and process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, process.args)
+
+    if errors:
+        yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
 
 def amc_mark_subprocess(request, exam,update_scoring_strategy):
     if update_scoring_strategy == 'true':
@@ -772,7 +813,6 @@ def amc_mark_subprocess(request, exam,update_scoring_strategy):
     notemin = get_amc_option_by_key(exam, "note_min")
     notemax = get_amc_option_by_key(exam, "note_max")
     plafond = get_amc_option_by_key(exam, "note_max_plafond")
-    yield "Start marking ...\n"
 
     command = ['auto-multiple-choice note '
                              '--data "' + project_path + '/data/" '

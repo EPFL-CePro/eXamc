@@ -130,8 +130,11 @@ urlpatterns = [
     # EPFL LDAP
     path('ldap_search_exam_user_by_email/<int:exam_pk>', views.ldap_search_exam_user_by_email, name="ldap_search_exam_user_by_email"),
 
-    # CKEDITOR5
-    path("ckeditor5/", include('django_ckeditor_5.urls')),
+    # # CKEDITOR5
+    # path("ckeditor5/", include('django_ckeditor_5.urls')),
+
+    # SUMMERNOTE
+    path("summernote/", include("django_summernote.urls")),
 
     # CELERY-PROGRESS
     path('celery-progress/', include('celery_progress.urls')),

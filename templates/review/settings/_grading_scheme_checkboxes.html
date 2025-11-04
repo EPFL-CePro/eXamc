@@ -1,3 +1,4 @@
+
 <form method="POST"
   hx-post="{% url 'grading_scheme_checkboxes' exam_selected.pk  grading_scheme.id %}"
   hx-target="#chk-panel-{{ grading_scheme.id }}"
@@ -5,7 +6,7 @@
   {% csrf_token %}
   {% if saved %}<div class="alert alert-success mb-3">Saved.</div>{% endif %}
   {{ grading_scheme_checkboxes_formset.management_form }}
-  <table class="table" style="max-width:1000px">
+  <table class="table">
       <thead>
         <tr><th>Name</th><th {% if points != grading_scheme.max_points %} style="color:red" {% endif %}>Points  {{ points }} / {{ grading_scheme.max_points }}</th><th>Description</th><th>Delete</th></tr>
       </thead>
@@ -16,7 +17,13 @@
                 {{ hidden }}
             {% endfor %}
             {% for field in form.visible_fields %}
+                {% if field.label == 'Delete' %}
+                <td style="text-align:center;padding-top:35px">{{ field }}</td>
+            {% elif field.label == 'Description' %}
+                    <td style="min-width:400px;width:50vw">{{ field }}</td>
+            {% else %}
                 <td>{{ field }}</td>
+            {% endif %}
             {% endfor %}
 
             <td><a class="btn btn-light"
@@ -32,6 +39,8 @@
             {% for field in form.extra_forms.0.visible_fields %}
                 {% if field.label == 'Delete' %}
                 <td style="text-align:center;padding-top:35px">{{ field }}</td>
+            {% elif field.label == 'Description' %}
+                    <td style="min-width:400px;width:50vw">{{ field }}</td>
             {% else %}
                 <td>{{ field }}</td>
             {% endif %}

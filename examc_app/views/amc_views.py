@@ -318,6 +318,7 @@ def import_scans_from_review_pages(request, exam_pk):
 
 @exam_permission_required(['manage'])
 def import_scans_from_review(request, exam_pk):
+    print('************** importing scans from review')
     exam = Exam.objects.get(pk=exam_pk)
 
     amc_proj_path = get_amc_project_path(exam, False)
@@ -326,6 +327,7 @@ def import_scans_from_review(request, exam_pk):
         os.remove(file_list_path)
 
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    print('*********** scans dir: '+scans_dir)
     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
         exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
     export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
@@ -334,7 +336,7 @@ def import_scans_from_review(request, exam_pk):
     export_tmp_dir = (str(settings.EXPORT_TMP_ROOT) + "/" + export_subdir)
 
     if not os.path.exists(export_tmp_dir):
-        os.mkdir(export_tmp_dir)
+        os.makedirs(export_tmp_dir, exist_ok=True)
 
     # list files from scans dir
     dir_list = [x for x in os.listdir(scans_dir) if x != '0000']
@@ -356,7 +358,7 @@ def import_scans_from_review(request, exam_pk):
 
 
     tmp_file_list = open(file_list_path, "w")
-
+    print('########### scans dir: '+scans_dir)
     files = sorted(glob.glob(scans_dir + '/**/*.*', recursive=True))
     for file in files:
         marked_file_path = file.replace(scans_dir,marked_dir).rsplit('/', 1)[0]
@@ -366,6 +368,7 @@ def import_scans_from_review(request, exam_pk):
             tmp_file_list.write(str(marked_file_path) + "\n")
         else:
             tmp_file_list.write(file + "\n")
+            print('########### -- file: '+file)
 
     tmp_file_list.close()
 

@@ -8,7 +8,7 @@ from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, ModelForm, formset_factory
 from django.utils.safestring import mark_safe
-from django_ckeditor_5.widgets import CKEditor5Widget
+from django_summernote.widgets import SummernoteWidget
 
 from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser, QuestionGradingScheme, \
     QuestionGradingSchemeCheckBox
@@ -176,8 +176,12 @@ class CreateQuestionForm(forms.Form):
         self.fields['section_pk'].initial = section_pk
         self.fields['question_type'].choices = [(qt.pk, qt.code+" - "+qt.name) for qt in QuestionType.objects.all()]
 
-class ckeditorForm(forms.Form):
-    ckeditor_txt = forms.CharField(widget=CKEditor5Widget(attrs={'class':'django_ckeditor_5','width': '100%'}))
+# class ckeditorForm(forms.Form):
+#     ckeditor_txt = forms.CharField(widget=CKEditor5Widget(attrs={'class':'django_ckeditor_5','width': '100%'}))
+class SummernoteForm(forms.Form):
+    summernote_txt = forms.CharField(
+        widget=SummernoteWidget(attrs={'summernote': {'width': '100%', 'height': '300px'}})
+    )
 
 CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
 JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
@@ -303,18 +307,22 @@ class GradingSchemeCheckBoxForm(forms.ModelForm):
     class Meta:
         model = QuestionGradingSchemeCheckBox
         fields = ['name', 'points', 'description']
+        widgets = {
+            "description": SummernoteWidget(
+                attrs={"summernote": {"width": "100%", "height": "150px"}}
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super(GradingSchemeCheckBoxForm, self).__init__(*args, **kwargs)
         for fname, f in self.fields.items():
-            f.widget.attrs['class'] = 'form-control'
-            if fname == 'name':
-                f.widget.attrs['style'] = 'min-width:300px'
-            if fname == 'points':
-                f.widget.attrs['style'] = 'min-width:150px'
-            if fname == 'description':
-                f.widget.attrs['rows'] = 1
-                f.widget.attrs['style'] = 'min-width:400px;'
+            if fname != 'description':
+                f.widget.attrs['class'] = 'form-control'
+                if fname == 'name':
+                    f.widget.attrs['style'] = 'min-width:300px'
+                if fname == 'points':
+                    f.widget.attrs['style'] = 'min-width:150px'
+
 
 GradingSchemeCheckboxFormSet=modelformset_factory(QuestionGradingSchemeCheckBox, form=GradingSchemeCheckBoxForm, extra=0)
 

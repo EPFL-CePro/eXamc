@@ -15,6 +15,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 import os
 
+from django.conf import settings
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,8 +29,8 @@ def env_int(key, default="0"):
     except (TypeError, ValueError): return int(default)
 
 # Optional: load .env only for local dev (outside Docker)
-if os.getenv("DJANGO_DOTENV", "0") == "1":
-    load_dotenv(BASE_DIR / ".env")  # allows manage.py runserver locally without Compose
+if os.getenv("DJANGO_DOTENV", "0") == "1" or not os.getenv("SECRET_KEY"):
+    load_dotenv(BASE_DIR / ".env.dev", override=False)  # allows manage.py runserver or migrate, ... locally without Compose
 else:
     # Otherwise (prod/test) set port forwarding
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -39,7 +40,7 @@ else:
 
 # BASIC SECURITY
 SECRET_KEY = env("SECRET_KEY")
-DEBUG = env_bool("DEBUG","0")
+DEBUG = os.getenv("DEBUG", "1" if os.path.exists(BASE_DIR / ".env.dev") else "0") in ("1","true","yes","on")
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", "*").split(",")
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS", "")
@@ -83,7 +84,8 @@ INSTALLED_APPS = [
     'crispy_bootstrap4',
     'simple_history',
     'import_export',
-    'django_ckeditor_5',
+    #'django_ckeditor_5',
+    'django_summernote',
     'celery',
     'celery_progress',
     'django_celery_beat',
@@ -187,16 +189,16 @@ MARKED_SCANS_ROOT = PRIVATE_MEDIA_ROOT / 'marked_scans/'
 #MARKED_SCANS_URL = '/protected/marked_scans/'
 
 # Autoupload folder
-AUTOUPLOAD_ROOT = BASE_DIR / 'autoupload/'
+AUTOUPLOAD_ROOT = PRIVATE_MEDIA_ROOT / 'autoupload/'
 #AUTOUPLOAD_URL = '/autoupload/'
 
 # Export marked files folder tmp
-EXPORT_TMP_ROOT = BASE_DIR / 'export_tmp/'
+EXPORT_TMP_ROOT = PRIVATE_MEDIA_ROOT / 'export_tmp/'
 #EXPORT_TMP_URL = '/export_tmp/'
 SCALE_PDF_TEMPLATE = BASE_DIR / 'templates/res_and_stats/scale_pdf.html'
 
 # pdf catalogs folder
-CATALOG_ROOT = BASE_DIR / 'catalogs/'
+CATALOG_ROOT = PRIVATE_MEDIA_ROOT / 'catalogs/'
 #CATALOG_URL = '/catalogs/'
 
 # AMC projects folder
@@ -301,58 +303,107 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", "0")
 CELERY_BEAT_SCHEDULER = env("CELERY_BEAT_SCHEDULER", "django_celery_beat.schedulers:DatabaseScheduler")
 
-## CKEDITOR Configuration
-CKEDITOR_5_CONFIGS = {
-    'default': {
-        'blockToolbar': [
-            'heading1', 'heading2', 'heading3',
-            '|',
-            'bulletedList', 'numberedList',
-            '|',
-            'blockQuote',
+# Optional configuration (you can tweak toolbar, height, etc.)
+SUMMERNOTE_CONFIG = {
+    "iframe": True,  # render directly inline; set True to sandbox in iframe
+    "summernote": {
+        "width": "100%",
+        "height": "280px",
+        "toolbar": [
+            ["style", ["bold", "italic", "underline", "clear"]],
+            ["para", ["ul", "ol", "paragraph"]],
+            ['table', ['table']],
+            ["insert", ["link","math"]],
+            ["view", ["fullscreen", "codeview"]],
+            ["misc", ["undo", "redo"]],
         ],
-        'toolbar': ['heading', '|', 'fontSize', 'fontColor', 'bold', 'italic', 'underline', 'strikethrough',
-                    'code','subscript', 'superscript','|','bulletedList', 'numberedList', '|', 'alignment', 'outdent', 'indent',
-                    '|', 'insertImage','insertTable', '|','codeBlock', 'sourceEditing'],
-        'image': {
-            'toolbar': ['imageStyle:alignLeft','imageStyle:alignRight', 'imageStyle:alignCenter'],
-            'styles': [
-                'full',
-                'side',
-                'alignLeft',
-                'alignRight',
-                'alignCenter',
-            ]
-
-        },
-        'alignment': {
-            'options': [ 'left', 'right' ]
-        },
-        'table': {
-            'contentToolbar': [ 'tableColumn', 'tableRow', 'mergeTableCells',
-            'tableProperties', 'tableCellProperties' ],
-        },
-        'heading' : {
-            'options': [
-                { 'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph' },
-                { 'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1' },
-                { 'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2' },
-                { 'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3' },
-                { 'model': 'heading4', 'view': 'h4', 'title': 'Heading 4', 'class': 'ck-heading_heading4' },
-                { 'model': 'heading5', 'view': 'h5', 'title': 'Heading 5', 'class': 'ck-heading_heading5' }
-            ]
-        },
-        'codeBlock':{
-            'languages': [
-                { 'language': 'latex', 'label': 'LaTeX' }, # The default 'language'.
-            ]
-        },
+        # DO NOT put 'plugins' or 'math' here — they won’t be passed to the iframe.
     },
-    'list': {
-        'properties': {
-            'styles': 'true',
-            'startIndex': 'true',
-            'reversed': 'true',
-        }
-    }
+
+    # These are injected into the **iframe** document:
+    "css": (
+        "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css",
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css",
+    ),
+    "js": (
+        # order matters a little less, but keep KaTeX before the plugin if the plugin calls it immediately
+        "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js",
+         f"{settings.STATIC_URL}js/summernote-math.js"
+    ),
 }
+
+# ## CKEDITOR Configuration
+# CKEDITOR_5_CONFIGS = {
+#     'default': {
+#         'blockToolbar': [
+#             'heading1', 'heading2', 'heading3',
+#             '|',
+#             'bulletedList', 'numberedList',
+#             '|',
+#             'blockQuote',
+#         ],
+#         'toolbar': ['heading', '|', 'fontSize', 'fontColor', 'bold', 'italic', 'underline', 'strikethrough',
+#                     'code','subscript', 'superscript','|','bulletedList', 'numberedList', '|', 'alignment', 'outdent', 'indent',
+#                     '|', 'insertImage','insertTable', '|','codeBlock', 'sourceEditing'],
+#
+#         # This is the important bit – strip all premium plugins:
+#         "removePlugins": [
+#             # collaboration/comments/track changes
+#             "RealTimeCollaborativeComments", "RealTimeCollaborativeTrackChanges",
+#             "RealTimeCollaborativeRevisionHistory", "PresenceList",
+#             "Comments", "TrackChanges", "TrackChangesData", "RevisionHistory",
+#
+#             # CKBox / EasyImage (cloud)
+#             "CKBox", "EasyImage", "CloudServices",
+#
+#             # Exporters & office features
+#             "ExportPdf", "ExportWord",
+#
+#             # Spell/grammar & extras that require license
+#             "WProofreader", "MathType", "SlashCommand",
+#
+#             # Pagination & other premium bits
+#             "Pagination", "FormatPainter",
+#         ],
+#         'image': {
+#             'toolbar': ['imageStyle:alignLeft','imageStyle:alignRight', 'imageStyle:alignCenter'],
+#             'styles': [
+#                 'full',
+#                 'side',
+#                 'alignLeft',
+#                 'alignRight',
+#                 'alignCenter',
+#             ]
+#
+#         },
+#         'alignment': {
+#             'options': [ 'left', 'right' ]
+#         },
+#         'table': {
+#             'contentToolbar': [ 'tableColumn', 'tableRow', 'mergeTableCells',
+#             'tableProperties', 'tableCellProperties' ],
+#         },
+#         'heading' : {
+#             'options': [
+#                 { 'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph' },
+#                 { 'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1' },
+#                 { 'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2' },
+#                 { 'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3' },
+#                 { 'model': 'heading4', 'view': 'h4', 'title': 'Heading 4', 'class': 'ck-heading_heading4' },
+#                 { 'model': 'heading5', 'view': 'h5', 'title': 'Heading 5', 'class': 'ck-heading_heading5' }
+#             ]
+#         },
+#         'codeBlock':{
+#             'languages': [
+#                 { 'language': 'latex', 'label': 'LaTeX' }, # The default 'language'.
+#             ]
+#         },
+#     },
+#     'list': {
+#         'properties': {
+#             'styles': 'true',
+#             'startIndex': 'true',
+#             'reversed': 'true',
+#         }
+#     }
+# }

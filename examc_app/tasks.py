@@ -260,7 +260,9 @@ def import_exam_scans(self, zip_file_path, exam_pk,delete_old):
             process_count) + ' - Importing scans...')
 
         result = import_scans(exam, tmp_extract_path,delete_old,progress_recorder,process_count,process_number)
+
         process_number = result[1]
+        print('******** import and split ok : ')
         nb_copies = result[0]
 
         # if isinstance(result, tuple) and len(result) == 2:
@@ -286,6 +288,7 @@ def import_exam_scans(self, zip_file_path, exam_pk,delete_old):
         process_number += 1
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
             process_count) + ' - AMC Automatic datacapture...')
+        print('*********** start amc datacapture')
 
         # scans_folder_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
         # file_list_path = scans_folder_path + "/list-file"

@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
 from django.conf import settings
-from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, ckeditorForm
+from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, SummernoteForm
 from examc_app.models import *
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
 
@@ -86,25 +86,25 @@ def create_exam_project(request):
 def exam_preparation_view(request,pk):
     exam = Exam.objects.get(pk=pk)
 
-    first_page_text_form = ckeditorForm()
+    first_page_text_form = SummernoteForm()
     first_page_text_form.initial['ckeditor_txt'] = exam.first_page_text
 
     section_txt_frm_list = {}
     question_txt_frm_list = {}
     answer_txt_frm_list = {}
     for section in exam.sections.all() :
-        frm = ckeditorForm(auto_id="%s_section_"+str(section.id))
+        frm = SummernoteForm(auto_id="%s_section_"+str(section.id))
         frm.initial['ckeditor_txt'] = section.header_text
         section_txt_frm_list[section.id] = frm
 
         for question in section.questions.all() :
-            frm_q = ckeditorForm(auto_id="%s_question_"+str(question.id))
+            frm_q = SummernoteForm(auto_id="%s_question_"+str(question.id))
             frm_q.initial['ckeditor_txt'] = question.question_text
             question_txt_frm_list[question.id] = frm_q
             
             if question.question_type.code in ["SCQ","MCQ"]:
                 for answer in question.answers.all() :
-                    frm_a = ckeditorForm(auto_id="%s_answer_"+str(answer.id))
+                    frm_a = SummernoteForm(auto_id="%s_answer_"+str(answer.id))
                     frm_a.initial['ckeditor_txt'] = answer.answer_text
                     answer_txt_frm_list[answer.id] = frm_a
 
@@ -235,7 +235,7 @@ def get_header_section_txt(request):
       """
 
     section = ExamSection.objects.get(pk=request.POST['section_pk'])
-    section_txt_frm = ckeditorForm()
+    section_txt_frm = SummernoteForm()
     section_txt_frm.initial['ckeditor_txt'] = section.header_text
     return HttpResponse(section.header_text)
 

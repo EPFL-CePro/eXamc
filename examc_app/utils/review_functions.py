@@ -47,6 +47,7 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
 
 
     for filename in scans_files:
+        print(' -- '+filename)
 
         process_number += 1
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
@@ -600,7 +601,7 @@ def get_scan_url(exam,copy_nr,page_nr):
 
 def get_grading_scheme_checkboxes(grading_scheme_id, copy_nr):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
-    grading_scheme_checkboxes_qs = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme)
+    grading_scheme_checkboxes_qs = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).order_by('adjustment','id')
     grading_scheme_checkboxes_list = []
     item_id = None
 
@@ -621,7 +622,10 @@ def get_grading_scheme_checkboxes(grading_scheme_id, copy_nr):
 
         grading_scheme_checkbox = {"item_id":item_id, "points":checkbox.points,"name":checkbox.name,"description":checkbox.description,"checked":checked,"adjustment":adjustment}
 
-        grading_scheme_checkboxes_list.append(grading_scheme_checkbox)
+        if checkbox.name == 'ZERO':
+            grading_scheme_checkboxes_list.insert(0,grading_scheme_checkbox)
+        else:
+            grading_scheme_checkboxes_list.append(grading_scheme_checkbox)
 
     return grading_scheme_checkboxes_list
 
