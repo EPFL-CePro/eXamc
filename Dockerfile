@@ -3,7 +3,7 @@
 # =========================
 FROM python:3.12-slim AS builder
 
-ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 DEBIAN_FONTEND=noninteractive
 WORKDIR /app
 
 # Déps de build pour mysqlclient (lié à libmariadb), et pkg-config
@@ -43,34 +43,45 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Détermine le bon chemin OBS selon la version Debian (bookworm=bullseye=etc.)
 # Par défaut : Debian 12 (bookworm). Adapte automatiquement si testing/11.
 RUN set -eux; \
-  . /etc/os-release; \
-  codename="${VERSION_CODENAME:-bookworm}"; \
-  case "$codename" in \
-    bookworm) obs_path="Debian_12" ;; \
-    bullseye) obs_path="Debian_11" ;; \
-    trixie|testing) obs_path="Debian_Testing" ;; \
-    *) obs_path="Debian_12" ;; \
-  esac; \
-  keyring="/usr/share/keyrings/obs-amc.gpg"; \
-  curl -fsSL "https://download.opensuse.org/repositories/home:JojoBoulix/${obs_path}/Release.key" \
-    | gpg --dearmor > "$keyring"; \
-  echo "deb [signed-by=$keyring] https://download.opensuse.org/repositories/home:/JojoBoulix/${obs_path}/ /" \
-    > /etc/apt/sources.list.d/obs-amc.list; \
-  apt-get update; \
-  for i in 1 2 3 4 5; do \
+    apt-get update; \
     apt-get install -y --no-install-recommends \
       auto-multiple-choice \
       texlive-xetex texlive-latex-recommended texlive-latex-extra \
       texlive-fonts-recommended texlive-fonts-extra lmodern \
       texlive-lang-european fonts-noto-core \
       latexmk ghostscript poppler-utils \
-    && break || { \
-      echo "APT attempt $i failed; retrying in 10s..."; \
-      sleep 10; \
-      apt-get update -o Acquire::Retries=3 || true; \
-    }; \
-  done; \
-  rm -rf /var/lib/apt/lists/*
+  && command -v auto-multiple-choice \
+  && auto-multiple-choice --version \
+  && rm -rf /var/lib/apt/lists/*
+#RUN set -eux; \
+#  . /etc/os-release; \
+#  codename="${VERSION_CODENAME:-bookworm}"; \
+#  case "$codename" in \
+#    bookworm) obs_path="Debian_12" ;; \
+#    bullseye) obs_path="Debian_11" ;; \
+#    trixie|testing) obs_path="Debian_Testing" ;; \
+#    *) obs_path="Debian_12" ;; \
+#  esac; \
+#  keyring="/usr/share/keyrings/obs-amc.gpg"; \
+#  curl -fsSL "https://download.opensuse.org/repositories/home:JojoBoulix/${obs_path}/Release.key" \
+#    | gpg --dearmor > "$keyring"; \
+#  echo "deb [signed-by=$keyring] https://download.opensuse.org/repositories/home:/JojoBoulix/${obs_path}/ /" \
+#    > /etc/apt/sources.list.d/obs-amc.list; \
+#  apt-get update; \
+#  for i in 1 2 3 4 5; do \
+#    apt-get install -y --no-install-recommends \
+#      auto-multiple-choice \
+#      texlive-xetex texlive-latex-recommended texlive-latex-extra \
+#      texlive-fonts-recommended texlive-fonts-extra lmodern \
+#      texlive-lang-european fonts-noto-core \
+#      latexmk ghostscript poppler-utils \
+#    && break || { \
+#      echo "APT attempt $i failed; retrying in 10s..."; \
+#      sleep 10; \
+#      apt-get update -o Acquire::Retries=3 || true; \
+#    }; \
+#  done; \
+#  rm -rf /var/lib/apt/lists/*
 
 
 # Copie des libs Python construites au stage "builder"
