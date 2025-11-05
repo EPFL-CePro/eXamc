@@ -37,6 +37,8 @@ services:
     environment:
       CELERY_LOGLEVEL: "INFO"
       CELERY_CONCURRENCY: "4"
+    volumes:
+      - /srv/examc/private_media:/private_media:rw
 
   celery_beat:
     restart: unless-stopped
