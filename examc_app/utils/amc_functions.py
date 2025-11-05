@@ -296,6 +296,7 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
 
             tmp_file_list.close()
 
+    print("////////////////////////////// exists : " +str(os.path.exists("/private_media/scans/2025-2026/1/CEPRO-666_20251015/0010/copy_0010_08.jpg")))
     # prepare scan images (see amc doc)
     command = ['auto-multiple-choice getimages '
                              '--list "' + file_list_path + '" ']
