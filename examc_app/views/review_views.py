@@ -977,14 +977,15 @@ def update_pages_group_check_box(request,exam_pk):
     checked = request.POST.get('checked') == 'true'
     pages_group = PagesGroup.objects.get(pk=int(request.POST.get('pages_group_id')))
     adjustment = request.POST.get('adjustment')
-    zero = request.POST.get('zero')
+    zero = request.POST.get('zero') == 'true'
     if adjustment == '':
         adjustment = 0
     grading_scheme = QuestionGradingScheme.objects.get(pk=int(request.POST.get('grading_scheme_id')))
     pggsc = None
     points_rnd = ''
 
-    update = False
+    if zero and checked:
+            pages_group.pagesGroupGradingSchemeCheckedBoxes.all().delete()
 
     points_before = points = float(get_question_points(grading_scheme, copy_nr))
 
@@ -997,16 +998,24 @@ def update_pages_group_check_box(request,exam_pk):
             pggscb.save()
         else:
             PagesGroupGradingSchemeCheckedBox.objects.create(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id,adjustment=0)
+        if not zero and checked:
+            try:
+                PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group,copy_nr=copy_nr,gradingSchemeCheckBox__name='ZERO').delete()
+            except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
+                pass
     else:
         try:
             PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id).delete()
         except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
-            pass
+            try:
+                PagesGroupGradingSchemeCheckedBox.objects.get(id=item_id,pages_group=pages_group, copy_nr=copy_nr).delete()
+            except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
+                pass
 
-    update = True
+
 
     points = float(get_question_points(grading_scheme, copy_nr))
-    if update and points_before != points:
+    if points == 0 or (points_before != points):
         exam = Exam.objects.get(pk=exam_pk)
         amc_data_path = get_amc_project_path(exam, True) + "/data/"
         question_page = select_copy_question_page(amc_data_path,copy_nr,pages_group.group_name)
@@ -1024,7 +1033,10 @@ def update_pages_group_check_box(request,exam_pk):
             box_to_check = round(points_rnd/(max_points/nb_boxes))
         else:
             points_rnd = 0
-            box_to_check = 0
+            if zero and checked:
+                box_to_check = 0
+            else:
+                box_to_check = -1
         return HttpResponse(json.dumps([box_to_check,points_rnd,max_points]))
 
     return HttpResponse('')

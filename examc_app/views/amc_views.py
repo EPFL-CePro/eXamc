@@ -123,7 +123,7 @@ def amc_view(request, exam_pk,curr_tab=None, task_id=None):
             context['task_id'] = task_id
             context['curr_tab'] = curr_tab
             context['scans_list_json'] = json.loads(scans_list_json_string)
-            context['exam_nb_pages'] = range(1,exam_nb_pages,1)
+            context['exam_nb_pages'] = range(1,int(float(exam_nb_pages))+1,1)
 
         context['exam_selected'] = exam
         if exam.common_exams:
@@ -420,7 +420,7 @@ def add_unrecognized_page(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     page = request.POST['unrec_page']
     copy = request.POST['copy']
-    extra = request.POST['extra']
+    extra = True#request.POST['extra']
     img_filename = request.POST['unrecognized_img_src']#.split('/')[-1]
     add_unrecognized_page_to_project(exam,copy,page,extra,img_filename)
 

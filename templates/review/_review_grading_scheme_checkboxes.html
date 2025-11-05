@@ -23,7 +23,7 @@
                            id="check-gsc-{{ gsc.item_id }}"
                            name="check-gsc-{{ gsc.item_id }}"
                            {% if gsc.checked %}checked{% endif %}
-                           onchange="updatePagesGroupCheckBox(this.id, this.checked, null)"/>
+                           onchange="updatePagesGroupCheckBox(this.id, this.checked, null,{% if gsc.name == 'ZERO' %} true {% else %} false {% endif %})"/>
                     <label class="custom-control-label" for="check-gsc-{{ gsc.item_id }}"></label>
                 </div>
             </td>
@@ -34,7 +34,7 @@
                            name="adj-gsc-{{ gsc.item_id }}"
                            step="0.01"
                            style="width:100px;"
-                           onchange="updatePagesGroupCheckBox(this.id, null, this.value)"
+                           onchange="updatePagesGroupCheckBox(this.id, null, this.value,false)"
                            value="{{ gsc.adjustment }}"/> {{ gsc.description }}
                 </td>
                 </tr>

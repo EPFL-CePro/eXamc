@@ -213,6 +213,7 @@
                     </select>
                 </div>
                 <div class="form-group">
+                {{ exam_nb_pages }}
                     <label for="inputGroupSelectQuestion">Page</label>
                     <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="unrec_page" id="unrec_page" required>
                         <option selected>
@@ -223,7 +224,7 @@
                 </div>
                 <div class="form-group">
                     <label for="extra">add as extra page</label>
-                    <input type="checkbox" id="extra" name="extra">
+                    <input type="checkbox" id="extra" name="extra" checked disabled>
                 </div>
                 <div class="form-group" hidden>
                    <input type="text" id="unrecognized_img_src" name="unrecognized_img_src"/>

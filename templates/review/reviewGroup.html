@@ -596,8 +596,8 @@
 
                 if (markerArea.markers[i].typeName === 'HighlightMarker') {
                     push_marker = false
-                    if (markerArea.markers[i].left !== left || markerArea.markers[i].top !== top
-                        || markerArea.markers[i].width !== width || markerArea.markers[i].height !== height) {
+                    if (left !== -1 && (markerArea.markers[i].left !== left || markerArea.markers[i].top !== top
+                        || markerArea.markers[i].width !== width || markerArea.markers[i].height !== height)) {
                         push_marker = true;
                     }
                     delete markerArea.markers[i];
@@ -860,7 +860,7 @@
             });
         }
 
-        function updatePagesGroupCheckBox(item_id, checked, adjustment) {
+        function updatePagesGroupCheckBox(item_id, checked, adjustment,zero) {
             adjust_value = adjustment;
             //check if adjustment
             if (adjustment) {
@@ -884,7 +884,8 @@
                     'checked': checked,
                     'adjustment': adjust_value,
                     'pages_group_id': {{ pages_group.id }},
-                    'grading_scheme_id': current_grading_scheme_id
+                    'grading_scheme_id': current_grading_scheme_id,
+                    'zero': zero
                 },
                 success: (response) => {
                     if (response !== '') {
@@ -905,13 +906,26 @@
                             }
                         }
 
-                        const corr_boxes_polygons = document.querySelectorAll('#corrector_boxes_svg polygon');
-                        const corr_box_to_click = corr_boxes_polygons[parseInt(corr_box_to_check)];
-                        const pos = corr_box_to_click.getAttribute('data-bounds').split(',').map(Number);
-                        createMarker4CorrBox(pos[0], pos[1], pos[2], pos[3]);
+                        {#ici check zero#}
+                        if(corr_box_to_check === -1){
+                            createMarker4CorrBox(-1,-1,-1,-1);
+                        }else {
+                            const corr_boxes_polygons = document.querySelectorAll('#corrector_boxes_svg polygon');
+                            const corr_box_to_click = corr_boxes_polygons[parseInt(corr_box_to_check)];
+                            const pos = corr_box_to_click.getAttribute('data-bounds').split(',').map(Number);
+                            createMarker4CorrBox(pos[0], pos[1], pos[2], pos[3]);
+                        }
+                        reloadGradingSchChkPanelHTMX(current_grading_scheme_id);
                     }
                 }
             });
+        }
+
+        function reloadGradingSchChkPanelHTMX(gradingSchemeId) {
+            const el = document.getElementById('chk-panel-' + gradingSchemeId);
+            if (!el) return;
+            const url = el.getAttribute('hx-get');
+            htmx.ajax('GET', url, {target: el, swap: 'innerHTML'});
         }
 
         function sendScheme(el, evt) {
