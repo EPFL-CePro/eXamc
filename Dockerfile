@@ -36,6 +36,7 @@ WORKDIR /app
 # - tzdata/ca-certificates : TLS & timezone corrects
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmariadb3 libzbar0 tzdata ca-certificates curl gnupg \
+    libgl1 libglib2.0-0 libsm6 libxext6 \
  && rm -rf /var/lib/apt/lists/*
 
 # --- Auto Multiple Choice (AMC) depuis OBS (Debian) ---
