@@ -50,9 +50,8 @@ RUN set -eux; \
       texlive-fonts-recommended texlive-fonts-extra lmodern \
       texlive-lang-european fonts-noto-core \
       latexmk ghostscript poppler-utils \
-  && command -v auto-multiple-choice \
-  && auto-multiple-choice --version \
-  && rm -rf /var/lib/apt/lists/*
+ && test -x /usr/bin/auto-multiple-choice \
+ && rm -rf /var/lib/apt/lists/*
 #RUN set -eux; \
 #  . /etc/os-release; \
 #  codename="${VERSION_CODENAME:-bookworm}"; \
