@@ -985,7 +985,7 @@ def update_pages_group_check_box(request,exam_pk):
     points_rnd = ''
 
     if zero and checked:
-            pages_group.pagesGroupGradingSchemeCheckedBoxes.all().delete()
+        PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=pages_group, copy_nr=copy_nr).all().delete()
 
     points_before = points = float(get_question_points(grading_scheme, copy_nr))
 
