@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+{% block extra_head %}
+    <style>
+        .tooltip-icon {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #0048ff;
+        }
+
+        .tooltip-icon {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #0048ff;
+        }
+
+        #image-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        #room_image {
+            cursor: crosshair;
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .print-label {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 16px;
+            pointer-events: none; /* avoid selection or useless click */
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    </style>
+{% endblock %}
+{% block title %}Seating plan{% endblock %}
+{% block content %}
+    <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map - special</h3>
+    <p>This website is under development, please contact lucile.pinard@epfl.ch in case of issue</p>
+
+    <ul class="nav nav-pills flex-column flex-sm-row border">
+        <li class="nav-item">
+            <a class="flex-sm-fill text-sm-center nav-link {% if request.path == '/generate_room_plan/' %}active{% endif %}"
+            href="/generate_room_plan/">
+                Default
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="flex-sm-fill text-sm-center nav-link {% if request.path == '/generate_room_plan/special' %}active{% endif %}"
+            href="/generate_room_plan/special">
+                Special
+            </a>
+        </li>
+    </ul>
+
+    {% for field in form %}
+        <div class="fieldWrapper row" id="DIV-{{ field.name }}"
+                style="padding: 10px;">
+            {% if field.help_text %}
+                <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
+            {% endif %}
+            <div class="col col-sm-2">
+                {{ field.label_tag }}
+            </div>
+            <div class="col col-sm-4">
+                {{ field }}
+            </div>
+        </div>
+    {% endfor %}
+
+    <div>
+        <button class="btn btn-dark btn-sm" id="download">Download</button>
+        <button class="btn btn-dark btn-sm" id="undo">Undo</button>
+        <input type="text" id="prefix-input" style="display: none;" placeholder="Prefix..." oninput="onPrefixChange()">
+    </div>
+
+    <div id="image-container" style="margin-top: 25px; position: relative; display: inline-block;">
+        <img src="" alt="" id="room_image">
+    </div>
+
+    <div id="export-layout" style="position:absolute; left:-9999px; top:-9999px; width:1000px;"></div>
+
+    <script>
+        $(document).ready(function () {
+            $('[data-toggle="popover"]').popover({
+                trigger: 'focus',
+                placement: 'top'
+            });
+            $('[data-toggle="tooltip"]').tooltip();
+            
+        });
+
+        function onRoomChange(image_room) {
+            $('#room_image').attr('src', `/rooms_plans/map/${image_room}`)
+        }
+
+        // A, B, C, ... AA.. BB, ...
+        function numberToLetters(n) {
+            let s = '';
+            n++;
+            while (n > 0) {
+                const rem = (n - 1) % 26;
+                s = String.fromCharCode(65 + rem) + s; // 65 = 'A'
+                n = Math.floor((n - 1) / 26);
+            }
+            return s;
+        }
+
+        let numberingMode = (function() {
+            const selected = document.querySelector('input[name="numbering_option"]:checked');
+            return selected ? selected.value : 'numbers'; // If no radio checked, default is numbers (but normally, a radio should always be checked)
+        })();
+
+        // Counter starting at 0
+        // Then, use how many element with the class `print-label` exist (to know how many clicks has been made)
+        let labelCounter = document.querySelectorAll('.print-label').length || 0;
+
+        // Return the text label (depending if it's numbers, letters or prefix)
+        function labelTextForIndex(index) {
+            if (numberingMode === 'numbers') {
+                return String(index + 1); // 1, 2, 3, ...
+            } else if (numberingMode === 'letters') {
+                return numberToLetters(index); // A, B, ..., Z, AA, ...
+            } else if (numberingMode === 'prefix') {
+                const prefix = $('#prefix-input').val();
+                return prefix + String(index + 1); // P1, P2, ...
+            } else {
+                return String(index + 1);
+            }
+        }
+
+        function onPrefixChange() {
+            labelCounter = 0;
+        }
+
+        const imgEl = document.getElementById("room_image");
+        if (imgEl) {
+            imgEl.addEventListener("click", function (e) {
+                const img = this;
+                const rect = img.getBoundingClientRect();
+
+                // Image coordinates (px)
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const percentX = (x / img.width) * 100;
+                const percentY = (y / img.height) * 100;
+
+                const label = document.createElement("div");
+                label.className = "print-label";
+
+                // Set the label text
+                label.textContent = labelTextForIndex(labelCounter);
+                label.dataset.index = labelCounter;
+                labelCounter++; // For the next click
+
+                label.style.left = percentX + "%";
+                label.style.top = percentY + "%";
+
+                label.dataset.x = x;
+                label.dataset.y = y;
+                label.dataset.percentX = percentX;
+                label.dataset.percentY = percentY;
+
+                document.getElementById("image-container").appendChild(label);
+            });
+        }
+
+        const radios = document.querySelectorAll('input[name="numbering_option"]');
+        radios.forEach(r => {
+            r.addEventListener('change', function(evt) {
+                numberingMode = evt.target.value;
+                
+                // If the checked radio is `prefix`, then show the prefix input
+                showPrefixInput(numberingMode === 'prefix');
+                labelCounter = 0;
+            });
+        });
+
+        function showPrefixInput(show) {
+            $('#prefix-input').css('display', show ? '' : 'none');
+        }
+
+        // Initial call to hide/show prefix input
+        showPrefixInput(numberingMode === 'prefix');
+
+        document.getElementById("download").addEventListener("click", async function() {
+            const container = document.getElementById("image-container");
+            const clone = container.cloneNode(true);
+
+            clone.style.position = "relative";
+            clone.style.width = "1000px";
+            const clonedImg = clone.querySelector("#room_image");
+            if (clonedImg) {
+                clonedImg.style.width = "100%";
+                clonedImg.style.height = "auto";
+            }
+
+            // Create the "downloadable" version of the image
+            const exportLayout = document.getElementById("export-layout");
+            exportLayout.innerHTML = "";
+            exportLayout.appendChild(clone);
+
+            // Generate the image
+            const canvas = await html2canvas(exportLayout);
+
+            // Convert to JPG
+            const dataURL = canvas.toDataURL("image/jpeg", 0.92);
+
+            // Download
+            const a = document.createElement("a");
+            a.href = dataURL;
+            a.download = "plan.jpg";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        document.getElementById("undo").addEventListener("click", async function() {
+            const allLabels = $('.print-label');
+            const lastLabel = allLabels[allLabels.length - 1]
+            if(lastLabel) {
+                lastLabel.remove();
+    
+                labelCounter > 0 && labelCounter--;
+            }
+        })
+    </script>
+
+{% endblock %}
