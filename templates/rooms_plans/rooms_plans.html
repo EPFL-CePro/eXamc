@@ -65,10 +65,10 @@
     <script>
         function showHideLastNumber() {
             
-            num_option = document.querySelector('input[name="fill_all_seats"]:checked').value;
+            num_option = $('input[name="fill_all_seats"]').is(':checked')
             console.log("num_opt: ", num_option);
             var el = $("#DIV-last_seat_number");
-            if (num_option === 'on') {
+            if (num_option) {
                 el.hide();
             } else {
                 el.show();
