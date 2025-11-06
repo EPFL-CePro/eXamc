@@ -128,3 +128,4 @@ volumes:
   redis_data:
   static_volume:
   media_volume:
+  client_temp:

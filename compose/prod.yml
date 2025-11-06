@@ -22,6 +22,7 @@ services:
       - static_volume:/static:ro    # nginx static
       - media_volume:/media:ro
       - /srv/examc/private_media:/private_media:ro
+      - client_temp:/var/cache/nginx/client_temp
     ports:
       - "127.0.0.1:8080:80"
       #- "8443:443"
