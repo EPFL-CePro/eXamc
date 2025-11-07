@@ -911,7 +911,7 @@ def add_new_grading_scheme(request, exam_pk, pages_group_id):
 
     # create adjustment checkbox and zero pts checkbox
     QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ADJ", description="Adjustment", points=0, adjustment=True)
-    QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ZERO", descriptoin="Zero", points=0, adjustment=False)
+    QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ZERO", description="Zero", points=0, adjustment=False)
 
     grading_schemes = QuestionGradingScheme.objects.filter(pages_group_id=pages_group_id)
     pages_group = PagesGroup.objects.get(pk=pages_group_id)
