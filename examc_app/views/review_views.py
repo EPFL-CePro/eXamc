@@ -873,7 +873,7 @@ def add_new_grading_scheme_checkbox(request, exam_pk, grading_scheme_id):
         points=0,
     )
     # Return the UPDATED partial
-    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False)
+    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False).exclude(name='ZERO')
     formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[{'id': None, 'name': 'new', 'points': 0}])
     saved = False
 
@@ -886,7 +886,9 @@ def delete_grading_scheme_checkbox(request, exam_pk, grading_scheme_checkbox_id)
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_checkbox.questionGradingScheme.id)
     grading_scheme_checkbox.delete()
     points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).aggregate(points__sum=Sum('points'))['points__sum']
-    formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme.checkboxes.all(),
+    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,
+                                                                             adjustment=False).exclude(name='ZERO')
+    formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(),
                                            initial=[{'id': None, 'name': 'new', 'points': 1}])
     saved = False
 

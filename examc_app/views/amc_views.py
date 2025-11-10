@@ -6,8 +6,9 @@ from urllib import request
 from asgiref.sync import async_to_sync, sync_to_async
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
-from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse
+from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse, JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from examc_app.decorators import exam_permission_required
@@ -444,7 +445,8 @@ def call_amc_automatic_association(request,exam_pk):
     result = amc_automatic_association(exam,assoc_primary_key)
 
     if not 'ERR:' in result:
-        return amc_view(request,exam.pk)
+        url = reverse('amc_view', kwargs={'exam_pk': exam.pk})
+        return JsonResponse({'ok': True, 'redirect': url})
     else:
         return HttpResponse(result)
 

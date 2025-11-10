@@ -369,7 +369,7 @@ def get_mean(amc_data_path):
     response = db.execute_query(query_str)
     mean = 0
     if response:
-        mean = response.fetchall()[0]['mean']
+        mean = round(response.fetchall()[0]['mean'],4)
 
     db.close()
 

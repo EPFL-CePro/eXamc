@@ -237,9 +237,17 @@ function amc_automatic_association() {
         },
         success: (data) => {
             $('#loadingModal').modal('hide');
+            if (data.ok && data.redirect) {
+                const url = data.redirect + (data.redirect.includes('?') ? '&' : '?') + 'tab=marking-tab';
+                window.location = url + '#marking-tab';
+            } else if (!data.ok) {
+                alert(data.error || "Unknown error");
+            }
         },
-        error: (error) => {
-            console.log(error);
+        error: (xhr) => {
+            $('#loadingModal').modal('hide');
+            console.log(xhr.responseText || xhr.statusText);
+            alert("Request failed.");
         }
     });
 }
