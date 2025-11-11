@@ -7,7 +7,7 @@ from asgiref.sync import async_to_sync, sync_to_async
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
@@ -514,7 +514,8 @@ def call_amc_generate_results(request,exam_pk):
         task = import_csv_data.delay(results_csv_path, exam.pk)
         task_id = task.task_id
 
-        return amc_view(request, exam.pk, task_id)
+        url = reverse('amc_view', kwargs={'exam_pk': exam.pk, 'curr_tab': 'results-tab'})
+        return redirect(f"{url}?task_id={task_id}")
     else:
         return HttpResponse(result)
 

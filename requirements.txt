@@ -30,6 +30,7 @@ Deprecated==1.2.18
 diff-match-patch==20241021
 Django==5.2.4
 django-celery-beat==2.8.1
+django-constance==4.3.3
 django-crispy-forms==2.4
 django-extensions==4.1
 django-import-export==4.3.9

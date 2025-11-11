@@ -79,12 +79,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_extensions',
     'sslserver',
+    'constance',
     'django_tables2',
     'crispy_forms',
     'crispy_bootstrap4',
     'simple_history',
     'import_export',
-    #'django_ckeditor_5',
     'django_summernote',
     'celery',
     'celery_progress',
@@ -96,6 +96,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'maintenance_mode.middleware.MaintenanceModeMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -103,8 +104,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
-    'maintenance_mode.middleware.MaintenanceModeMiddleware',
-    #'login_required.middleware.LoginRequiredMiddleware',
     'examc_app.middleware.auto_logout.AutoLogoutMiddleware',
 ]
 
@@ -123,6 +122,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                "examc_app.context_processors.maintenance_notice",
             ],
         },
     },
@@ -145,7 +145,6 @@ DATABASES = {
     }
 }
 
-
 WSGI_APPLICATION = 'examc.wsgi.application'
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
@@ -162,9 +161,6 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# For maintenance set True
-MAINTENANCE_MODE = False
-MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
@@ -332,78 +328,44 @@ SUMMERNOTE_CONFIG = {
     ),
 }
 
-# ## CKEDITOR Configuration
-# CKEDITOR_5_CONFIGS = {
-#     'default': {
-#         'blockToolbar': [
-#             'heading1', 'heading2', 'heading3',
-#             '|',
-#             'bulletedList', 'numberedList',
-#             '|',
-#             'blockQuote',
-#         ],
-#         'toolbar': ['heading', '|', 'fontSize', 'fontColor', 'bold', 'italic', 'underline', 'strikethrough',
-#                     'code','subscript', 'superscript','|','bulletedList', 'numberedList', '|', 'alignment', 'outdent', 'indent',
-#                     '|', 'insertImage','insertTable', '|','codeBlock', 'sourceEditing'],
-#
-#         # This is the important bit – strip all premium plugins:
-#         "removePlugins": [
-#             # collaboration/comments/track changes
-#             "RealTimeCollaborativeComments", "RealTimeCollaborativeTrackChanges",
-#             "RealTimeCollaborativeRevisionHistory", "PresenceList",
-#             "Comments", "TrackChanges", "TrackChangesData", "RevisionHistory",
-#
-#             # CKBox / EasyImage (cloud)
-#             "CKBox", "EasyImage", "CloudServices",
-#
-#             # Exporters & office features
-#             "ExportPdf", "ExportWord",
-#
-#             # Spell/grammar & extras that require license
-#             "WProofreader", "MathType", "SlashCommand",
-#
-#             # Pagination & other premium bits
-#             "Pagination", "FormatPainter",
-#         ],
-#         'image': {
-#             'toolbar': ['imageStyle:alignLeft','imageStyle:alignRight', 'imageStyle:alignCenter'],
-#             'styles': [
-#                 'full',
-#                 'side',
-#                 'alignLeft',
-#                 'alignRight',
-#                 'alignCenter',
-#             ]
-#
-#         },
-#         'alignment': {
-#             'options': [ 'left', 'right' ]
-#         },
-#         'table': {
-#             'contentToolbar': [ 'tableColumn', 'tableRow', 'mergeTableCells',
-#             'tableProperties', 'tableCellProperties' ],
-#         },
-#         'heading' : {
-#             'options': [
-#                 { 'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph' },
-#                 { 'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1' },
-#                 { 'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2' },
-#                 { 'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3' },
-#                 { 'model': 'heading4', 'view': 'h4', 'title': 'Heading 4', 'class': 'ck-heading_heading4' },
-#                 { 'model': 'heading5', 'view': 'h5', 'title': 'Heading 5', 'class': 'ck-heading_heading5' }
-#             ]
-#         },
-#         'codeBlock':{
-#             'languages': [
-#                 { 'language': 'latex', 'label': 'LaTeX' }, # The default 'language'.
-#             ]
-#         },
-#     },
-#     'list': {
-#         'properties': {
-#             'styles': 'true',
-#             'startIndex': 'true',
-#             'reversed': 'true',
-#         }
-#     }
-# }
+
+
+
+#MAINTENANCE_MODE = False commented to let constance manage maintenance
+MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
+MAINTENANCE_MODE_IGNORE_SUPERUSER = True
+MAINTENANCE_MODE_STATE_FILE_PATH = os.path.join(BASE_DIR, "maintenance_mode_state.txt")
+
+### CONSTANCE FOR MAINTENANCE
+CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
+CONSTANCE_REDIS_CONNECTION = "redis://127.0.0.1:6379/0"
+# Admin widgets/fields for Constance
+CONSTANCE_ADDITIONAL_FIELDS = {
+    "datetime": [
+        "django.forms.DateTimeField",
+        {"widget": "django.forms.DateTimeInput", "required": False},
+    ],
+    "text": ["django.forms.CharField", {"widget": "django.forms.Textarea", "required": False}],
+}
+# Editable settings shown in Django admin (Config > Constance)
+CONSTANCE_CONFIG = {
+    # Controls the banner (pre-maintenance heads-up)
+    "MAINT_BANNER_ENABLED": (True, "Show pre-maintenance banner", bool),
+    "MAINT_BANNER_FROM":   ("YYYY-MM-DD HH:MM", "Start showing banner at (timezone local)", "datetime"),
+    "MAINT_MESSAGE":       ("We’ll be undergoing planned maintenance.", "Banner message", "text"),
+
+    # Actual maintenance window; your scheduler will toggle maintenance mode based on these
+    "MAINT_START": ("YYYY-MM-DD HH:MM", "Maintenance starts at (timezone local)", "datetime"),
+    "MAINT_END":   ("YYYY-MM-DD HH:MM", "Maintenance ends at (timezone local)", "datetime"),
+    "MAINT_BYPASS_AUTHENTICATED": (True, "Hide banner for logged-in users", bool),
+    "MAINT_BYPASS_STAFF": (True, "Hide banner for staff", bool),
+}
+
+CONSTANCE_CONFIG_FIELDSETS = {
+    "Planned maintenance": (
+        "MAINT_MESSAGE",
+        "MAINT_BANNER_ENABLED", "MAINT_BANNER_FROM",
+        "MAINT_START", "MAINT_END",
+        "MAINT_BYPASS_AUTHENTICATED", "MAINT_BYPASS_STAFF",
+    )
+}

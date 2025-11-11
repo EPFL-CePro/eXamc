@@ -87,6 +87,40 @@
 
 </head>
 
+{% if planned_maintenance.show %}
+<div id="maintenance-banner" class="alert alert-warning" role="alert"
+     style="position:fixed;left:0;right:0;top:0;z-index:9999;display:none">
+
+  {{ planned_maintenance.message|safe }}
+   <br/><i class="fa-solid fa-clock"></i>
+  From <time datetime="{{ planned_maintenance.start|date:'c' }}">{{ planned_maintenance.start|date:"d.m.Y H:i" }}</time>
+  to <time datetime="{{ planned_maintenance.end|date:'c' }}">{{ planned_maintenance.end|date:"d.m.Y H:i" }}</time>.
+
+  <button id="maintenance-dismiss" aria-label="Dismiss" class="btn btn-outline-primary btn-sm"
+          style="margin-left:12px;padding:.25rem .5rem;">
+    Dismiss
+  </button>
+</div>
+<script>
+(function(){
+  var key = "maintenance_notice_hide_until";
+  var startIso = "{{ planned_maintenance.start|date:'c' }}";
+  try {
+    var hideUntil = localStorage.getItem(key);
+    if (!hideUntil || new Date(hideUntil) < new Date()) {
+      var el = document.getElementById("maintenance-banner");
+      el.style.display = "block";
+      document.getElementById("maintenance-dismiss").addEventListener("click", function(){
+        // Keep it hidden until the maintenance begins
+        localStorage.setItem(key, startIso);
+        el.remove();
+      });
+    }
+  } catch(e) { /* ignore storage errors */ }
+})();
+</script>
+{% endif %}
+
 <body>
 {#<main>#}
     <script type="text/javascript">
