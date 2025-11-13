@@ -335,7 +335,7 @@ SUMMERNOTE_CONFIG = {
 #MAINTENANCE_MODE = False commented to let constance manage maintenance
 MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 MAINTENANCE_MODE_IGNORE_SUPERUSER = True
-MAINTENANCE_MODE_STATE_FILE_PATH = os.path.join(BASE_DIR, "maintenance_mode_state.txt")
+MAINTENANCE_MODE_STATE_FILE_PATH = os.path.join(BASE_DIR, "tmp", "maintenance_mode_state.txt")
 MAINTENANCE_MODE_IGNORE_URLS = (
     r"^/oidc/authenticate/?$",   # OIDC start (mozilla-django-oidc default)
     r"^/oidc/callback/?$",       # OIDC callback (mozilla-django-oidc default)
