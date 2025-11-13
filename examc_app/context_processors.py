@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.utils import timezone
 from constance import config as cc
 
@@ -11,7 +13,7 @@ def maintenance_notice(request):
     show = False
 
     # Show only BEFORE the window starts (heads-up banner)
-    if cc.MAINT_BANNER_ENABLED and start and end and now < start:
+    if cc.MAINT_BANNER_ENABLED and isinstance(start, datetime) and isinstance(end,datetime) and now < start:
         show_from = cc.MAINT_BANNER_FROM or now
         show = show_from <= now
 

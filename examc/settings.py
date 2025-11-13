@@ -342,7 +342,7 @@ MAINTENANCE_MODE_IGNORE_URLS = (
 )
 
 ### CONSTANCE FOR MAINTENANCE
-CONSTANCE_REDIS_URL = env("constance_redis_connection", default="redis://redis:6379/0")
+CONSTANCE_REDIS_URL = env("constance_redis_connection", default="redis://localhost:6379/0")
 parsed = urlparse(CONSTANCE_REDIS_URL)
 
 REDIS_CONNECTION = {

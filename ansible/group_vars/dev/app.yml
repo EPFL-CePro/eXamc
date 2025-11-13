@@ -25,8 +25,8 @@ private_media_root: "/private_media"
 db_host: "mysql"
 db_port: 3306
 
-celery_broker_url: "redis://redis:6379/0"
-celery_result_backend: "redis://redis:6379/0"
+celery_broker_url: "redis://localhost:6379/0"
+celery_result_backend: "redis://localhost:6379/0"
 celery_task_always_eager: true
 
-constance_redis_connection: "redis://redis:6379/0"
+constance_redis_connection: "redis://localhost:6379/0"

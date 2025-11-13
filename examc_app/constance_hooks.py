@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from constance.signals import config_updated
 from django.dispatch import receiver
 from django.utils import timezone
@@ -20,7 +22,9 @@ def recompute_now():
         log.debug("maintenance: missing MAINT_START/END; skipping recompute")
         return
     now = timezone.localtime()
-    should = start <= now < end
+    should = False
+    if isinstance(start, datetime) and isinstance(end, datetime):
+        should = start <= now < end
     cur = get_maintenance_mode()
     if should != cur:
         set_maintenance_mode(should)
