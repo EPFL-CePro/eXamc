@@ -34,6 +34,7 @@
     <!-- JS print -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="{% static 'js/pdf_utils.js' %}"></script>
 
     <!-- Celery-progress js -->
     <script src="{% static 'js/celery_progress.js' %}"></script>
@@ -123,23 +124,12 @@
 
 <body>
 {#<main>#}
-    <script type="text/javascript">
+<script type="text/javascript">
 
-        $(document).ready(function() {
-        {% block scripts %}{% endblock %}
-            
-        });
-
-        // Hide submenus
-    {#$('#body-row .collapse').collapse('hide');#}
-    {##}
-    {#// Collapse/Expand icon#}
-    {#$('#collapse-icon').addClass('fa-angle-double-left');#}
-    {##}
-    {#// Collapse click#}
-    {#$('[data-toggle=sidebar-colapse]').click(function () {#}
-    {#    SidebarCollapse();#}
-    {#});#}
+    $(document).ready(function () {
+        {% block scripts %}
+        {% endblock %}
+    });
 
     function SidebarCollapse() {
         $('.menu-collapsed').toggleClass('d-none');
@@ -164,29 +154,7 @@
         }
     }
 
-    function generatePDF(title,element_id) {
-        let div = document.getElementById(element_id);
-        html2canvas(div).then(canvas => {
-
-            const winHtml = `<!DOCTYPE html>
-                            <html>
-                                <head>
-                                    <title>`+title+`</title>
-                                </head>
-                                <body style="text-align:center;zoom: 30%;">
-                                </body>
-                            </html>`;
-
-            printWindow = window.open('', '_blank', 'height=900, width=1500');
-            printWindow.document.write(winHtml);
-            printWindow.document.body.appendChild(canvas);
-            printWindow.print();
-            printWindow.focus();
-        })
-    }
-
-
-    </script>
+</script>
     <div id="wrapper">
 
 

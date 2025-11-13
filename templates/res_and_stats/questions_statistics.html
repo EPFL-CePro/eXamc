@@ -322,13 +322,6 @@ $(window).on("load",function(){
 
 </script>
 <style>
-@media print {
-    div.questions_statistics_by_teacher_table_div {
-    position: relative;
-    width: 25mm;
-    height: 25mm;
-    }
-}
 </style>
 <h4><i class="fas fa-chart-area" style="margin-right:5px;"></i>Questions Statistics</h4>
 {% if mcq_questions or open_questions %}
@@ -376,7 +369,13 @@ $(window).on("load",function(){
                 {% if mcq_questions %}
                 <div id="collapseMCQs" class="accordion-collapse collapse show" aria-labelledby="headingMCQs" data-bs-parent="#accordion_questions_stats">
                     <div class="card-body">
-                        <a class="btn" onclick="generatePDF('Multiple-choice questions stats','mcqs_statistics_div');" style="margin-left:10px"><i class="fa-solid fa-print fa-lg"></i></a>
+                        <button class="btn" onclick="downloadElementAsPDF({title:'Multiple-choice questions stats',
+                                                                      subtitle:'{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }}',
+                                                                      elementId:'mcqs_statistics_div',
+                                                                      fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_MCQs_stats.pdf'});"
+                           style="margin-left:10px">
+                            <i class="fa-regular fa-file-pdf fa-2xl" style="color: #db0a0a;"><i class="fa-solid fa-circle-arrow-down fa-2xs" style="margin-left:-35px;"></i></i>
+                        </button>
                         <div id="mcqs_statistics_div">
                             <table id="questions_statistics_mcq_dt" class="table table-striped table-sm">
                             <thead>
@@ -426,42 +425,51 @@ $(window).on("load",function(){
                 {% if open_questions %}
                 <div id="collapseOpens" class="accordion-collapse collapse show" aria-labelledby="headingOpens" data-bs-parent="#accordion_questions_stats">
                     <div class="card-body">
-                        <table id="questions_statistics_open_dt" class="table table-striped table-sm">
-                        <thead>
-                          <tr>
-                            <th colspan="7">discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ exam_selected.students.all|length }} students)</th>
-                          </tr>
-                          <tr>
-                            <th></th>
-                            <th>Question</th>
-                            <th></th>
-                            <th class="text-center">Upper mean</th>
-                            <th class="text-center">Lower mean</th>
-                            <th class="text-center">DI</th>
-                            <th class="text-center">Points distribution</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for question in open_questions %}
-                          <tr>
-                            <td class="align-middle " style="padding:0px 0px 0px 5px!important;">{{ question.remark |safe  }}</td>
-                            <td class="align-middle" style="padding:0px 0px 0px 5px!important;">{{ question.code }}</td>
-                            <td class="align-middle"><a
-                              data-toggle="modal"
-                              data-target="#displayPdfModal"
-                              data-questioncode="{{ question.code }}"
-                              title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
-                            </td>
-                            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.upper_avg }}</td>
-                            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.lower_avg }}</td>
-                            <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.di_calculation }}</td>
-                            <td class="align-middle text-center" style="padding:10px 10px 10px 5px!important;width:40%;">
-                              <canvas id="canvas-{{ question.pk }}" class="chartjs-render-monitor"></canvas>
-                            </td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                        </table>
+                        <button class="btn" onclick="downloadElementAsPDF({title:'Open questions stats',
+                                                                          subtitle:'{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }}',
+                                                                          elementId:'open_questions_statistics_div',
+                                                                          fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_OpenQs_stats.pdf'});"
+                               style="margin-left:10px">
+                            <i class="fa-regular fa-file-pdf fa-2xl" style="color: #db0a0a;"><i class="fa-solid fa-circle-arrow-down fa-2xs" style="margin-left:-35px;"></i></i>
+                        </button>
+                        <div id="open_questions_statistics_div">
+                            <table id="questions_statistics_open_dt" class="table table-striped table-sm">
+                            <thead>
+                              <tr>
+                                <th colspan="7">discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ exam_selected.students.all|length }} students)</th>
+                              </tr>
+                              <tr>
+                                <th></th>
+                                <th>Question</th>
+                                <th></th>
+                                <th class="text-center">Upper mean</th>
+                                <th class="text-center">Lower mean</th>
+                                <th class="text-center">DI</th>
+                                <th class="text-center">Points distribution</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for question in open_questions %}
+                              <tr>
+                                <td class="align-middle " style="padding:0px 0px 0px 5px!important;">{{ question.remark |safe  }}</td>
+                                <td class="align-middle" style="padding:0px 0px 0px 5px!important;">{{ question.code }}</td>
+                                <td class="align-middle"><a
+                                  data-toggle="modal"
+                                  data-target="#displayPdfModal"
+                                  data-questioncode="{{ question.code }}"
+                                  title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
+                                </td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.upper_avg }}</td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.lower_avg }}</td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.di_calculation }}</td>
+                                <td class="align-middle text-center" style="padding:10px 10px 10px 5px!important;width:40%;">
+                                  <canvas id="canvas-{{ question.pk }}" class="chartjs-render-monitor"></canvas>
+                                </td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 {% endif %}
@@ -471,7 +479,13 @@ $(window).on("load",function(){
     </div>
     {% if exam_selected.is_overall %}
     <div class="tab-pane fade" id="pills-questionsByTeacher" role="tabpanel" aria-labelledby="pills-questionsByTeacher-tab" style="height:85vh;overflow-y:scroll;">
-        <a class="btn" onclick="generatePDF('Questions stats by teacher','questions_statistics_by_teacher_table_div');" style="margin-left:10px;margin-bottom:-100px;"><i class="fa-solid fa-print fa-lg"></i></a>
+        <button class="btn" onclick="downloadElementAsPDF({title:'Questions stats by teacher',
+                                                      subtitle:'{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }}',
+                                                      elementId:'questions_statistics_by_teacher_table_div',
+                                                      fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_questions_stats_by_teacher.pdf'});"
+           style="margin-left:10px">
+            <i class="fa-regular fa-file-pdf fa-2xl" style="color: #db0a0a;"><i class="fa-solid fa-circle-arrow-down fa-2xs" style="margin-left:-35px;"></i></i>
+        </button>
         <div id="questions_statistics_by_teacher_table_div">
           <table id="questions_statistics_by_teacher_dt" class="table table-striped table-sm table-borderless">
             <tbody>

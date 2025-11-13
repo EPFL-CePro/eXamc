@@ -96,10 +96,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'maintenance_mode.middleware.MaintenanceModeMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'maintenance_mode.middleware.MaintenanceModeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -223,7 +223,7 @@ OIDC_OP_TOKEN_ENDPOINT = f"{AUTH_DOMAIN}/oauth2/v2.0/token"
 OIDC_OP_JWKS_ENDPOINT = f"{AUTH_DOMAIN}/discovery/v2.0/keys"
 OIDC_OP_USER_ENDPOINT = "https://graph.microsoft.com/oidc/userinfo"
 OIDC_RP_SIGN_ALGO = "RS256"
-LOGIN_URL = "/"
+LOGIN_URL = "/oidc/authenticate/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
@@ -335,6 +335,10 @@ SUMMERNOTE_CONFIG = {
 MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 MAINTENANCE_MODE_IGNORE_SUPERUSER = True
 MAINTENANCE_MODE_STATE_FILE_PATH = os.path.join(BASE_DIR, "maintenance_mode_state.txt")
+MAINTENANCE_MODE_IGNORE_URLS = (
+    r"^/oidc/authenticate/?$",   # OIDC start (mozilla-django-oidc default)
+    r"^/oidc/callback/?$",       # OIDC callback (mozilla-django-oidc default)
+)
 
 ### CONSTANCE FOR MAINTENANCE
 CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
