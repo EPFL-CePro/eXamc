@@ -28,3 +28,5 @@ db_port: 3306
 celery_broker_url: "redis://redis:6379/0"
 celery_result_backend: "redis://redis:6379/0"
 celery_task_always_eager: true
+
+constance_redis_connection: "redis://127.0.0.1:6379/0"

@@ -342,7 +342,7 @@ MAINTENANCE_MODE_IGNORE_URLS = (
 
 ### CONSTANCE FOR MAINTENANCE
 CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
-CONSTANCE_REDIS_CONNECTION = "redis://127.0.0.1:6379/0"
+CONSTANCE_REDIS_CONNECTION = env("constance_redis_connection")
 # Admin widgets/fields for Constance
 CONSTANCE_ADDITIONAL_FIELDS = {
     "datetime": [
