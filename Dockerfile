@@ -8,7 +8,7 @@ WORKDIR /app
 
 
 RUN mkdir -p /app/tmp \
-    && chown -R 1000:2770 /app/var
+    && chown -R 1000:2770 /app/tmp
 
 # Déps de build pour mysqlclient (lié à libmariadb), et pkg-config
 RUN apt-get update && apt-get install -y --no-install-recommends \
