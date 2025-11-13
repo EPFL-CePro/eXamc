@@ -14,6 +14,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
+from urllib.parse import urlparse
 
 from django.conf import settings
 from dotenv import load_dotenv
@@ -341,8 +342,17 @@ MAINTENANCE_MODE_IGNORE_URLS = (
 )
 
 ### CONSTANCE FOR MAINTENANCE
+CONSTANCE_REDIS_URL = env("constance_redis_connection", default="redis://redis:6379/0")
+parsed = urlparse(CONSTANCE_REDIS_URL)
+
+#REDIS_CONNECTION = {
+#     "host": parsed.hostname or "redis",
+#     "port": parsed.port or 6379,
+#     "db": int((parsed.path or "/0").lstrip("/")),
+# }
 CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
-CONSTANCE_REDIS_CONNECTION = env("constance_redis_connection")
+CONSTANCE_REDIS_CONNECTION = env("constance_redis_connection")#REDIS_CONNECTION
+
 # Admin widgets/fields for Constance
 CONSTANCE_ADDITIONAL_FIELDS = {
     "datetime": [
