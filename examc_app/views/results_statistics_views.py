@@ -100,7 +100,9 @@ def upload_amc_csv(request, exam_pk):
     task = import_csv_data.delay(temp_csv_file_path, exam_pk)
     task_id = task.task_id
 
-    return import_data_4_stats(request,exam_pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk))
+    url = reverse('import_data_4_stats', kwargs={'exam_pk': exam_pk})
+    return redirect(f"{url}?task_id={task_id}")
+    #return import_data_4_stats(request,exam_pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk) + '/'+str(task_id))
 
 #@login_required
 @exam_permission_required(['manage'])
