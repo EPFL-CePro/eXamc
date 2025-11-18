@@ -615,12 +615,14 @@ def get_grading_scheme_checkboxes(grading_scheme_id, copy_nr):
             checked = True
             item_id = pggsc.id
             adjustment = pggsc.adjustment
+            ref="pggsc"
         except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
             checked = False
             item_id = checkbox.id
             adjustment = 0
+            ref="gsc"
 
-        grading_scheme_checkbox = {"item_id":item_id, "points":checkbox.points,"name":checkbox.name,"description":checkbox.description,"checked":checked,"adjustment":adjustment}
+        grading_scheme_checkbox = {"item_id":item_id, "ref": ref,"points":checkbox.points,"name":checkbox.name,"description":checkbox.description,"checked":checked,"adjustment":adjustment}
 
         if checkbox.name == 'ZERO':
             grading_scheme_checkboxes_list.insert(0,grading_scheme_checkbox)

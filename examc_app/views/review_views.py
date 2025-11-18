@@ -993,9 +993,14 @@ def update_pages_group_check_box(request,exam_pk):
 
     item_id_split = item_id_str.split("-")
     item_id = item_id_split[2]
+    ref = item_id_split[1]
     if checked:
         if adjustment != '':
-            pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group, copy_nr=copy_nr,gradingSchemeCheckBox_id=item_id)
+            if ref == "gsc":
+                pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group, copy_nr=copy_nr,gradingSchemeCheckBox_id=item_id)
+            else:
+                pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(id = item_id, pages_group=pages_group, copy_nr=copy_nr)
+
             pggscb.adjustment = adjustment
             pggscb.save()
         else:
@@ -1007,12 +1012,12 @@ def update_pages_group_check_box(request,exam_pk):
                 pass
     else:
         try:
-            PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id).delete()
-        except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
-            try:
+            if ref == "gsc":
+                PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id).delete()
+            else:
                 PagesGroupGradingSchemeCheckedBox.objects.get(id=item_id,pages_group=pages_group, copy_nr=copy_nr).delete()
-            except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
-                pass
+        except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
+            pass
 
 
 

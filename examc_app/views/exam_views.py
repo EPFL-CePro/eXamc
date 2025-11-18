@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from dateutil.utils import today
 from django.conf import settings
 from django.db.models import Sum, Q
@@ -192,11 +194,11 @@ def update_exam_info(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
 
     if exam.date :
-        exam_date = exam.date.strftime("%Y-%m-%d")
+        old_exam_date = exam.date.strftime("%Y-%m-%d")
     else:
-        exam_date = today().strftime("%Y-%m-%d")
-    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam_date#.replace("-","")
-    exam.date = exam_date
+        old_exam_date = today().strftime("%Y-%m-%d")
+    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + old_exam_date#.replace("-","")
+    exam.date = datetime.strptime(request.POST.get('date'),"%Y-%m-%d")
     exam.code = request.POST.get('code')
     exam.name = request.POST.get('name')
     exam.semester_id = request.POST.get('semester_id')
