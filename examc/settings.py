@@ -335,7 +335,9 @@ SUMMERNOTE_CONFIG = {
 #MAINTENANCE_MODE = False commented to let constance manage maintenance
 MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
 MAINTENANCE_MODE_IGNORE_SUPERUSER = True
-MAINTENANCE_MODE_STATE_FILE_PATH = "/tmp/maintenance_mode_state.txt"
+MAINTENANCE_MODE_STATE_BACKEND = "maintenance_mode.backends.CacheBackend"
+MAINTENANCE_MODE_CACHE_NAME = "maintenance_mode"
+# MAINTENANCE_MODE_STATE_FILE_PATH = "/tmp/maintenance_mode_state.txt"
 MAINTENANCE_MODE_IGNORE_URLS = (
     r"^/oidc/authenticate/?$",   # OIDC start (mozilla-django-oidc default)
     r"^/oidc/callback/?$",       # OIDC callback (mozilla-django-oidc default)
@@ -382,4 +384,15 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "MAINT_START", "MAINT_END",
         "MAINT_BYPASS_AUTHENTICATED", "MAINT_BYPASS_STAFF",
     )
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("DJANGO_CACHE_URL", default="redis://redis:6379/1"),
+    },
+    "maintenance_mode": {  # dedicated cache for the flag (optional but nice)
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("DJANGO_MAINTENANCE_CACHE_URL", default="redis://redis:6379/2"),
+    },
 }

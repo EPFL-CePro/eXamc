@@ -22,3 +22,7 @@ db_port: 3306
 celery_broker_url: "redis://redis:6379/0"
 celery_result_backend: "redis://redis:6379/0"
 celery_task_always_eager: false
+
+constance_redis_connection: "redis://redis:6379/0"
+django_cache_url: "redis://redis:6379/1"
+django_maintenance_cache_url: "redis://redis:6379/2"
