@@ -270,8 +270,8 @@ def get_sum_questions_points(exam_id):
 
 @register.simple_tag
 def get_logo_url():
-    settings_module = settings.SETTINGS_MODULE
-    if settings_module.endswith(".prod"):
+    env = os.getenv("ENV")
+    if env == 'prod':
         return settings.STATIC_URL + "img/eXamc_bg_transp_200.png"
     else:
         return settings.STATIC_URL + "img/eXamc_bg_transp_200_dev.png"
