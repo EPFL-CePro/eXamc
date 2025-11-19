@@ -1,3 +1,4 @@
+repo_url: "git@github.com:EPFL-CePro/eXamc.git"
 env_name: "dev"
 debug: true
 secure_ssl_redirect: false

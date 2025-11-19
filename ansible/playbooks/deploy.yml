@@ -7,7 +7,7 @@
     - "{{ playbook_dir }}/../group_vars/{{ env }}/vault.yml"
 
   vars:
-    repo_url: "git@github.com:EPFL-CePro/eXamc.git"
+#    repo_url: "git@github.com:EPFL-CePro/eXamc.git"
     repo_version: "main"
     app_dir: "/opt/examc"
     env_path: "{{ app_dir }}/.env.{{ env }}"
