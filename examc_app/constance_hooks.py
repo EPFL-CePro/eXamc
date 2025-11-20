@@ -16,6 +16,7 @@ def _get(key):
         return None
 
 def recompute_now():
+    log.info("********************* updating maintenance mode")
     start = _get("MAINT_START")
     end = _get("MAINT_END")
     if not (start and end):
@@ -26,6 +27,7 @@ def recompute_now():
     if isinstance(start, datetime) and isinstance(end, datetime):
         should = start <= now < end
     cur = get_maintenance_mode()
+    log.info("maintenance values : (should=%s, cur=%s, now=%s, start=%s, end=%s)",  should, cur, now, start, end)
     if should != cur:
         set_maintenance_mode(should)
         log.info("maintenance: set %s (now=%s, start=%s, end=%s)", "ON" if should else "OFF", now, start, end)

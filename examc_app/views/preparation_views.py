@@ -21,20 +21,20 @@ def create_exam_project(request):
             date = form.cleaned_data['date']
             year_id = form.cleaned_data['year']
             semester_id = form.cleaned_data['semester']
-            date_text = date.strftime('%d.%m.%Y')
-            duration_text = form.cleaned_data['durationText']
-            language = form.cleaned_data['language']
+            # date_text = date.strftime('%d.%m.%Y')
+            # duration_text = form.cleaned_data['durationText']
+            # language = form.cleaned_data['language']
 
             semester = Semester.objects.get(pk=semester_id)
             year = AcademicYear.objects.get(pk=year_id)
             course = Course.objects.get(pk=course_id)
-            exam_text = course.code+" - "+course.name
-            teachers_text = get_course_teachers_string(course.teachers)
+            # exam_text = course.code+" - "+course.name
+            # teachers_text = get_course_teachers_string(course.teachers)
             teachers = add_course_teachers_ldap(course.teachers)
 
-            user = request.user
-            if not user in teachers:
-                teachers.append(user)
+            # user = request.user
+            # if not user in teachers:
+            #     teachers.append(user)
 
             exam = Exam()
             exam.code = course.code
@@ -42,7 +42,7 @@ def create_exam_project(request):
             exam.semester = semester
             exam.year = year
             exam.date = date
-            exam.amc_option = True
+            #exam.amc_option = True
             exam.save()
             for teacher in teachers:
                 exam_user = ExamUser()
@@ -52,21 +52,21 @@ def create_exam_project(request):
                 exam_user.save()
 
             #copy template to new amc_project directory
-            amc_project_template_path = str(settings.AMC_PROJECTS_ROOT)+"/templates/"+language+"/base"
-            new_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+year.code+"/"+str(semester.code)+"/"+exam.code+"_"+date.strftime("%Y%m%d")
-            shutil.copytree(amc_project_template_path,new_project_path)
+            # amc_project_template_path = str(settings.AMC_PROJECTS_ROOT)+"/templates/"+language+"/base"
+            # new_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+year.code+"/"+str(semester.code)+"/"+exam.code+"_"+date.strftime("%Y%m%d")
+            # shutil.copytree(amc_project_template_path,new_project_path)
 
             #update exam-info.tex
-            exam_info_path = new_project_path+"/exam-info.tex"
-            with open(exam_info_path, 'r') as file:
-                file_contents = file.read()
-                updated_contents = file_contents.replace("<TEACHER>", teachers_text).replace("<PAGES>", "8").replace("<DURATION>", duration_text).replace("<DATE>", date_text).replace("<EXAM>", exam_text)
+            # exam_info_path = new_project_path+"/exam-info.tex"
+            # with open(exam_info_path, 'r') as file:
+            #     file_contents = file.read()
+            #     updated_contents = file_contents.replace("<TEACHER>", teachers_text).replace("<PAGES>", "8").replace("<DURATION>", duration_text).replace("<DATE>", date_text).replace("<EXAM>", exam_text)
+            #
+            #
+            # with open(exam_info_path, 'w') as file:
+            #     file.write(updated_contents)
 
-
-            with open(exam_info_path, 'w') as file:
-                file.write(updated_contents)
-
-            return redirect('examInfo',pk=exam.pk)
+            return redirect('examInfo',exam_pk=exam.pk)
         else:
             logger.info("INVALID")
             logger.info(form.errors)

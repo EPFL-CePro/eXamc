@@ -28,10 +28,8 @@ class ExamcOIDCBackend(OIDCAuthenticationBackend):
         groups = list(claims.get("groups", []))
         if "CePro_admin_IT_AppGrpU" in groups:
             user.is_superuser = True
-            user.is_staff = True  # usually needed to access Django admin
         else:
             user.is_superuser = False  # optional: decide if you want to remove superuser status
-            user.is_staff = False
-
+        user.is_staff = True
         user.save()
         return user

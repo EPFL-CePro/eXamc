@@ -134,10 +134,10 @@ class CreateExamProjectForm(forms.Form):
     semester = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}), choices=[], required=True)
     year = forms.ChoiceField(label='Year', choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}),required=True)
     date = forms.DateField(label='Date',widget=forms.DateInput(format=('%d-%m-%Y'), attrs={'id':'dateAndTime','type': 'date','class':'form-control'}),required=True)
-    durationText = forms.CharField(label='DurationTxt', widget=forms.TextInput(attrs={'class':'form-control'}),required=True)
-    language = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
-                      choices=[('fr','FR'),('en','EN')],
-                      required=True)
+    # durationText = forms.CharField(label='DurationTxt', widget=forms.TextInput(attrs={'class':'form-control'}),required=True)
+    # language = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
+    #                   choices=[('fr','FR'),('en','EN')],
+    #                   required=True)
 
     def __init__(self, *args, **kwargs):
         super(CreateExamProjectForm, self).__init__(*args, **kwargs)

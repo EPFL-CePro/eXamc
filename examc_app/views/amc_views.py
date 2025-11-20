@@ -204,8 +204,8 @@ def get_unrecognized_pages(request,exam_pk):
                 file_path = file_path.replace(app_home_path+'/', '')
                 print("******************* " + file_path + " **************************")
 
-                # tmp local
-                #file_path = file_path.replace("%HOME/html/eXamc/", "")
+                # change old file path (www/html/...) to new (srv/examc/private_media/...) from amc db
+                file_path = file_path.replace('%HOME/html/eXamc', str(settings.PRIVATE_MEDIA_ROOT))
 
             file_root = str(settings.SCANS_ROOT)
             if file_path.startswith(str(settings.MARKED_SCANS_ROOT)):
@@ -587,6 +587,9 @@ def get_amc_scan_url(request,exam_pk):
                 #tmp local
                 #scan_path = scan_path.replace("%HOME/html/eXamc/","")
                 print("******************* " + scan_path + " **************************")
+
+                #change old file path (www/html/...) to new (srv/examc/private_media/...) from amc db
+                scan_path = scan_path.replace('%HOME/html/eXamc',str(settings.PRIVATE_MEDIA_ROOT))
 
             scan_root = str(settings.SCANS_ROOT)
             if scan_path.startswith(str(settings.MARKED_SCANS_ROOT)):
