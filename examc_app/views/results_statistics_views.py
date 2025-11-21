@@ -242,7 +242,7 @@ def generate_stats(request, exam_pk):
     # if not result == True:
     #     messages.error(request, "Unable to upload file. " + result)
 
-    return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': exam_pk, 'task_id': task_id}))
+    return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
     #return redirect('../examInfo/' + str(exam.pk))
 
 #@login_required
