@@ -5,7 +5,6 @@ from datetime import datetime
 
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.db.models.functions import Cast
 from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
@@ -16,6 +15,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import ExportResultsForm
 from examc_app.signing import make_token_for
+from examc_app.storage import to_private_name, private_storage
 from examc_app.utils.amc_functions import get_amc_catalog_pdf_path
 from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
@@ -113,8 +113,11 @@ def upload_catalog_pdf(request, exam_pk):
     filename = exam.code+'_'+str(exam.year.code)+'_'+str(exam.semester.code)+'_catalog.pdf'
     dest = str(settings.CATALOG_ROOT)+'/'+str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'_'+exam.date.strftime("%Y%m%d") +'/'
     dest += filename
-    default_storage.delete(dest)
-    default_storage.save(dest,ContentFile(catalog.read()))
+    name = to_private_name(dest)
+    private_storage.delete(name)
+    private_storage.save(name,ContentFile(catalog.read()))
+    # default_storage.delete(dest)
+    # default_storage.save(dest,ContentFile(catalog.read()))
     exam.pdf_catalog_name = filename
     exam.save()
 
