@@ -384,13 +384,11 @@ def validate_common_exams_settings(request,exam_pk):
 
         #get or create overall exam if not from overall exam
         if not exam.is_overall():
-            overall_exam, created = Exam.objects.get_or_create( code='000-' + exam.name + '-' + exam.year.code + '-' + str(exam.semester.code))
+            overall_exam, created = Exam.objects.get_or_create( code='000-' + exam.name + '-' + exam.year.code + '-' + str(exam.semester.code),
+                                                                year = exam.year, semester = exam.semester,date=exam.date)
             if created:
                 overall_exam.name = exam.name
-                overall_exam.year.code = exam.year.code
-                overall_exam.semester.code = exam.semester.code
                 overall_exam.pdf_catalog_name = exam.pdf_catalog_name
-                overall_exam.date = exam.date
                 overall_exam.overall = True
                 overall_exam.save()
 
