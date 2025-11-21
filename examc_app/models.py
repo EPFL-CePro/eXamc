@@ -136,10 +136,10 @@ class Exam(models.Model):
 
         exam = self
         if self.is_overall():
-            code_split = self.code.split('-')
+            code_split = self.code.split('_')
             code = code_split[1]
-            semester = self.semester.code
-            year = self.year.code
+            semester = self.semester
+            year = self.year
             exam = Exam.objects.filter(code__startswith=code,semester=semester, year=year).exclude(code=self.code).first()
 
         exam_code_search_start = exam.code.split('(')[0]

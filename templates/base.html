@@ -356,9 +356,9 @@
                                id="{{ comex.id }}-tab"
                                href="{% if curr_tab %}{% url nav_url comex.pk curr_tab %}{% else %}{% url nav_url comex.pk %}{% endif %}">
                                 {% if comex.is_overall %}
-                                    {{ comex.name }} (S{{ comex.semester.code }} {{ comex.year.code }} )
+                                    {{ comex.name }}
                                     <br>
-                                    COMMON
+                                    (S{{ comex.semester.code }} {{ comex.year.code }} )
                                 {% else %}
                                     {{ comex.code }} {{ comex.name }} (S{{ comex.semester.code }} {{ comex.year.code }} )
                                     <br>

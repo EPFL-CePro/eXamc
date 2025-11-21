@@ -41,7 +41,7 @@ from ..models import *
 
 def update_overall_common_exam(exam):
     if not exam.overall:
-        overall_code = '000-'+re.sub(r"\(.*?\)", "", exam.code).strip()
+        overall_code = '000_'+re.sub(r"\(.*?\)", "", exam.code).strip()
         month_year = exam.date.strftime("%m-%Y")
         overall_code += "_"+month_year
         overall_exam, created = Exam.objects.get_or_create(code = overall_code,semester = exam.semester,year = exam.year)
