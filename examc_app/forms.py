@@ -184,10 +184,11 @@ class SummernoteForm(forms.Form):
     )
 
 CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
-JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
-CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
-IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
+#JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"
+
 class SeatingForm(forms.Form):
+    CSV_FILES = sorted([(f, f) for f in os.listdir(CSV_DIR) if f.endswith('.csv')])
+    #IMAGE_FILES = sorted([(f, f) for f in os.listdir(JPG_DIR) if f.endswith('.jpg')])
     csv_file = forms.MultipleChoiceField(
         choices=CSV_FILES,
         label='Room',
