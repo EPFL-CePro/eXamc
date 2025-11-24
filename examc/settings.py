@@ -260,7 +260,7 @@ PANDOC_UTILS_DIR = BASE_DIR / 'examc_app/utils/pandoc'
 
 # Rooms plans pathes
 ROOMS_PLANS_ROOT = PRIVATE_MEDIA_ROOT / 'rooms_plans'
-ROOMS_PLANS_URL = PRIVATE_MEDIA_URL + 'rooms_plans/'
+ROOMS_PLANS_URL = 'rooms_plans/'
 
 LOGGING = {
     'version': 1,
