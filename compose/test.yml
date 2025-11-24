@@ -45,3 +45,5 @@ services:
     restart: unless-stopped
     environment:
       CELERY_LOGLEVEL: "INFO"
+    volumes:
+      - /srv/examc/private_media:/private_media:rw
