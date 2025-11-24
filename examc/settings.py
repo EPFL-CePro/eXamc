@@ -259,7 +259,7 @@ DEFAULT_FROM_EMAIL = 'noreply-cepro-exams@epfl.ch'  # Default sender email addre
 PANDOC_UTILS_DIR = BASE_DIR / 'examc_app/utils/pandoc'
 
 # Rooms plans pathes
-ROOMS_PLANS_ROOT = BASE_DIR / 'rooms_plans'
+ROOMS_PLANS_ROOT = PRIVATE_MEDIA_ROOT / 'rooms_plans'
 ROOMS_PLANS_URL = '/rooms_plans/'
 
 LOGGING = {
