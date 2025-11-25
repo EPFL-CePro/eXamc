@@ -44,6 +44,7 @@ django_celery_results==2.6.0
 docopt==0.6.2
 docutils==0.21.2
 docutils-stubs==0.0.22
+et_xmlfile==2.0.0
 executing==2.2.0
 fastjsonschema==2.21.1
 fonttools==4.59.0
@@ -77,6 +78,7 @@ nbformat==5.10.4
 num2words==0.5.14
 numpy==2.2.6
 opencv-python==4.12.0.88
+openpyxl==3.1.5
 packaging==25.0
 pandas==2.3.1
 pandocfilters==1.5.1
@@ -106,7 +108,7 @@ python3-ldap==0.9.8.4
 pytz==2025.2
 pyzbar==0.1.9
 pyzmq==27.0.0
-redis==6.4.0
+redis==7.0.1
 referencing==0.36.2
 requests==2.32.4
 roman-numerals-py==3.1.0
