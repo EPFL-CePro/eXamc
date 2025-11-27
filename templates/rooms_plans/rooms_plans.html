@@ -14,12 +14,29 @@
 {% block content %}
     <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
     <p>This website is under development, please contact lucile.pinard@epfl.ch in case of issue</p>
+
+    <ul class="nav nav-pills flex-column flex-sm-row border">
+        <li class="nav-item">
+            <a class="flex-sm-fill text-sm-center nav-link {% if request.path == '/generate_room_plan/' %}active{% endif %}"
+            href="/generate_room_plan/">
+                Default
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="flex-sm-fill text-sm-center nav-link {% if request.path == '/generate_room_plan/special' %}active{% endif %}"
+            href="/generate_room_plan/special">
+                Special
+            </a>
+        </li>
+    </ul>
+
     <form id="special-form" method="post" enctype="multipart/form-data">
     
         {% csrf_token %}
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
-                 style="padding: 10px;{% if field.name == 'special_file' and not form.initial.special_file %}display:none;{% endif %}">
+                 style="padding: 10px;">
                 {% if field.help_text %}
                     <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
                 {% endif %}
@@ -28,11 +45,6 @@
                 </div>
                 <div class="col col-sm-4">
                     {{ field }}
-                    {% if field.name == 'special_file' %}
-                        <label class="custom-file-label custom-file-label small">Choose a csv file
-                            <input class="custom-file-input form-control" type="file" name="{{ field.name }}" accept="text/csv">
-                        </label>
-                    {% endif %}
                 </div>
             </div>
         {% endfor %}
@@ -51,23 +63,12 @@
         {% endfor %}
     </div>
     <script>
-        function showHideSpecialFile() {
-            skip_option = document.querySelector('input[name="skipping_option"]:checked').value;
-            numbering_option = document.querySelector('input[name="numbering_option"]:checked').value;
-            var el = $("#DIV-special_file");
-            if (skip_option === 'skip' || numbering_option === 'special') {
-                el.show();
-            } else {
-                el.hide();
-            }
-        }
-
         function showHideLastNumber() {
             
-            num_option = document.querySelector('input[name="fill_all_seats"]:checked').value;
+            num_option = $('input[name="fill_all_seats"]').is(':checked')
             console.log("num_opt: ", num_option);
             var el = $("#DIV-last_seat_number");
-            if (num_option === 'on') {
+            if (num_option) {
                 el.hide();
             } else {
                 el.show();
@@ -80,7 +81,6 @@
                 placement: 'top'
             });
             $('[data-toggle="tooltip"]').tooltip();
-            showHideSpecialFile('');
             
         });
     </script>

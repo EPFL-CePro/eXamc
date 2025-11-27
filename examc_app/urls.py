@@ -4,6 +4,7 @@ from django.urls import path, include, re_path
 from examc_app import views, tasks
 
 from examc_app.views.rooms_plans_views import GenerateRoomPlanView
+from examc_app.views.rooms_plans_special_views import GenerateRoomPlanSpecialView
 
 urlpatterns = [
     # EXAM INFO
@@ -117,6 +118,7 @@ urlpatterns = [
 
     # ROOM PLAN
     path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
+    path('generate_room_plan/special', GenerateRoomPlanSpecialView.as_view(), name='generate_room_plan_special'),
 
     # CSVGEN
     path('csvgen/', views.csvgen, name="csvgen"),
