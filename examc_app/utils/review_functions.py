@@ -337,7 +337,7 @@ def get_copies_pages_by_group(pagesGroup):
         (row["copie_no"], row["page_no"]): bool(row["markers"]) and bool(row["correctorBoxMarked"])
         for row in scans_markers
     }
-    print(scans_markers)
+
     # Comments -> set of copy_no strings
     comments_set = set(
         PagesGroupComment.objects
@@ -372,25 +372,30 @@ def get_copies_pages_by_group(pagesGroup):
                 if not f_entry.is_file():
                     continue
                 name = f_entry.name
+                print(name)
                 if name.endswith("full.jpg"):
                     continue
 
                 # Expect ..._<copy_no>_<page>.jpg
                 try:
                     base = name[:-4] if name.lower().endswith(".jpg") else name
+                    print(base)
                     left, copy_no, page_no_real = base.rsplit("_", 2)
                 except ValueError:
                     # filename not matching pattern; skip quickly
                     continue
 
+
                 # page number checks (first 2 chars)
                 try:
+                    print(page_no_real)
                     page_no_int = int(page_no_real[:2])
                 except ValueError:
                     continue
 
                 # AMC range gate (cached)
                 try:
+                    print(page_no_int)
                     copy_no_int = int(copy_no)
                 except ValueError:
                     # copy number malformed; skip
@@ -409,7 +414,7 @@ def get_copies_pages_by_group(pagesGroup):
                 copy_no_z4 = str(copy_no).zfill(4)
                 page_no_norm = str(page_no_real).zfill(2).replace(".", "x")
                 marked = markers_idx.get((copy_no_z4, page_no_norm), False)
-
+                print("copy_no : "+copy_no+";page_no : "+ page_no_real + ";marked : "+ marked)
                 copies_pages_list.append({
                     "copy_no": copy_no,
                     "page_no": page_no_real,
