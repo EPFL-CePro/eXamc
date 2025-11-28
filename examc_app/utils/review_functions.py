@@ -350,8 +350,10 @@ def get_copies_pages_by_group(pagesGroup):
 
     @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
+        print("*** get_from_to")
         pages = get_question_start_page_by_student(str(amc_data_root) + "/", pagesGroup.group_name, copy_no_int)
         if not pages:
+            print("NO PAGES")
             return None
         from_p = pages[0]["page"]
         to_p = from_p + pagesGroup.nb_pages - 1
@@ -402,6 +404,7 @@ def get_copies_pages_by_group(pagesGroup):
                     continue
 
                 from_to = get_from_to(copy_no_int)
+                print(from_to)
                 if not from_to:
                     continue
                 from_p, to_p = from_to
