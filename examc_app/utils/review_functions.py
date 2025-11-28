@@ -348,7 +348,7 @@ def get_copies_pages_by_group(pagesGroup):
     # ---- cache AMC page range per copy_no so we don't recompute -------------
     amc_data_root = pathlib.Path(get_amc_project_path(exam, True)) / "data"
 
-    @lru_cache(maxsize=4096)
+    # @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
         print("*** get_from_to")
         pages = get_question_start_page_by_student(str(amc_data_root) + "/", pagesGroup.group_name, copy_no_int)
@@ -421,7 +421,7 @@ def get_copies_pages_by_group(pagesGroup):
                 print("***")
                 marked = markers_idx.get((copy_no_z4, page_no_norm), False)
                 print("****")
-                print("copy_no : "+copy_no+";page_no : "+ page_no_real + ";marked : "+ marked)
+                print("copy_no : "+copy_no+";page_no : "+ page_no_real )
                 copies_pages_list.append({
                     "copy_no": copy_no,
                     "page_no": page_no_real,
