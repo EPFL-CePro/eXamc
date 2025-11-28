@@ -348,12 +348,10 @@ def get_copies_pages_by_group(pagesGroup):
     # ---- cache AMC page range per copy_no so we don't recompute -------------
     amc_data_root = pathlib.Path(get_amc_project_path(exam, True)) / "data"
 
-    # @lru_cache(maxsize=4096)
+    @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
-        print("*** get_from_to")
         pages = get_question_start_page_by_student(str(amc_data_root) + "/", pagesGroup.group_name, copy_no_int)
         if not pages:
-            print("NO PAGES")
             return None
         from_p = pages[0]["page"]
         to_p = from_p + pagesGroup.nb_pages - 1
@@ -362,7 +360,6 @@ def get_copies_pages_by_group(pagesGroup):
     copies_pages_list = []
 
     if scans_dir.exists():
-        print("scans_dir.exists")
         # Iterate dirs and files with scandir (faster than listdir + isdir)
         for d_entry in sorted(os.scandir(scans_dir), key=lambda e: e.name):
             if not d_entry.is_dir():
@@ -374,14 +371,12 @@ def get_copies_pages_by_group(pagesGroup):
                 if not f_entry.is_file():
                     continue
                 name = f_entry.name
-                print(name)
                 if name.endswith("full.jpg"):
                     continue
 
                 # Expect ..._<copy_no>_<page>.jpg
                 try:
                     base = name[:-4] if name.lower().endswith(".jpg") else name
-                    print(base)
                     left, copy_no, page_no_real = base.rsplit("_", 2)
                 except ValueError:
                     # filename not matching pattern; skip quickly
@@ -390,45 +385,35 @@ def get_copies_pages_by_group(pagesGroup):
 
                 # page number checks (first 2 chars)
                 try:
-                    print(page_no_real)
                     page_no_int = int(page_no_real[:2])
                 except ValueError:
                     continue
 
                 # AMC range gate (cached)
                 try:
-                    print(page_no_int)
                     copy_no_int = int(copy_no)
                 except ValueError:
                     # copy number malformed; skip
                     continue
 
                 from_to = get_from_to(copy_no_int)
-                print(from_to)
                 if not from_to:
                     continue
                 from_p, to_p = from_to
                 if not (from_p <= page_no_int <= to_p):
                     continue
-                print(from_to)
 
                 copy_has_comment = copy_no in comments_set
-                print(copy_has_comment)
                 # Normalize keys like before
                 copy_no_z4 = str(copy_no).zfill(4)
-                print("**")
                 page_no_norm = str(page_no_real).zfill(2).replace(".", "x")
-                print("***")
                 marked = markers_idx.get((copy_no_z4, page_no_norm), False)
-                print("****")
-                print("copy_no : "+copy_no+";page_no : "+ page_no_real )
                 copies_pages_list.append({
                     "copy_no": copy_no,
                     "page_no": page_no_real,
                     "marked": marked,
                     "comment": copy_has_comment,
                 })
-                print(copies_pages_list)
     # Sorting: avoid float() (can fail if letters); sort by numeric copy_no then by (first two digits, full tail)
     def page_sort_key(page_no: str):
         head = page_no[:2]

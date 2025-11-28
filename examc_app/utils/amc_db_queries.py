@@ -368,7 +368,7 @@ def get_mean(amc_data_path):
 
     response = db.execute_query(query_str)
     mean = 0
-    if response:
+    if response.fetchall()[0]['mean']:
         mean = round(response.fetchall()[0]['mean'],4)
 
     db.close()
@@ -521,12 +521,11 @@ def get_questions(amc_data_path):
 
 def get_question_start_page_by_student(amc_data_path,question_name,student_id):
     db = AMC_DB(amc_data_path + "layout.sqlite")
-    print(" amc db path : "+amc_data_path + "layout.sqlite")
     query_str = ("SELECT DISTINCT b.student, q.question, q.name, b.page FROM layout_box b"
                  " INNER JOIN layout_question q ON q.question = b.question"
                  " WHERE q.name = '"+ str(question_name) + "' AND b.student = " + str(student_id))
 
-    print(query_str)
+
     response = db.execute_query(query_str)
     colname_qp = [d[0] for d in response.description]
     qp_details = [dict(zip(colname_qp, r)) for r in response.fetchall()]
