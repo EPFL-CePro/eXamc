@@ -320,9 +320,11 @@ def get_scans_pathes_by_group(pagesGroup):
 #     return copies_pages_list
 
 def get_copies_pages_by_group(pagesGroup):
+    print('********************* START GET COPIES')
     exam = pagesGroup.exam
     project_subdir = f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
     scans_dir = pathlib.Path(settings.SCANS_ROOT) / project_subdir
+    print(scans_dir)
 
     # ---- DB: pull once, then do O(1) lookups in-memory ----------------------
     # Page markers -> (copy_no_z4, page_no_norm) -> marked_bool
@@ -335,7 +337,7 @@ def get_copies_pages_by_group(pagesGroup):
         (row["copie_no"], row["page_no"]): bool(row["markers"]) and bool(row["correctorBoxMarked"])
         for row in scans_markers
     }
-
+    print(scans_markers)
     # Comments -> set of copy_no strings
     comments_set = set(
         PagesGroupComment.objects
@@ -358,6 +360,7 @@ def get_copies_pages_by_group(pagesGroup):
     copies_pages_list = []
 
     if scans_dir.exists():
+        print("scans_dir.exists")
         # Iterate dirs and files with scandir (faster than listdir + isdir)
         for d_entry in sorted(os.scandir(scans_dir), key=lambda e: e.name):
             if not d_entry.is_dir():
@@ -413,7 +416,7 @@ def get_copies_pages_by_group(pagesGroup):
                     "marked": marked,
                     "comment": copy_has_comment,
                 })
-
+    print(copies_pages_list)
     # Sorting: avoid float() (can fail if letters); sort by numeric copy_no then by (first two digits, full tail)
     def page_sort_key(page_no: str):
         head = page_no[:2]
