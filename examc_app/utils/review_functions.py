@@ -407,13 +407,17 @@ def get_copies_pages_by_group(pagesGroup):
                 from_p, to_p = from_to
                 if not (from_p <= page_no_int <= to_p):
                     continue
+                print(from_to)
 
                 copy_has_comment = copy_no in comments_set
-
+                print(copy_has_comment)
                 # Normalize keys like before
                 copy_no_z4 = str(copy_no).zfill(4)
+                print("**")
                 page_no_norm = str(page_no_real).zfill(2).replace(".", "x")
+                print("***")
                 marked = markers_idx.get((copy_no_z4, page_no_norm), False)
+                print("****")
                 print("copy_no : "+copy_no+";page_no : "+ page_no_real + ";marked : "+ marked)
                 copies_pages_list.append({
                     "copy_no": copy_no,
@@ -421,7 +425,7 @@ def get_copies_pages_by_group(pagesGroup):
                     "marked": marked,
                     "comment": copy_has_comment,
                 })
-    print(copies_pages_list)
+                print(copies_pages_list)
     # Sorting: avoid float() (can fail if letters); sort by numeric copy_no then by (first two digits, full tail)
     def page_sort_key(page_no: str):
         head = page_no[:2]
