@@ -222,7 +222,7 @@
                     const data_json = values_json.data || [];
 
                     pendingEmailSubject = (values_json.email_subject !== undefined) ? values_json.email_subject : '';
-                    pendingEmailBodyHtml = (values_json.email_body !== undefined) ? values_json.email_body : '<p><br></p>';
+                    pendingEmailBodyHtml = (values_json.email_text !== undefined) ? values_json.email_text : '<p><br></p>';
 
                     if (data_json.length > 0) {
                         const head_tr = document.getElementById('send-annotated-papers-table-thead');
