@@ -539,8 +539,12 @@ def amc_set_manual_association(request,exam_pk):
 def amc_send_annotated_papers_data(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     data = get_amc_send_annotated_papers_data(exam)
+    email_subject = get_amc_option_by_key(exam, 'email_subject')
+    email_text = get_amc_option_by_key(exam, 'email_text')
+    # amc_update_options_xml_by_key()
 
-    return HttpResponse(json.dumps(data))
+    values = {"email_subject": email_subject, "email_text": email_text,"data": data}
+    return HttpResponse(json.dumps(values))
 
 #@login_required
 @require_POST
