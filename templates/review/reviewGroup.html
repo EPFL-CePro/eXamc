@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+e{% extends 'base.html' %}
 {% load static %}
 {% load custom_tags %}
 
@@ -6,24 +6,24 @@
 
 <script type="text/javascript"  src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
 <script type="text/javascript" src="{% static 'js/jquery-comments.js' %}"></script>
-<script type="text/javascript" src="https://unpkg.com/markerjs2/markerjs2.js"></script>
-    
+
+{#<script type="text/javascript" src="https://unpkg.com/markerjs2/markerjs2.js"></script>#}
+<script src="https://unpkg.com/@markerjs/markerjs3/umd/markerjs3.js"></script>
+{#<script src="https://unpkg.com/@markerjs/markerjs-ui/markerjs-ui.umd.cjs"></script>#}
+
 <script type="text/javascript" src="{% static 'js/jspolygon.js' %}"></script>
-    
+
 <!-- MathJax -->
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js">
 </script>
 <link rel="stylesheet" type="text/css" href="{% static 'css/jquery-comments.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/styleMarkerjs.css' %}">
 
 {% endblock %}
 
 {% block title %}Review {{ pages_group }}{% endblock %}
 {% block scripts %}
-  
-    
-
- 
 {% endblock %}
 
 {% block content %}
@@ -47,7 +47,7 @@
     <style>
     :focus { outline: none; }
     </style>
-    <div id="reviewGroup_div" class="d-flex" tabindex="0" style="height:93vh;">
+    <div id="reviewGroup_div" class="d-flex" tabindex="0" style="height:92vh;">
 
 
         <div id="pages_group_list" style="background-color:#f1f1f1;">
@@ -91,23 +91,54 @@
                 </table>
             </div>
         </div>
-        <div class="list-group" id="test" style="height:100%;margin-left:5px;width:60vw;position:relative;" >
+        <div class="list-group" id="review-center-div" style="height:100%;margin-left:5px;width:60vw;position:relative;" >
             <div id="pagination" class="list-group list-group-horizontal"></div>
             <div id="copy_page_select" style="z-index:99;position:absolute;margin-top:100px;right:20px;background-color: gray;padding:2px;"></div>
-            <div id="markerjs_div" style="height:95%;aspect-ratio:1/1.49;overflow-y: auto;border:1px solid lightgrey;padding-top:5px;">
-                <div class="col-xs-6" style="position: relative; display: flex; flex-direction: column;">
-                    <img id="source_img" style=""/>
-                    <img id="marked_img" style="max-width:100%;position: absolute;"/>
-                    <div id="corr_box_div" style="position:absolute;z-index:999;">
-                        <svg id="corrector_boxes_svg" style="width:100%;height:100%;">
-
-                        </svg>
+            <div id="markerjs_div">
+                <div id="mjs-toolbar" class="markerjs-toolbar d-flex">
+                    <div class="toolbar-left d-flex">
+                        <button type="button" class="btn btn-light" id="btn-clear"><i class="fa-solid fa-broom fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-undo"><i class="fa-solid fa-arrow-rotate-left fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-redo"><i
+                                class="fa-solid fa-arrow-rotate-right fa-lg"></i>
+                        </button>
                     </div>
+                    <div id="mjs-toolbar-center" class="toolbar-center d-flex">
+                        <button type="button" class="btn btn-light" id="btn-pointer"><i
+                                class="fa-solid fa-arrow-pointer fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-text-marker"><i class="fa-solid fa-t fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-freehand-marker">
+                            <i class="fa-solid fa-s fa-lg" style="margin-top:10px;transform:scaleY(-1) rotate(55deg);"></i>
+                            <i class="fa-solid fa-pencil fa-lg" style="margin-left:0px;"></i>
+                        </button>
+                    </div>
+                    <div class="toolbar-right d-flex">
+                        <p id="magnify-help" class="text-muted small d-none">
+                          Tip: click outside the image to stop magnifying.
+                        </p>
+                        <button type="button" class="btn btn-light" id="btn-magnify"><i class="fa-solid fa-magnifying-glass-plus fa-lg"></i></button>
+                    </div>
+                </div>
+                <div id="mjsapp" class="col-xs-6">
+                    <div id ="marker-wrapper">
+                        <div id="corr_box_div" class="corr-box-div"></div>
+                    </div>
+                </div>
+                <div id="mjs-bottom-bar" class="markerjs-bottom-bar">
+                    <div class="color-picker-wrapper">
+                        <button type="button" class="btn btn-light" id="btn-color"><i class="fa-solid fa-palette fa-lg"></i></button>
 
+                        <input type="color"
+                           class="form-control form-control-color"
+                           id="color-input"
+                           value="#CCCCCC"
+                           title="Choose a color"
+                           style="position:absolute; left:-9999px; width:0; height:0; opacity:0;">
+                    </div>
                 </div>
             </div>
         </div>
-        <div>
+        <div style="height:100%;">
             <p style="margin-right:20px;margin-top:10px;">
                 <a title="Discussion"
                    class="js-toggle-comments"
@@ -121,7 +152,7 @@
                 </a>
             </p>
             {% if pages_group.use_grading_scheme %}
-                <div id="grading-scheme-div" style="background-color:#f1f1f1;padding:20px;margin-top:-20px;">
+                <div id="grading-scheme-div" style="height:100%;background-color:#f1f1f1;padding:5px;padding-top:10px;margin-top:-19px;">
                     <h6>Grading Schemes</h6>
 
                     <ul class="nav nav-pills flex-column flex-md-row border" id="review-scheme-pills">
@@ -164,8 +195,28 @@
         </div>
 
     <script>
-    $('.modal-dialog').draggable();
+        let targetRoot, maState, markedImageDataUrl,currSourceElementId, currSourceIdSplit,from_copy_orig_id;
+        let group_copies_pages_list = JSON.parse('{{json_copies_pages_list|safe }}');
+        let current_grading_scheme_id;
+        let corrector_boxes_data;
+        let magnifierActive = false;
+        let destroyMagnifierFn = null;
 
+        //MSJ3_ Global markerjs3 object
+        const { MarkerArea, FreehandMarker, TextMarker, HighlightMarker, MarkerView, Renderer } = markerjs3;
+        const mjs3App = document.querySelector("#mjsapp");
+        const wrapper = document.querySelector("#marker-wrapper");
+        let markerArea = new MarkerArea();
+        wrapper.appendChild(markerArea);
+        let sourceImage = new Image();
+        let selectedMarkerEditor = null
+
+        //source image on load resize
+        sourceImage.onload = () => {
+            sourceImage_onload();
+        };
+
+        $('.modal-dialog').draggable();
 
         window.MathJax = {
             tex: {
@@ -174,14 +225,43 @@
 
             }
         };
-        let sourceImage, markedImage, targetRoot, maState, currSourceElementId, currSourceIdSplit, markerArea,
-            from_copy_orig_id;
-        let group_copies_pages_list = JSON.parse('{{json_copies_pages_list|safe }}');
-        let current_grading_scheme_id;
 
         window.addEventListener('resize', function (event) {
             location.reload();
         }, true);
+
+        function showBottomBar(show) {
+            document.getElementById('mjs-bottom-bar').classList.toggle('show', show);
+        }
+
+        function sourceImage_onload(){
+            // Attach image to markerArea
+            markerArea.targetImage = sourceImage;
+
+            // Append markerArea once
+            if (!mjs3App.contains(markerArea)) {
+                mjs3App.appendChild(markerArea);
+            }
+            // Measure available space
+            const rect = mjs3App.getBoundingClientRect();
+
+            const imgW = sourceImage.naturalWidth;
+            const imgH = sourceImage.naturalHeight;
+            const imageRatio = imgW / imgH;
+
+            let targetWidth, targetHeight;
+
+            targetWidth  = rect.width-20;
+            targetHeight = targetWidth / imageRatio;
+
+            markerArea.targetWidth  = targetWidth;
+            markerArea.targetHeight = targetHeight;
+
+            $("#corrector_boxes_svg").empty();
+            if (corrector_boxes_data.length > 0) {
+                draw_corrector_boxes();
+            }
+        }
 
         // save references to the original image and its parent div (positioning root)
         function setSourceImage(source) {
@@ -192,12 +272,7 @@
         function createPagination(pages, page) {
 
 
-            let str = ''//'<ul class="list-group list-group-horizontal">';
-
-            //setSourceScan(group_copies_pages_list[page-1]["path"],false);
-            {##### TESTING DISPLAYING FULL COPIE JPGS #####}
-            {#setSourceScan(group_pathes_new[page-1]["path"],group_pathes[page-1]["path"], "");#}
-            {##### END TESTING DISPLAYING FULL COPIE JPGS #####}
+            let str = '';
 
             // Show the Previous button only if you are on a page other than the first
             if (page > 1) {
@@ -261,19 +336,16 @@
         }
 
         function setSourceScan(scan_path, from_copy) {
+
             if (from_copy) {
                 lastSourceIdSplit = old_source.split('_');
                 from_copy_orig_id = lastSourceIdSplit[0] + "_" + lastSourceIdSplit[1] + "_" + lastSourceIdSplit[2];
             }
             src_url = "/" + scan_path.split('/')[1] + "/" + scan_path.split('/')[3];
-            old_source = document.getElementById("source_img").alt;
-            sourceImage = document.getElementById("source_img");
-            sourceImage.src = src_url
-            sourceImage.alt = scan_path.split("/")[2]
-            targetRoot = sourceImage.parentElement;
-            old_marked = document.getElementById("marked_img").src;
-            markedImage = document.getElementById("marked_img");
-            markedImage.src = src_url;
+
+            old_source = sourceImage.alt;
+            sourceImage.src = src_url;
+            sourceImage.alt = scan_path.split("/")[2];
 
             // change current and last source element background color
             currSourceIdSplit = scan_path.split("/")[2].split('_');
@@ -303,98 +375,212 @@
 
         }
 
-        function setMarkerArea(copy_no, page_no, from_copy = false) {
+        // --- helper to sync from current editor to UI ---
+        function syncColorUIFromEditor(editor) {
+            if (!editor) return;
 
-            result_ok = getMarkersAndComments("{{ exam_selected.pk }}", copy_no, page_no, from_copy);//,sourceImage.getAttribute("src"));
-            if (markerArea) {
-                markerArea.close();
-                delete markerArea;
+            let color = null;
+
+            // shapes, lines, freehand, polygon → use strokeColor (like in docs)
+            if ('strokeColor' in editor && editor.strokeColor) {
+                color = editor.strokeColor;
             }
-            markerArea = new markerjs2.MarkerArea(sourceImage);
-            markerArea.uiStyleSettings.redoButtonVisible = true;
-            markerArea.uiStyleSettings.notesButtonVisible = true;
-            markerArea.uiStyleSettings.zoomButtonVisible = true;
-            markerArea.uiStyleSettings.zoomOutButtonVisible = true;
-            markerArea.uiStyleSettings.clearButtonVisible = true;
-            markerArea.uiStyleSettings.resultButtonBlockVisible = false;
-            markerArea.uiStyleSettings.notesButtonVisible = false;
-            markerArea.settings.defaultColorSet = ['#ac0000', 'black', 'blue'];
-            markerArea.settings.defaultFillColor = '#ac0000';
-            markerArea.settings.defaultStrokeColor = '#ac0000';
-            markerArea.settings.newFreehandMarkerOnPointerUp = true;
-            markerArea.availableMarkerTypes = ['FreehandMarker', 'HighlightMarker', 'TextMarker'];//'LineMarker','RectangleMarker','EllipseMarker','CoverMarker','EllipseFrameMarker',...markerArea.BASIC_MARKER_TYPES,'CalloutMarker',];
+            // text markers → color is on editor.marker.color
+            if (!color && editor.marker && 'color' in editor.marker && editor.marker.color) {
+                color = editor.marker.color;
+            }
 
-            // since the container div is set to position: relative it is now our positioning root
-            // end we have to let marker.js know that
-            markerArea.targetRoot = targetRoot;
+            if (!color) return;
 
-            markerArea.addEventListener("render", (event) => {
-                markedImage.src = event.dataUrl;
-                // save the state of MarkerArea
-                //maState = event.state;
-                //updateMarkers(markerArea,"{{ exam_selected.pk }}","{{ pages_group.pk }}");
+            // update color picker and button
+            document.getElementById('color-input').value = color;
+        }
+        // send back to marker selected color
+        document.getElementById('color-input').addEventListener('input', (ev) => {
+            const editor = markerArea.currentMarkerEditor;
+            if (!editor) return;
+
+            const newColor = ev.target.value;
+
+            // for markers with strokeColor (lines, freehand, shapes…)
+            if ('strokeColor' in editor) {
+                editor.strokeColor = newColor;
+            }
+
+            // for text markers
+            if (editor.marker && 'color' in editor.marker) {
+                editor.marker.color = newColor;
+            }
+
+        });
+
+        function updateMarkerToolbarSelection() {
+            const buttons = document.querySelectorAll('#mjs-toolbar-center .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            switch (selectedMarkerEditor) {
+                case 'TextMarker':
+                    document.getElementById('btn-text-marker').classList.add('active');
+                    showBottomBar(true);
+                    break;
+                case 'FreehandMarker':
+                    document.getElementById('btn-freehand-marker').classList.add('active');
+                    showBottomBar(true);
+                    break;
+                default:
+                    document.getElementById('btn-pointer').classList.add('active');
+                    showBottomBar(false);
+            }
+        }
+
+        function generate_marker_toolbar_button_events() {
+            document.getElementById('btn-text-marker').addEventListener('click', function () {
+                markerArea.createMarker("TextMarker");
+                selectedMarkerEditor = "TextMarker";
+                updateMarkerToolbarSelection();
             });
 
-            markerArea.addEventListener("close", (event) => {
-                //setMarkerArea(copy_no,page_no);
+            document.getElementById('btn-freehand-marker').addEventListener('click', function () {
+                markerArea.createMarker("FreehandMarker");
+                selectedMarkerEditor = "FreehandMarker";
+                updateMarkerToolbarSelection();
             });
+
+            document.getElementById('btn-pointer').addEventListener('click', function () {
+                markerArea.switchToSelectMode();
+                selectedMarkerEditor = null;
+                updateMarkerToolbarSelection();
+            });
+
+            document.getElementById('btn-clear').addEventListener('click', function () {
+                const currentState = markerArea.getState();
+                currentState.markers = currentState.markers.filter(
+                    m => m.typeName === 'HighlightMarker'
+                );
+                markerArea.restoreState(currentState);
+                // force marker area to re-layout and redraw using the updated state
+                sourceImage_onload();
+                    markerChange();
+            });
+
+            document.getElementById('btn-undo').addEventListener('click', function () {
+                if (markerArea.isUndoPossible) {
+                    markerArea.undo();
+                    markerChange();
+                }
+            });
+
+            document.getElementById('btn-redo').addEventListener('click', function () {
+                if (markerArea.isRedoPossible) {
+                    markerArea.redo();
+                    markerChange();
+                }
+            });
+
+            // bottom bar buttons
+            document.getElementById('btn-color').addEventListener('click', (e) => {
+                e.stopPropagation(); // prevent immediate close from document click
+                document.getElementById('color-input').click();
+            });
+
+            document.getElementById('color-input').addEventListener('input', () => {
+                const color = document.getElementById('color-input').value;
+                console.log('Selected color:', color);
+                // Apply it to your marker / text / whatever:
+                // setMarkerColor(color);
+            });
+
+            // event for keyboard delete to remove selected marker
+            document.addEventListener('keydown', function (e) {
+
+                if (e.key === 'Delete') {
+                    // If you want to avoid deleting when user is typing in an input/textarea:
+                    const tag = document.activeElement && document.activeElement.tagName;
+                    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                        return; // don't delete markers while typing in a field
+                    }
+
+                    // This will remove all currently selected markers
+                    markerArea.deleteSelectedMarkers();
+
+                    // optional: prevent default browser behavior
+                    e.preventDefault();
+                }
+            });
+
+            // marker deselect and and delete event listener
+            markerArea.addEventListener('markerdeselect', (ev) => {
+                if (selectedMarkerEditor === ev.detail.markerEditor.marker.typeName) {
+                    selectedMarkerEditor = null;
+                    showBottomBar(false);
+                }
+                markerChange();
+            });
+
+            markerArea.addEventListener("markerdelete", (event) => {
+                markerChange();
+                showBottomBar(false);
+            });
+
+            markerArea.addEventListener('markerselect', (e) => {
+              syncColorUIFromEditor(e.detail.markerEditor);
+              selectedMarkerEditor = e.detail.markerEditor.marker.typeName;
+              showBottomBar(true);
+            });
+
+            markerArea.addEventListener('markercreate', (e) => {
+              syncColorUIFromEditor(e.detail.markerEditor);
+            });
+
+            markerArea.addEventListener('markerchange', (e) => {
+              syncColorUIFromEditor(e.detail.markerEditor);
+            });
+
+        }
+
+        function setMarkerArea(copy_no, page_no, from_copy = false) {
+            //MJS3_
+            wrapper.removeChild(markerArea)
+            markerArea = new MarkerArea();
+            wrapper.appendChild(markerArea);
+            generate_marker_toolbar_button_events();
+            updateMarkerToolbarSelection();
+
+            getMarkersAndComments("{{ exam_selected.pk }}", copy_no, page_no, from_copy);//,sourceImage.getAttribute("src"));#}
 
             //get Markers (state) if exist
-            {#imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');#}
-            {#copy_no = currSourceIdSplit[1];#}
-            {#page_no = currSourceIdSplit[2];#}
-            {#result_ok = getMarkersAndComments("{{ exam_selected.pk }}",copy_no,page_no);//,sourceImage.getAttribute("src"));#}
-            if (result_ok) {
-
-                markerArea.show();
+            imgsrc_split = sourceImage.src.split('/').pop().split('.').slice(-2)[0].split('_');
+            copy_no = currSourceIdSplit[1];
+            page_no = currSourceIdSplit[2];
+            if(result) {
                 // if previous state is present - restore it
                 if (maState) {
                     markerArea.restoreState(maState);
                 }
 
-                markerArea.addEventListener("markerdeselect", (event) => {
-                    markerChange();
-                });
-
-                markerArea.addEventListener("markerdelete", (event) => {
-                    markerChange();
-                });
-
                 return true;
-
-            } else {
+            }else{
                 return false;
             }
 
         }
 
-        function markerChange() {
-            svgData = new XMLSerializer().serializeToString(markerArea.markerImage);
-            svgDataBase64 = btoa(unescape(encodeURIComponent(svgData)));
-            svgDataUrl = `data:image/svg+xml;charset=utf-8;base64,${svgDataBase64}`;
+        async function markerChange() {
+            // Create renderer
+            const renderer = new Renderer();
 
-            addMarkersImageProcess(svgDataUrl).then(img => {
-                var canvas = document.createElement('canvas')
+            // 2. Use the same image as for MarkerArea
+            renderer.targetImage = markerArea.targetImage;
 
-                canvas.setAttribute('width', markerArea.target.naturalWidth)
-                canvas.setAttribute('height', markerArea.target.naturalHeight)
+            // full natural size + JPEG
+            renderer.naturalSize = true;
+            renderer.imageType = 'image/jpeg';
 
-                var context = canvas.getContext('2d')
-                context.drawImage(markerArea.target, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
-                context.drawImage(img, 0, 0, markerArea.target.naturalWidth, markerArea.target.naturalHeight)
-                var dataUrl = canvas.toDataURL('image/jpeg')
-                markedImage.src = dataUrl;
-                updateMarkers(markerArea, "{{ exam_selected.pk }}", "{{ pages_group.pk }}");
-            });
-        }
+            // Rasterize current annotation state to a data URL
+            const dataUrl = await renderer.rasterize(markerArea.getState());
 
-        function addMarkersImageProcess(src) {
-            return new Promise((resolve, reject) => {
-                let img = new Image()
-                img.onload = () => resolve(img)
-                img.onerror = reject
-                img.src = src
-            })
+            markedImageDataUrl = dataUrl;
+            updateMarkers(markerArea, "{{ exam_selected.pk }}", "{{ pages_group.pk }}");
         }
 
         function initCopyPagesSelectpicker(pages, curr_page) {
@@ -477,16 +663,7 @@
 
                                         maState = JSON.parse(data_full.markers);
                                         comments = data_full.comments;
-                                        corrector_boxes = JSON.parse(data_full.corrector_boxes);
-                                        $("#corrector_boxes_svg").empty();
-                                        $("#corr_box_div").css("display", "none");
-                                        if (corrector_boxes.length > 0) {
-                                            $("#corr_box_div").css("display", "block");
-                                            setTimeout(() => {
-                                                draw_corrector_boxes(corrector_boxes);
-                                            }, 300);
-                                            //draw_corrector_boxes(corrector_boxes);
-                                        }
+                                        corrector_boxes_data = JSON.parse(data_full.corrector_boxes);
                                         initComments(comments);
                                         pages = JSON.parse(data_full.copy_pages);
                                         initCopyPagesSelectpicker(pages, page_no);
@@ -522,28 +699,60 @@
             return result;
         }
 
-        function draw_corrector_boxes(data) {
-            //add rect box corrector
-            corrector_boxes_svg = document.getElementById('corrector_boxes_svg');
-            var svgns = "http://www.w3.org/2000/svg";
+        function draw_corrector_boxes() {
+            const svgns = 'http://www.w3.org/2000/svg';
 
-            imgRatio = sourceImage.naturalHeight / sourceImage.height;
+            // image ratio and positions for div
+            imgScale = markerArea.targetWidth / sourceImage.naturalWidth  ?? sourceImage.naturalWidth;
+            imgScale = imgScale * markerArea.zoomLevel;
 
-            const corr_box_div = document.getElementById('corr_box_div');
-            min_x = Math.min.apply(Math, data.map(function (event) {
-                return event.x;
-            }));
-            min_y = Math.min.apply(Math, data.map(function (event) {
-                return event.y;
-            }));
-            max_y = Math.max.apply(Math, data.map(function (event) {
-                return event.y;
-            }));
-            x_pos = min_x / imgRatio - 10
-            y_pos = min_y / imgRatio - 10
-            pos_y_min = 0
-            pos_y_max = 0
-            for (let pos of data) {
+            // --- 2. Find bounds in ORIGINAL coordinates ---
+            const xs = corrector_boxes_data.map(p => p.x);
+            const ys = corrector_boxes_data.map(p => p.y);
+
+            const min_x = Math.min(...xs);
+            const max_x = Math.max(...xs);
+            const min_y = Math.min(...ys);
+            const max_y = Math.max(...ys);
+
+            // position (in DISPLAY coordinates)
+            const x_pos = min_x * imgScale;
+            const y_pos = min_y * imgScale;//+toolbar_height;
+            const corrBox_margin = 10;
+
+            // check for the div
+
+            let corrBoxDiv = document.getElementById('corr_box_div');
+            corrBoxDiv.id = 'corr_box_div';
+            corrBoxDiv.style.position = 'absolute';
+            corrBoxDiv.style.zIndex = '988';
+            corrBoxDiv.style.width = '75%';
+            corrBoxDiv.style.height = `${(max_y - min_y) * imgScale}px`;
+            corrBoxDiv.style.left   = `${x_pos}px`;
+            corrBoxDiv.style.top    = `${y_pos}px`;
+            corrBoxDiv.style.margin = `${corrBox_margin}px`;
+
+
+            // check for the svg inside the div
+            let corrector_boxes_svg = corrBoxDiv.querySelector('#corrector_boxes_svg');
+            if (!corrector_boxes_svg) {
+                corrector_boxes_svg = document.createElementNS(svgns, 'svg');
+                corrector_boxes_svg.id = 'corrector_boxes_svg';
+                corrector_boxes_svg.setAttribute('style', 'width:100%;height:100%;');
+
+                corrBoxDiv.appendChild(corrector_boxes_svg);
+            }
+
+            let pos_y_min = 0;
+            let pos_y_max = 0;
+
+            let polygon = null;
+            let pol_left = 0;
+            let pol_top = 0;
+            let pol_width = 0;
+            let pol_height = 0;
+
+            for (let pos of corrector_boxes_data) {
                 if (pos.y > pos_y_max) {
                     pos_y_max = pos.y;
                 } else if (pos_y_min === 0 || pos.y < pos_y_min) {
@@ -551,21 +760,24 @@
                 }
 
                 if (pos.corner === 1) {
-                    pol_left = pos.x / imgRatio;
-                    pol_top = pos.y / imgRatio;
-                    var polygon = document.createElementNS(svgns, 'polygon');
-                }
-                var point = corrector_boxes_svg.createSVGPoint();
-                point.x = (pos.x) / imgRatio - x_pos;
-                point.y = pos.y / imgRatio - y_pos;
-                polygon.points.appendItem(point)
-
-                if (pos.corner == 2) {
-                    pol_width = (pos.x / imgRatio) - pol_left;
+                    pol_left = pos.x * imgScale;
+                    pol_top = pos.y * imgScale;
+                    polygon = document.createElementNS(svgns, 'polygon');
                 }
 
-                if (pos.corner === 4) {
-                    pol_height = (pos.y / imgRatio) - pol_top;
+                if (polygon) {
+                    var point = corrector_boxes_svg.createSVGPoint();
+                    point.x = pos.x * imgScale - x_pos ;
+                    point.y = pos.y * imgScale - y_pos ;
+                    polygon.points.appendItem(point)
+                }
+
+                if (pos.corner === 2) {
+                    pol_width = (pos.x * imgScale ) - pol_left;
+                }
+
+                if (pos.corner === 4 && polygon) {
+                    pol_height = (pos.y * imgScale ) - pol_top;
                     corrector_boxes_svg.appendChild(polygon);
                     polygon.setAttribute('fill', 'transparent');
                     polygon.setAttribute('stroke', 'purple');
@@ -575,42 +787,65 @@
                     if ('{{ pages_group.use_grading_scheme }}' !== 'True') {
                         polygon.setAttribute('onclick', "createMarker4CorrBox(" + pol_left + "," + pol_top + "," + pol_width + "," + pol_height + ");");
                     }
+
+                    polygon = null
                 }
             }
-            corr_height = max_y / imgRatio - y_pos + 10;//pos_y_max - pos_y_min;
-            corrector_boxes_svg.parentElement.setAttribute('style', "position:absolute;top:" + y_pos + "px;left:" + x_pos + "px;height:" + corr_height + "px;width:75%;z-index:999");
+            corr_height = max_y * imgScale - y_pos + 1;
         }
 
         function createMarker4CorrBox(left, top, width, height) {
+            // Get current state snapshot
+            const state = markerArea.getState();
+            const markers = state.markers ? [...state.markers] : [];
 
-            new_marker = markerArea.addNewMarker(markerjs2.HighlightMarker);
-            new_marker.left = left;
-            new_marker.top = top;
-            new_marker.width = width;
-            new_marker.height = height;
-            new_marker.fillColor = "black";
-            new_marker.opacity = 1;
-            new_marker.createVisual();
-            push_marker = true
-            for (i in markerArea.markers) {
+            let pushMarker = true;
 
-                if (markerArea.markers[i].typeName === 'HighlightMarker') {
-                    push_marker = false
-                    if (left !== -1 && (markerArea.markers[i].left !== left || markerArea.markers[i].top !== top
-                        || markerArea.markers[i].width !== width || markerArea.markers[i].height !== height)) {
-                        push_marker = true;
+            // Remove existing HighlightMarker and decide whether to push a new one
+            for (let i = markers.length - 1; i >= 0; i--) {
+                const m = markers[i];
+                if (m.typeName === 'HighlightMarker') {
+                    pushMarker = false;
+
+                    if (
+                        left !== -1 &&
+                        (m.left !== left ||
+                            m.top !== top ||
+                            m.width !== width ||
+                            m.height !== height)
+                    ) {
+                        pushMarker = true;
                     }
-                    delete markerArea.markers[i];
+
+                    // remove old highlight marker from the array
+                    markers.splice(i, 1);
                 }
             }
-            if (push_marker) {
-                markerArea.markers.push(new_marker);
+
+            // 3. If needed, add a new HighlightMarker
+            if (pushMarker && left !== -1) {
+                const newMarkerState = {
+                    typeName: 'HighlightMarker',
+                    left: left,
+                    top: top,
+                    width: width,
+                    height: height,
+                    fillColor: 'black',
+                    opacity: 1,
+                    rotationAngle: 0,
+                };
+
+                markers.push(newMarkerState);
             }
 
-            markerArea.maState = markerArea.getState();
-            markerArea.restoreState(markerArea.getState())
+            // 4. Apply the new markers array and redraw
+            const newState = {
+                ...state,
+                markers: markers
+            };
+
+            markerArea.restoreState(newState);
             markerChange();
-            //markerArea.restoreState(markerArea.getState());
 
         }
 
@@ -622,7 +857,7 @@
 
             if (!refresh) {
                 var table = $("#table-copies-pages").DataTable({
-                    scrollY: '85vh',
+                    scrollY: '80vh',
                     "dom": 'rtip',
                     "lengthChange": false,
                     "paging": false,
@@ -637,7 +872,7 @@
             page_no = currSourceIdSplit[2];
             id_no = currSourceIdSplit[3]
 
-            saveMarkers(exam_pk, pages_group_pk, copy_no, page_no, JSON.stringify(markerArea.getState()), markedImage.src, sourceImage.getAttribute("src"), id_no);
+            saveMarkers(exam_pk, pages_group_pk, copy_no, page_no, JSON.stringify(markerArea.getState()), markedImageDataUrl, sourceImage.getAttribute("src"), id_no);
 
             initCopyPagesTableOnClickRowEvent(true);
             currEl = document.getElementById(currSourceElementId)
@@ -814,6 +1049,111 @@
                 expandIcon.hide();
             }
 
+        });
+
+        //Magnifier
+        function createDivMagnifier(elementID, zoom) {
+            const elem = document.getElementById(elementID);
+
+            // Create magnifier glass
+            const glass = document.createElement("div");
+            glass.classList.add("magnifier-glass");
+            elem.parentElement.insertBefore(glass, elem);
+
+            // Set background for the glass
+            glass.style.backgroundImage = `url('${sourceImage.src}')`;
+            glass.style.backgroundRepeat = "no-repeat";
+            glass.style.backgroundSize = (markerArea.targetWidth  * zoom) + "px " + (markerArea.targetHeight * zoom) + "px";
+
+
+            const bw = 3; // border width
+            const w = glass.offsetWidth / 2;
+            const h = glass.offsetHeight / 2;
+
+            function moveMagnifier(e) {
+                e.preventDefault();
+                const pos = getCursorPos(e);
+                let x = pos.x;
+                let y = pos.y;
+
+                // Keep the glass inside the image
+                if (x > elem.width - w / zoom) x = elem.width - w / zoom;
+                if (x < w / zoom) x = w / zoom;
+                if (y > elem.height - h / zoom) y = elem.height - h / zoom;
+                if (y < h / zoom) y = h / zoom;
+
+                // Position the glass so its center is at the mouse pointer
+                glass.style.left = (x - w) + "px";
+                glass.style.top = (y - h) + "px";
+
+                // Move the background so the area under the mouse is zoomed
+                glass.style.backgroundPosition =
+                    "-" + ((x * zoom) - w + bw) + "px " +
+                    "-" + ((y * zoom) - h + bw) + "px";
+            }
+
+            function getCursorPos(e) {
+                e = e || window.event;
+                const rect = elem.getBoundingClientRect();
+                const x = e.pageX - rect.left - window.pageXOffset;
+                const y = e.pageY - rect.top - window.pageYOffset;
+                return {x, y};
+            }
+
+            // Attach listeners (mouse + touch)
+            elem.addEventListener("mousemove", moveMagnifier);
+            elem.addEventListener("touchmove", moveMagnifier);
+
+            // Optional: start glass at current mouse position if moving
+            elem.addEventListener("mouseenter", (e) => moveMagnifier(e));
+
+            // Return a function to clean up
+            return function destroyMagnifier() {
+                elem.removeEventListener("mousemove", moveMagnifier);
+                elem.removeEventListener("touchmove", moveMagnifier);
+                glass.remove();
+            };
+        }
+
+        // Button toggles the magnifier
+        document.getElementById("btn-magnify").addEventListener("click", function () {
+            const btn = this;
+
+            if (!magnifierActive) {
+                destroyMagnifierFn = createDivMagnifier("marker-wrapper", 2); // 2 = zoom factor
+                magnifierActive = true;
+
+                document.getElementById("magnify-help").classList.remove("d-none");
+
+                // Optional: change icon to show it's active
+                const icon = btn.querySelector("i");
+            } else {
+                if (destroyMagnifierFn) destroyMagnifierFn();
+                magnifierActive = false;
+
+                document.getElementById("magnify-help").classList.add("d-none");
+
+            }
+        });
+
+        // Outside click: disable magnifier if click is NOT inside the div or button
+        document.addEventListener("click", function (e) {
+            if (!magnifierActive) return; // nothing to do
+
+            const zoomElem = document.getElementById("marker-wrapper");
+            const btn = document.getElementById("btn-magnify");
+            const clicked = e.target;
+
+            // If click is inside the zoom div or on the button, ignore
+            if (zoomElem.contains(clicked) || btn.contains(clicked)) {
+                return;
+            }
+
+            // Otherwise: turn magnifier off
+            if (destroyMagnifierFn) destroyMagnifierFn();
+            magnifierActive = false;
+
+            document.getElementById("magnify-help").classList.add("d-none");
         });
 
         {% if pages_group.use_grading_scheme %}

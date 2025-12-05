@@ -1,18 +1,176 @@
-html,
-body {
-  padding: 0px;
-  margin: 0px;
+#mjsapp {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+    display: flex;
 }
 
-#app {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+#markerjs_div {
+    height: calc(100vh - 140px);
+    display: flex;
+    aspect-ratio: 1/1.49;
+    flex-direction: column;
+    border-bottom: 1px solid #3a3a3a;
 }
 
-#sampleImage {
-  max-width: 100%;
-  max-height: 80%;
+#marker-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: block !important;
+    overflow-y: auto;
+    overflow-x: auto;
+    background: #3a3a3a;
+}
+
+#marker-wrapper mjs-marker-area {
+    position: relative;
+    z-index: 0;
+}
+
+mjs-marker-area {
+    /*flex: 1 1 auto;*/
+    width: 100%;
+    height: 100%;
+    display: block !important;
+    overflow: visible;
+    background: #3a3a3a;
+}
+
+#markerjs-toolbar,
+.markerjs-toolbar {
+    width: 100%;
+    display: flex;
+    padding: 0px;  /*5px 5px 5px 5px;*/
+    gap: 0;
+    background: #3a3a3a;
+    flex: 0 0 auto;
+}
+
+/* Each zone grows and aligns independently */
+.toolbar-left {
+    flex: 1;
+    justify-content: flex-start;
+}
+
+.toolbar-center {
+    flex: 1;
+    justify-content: center;
+}
+
+.toolbar-right {
+    flex: 1;
+    justify-content: flex-end;
+}
+
+/* Buttons align nicely */
+.markerjs-toolbar .btn {
+    margin: 0 3px;
+}
+
+.markerjs-toolbar button {
+    /*width: 28px;*/
+    /*height: 28px;*/
+    /*border-radius: 4px;*/
+    background: #3a3a3a;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding-top:15px;
+    padding-bottom:15px;
+}
+.markerjs-toolbar .btn.btn-light.active,
+.markerjs-toolbar .btn.btn-light:active,
+.markerjs-toolbar .btn.btn-light:focus,
+.markerjs-bottom-bar .btn.btn-light.active,
+.markerjs-bottom-bar .btn.btn-light:active,
+.markerjs-bottom-bar .btn.btn-light:focus{
+    box-shadow:none!important;
+}
+.markerjs-toolbar .toolbar-center .btn.btn-light.active,
+.markerjs-toolbar .toolbar-center .btn.btn-light:active,
+.markerjs-toolbar .toolbar-center .btn.btn-light:focus {
+    background-color: #616161 !important;
+    color: #fff !important;
+}
+
+/* bottom bar */
+.markerjs-bottom-bar {
+    flex: 0 0 auto;          /* fixed height row */
+    padding: 6px 10px;
+    background: #3a3a3a;
+    color: #fff;
+    border-top: 1px solid #3a3a3a;
+    justify-content: center;
+    display: none;           /* hidden by default */
+    gap: 8px;
+}
+
+.markerjs-bottom-bar button{
+    color: #fff;
+}
+
+.markerjs-bottom-bar.show {
+    display: flex;
+}
+
+.magnifier-glass {
+    position: absolute;
+    border: 3px solid #000;
+    border-radius: 50%;
+    cursor: none;
+    width: 250px;
+    height: 250px;
+    z-index: 999;
+    pointer-events: none;
+}
+
+#magnify-help {
+    position: fixed; /* position relative to viewport, not parent */
+    top: 10px; /* adjust as you like */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999; /* above almost everything */
+    background: #f1de94;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    pointer-events: none; /* clicks go THROUGH this element */
+    max-width: 260px;
+    font-size: 0.8rem;
+}
+
+/*mini dialog*/
+.mini-dialog {
+    position: absolute;
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px 8px;
+    display: none;
+    z-index: 999999;
+}
+
+.color-picker-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.color-dialog {
+  position: absolute;
+  bottom: calc(100% + 6px); /* above the button */
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  padding: 4px 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  display: none;
+  z-index: 9999;
+}
+
+.color-dialog.show {
+    display: block;
 }
