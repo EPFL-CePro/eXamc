@@ -119,52 +119,72 @@
     </div>
 </div>
 <script>
-        function call_amc_annotate() {
-            info_modal_msg = document.getElementById('ajax_info_modal_msg')
-            info_modal_msg.innerHTML = "Generating annotated papers could take some time. A button to download the files will be available here when files are ready!"
-            $('#ajax_info_modal').modal('show')
-            single_file = Number(document.getElementById('annotate_one_all_student').checked);
-            $.ajax({
-                url: "{% url 'call_amc_annotate' exam_selected.pk %}",
-                type: "POST",
-                data: {
-                    'csrfmiddlewaretoken': "{{ csrf_token }}",
-                    'single_file': single_file,
-                },
-                success: (data) => {
-                    info_modal_msg.innerHTML = "Annotated files have been generated!";
-                    $('#ajax_info_modal').modal('show');
-                },
-                error: (error) => {
-                    console.log(error);
-                }
-            });
-        }
+    function call_amc_annotate() {
+        const info_modal_msg = document.getElementById('ajax_info_modal_msg');
+        info_modal_msg.innerHTML = "Generating annotated papers could take some time. A button to download the files will be available here when files are ready!";
+        $('#ajax_info_modal').modal('show');
 
-        function generate_amc_results() {
-            $.ajax({
-                url: "{% url 'call_amc_generate_results' exam_selected.pk %}",
-                type: "POST",
-                data: {
-                    'csrfmiddlewaretoken': "{{ csrf_token }}",
-                },
-                success: (data) => {
-                    window.location.reload();
-                },
-                error: (error) => {
-                    console.log(error);
-                }
-            });
-        }
+        const single_file = Number(document.getElementById('annotate_one_all_student').checked);
 
-        // Globals
-        let send_annotated_papers_table = null;
-        let pendingEmailBodyHtml = null;
-        let pendingEmailSubject = null;
+        $.ajax({
+            url: "{% url 'call_amc_annotate' exam_selected.pk %}",
+            type: "POST",
+            data: {
+                'csrfmiddlewaretoken': "{{ csrf_token }}",
+                'single_file': single_file,
+            },
+            success: () => {
+                info_modal_msg.innerHTML = "Annotated files have been generated!";
+                $('#ajax_info_modal').modal('show');
+            },
+            error: (error) => console.log(error)
+        });
+    }
 
-        function ensureSummernoteReady() {
+    function generate_amc_results() {
+        $.ajax({
+            url: "{% url 'call_amc_generate_results' exam_selected.pk %}",
+            type: "POST",
+            data: {'csrfmiddlewaretoken': "{{ csrf_token }}"},
+            success: () => window.location.reload(),
+            error: (error) => console.log(error)
+        });
+    }
+
+
+    // -------------------------
+    // Globals
+    // -------------------------
+    let send_annotated_papers_table = null;
+    let pendingEmailBody = null;     // HTML ou texte brut
+    let pendingEmailSubject = null;
+
+
+    // -------------------------
+    // Helpers: texte -> HTML
+    // -------------------------
+    function looksLikeHtml(s) {
+        if (!s) return false;
+        return /<\/?(p|br|div|span|b|strong|i|em|u|ul|ol|li|a|table|tr|td|h[1-6])[\s>]/i.test(s);
+    }
+
+    function textToParagraphHtml(text) {
+        const escaped = $('<div>').text(text || '').html();
+        return escaped
+            .split(/\r?\n\s*\r?\n/)                 // paragraphes = lignes vides
+            .map(p => `<p>${p.replace(/\r?\n/g, '<br>')}</p>`)
+            .join('');
+    }
+
+
+    // -------------------------
+    // Modal: init summernote + inject pending
+    // -------------------------
+    $(function () {
+        $('#send-annotated-papers-dialog').on('shown.bs.modal', function () {
             const $body = $('#email-body');
 
+            // init Summernote (une seule fois)
             if (!$body.data('summernote')) {
                 $body.summernote({
                     height: 300,
@@ -177,207 +197,208 @@
                 });
             }
 
-            if (pendingEmailBodyHtml !== null) {
-                $body.summernote('code', pendingEmailBodyHtml);
-                pendingEmailBodyHtml = null;
-            }
-
+            // subject
             if (pendingEmailSubject !== null) {
                 $('#email-subject').val(pendingEmailSubject);
                 pendingEmailSubject = null;
             }
-        }
 
-        $(function () {
-            // 1) Quand la modal est visible: init summernote + injecte contenu pending
-            $('#send-annotated-papers-dialog').on('shown.bs.modal', function () {
-                ensureSummernoteReady();
+            // body (HTML direct si déjà HTML, sinon conversion \n -> <p>/<br>)
+            if (pendingEmailBody !== null) {
+                const html = looksLikeHtml(pendingEmailBody)
+                    ? pendingEmailBody
+                    : textToParagraphHtml(pendingEmailBody);
 
-                // Petit plus : focus dans l’éditeur
-                $('#email-body').summernote('focus');
-            });
+                $body.summernote('code', html);
+                pendingEmailBody = null;
+            }
 
+            $body.summernote('focus');
         });
+    });
 
 
-        function openSendAnnotatedPapersDialog() {
-            // Détruit DataTable si déjà active
-            if ($.fn.DataTable.isDataTable('#send-annotated-papers-table')) {
-                $('#send-annotated-papers-table').DataTable().destroy();
-            }
-
-            // Nettoie table DOM
-            const table_body = document.getElementById('send-annotated-papers-table-tbody');
-            const table_head = document.getElementById('send-annotated-papers-table-thead');
-            removeAllChildNodes(table_body);
-            removeAllChildNodes(table_head);
-
-            $.ajax({
-                url: "{% url 'amc_send_annotated_papers_data' exam_selected.pk %}",
-                type: "POST",
-                data: {'csrfmiddlewaretoken': "{{ csrf_token }}"},
-
-                success: (values) => {
-                    const values_json = JSON.parse(values);
-                    const data_json = values_json.data || [];
-
-                    pendingEmailSubject = (values_json.email_subject !== undefined) ? values_json.email_subject : '';
-                    pendingEmailBodyHtml = (values_json.email_text !== undefined) ? values_json.email_text : '<p><br></p>';
-
-                    if (data_json.length > 0) {
-                        const head_tr = document.getElementById('send-annotated-papers-table-thead');
-
-                        let th0 = document.createElement('th');
-                        th0.appendChild(document.createTextNode(''));
-                        head_tr.appendChild(th0);
-
-                        const first_item = data_json[0];
-                        for (let key in first_item) {
-                            if (key !== 'error') {
-                                const th = document.createElement('th');
-                                th.appendChild(document.createTextNode(key));
-                                head_tr.appendChild(th);
-                            }
-                        }
-                    }
-
-                    // Construit le body
-                    const tbody = document.getElementById('send-annotated-papers-table-tbody');
-
-                    for (let i = 0; i < data_json.length; i++) {
-                        const row = data_json[i];
-                        const tr = document.createElement('tr');
-
-                        for (const [key, value] of Object.entries(row)) {
-                            if (key === 'error') continue;
-
-                            const td = document.createElement('td');
-                            let val = value;
-
-                            if (key.includes("date")) {
-                                val = value ? new Date(value * 1000).toLocaleString() : '';
-                                td.appendChild(document.createTextNode(val));
-                            } else if (key === 'status') {
-                                // status icon
-                                let html = '';
-                                switch (val) {
-                                    case 1:
-                                        html = '<i class="fa-solid fa-thumbs-up fa-l" style="color:green;"></i>';
-                                        break;
-                                    case 0:
-                                        html = '';
-                                        break;
-                                    default:
-                                        html = '<i class="fa-solid fa-triangle-exclamation fa-l" style="color:red;" title="' + (row['error'] || '') + '"></i>';
-                                }
-                                td.innerHTML = html;
-                            } else {
-                                td.appendChild(document.createTextNode(val ?? ''));
-                            }
-
-                            tr.appendChild(td);
-                        }
-
-                        tbody.appendChild(tr);
-                    }
-
-                    $('#send-annotated-papers-dialog').modal('show');
-
-                    send_annotated_papers_table = $("#send-annotated-papers-table").DataTable({
-                        retrieve: true,
-                        scrollY: '25vh',
-                        select: true,
-                        lengthChange: false,
-                        paging: false,
-                        layout: {
-                            topStart: {
-                                buttons: [
-                                    {
-                                        text: 'Select all',
-                                        className: 'btn btn-dark btn-sm',
-                                        action: function () {
-                                            send_annotated_papers_table.rows().select();
-                                        }
-                                    },
-                                    {extend: 'spacer', style: '', text: ''},
-                                    {
-                                        text: 'Select none',
-                                        className: 'btn btn-dark btn-sm',
-                                        action: function () {
-                                            send_annotated_papers_table.rows().deselect();
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    });
-                },
-
-                error: (error) => console.log(error)
-            });
+    // -------------------------
+    // Open dialog + fill table
+    // -------------------------
+    function openSendAnnotatedPapersDialog() {
+        // Destroy DataTable if exists
+        if ($.fn.DataTable.isDataTable('#send-annotated-papers-table')) {
+            $('#send-annotated-papers-table').DataTable().destroy();
         }
 
+        // Clear table DOM
+        const table_body = document.getElementById('send-annotated-papers-table-tbody');
+        const table_head = document.getElementById('send-annotated-papers-table-thead');
+        removeAllChildNodes(table_body);
+        removeAllChildNodes(table_head);
 
-        function call_amc_send_annotated_papers() {
-            const $form = $("#form-send-annotated-papers");
+        $.ajax({
+            url: "{% url 'amc_send_annotated_papers_data' exam_selected.pk %}",
+            type: "POST",
+            data: {'csrfmiddlewaretoken': "{{ csrf_token }}"},
 
-            const email_subject = ($('#email-subject').val() || '').trim();
-            const email_body_html = $('#email-body').data('summernote')
-                ? $('#email-body').summernote('code')
-                : ''; // fallback si summernote pas init
+            success: (values) => {
+                const values_json = JSON.parse(values);
+                const data_json = values_json.data || [];
 
-            // Summernote vide = souvent "<p><br></p>"
-            const body_is_empty = !email_body_html || email_body_html === "<p><br></p>";
+                // prépare injection dans shown.bs.modal
+                pendingEmailSubject = values_json.email_subject ?? '';
+                pendingEmailBody = values_json.email_text ?? values_json.email_body ?? '';
 
-            if (body_is_empty || email_subject === '') {
-                document.getElementById('send_annotated_alert').style.visibility = 'visible';
-                return;
-            }
+                // header
+                if (data_json.length > 0) {
+                    const head_tr = document.getElementById('send-annotated-papers-table-thead');
 
-            // serialize + overwrite email-body proprement
-            let data = $form.serializeArray();
-            data = data.filter(x => x.name !== "email-body");
-            data.push({name: "email-body", value: email_body_html});
+                    const th0 = document.createElement('th');
+                    th0.appendChild(document.createTextNode(''));
+                    head_tr.appendChild(th0);
 
-            // Sélection étudiants (DataTables)
-            const students_selected = [];
-            if (send_annotated_papers_table) {
-                $.map(send_annotated_papers_table.rows({selected: true}).data(), function (item) {
-                    students_selected.push({id: item[0], copy: item[1], email: item[7]});
+                    const first_item = data_json[0];
+                    for (let key in first_item) {
+                        if (key === 'error') continue;
+                        const th = document.createElement('th');
+                        th.appendChild(document.createTextNode(key));
+                        head_tr.appendChild(th);
+                    }
+                }
+
+                // body rows
+                const tbody = document.getElementById('send-annotated-papers-table-tbody');
+
+                for (let i = 0; i < data_json.length; i++) {
+                    const row = data_json[i];
+                    const tr = document.createElement('tr');
+
+                    for (const [key, value] of Object.entries(row)) {
+                        if (key === 'error') continue;
+
+                        const td = document.createElement('td');
+                        let val = value;
+
+                        if (key.includes("date")) {
+                            val = value ? new Date(value * 1000).toLocaleString() : '';
+                            td.appendChild(document.createTextNode(val));
+                        } else if (key === 'status') {
+                            let html = '';
+                            switch (val) {
+                                case 1:
+                                    html = '<i class="fa-solid fa-thumbs-up fa-l" style="color:green;"></i>';
+                                    break;
+                                case 0:
+                                    html = '';
+                                    break;
+                                default:
+                                    html = '<i class="fa-solid fa-triangle-exclamation fa-l" style="color:red;" title="' + (row['error'] || '') + '"></i>';
+                            }
+                            td.innerHTML = html;
+                        } else {
+                            td.appendChild(document.createTextNode(val ?? ''));
+                        }
+
+                        tr.appendChild(td);
+                    }
+
+                    tbody.appendChild(tr);
+                }
+
+                // show modal (triggers shown.bs.modal => summernote inject)
+                $('#send-annotated-papers-dialog').modal('show');
+
+                // DataTable + buttons (version compatible)
+                send_annotated_papers_table = $("#send-annotated-papers-table").DataTable({
+                    retrieve: true,
+                    scrollY: '25vh',
+                    select: true,
+                    lengthChange: false,
+                    paging: false,
+
+                    // ✅ boutons en haut (nécessite extension Buttons)
+                    dom: '<"dt-top"Bf>rt<"dt-bottom"ip>',
+                    buttons: [
+                        {
+                            text: 'Select all',
+                            className: 'btn btn-dark btn-sm',
+                            action: function () {
+                                send_annotated_papers_table.rows().select();
+                            }
+                        },
+                        {
+                            text: 'Select none',
+                            className: 'btn btn-dark btn-sm',
+                            action: function () {
+                                send_annotated_papers_table.rows().deselect();
+                            }
+                        }
+                    ]
                 });
-            }
-            data.push({name: "selected-students", value: JSON.stringify(students_selected)});
+            },
 
-            // UI modal info
-            const info_modal_msg = document.getElementById('ajax_info_modal_msg');
-            info_modal_msg.innerHTML =
-                "Sending annotated papers by email could take some time. A dialog will display when it's finished, and the results will also be visible in the send annotated papers modal!";
-            $('#ajax_info_modal').modal('show');
+            error: (error) => console.log(error)
+        });
+    }
 
-            $.ajax({
-                url: "{% url 'call_amc_send_annotated_papers' exam_selected.pk %}",
-                type: "POST",
-                data: data,
 
-                success: (resp) => {
-                    const data_json = (typeof resp === "string") ? JSON.parse(resp) : resp;
+    // -------------------------
+    // Send emails
+    // -------------------------
+    function call_amc_send_annotated_papers() {
+        const $form = $("#form-send-annotated-papers");
 
-                    info_modal_msg.innerHTML = `${data_json[0]} emails sent, ${data_json[1]} not sent!<br><br>`;
+        const email_subject = ($('#email-subject').val() || '').trim();
+        const email_body_html = $('#email-body').data('summernote')
+            ? $('#email-body').summernote('code')
+            : '';
 
-                    const ul = document.createElement('ul');
-                    for (let i = 0; i < data_json[2].length; i++) {
-                        const li = document.createElement('li');
-                        li.textContent = data_json[2][i];
-                        ul.appendChild(li);
-                    }
-                    info_modal_msg.appendChild(ul);
+        const body_is_empty = !email_body_html || email_body_html === "<p><br></p>";
 
-                    $('#ajax_info_modal').modal('show');
-                    $('#send-annotated-papers-dialog').modal('hide');
-                },
+        if (body_is_empty || email_subject === '') {
+            document.getElementById('send_annotated_alert').style.visibility = 'visible';
+            return;
+        }
 
-                error: (error) => console.log(error)
+        let data = $form.serializeArray();
+        data = data.filter(x => x.name !== "email-body");
+        data.push({name: "email-body", value: email_body_html});
+
+        const students_selected = [];
+        if (send_annotated_papers_table) {
+            $.map(send_annotated_papers_table.rows({selected: true}).data(), function (item) {
+                students_selected.push({id: item[0], copy: item[1], email: item[7]});
             });
         }
+        data.push({name: "selected-students", value: JSON.stringify(students_selected)});
+
+        const info_modal_msg = document.getElementById('ajax_info_modal_msg');
+        info_modal_msg.innerHTML =
+            "Sending annotated papers by email could take some time. A dialog will display when it's finished, and the results will also be visible in the send annotated papers modal!";
+        $('#ajax_info_modal').modal('show');
+
+        $.ajax({
+            url: "{% url 'call_amc_send_annotated_papers' exam_selected.pk %}",
+            type: "POST",
+            data: data,
+
+            success: (resp) => {
+                const data_json = (typeof resp === "string") ? JSON.parse(resp) : resp;
+
+                info_modal_msg.innerHTML = `${data_json[0]} emails sent, ${data_json[1]} not sent!<br><br>`;
+
+                const ul = document.createElement('ul');
+                for (let i = 0; i < data_json[2].length; i++) {
+                    const li = document.createElement('li');
+                    li.textContent = data_json[2][i];
+                    ul.appendChild(li);
+                }
+                info_modal_msg.appendChild(ul);
+
+                $('#ajax_info_modal').modal('show');
+                $('#send-annotated-papers-dialog').modal('hide');
+            },
+
+            error: (error) => console.log(error)
+        });
+    }
+
 
 </script>
