@@ -269,6 +269,7 @@
                 for (let i = 0; i < data_json.length; i++) {
                     const row = data_json[i];
                     const tr = document.createElement('tr');
+                    tr.appendChild(document.createElement('td'));
 
                     for (const [key, value] of Object.entries(row)) {
                         if (key === 'error') continue;
