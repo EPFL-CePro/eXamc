@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run eXamc" type="CompoundRunConfigurationType">
+    <toRun name="Django eXamc" type="Python.DjangoServer" />
+    <toRun name="Celery worker eXamc" type="PythonConfigurationType" />
+    <toRun name="Celery-beat eXamc" type="PythonConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>

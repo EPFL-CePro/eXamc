@@ -78,7 +78,7 @@
     {% endfor %}
 
     <div>
-        <button class="btn btn-dark btn-sm" id="download">Download</button>
+        <button class="btn btn-dark btn-sm" data-csvname="{{ file_name }}" id="download">Download</button>
         <button class="btn btn-dark btn-sm" id="undo">Undo</button>
         <input type="text" id="prefix-input" style="display: none;" placeholder="Prefix..." oninput="onPrefixChange()">
     </div>
@@ -196,6 +196,7 @@
         document.getElementById("download").addEventListener("click", async function() {
             const container = document.getElementById("image-container");
             const clone = container.cloneNode(true);
+            const csvName = this.dataset.csvname || "plan";
 
             clone.style.position = "relative";
             clone.style.width = "1000px";
@@ -219,7 +220,7 @@
             // Download
             const a = document.createElement("a");
             a.href = dataURL;
-            a.download = "plan.jpg";
+            a.download = csvName + ".jpg";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

@@ -320,9 +320,11 @@ def get_scans_pathes_by_group(pagesGroup):
 #     return copies_pages_list
 
 def get_copies_pages_by_group(pagesGroup):
+    print('********************* START GET COPIES')
     exam = pagesGroup.exam
     project_subdir = f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
     scans_dir = pathlib.Path(settings.SCANS_ROOT) / project_subdir
+    print(scans_dir)
 
     # ---- DB: pull once, then do O(1) lookups in-memory ----------------------
     # Page markers -> (copy_no_z4, page_no_norm) -> marked_bool
@@ -380,6 +382,7 @@ def get_copies_pages_by_group(pagesGroup):
                     # filename not matching pattern; skip quickly
                     continue
 
+
                 # page number checks (first 2 chars)
                 try:
                     page_no_int = int(page_no_real[:2])
@@ -401,19 +404,16 @@ def get_copies_pages_by_group(pagesGroup):
                     continue
 
                 copy_has_comment = copy_no in comments_set
-
                 # Normalize keys like before
                 copy_no_z4 = str(copy_no).zfill(4)
                 page_no_norm = str(page_no_real).zfill(2).replace(".", "x")
                 marked = markers_idx.get((copy_no_z4, page_no_norm), False)
-
                 copies_pages_list.append({
                     "copy_no": copy_no,
                     "page_no": page_no_real,
                     "marked": marked,
                     "comment": copy_has_comment,
                 })
-
     # Sorting: avoid float() (can fail if letters); sort by numeric copy_no then by (first two digits, full tail)
     def page_sort_key(page_no: str):
         head = page_no[:2]

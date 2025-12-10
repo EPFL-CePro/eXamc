@@ -527,6 +527,7 @@ def get_question_start_page_by_student(amc_data_path,question_name,student_id):
                  " INNER JOIN layout_question q ON q.question = b.question"
                  " WHERE q.name = '"+ str(question_name) + "' AND b.student = " + str(student_id))
 
+
     response = db.execute_query(query_str)
     colname_qp = [d[0] for d in response.description]
     qp_details = [dict(zip(colname_qp, r)) for r in response.fetchall()]
