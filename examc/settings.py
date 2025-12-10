@@ -310,7 +310,7 @@ SUMMERNOTE_CONFIG = {
             ["style", ["bold", "italic", "underline", "clear"]],
             ["para", ["ul", "ol", "paragraph"]],
             ['table', ['table']],
-            ["insert", ["link","math"]],
+            ["insert", ["link","picture","math"]],
             ["view", ["fullscreen", "codeview"]],
             ["misc", ["undo", "redo"]],
         ],
@@ -327,6 +327,9 @@ SUMMERNOTE_CONFIG = {
         "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js",
          f"{settings.STATIC_URL}js/summernote-math.js"
     ),
+    "attachment_storage_class": "examc_app.storage.SummernoteSignedPrivateStorage",
+    # optional:
+    "attachment_require_authentication": True,
 }
 
 

@@ -30,6 +30,7 @@ def healthz(_request):  # simple 200
 urlpatterns = ([
     path('admin/doc/', include('django.contrib.admindocs.urls')),
     path('admin/', admin.site.urls),
+    path('django-summernote/', include('django_summernote.urls')),
     path('', include('examc_app.urls')),
     path('', views.home, name='home'),
     path('login_form/', views.log_in, name='login_form'),
@@ -48,7 +49,7 @@ urlpatterns = ([
     ] #+ static(settings.MARKED_SCANS_URL, document_root=settings.MARKED_SCANS_ROOT)
     #+ static(settings.AMC_PROJECTS_URL, document_root=settings.AMC_PROJECTS_ROOT)
    + static(settings.DOCUMENTATION_URL, document_root=settings.DOCUMENTATION_ROOT)
-   + static(settings.ROOMS_PLANS_URL, document_root=settings.ROOMS_PLANS_ROOT)
+   # + static(settings.ROOMS_PLANS_URL, document_root=settings.ROOMS_PLANS_ROOT)
 )
 
 # urlpatterns += django_tequila_urlpatterns

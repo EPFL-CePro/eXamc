@@ -575,9 +575,8 @@ def get_scans_list_by_copy(exam,copy_nr):
     if os.path.exists(scans_dir_path):
         list_dir_copies = sorted(os.listdir(scans_dir_path))
         for entry in list_dir_copies:
-            entry_path = os.path.join(scans_dir_path, entry)
             page = entry.replace('.jpg', '').split('_').pop()
-            if int(page) != 1:
+            if int(page.split('.')[0]) != 1:
                 result.append({'copy_no':copy_nr,'page_no':page})
     return result
 

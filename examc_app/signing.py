@@ -67,11 +67,10 @@ def verify_and_get_path(token: str, max_age=None) -> Path:
         "scans":          Path(settings.SCANS_ROOT),
         "marked_scans":   Path(settings.MARKED_SCANS_ROOT),
         "amc_projects":   Path(settings.AMC_PROJECTS_ROOT),
-        # si tu dois conserver ces alias historiques:
         "CATALOG":        Path(settings.AMC_PROJECTS_ROOT),
         "assoc":          Path(settings.AMC_PROJECTS_ROOT),
         "extra":          Path(settings.AMC_PROJECTS_ROOT),
-        # "catalog" etc. si besoin...
+        "private_media":  Path(settings.PRIVATE_MEDIA_ROOT),
     }
     root = roots.get(typ)
     if root is None:

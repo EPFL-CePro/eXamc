@@ -55,39 +55,39 @@
 </div>
 
 <script>
-    async function mountCK5(textarea) {
-    // avoid double-mounting
-    if (textarea._ck5) return;
-    textarea._ck5 = await window.ClassicEditor.create(textarea, {
-      // keep this minimal; your CKEDITOR_5_CONFIGS still apply on the server
-    });
-  }
-
-  function initCK5(root=document) {
-    root.querySelectorAll('textarea.django_ckeditor_5').forEach(mountCK5);
-  }
-
-  function syncCK5(root=document) {
-    root.querySelectorAll('textarea.django_ckeditor_5').forEach(el => {
-      if (el._ck5) el.value = el._ck5.getData();
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', () => initCK5());
-
-  // When HTMX swaps in your grading scheme panel or checkbox panel, init editors there
-  document.body.addEventListener('htmx:afterSwap', (evt) => {
-    const t = evt.detail && evt.detail.target;
-    if (!t || !t.id) return;
-    if (t.id === 'grading-scheme-panel' || t.id.startsWith('chk-panel-')) {
-      initCK5(t);
-    }
-  });
-
-  // Ensure HTML is copied back into <textarea> before HTMX posts or normal submits
-  document.body.addEventListener('htmx:configRequest', (evt) => {
-    const form = evt.detail.elt && evt.detail.elt.closest('form');
-    if (form) syncCK5(form);
-  });
-  document.body.addEventListener('submit', (evt) => syncCK5(evt.target));
+  {#  async function mountCK5(textarea) {#}
+  {#  // avoid double-mounting#}
+  {#  if (textarea._ck5) return;#}
+  {#  textarea._ck5 = await window.ClassicEditor.create(textarea, {#}
+  {#    // keep this minimal; your CKEDITOR_5_CONFIGS still apply on the server#}
+  {#  });#}
+  {#}#}
+  {##}
+  {#function initCK5(root=document) {#}
+  {#  root.querySelectorAll('textarea.django_ckeditor_5').forEach(mountCK5);#}
+  {#}#}
+  {##}
+  {#function syncCK5(root=document) {#}
+  {#  root.querySelectorAll('textarea.django_ckeditor_5').forEach(el => {#}
+  {#    if (el._ck5) el.value = el._ck5.getData();#}
+  {#  });#}
+  {#}#}
+  {##}
+  {#document.addEventListener('DOMContentLoaded', () => initCK5());#}
+  {##}
+  {#// When HTMX swaps in your grading scheme panel or checkbox panel, init editors there#}
+  {#document.body.addEventListener('htmx:afterSwap', (evt) => {#}
+  {#  const t = evt.detail && evt.detail.target;#}
+  {#  if (!t || !t.id) return;#}
+  {#  if (t.id === 'grading-scheme-panel' || t.id.startsWith('chk-panel-')) {#}
+  {#    initCK5(t);#}
+  {#  }#}
+  {#});#}
+  {##}
+  {#// Ensure HTML is copied back into <textarea> before HTMX posts or normal submits#}
+  {#document.body.addEventListener('htmx:configRequest', (evt) => {#}
+  {#  const form = evt.detail.elt && evt.detail.elt.closest('form');#}
+  {#  if (form) syncCK5(form);#}
+  {#});#}
+  {#document.body.addEventListener('submit', (evt) => syncCK5(evt.target));#}
 </script>
