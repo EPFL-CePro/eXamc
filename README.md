@@ -1,5 +1,5 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![License: BSL](https://img.shields.io/badge/license-BSL%201.1-orange)
+![License](https://img.shields.io/badge/license-NCL%20v1.0-red)
 ![Status](https://img.shields.io/badge/status-production--ready-success)
 ![GitHub Issues](https://img.shields.io/github/issues/EPFL-CePro/eXamc)
 ![GitHub Stars](https://img.shields.io/github/stars/EPFL-CePro/eXamc)
