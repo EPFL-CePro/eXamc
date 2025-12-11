@@ -264,6 +264,10 @@
                                     <div class="row">
                                         <div class="col-sm-5">
                                             <h6>Available exams</h6>
+                                            <p>conditions : <br/>
+                                                - similar code<br/>
+                                                - identical year and semester<br/>
+                                                - with data (questions)</p>
                                         </div>
                                         <div style="width:70px!important;"></div>
                                         <div class="col-sm-5">
@@ -275,7 +279,9 @@
                                         <div class="col-sm-5">
                                             <select name="{{ comex.id }}_common_from[]" id="{{ comex.id }}_multiselect" class="form-control" size="8" multiple="multiple">
                                                 {% for available_common in comex.get_available_common_exams %}
-                                                <option value="{{ available_common.id }}">{{ available_common.code }} - {{ available_common.name }} - {{ available_common.date }}</option>
+                                                <option value="{{ available_common.id }}" {% if not available_common.questions.exists %} disabled {% endif %}>
+                                                    {{ available_common.code }} - {{ available_common.name }} - {{ available_common.date }}
+                                                </option>
                                                 {% endfor %}
                                             </select>
                                         </div>

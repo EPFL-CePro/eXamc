@@ -142,18 +142,20 @@ class Exam(models.Model):
             year = self.year
             exam = Exam.objects.filter(code__startswith=code,semester=semester, year=year).exclude(code=self.code).first()
 
-        exam_code_search_start = exam.code.split('(')[0]
-        code_split_end = exam.code.split(')')
-        if len(code_split_end) > 1:
-            exam_code_search_end = code_split_end[1]
-            exams = Exam.objects.filter(code__startswith=exam_code_search_start, code__endswith=exam_code_search_end, year=exam.year, semester=exam.semester)
-        else:
-            exams = Exam.objects.filter(code__startswith=exam_code_search_start, year=exam.year, semester=exam.semester)
         available_exams = []
-        common_exams = self.get_common_exams_yc_common()
-        for exam in exams:
-            if not exam in common_exams:
-                available_exams.append(exam)
+        if exam.questions.all():
+            exam_code_search_start = exam.code.split('(')[0]
+            code_split_end = exam.code.split(')')
+            if len(code_split_end) > 1:
+                exam_code_search_end = code_split_end[1]
+                exams = Exam.objects.filter(code__startswith=exam_code_search_start, code__endswith=exam_code_search_end, year=exam.year, semester=exam.semester)
+            else:
+                exams = Exam.objects.filter(code__startswith=exam_code_search_start, year=exam.year, semester=exam.semester)
+
+            common_exams = self.get_common_exams_yc_common()
+            for exam in exams:
+                if exam.questions.exists() and not exam in common_exams:
+                    available_exams.append(exam)
         return available_exams
 
 class ExamSection(models.Model):
