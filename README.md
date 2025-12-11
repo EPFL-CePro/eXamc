@@ -3,6 +3,9 @@
 ![Status](https://img.shields.io/badge/status-production--ready-success)
 ![GitHub Issues](https://img.shields.io/github/issues/EPFL-CePro/eXamc)
 ![GitHub Stars](https://img.shields.io/github/stars/EPFL-CePro/eXamc)
+![GitHub Issues](https://img.shields.io/github/issues/EPFL-CePro/eXamc)
+![GitHub Stars](https://img.shields.io/github/stars/EPFL-CePro/eXamc)
+
 
 
 # eXamc — Django + MySQL + Redis + Celery (Docker)
@@ -335,3 +338,9 @@ eXamc is distributed under the **eXamc Non-Commercial License (NCL) v1.0**.
 A separate commercial license may be granted upon request.
 
 👉 See the full license text in [`LICENSE`](./LICENSE).
+
+## 🙋 Support
+
+For questions or assistance regarding eXamc, please contact:
+
+cepro-exams@epfl.ch
