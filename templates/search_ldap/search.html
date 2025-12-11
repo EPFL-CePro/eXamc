@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load render_table from django_tables2 %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <h1>Search LDAP</h1>
+    <div>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                {% csrf_token %}
+                {{ form.as_p }}
+
+                <label for="formFile" class="form-label">Excel File (.xlsx):
+                    <div class="input-group mb-3">
+
+                        <input type="file" class="form-control d-none" id="formFile" name="file" accept=".xlsx"
+                               required>
+
+                        <label class="input-group-text btn btn-primary" for="formFile">Browse</label>
+                        <span id="fileName" class="form-control">No file chosen</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mb-2">Upload</button>
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('formFile').addEventListener('change', function () {
+            document.getElementById('fileName').textContent = document.getElementById('formFile').files[0].name;
+        });
+    </script>
+{% endblock %}

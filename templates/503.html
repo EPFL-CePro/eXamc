@@ -1,0 +1,234 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <title>eXamc — Scheduled Maintenance</title>
+  <style>
+    :root {
+      --bg: #000;
+      --card: #232323;        /* gray-900 */
+      --muted: #94a3b8;       /* slate-400 */
+      --text: #e5e7eb;        /* gray-200 */
+      --accent: #f59e0b;      /* amber-200 */
+      --accent-text: #000; /* gray-800 */
+      --btn: #f59e0b;         /* amber-500 */
+      --btn-text: #111827;
+      --border: #1f2937;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    .wrap {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 32px 16px;
+    }
+    .card {
+      width: 100%;
+      max-width: 760px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 28px 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+      backdrop-filter: blur(4px);
+    }
+    .header {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .badge {
+      background: var(--accent);
+      color: var(--accent-text);
+      font-weight: 700;
+      border-radius: 16px;
+      padding: 6px 12px;
+      font-size: 12px;
+      letter-spacing: .1em;
+        width:100%;
+        text-align:center;
+    }
+    .title {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 16px 0 0;
+      line-height: 1.2;
+    }
+    .lead {
+      margin: 22px 0 20px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+    .window {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px dashed #334155;
+      border-radius: 12px;
+      padding: 14px;
+      margin: 10px 0 18px;
+    }
+    .row { display: flex; gap: 10px; align-items: baseline; }
+    .label { color: var(--muted); min-width: 48px; font-size: 14px; }
+    .value time { font-weight: 600; }
+    .countdown {
+      margin-top: 6px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .btn {
+      background: var(--btn);
+      color: var(--btn-text);
+      border: 0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(245,158,11,0.35);
+    }
+    .btn.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid #334155;
+      box-shadow: none;
+    }
+    .footnote {
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .logo {
+      display: inline-flex;
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      align-items: center; justify-content: center;
+      background: #fcd34d22;
+      border: 1px solid #f59e0b55;
+    }
+    .logo svg { width: 24px; height: 24px; }
+  </style>
+</head>
+<body>
+  <div style="padding:20px;margin-bottom:-20px;">
+      <a class="bg-secondary dropdown-item" href="{% url 'oidc_authentication_init' %}">
+        <i class="fa-brands fa-superpowers fa-2xl" style="color: #c20000;"></i>
+      </a>
+  </div>
+  <div class="wrap">
+    <main class="card" role="main" aria-labelledby="title">
+      <div class="header">
+
+          <span class="badge"><h1><i class="fa-solid fa-person-digging fa-2xl" style="color: #000;margin-right:10px"></i>Scheduled Maintenance</h1></span>
+      </div>
+        <hr />
+      <h1 class="title" id="title"><img id="examc_logo_small" src="{% static 'img/eXamc_bg_transp_200.png' %}" style="margin-bottom:-20px;"/> is getting an upgrade — back soon!</h1>
+
+      <p class="lead">
+        The eXamc platform is <strong>temporarily unavailable</strong> while we deploy new features,
+        optimize performance, and apply important updates. Thanks for your patience and understanding!
+      </p>
+
+      <section class="window" aria-label="Maintenance window">
+        <div class="row">
+          <div class="label">From</div>
+          <div class="value">
+            {% if planned_maintenance.start %}
+              <time datetime="{{ planned_maintenance.start|date:'c' }}">{{ planned_maintenance.start|date:"d.m.Y H:i" }}</time>
+            {% else %}
+              <em>now</em>
+            {% endif %}
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">To</div>
+          <div class="value">
+            {% if planned_maintenance.end %}
+              <time datetime="{{ planned_maintenance.end|date:'c' }}">{{ planned_maintenance.end|date:"d.m.Y H:i" }}</time>
+            {% else %}
+              <em>soon</em>
+            {% endif %}
+          </div>
+        </div>
+        <div class="countdown" id="countdown" aria-live="polite"></div>
+      </section>
+
+      <div class="actions">
+        <button class="btn" onclick="location.reload()">
+          <!-- refresh icon -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1 2.13-9"/></svg>
+          Try again
+        </button>
+        <a class="btn secondary" href="mailto:cepro-exams@epfl.ch">
+          <!-- mail icon -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e5e7eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Contact support
+        </a>
+      </div>
+
+      <p class="footnote">
+        If you reached this page in error, please clear your cache and try again. You can keep this tab open; we’ll be back automatically after maintenance ends.
+      </p>
+        <hr />
+      <p class="lead">If you don't know what to do while you wait, play T-Rex Runner.</p>
+        <p class="lead">Press the space bar to start the game. Use the up and down arrow keys to control the dinosaur.</p>
+        <iframe style="width:100%;height:400px;border:None;" src="{%  static 'games/trex/index.html' %}"></iframe>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      // Live countdown to end time if available
+      var endIso = "{{ planned_maintenance.end|date:'c' }}";
+      var el = document.getElementById("countdown");
+      if (!el || !endIso) return;
+
+      function pad(n){ return n<10 ? '0'+n : ''+n; }
+
+      function tick() {
+        var now = new Date();
+        var end = new Date(endIso);
+        var ms = end - now;
+        if (isNaN(ms)) { el.textContent = ""; return; }
+        if (ms <= 0) {
+          el.textContent = "Wrapping up… please refresh.";
+          return;
+        }
+        var s = Math.floor(ms/1000);
+        var d = Math.floor(s/86400); s %= 86400;
+        var h = Math.floor(s/3600);  s %= 3600;
+        var m = Math.floor(s/60);    s %= 60;
+        var parts = [];
+        if (d) parts.push(d + "d");
+        parts.push(pad(h) + ":" + pad(m) + ":" + pad(s));
+        el.textContent = "Estimated time remaining: " + parts.join(" ");
+      }
+
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+</body>
+</html>

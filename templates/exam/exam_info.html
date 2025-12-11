@@ -1,0 +1,866 @@
+{% extends 'base.html' %}
+{% load custom_tags %}
+{% load render_table from django_tables2 %}
+
+
+  
+{% block title %}Exam info {% endblock %}
+
+
+{% block scripts %}
+{% endblock %}
+
+{% block content %}
+
+    
+{% if user_allowed %}
+
+    <div class="tab-content" id="exam-info-pills-tabContent">
+        {% for comex in exam.get_common_exams_yc_common %}
+            <div class="tab-pane fade {% if comex.pk == exam_selected.pk %}show active{% endif %}" id="pills-{{ comex.id }}" role="tabpanel" aria-labelledby="pills-{{ comex.id }}-tab">
+
+                <h4><i class="fa-solid fa-book-open fa-l" style="margin-right:5px;"></i>Exam Info</h4>
+
+                <div class="accordion" id="accordionExamInfo-{{ comex.id }}">
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingOne-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <p style="text-align:left;margin-bottom:-5px;">
+                                    <button class="btn btn-link" type="button" data-toggle="collapse"
+                                            data-target="#collapseOne-{{ comex.id }}"
+                                            aria-expanded="true" aria-controls="collapseOne-{{ comex.id }}">
+                                        Exam
+                                    </button>
+                                    <a id="regen-stats-bt-{{ comex.id }}" class="btn btn-dark btn-sm"
+                                       href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
+                                                                                    style="margin-right: 5px;"></i>Regen
+                                        stats</a>
+                                    <span style="float:right;margin-top:7px;">
+                                        <a data-toggle="modal" data-target="#displayPdfModal-{{ comex.id }}" title="Show in pdf" style="font-size:12px;">catalog<i
+                                                class="far fa-file-pdf" style="font-size:24px;color:red"></i></a>
+                                    </span>
+                                </p>
+                            </h5>
+                        </div>
+                        <div id="collapseOne-{{ comex.id }}" class="" aria-labelledby="headingOne-{{ comex.id }}">
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr style="border-bottom:.5px solid lightgrey;">
+                                        <th style="padding-left:25px;">Code</th>
+                                        <th style="padding-left:25px;">Name</th>
+                                        <th style="padding-left:25px;">Year</th>
+                                        <th style="padding-left:25px;">Semester</th>
+                                        <th style="padding-left:25px;">Date</th>
+                                        {% if comex.common_exams.all %}
+                                            <th>Individual specific</th>
+                                        {% endif %}
+                                        <th></th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            {% if comex.is_overall %}
+                                                GLOBAL
+                                            {% else %}
+                                                <input class="form-control" type="text" name="exam_code_{{ comex.id }}" id="exam_code_{{ comex.id }}" required  style="" class="form-control" required="" aria-invalid="true" value="{{ comex.code }}">
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <input class="form-control" type="text" size="100" name="exam_name_{{ comex.id }}" id="exam_name_{{ comex.id }}" required  style="" class="form-control" required="" aria-invalid="true" value="{{ comex.name }}">
+                                        </td>
+                                        <td>                                            
+                                            <select class="form-control" name="exam_year_{{ comex.id }}" id="exam_year_{{ comex.id }}" required>
+                                                {% for year in years %}
+                                                <option value="{{ year.id }}" {% if year.id == comex.year.id %}selected{% endif %}>{{ year.code }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>                             
+                                        <td>                                       
+                                            <select class="form-control" name="exam_semester_{{ comex.id }}" id="exam_semester_{{ comex.id }}" required>
+                                                {% for semester in semesters %}
+                                                <option value="{{ semester.id }}" {% if semester.id == comex.semester.id %}selected{% endif %}>{{ semester.code }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td id="exam_date_column-{{ comex.id }}">
+                                            <input class="date form-control" type="date" name="exam_date_{{ comex.id }}" id="exam_date_{{ comex.id }}"  style="" class="form-control" required aria-invalid="true" value="{{ comex.date|date:'Y-m-d' }}">
+                                        </td>
+                                        {% if comex.common_exams.all %}
+                                            <td>
+                                                {{ comex.indiv_formula }}
+                                                <br>
+                                                <em>[indiv_max_points];[common_max_points];[formula]
+                                                    <ul>
+                                                        <li>IP - invid_max_points</li>
+                                                        <li>CP - common_max_points</li>
+                                                        <li>SCP - students common points</li>
+                                                        <li>SIP - students indiv points</li>
+                                                    </ul>
+                                                </em>
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                </table>
+                                <hr>
+                                <div>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">Cancel</button>
+                                    <button type="button" onclick="updateExamInfo({{ comex.id }});" class="btn btn-dark btn-sm">Validate</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingTwo-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseTwo-{{ comex.id }}" aria-expanded="true" aria-controls="collapseTwo-{{ comex.id }}">
+                                    Scales
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseTwo-{{ comex.id }}" class="collapse" aria-labelledby="headingTwo-{{ comex.id }}">
+                            <div class="card-body">
+                                <table class="table table-striped table-sm">
+                                    <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Total points</th>
+                                        <th>Points to add</th>
+                                        <th>Final</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for scale in comex.scales.all %}
+                                        <tr>
+                                            <td>{{ scale.name }}</td>
+                                            <td>{{ scale.total_points }}</td>
+                                            <td>{{ scale.points_to_add }}</td>
+                                            {% if scale.final %}
+                                                <td><a class="btn btn-light btn-sm" disabled
+                                                       style="background-color: transparent;"><i
+                                                        class="fa-solid fa-circle-check fa-2xl"></i></a></td>
+                                            {% else %}
+                                                <td><a class="btn btn-light btn-sm"
+                                                       {% if comex.common_exams.all %}
+                                                       onclick="setFinalScaleCommon({{ scale.pk }},{{ comex.pk }});"
+                                                       {% else %}
+                                                        href="{% url 'set_final_scale' scale.pk comex.pk 0 %}"
+                                                       {% endif %}
+                                                       style="background-color: transparent;"><i
+                                                        class="fa-solid fa-circle-xmark fa-2xl"
+                                                        style="color:lightgray;"></i></a></td>
+                                            {% endif %}
+                                            <td><a class="btn btn-light btn-sm"
+                                                   href="{% url 'delete_exam_scale' scale.pk comex.pk %}"><i
+                                                    class="fa-solid fa-circle-minus fa-2xl"
+                                                    style="margin-right:5px;color:red;"></i></a></td>
+
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                                    <a target="_blank" id="create-scale-button-{{ comex.id }}" class="btn btn-light"
+                                       style="background-color: transparent" type="button"><i
+                                            class="fa-solid fa-circle-plus fa-2xl"
+                                            style="margin-right:5px;color:green;"></i></a>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingThree-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseThree-{{ comex.id }}" aria-expanded="false"
+                                        aria-controls="collapseThree-{{ comex.id }}">
+                                    Questions (Total points : {{ comex.id|get_sum_questions_points }})
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseThree-{{ comex.id }}" class="collapse" aria-labelledby="headingThree-{{ comex.id }}">
+                            <div id="questions_div-{{ comex.id }}" class="card-body">
+                                <div id="alert_regen_stats-{{ comex.id }}" class="alert alert-danger" role="alert" style="display: none;">
+                                  Don't forget to <a id="regen-stats-bt-{{ comex.id }}" class="btn btn-dark btn-sm"
+                                       href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
+                                                                                    style="margin-right: 5px;"></i>Regen
+                                        stats</a> after questions changed!
+                                </div>
+                                <table id="questions_dt-{{ comex.id }}" class="table table-striped table-sm">
+                                    <thead>
+                                    <tr>
+                                        <th>Question</th>
+                                        <th>Type</th>
+                                        <th>Answers</th>
+                                        <th>Max Points</th>
+                                        {% if comex.common_exams.all %}
+                                            <th>Common</th>
+                                        {% endif %}
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for question in comex.questions.all %}
+                                        <tr id="question-{{ question.pk }}">
+                                            <td>{{ question.code }}</td>
+                                            <td>
+                                                <div class="btn-group-sm" role="group">
+                                                    {% for question_type in question_types.all %}
+                                                        <button id="type-{{ question.pk }}-{{ question_type.pk }}"
+                                                                name="type-{{ question.pk }}"
+                                                                type="button"
+                                                                {% if question.question_type.pk == question_type.pk %}
+                                                                class="btn btn-dark btn-sm focus"
+                                                                {% else %}
+                                                                class="btn btn-outline-dark btn-sm disabled" {% endif %}>
+                                                            {{ question_type.code }}</button>
+                                                    {% endfor %}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if question.question_type.id <= 2 %}
+                                                    <div class="form-group-sm" role="group">
+                                                        <input id="nb-answers-slider-{{ question.pk }}"
+                                                               data-slider-id='nb-answers-{{ question.pk }}'
+                                                               type="text"
+                                                               data-slider-value="{{ question.nb_answers }}"
+                                                               style="width:500px;"/>
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td><input id="maxpts-{{ question.pk }}" type="number" min="0"
+                                                       value="{{ question.max_points }}" step=".01"
+                                                       style="width:100px;" class="form-control form-control-sm"/></td>
+                                            {% if comex.common_exams.all %}
+                                            <td>
+                                            <div class="custom-control custom-switch mb-3">
+                                                <input class="custom-control-input" type="checkbox" name="common-{{ question.pk }}" id="common-{{ question.pk }}" {% if question.common %} checked {% endif %}>
+                                                <label class="custom-control-label" for="common-{{ question.pk }}"></label>
+                                            </div>
+                                            </td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                                <hr/>
+                                <div>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">Cancel</button>
+                                    <button type="button" onclick="updateQuestions({{ comex.id }});" class="btn btn-dark btn-sm">Validate</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingFour-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseFour-{{ comex.id }}" aria-expanded="false"
+                                        aria-controls="collapseFour-{{ comex.id }}">
+                                    Common Exams
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseFour-{{ comex.id }}" class="collapse" aria-labelledby="headingFour-{{ comex.id }}">
+                            <div id="common_settings_div-{{ comex.id }}" class="card-body">
+                                <form id="form-exam-settings-common-{{ comex.id }}" method="post" style="padding:20px;max-width:1500px;" action="{% url 'validate_common_exams_settings' comex.pk %}">
+                                    <div class="row">
+                                        <div class="col-sm-5">
+                                            <h6>Available exams</h6>
+                                        </div>
+                                        <div style="width:70px!important;"></div>
+                                        <div class="col-sm-5">
+                                            <h6>Selected exams</h6>
+                                        </div>
+                                    </div>
+                                    {% csrf_token %}
+                                    <div class="row" style="max-width:1500px;">
+                                        <div class="col-sm-5">
+                                            <select name="{{ comex.id }}_common_from[]" id="{{ comex.id }}_multiselect" class="form-control" size="8" multiple="multiple">
+                                                {% for available_common in comex.get_available_common_exams %}
+                                                <option value="{{ available_common.id }}">{{ available_common.code }} - {{ available_common.name }} - {{ available_common.date }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div style="width:70px!important;">
+                                            <button type="button" id="{{ comex.id }}_multiselect_rightAll" class="btn"><i class="fa-solid fa-angles-right"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_rightSelected" class="btn "><i class="fa-solid fa-angle-right"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_leftSelected" class="btn "><i class="fa-solid fa-angle-left"></i></button>
+                                            <button type="button" id="{{ comex.id }}_multiselect_leftAll" class="btn "><i class="fa-solid fa-angles-left"></i></button>
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <select name="{{ comex.id }}_common_to[]" id="{{ comex.id }}_multiselect_to" class="form-control" size="8" multiple="multiple">
+                                                {% for comex in comex.get_common_exams_without_common.all %}
+                                                    <option value="{{ comex.id }}">{{ comex.code }} - {{ comex.name }} - {{ comex.date }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">Cancel</button>
+                                        <button type="submit" class="btn btn-dark btn-sm">Validate</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingFive-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link collapsed" type="button" data-toggle="collapse"
+                                        data-target="#collapseFive-{{ comex.id }}" aria-expanded="true" aria-controls="collapseFive-{{ comex.id }}">
+                                    Users
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseFive-{{ comex.id }}" class="collapse" aria-labelledby="headingFive-{{ comex.id }}">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <ul class="list-group" id="currUsersList-{{ comex.id }}">
+                                            {% for exam_user in comex.exam_users.all %}
+                                                <li id="{{ comex.id }}_{{ exam_user.user.username }}" class="list-group-item" style="display: flex;justify-content: space-between;padding:5px;border:1px solid #ebebeb;">
+                                                    <div>
+                                                        <button class="btn btn-light btn-sm" style="margin-right:10px;" onclick="validateUsers({{ comex.id }},'{{ exam_user.user.username }}')"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></button>
+                                                        {{ exam_user.user.username }} - {{ exam_user.user.first_name }}&nbsp;&nbsp;{{ exam_user.user.last_name }} - {{ exam_user.user.email }}
+                                                    </div>
+                                                    <div>
+                                                        {% for user_group in users_groups_add.all %}
+                                                            <div class="form-check form-check-inline" style="margin-top:5px;">
+                                                                <input class="form-check-input" type="radio" name="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}" id="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}-{{ user_group.id }}" value="{{ user_group.id }}"
+                                                                    {% if exam_user.group.id == user_group.id %} checked {% endif %}>
+                                                                <label class="form-check-label" for="user_group_radio_{{ comex.id }}_{{ exam_user.user.username }}-{{ user_group.id }}">{{ user_group.name }}</label>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    <div class="col-sm-6" style="background-color: #ebebeb;padding:10px;" id="addUserDiv">
+                                        <h6>Add Users</h6>
+                                        <div style="display:flex;">
+                                            <input id="newUserEmail-{{ comex.id }}" class="form-control" type="text" style="width:400px;" placeholder="Email">
+                                            <button class="btn btn-dark btn-sm" id="search_ldap_bt-{{ comex.id }}" onclick="searchLdap({{ comex.id }});" type="button"><i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i>Search</button>
+                                        </div>
+                                        <hr>
+                                        <ul  class="list-group" id="newUsersList-{{ comex.id }}"></ul>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="cancelUsers({{ comex.id }});">Cancel</button>
+                                    <button type="button" class="btn btn-dark btn-sm" onclick="validateUsers({{ comex.id }});">Validate</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card z-depth-0 bordered">
+                        <div class="card-header" id="headingSix-{{ comex.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link" type="button" data-toggle="collapse"
+                                        data-target="#collapseSix-{{ comex.id }}"
+                                        aria-expanded="true" aria-controls="collapseSix-{{ comex.id }}">
+                                    Modules
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseSix-{{ comex.id }}" class="collapse" aria-labelledby="headingSix-{{ comex.id }}">
+                            <div class="card-body">
+                                <form id="form-exam-options-{{ comex.id }}" method="post" style="padding:20px;">
+                                    {% csrf_token %}
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox" name="review_option_{{ comex.id }}" id="review_option_{{ comex.id }}" {% if comex.review_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="review_option_{{ comex.id }}">Review module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="amc_option_{{ comex.id }}" id="amc_option_{{ comex.id }}" {% if comex.amc_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="amc_option_{{ comex.id }}">AMC module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="res_and_stats_option_{{ comex.id }}" id="res_and_stats_option_{{ comex.id }}" {% if comex.res_and_stats_option == 1 %} checked {% endif %}>
+                                      <label class="custom-control-label" for="res_and_stats_option_{{ comex.id }}">Results & stats module</label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                      <input class="custom-control-input" type="checkbox"  name="prep_option_{{ comex.id }}" id="prep_option_{{ comex.id }}" {% if comex.prep_option == 1 %} checked {% endif %} disabled>
+                                      <label class="custom-control-label" for="prep_option_{{ comex.id }}">Preparation module</label>
+                                    </div>
+                                    <hr>
+                                    <div>
+                                        <button type="button" onclick="updateExamOptions({{ comex.pk }});" class="btn btn-dark btn-sm">Validate</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="modal fade" id="displayPdfModal-{{ comex.id }}" tabindex="-1" role="dialog" style="">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content" style="width:1050px;height:1050px;">
+            
+                  <div class="modal-body">
+                    <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">Close</button>
+                  </br>
+                    <div id="embedPdf"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal fade" id="setFinalScaleCommonModal" tabindex="-1" role="dialog">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Final scale for common exams</h5>
+                  </div>
+                  <div class="modal-body">
+                      <p>Do you want to set this final scale for all common exams ?</p>
+                  </div>
+                  <div class="modal-footer">
+                    <a id="validateFinalScaleCommonAll" type="button" class="btn btn-dark btn-sm">Yes, for all!</a>
+                    <a id="validateFinalScaleCommonIndiv" type="button" class="btn btn-dark btn-sm">No, only for this exam!</a>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="$('#setFinalScaleCommonModal').modal('hide');" style="margin-left:50px;">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="create-scale-modal" style="margin-left:-100px;">
+      <div class="modal-dialog" role="document">
+          <div class="modal-content" id="create-scale-modal-content">{{ comex.id }}
+
+          </div>
+      </div>
+    </div>
+
+
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
+{% endif %}
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js" integrity="sha512-f0VlzJbcEB6KiW8ZVtL+5HWPDyW1+nJEjguZ5IVnSQkvZbwBt2RfCBY0CBO1PsMAqxxrG4Di6TfsCPP3ZRwKpA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css" integrity="sha512-3q8fi8M0VS+X/3n64Ndpp6Bit7oXSiyCnzmlx6IDBLGlY5euFySyJ46RUlqIVs0DPCGOypqP8IRk/EyPvU28mQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+.slider-selection.tick-slider-selection, .slider-tick.in-selection {
+	background: #989898;
+}
+.slider-handle {
+	background: #000;
+}
+</style>
+<script>
+
+$(window).on("load",function(){
+
+    var regen_stats = sessionStorage.getItem("regen_stats");
+    var exam_pk = sessionStorage.getItem("exam_pk");
+    if (regen_stats) {
+        sessionStorage.removeItem("regen_stats");
+        $('#alert_regen_stats-'+exam_pk).attr('style','');
+    }else
+        $('#alert_regen_stats-'+exam_pk).attr('style','display:none;');
+    var scroll_y = sessionStorage.getItem("scrolly");
+    if (scroll_y){
+        document.documentElement.scrollTop = scroll_y;
+        sessionStorage.removeItem("scrolly");
+    }
+    
+    // Get saved data from sessionStorage
+    if(sessionStorage.getItem("selectedCollapse_list") !== null) {
+        let selectedCollapse_json = sessionStorage.getItem('selectedCollapse_list');
+        let selectedCollapse_list = JSON.parse(selectedCollapse_json);
+        $('.accordion .collapse').removeClass('show');
+        for(selectedCollapse of selectedCollapse_list){
+            $(selectedCollapse).addClass('show');
+        }
+    }else{
+        selectedCollapse_list = [];
+        selectedCollapse_list.push("#collapseOne");
+        $("#collapseOne").addClass('show');
+        sessionStorage.setItem('selectedCollapse_list', JSON.stringify(selectedCollapse_list));
+    }
+    //To set, which one will be opened
+    $('.accordion .btn-link').on('click', function(){
+        let target = $(this).data('target');
+        let selectedCollapse_list = JSON.parse(sessionStorage.getItem('selectedCollapse_list'));
+        if(selectedCollapse_list.includes(target)){
+            selectedCollapse_list.splice(selectedCollapse_list.indexOf(target), 1);
+        }else{
+            selectedCollapse_list.push(target);
+        }
+
+        //Save data to sessionStorage
+        sessionStorage.setItem('selectedCollapse_list', JSON.stringify(selectedCollapse_list));
+    });
+
+    {% for comex in exam.get_common_exams_yc_common %}
+
+        $('#{{ comex.id }}_multiselect').multiselect();
+
+        $("#create-scale-button-{{ comex.id }}").modalForm({
+            formURL: "{% url 'create_scale' comex.pk %}",
+            modalID: "#create-scale-modal"
+        });
+
+        <!--DISPLAY PDF CATALOG -->
+        $('#displayPdfModal-{{ comex.id }}').on('show.bs.modal', function (event) {
+            document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' comex.pk %} toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:1000px;\" frameborder=\"0\">";
+        })
+
+        <!-- QUESTIONS EVENTS -->
+        <!-- question-common checkboxes -->
+        {% for question in comex.questions.all %}
+            $('#common-{{ question.pk }}-1').on('click', function() {
+                $('#common-{{ question.pk }}-1').attr('class','btn btn-dark btn-sm');
+            })
+            
+            $('#common-{{ question.pk }}-2').on('click', function() {
+                $('#common-{{ question.pk }}-2').attr('class','btn btn-outline-dark btn-sm disabled');
+            });
+        {% endfor %}
+
+        <!--question-type button-groups-->
+        {% for question in comex.questions.all %}
+            {% for question_type in question_types %}
+                $('#type-{{ question.pk }}-{{ question_type.pk }}').on('click', function() {
+                    {% for qtype in question_types %}
+                        {% if qtype.pk == question_type.pk %}
+                        $('#type-{{ question.pk }}-{{ qtype.pk }}').attr('class','btn btn-dark btn-sm');
+                        {% else %}
+                         $('#type-{{ question.pk }}-{{ qtype.pk }}').attr('class','btn btn-outline-dark btn-sm disabled');
+                        {% endif %}
+                    {% endfor %}
+                });
+            {% endfor %}
+        {% endfor %}
+
+        <!--question-answers button-groups-->#}
+        {% for question in comex.questions.all %}
+            {% if question.question_type.id <= 2 %}
+                answers_range = Array.from({length: 12}, (_, i) => i + 1);//{ length: {{ question.nb_answers }}+3 }, (value, index) => 1 + index);
+                label_positions = [];
+                for(i in answers_range) {
+                    label_positions.push(100/(answers_range.length-1)*i);
+                }
+                slider = $('#nb-answers-slider-{{ question.pk }}');
+                slider.bootstrapSlider({
+                    ticks: answers_range,
+                    ticks_labels: answers_range,
+                    ticks_positions: label_positions,
+                    ticks_snap_bounds: 1
+                });
+            {% endif %}
+        {% endfor %}
+
+    {% endfor %}
+
+    $('a[data-toggle="pill"]').on('show.bs.tab', function(e) {
+        localStorage.setItem('activeTab', $(e.target).attr('href'));
+    });
+    var activeTab = localStorage.getItem('activeTab');
+    if(activeTab && $(activeTab).length > 0){
+        $('#exam-info-pills-tab a[href="' + activeTab + '"]').tab('show');
+    }else{
+        $('#exam-info-pills-tab a[href="#pills-' + {{ exam.get_common_exams_yc_common.0.id }} + '"]').tab('show');
+    }
+
+})
+
+{% for comex in exam.get_common_exams_yc_common %}
+
+document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("search_ldap_bt-{{ comex.id }}").click();
+  }
+});
+{% endfor %}
+
+function setFinalScaleCommon(scale_pk, exam_pk){
+    $('#validateFinalScaleCommonAll').attr('href','/set_final_scale/'+scale_pk+'/'+exam_pk+'/1');
+    $('#validateFinalScaleCommonIndiv').attr('href','/set_final_scale/'+scale_pk+'/'+exam_pk+'/0');
+    $('#setFinalScaleCommonModal').modal('show');
+}
+
+function updateExamInfo(exam_id){
+    $('#loadingModal').modal('show');
+    date_el = document.getElementById('exam_date_'+exam_id);
+    date = document.getElementById('exam_date_'+exam_id).value;
+    code = document.getElementById('exam_code_'+exam_id).value;
+    name = document.getElementById('exam_name_'+exam_id).value;
+    year_id = document.getElementById('exam_year_'+exam_id).value;
+    semester_id = document.getElementById('exam_semester_'+exam_id).value;
+    $.ajax({
+        url: "/update_exam_info/"+exam_id,
+        type: "POST",
+        dataType: "json",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'date' : date,
+            'code' : code,
+            'name' : name, 
+            'year_id' : year_id,
+            'semester_id' : semester_id,
+        },
+        complete: function () {
+            $('#loadingModal').modal('hide');
+            location.reload();
+            //$("#exam_date_column-"+exam_id).load(location.href + " #exam_date_column-"+exam_id );
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function searchLdap(exam_id){
+    var email = document.getElementById("newUserEmail-"+exam_id).value;
+
+    var add_User_error = document.getElementById("addUserError-"+exam_id);
+    if (typeof(add_User_error) != 'undefined' && add_User_error != null)
+    {
+      add_User_error.remove();
+    }
+
+    $.ajax({
+        url: '/ldap_search_exam_user_by_email/'+exam_id,
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'email' : email,
+        },
+        success: (data) => {
+            if(data==="exist"){
+                let add_User_error = document.createElement('div');
+                add_User_error.setAttribute("class","alert alert-warning");
+                add_User_error.setAttribute("role","alert")
+                add_User_error.innerHTML = "User already present as a User for this exam !";
+                document.getElementById("manageUsersModalBody-"+exam_id).appendChild(add_User_error);
+            }else{
+                let list = document.getElementById("newUsersList-"+exam_id);
+                let li = document.createElement('li');
+                let remove_bt = document.createElement('button')
+                let user_info = document.createElement('div')
+                remove_bt.textContent = 'remove';
+                remove_bt.setAttribute("class","btn btn-light btn-sm");
+                remove_bt.setAttribute("style","margin-right:10px;");
+                remove_bt.addEventListener('click', () => {
+                    document.getElementById(data).remove();
+                });
+                remove_bt.innerHTML = '<i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>'
+                user_info.appendChild(remove_bt);
+                li_txt = data.replace(/;/g,' - ');
+                user_info.appendChild(document.createTextNode(li_txt));
+                li.appendChild(user_info);
+                users_groups_div = document.createElement('div');
+                users_groups_div.setAttribute("style","margin-top:5px;")
+                {% for user_group in users_groups_add.all %}
+                    username = li_txt.split(" ")[0]
+                    users_groups_radios_div = document.createElement('div')
+                    users_groups_radios_div.setAttribute("class","form-check form-check-inline");
+                    users_groups_radios_div.innerHTML = '<input class="form-check-input" type="radio" name="user_group_radio_'+exam_id+'_'+username+'" id="user_group_radio_'+exam_id+'_'+username+'_{{ user_group.id }}" value="{{ user_group.id }}" {% if user_group.id == 2 %}checked{% endif %}>'+
+                                                '<label class="form-check-label" for="user_group_radio_'+exam_id+'_'+username+'_{{ user_group.id }}">{{ user_group.name }}</label>'
+                    users_groups_div.appendChild(users_groups_radios_div);
+                {% endfor %}
+                li.appendChild(users_groups_div);
+                
+                li.setAttribute("id",data);
+                li.setAttribute("class","list-group-item");
+                li.setAttribute("style","display: flex;justify-content: space-between;padding:5px;border:1px solid #ebebeb;");
+                list.appendChild(li);
+                document.getElementById("newUserEmail-"+exam_id).value = "";
+             }
+        },
+        error: (error) => {
+            let add_User_error = document.createElement('div');
+            add_User_error.setAttribute("class","alert alert-warning");
+            add_User_error.setAttribute("role","alert")
+            add_User_error.innerHTML = "Cannot find user with this email address in EPFL LDAP !";
+            document.getElementById("addUserDiv").appendChild(add_User_error);
+        }
+    });
+}
+
+function validateUsers(exam_id,username_to_remove = null){
+    var new_users_li = document.getElementById("newUsersList-"+exam_id).querySelectorAll("li");
+    var curr_users_li = document.getElementById("currUsersList-"+exam_id).querySelectorAll("li");
+    
+    let users = [];
+    for(let i=0; i<curr_users_li.length;i++) {
+        group_id = null;
+        curr_id = curr_users_li[i].id;
+        user = curr_users_li[i].children[0].innerText;
+        user_split = user.split(" - ");
+        username = user_split[0].trim();
+        firstname = user_split[1].split("  ")[0];
+        lastname = user_split[1].split("  ")[1];
+        useremail = user_split[2].split("\n")[0];
+        if(!curr_id.startsWith("delete_"))
+            group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
+        if(username !== username_to_remove){
+            if(curr_id.startsWith('delete_')){
+                username = 'delete_'+username;
+            }
+            users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+        }else{
+            li_id = exam_id+"_"+username;
+            li_remove = document.getElementById(li_id);
+            li_remove.style.textDecoration = 'line-through';
+            li_remove.id = "delete_"+li_id;
+        }
+    }
+    for(let i=0; i<new_users_li.length;i++) {
+        user = new_users_li[i].innerText;
+        user_split = user.split(" - ");
+        username = user_split[0].trim();
+        firstname = user_split[1];
+        lastname = user_split[2];
+        useremail = user_split[3].split("\n")[0];
+        group_id = document.querySelector('input[type=radio][name=user_group_radio_'+exam_id+'_'+username+']:checked').value;
+        users.push(username+";"+firstname+";"+lastname+";"+useremail+";"+group_id);
+    }
+
+    if(username_to_remove == null){
+        $('#loadingModal').modal('show');
+        let list = document.getElementById("newUsersList-"+exam_id);
+        list.innerHTML = '';
+        document.getElementById("newUserEmail-"+exam_id).value = '';
+        $.ajax({
+            url: '/update_exam_users/'+exam_id,
+            type: "POST",
+            dataType: "json",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'users_list' : users,
+            },
+            complete: function () {
+                if( username_to_remove == null) {
+                    $('#loadingModal').modal('hide');
+                    location.reload();
+                }
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
+}
+
+function cancelUsers(exam_id){
+    var curr_users_li = document.getElementById("currUsersList-"+exam_id).querySelectorAll("li");
+    for(let i=0; i<curr_users_li.length;i++) {
+        curr_id = curr_users_li[i].id;
+        if(curr_id.startsWith('delete_')){
+            li_restore = document.getElementById(curr_id);
+            li_restore.style.textDecoration = '';
+            li_restore.id = curr_id.replace('delete_','');
+        }
+    }
+    let list = document.getElementById("newUsersList-"+exam_id);
+    list.innerHTML = '';
+    document.getElementById("newUserEmail-"+exam_id).value = '';
+    $('#loadingModal').modal('hide');
+}
+
+function updateQuestions(exam_pk){
+    table = document.getElementById("questions_dt-"+exam_pk);
+    var rows = table.rows;
+    const headers = [];
+    const jsonData = [];
+
+    // Extract headers
+    for (let i = 0; i < rows[0].cells.length; i++) {
+        headers.push(rows[0].cells[i].innerText);
+    }
+
+    // Extract data
+    for (let i = 1; i < rows.length; i++) {
+        const rowObject = {};
+        const cells = rows[i].cells;
+        const question_id = rows[i].id.split('-')[1]
+        for (let j = 0; j < cells.length; j++) {
+            switch(j){
+                case 0: 
+                    rowObject[headers[j]] = question_id;
+                    break;
+                case 1:
+                    button_elements = document.getElementsByName('type-'+question_id);
+                    for (let k = 0; k < button_elements.length; k++){
+                        button_element = button_elements[k];
+                        if( button_element.classList.contains('btn-dark')) {
+                            rowObject[headers[j]] = k+1;
+                        }
+                    }
+                    break;
+                case 2:
+                    let nb_answers;
+                    slider = document.getElementById('nb-answers-slider-'+question_id)
+                    if(slider){
+                        nb_answers = slider.value;
+                    }
+                    rowObject[headers[j]] = nb_answers;
+                    break
+                case 3:
+                    rowObject[headers[j]] = cells[j].children[0].value;
+                    break;
+                case 4:
+                    common_element = document.getElementById('common-'+question_id);
+                    rowObject[headers[j]] = common_element.checked;
+            }
+        }
+        jsonData.push(rowObject);
+    }
+    $('#loadingModal').modal('show');
+    $.ajax({
+            url : '/update_questions/'+exam_pk,
+            type : "POST",
+            data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'data' : JSON.stringify(jsonData, null, 2),
+            },
+            success : function(result) {
+                $('#loadingModal').modal('hide');
+                sessionStorage.setItem("exam_pk", exam_pk);
+                sessionStorage.setItem("regen_stats", "true");
+                sessionStorage.setItem("scrolly",document.documentElement.scrollTop);
+                window.location.href = "{% url 'examInfo' exam.pk %}?dataUpdated=true";
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+}
+
+function updateExamOptions(exam_pk){
+    data = $("#form-exam-options-"+exam_pk).serialize();
+    $.ajax({
+            url : "/update_exam_options/"+exam_pk,
+            type : "POST",
+            data : data,
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                location.replace("/examInfo/"+exam_pk);
+            },
+            success: (data) => {
+                $('#loadingModal').modal('hide');
+                $('examOptionsModal').modal('hide');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+}
+
+
+</script>
+{% endblock %}

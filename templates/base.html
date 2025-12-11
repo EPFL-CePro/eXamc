@@ -1,0 +1,567 @@
+<!-- templates/base.html -->
+{% load static %}
+{% load custom_tags %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <title>eXamc</title>
+
+    <!-- JS jquery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+            integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+
+    <!-- JS bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+            integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js"
+            integrity="sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+            crossorigin="anonymous"></script>
+    <script src="{% static 'js/jquery.bootstrap.modal.forms.min.js' %}"></script>
+    <!-- JS Chart -->
+    <script src="{% static 'js/Chart.min.js' %}"></script>
+    <!-- JS palette -->
+    <script src="{% static 'js/palette.js' %}"></script>
+  
+    <!-- JS print -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="{% static 'js/pdf_utils.js' %}"></script>
+
+    <!-- Celery-progress js -->
+    <script src="{% static 'js/celery_progress.js' %}"></script>
+
+    <!-- datatables -->
+    <link href="https://cdn.datatables.net/2.0.7/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.bootstrap4.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/select/2.0.1/css/select.bootstrap4.min.css" rel="stylesheet">
+    
+    <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.7/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/select/2.0.1/js/dataTables.select.min.js"></script>
+
+    <!-- treeview -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js" integrity="sha512-Hyk+1XSRfagqzuSHE8M856g295mX1i5rfSV5yRugcYFlvQiE3BKgg5oFRfX45s7I8qzMYFa8gbFy9xMFbX7Lqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.css" integrity="sha512-A81ejcgve91dAWmCGseS60zjrAdohm7PTcAjjiDWtw3Tcj91PNMa1gJ/ImrhG+DbT5V+JQ5r26KT5+kgdVTb5w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <script src="{% static 'js/multiselect.min.js' %}"></script>
+
+
+    <!-- CSS bootstrap -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+
+    <!-- bootstrap-select -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
+
+    <!-- CSS fontawesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- KaTeX -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.js"></script>
+    <!-- Summernote JS -->
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
+    <script src="{% static 'js/summernote-math.js' %}"></script>
+
+    <!-- CSS menubars -->
+    <link rel="stylesheet" href="{% static 'css/menubars.css' %}">
+
+    <!-- CSS eXamc -->
+
+    <link rel="stylesheet" href="{% static 'css/examc.css' %}">
+    <!-- favicon -->
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+
+    {% block extra_head %}{% endblock %}
+
+    <title>{% block title %}eXamc{% endblock %}</title>
+
+</head>
+
+{% if planned_maintenance.show %}
+<div id="maintenance-banner" class="alert alert-warning" role="alert"
+     style="position:fixed;left:0;right:0;top:0;z-index:9999;display:none">
+
+  {{ planned_maintenance.message|safe }}
+   <br/><i class="fa-solid fa-clock"></i>
+  From <time datetime="{{ planned_maintenance.start|date:'c' }}">{{ planned_maintenance.start|date:"d.m.Y H:i" }}</time>
+  to <time datetime="{{ planned_maintenance.end|date:'c' }}">{{ planned_maintenance.end|date:"d.m.Y H:i" }}</time>.
+
+  <button id="maintenance-dismiss" aria-label="Dismiss" class="btn btn-outline-primary btn-sm"
+          style="margin-left:12px;padding:.25rem .5rem;">
+    Dismiss
+  </button>
+</div>
+<script>
+(function(){
+  var key = "maintenance_notice_hide_until";
+  var startIso = "{{ planned_maintenance.start|date:'c' }}";
+  try {
+    var hideUntil = localStorage.getItem(key);
+    if (!hideUntil || new Date(hideUntil) < new Date()) {
+      var el = document.getElementById("maintenance-banner");
+      el.style.display = "block";
+      document.getElementById("maintenance-dismiss").addEventListener("click", function(){
+        // Keep it hidden until the maintenance begins
+        localStorage.setItem(key, startIso);
+        el.remove();
+      });
+    }
+  } catch(e) { /* ignore storage errors */ }
+})();
+</script>
+{% endif %}
+
+<body>
+{#<main>#}
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        {% block scripts %}
+        {% endblock %}
+    });
+
+    function SidebarCollapse() {
+        $('.menu-collapsed').toggleClass('d-none');
+        $('.sidebar-submenu').toggleClass('d-none');
+        $('.submenu-icon').toggleClass('d-none');
+        $('#sidebar-container').toggleClass('sidebar-expanded sidebar-collapsed');
+
+        // Treating d-flex/d-none on separators with title
+        const SeparatorTitle = $('.sidebar-separator-title');
+        if (SeparatorTitle.hasClass('d-flex')) {
+            SeparatorTitle.removeClass('d-flex');
+        } else {
+            SeparatorTitle.addClass('d-flex');
+        }
+
+        // Collapse/Expand icon
+        $('#collapse-icon').toggleClass('fa-angle-double-left fa-angle-double-right');
+        if ($('#sidebar-container').hasClass('sidebar-collapsed')) {
+            $('#page-content-wrapper').css('margin-left', '-170px');
+        } else {
+            $('#page-content-wrapper').css('margin-left', '0px');
+        }
+    }
+
+</script>
+    <div id="wrapper">
+
+
+{#        <div class="row" id="body-row">#}
+        <!-- Sidebar -->
+        <div id="sidebar-container" class="sidebar-expanded d-none d-md-block">
+            <ul class="list-group" style="overflow: visible;">
+                <li class="bg-dark list-group-item-action" >
+                    <div class="d-flex w-100 " style="padding: 15px">
+                        <img id="examc_logo_small" src="{% static 'img/eXamc_bg_transp_square_72.png' %}" style="width:30px;height: 30px; align-content: center"/>
+                        <span class="menu-collapsed" style="margin-right:5px;"><img id="examc_logo" src="{% get_logo_url %}" style="margin-left:-30px;width:100%;background-color: #000000"/></span>
+                    </div>
+                </li>
+                {% if user.is_authenticated %}                    
+                <li class="bg-secondary list-group-item list-group-item-action" style="background-color: #191919!important;">
+                    <div class="d-flex w-100 justify-content-start align-items-center">
+                        <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                            style="color:#b1b1b1!important;">
+                            <span class="fa-solid fa-bars fa-xl" style="margin-right:5px;"></span>
+                            <span class="menu-collapsed" style="margin-right:5px;">MENU</span>
+                        </a>
+                        <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+                            <li>
+                                <a href="{% url 'examSelect' %}" class="bg-secondary list-group-item list-group-item-action">
+                                        <i class="fas fa-folder-open" style="margin-right:5px;"></i>Open exam</a>
+                            </li>                           
+                            {% if user|more_arg:None|is_allowed:'creation' %}
+                             <div class="bg-secondary dropdown-divider"></div>
+                            <li>
+                                <a class="bg-secondary list-group-item list-group-item-action" href="{% url 'create_exam_project' %}">
+                                    <i class="fas fa-plus" style="margin-right:5px;"></i>Create exam</a>
+                            </li>
+                            {% endif %}
+                            <div class="bg-secondary dropdown-divider"></div>
+                            <li>
+                                <a href="{% url 'generate_room_plan' %}" class="bg-secondary list-group-item list-group-item-action">
+                                    <i class="fa-solid fa-meteor" style="margin-right:5px;color:#fdfdfd;"></i>Room plan</a>       
+                            </li>
+                            <div class="bg-secondary dropdown-divider"></div>
+                            <li>
+                                <a href="{% url 'csvgen' %}" class="bg-secondary list-group-item list-group-item-action">
+                                    <i class="fa-solid fa-file-excel" style="margin-right:5px;color:#fdfdfd;"></i>Students CSV generator</a>       
+                            </li>
+                      </ul>
+                    </div>
+                </li>   
+                {% if exam_selected %}
+                    <a {% if user|more_arg:exam_selected|is_allowed:'preparation' %} href="{% url 'examInfo' exam_selected.pk %}" {% endif %}class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold" style="height:auto;background-color: #1d2124;margin-top:20px;">
+                        <span title="{{ exam_selected.code }}" class="fa-solid fa-book-open" style="margin-right: 5px;"></span>
+                        <span class="menu-collapsed" style="margin-right:5px;">{% if exam_selected.is_overall %}{{ exam_selected.name }}{% else %}{{ exam_selected.code }}{% endif %}</span>
+                    </a>
+                    {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
+                        {% if exam_selected.has_prep_option %}
+                        <a href="{% url 'exam_preparation' exam_selected.pk %}" class="bg-dark list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <span class="fas fa-edit" style="margin-right:5px;"></span>
+                                <span class="menu-collapsed" style="margin-right:5px;">Preparation</span>
+                            </div>
+                        </a>
+                        <hr class="hr-sidebar">
+                        {% endif %}
+                    {% endif %}
+                    {% endif %}
+                    {% if user|more_arg:exam_selected|is_allowed:'review'  %}
+                        {% if exam_selected.has_review_option %}
+                         <li class="bg-dark list-group-item list-group-item-action" >
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="fas fa-glasses" style="margin-right:5px;"></span>
+                                    <span class="menu-collapsed" style="margin-right:5px;">Review</span>
+                                </a>
+                                <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'reviewView' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a></li>
+                                     <div class="bg-secondary dropdown-divider"></div>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'reviewSettingsView' exam_selected.pk 'groups' %}" style="padding-top:15px;"><i class="fas fa-cogs" style="margin-right:5px;"></i>Settings</a></li>
+                                     <div class="bg-secondary dropdown-divider"></div>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'upload_scans' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload scans</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'generate_marked_files' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-cloud-download-alt" style="margin-right:5px;"></i>Export marked scans</a></li>
+                              </ul>
+                            </div>
+                        </li>
+                        {% endif %}
+                    <hr class="hr-sidebar">
+                    {% endif %}
+                    {% if user|more_arg:exam_selected|is_allowed:'amc'  %}
+                        {% if exam_selected.has_amc_option %}
+                        <li class="bg-dark list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="{% static 'img/amc_icons/amc.ico' %}" style="margin-right:5px;"/>
+                                    <span class="menu-collapsed" style="margin-right:5px;">AMC</span>
+                                </a>
+                                <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'amc_view' exam_selected.pk %}" style="padding-top:15px;">
+                                        <img src="{% static 'img/amc_icons/amc.ico' %}" style="margin-right:5px;"/>AMC</a></li>
+                                    <div class="bg-secondary dropdown-divider"></div>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'upload_amc_project' exam_selected.pk %}" style="padding-top:15px;">
+                                        <i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Import data</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                        <hr class="hr-sidebar">
+                        {% endif %}
+                    {% endif %}
+                    {% if user|more_arg:exam_selected|is_allowed:'res_and_stats'  %}
+                        {% if exam_selected.has_res_and_stats_option %}
+                        <a href="{% url 'studentsResults' exam_selected.pk %}" class="bg-dark list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <span class="fas fa-th-list" style="margin-right:5px;"></span>
+                                <span class="menu-collapsed" style="margin-right:5px;">Results</span>
+                            </div>
+                        </a>
+                        <li class="bg-dark list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="fas fa-chart-column" style="margin-right:5px;"></span>
+                                    <span class="menu-collapsed" style="margin-right:5px;">Statistics</span>
+                                </a>
+                                <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+                                    {%  if exam_selected.scales.all %}
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'generalStats' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-chart-line" style="margin-right:5px;"></i>Global</a></li>
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'questionsStats' exam_selected.pk %}" style="padding-top:15px;"><i class="fas fa-chart-area" style="margin-right:5px;"></i>Questions</a></li>
+                                    {% endif %}
+                              </ul>
+                            </div>
+                        </li>
+                         <a href="{% url 'import_data_4_stats' exam_selected.pk %}" class="bg-dark list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <span class="fas fa-cloud-upload-alt" style="margin-right:5px;"></span>
+                                <span class="menu-collapsed" style="margin-right:5px;">Import data</span>
+                            </div>
+                        </a>
+                         <a href="{% url 'export_data' exam_selected.pk %}" class="bg-dark list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <span class="fas fa-cloud-download-alt" style="margin-right:5px;"></span>
+                                <span class="menu-collapsed" style="margin-right:5px;">Export results</span>
+                            </div>
+                        </a>
+                        <hr class="hr-sidebar">
+                        {% endif %}
+                    {% endif %}
+
+                    <li class="bg-dark list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-start align-items-center">
+                            <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="fa-regular fa-circle-question fa-lg" style="color:#CCA71CFF;margin-right:5px;"></span>
+                                <span class="menu-collapsed" style="color:#CCA71CFF;margin-right:5px;">Info</span>
+                            </a>
+                            <ul class="bg-secondary dropdown-menu"  aria-labelledby="navbarDropdown">
+                                {%  if exam_selected.scales.all %}
+                                <li><a class="bg-secondary dropdown-item" href="{% static 'docs/html/index.html' %}" style="padding-top:15px;"><i class="fa-solid fa-circle-question fa-lg" style="margin-right:5px;"></i>Documentation</a></li>
+                                <li><a class="bg-secondary dropdown-item"
+                                       type="button"
+                                          data-bs-toggle="modal"
+                                          data-bs-target="#aboutModal"
+                                       style="padding-top:15px;">
+                                    <i class="fa-solid fa-circle-info fa-lg" style="margin-right:5px;"></i>About</a></li>
+                                {% endif %}
+                          </ul>
+                        </div>
+                    </li>
+
+
+                    <hr class="hr-sidebar"> 
+                    {% if user|is_admin %}
+                    <a href="{% url 'admin:index' %}" class="bg-dark list-group-item list-group-item-action" target="_blank">
+                        <div class="d-flex w-100 justify-content-start align-items-center">
+                            <span class="fas fa-carrot fa-spin" style="color: #10E6BC;margin-right:5px;"></span>
+                            <span class="menu-collapsed" style="color: #10E6BC;margin-right:5px;">Admin </span>
+                        </div>
+                    </a>   
+                    <hr class="hr-sidebar">
+                    {% endif %}  
+                    <a data-toggle="sidebar-colapse" class="bg-dark list-group-item list-group-item-action d-flex align-items-center">
+                        <div class="d-flex w-100 justify-content-start align-items-center">
+                            <span  class="fa-solid fa-face-grimace" style="color:#387900FF;margin-right:5px;"></span>
+                            <span  class="menu-collapsed" style="color:#387900FF;margin-right:5px;">{{ user }}</span>
+                        </div>
+                    </a>
+                    <form action="{% url 'oidc_logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" data-toggle="sidebar-colapse" class="bg-dark list-group-item list-group-item-action d-flex align-items-center" style="border:0;font-weight:200;letter-spacing:1px;">
+                            <div class="d-flex w-100 justify-content-start align-items-center">
+                                <span  class="fa-solid fa-right-from-bracket" style="color:#a90000;margin-right:5px;"></span>
+                                <span  class="menu-collapsed" style="color:#a90000;margin-right:5px;">logout</span>
+                            </div>
+                        </button>
+                    </form>
+                    <a href="#top" data-toggle="sidebar-colapse"
+                       class="bg-dark list-group-item list-group-item-action d-flex align-items-center"
+                        style="margin-top:50px;color:grey;">
+                        <div class="d-flex w-100 justify-content-start align-items-center">
+                            <span id="collapse-icon" class="fa mr-3"></span>
+                            <span id="collapse-text" class="menu-collapsed">Collapse</span>
+                        </div>
+                    </a>
+                {% endif %}
+                </ul>
+                <!-- List Group END-->
+
+        </div>
+        <!-- sidebar-container END -->
+        <!-- page content -->
+        <div id="page-content-wrapper">
+        
+            <div class="container-fluid">
+                <!-- exams navbar : display common exams list or single exam if no common -->
+                {% if nav_url != 'amc_data_capture_manual' and nav_url != 'reviewGroup' %}
+                <ul class="nav nav-pills nav-fill flex-column flex-sm-row" id="amc-pills-tab"
+                    style="margin-bottom:10px;">
+                    {% for comex in exam.get_common_exams_yc_common %}
+                        <li class="nav-item" role="presentation">
+                            <a class="flex-sm-fill text-sm-center nav-link {% if comex.id == exam_selected.id %}active{% endif %}"
+                               id="{{ comex.id }}-tab"
+                               href="{% if curr_tab %}{% url nav_url comex.pk curr_tab %}{% else %}{% url nav_url comex.pk %}{% endif %}">
+                                {% if comex.is_overall %}
+                                    {{ comex.name }}
+                                    <br>
+                                    (S{{ comex.semester.code }} {{ comex.year.code }} )
+                                {% else %}
+                                    {{ comex.code }} {{ comex.name }} (S{{ comex.semester.code }} {{ comex.year.code }} )
+                                    <br>
+                                    {{ comex.id|get_exam_teachers_short_str }}
+                               {% endif %}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+                <!-- Page Content -->
+                {% block content %}
+        
+        
+                {% endblock %}
+        
+            </div>
+        
+            <div class="modal fade" id="ajax_info_modal" tabindex="-1" role="dialog" aria-labelledby="ajaxInfoModal" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="ajax_info_modal_title">Process info</h5>
+                    <button type="button" class="close" onclick="$('#ajax_info_modal').modal('hide');"  aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body" id="ajax_info_modal_msg">
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="$('#ajax_info_modal').modal('hide');">OK</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>    
+    <div class="modal" id="loadingModal" tabindex="-1" role="dialog"
+         style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="background-color:transparent;border:none;">
+                <div class="spinner-grow" style="width: 100px; height: 100px;" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="celeryProgressBarModal" tabindex="-1" role="dialog"
+         style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border:none;">
+                <div class="modal-header" style="font-size: 14px;">
+                    <div id="progress-bar-message"></div>
+                    <button type="button" class="close" onclick="$('#celeryProgressBarModal').modal('hide');"  aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class='progress-wrapper' style="background-color: lightgray; ">
+                        <div id='progress-bar' class='progress-bar' role='progressbar' style="height:30px; width: 0%; border-radius: 5px;">&nbsp;</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="amc_process_modal" tabindex="-1" role="dialog" aria-labelledby="amcProcessModal" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="amc_process_modal_title">Process info</h5>
+            <button type="button" class="close" onclick="$('#amc_process_modal').modal('hide');"  aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body" id="amc_process_modal_body" style="margin:10px;white-space: pre-line;height:500px;overflow-y: scroll;background-color: black;color:white;">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="$('#amc_process_modal').modal('hide');">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="color:#a8a8a8;background-color:#292828;">
+          <div class="modal-header">
+            <img src="{% static 'img/eXamc_bg_transp_200.png' %}" alt="eXamc logo" style="max-height: 80px;">
+          </div>
+
+          <div class="modal-body">
+
+            <p><strong>Version :</strong> {{ APP_VERSION }}</p>
+            <p><strong>Owner :</strong> {{ APP_OWNER }}</p>
+            <p><strong>Licence :</strong> {{ APP_LICENSE }}</p>
+
+            <hr>
+
+            <p>
+              eXamc is a web application for managing written exams:
+              preparation, online correction, and generation of statistics and results.
+            </p>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script>
+  {#if (window.htmx) { htmx.logAll(); }             // logs all HTMX events to console#}
+</script>
+</body>
+</html>
+
+<script>
+
+{% if task_id %}
+function processProgress(progressBarElement, progressBarMessageElement, progress) {
+    progressBarElement.style.width = progress.percent + "%";
+    var description = progress.description || "Processing..."
+    progressBarMessageElement.innerHTML = description;
+    progressBarElement.innerText = progress.percent + "%";
+}
+
+function processResult(resultElement, result) {
+    if (result.includes("Process finished")) {
+        setTimeout(() => {
+            $('#celeryProgressBarModal').modal('hide');
+        }, 1000);
+    }else if(result.startsWith('marked_') && result.endsWith(".zip")){        
+        var link = document.createElement('a');
+        link.href = "/download_marked_files/"+result;
+        link.download = 'Click to download marked files';
+        link.innerText = 'Click to download marked files';
+        progressBarElement = document.getElementById('progress-bar-message');
+        progressBarElement.innerHTML = 'Success ! <br/>'
+        progressBarElement.appendChild(link);    
+    }else if(result === "upload_scans_ok"){
+        $('#celeryProgressBarModal').modal('hide');
+        call_amc_automatic_datacapture_process();
+    }
+    
+}
+    
+function processError(progressBarElement, progressBarMessageElement, excMessage) {
+    progressBarElement.style.backgroundColor = this.barColors.error;
+    excMessage = excMessage || '';
+    progressBarMessageElement.textContent = "Uh-Oh, something went wrong! " + excMessage;
+}
+function processTaskError(progressBarElement, progressBarMessageElement, excMessage, data) {
+    let message = this.getMessageDetails(excMessage);
+    this.onError(progressBarElement, progressBarMessageElement, message);
+}
+
+$(function () {
+    $('#celeryProgressBarModal').modal('show');
+    var progressUrl = "{% url 'celery_progress:task_status' task_id %}";
+    CeleryProgressBar.initProgressBar(progressUrl, {
+            onProgress: processProgress,
+            onResult: processResult,
+            onError : processError,
+            onTaskError : processTaskError
+        })
+});
+
+{% endif %}
+///-END TESTING
+    
+
+
+
+    // Hide submenus
+    $('#body-row .collapse').collapse('hide');
+
+    // Collapse/Expand icon
+    $('#collapse-icon').addClass('fa-angle-double-left');
+
+    // Collapse click
+    $('[data-toggle=sidebar-colapse]').click(function () {
+        SidebarCollapse();
+    });
+
+
+</script>

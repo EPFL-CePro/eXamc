@@ -1,0 +1,744 @@
+
+{% load static %}
+{%  load custom_tags %}
+<div style="padding:20px;width:800px;">
+    <h6>Data capture after examination</h6>
+    <div class="mb-3" style="text-align: center;padding:10px;">
+        <button type="button" data-toggle="modal" data-target="#confirmAutomaticDataCaptureModal" class="btn btn-dark btn-sm" style="margin:0 50% 0 0;">
+            <img src="{% static 'img/amc_icons/amc-auto-capture.svg' %}" width="16px" height="16px" style="margin-right:10px;"/>
+            Automatic
+        </button>
+        <a href="{% url 'amc_data_capture_manual' exam_selected.pk %}" class="btn btn-dark btn-sm">
+            <img src="{% static 'img/amc_icons/amc-manual-capture.svg' %}" width="16px" height="16px" style="margin-right:10px;"/>
+            Manual
+        </a>
+    </div>
+    <div class="mb-3">
+        {% if data_pages %}
+        {%  if missing_pages %}
+        <div class="alert alert-danger" id="data-exist-msg" role="alert" style="text-align:center;">
+            <a type="button" onclick="showErrorDataCaptureDialog('Missing pages')"  class="btn btn-sm">
+                {{ data_capture_message }}<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
+            </a>
+        </div>
+        {% else %}
+        <div class="alert alert-success" id="data-exist-msg" role="alert" style="text-align:center;">
+            {{ data_capture_message }}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-warning" id="data-exist_msg" role="alert" style="text-align:center;">No data</div>
+        {% endif %}
+        {%  if nb_unrecognized_pages > 0 %}
+        <div class="alert alert-dark" id="data-exist_msg" role="alert" style="text-align:center;">
+            <a type="button"  onclick="showErrorDataCaptureDialog('Unrecognized pages')"  class="btn btn-sm">
+                {{ nb_unrecognized_pages }} scans where not recognized !<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
+            </a>
+        </div>
+        {% endif %}
+        {%  if overwritten_pages %}
+        <div class="alert alert-warning" id="data-exist_msg" role="alert" style="text-align:center;">
+            <a type="button" onclick="showErrorDataCaptureDialog('Overwritten pages')" class="btn btn-sm">
+                Overwritten pages: {{ overwritten_pages|length }}<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    <hr/>
+    <div class="mb-3">
+        <h6>Diagnosis</h6>
+
+        <div class="mb-3" style="width:500px;">
+            <table id="table-copies-pages" class="table table-sm table-striped" >
+            <thead >
+              <tr>
+
+                <th data-sortable="true">Copy</th>
+                <th data-sortable="true">Page</th>
+                <th data-sortable="true">MSE</th>
+                <th data-sortable="true">Sensitivity</th>
+                <th data-sortable="true">Man</th>
+                <th></th>
+                <th style="display:none;width:0px;">questions</th>
+              </tr>
+            </thead>
+            <tbody style="height:50%;">
+              {% for row in data_pages %}
+              <tr id="table-scan-row-{{ row.copy }}-{{ row.page }}">
+
+                <td>{{ row.copy }}</td>
+                <td> {{ row.page }}</td>
+                <td>{{ row.mse }}</td>
+                <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{{ row.sensitivity }}</td>
+                <td style="text-align: center">{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
+                <td style="text-align: center">
+                    <button type="button" data-toggle="modal" onclick="openCopyPageZoomsDialog({{ row.copy }}, {{ row.page }});" class="btn btn-lg btn-sm">
+                        <i class="far fa-eye fa-lg"></i>
+                    </button>
+
+                </td>
+                <td style="display:none;">{{ row.questions_ids }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+    </div>
+</div>
+<div class="modal" id="confirmAutomaticDataCaptureModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Automatic Data Capture</h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:20px;">
+                <p>From where do you want to import scans ?</p>
+                <hr/>
+                <div style="margin-top:50px;">
+                    <h6>Local file system</h6>
+                    <p>(.zip)</p>
+                    <form id="amcScansFromLocalFrm" method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="form-group align-items-center">
+                            <div class="col-md-10">
+                                <label for="amc_scans_zip_file" class="custom-file-label form-control-sm">Select
+                                    scans</label>
+                                <input type="file" class="custom-file-input" name="amc_scans_zip_file"
+                                       id="amc_scans_zip_file" accept=".zip" required/>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-md-8">
+                                <button class="btn btn-primary btn-sm" type="submit">Import</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <hr/>
+                <div style="margin-top:50px;">
+                    <h6>eXamc Review (this app)</h6>
+                    <div class="form-group">
+                        <div>
+                            <button onclick="callAutomaticDataCapture_process(true,true)" class="btn btn-primary btn-sm">
+                                Import All
+                            </button>
+                            <hr/>
+                            <div>
+                                <h6>Select pages to import</h6>
+                                <div class="row">
+                                    <div class="col">
+                                         <h6>Copy</h6>
+                                    </div>
+                                    <div class="col">
+                                        <h6>Page <sup style="text-transform: lowercase">*annotated</sup></h6>
+                                    </div>
+                                    <div style="width:70px!important;"></div>
+                                    <div class="col">
+                                        <h6>Selected pages</h6>
+                                    </div>
+                                </div>
+                                {% csrf_token %}
+                                <div class="row" style="max-width:1500px;">
+                                    <div class="col">
+                                        <div id="copies-list" style="background-color: transparent;"></div>
+                                    </div>
+                                    <div class="col">
+                                        <select name="scans_to_import_from[]" id="scans_to_import_multiselect" class="form-control" size="8" multiple="multiple">
+                                        </select>
+                                    </div>
+                                    <div style="width:70px!important;">
+                                        <button type="button" id="scans_to_import_multiselect_rightAll" class="btn"><i class="fa-solid fa-angles-right"></i></button>
+                                        <button type="button" id="scans_to_import_multiselect_rightSelected" class="btn "><i class="fa-solid fa-angle-right"></i></button>
+                                        <button type="button" id="scans_to_import_multiselect_leftSelected" class="btn "><i class="fa-solid fa-angle-left"></i></button>
+                                        <button type="button" id="scans_to_import_multiselect_leftAll" class="btn "><i class="fa-solid fa-angles-left"></i></button>
+                                    </div>
+                                    <div class="col">
+                                        <select name="scans_to_import_to[]" id="scans_to_import_multiselect_to" class="form-control" size="8" multiple="multiple">
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <button onclick="callAutomaticDataCapture_process(true,false)" class="btn btn-primary btn-sm">Import selected</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="closeConfirmAutomaticDataCaptureModalBt" class="btn btn-secondary btn-sm"
+                        data-dismiss="modal">Cancel
+            </button>
+        </div>
+        </div>
+    </div>
+</div>
+<div class="modal" id="errorDataCaptureDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="errorDataCaptureDialogTitle"></h6>
+      </div>
+      <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
+        <table class="table table-sm table-striped">
+            <thead id="errorDataCaptureDialogTHead"></thead>
+          <tbody id="errorDataCaptureDialogTBody">
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="$('#errorDataCaptureDialog').modal('hide');">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="addUnrecognizedPageDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Add unrecognized page to...</h6>
+      </div>
+      <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
+        <form id="addUnrecognizedPageFrm" method="POST" action="{% url 'add_unrecognized_page' exam_selected.pk %}">
+            {% csrf_token %}
+            <div class="form-group align-items-center">
+                <div class="form-group">
+                    <label for="inputGroupSelectCopy">Copy Nr.</label>
+                    <select class="form-control" size="5" data-live-search="true"  id="inputGroupSelectCopy" name="copy" id="copy" required>
+                        <option selected></option>
+                        {% for copy in data_copies %}
+                            <option value="{{ copy }}">{{ copy }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                {{ exam_nb_pages }}
+                    <label for="inputGroupSelectQuestion">Page</label>
+                    <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectQuestion" name="unrec_page" id="unrec_page" required>
+                        <option selected>
+                        {% for page in exam_nb_pages %}
+                            <option value="{{ page }}">Page {{ page }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="extra">add as extra page</label>
+                    <input type="checkbox" id="extra" name="extra" checked disabled>
+                </div>
+                <div class="form-group" hidden>
+                   <input type="text" id="unrecognized_img_src" name="unrecognized_img_src"/>
+                </div>
+                <div class="form-group" hidden>
+                   <input type="text" id="exam_pk" name="exam_pk" value="{{ exam_selected.pk }}"/>
+                </div>
+            </div>
+            <div class="form-group" style="text-align:right;">
+                <button class="btn btn-primary btn-sm" type="submit">Validate</button>
+
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="$('#addUnrecognizedPageDialog').modal('hide');">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="scanImageDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Scan</h6>
+      </div>
+      <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
+          <img id="scanImage">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="$('#scanImageDialog').modal('hide');">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="zoomDataCaptureDiagnosisDialog" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Zooms</h6>
+      </div>
+      <div class="modal-body" style="padding:20px;max-height:70vh;overflow-y: auto;">
+          <div class="btn-group">
+              <button id="zoomDataCapturePreviousBt" type="button" class="btn btn-dark btn-sm" style="margin-left:150px;max-width:50px;margin-right:50px;" onclick=""><i class="fas fa-chevron-left fa-2x"></i></button>
+              <h6 id="zoomDataCaptureDiagnosisDialogHeader" style="text-align: center;width:250px"></h6>
+              <button id="zoomDataCaptureNextBt" type="button" class="btn btn-dark btn-sm" style="max-width:50px;margin-left:50px;" onclick=""><i class="fas fa-chevron-right fa-2x"></i></button>
+          </div>
+          <div style="padding:20px;">
+            <h6>Unchecked boxes</h6>
+            <table class="table">
+              <tbody id="ZoomUncheckedBoxesTBody">
+              </tbody>
+            </table>
+            <hr/>
+            <h6>Checked boxes</h6>
+            <table class="table">
+              <tbody id="ZoomCheckedBoxesTBody">
+              </tbody>
+            </table>
+          </div>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-secondary btn-sm" onclick="window.location.reload();" >Close</a>
+      </div>
+    </div>
+  </div>
+</div>
+{{ scans_list_json|json_script:"json_scans_list" }}
+<script>
+
+var scans_list_json = JSON.parse(document.getElementById('json_scans_list').textContent);
+$(window).on("load",function() {
+    setSelectableCopyListHTML();
+    setSelectableCopyPageListHTML(0);
+
+    $('#scans_to_import_multiselect').multiselect();
+});
+
+function setSelectableCopyListHTML(){
+    //init copies list for scans to select
+    copies_list = '<select class="form-control" size="8">';
+    for(var i = 0; i < scans_list_json.length; i++){
+        copies_list += '<option value="'+i+'" onclick="setSelectableCopyPageListHTML('+i+')" class="">'+scans_list_json[i].copy+'</option>'
+    }
+    copies_list += '</select>';
+    document.getElementById('copies-list').innerHTML = copies_list;
+}
+
+function setSelectableCopyPageListHTML(copy){
+    files_list = '';
+    //files_list += '<select name="scans_to_import_from[]" id="scans_to_import_multiselect" class="" size="8" multiple="multiple">';
+
+    scans_to_import_multiselect = $('#scans_to_import_multiselect')[0];
+
+    for(var i = 0; i < scans_list_json[copy].pages.length; i++) {
+        file = scans_list_json[copy].pages[i].page;
+        path = scans_list_json[copy].pages[i].path;
+        files_list += '<option value="'+path+'" class="">'+file+'</option>';
+    }
+    //files_list += '</select>';
+    scans_to_import_multiselect.innerHTML = files_list;
+
+    //document.getElementById('copy-pages-file-list').innerHTML = files_list;
+
+}
+
+$('#amc_scans_zip_file').on('change',function(){
+    filename = this.value.split("\\").slice(-1);
+    $(this).siblings(".custom-file-label").addClass("selected").html(filename);
+})
+
+{% if data_pages %}
+    var table = $("#table-copies-pages").DataTable( {
+            scrollY: '55vh',
+            "dom": 'rtip',
+            "lengthChange": false,
+            "paging": false,
+            "autoWidth": false
+        } );
+    var curr_selected_id = "table-scan-row-1-1";
+    initCopyPagesTableOnClickRowEvent(true);
+    $("#table-copies-pages tbody tr:first").trigger('click');
+{% endif %}
+
+
+function initCopyPagesTableOnClickRowEvent(refresh){
+
+    $("#table-copies-pages tbody").on('click', 'tr', function () {
+        $(document.getElementById(curr_selected_id)).css('background','');
+        $(this).css('background', 'yellow');
+        //get_amc_marks_positions(this.cells[0].innerText,this.cells[1].innerText,this.cells[4].innerText);
+        curr_selected_id=this.id;
+    });
+
+    if(!refresh){
+        var table = $("#table-copies-pages").DataTable( {
+            scrollY: '40vh',
+            "dom": 'rtip',
+            "lengthChange": false,
+            "paging": false
+        } );
+    }
+}
+
+const amcScansFromLocalFrm = document.getElementById("amcScansFromLocalFrm");
+
+amcScansFromLocalFrm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    callAutomaticDataCapture_process(false);
+})
+
+function callAutomaticDataCapture_process(from_review,all_from_review=false) {
+    $("#closeConfirmAutomaticDataCaptureModalBt").click();
+    amc_process_modal_title = document.getElementById('amc_process_modal_title');
+    amc_process_modal_title.innerHTML = "Automatic data capture processing";
+    amc_process_modal_body = $('#amc_process_modal_body');
+    amc_process_modal_body.text('');
+    $('#amc_process_modal').modal('show');
+    if(from_review) {
+        if(all_from_review){
+            $.ajax({
+                url: "{% url 'import_scans_from_review' exam_selected.pk %}",
+                type: "POST",
+                data : {
+                   'csrfmiddlewaretoken' : '{{ csrf_token }}',
+                },
+                xhrFields: {
+                    // This triggers each time progress is made on the request
+                    onprogress: function(event) {
+                        amc_process_modal_body.html('');
+                        var response = event.currentTarget.responseText;
+                        amc_process_modal_body.html(response.replace('\n','<br/>'));
+                        amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                    }
+                },
+                success: function() {
+                    amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                },
+                error: function() {
+                    amc_process_modal_body.html('<p>Error occurred</p>');
+                }
+            });
+        }else{
+            let selectedPagesSelect = $('#scans_to_import_multiselect_to');
+            let selectedPagesValues = $.map(selectedPagesSelect.find('option'), function(o) { return o.value; });
+            $.ajax({
+                url: "{% url 'import_scans_from_review_pages' exam_selected.pk %}",
+                type: "POST",
+                data : {
+                   'csrfmiddlewaretoken' : '{{ csrf_token }}',
+                    'pages_list' : selectedPagesValues
+                },
+                xhrFields: {
+                    // This triggers each time progress is made on the request
+                    onprogress: function(event) {
+                        amc_process_modal_body.html('');
+                        var response = event.currentTarget.responseText;
+                        amc_process_modal_body.html(response.replace('\n','<br/>'));
+                        amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                    }
+                },
+                success: function() {
+                    amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                },
+                error: function() {
+                    amc_process_modal_body.html('<p>Error occurred</p>');
+                }
+            });
+
+        }
+    }else{
+        frmData = new FormData($("#amcScansFromLocalFrm")[0])
+        frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        frmData.append('exam_pk', {{ exam_selected.pk }});
+        $.ajax({
+            url: "{% url 'import_scans_from_review' exam_selected.pk %}",
+            type: "POST",
+            data:frmData,
+            contentType: false,
+            processData: false,
+            xhrFields: {
+                // This triggers each time progress is made on the request
+                onprogress: function(event) {
+                    amc_process_modal_body.html('');
+                    var response = event.currentTarget.responseText;
+                    amc_process_modal_body.html(response.replace('\n','<br/>'));
+                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                }
+            },
+            success: function() {
+                amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+            },
+            error: function() {
+                amc_process_modal_body.html('<p>Error occurred</p>');
+            }
+        });
+    }
+}
+
+function showErrorDataCaptureDialog(title){    
+    data = '';
+    var tableHead = document.getElementById("errorDataCaptureDialogTHead")  ;
+    removeAllChildNodes(tableHead);
+    var tableBody = document.getElementById("errorDataCaptureDialogTBody")  ;
+    removeAllChildNodes(tableBody);
+    switch (title) {
+        case 'Missing pages':
+        {
+            var tr = document.createElement('tr');
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Copy'));
+            tr.appendChild(th);
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Page'));
+            tr.appendChild(th);
+            tableHead.appendChild(tr);
+            {% for copy in missing_pages %}
+              {% for page in copy.missing_pages %}
+                var tr = document.createElement('tr');
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ copy.copy_no }}'));
+                tr.appendChild(td);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page }}'));
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
+              {% endfor %}
+            {% endfor %}   
+            break;         
+        }
+        case 'Unrecognized pages':
+        {
+            get_unrecognized_pages_dt(tableHead,tableBody);
+            break;            
+        }
+        case 'Overwritten pages':
+        {
+            var tr = document.createElement('tr');
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Copy'));
+            tr.appendChild(th);
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Page'));
+            tr.appendChild(th);
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('Modified'));
+            tr.appendChild(th);
+            tableHead.appendChild(tr);
+            {% for page in overwritten_pages %}
+                var tr = document.createElement('tr');
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page.student }}'));
+                tr.appendChild(td);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page.page }}'));
+                tr.appendChild(td);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode('{{ page.timestamp_auto|print_timestamp }}'));
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
+            {% endfor %}  
+            break;           
+        }
+    }
+    document.getElementById("errorDataCaptureDialogTitle").innerText =  title;
+    
+    $('#errorDataCaptureDialog').modal('show');
+    
+}
+
+function get_unrecognized_pages_dt(tableHead,tableBody){
+    $.ajax({
+        url: "{% url 'get_unrecognized_pages' exam_selected.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken': "{{ csrf_token }}",
+        },
+        success: (data) => {
+            var tr = document.createElement('tr');
+            var th = document.createElement('th') ;
+            th.appendChild(document.createTextNode('File'));
+            tr.appendChild(th);
+            th.appendChild(document.createTextNode('Image'));
+            tr.appendChild(th);
+            tr.appendChild(document.createElement('th'));
+            tableHead.appendChild(tr);
+            unrecognized_list = JSON.parse(data);
+            for(var i = 0; i < unrecognized_list.length; i++) {
+                var scanSrc = unrecognized_list[i].filepath;
+                scanSrc = "/"+scanSrc.split('/')[1]+"/"+scanSrc.split('/')[3];
+                var tr = document.createElement('tr');
+                tr.setAttribute('id',scanSrc);
+                var td = document.createElement('td') ;
+                td.appendChild(document.createTextNode(unrecognized_list[i].filename));
+                tr.appendChild(td);
+                var td = document.createElement('td');
+                var img = document.createElement('img');
+                img.setAttribute('src', scanSrc);
+                img.setAttribute('onclick', 'window.open("'+scanSrc+'", "_blank");');
+                img.setAttribute('width', '500');
+                td.appendChild(img)
+                tr.appendChild(td)
+                var td = document.createElement('td');
+                var addBt = document.createElement('button');
+                addBt.setAttribute('class', 'btn btn-primary btn-sm');
+                addBt.setAttribute('type', 'button');
+                addBt.setAttribute('onclick', 'showAddUnrecognizedPageDialog("'+scanSrc+'")');
+                addBt.innerText="Add this page to...";
+                td.appendChild(addBt);
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
+            }
+
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function openCopyPageZoomsDialog(copy,page){
+    $.ajax({
+        url: "{% url 'get_amc_zooms' exam_selected.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'copy' : copy,
+            'page' : page},
+        success: (data) => {
+            var zoom_data = JSON.parse(data)
+            //create table rows with 5 columns
+            var tableBodyUnchecked = document.getElementById("ZoomUncheckedBoxesTBody");
+            removeAllChildNodes(tableBodyUnchecked);
+            var tableBodyChecked = document.getElementById("ZoomCheckedBoxesTBody")
+            removeAllChildNodes(tableBodyChecked);
+            colChecked = 0;
+            colUnchecked = 0
+            var trChecked = document.createElement('tr');
+            var trUnchecked = document.createElement('tr')
+            zoom_data.forEach(function (item) {
+                var image = new Image();
+                image.src = 'data:image/png;base64,'+item.imagedata;
+                image.setAttribute('width','40px');
+                msg=JSON.stringify(item)
+                image.setAttribute('onclick', 'update_amc_mark_zone('+item.zoneid+','+copy+','+page+')');
+                var td = document.createElement('td');
+                td.appendChild(image);
+                td.appendChild(document.createTextNode(item.bvalue.toFixed(3)));
+
+                if( item.checked ){ //(item.black > 0 && item.manual === -1) || item.manual === 1){
+                    colChecked ++;
+                    if(colChecked > 8){
+                        tableBodyChecked.appendChild(trChecked);
+                        trChecked = document.createElement('tr');
+                        colChecked = 1;
+                    }
+                    trChecked.appendChild(td)
+                }else{
+                    colUnchecked ++;
+                    if(colUnchecked > 8){
+                        tableBodyUnchecked.appendChild(trUnchecked);
+                        trUnchecked = document.createElement('tr');
+                        colUnchecked = 1;
+                    }
+                    trUnchecked.appendChild(td)
+                }
+
+            });
+            if(colChecked<=8){
+               tableBodyChecked.appendChild(trChecked)
+            }
+            if(colUnchecked<=8){
+               tableBodyUnchecked.appendChild(trUnchecked)
+            }
+            $('#zoomDataCaptureDiagnosisDialog').modal('show');
+
+            document.getElementById("zoomDataCaptureDiagnosisDialogHeader").innerHTML = 'Boxes zooms for <br/> Copy '+copy+' / Page '+page;
+            document.getElementById('zoomDataCapturePreviousBt').setAttribute('onclick','zoomDataCapturePrevious('+copy+','+page+')')
+            document.getElementById('zoomDataCaptureNextBt').setAttribute('onclick','zoomDataCaptureNext('+copy+','+page+')')
+
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function showAddUnrecognizedPageDialog(img_src){
+    document.getElementById("unrecognized_img_src").value = img_src;
+    var frm = $('#addUnrecognizedPageFrm');
+
+    frm.submit(function (e) {    
+        e.preventDefault();
+    
+        $.ajax({
+            type: frm.attr('method'),
+            url: frm.attr('action'),
+            data: frm.serialize(),
+            success: function (data) {
+                var tr2remove = document.getElementById(img_src);
+                tr2remove.remove();
+                $('#addUnrecognizedPageDialog').modal('hide');
+                //$("#errorDataCaptureDialog").load(location.href + " #errorDataCaptureDialog");
+                $('#errorDataCaptureDialog').modal('hide');
+                showErrorDataCaptureDialog('Unrecognized pages');
+            },
+            error: function (data) {
+                console.log('An error occurred.');
+                console.log(data);
+            },
+        });
+    });
+    $('#addUnrecognizedPageDialog').modal('show');
+}
+
+
+
+function removeAllChildNodes(parent) {
+    while (parent.firstChild) {
+        parent.removeChild(parent.firstChild);
+    }
+}
+
+function update_amc_mark_zone(zoneid,copy,page){
+    $.ajax({
+        url: "{% url 'update_amc_mark_zone' exam_selected.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'zoneid' : zoneid,
+            'copy' : copy,
+            'page' : page
+        },
+        success: (data) => {
+            $('#zoomDataCaptureDiagnosisDialog').modal('hide');
+            openCopyPageZoomsDialog(copy,page);
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function zoomDataCaptureNext(copy,page){
+    curr_row = document.getElementById('table-scan-row-'+copy+'-'+page);
+    next_row = curr_row.parentNode.rows[curr_row.rowIndex];
+    if(next_row){openCopyPageZoomsDialog(next_row.cells[0].innerText,next_row.cells[1].innerText);}
+}
+
+function zoomDataCapturePrevious(copy,page){
+    curr_row = document.getElementById('table-scan-row-'+copy+'-'+page);
+    prev_row = curr_row.parentNode.rows[curr_row.rowIndex-2];
+    if(prev_row){openCopyPageZoomsDialog(prev_row.cells[0].innerText,prev_row.cells[1].innerText);}
+
+}
+
+</script>
+
+
+
+

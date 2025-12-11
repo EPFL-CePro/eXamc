@@ -1,0 +1,271 @@
+<!-- templates/base.html -->
+{% extends 'base.html' %}
+{% load render_table from django_tables2 %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+
+{% comment %}<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <title>CSV GENERATOR</title>
+
+    <!-- markerjs2 -->
+    <script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+
+    <!-- bootstrap script and stylesheet -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+            integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+            integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js"
+            integrity="sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF"
+            crossorigin="anonymous"></script>
+
+    <script src="{% static 'js/bootstrap-checkbox.min.js' %}" defer></script>
+    <script src="{% static 'js/jquery.bootstrap.modal.forms.min.js' %}"></script>
+    <script src="{% static 'js/Chart.min.js' %}"></script>
+    <script src="{% static 'js/palette.js' %}"></script>
+
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+
+    <!-- menubars stylesheet -->
+    <link rel="stylesheet" href="{% static 'css/menubars.css' %}">
+
+    <!-- icons -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css"
+          integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+
+    <!-- favicon -->
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+
+
+    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap5.min.js"></script>
+
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">
+    {% block extra_head %}{% endblock %}
+
+    <title>{% block title %}CSV GENERATOR{% endblock %}</title>
+</head>
+<body>
+<main>{% endcomment %}
+{% block content %}
+    <script type="text/javascript">
+
+
+        $(window).on("load", function () {
+
+
+            $('#datatable').DataTable({
+                "paging": false
+            });
+
+            $("#excel_file").on("change", function () {
+                var fileName = $(this).val().split("\\").pop();
+                $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+            });
+
+            $('#download_bt').on('click', function () {
+                var studArray = $('#datatable').DataTable().rows().data().toArray();
+                download_csv(studArray);
+            });
+
+            function download_csv(studArray) {
+                $.ajax({
+                    url: "{% url 'export_csv' %}",
+                    type: "POST",
+                    data: {
+                        'csrfmiddlewaretoken': "{{  csrf_token  }}",
+                        'students_list': JSON.stringify(studArray),
+                        'choice': "{{ csv_type_AMC }}"
+                    },
+                    xhrFields: {
+                        responseType: 'blob'
+                    },
+                    complete: function () {
+                        $('#spinner-div').hide()
+                    },
+                    success: function (response) {
+                        alert('CSV file will be downloaded');
+                        var link = document.createElement('a');
+                        link.href = window.URL.createObjectURL(response)
+                        link.download = 'students_list.csv';
+                        document.body.appendChild(link);
+                        link.click();
+                    },
+                    error: function (xhr, status, error) {
+
+                        alert('err');
+                    }
+                });
+            }
+        });
+        <!--   $(document).ready(function () {-->
+        <!--        $(document).ajaxStart(function () {-->
+        <!--            $("#pageloader").fadeIn();-->
+        <!--        });-->
+
+        <!--        $(document).ajaxStop(function () {-->
+        <!--            $("#pageloader").fadeOut();-->
+        <!--        });-->
+
+        <!--        $('#myform').on('submit', function () {-->
+        <!--            return true;-->
+        <!--        });-->
+        <!--    });-->
+
+        function submitForm() {
+            $("#loading-modal").modal('show');
+            $("#myform").submit();
+            $("#loading-modal").modal('hide');
+        }
+
+
+    </script>
+
+    <div id="csv_gen_div">
+        <div class="jumbotron text-center">
+            <h1>CSV GENERATOR</h1>
+            <form id="myform" action="{% url 'import_students_excel' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+                {% csrf_token %}
+                <div class="row g-3 align-items-center mb-3">
+                     <div class="col-md-8">
+                        <div class="input-group">
+                            <input type="file" accept=".xlsx, .xls" name="students_excel_file" id="excel_file"
+                                   class="form-control" aria-label="Upload Excel file">
+                            <label class="custom-file-label" for="excel_file">Choose file</label>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-dark btn-sm d-flex align-items-center" type="button" onclick="submitForm();">
+                            <i class="bi bi-upload me-2"></i> Upload </button>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{% static 'templates.zip' %}" class="btn btn-dark btn-sm" download>
+                            <i class="bi bi-download me-2"></i> Download example Excel </a>
+                    </div>
+                </div>
+            </form>
+
+
+            <br>
+
+            <label for="choice">Choose the type of file:</label>
+            <select class="btn btn-dark btn-sm" name="choice" id="choice"
+                    onChange="window.document.location.href=this.options[this.selectedIndex].value;">
+                {% if csv_type_AMC == "a" %}
+                    <option value="{% url 'change_csv_type' 'a' %}" selected>AMC</option>
+                    <option value="{% url 'change_csv_type' 'b' %}">ANS</option>
+                {% else %}
+                    <option value="{% url 'change_csv_type' 'a' %}">AMC</option>
+                    <option value="{% url 'change_csv_type' 'b' %}" selected>ANS</option>
+                {% endif %}
+            </select>
+
+            <br>
+
+            {% for message in messages %}
+                <li class="{{ message.tags }}">
+                    {% if 'safe' in message.tags %}
+                        {{ message|safe }}
+                    {% else %}
+                        {{ message }}
+                    {% endif %}
+                </li>
+            {% endfor %}
+            {% if column_name and column_number %}
+                <button class="btn btn-success" type="button" id="download_bt"><span class="glyphicon glyphicon-upload"
+                                                                                     style="margin-right:5px;"></span>Download
+                    csv
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="margin-left: 50px;">
+        <p style="color:#c61548;">Before loading the document you need to :</p>
+
+        <li>Have an excel document</li>
+        <li>Choose between the AMC or ANS type</li>
+        <li>Have header names that correspond to the type of document chosen:</li>
+        <ul>
+            <li>AMC: ID, Name, Sciper, Email, Seat, Room</li>
+            <li>ANS: Class name, Email, Sciper, Name</li>
+        </ul>
+
+    </div>
+
+    {% if students_list %}
+        <div>
+            <table id="datatable" class="table table-sm table-striped" style="margin-left:50px; text-align: left; ">
+                <thead class="thead-dark" style="text-align: left">
+                <tr>
+
+                    {% if csv_type_AMC == 'a' %}
+                        <th>ID</th>
+                        <th>SCIPER</th>
+                        <th>NAME</th>
+                        <th>EMAIL</th>
+                        <th>SEAT</th>
+                        <th>ROOM</th>
+
+                    {% else %}
+                        <th>CLASS_NAME</th>
+                        <th>EMAIL</th>
+                        <th>SCIPER</th>
+                        <th>LAST_NAME</th>
+                        <th>FIRST_NAME</th>
+
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody>
+                <!--Displaying the converted table-->
+                {% for student in students_list %}
+
+                    <tr>
+                        {% if csv_type_AMC == 'a' %}
+                            <td>{{ student.0 }}</td>
+                            <td>{{ student.1 }}</td>
+                            <td>{{ student.2 }}</td>
+                            <td>{{ student.5 }}</td>
+                            <td>{{ student.6 }}</td>
+                            <td>{{ student.8 }}</td>
+
+                        {% else %}
+                            <td>{{ student.7 }}</td>
+                            <td>{{ student.5 }}</td>
+                            <td>{{ student.1 }}</td>
+                            <td>{{ student.3 }}</td>
+                            <td>{{ student.4 }}</td>
+                        {% endif %}
+
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="loading-modal">
+        <div class="modal-dialog modal-sm" role="document" style="width:350px;">
+
+
+            <img src="{% static 'images_csvgen/30.gif' %}" style="width: 80%; height: 80%; alignment-baseline: middle;">
+        </div>
+    </div>
+    </div>
+    </div>
+{% endblock %}
+{#</main>#}
+{##}
+{#</body>#}
+{#</html>#}

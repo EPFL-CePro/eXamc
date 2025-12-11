@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% block extra_head %}
+
+{% endblock %}
+
+{% block title %}Review Summary{% endblock %}
+
+{% block content %}
+<h3><i class="fa fa-glasses fa-l" style="margin-right:5px;"></i>Review Summary</h3>
+
+{% if user.pk|is_review_blocked:exam_selected.pk %}
+    <div class="alert alert-warning" role="alert">
+        You are currently blocked for Review! <br><br> Please contact the teacher to be unblocked.
+    </div>
+{% else %}
+    <table class="table table-striped table-sm">
+      <thead>
+        <tr>
+            <th></th>
+          <th>Group Name</th>
+          <th style="text-align: center;">Nb pages</th>
+            <th style="text-align: center;">Reviewers</th>
+          <th style="text-align: center;">Graded</th>
+          <th style="text-align: center;">Comments</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pages_group in exam_pages_group_list %}
+        <tr>
+            <td style="padding-left:20px;">
+                <a class="btn btn-dark btn-sm" href="{% url 'reviewGroup' pages_group.exam.pk pages_group.pk 0 0 %}"><i class="fas fa-glasses" style="margin-right:5px;"></i>Review</a>
+            </td>
+          <td>{{ pages_group.group_name }}</td>
+          <td style="text-align: center;">{{ pages_group.nb_pages }}</td>
+            <td style="text-align: center;">
+                <ul class="list-group list-group-flush" style="width:70%;margin-left:15%">
+                {% for exam_user in exam_selected.exam_users.all %}
+                    {% if pages_group in exam_user.pages_groups.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center" style="background-color: transparent;">
+                            {{ exam_user.user.first_name|slice:":1" }}. {{ exam_user.user.last_name }}
+                            <span class="badge badge-secondary badge-pill" style="font-size:100%;background-color: lightgray;">{{ pages_group.pk|get_pages_group_graded_count_txt:exam_user.user.pk }} %</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                <ul>
+            </td>
+          <td style="text-align: center;">
+            {% with pages_group.pk|get_pages_group_graded_count_txt as curr_progress  %}
+            {{ pages_group.pk|get_pages_group_graded_count_txt:0 }} ( {{ curr_progress }}% )
+            <div class="progress-wrapper" style="background-color: lightgray;margin-top:10px;">
+                <div class="progress-bar {% if curr_progress == 100 %} bg-success {% else %} bg-warning {% endif %} " role="progressbar" style="height:30px; border-radius: 5px;width: {{ curr_progress }}%;" aria-valuenow="{{ curr_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                {% endwith %}
+            </div>
+          </td>
+          <td style="text-align: center;">{{ pages_group.pagesGroupComments.all|length }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+{% endif %}
+{% endblock %}

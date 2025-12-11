@@ -1,0 +1,43 @@
+<html>
+    <head>
+        <title>Ping Tester</title>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    </head>
+    <body>
+        <h1>Ping an IP or Domain</h1>
+
+        <div id="pingResults"></div>
+
+        <script>
+            // Submit the form via AJAX
+            $('#pingForm').on('submit', function(event) {
+                event.preventDefault(); // Prevent the default form submission
+                $('#pingResults').html(''); // Clear previous results
+
+                var ip = $('#ip').val();
+                var csrfToken = $('[name="csrfmiddlewaretoken"]').val();
+
+                $.ajax({
+                    type: 'POST',
+                    url: '{% url "call_amc_update_documents" %}',
+                    data: {
+                        ip: ip,
+                        csrfmiddlewaretoken: csrfToken,
+                    },
+                    xhrFields: {
+                        onprogress: function(event) {
+                            var response = event.currentTarget.responseText;
+                            $('#pingResults').html(response);
+                        }
+                    },
+                    success: function() {
+                        console.log('Ping completed');
+                    },
+                    error: function() {
+                        $('#pingResults').html('<p>Error occurred</p>');
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>

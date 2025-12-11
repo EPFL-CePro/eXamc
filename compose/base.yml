@@ -1,0 +1,131 @@
+name: examc
+
+services:
+  mysql:
+    profiles: ["mysql-dockerized"]
+    image: mysql:8.4
+    env_file:
+      - ../${ENV_FILE:-.env.dev}
+    command: >
+      mysqld
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER:-root} -p$${MYSQL_PASSWORD:-$${MYSQL_ROOT_PASSWORD:-}} --silent || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+    env_file:
+      - ../${ENV_FILE:-.env.dev}
+    environment:
+      # Attente DB (entrypoint sait gérer ces vars)
+      WAIT_FOR_DB: "1"
+      WAIT_FOR_DB_TIMEOUT: "600"
+      # Toujours définir explicitement l’hôte/port DB vus par les conteneurs
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
+    volumes:
+      - static_volume:/static
+      - media_volume:/media
+      # /app est monté en dev.yml
+      # /private_media est monté en dev.yml
+    depends_on:
+      redis:
+        condition: service_started
+
+  nginx:
+    image: nginx:1.27
+    depends_on:
+      web:
+        condition: service_started
+    volumes:
+      - static_volume:/static:ro
+      - media_volume:/media:ro
+      # conf & private_media montés en dev.yml
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  celery:
+    build:
+      context: ..
+    env_file:
+      - ../${ENV_FILE:-.env.dev}
+    environment:
+      WAIT_FOR_DB: "1"
+      WAIT_FOR_DB_TIMEOUT: "600"
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
+    depends_on:
+      redis:
+        condition: service_started
+    command: >
+      bash -lc 'exec celery -A examc worker --loglevel=INFO
+      --pidfile=/tmp/celery.pid'
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/celery.pid && kill -0 $(cat /tmp/celery.pid)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - media_volume:/media
+      - static_volume:/static
+    restart: unless-stopped
+
+  celery_beat:
+    build:
+      context: ..
+    env_file:
+      - ../${ENV_FILE:-.env.dev}
+    environment:
+      WAIT_FOR_DB: "1"
+      WAIT_FOR_DB_TIMEOUT: "600"
+#      DB_HOST: ${DB_HOST}
+#      DB_PORT: ${DB_PORT}
+    depends_on:
+      redis:
+        condition: service_started
+    command: >
+      bash -lc 'exec celery -A examc beat --loglevel=INFO
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      --pidfile=/tmp/celerybeat.pid'
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/celerybeat.pid && kill -0 $(cat /tmp/celerybeat.pid)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - media_volume:/media
+      - static_volume:/static
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  client_temp:

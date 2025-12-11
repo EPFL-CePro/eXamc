@@ -1,0 +1,71 @@
+eXamc Non-Commercial License (NCL) v1.0
+Author: CePro, EPFL
+Copyright © 2025 CePro, EPFL. All rights reserved.
+
+1. Definitions
+--------------
+“Licensed Work” refers to the software known as “eXamc”, including its source
+code, documentation, and associated files.
+
+“Non-Commercial Use” means any use that does not generate revenue, is not part
+of a paid service, and is not performed by or on behalf of a commercial
+organization for commercial advantage. Non-Commercial Use includes use by:
+- universities and educational institutions,
+- public institutions,
+- research groups,
+- non-profit organizations,
+- individuals for personal or academic purposes.
+
+“Commercial Use” means any use of the Licensed Work that:
+- generates revenue directly or indirectly,
+- is part of a commercial product or service,
+- is used to deliver a paid service or SaaS offering,
+- supports commercial activities or operations of a for-profit entity.
+
+2. License Grant
+----------------
+Subject to the terms below, CePro, EPFL grants you a worldwide, royalty-free,
+non-exclusive license to:
+
+- use the Licensed Work for Non-Commercial Use, including in production;
+- copy and modify the Licensed Work;
+- redistribute the Licensed Work in its original or modified form for
+  Non-Commercial Use only, provided that:
+  - this License file is included without modification, and
+  - clear attribution to CePro, EPFL is maintained.
+
+3. Restrictions
+---------------
+The following actions are NOT permitted without prior written permission
+from CePro, EPFL:
+
+- any Commercial Use of the Licensed Work;
+- selling, licensing, renting, or offering the Licensed Work as part of a paid product or service;
+- offering hosting or SaaS based on the Licensed Work (paid or free if tied
+  to a commercial service);
+- integrating the Licensed Work into a proprietary commercial product;
+- sublicensing the Licensed Work under different terms;
+- removing copyright or license notices.
+
+4. Commercial Licensing
+-----------------------
+A separate commercial license may be granted upon request.
+Please contact CePro, EPFL to discuss terms.
+
+5. No Warranty
+--------------
+THE LICENSED WORK IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+
+6. Liability
+------------
+IN NO EVENT SHALL CEPRO, EPFL BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES ARISING FROM
+THE USE OF THE LICENSED WORK.
+
+7. Termination
+--------------
+Any violation of this License immediately terminates all rights granted
+under it. Upon termination, you must cease all use of the Licensed Work.
+

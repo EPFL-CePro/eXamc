@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    {{ form.media }}
+{% endblock %}
+{% block title %}AMC - Create project (auto-multiple-choice){% endblock %}
+{% block content %}
+{% if user_allowed %}
+    <h4>AMC (auto-multiple-choice) - Create project</h4>
+    <form action="{% url 'create_exam_project' %}" method="post" style="padding:20px;">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+        <div class="form-group">
+            <h6>Exam</h6>
+            {{ form.course }}
+        </div>
+        <div class="form-group">
+            <h6>Year</h6>
+            {{ form.year }}
+        </div>
+        <div class="form-group">
+            <h6>Semester</h6>
+            {{ form.semester }}
+        </div>
+        <div class="form-group">
+            <h6>Date and Time</h6>
+            {{ form.date }}
+        </div>
+{#        <div class="form-group">#}
+{#            <h6>Duration Text</h6>#}
+{#            {{ form.durationText }}#}
+{#        </div>#}
+{#        <div class="form-group">#}
+{#            <h6>Language</h6>#}
+{#            {{ form.language }}#}
+{#        </div>#}
+        <button type="submit" class="btn btn-dark btn-sm">create</button>
+      </form>
+<script>
+</script>
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
+{% endif %}
+    
+{% endblock %}

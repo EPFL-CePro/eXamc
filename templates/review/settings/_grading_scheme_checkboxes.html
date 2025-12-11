@@ -1,0 +1,63 @@
+
+<form method="POST"
+  hx-post="{% url 'grading_scheme_checkboxes' exam_selected.pk  grading_scheme.id %}"
+  hx-target="#chk-panel-{{ grading_scheme.id }}"
+  hx-swap="innerHTML">
+  {% csrf_token %}
+  {% if saved %}<div class="alert alert-success mb-3">Saved.</div>{% endif %}
+  {{ grading_scheme_checkboxes_formset.management_form }}
+  <table class="table">
+      <thead>
+        <tr><th>Name</th><th {% if points != grading_scheme.max_points %} style="color:red" {% endif %}>Points  {{ points }} / {{ grading_scheme.max_points }}</th><th>Description</th><th>Delete</th></tr>
+      </thead>
+      <tbody>
+        {% for form in grading_scheme_checkboxes_formset.forms %}
+        <tr id="group-form">
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% for field in form.visible_fields %}
+                {% if field.label == 'Delete' %}
+                <td style="text-align:center;padding-top:35px">{{ field }}</td>
+            {% elif field.label == 'Description' %}
+                    <td style="min-width:400px;width:50vw">{{ field }}</td>
+            {% else %}
+                <td>{{ field }}</td>
+            {% endif %}
+            {% endfor %}
+
+            <td><a class="btn btn-light"
+                hx-post="{% url 'delete_grading_scheme_checkbox' exam_selected.pk form.hidden_fields.0.value %}"
+                hx-target="#chk-panel-{{ grading_scheme.id }}"
+                hx-swap="innerHTML"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
+        </tr>
+        {% endfor %}
+        <tr class="grading_scheme_checkbox_formset_empty_form" hidden>
+            {% for hidden in form.extra_forms.0.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% for field in form.extra_forms.0.visible_fields %}
+                {% if field.label == 'Delete' %}
+                <td style="text-align:center;padding-top:35px">{{ field }}</td>
+            {% elif field.label == 'Description' %}
+                    <td style="min-width:400px;width:50vw">{{ field }}</td>
+            {% else %}
+                <td>{{ field }}</td>
+            {% endif %}
+            {% endfor %}
+            {% load static %}
+        </tr>
+      </tbody>
+  <tfoot>
+    <tr>
+        <td colspan="4" style="padding:0px;">
+            <a id="add-checkbox-form" style="margin-top:20px;" class="btn btn-light" title="Add Another Checkbox"
+                hx-post="{% url 'add_new_grading_scheme_checkbox' exam_selected.pk grading_scheme.id %}"
+                hx-target="#chk-panel-{{ grading_scheme.id }}"
+                hx-swap="innerHTML"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i></a>
+        </td>
+    </tr></tfoot>
+    </table>
+    <button type="submit" style="margin:20px;" class="btn btn-primary btn-sm"><i class="fas fa-floppy-disk fa-lg" style="margin-right:10px;"></i>Save</button>
+
+</form>

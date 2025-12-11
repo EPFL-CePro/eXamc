@@ -1,0 +1,28 @@
+repo_url: "git@github.com:EPFL-CePro/eXamc.git"
+env_name: "test"
+app_dir: "/opt/examc"
+compose_project_name: "examc"
+compose_profiles: ""
+
+debug: false
+secure_ssl_redirect: true
+session_cookie_secure: true
+csrf_cookie_secure: true
+use_ssl: true
+
+allowed_hosts: ["examc-test.epfl.ch","localhost","127.0.0.1"]
+csrf_trusted_origins: ["https://examc-test.epfl.ch"]
+
+tz: "Europe/Zurich"
+private_media_root: "/private_media"
+
+db_host: "10.95.16.25"
+db_port: 3306
+
+celery_broker_url: "redis://redis:6379/0"
+celery_result_backend: "redis://redis:6379/0"
+celery_task_always_eager: false
+
+constance_redis_connection: "redis://redis:6379/0"
+django_cache_url: "redis://redis:6379/1"
+django_maintenance_cache_url: "redis://redis:6379/2"

@@ -1,0 +1,555 @@
+{% extends 'base.html' %}
+{% load custom_tags %}
+
+{% block title %}Questions statistics{% endblock %}
+
+{% block extra_head %}
+<script type="text/javascript" charset="utf-8">
+$(document).ready(function() {
+   $('#questions_statistics_mcq_dt').DataTable( {
+       scrollY: '70vh',
+       paging:   false,
+       searching: false,
+       info:false,
+       order:[[1,"asc"]]
+    } );
+   $('#questions_statistics_open_dt').DataTable( {
+       scrollY: '70vh',
+       paging:   false,
+       searching: false,
+       info:false,
+       order:[[1,"asc"]]
+    } );
+} );
+</script>
+{% endblock %}
+
+{% block scripts %} 
+
+{% endblock %}
+
+{% block content %}
+{% if user_allowed %}
+<script>
+
+{% if mcq_questions or open_questions %}
+    
+    {% for question in mcq_questions %}
+
+      {% if question.answerStatistics.all|length <= 65 %}
+        var question_answers_label{{ question.pk }} = [];
+        {% for answer_stat in question.answerStatistics.all|dictsort:"answer" %}
+          {% if answer_stat.answer == '' %}
+            question_answers_label{{ question.pk }}.push('None')
+          {% else %}
+            question_answers_label{{ question.pk }}.push('{{ answer_stat.answer }}');
+          {% endif %}
+        {% endfor %}
+        question_answers_label{{ question.pk }};
+        var question_answers_quantity{{ question.pk }} = [];
+        {% for answer_stat in question.answerStatistics.all|dictsort:"answer" %}
+          question_answers_quantity{{ question.pk }}.push('{{ answer_stat.quantity }}');
+        {% endfor %}
+
+        var config{{ question.pk }} = {
+          type: 'bar',
+          data: {
+            labels: question_answers_label{{ question.pk }},
+            datasets: [
+            {
+              label: "Quantity",
+              fill: false,
+              backgroundColor: palette('mpn65', {{ question.answerStatistics.all|length }}).map(function(hex) {
+                return '#' + hex;
+              }),
+              data: [
+              {% for answer_stat in question.answerStatistics.all|dictsort:"answer" %}
+                {{ answer_stat.rate }},
+              {% endfor %}
+              ]},
+              ]},
+              options: {
+                responsive: true,
+                legend: {
+                  display: false
+                },
+                "hover": {
+                  "animationDuration": 0
+                },
+                scales: {
+                  xAxes: [{
+                    gridLines: {
+                      display:false
+                    }
+                  }],
+                  yAxes: [{
+                    display: false,
+                    ticks: {
+                      max:120
+                    }
+                  }]
+                },
+                tooltips: {
+                  enabled: true,
+                  mode: 'single',
+                  callbacks: {
+                    beforeFooter: function(tooltipItems, data) {
+                      return 'Qty : ' + question_answers_quantity{{ question.pk }}[tooltipItems[0].index];
+                    },
+                    label: function(tooltipItems, data) {
+                      return tooltipItems.yLabel+" %";
+                    }
+                  }
+                },
+                "animation": {
+                  "duration": 1,
+                  "onComplete": function() {
+                    var chartInstance = this.chart,
+                    ctx = chartInstance.ctx;
+
+                    ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                    ctx.fillStyle = Chart.defaults.global.defaultFontColor;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+
+                    this.data.datasets.forEach(function(dataset, i) {
+                      var meta = chartInstance.controller.getDatasetMeta(i);
+                      meta.data.forEach(function(bar, index) {
+                        var data = dataset.data[index]+" %";
+                        ctx.fillText(data, bar._model.x, bar._model.y - 5);
+                      });
+                    });
+                  }
+                },
+                title: {
+                  display: false,
+                  text: ''
+                },
+              }
+            };
+        {% endif %}
+    {% endfor %}
+
+
+    {% for question in open_questions %}
+      var configOpen{{ question.pk }} = {
+        type: 'horizontalBar',
+        data: {
+          labels: [""],
+          datasets: [
+            {% for stat in question|get_open_question_stats_by_quarter %}
+            {
+              label: "<= {{ stat.1 }} points",
+              fill: false,
+              backgroundColor: palette('cb-RdYlGn',4).map(function(hex) {
+                return '#' + hex;
+              })[{{stat.0}}-1],
+              data: [{{ stat.2  }}]
+            },
+            {% endfor %}
+          ]},
+          options: {
+            title: {
+              display: true,
+              text: 'Students Points'
+            },
+            responsive: true,
+            scales: {
+                xAxes: [{
+                    stacked: true,
+                    ticks: {
+                      max:{{ exam_selected.present_students}}
+                    }
+                }],
+                yAxes: [{
+                    stacked: true
+                }]
+            },
+            tooltips: {
+              enabled: true,
+            },
+          }
+          };
+        {% endfor %}
+  {% endif %}
+
+  {% if questionsStatsByTeacher %}
+    {% for qstat in questionsStatsByTeacher %}
+      {% for teacher in qstat.teachers %}
+        var questionByTeacher_answers_label{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }} = [];
+        {% for answer in teacher.answers %}
+          questionByTeacher_answers_label{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}.push(' {{ answer.percent|floatformat:0 }}% - {{ answer.ticked }}');
+        {% endfor %}
+
+        var questionStatByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}= {
+          type: 'bar',
+          data: {
+            labels: questionByTeacher_answers_label{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }},
+            datasets: [
+            {
+              label: "percent",
+              fill: false,
+              backgroundColor: palette('mpn65', {{ teacher.answers|length }}).map(function(hex) {
+                return '#' + hex;
+              }),
+              data: [
+              {% for answer in teacher.answers %}
+                {{ answer.percent|floatformat:2 }},
+              {% endfor %}
+              ]},
+            ]},
+            options: {
+              responsive: true,
+              legend: {
+                display: false
+              },
+              "hover": {
+                "animationDuration": 0
+              },
+              scales: {
+                xAxes: [{
+                  gridLines: {
+                    display:false
+                  }
+                }],
+                yAxes: [{
+                  display: false,
+                  ticks: {
+                    max:100
+                  }
+                }]
+              },
+              tooltips: {
+                enabled: true,
+                mode: 'single',
+                callbacks: {
+                  label: function(tooltipItems, data) {
+                    return tooltipItems.yLabel;
+                  }
+                }
+              },
+              title: {
+                display: false,
+                text: ''
+              },
+            }
+          };
+      {% endfor %}
+    {% endfor %}
+  {% endif %}
+
+$(window).on("load",function(){
+    <!-- allow moving modal -->
+    $(".modal-dialog").draggable({
+        handle: ".modal-header"
+    });
+
+    $('#displayPdfModal').on('show.bs.modal', function (event) {
+      let questionCode = $(event.relatedTarget).data('questioncode')
+
+      document.getElementById("embedPdf").innerHTML = "<embed src={% url 'catalogPdf' exam_selected.pk %}#search="+questionCode+" toolbar=0&navpanes=0&scrollbar=0 style=\"width:1000px; height:600px;\" frameborder=\"0\">";
+
+        
+    })
+
+
+    {% if mcq_questions or open_questions %}
+      {% for question in mcq_questions %}
+        {% if question.answerStatistics.all|length <= 65 %}
+          var ctx{{ question.pk }} = document.getElementById('canvas-{{ question.pk }}');
+          ctx{{ question.pk }}.height = 100;
+          if (typeof(ctx{{ question.pk }}) != 'undefined' && ctx{{ question.pk }} != null)
+          {
+            ctx{{ question.pk }} = ctx{{ question.pk }}.getContext('2d');
+            window.myLine = new Chart(ctx{{ question.pk }}, config{{ question.pk }});
+          }
+        {% endif %}
+      {% endfor %}
+      {% for question in open_questions %}
+        var ctx{{ question.pk }} = document.getElementById('canvas-{{ question.pk }}');
+        ctx{{ question.pk }}.height = 100;
+        if (typeof(ctx{{ question.pk }}) != 'undefined' && ctx{{ question.pk }} != null)
+        {
+          ctx{{ question.pk }} = ctx{{ question.pk }}.getContext('2d');
+          window.myLine = new Chart(ctx{{ question.pk }}, configOpen{{ question.pk }});
+        }
+      {% endfor %}
+    {% endif %}
+
+    {% if questionsStatsByTeacher %}
+      {% for qstat in questionsStatsByTeacher %}
+        {% for teacher in qstat.teachers %}
+        var ctxByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }} = document.getElementById('canvas-questionStatByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}');
+        ctxByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}.height = 500;
+        if (typeof(ctxByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}) != 'undefined' && ctxByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }} != null)
+        {
+          ctxByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }} = ctxByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}.getContext('2d');
+          window.myLine = new Chart(ctxByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}, questionStatByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }});
+        }
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+
+    function showMCQs(){
+        $('#collapseOpens').collapse('hide');
+        $('#accordion_mcq_bt').removeClass('btn-light');
+        $('#accordion_mcq_bt').addClass('btn-dark');
+        $('#accordion_open_bt').removeClass('btn-dark');
+        $('#accordion_open_bt').addClass('btn-light');
+    }
+    
+    function showOpens(){
+        $('#collapseMCQs').collapse('hide');
+        $('#accordion_open_bt').removeClass('btn-light');
+        $('#accordion_open_bt').addClass('btn-dark');
+        $('#accordion_mcq_bt').removeClass('btn-dark');
+        $('#accordion_mcq_bt').addClass('btn-light');
+    }
+       
+    $('#accordion_mcq_bt').click( function(e) {
+        showMCQs();
+    });
+    $('#accordion_open_bt').click( function(e) {
+        showOpens();
+    });
+
+    {% if mcq_questions %}
+        showMCQs();
+    {% elif open_questions %}
+        showOpens();
+    {% endif %}
+  });
+
+</script>
+<style>
+</style>
+<h4><i class="fas fa-chart-area" style="margin-right:5px;"></i>Questions Statistics</h4>
+{% if mcq_questions or open_questions %}
+{% if exam_selected.is_overall %}
+<ul class="nav nav-pills flex-column flex-sm-row border" id="stats-questionsGlobal-pills-tab" role="tablist">
+  <li class="nav-item" role="presentation">
+    <a class="flex-sm-fill text-sm-center nav-link active" id="questionsGlobal-tab" data-toggle="pill" href="#pills-questionsGlobal" role="tab" aria-controls="pills-questionsGlobal" aria-selected="true">Global</a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="flex-sm-fill text-sm-center nav-link" id="questionsByTeacher-tab" data-toggle="pill" href="#pills-questionsByTeacher" role="tab" aria-controls="pills-questionsByTeacher" aria-selected="false">By Teacher</a>
+  </li>
+</ul>
+</br>
+<div class="tab-content" id="stats-questions-pills-tabContent">
+    <div class="tab-pane fade show active" id="pills-questionsGlobal" role="tabpanel" aria-labelledby="pills-questionsGlobal-tab">
+{% endif %}
+        <div id="accordion_questions_stats" class="accordion" style="">
+            <h6>
+              <i class="fas fa-circle" style="font-size:18px;color:green"></i> Discriminatory question.
+              <i class="fas fa-circle" style="font-size:18px;color:orange;margin-left:10px;"></i> Success rate less than 60% for the best students.
+              <i class="fas fa-circle" style="font-size:18px;color:red;margin-left:10px;"></i> Best students have been less successful than worse students.
+
+                <p style="margin-top:20px;">
+                discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ exam_selected.students.all|length }} students)
+                </p>
+            </h6>
+            {% if mcq_questions or open_questions %}
+            <div id="questions_statistics_mcq_item" class="card z-depth bordered">
+                <div class="card-header" id="headingMCQs">
+                    <h6 class="mb-0">
+                        <p style="text-align:left;margin-bottom:-5px;">
+                            {% if mcq_questions %}
+                            <button id="accordion_mcq_bt" class="btn btn-dark btn-sm" type="button" data-toggle="collapse" data-target="#collapseMCQs" aria-expanded="true" aria-controls="collapseMCQs">
+                                Multiple-choice & True/False questions
+                            </button>
+                            {% endif %}
+                            {% if open_questions %}
+                            <button id="accordion_open_bt" class="btn btn-light btn-sm" type="button" data-toggle="collapse" data-target="#collapseOpens" aria-expanded="true" aria-controls="headingOpens">
+                                Open questions
+                            </button>
+                           {% endif %}
+                        </p>
+                    </h6>
+                </div>
+                {% if mcq_questions %}
+                <div id="collapseMCQs" class="accordion-collapse collapse show" aria-labelledby="headingMCQs" data-bs-parent="#accordion_questions_stats">
+                    <div class="card-body">
+                        <button class="btn" onclick="downloadElementAsPDF({title:'Multiple-choice questions stats',
+                                                                      subtitle:'{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }}',
+                                                                      elementId:'mcqs_statistics_div',
+                                                                      fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_MCQs_stats.pdf'});"
+                           style="margin-left:10px">
+                            <i class="fa-regular fa-file-pdf fa-2xl" style="color: #db0a0a;"><i class="fa-solid fa-circle-arrow-down fa-2xs" style="margin-left:-35px;"></i></i>
+                        </button>
+                        <div id="mcqs_statistics_div">
+                            <table id="questions_statistics_mcq_dt" class="table table-striped table-sm">
+                            <thead>
+                              <tr>
+                                <th></th>
+                                <th>Question</th>
+                                <th></th>
+                                <th class="text-center">Upper</th>
+                                <th class="text-center">Lower</th>
+                                <th class="text-center">DI</th>
+                                <th class="text-center">Tot. Answers</th>
+                                <th class="text-center">Correct</th>
+                                <th class="text-center">Answers distribution</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for question in mcq_questions %}
+                              <tr>
+                                <td class="align-middle " style="padding:0px 0px 0px 5px!important;">{{ question.remark |safe  }}</td>
+                                <td class="align-middle" style="padding:0px 0px 0px 5px!important;">{{ question.code }}</td>
+                                <td class="align-middle"><a
+                                  data-toggle="modal"
+                                  data-target="#displayPdfModal"
+                                  data-questioncode="{{ question.code }}"
+                                  title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
+                                </td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.upper_correct }}</td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.lower_correct }}</td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.di_calculation }}</td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.tot_answers }} / {{ exam_selected.students.all|length }}</td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.correct_answer }}</td>
+                                <td class="align-middle text-center" style="padding:10px 10px 10px 5px!important;width:30%;">
+                                  {% if question.answerStatistics.all|length <= 65 %}
+                                    <canvas id="canvas-{{ question.pk }}" class="chartjs-render-monitor"></canvas>
+                                  {% else %}
+                                    To much answers combinations
+                                  {% endif %}
+                                </td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if open_questions %}
+                <div id="collapseOpens" class="accordion-collapse collapse show" aria-labelledby="headingOpens" data-bs-parent="#accordion_questions_stats">
+                    <div class="card-body">
+                        <button class="btn" onclick="downloadElementAsPDF({title:'Open questions stats',
+                                                                          subtitle:'{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }}',
+                                                                          elementId:'open_questions_statistics_div',
+                                                                          fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_OpenQs_stats.pdf'});"
+                               style="margin-left:10px">
+                            <i class="fa-regular fa-file-pdf fa-2xl" style="color: #db0a0a;"><i class="fa-solid fa-circle-arrow-down fa-2xs" style="margin-left:-35px;"></i></i>
+                        </button>
+                        <div id="open_questions_statistics_div">
+                            <table id="questions_statistics_open_dt" class="table table-striped table-sm">
+                            <thead>
+                              <tr>
+                                <th colspan="7">discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ exam_selected.students.all|length }} students)</th>
+                              </tr>
+                              <tr>
+                                <th></th>
+                                <th>Question</th>
+                                <th></th>
+                                <th class="text-center">Upper mean</th>
+                                <th class="text-center">Lower mean</th>
+                                <th class="text-center">DI</th>
+                                <th class="text-center">Points distribution</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for question in open_questions %}
+                              <tr>
+                                <td class="align-middle " style="padding:0px 0px 0px 5px!important;">{{ question.remark |safe  }}</td>
+                                <td class="align-middle" style="padding:0px 0px 0px 5px!important;">{{ question.code }}</td>
+                                <td class="align-middle"><a
+                                  data-toggle="modal"
+                                  data-target="#displayPdfModal"
+                                  data-questioncode="{{ question.code }}"
+                                  title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
+                                </td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.upper_avg }}</td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.lower_avg }}</td>
+                                <td class="align-middle text-center" style="padding:0px 0px 0px 5px!important;">{{ question.di_calculation }}</td>
+                                <td class="align-middle text-center" style="padding:10px 10px 10px 5px!important;width:40%;">
+                                  <canvas id="canvas-{{ question.pk }}" class="chartjs-render-monitor"></canvas>
+                                </td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% if exam_selected.is_overall %}
+    <div class="tab-pane fade" id="pills-questionsByTeacher" role="tabpanel" aria-labelledby="pills-questionsByTeacher-tab" style="height:85vh;overflow-y:scroll;">
+        <button class="btn" onclick="downloadElementAsPDF({title:'Questions stats by teacher',
+                                                      subtitle:'{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }}',
+                                                      elementId:'questions_statistics_by_teacher_table_div',
+                                                      fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_questions_stats_by_teacher.pdf'});"
+           style="margin-left:10px">
+            <i class="fa-regular fa-file-pdf fa-2xl" style="color: #db0a0a;"><i class="fa-solid fa-circle-arrow-down fa-2xs" style="margin-left:-35px;"></i></i>
+        </button>
+        <div id="questions_statistics_by_teacher_table_div">
+          <table id="questions_statistics_by_teacher_dt" class="table table-striped table-sm table-borderless">
+            <tbody>
+              {% for qstat in questionsStatsByTeacher %}
+              <tr>
+                <th class="text-center" colspan="{{ qstat.teachers|length }}" style="padding:50px 0px 0px 0px;">
+                  <h6>
+                  {{ qstat.question }}
+                  <a data-toggle="modal"
+                     data-target="#displayPdfModal"
+                     data-questioncode="{{ qstat.question.code }}"
+                     title="Show in pdf"><i class="far fa-file-pdf" style="font-size:18px;color:red"></i></a>
+                  </h6>
+                </th>
+              </tr>
+              <tr>
+                {% for teacher in qstat.teachers %}
+                <th class="text-center">
+                  {{ teacher.teacher }}
+                </br>
+                  {% for section in teacher.sections %}
+                    {% if section == teacher.sections.0 %}
+                      {{ section }}
+                    {% else %}
+                      /{{ section }}
+                    {% endif %}
+                  {% endfor %}
+                </br>
+                <div class="chart-container" style="width:125px; margin:auto;">
+                  <canvas id="canvas-questionStatByTeacher{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}" class="chartjs-render-monitor"></canvas>
+                </div>
+                </th>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- MODAL -->
+<div class="modal fade" id="displayPdfModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document" id=>
+    <div class="modal-content" style="width:1050px;height:670px;">
+      <div class="modal-header">
+        <button type="button" class="close btn btn-default" data-dismiss="modal" aria-label="Close">CLOSE</button>
+      </div>
+      <div class="modal-body">
+      <div id="embedPdf"></div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+  <h4 class="alert-heading">Warning!</h4>
+  <p class="mb-0">No data found for this exam. Please import data and generate statistics.</a>.</p>
+</div>
+
+{% endif %}
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
+{% endif %}
+{% endblock %}

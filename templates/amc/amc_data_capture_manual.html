@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+{% block title %}AMC Manual Data Capture{% endblock %}
+{% block content %}
+{% if data_pages %}
+
+<style>
+:focus { outline: none; }
+</style>
+    <div style="width: 800px;">
+        <div style="width: 50%; height: 50px; float: left; ">
+            <h3>Manual Data Capture</h3>
+        </div>
+        <div style="margin-left: 50%; height: 50px; text-align:right;">
+            <a style="margin-left:150px;" href="{% url 'amc_view' exam_selected.pk '#dataCapture-tab' %}" class="btn btn-outline-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to AMC Data Capture</a>
+        </div>
+    </div>
+    <div id="amcDataCapture_div" tabindex="0" class="d-flex">
+        <div id="scan_page" style="height:95vh;">
+            <canvas id="canvasScan"></canvas>
+        </div>
+        <div class="list-group" style="width: 400px;margin-left:5px;height:95vh;" >
+            <div class="btn-toolbar mb-3 justify-content-between">
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-dark btn-sm" style="width:100px;" onclick="go_to_previews();"><i class="fas fa-chevron-left fa-2x"></i></button>
+                </div>
+                <div class="btn-group me-2">
+                    <button id="btnGroupDropType" type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width:100px;">All</button>
+                    <div class="dropdown-menu" aria-labelledby="btnGroupDropType">
+                        <a class="dropdown-item" onclick="find_row_by_filters('all',question_filter_id, question_filter_name);">all</a>
+                        <a class="dropdown-item" onclick="find_row_by_filters('invalid',question_filter_id, question_filter_name);" >invalid</a>
+                        <a class="dropdown-item" onclick="find_row_by_filters('empty',question_filter_id, question_filter_name);" >empty</a>
+                    </div>
+                </div>
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-dark btn-sm" style="width:100px;" onclick="go_to_next();"><i class="fas fa-chevron-right fa-2x"></i></button>
+                </div>
+            </div>
+            <div class="btn-toolbar mb-3 justify-content-between">
+                <div class="btn-group me-2" role="group">
+                    Focus on question:
+                    <button id="btnGroupDropQuestions" type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="margin-left:15px;width:200px">All</button>
+                    <div class="dropdown-menu" aria-labelledby="btnGroupDropQuestions">
+                        <a class="dropdown-item" onclick="find_row_by_filters(0,'All');">All</a>
+                        {% for question in data_questions %}
+                        <a class="dropdown-item" onclick="find_row_by_filters(type_filter,{{ question.question }},'{{ question.name }}');">{{ question.name }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <table id="table-copies-pages" class="table table-sm table-striped">
+            <thead>
+              <tr>
+                <th data-sortable="true">Copy</th>
+                <th data-sortable="true">Page</th>
+                <th data-sortable="true">MSE</th>
+                <th data-sortable="true">Sensitivity</th>
+                <th style="display:none;">questions</th>
+                <th data-sortable="true">Man</th>
+              </tr>
+            </thead>
+            <tbody style="height:50%;">
+              {% for row in data_pages %}
+              <tr id="table-scan-row-{{ row.copy }}-{{ row.page }}">
+                <td>{{ row.copy }}</td>
+                <td> {{ row.page }}</td>
+                <td>{{ row.mse|floatformat:2 }}</td>
+                <td {% if row.sensitivity > 0 %}style="background-color:red;color:black;"{% endif %}>{% if row.sensitivity %}{{ row.sensitivity }}{% else %}-{% endif %}</td>
+                <td style="display:none;">{{ row.questions_ids }}</td>
+                <td style="text-align: center;">{% if row.timestamp_manual %}<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+    </div>
+
+<script>
+$(window).on("load",function(){
+
+    //hide top and side bars
+    var wrapper = document.getElementById("wrapper")
+    var topb = document.getElementById("topbar-wrapper");
+    var sideb = document.getElementById("sidebar-wrapper");
+    var tableContainer = $('#table-copies-pages')
+    document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click();    
+    setTimeout(() => {document.getElementById("table-scan-row-{{data_pages.0.copy}}-{{data_pages.0.page}}").click(); },350);
+
+    $('#amcDataCapture_div').on('keydown', function(event) {
+        switch (event.key) {
+            case "ArrowLeft":
+            case "ArrowUp":
+                go_to_previews();
+                break;
+            case "ArrowRight":
+            case "ArrowDown":
+                go_to_next();
+                break;
+        }
+    }).focus();
+
+});
+
+
+
+{% if data_pages %}
+    var filtered_questions_list=[];
+    
+    var table = $("#table-copies-pages").DataTable( {
+            scrollY: '79vh',
+                "dom": 'rtip',
+            "lengthChange": false,
+            "paging": false,
+            "autoWidth": false,
+            "fnDrawCallback": function () {
+                if(filtered_questions_list.length>0){
+                    rows = Array.from($("#table-copies-pages tbody tr"));
+                    var new_filtered_questions_list = [];
+                    rows.forEach(function (row) {
+                        if(filtered_questions_list.includes(row.getAttribute('id'))){
+                            new_filtered_questions_list.push(row.getAttribute('id'));
+                        }                
+                    });
+                }
+                filtered_questions_list = new_filtered_questions_list;
+            }
+            //columns: [{ width: '200px' }, null,null,null,null, null, null]
+        } );
+
+    
+    var question_filter_id=0;
+    var question_filter_name='All';
+    var type_filter='All';
+    var curr_selected_id = "table-scan-row-1-1";
+    var canvasScan = document.getElementById("canvasScan");
+    var imgScan = new Image();
+    initCopyPagesTableOnClickRowEvent(true);
+    find_row_by_filters('all',0, 'All');
+    $("#table-copies-pages tbody tr:first").trigger('click');
+{% endif %}
+
+
+
+function setScanCanvas(data,scan_src,copy,page){
+    imgScan.src = "/"+scan_src.split('/')[1]+"/"+scan_src.split('/')[3];
+
+    //remove canvas element and recreate
+    canvasScan.remove();
+
+    canvasScan = document.createElement("canvas");
+    canvasScan.id = "CursorLayer";
+    canvasScan.style.border = "1px solid lightgray";
+
+    var canvasdiv = document.getElementById("scan_page");
+    canvasdiv.appendChild(canvasScan);
+    var ctxImg = canvasScan.getContext("2d");
+    elements = [];
+    
+    canvasHeight = window.innerHeight - 75;
+    canvasWidth = canvasHeight / (imgScan.height / imgScan.width)
+    
+    if(canvasWidth > canvasHeight*75/100){
+        canvasWidth = canvasHeight*75/100;
+    }
+
+    
+    //ratio = imgScan.naturalWidth / imgScan.naturalHeight
+
+    ctxImg.canvas.width = canvasWidth;
+    ctxImg.canvas.height = canvasHeight;
+
+
+    //set sleep function to wait before drawing image otherwise new image is not updating
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    sleep(250).then(() => {
+
+        ctxImg.drawImage(imgScan, 0, 0, canvasWidth, canvasHeight);
+        canvasRatio = imgScan.height / canvasHeight
+        if(data) {
+            var data_obj = JSON.parse(data);
+            elements = [];
+            for (let pos of data_obj) {
+                switch (pos.corner) {
+                    case 1:
+                        // Define a start Point-->
+                        ctxImg.beginPath();
+                        ctxImg.moveTo(pos.x / canvasRatio, pos.y / canvasRatio);
+                        elemTop = pos.y / canvasRatio;
+                        elemLeft = pos.x / canvasRatio;
+                        c1 = [pos.x / canvasRatio, pos.y / canvasRatio];
+                        break;
+                    case 2:
+                        // Define second Point
+                        ctxImg.lineTo(pos.x / canvasRatio, pos.y / canvasRatio);
+                        c2 = [pos.x / canvasRatio, pos.y / canvasRatio];
+                        break;
+                    case 3:
+                        // Define third Point
+                        ctxImg.lineTo(pos.x / canvasRatio, pos.y / canvasRatio);
+                        elemRight = pos.x / canvasRatio;
+                        c3 = [pos.x / canvasRatio, pos.y / canvasRatio];
+                        break;
+                    case 4:
+                        // Define fourth Point, close path and stroke
+                        ctxImg.lineTo(pos.x / canvasRatio, pos.y / canvasRatio);
+                        ctxImg.closePath();
+                        elemBottom = pos.y / canvasRatio;
+                        c4 = [pos.x / canvasRatio, pos.y / canvasRatio];
+
+                        // draw yellow and blue lines for E and V (invalid and empty)
+                        if (pos.why && pos.why !== '') {
+                            // Define a start Point-->
+                            ctxImg.beginPath();
+                            ctxImg.moveTo(c1[0] - 2, c1[1] - 2);
+                            ctxImg.lineTo(c2[0] + 2, c2[1] - 2);
+                            ctxImg.lineTo(c3[0] + 2, c3[1] + 2);
+                            ctxImg.lineTo(c4[0] - 2, c4[1] + 2);
+                            ctxImg.closePath();
+                            if (pos.why === 'E') {
+                                ctxImg.strokeStyle = '#FFFF33';
+                            } else {
+                                ctxImg.strokeStyle = '#00FFFF';
+                            }
+                            ;
+                            ctxImg.lineWidth = 5;
+                            ctxImg.stroke();
+                            ctxImg.restore();
+
+                            c1 = [0, 0];
+                            c2 = [0, 0];
+                            c3 = [0, 0];
+                            c4 = [0, 0];
+                        }
+
+                        if ( pos.checked ) {//(pos.black > 0 && pos.manual === -1) || pos.manual === 1) {
+                            ctxImg.strokeStyle = '#ff0000';
+                            ctxImg.lineWidth = 3;
+                        } else{
+                            ctxImg.strokeStyle = '#33a3ff';
+                            ctxImg.lineWidth = 1;
+                        }
+
+                        ctxImg.stroke();
+                        ctxImg.restore();
+
+                        // Add element.
+                        elements.push({
+                            copy: copy,
+                            page: page,
+                            zoneid: pos.zoneid,
+                            corner: pos.corner,
+                            manual: pos.manual,
+                            black: pos.black,
+                            scan_src: scan_src,
+                            top: elemTop,
+                            left: elemLeft,
+                            width: elemRight - elemLeft,
+                            height: elemBottom - elemTop
+                        });
+                        break;
+                }
+            }
+
+            // Add canvas event listener for `click` events.
+            canvasScan.addEventListener('click', function (event) {
+                var x = event.offsetX,
+                    y = event.offsetY;
+
+                // Collision detection between clicked offset and element.
+                elements.forEach(function (element) {
+                    if (y > element.top && y < element.top + element.height
+                        && x > element.left && x < element.left + element.width) {
+                        update_amc_mark_zone(element);
+                    }
+                });
+
+            }, false);
+        }
+
+    })
+}
+
+function initCopyPagesTableOnClickRowEvent(refresh){
+
+    $("#table-copies-pages tbody").on('click', 'tr', function () {
+        $(document.getElementById(curr_selected_id)).css('background','');
+        $(this).css('background', 'yellow');
+        if(!this.cells[4].innerText.includes("/scans/extra/")){
+            get_amc_scan_url(this.cells[0].innerText,this.cells[1].innerText);
+        }else{
+            setScanCanvas(null,this.cells[4].innerText,this.cells[0].innerText,this.cells[1].innerText);
+        }        
+        curr_selected_id=this.id;
+    });
+
+    if(!refresh){
+        var table = $("#table-copies-pages").DataTable( {
+            scrollY: '85vh',
+            "dom": 'rtip',
+            "lengthChange": false,
+            "paging": false
+        } );
+    }
+}
+
+function get_amc_scan_url(copy,page){
+    $.ajax({
+        url: "{% url 'get_amc_scan_url' exam_selected.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'copy' : copy,
+            'page' : page
+        },
+        success: (amc_scan_url) => {
+            get_amc_marks_positions(copy, page, amc_scan_url);
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function get_amc_marks_positions(copy,page,scan_src){
+    $.ajax({
+        url: "{% url 'get_amc_marks_positions' exam_selected.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'copy' : copy,
+            'page' : page
+        },
+        success: (data) => {
+            setScanCanvas(data,scan_src,copy,page);
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function update_amc_mark_zone(element){
+    $.ajax({
+        url: "{% url 'update_amc_mark_zone' exam_selected.pk %}",
+        type: "POST",
+        data : {
+            'csrfmiddlewaretoken' : "{{ csrf_token }}",
+            'zoneid' : element.zoneid,
+            'corner' : element.corner,
+            'copy' : element.copy,
+            'page' : element.page
+        },
+        success: (data) => {
+            get_amc_marks_positions(element.copy,element.page,element.scan_src);
+        },
+        error: (error) => {
+            console.log(error);
+        }
+    });
+}
+
+function find_row_by_filters(type,question_id,question_name){
+    filtered_questions_list = [];
+    rows = [];
+    if(question_id === 'All' && type === 'all'){
+        rows = Array.from($("#table-copies-pages tbody tr"));
+    }else{
+        search_str = '';
+        if(question_id > 0){
+            search_str = '%'+question_id+'%';
+        }
+        if(type === 'invalid'){
+            search_str += '|INV|';
+        }
+        if(type === 'empty'){
+            search_str += '|EMP|';
+        }
+
+        //search_str+='%'
+        rows = Array.from($("#table-copies-pages tbody tr:contains("+search_str+")"));
+    }
+    rows.forEach(function (row) {
+        filtered_questions_list.push(row.getAttribute('id'));
+    });
+
+    question_filter_id=question_id;
+    question_filter_name=question_name;
+    type_filter=type
+    document.getElementById('btnGroupDropQuestions').innerHTML=question_name;
+    document.getElementById('btnGroupDropType').innerHTML=type;
+}
+
+function go_to_next(){
+    if(filtered_questions_list.length > 0) {
+        next = filtered_questions_list[0];
+        curr_index = filtered_questions_list.indexOf(curr_selected_id);
+        if (curr_index > -1 && curr_index < filtered_questions_list.length - 1) {
+            next = filtered_questions_list[curr_index + 1];
+        }
+
+        $(document.getElementById(next)).trigger('click');
+        test = $('#table-copies-pages');
+        tableContainer = $('#table-copies-pages')[0].parentNode;
+        row = document.getElementById(next);
+        offsetTop = row.offsetTop;
+        tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight / 2;
+        curr_selected_id = next;
+    }
+}
+
+function go_to_previews(){
+    if(filtered_questions_list.length > 0) {
+        preview = filtered_questions_list[0];
+        curr_index = filtered_questions_list.indexOf(curr_selected_id);
+        if (curr_index > 0) {
+            preview = filtered_questions_list[curr_index - 1];
+        }
+        ;
+        $("#" + preview).trigger('click');
+        test = $('#table-copies-pages');
+        tableContainer = $('#table-copies-pages')[0].parentNode;
+        row = document.getElementById(preview);
+        offsetTop = row.offsetTop;
+        tableContainer.scrollTop = offsetTop - tableContainer.offsetHeight / 2;
+        curr_selected_id = preview;
+    }
+}
+</script>
+{% endif %}
+{% endblock %}
+
+
+

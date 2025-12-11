@@ -1,0 +1,58 @@
+\documentclass[a4paper]{article}
+
+\usepackage[utf8]{inputenc} %Unicode
+\usepackage[T1]{fontenc}
+\usepackage{xcolor}
+\usepackage{fix-cm}
+\usepackage[nolinks]{qrcode}
+\usepackage{enumitem}
+\usepackage[lang=FR,bloc]{automultiplechoice}
+
+% Color used for signature box
+\definecolor{light-Gray}{gray}{0.95}
+
+\input{./packages.tex}
+\input{./commands.tex}
+\input{./style.tex}
+\input{./style_professor.tex}
+
+%%% increase the space between header and bottom for AMC control dots
+\renewcommand{\baselinestretch}{1.10}% ESPACEMENT VERTICAL
+\geometry{includeheadfoot,hmargin=2.25cm,headheight=2cm,headsep=0.2cm}
+\geometry{footskip=.8cm,top=.5cm,bottom=1.1cm,paper=a4paper}
+
+%%% Exam info
+\input{./exam-info.tex}
+
+\begin{document}
+
+%%% random seed
+\AMCrandomseed{11051975}
+
+%%% Import sections
+\input{./sections.tex}
+
+\def\multiSymbole{}
+\makeatletter
+
+\newcommand{\sujet}{
+  \onecopy{1}{
+  \setcounter{equation}{0}
+	\input{./first_page.tex}
+	\input{./header_section_1.tex}
+	\insertgroup{section_1}
+	\input{./header_section_1.tex}
+	\insertgroup{section_2}
+	\input{./header_section_3.tex}
+	\insertgroup{section_3}
+
+  % Make sure that all the exams have the same number of pages (otherwise Repro will not be able to print!)
+  \loop \ifnum \thepage < \totalPages  \clearpage ~ \repeat
+
+  \AMCassociation{\ID}
+  }
+}
+
+\csvreader[head to column names]{./students.csv}{}{\sujet}
+
+\end{document}

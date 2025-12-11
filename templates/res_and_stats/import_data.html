@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% load crispy_forms_tags %}
+{% block title %}Import{% endblock %}
+{% block content %}
+
+{% if user_allowed %}
+    <div class="tab-content" id="students-results-tabContent">
+        <h4><i class="fas fa-cloud-upload-alt fa-l" style="margin-right:5px;"></i>Import data</h4>
+
+        <div id="importExamDataDiv" style="padding:10px;max-width:80%;">
+            <h5>Exam catalog</h5>
+            <form action="{% url 'upload_catalog_pdf' exam_selected.pk %}" method="POST" enctype="multipart/form-data"
+                  class="form-horizontal" on>
+                {% csrf_token %}
+                <div class="form-group row">
+                    <div class="col-md-8">
+                        <input type="file" accept=".pdf" name="catalog_pdf_file" id="importCatalogPDFFile"
+                               class="custom-file-input form-control" required>
+                        <label class="custom-file-label custom-file-label small" for="importCatalogPDFFile">Choose
+                            Catalog PDF file</label>
+                    </div>
+                    <div class="col-md-3" style="padding-top:5px;">
+                        <button class="btn btn-dark btn-sm"><i class="fas fa-cloud-upload-alt"
+                                                               style="margin-right:5px;"></i>Upload pdf
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <hr style="margin:20px 0 20px 0;">
+            <h5>AMC .csv file</h5>
+            <form id="upload_amc_csv_frm" action="{% url 'upload_amc_csv' exam_selected.pk %}" method="POST" enctype="multipart/form-data"
+                  class="form-horizontal">
+                {% csrf_token %}
+                <div class="form-group row">
+                    <div class="col-md-8">
+                        <input type="file" accept=".csv" name="amc_csv_file" id="importAMCCSVFile"
+                               class="custom-file-input form-control" required>
+                        <label class="custom-file-label small" for="importAMCCSVFile">Choose AMC .csv file</label>
+                    </div>
+                    <div class="col-md-3" style="padding-top:5px;">
+                        <button class="btn btn-dark btn-sm"><i class="fas fa-cloud-upload-alt"
+                                                               style="margin-right:5px;"></i>Upload csv
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="alert alert-warning" style="">
+                <h4 class="alert-warning">AMC .csv file</h4>
+                <p>The CSV file must be generated from AMC with the following options:</p>
+                <ul>
+                    <li>format : CSV</li>
+                    <li>Sorting : line in students list</li>
+                    <li>include absentees : yes</li>
+                    <li>Separator : ";"</li>
+                    <li>Ticked boxes : "Yes:AB"</li>
+                    <li>Columns : ID,SCIPER,NAME,SECTION,EMAIL</li>
+                </ul>
+                <p>For your questions to be imported correctly, with the correct type, the questions IDs must be
+                    prefixed as follows:</p>
+                <table class="table-sm table-borderless alert" style="padding:10px;width:800px;">
+                    <tbody>
+                    <tr>
+                        <td>"SCQ-" for single choice questions.</td>
+                        <td>example :</td>
+                        <td>\begin{question}{SCQ-01}</td>
+                    </tr>
+                    <tr>
+                        <td>"MCQ-" for multiple choice questions.</td>
+                        <td>example :</td>
+                        <td> \begin{questionmult}{MCQ-01}</td>
+                    </tr>
+                    <tr>
+                        <td>"TF-" for True-False questions.</td>
+                        <td>example :</td>
+                        <td>\begin{question}{TF-01}</td>
+                    </tr>
+                    <tr>
+                        <td>"OPEN-" for open questions (optional).</td>
+                        <td>example :</td>
+                        <td>\correctorFour{OPEN-A}{~}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+{% else %}
+
+<h4>You are not allowed to view this page !</h4>
+
+{% endif %}
+<script>
+    
+    $("#importAMCCSVFile").on("change", function () {
+        var fileName = $(this).val().split("\\").pop();
+        $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+    });
+    $("#importCatalogPDFFile").on("change", function () {
+        var fileName = $(this).val().split("\\").pop();
+        $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+    });
+</script>
+{% endblock %}
+

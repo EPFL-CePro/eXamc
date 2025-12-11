@@ -1,0 +1,769 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+
+{% block title %}Exam preparation{% endblock %}
+
+{% block extra_head %}
+    <!-- import ckeditor media modules -->
+    {{ fp_txt_form.media }}
+{% endblock %}
+{% block scripts %}
+{% endblock %}
+
+{% block content %}
+<style>
+    .django-ckeditor-widget {
+        width: 100%;
+    }
+</style>
+{% if user_allowed %}
+    <h4><i class="fas fa-edit" style="margin-right:5px;"></i>Exam Preparation</h4>
+    <div style="text-align: right;max-width:70%;min-width:800px;padding:10px;">
+        <button onclick="preview_exam();" class="btn btn-dark btn-sm" type="button"><i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>preview</button>
+    
+    </div>
+    <div class="accordion" id="accordionExamSections" style="max-width:70%;min-width:800px;">
+        <div class="card z-depth-0 bordered">
+            <div class="card-header" id="first-page">
+                <h6 class="mb-0">
+                    <p style="text-align:left;margin-bottom:-5px;">
+                        <a data-toggle="collapse" href="#collapse-first-page" data-target="#collapse-first-page"
+                            aria-expanded="true" aria-controls="collapse-first-page">
+                            First Page
+                        </a>
+                    </p>
+                </h6>
+            </div>
+            <div id="collapse-first-page" class="collapse" aria-labelledby="first-page">
+                <div class="card-body">
+                     <div style="height:30px;">
+                        <div style="float:left;"><h6>Instructions</h6></div>
+                        <div id="view-first-page-buttons" style="float:right;display:block;">
+                            <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="edit_first_page();"><i class="fa-solid fa-pen fa-lg"></i></button>
+                        </div>
+                        <div id="edit-first-page-buttons" style="float:right;display:None;">
+                            <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="validate_first_page();"><i class="fa-solid fa-check fa-xl"></i></button>
+                            <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="cancel_edit_first_page();"><i class="fa-solid fa-xmark fa-xl"></i></button>
+                        </div>
+                    </div>
+                    <div id="first-page-text-div">
+                        <div id="first-page-text" name="first-page-text" class="form-control ck ck-content" style="height:auto;overflow-y:auto;resize:vertical;">{{ exam.first_page_text |safe}}</div>
+                    </div>
+                    <div id="first-page-text-edit-div" style="display: None;width:100%;">
+                        <form>
+                            {{ fp_txt_form.ckeditor_txt }}
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% for section in exam.sections.all|dictsort:"section_number" %}
+            <div class="card z-depth-0 bordered">
+                <div class="card-header" id="heading-section-{{ section.id }}">
+                    <h6 class="mb-0">
+                        <p style="text-align:left;margin-bottom:-5px;">
+                            <a id="heading-section-text-{{ section.id }}" data-toggle="collapse" href="#collapse-section-{{ section.id }}" data-target="#collapse-section-{{ section.id }}"
+                                aria-expanded="true" aria-controls="collapse-Section-{{ section.id }}">
+                                {{ section.title }}
+                            </a>
+                        </p>
+                    </h6>
+                </div>
+                <div id="collapse-section-{{ section.id }}" class="collapse" aria-labelledby="heading-section-{{ section.id }}">
+                    <div class="card-body">
+                        <div style="height:30px;">
+                            <div id="view-header-buttons-{{ section.id }}"  style="float:right;display:block;">
+                                <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="edit_section({{ section.id }});"><i class="fa-solid fa-pen fa-lg"></i></button>
+                                <button id="remove-section" onclick="open_remove_confirmation_dialog({{ section.id }}, '{{ section.title }}', 'section');" class="btn btn-light" style="background-color: transparent;padding-top:0px;"  type="button"><i class="fa-solid fa-circle-minus fa-xl" style="color:red;"></i></button>
+                            </div>
+                            <div id="edit-header-buttons-{{ section.id }}"  style="float:right;display:None;">
+                                <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="validate_section({{ section.id }})"><i class="fa-solid fa-check fa-xl"></i></button>
+                                <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="cancel_edit_section({{ section.id }})"><i class="fa-solid fa-xmark fa-xl"></i></button>
+                            </div>
+                        </div>
+                        <div id="header-section-{{ section.id }}-div">
+                            <div id="title-section-div-{{ section.id }}" style="display:None;margin-bottom: 10px;">
+                                <label for="title-section-{{ section.id }}">Title</label>
+                                <input id="title-section-{{ section.id }}" class="form-control" type="text" name="title-section-{{ section.id }}" value="{{ section.title }}">
+                            </div>
+                            <label for="header-section-{{ section.id }}">Header text</label>
+                            <div id="header-section-text-div-{{ section.id }}">
+                                <div id="header-section-text-{{ section.id }}" name="header-section-text-{{ section.id }}" class="form-control ck ck-content" style="height:auto;overflow-y:auto;resize:vertical;">{{ section.header_text |safe}}</div>
+                            </div>
+                            <div id="header-section-text-edit-div-{{ section.id }}" style="display: None;width:100%;">
+                                <form id="frm-section-{{ section.id }}">
+                                    {% with sh_txt_frm=sh_txt_frm_list|get_frm_by_id:section.id %}
+                                    {{ sh_txt_frm.ckeditor_txt }}
+                                    {% endwith %}
+                                </form>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="card-header">
+                            <h6>
+                                <a data-toggle="collapse" href="#questions-section-{{ section.id }}" role="button" aria-expanded="false" aria-controls="questions-section-{{ section.id }}">
+                                    Questions ({{ section.questions.all|length }})
+                                </a>
+                            </h6>
+                        </div>
+                        <div id="questions-section-{{ section.id }}" class="border collapse">
+                            {% for question in section.questions.all %}
+                            <div id="question-{{ question.id }}" class="border p-3">
+                                <div style="height:30px;">
+                                    <div style="float:left;"><h6>{{ question.code }}</h6></div>
+                                    <div id="view-question-buttons-{{ question.id }}" style="float:right;display:block;">
+                                        <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="edit_question({{ question.id }});"><i class="fa-solid fa-pen fa-lg"></i></button>
+                                        <button id="remove-question" onclick="open_remove_confirmation_dialog([{{ section.id }},{{ question.id }}], {{ question.code }}, 'question')" class="btn btn-light" style="background-color: transparent;padding-top:0px;"  type="button"><i class="fa-solid fa-circle-minus fa-xl" style="color:red;"></i></button>
+                                    </div>
+                                    <div id="edit-question-buttons-{{ question.id }}" style="float:right;display:None;">
+                                        <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="validate_question({{ question.id }})"><i class="fa-solid fa-check fa-xl"></i></button>
+                                        <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="cancel_edit_question({{ question.id }})"><i class="fa-solid fa-xmark fa-xl"></i></button>
+                                    </div>
+                                </div>
+                                <div class="col col-md">
+                                    <label for="question-text-{{ question.id }}">Content</label>
+                                    <div id="question-text-div-{{ question.id }}">
+                                        <div id="question-text-{{ question.id }}" name="question-text-{{ question.id }}" class="form-control ck ck-content" style="height:auto;overflow-y:auto;resize:vertical;">{{ question.question_text |safe}}</div>
+                                    </div>
+                                    <div id="question-text-edit-div-{{ question.id }}" style="display: None;width:100%;">
+                                        <form id="frm-question-{{ question.id }}">
+                                            {% with qu_txt_frm=qu_txt_frm_list|get_frm_by_id:question.id %}
+                                            {{ qu_txt_frm.ckeditor_txt }}
+                                            {% endwith %}
+                                        </form>
+                                    </div>
+                                </div>
+                                {% if question.question_type.code == 'OPEN' %}                            
+                                <div class="col col-md mt-2" id="question-answer-box-div-{{ question.id }}" style="display:None;" >
+                                    <hr>
+                                    <label for="open_max_points" style="display: block;">Open Max Points:</label>
+                                    <input type="number" name="open_max_points" value="1" class="form-control" id="open_max_points" min="0.5" step="0.5" style="width:100px"> 
+                                    <label style="display: block;">Open Points Increment:</label>
+                                    <div id="open_points_increment" class="custom-radio-list" style="display: block;">
+                                        <div>
+                                            <label for="open_points_increment_0"><input type="radio" name="open_points_increment" value="0.5" class="custom-radio-list" id="open_points_increment_0">
+                                                0.5pt</label>
+                                        </div>
+                                        <div>
+                                            <label for="open_points_increment_1"><input type="radio" name="open_points_increment" value="1" class="custom-radio-list" id="open_points_increment_1" checked="">
+                                                1pt</label>                                    
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <label for="question-answer-box-size-{{ question.id }}">Box size (rows)</label>
+                                    <input type="number" name="question-answer-box-size-{{ question.id }}" class="form-control" id="question-answer-box-size-{{ question.id }}" min="1" style="width:100px;"
+                                        value="{{ question.get_open_question_box_size }}">
+                                    <br>
+                                    <div class="form-check form-check-inline mt-2">
+                                        <input class="form-check-input" type="radio" name="question-answer-box-{{ question.id }}" id="question-answer-box-blank-{{ question.id }}" value="1" 
+                                        {% if question.get_open_question_box_type == '1' %} checked {% endif %}>
+                                        <label for="question-answer-box-blank-{{ question.id }}" class="form-check-label">Blank answer box</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="question-answer-box-{{ question.id }}" id="question-answer-box-grid-{{ question.id }}" value="2"
+                                        {% if question.get_open_question_box_type == '2' %} checked {% endif %}>
+                                        <label for="question-answer-box-grid-{{ question.id }}" class="form-check-label">Grid answer box</label>
+                                    </div><br>
+                                </div>
+                                {% else %}
+                                <div class="col col-md mt-2" id="question-formula-div-{{ question.id }}" style="display:None;" >
+                                    <label for="question-formula-{{ question.id }}">Formula</label>
+                                    <input id="question-formula-{{ question.id }}" class="form-control" type="text" name="question-formula-{{ question.id }}" value="{{ question.formula }}" readonly>
+                                </div>
+                                {% endif %}
+                                <hr>
+                                {% if question.question_type.code != 'OPEN' %}
+                                    <div class="card-header">
+                                        <h6>
+                                            <a data-toggle="collapse" href="#answers-containers-{{ question.id }}" role="button" aria-expanded="false" aria-controls="answers-containers-{{ question.id }}">
+                                                Answers
+                                            </a>
+                                            <div id="view-answers-buttons-{{ question.id }}" style="float:right;display:block;"><button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="edit_answers({{ question.id }},{{ question.question_type.id }});"><i class="fa-solid fa-pen fa-lg"></i></button></div>
+                                            <div id="edit-answers-buttons-{{ question.id }}" style="float:right;display:None;">
+                                                <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="validate_answers({{ question.id }}, {{ question_type.id }})"><i class="fa-solid fa-check fa-xl"></i></button>
+                                                <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="cancel_edit_answers({{ question.id }},{{ question.question_type.id }})"><i class="fa-solid fa-xmark fa-xl"></i></button>
+                                            </div>
+                                        </h6>
+                                    </div>
+                                    <div  id="answers-containers-{{ question.id }}" class="collapse">
+                                        <div id="answers-containers-{{ question.id }}">
+                                            {% for answer in question.answers.all %}
+                                            <div id="answer-{{ answer.id }}" class="border p-0 mb-2">
+                                                <div class="col col-md mt-3" style="display:flex">
+                                                    <h6>{{ answer.code }}</h6>
+                                                    <div class="custom-control custom-switch col col-md"  style="margin-left:50px;" id="answer-correct-div-{{ answer.id }}">
+                                                        <input id="answer-correct-{{ answer.id }}" type="checkbox" class="custom-control-input" name="answer-correct-{{ answer.id }}" {% if answer.is_correct %}checked{% endif %} disabled/>
+                                                        <label for="answer-correct-{{ answer.id }}" class="custom-control-label">Correct answer</label>
+                                                    </div>
+                                                    {% if question.question_type.code != 'TF' %}
+                                                    <div class="col col-md"  style="text-align: right;">
+                                                        <button id="remove-answer" onclick="open_remove_confirmation_dialog([{{ question.id }},{{ answer.id }}], {{ answer.code }}, 'answer');" class="btn btn-light" style="margin-left:50px;background-color: transparent;padding-top:0px;"  type="button"><i class="fa-solid fa-circle-minus fa-xl" style="color:red;"></i></button>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                {% if question.question_type.code in 'SCQ,MCQ' %}
+                                                <div class="col col-md mt-2 mb-2">
+                                                    <label for="answer-text-{{ answer.id }}">Content</label>
+                                                    <div id="answer-text-div-{{ answer.id }}">
+                                                        <div id="answer-text-{{ answer.id }}" name="answer-text-{{ answer.id }}" class="form-control ck ck-content" style="height:auto;overflow-y:auto;resize:vertical;">{{ answer.answer_text |safe}}</div>
+                                                    </div>
+                                                    <div id="answer-text-edit-div-{{ answer.id }}" style="display: None;width:100%;">
+                                                        <form id="frm-answer-{{ answer.id }}">
+                                                            {% with an_txt_frm=an_txt_frm_list|get_frm_by_id:answer.id %}
+                                                            {{ an_txt_frm.ckeditor_txt }}
+                                                            {% endwith %}
+                                                        </form>
+                                                    </div>
+        
+                                                </div>
+                                                {% endif %}
+                                                <div class="col col-md mt-2" style="display:None;" id="answer-formula-div-{{ answer.id }}">
+                                                    <label for="answer-formula-{{ answer.id }}">Formula</label><br>
+                                                    <input id="answer-formula-{{ answer.id }}" type="text" class="form-control" name="answer-formula-{{ answer.id }}" value="{{ question.formula }}">
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                            {% if question.question_type.code != 'TF' %}
+                                            <button id="add-answer" onclick="add_answer({{ question.id }},{{ question.question_type_id }})" class="btn btn-light" style="background-color: transparent"  type="button"><i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add Answer</button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <button id="add-question" class="btn btn-light" style="background-color: transparent"  type="button" onclick="add_question({{ section.id }})"><i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add Question</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <a id="add-section" href="{% url 'exam_add_section' exam.pk %}" class="btn btn-light" style="background-color: transparent;text-align: left;"  type="button"><i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add Section</a>
+    </div>
+    
+    <div id="add-question-modal" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add question</h5>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="modal-body">
+                    <form action="{% url 'exam_add_section_question' %}" method="post" style="padding:20px;">
+                        {% csrf_token %}
+                        <div id="add-question-frm"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-dark btn-sm">Add</button>
+                    <button type="button" class="btn  btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="exam_preview_dialog" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Exam preview!</h5>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-danger" id="exam_preview_error" role="alert" style="display: None;">
+                <h4>Error compiling !</h4>
+                <textarea class="form-control" style="width:100%;height:70vh;" id="exam_preview_error_message" readonly></textarea>
+            </div>
+            <iframe id="exam_preview_pdf" style="display: None;width:100%;height:70vh;"></iframe>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn  btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="exam_confirm_remove_dialog" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Remove confirmation</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="exam_confirm_remove_dialog_body" class="modal-body alert alert-danger">
+    
+          </div>
+          <div class="modal-footer">
+            <button id="exam_confirm_remove_dialog_validate" c type="button" onclick="" class="btn btn-dark btn-sm">Yes, I'm sure!</button>
+            <button type="button" class="btn  btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- MathJax -->
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js">
+</script>
+
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$$', '$$'], ['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+      
+  }
+};
+
+let answers_contents, answers_correct, header_section, question_content;
+answers_contents = [];
+answers_correct = [];
+
+function open_remove_confirmation_dialog(item_id, item_name, item_type){
+    document.getElementById('exam_confirm_remove_dialog_body').innerHTML = "Are you sure you want to remove this "+item_type+"? <br><br>'"+item_name+"'";
+    dialog_validate_btn = document.getElementById('exam_confirm_remove_dialog_validate');
+    switch (item_type) {
+        case 'section':
+            dialog_validate_btn.setAttribute("onclick","remove_section("+item_id+");")
+        break;
+        case 'question':
+            dialog_validate_btn.setAttribute("onclick","remove_question("+item_id[0]+","+item_id[1]+");")
+        break;
+        case 'answer':
+            dialog_validate_btn.setAttribute("onclick","remove_answer("+item_id[0]+","+item_id[1]+");")
+        break;
+    }
+    $('#exam_confirm_remove_dialog').modal('show');
+}
+
+function edit_first_page(){
+    $('#view-first-page-buttons').css('display','None');
+    $('#edit-first-page-buttons').css('display','block');
+    $('#first-page-text').css('resize','None');
+    $('#first-page-text-div').css('display','None');
+    $('#first-page-text-edit-div').css('display','block');
+}
+
+function edit_section(section){
+    $('#view-header-buttons-'+section).css('display','None');
+    $('#edit-header-buttons-'+section).css('display','block');
+    $('#title-section-div-'+section).css('display','block');
+    $('#header-section-text-div-'+section).css('display','None');
+    $('#header-section-text-edit-div-'+section).css('display','block');
+}
+
+function edit_question(question){
+    $('#view-question-buttons-'+question).css('display','None');
+    $('#edit-question-buttons-'+question).css('display','block');
+    $('#question-formula-div-'+question).css('display','block');
+    $('#question-answer-box-div-'+question).css('display','block');
+    $('#question-text-div-'+question).css('display','None');
+    $('#question-text-edit-div-'+question).css('display','block');
+}
+
+function edit_answers(question,question_type){
+    container = document.getElementById('answers-containers-'+question);
+      
+    if([1,2].includes(question_type)) {
+        answers_texts_edit_divs = container.querySelectorAll("[id^='answer-text-edit-div']");
+        for (var i = 0; i < answers_texts_edit_divs.length; i++) {
+            answer_id = answers_texts_edit_divs[i].id.split('-').pop();
+            $('#answer-formula-div-'+answer_id).css('display','block');
+            $('#answer-correct-'+answer_id).removeAttr('disabled');
+            $('#answer-text-div-'+answer_id).css('display','None');
+            $('#answer-text-edit-div-'+answer_id).css('display','block');
+            //$('#' + answers_texts_edit_divs[i].id).css('resize','None');
+        }
+    }else{
+        answers_correct = container.querySelectorAll("[id^='answer-correct']");  
+        for (var i = 0; i < answers_correct.length; i++) {
+            answer_id = answers_correct[i].id.split('-').pop();
+            $('#answer-formula-div-'+answer_id).css('display','block');
+            $('#answer-correct-'+answer_id).removeAttr('disabled');
+        }
+    }
+    $('#view-answers-buttons-'+question).css('display','None');
+    $('#edit-answers-buttons-'+question).css('display','block');
+}
+
+function cancel_edit_first_page(){
+    $('#view-first-page-buttons').css('display','block');
+    $('#edit-first-page-buttons').css('display','None');
+    $('#first-page-text').css('resize','block');
+    $('#first-page-text-div').css('display','block');
+    $('#first-page-text-edit-div').css('display','None');
+    window.MathJax.typeset();
+}
+
+function cancel_edit_section(section){
+    $('#view-header-buttons-'+section).css('display','block');
+    $('#edit-header-buttons-'+section).css('display','None');
+    $('#title-section-div-'+section).css('display','None');
+    $('#header-section-text-div-'+section).css('display','block');
+    $('#header-section-text-edit-div-'+section).css('display','None');
+    $('#header-section-'+section+'-div').load(window.location.href + " #header-section-"+section+"-div");
+    window.MathJax.typeset();
+}
+
+function cancel_edit_question(question){
+    $('#view-question-buttons-'+question).css('display','block');
+    $('#edit-question-buttons-'+question).css('display','None');
+    $('#question-answer-box-div-'+question).css('display','block');
+    $('#question-formula-div-'+question).css('display','None');
+    $('#question-text-div-'+question).css('display','block');
+    $('#question-text-edit-div-'+question).css('display','None');
+    $('#question-'+question).load(window.location.href + " #question-"+question);
+    window.MathJax.typeset();
+}
+
+function cancel_edit_answers(question,question_type){
+    container = document.getElementById('answers-containers-'+question);
+    if([1,2].includes(question_type)) {
+        answers_texts_edit_divs = container.querySelectorAll("[id^='answer-text-edit']");
+        for (var i = 0; i < answers_texts_edit_divs.length; i++) {
+            answer_id = answers_texts_edit_divs[i].id.split('-').pop();
+            $('#answer-formula-div-'+answer_id).css('display','None');
+            $('#answer-correct-'+answer_id).attr('disabled','true');
+            $('#answer-text-div-'+answer_id).css('display','block');
+            $('#answer-text-edit-div-'+answer_id).css('display','None');
+        }
+    }else{
+        answers_correct = container.querySelectorAll("[id^='answer-correct']");
+        for (var i = 0; i < answers_correct.length; i++) {
+            answer_id = answers_correct[i].id.split('-').pop();
+            $('#answer-formula-div-'+answer_id).css('display','None');
+            $('#answer-correct-'+answer_id).attr('disabled');
+        }
+    }
+    $('#view-answers-buttons-'+question).css('display','block');
+    $('#edit-answers-buttons-'+question).css('display','None');
+    $('#answers-containers-'+question).load(window.location.href + " #answers-containers-"+question);
+}
+
+function validate_first_page(){
+    ckeditor_first_page_text = window.editors['id_ckeditor_txt'];
+    value = ckeditor_first_page_text.getData();
+    $.ajax({
+        url : "{% url 'exam_update_first_page' %}",
+        type : "POST",
+        data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'exam_pk' : {{ exam.pk }},
+                'first_page_text' : value,
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#loadingModal').modal('hide');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+
+    $('#view-first-page-buttons').css('display','block');
+    $('#edit-first-page-buttons').css('display','None');
+    $('#first-page-text').css('resize','block');
+    $('#first-page-text-div').css('display','block');
+    $('#first-page-text-edit-div').css('display','None');
+    window.MathJax.typeset();
+
+}
+function validate_section(section){
+    ckeditor_section_header_text = window.editors['ckeditor_txt_section_'+section];
+    value = ckeditor_section_header_text.getData();
+
+    $.ajax({
+        url : "{% url 'exam_update_section' %}",
+        type : "POST",
+        data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'section_pk' : section,
+                'section_title' :  $('#title-section-'+section).val(),
+                'header_text' : value
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#loadingModal').modal('hide');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+
+    $('#view-header-buttons-'+section).css('display','block');
+    $('#edit-header-buttons-'+section).css('display','None');
+    $('#title-section-div-'+section).css('display','None');
+    $('#header-section-text-div-'+section).css('display','block');
+    $('#header-section-text-edit-div-'+section).css('display','None');
+    $('#header-section-'+section+'-div').load(window.location.href + " #header-section-"+section+"-div");
+    window.MathJax.typeset();
+
+}
+
+function validate_question(question){   
+    ckeditor_question_text = window.editors['ckeditor_txt_question_'+question];
+    value = ckeditor_question_text.getData();
+    
+    $.ajax({
+        url : "{% url 'exam_update_question' %}",
+        type : "POST",
+        data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'question_pk' : question,
+                'question_text' : value,
+                'question_formula' : $('#question-formula-'+question).val(),
+                'open_question_box_type' : $('input[name=question-answer-box-'+question+']:checked').val(),
+                'open_question_box_size' : $('#question-answer-box-size-'+question).val()
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#loadingModal').modal('hide');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+    
+    $('#view-question-buttons-'+question).css('display','block');
+    $('#edit-question-buttons-'+question).css('display','None');
+    $('#question-answer-box-div-'+question).css('display','block');
+    $('#question-formula-div-'+question).css('display','None');
+    $('#question-text-div-'+question).css('display','block');
+    $('#question-text-edit-div-'+question).css('display','None');
+    $('#question-'+question).load(window.location.href + " #question-"+question);
+    window.MathJax.typeset();
+    
+}
+
+function validate_answers(question,question_type){
+    var answers = [];
+    container = document.getElementById('answers-containers-'+question);
+    answers_texts_edit_divs = container.querySelectorAll("[id^='answer-text-edit']");
+    for (var i = 0; i < answers_texts_edit_divs.length; i++) {
+        answer = {}
+        answer_id = answers_texts_edit_divs[i].id.split('-').pop();
+        ckeditor_answer_text = window.editors['ckeditor_txt_answer_'+answer_id];
+        answer_value = ckeditor_answer_text.getData();
+        answer["answer_pk"] = answer_id;
+        answer["answer_text"] = answer_value;
+        answer["answer_formula"] = $('#answer-formula-' + answer["answer_pk"]).val();
+        answer["is_correct"] = $('#answer-correct-' + answer["answer_pk"]).is(':checked');
+        answers.push(answer);
+        $('#answer-formula-div-' + answer_id).css('display', 'None');
+        $('#answer-correct-' + answer_id).attr('disabled');
+        $('#answer-text-div-'+answer_id).css('display','block');
+        $('#answer-text-edit-div-'+answer_id).css('display','None');
+    }
+    $.ajax({
+        url : "{% url 'exam_update_answers' %}",
+        type : "POST",
+        data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'answers' : JSON.stringify(answers),
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#loadingModal').modal('hide');
+                $('#answers-containers-'+question).load(window.location.href + " #answers-containers-"+question);
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+
+    $('#view-answers-buttons-'+question).css('display','block');
+    $('#edit-answers-buttons-'+question).css('display','None');
+    window.MathJax.typeset();
+}
+
+function remove_answer(question,answer){
+    $.ajax({
+        url : "{% url 'exam_remove_answer' %}",
+        type : "POST",
+        data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'answer_pk':answer
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#exam_confirm_remove_dialog').modal('hide');
+                $('#loadingModal').modal('hide');
+            },
+            success: function(response) {
+                $('#answers-containers-'+question).load(window.location.href + " #answers-containers-"+question);
+                //location.reload(true);
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+}
+
+function add_answer(question,question_type){
+    $.ajax({
+        url : "{% url 'exam_add_answer' %}",
+        type : "POST",
+        data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'question_pk':question
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#loadingModal').modal('hide');
+            },
+            success: function(response) {
+                //location.reload(true);
+                edit_answers(question,question_type);
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+}
+
+
+function set_add_question_visible_fields(question_type){
+    display_open = "None"
+    display_mscq = "None"
+    if (question_type === "4") {
+        display_open = "block"
+    }else if(["1","2"].includes(question_type)){
+        display_mscq = "block"
+    }
+    $('#open_max_points_create').css("display",display_open);
+    $('#open_points_increment_create').css("display",display_open);
+    $('label[for="open_max_points_create"]').css('display', display_open);
+    $('label[for="open_points_increment_create"]').css('display', display_open);
+    $('#nb_answers_create').css("display",display_mscq);
+    $('label[for="nb_answers_create"]').css('display', display_mscq);
+}
+
+function add_question(section_pk){
+        $.ajax({
+                url : "{% url 'exam_add_section_question' %}",
+                type : "GET",
+                data : {
+                    'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                    'section_pk' : section_pk
+                    },
+                beforeSend : function(){
+                    $('#loadingModal').modal('show');
+                },
+                success: function(response) {
+                    // response is form in html format
+                    el = $('#open_max_points');
+                    $("#add-question-frm").html(response);
+                    $('#loadingModal').modal('hide');
+                    $('#open_max_points_create').css("display","None");
+                    $('#open_points_increment_create').css("display","None");
+                    $('label[for="open_max_points_create"]').css('display', "None");
+                    $('label:contains("Increment for open points")').css('display', "None");
+                    $("#add-question-modal").modal('show');
+                    //question type on change event
+                    const select = document.getElementById('question_type_choice_create');
+                    select.addEventListener('click', ({ target }) => {
+                        set_add_question_visible_fields(target.value);
+                    });
+                    $('#loadingModal').modal('hide');
+                },
+                error: (error) => {
+                    console.log(error);
+                    $('#loadingModal').modal('hide');
+                }
+        });
+    }
+
+function remove_question(section,question){
+    $.ajax({
+        url : "{% url 'exam_remove_question' %}",
+        type : "POST",
+        data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'question_pk':question
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#exam_confirm_remove_dialog').modal('hide');
+                $('#loadingModal').modal('hide');
+            },
+            success: function(response) {
+                $('#header-section-'+section+'-div').load(window.location.href + " #header-section-"+section+"-div");
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+}
+
+function remove_section(section){
+    $.ajax({
+        url : "{% url 'exam_remove_section' %}",
+        type : "POST",
+        data : {
+                'csrfmiddlewaretoken' : "{{ csrf_token }}",
+                'section_pk':section
+            },
+            beforeSend : function(){
+                $('#loadingModal').modal('show');
+            },
+            complete: function () {
+                $('#exam_confirm_remove_dialog').modal('hide');
+                $('#loadingModal').modal('hide');
+            },
+            success: function(response) {
+                window.location.reload()
+            },
+            error: (error) => {
+                console.log(error);
+            }
+    });
+}
+
+function preview_exam(){
+    $('#exam_preview_error').css("display","None");
+    $('#exam_preview_pdf').css("display","None");
+    $.ajax({
+        url : "{% url 'exam_preview_pdf' exam.pk %}",
+        type : "GET",
+        beforeSend : function(){
+            $('#loadingModal').modal('show');
+        },
+        success: (data) => {
+            if(data.endsWith('.log')){
+                 $('#exam_preview_error_message').val(data);
+                 $('#exam_preview_error').css("display","block");
+                 $('#exam_preview_dialog').modal('show');
+            }else{
+                $('#exam_preview_pdf').attr("src",data);
+                $('#exam_preview_pdf').css("display","block");
+                $('#exam_preview_dialog').modal('show');
+            }
+            $('#loadingModal').modal('hide');
+        },
+        error: (error) => {
+            console.log(error);
+            $('#loadingModal').modal('hide');
+        }
+    });
+
+}
+</script>
+{% endif %}
+{% endblock %}

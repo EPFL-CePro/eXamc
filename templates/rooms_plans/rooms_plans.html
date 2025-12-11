@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+{% block extra_head %}
+    <style>
+        .tooltip-icon {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #0048ff;
+        }
+    </style>
+{% endblock %}
+{% block title %}Seating plan{% endblock %}
+{% block content %}
+    <h3><i class="fa-solid fa-meteor" style="margin-right:5px;"></i>Seating map</h3>
+    <p>This website is under development, please contact lucile.pinard@epfl.ch in case of issue</p>
+
+    <ul class="nav nav-pills flex-column flex-sm-row border">
+        <li class="nav-item">
+            <a class="flex-sm-fill text-sm-center nav-link {% if request.path == '/generate_room_plan/' %}active{% endif %}"
+            href="/generate_room_plan/">
+                Default
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="flex-sm-fill text-sm-center nav-link {% if request.path == '/generate_room_plan/special' %}active{% endif %}"
+            href="/generate_room_plan/special">
+                Special
+            </a>
+        </li>
+    </ul>
+
+    <form id="special-form" method="post" enctype="multipart/form-data">
+    
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="fieldWrapper row" id="DIV-{{ field.name }}"
+                 style="padding: 10px;">
+                {% if field.help_text %}
+                    <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
+                {% endif %}
+                <div class="col col-sm-2">
+                    {{ field.label_tag }}
+                </div>
+                <div class="col col-sm-4">
+                    {{ field }}
+                </div>
+            </div>
+        {% endfor %}
+        <button class="btn btn-dark btn-sm" type="submit" name="action" value="download">Download Seat Map</button>
+        <button class="btn btn-dark btn-sm" type="submit" name="action" value="preview">Preview Seat Map</button>
+
+    
+    </form>
+    <br>
+    <br>
+    <div class="row">
+        {% for export_file in export_files %}
+            <div class="col-md-4">
+                <img src="{{ export_file }}" class="img-fluid" alt="Seating Map">
+            </div>
+        {% endfor %}
+    </div>
+    <script>
+        function showHideLastNumber() {
+            
+            num_option = $('input[name="fill_all_seats"]').is(':checked')
+            console.log("num_opt: ", num_option);
+            var el = $("#DIV-last_seat_number");
+            if (num_option) {
+                el.hide();
+            } else {
+                el.show();
+            }
+        }
+
+        $(document).ready(function () {
+            $('[data-toggle="popover"]').popover({
+                trigger: 'focus',
+                placement: 'top'
+            });
+            $('[data-toggle="tooltip"]').tooltip();
+            
+        });
+    </script>
+{% endblock %}

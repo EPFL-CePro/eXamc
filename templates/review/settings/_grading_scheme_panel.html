@@ -1,0 +1,93 @@
+<div id="scheme-wrapper-{{ grading_scheme.id }}">
+  <div class="card">
+    <div class="card-body">
+      <form method="post"
+          hx-post="{% url 'grading_scheme_panel' exam_selected.pk  grading_scheme.id %}"
+          hx-target="#grading-scheme-panel"
+          hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="row align-items-start" style="--bs-gutter-x: 2rem; --bs-gutter-y: .5rem;margin-bottom: 1rem;">
+            <div class="col-12 col-md-3">
+              <label for="{{ grading_scheme_form.name.id_for_label }}" class="form-label">Name</label>
+              {{ grading_scheme_form.name }}
+              {% if grading_scheme_form.name.errors %}
+                <div class="invalid-feedback d-block">{{ grading_scheme_form.name.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-12 col-md-2">
+              <label for="{{ grading_scheme_form.max_points.id_for_label }}" class="form-label">Max points</label>
+              {{ grading_scheme_form.max_points }}
+              {% if grading_scheme_form.max_points.errors %}
+                <div class="invalid-feedback d-block">{{ grading_scheme_form.max_points.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-12 col-md-7">
+              <label for="{{ grading_scheme_form.description.id_for_label }}" class="form-label">Description</label>
+              {{ grading_scheme_form.description }}
+              {% if grading_scheme_form.description.errors %}
+                <div class="invalid-feedback d-block">{{ grading_scheme_form.description.errors|striptags }}</div>
+              {% endif %}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-floppy-disk fa-lg" style="margin-right:10px;"></i>Save</button>
+        <button class="btn btn-outline-danger btn-sm"
+                hx-post="{% url 'delete_grading_scheme' exam_selected.pk grading_scheme.id %}"
+                  hx-target="#grading-scheme-panel"
+                  hx-swap="innerHTML"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>Delete</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Checkboxes (lazy) -->
+  <div class="card">
+    <div class="card-header fw-semibold">Checkboxes</div>
+    <div class="card-body"
+         id="chk-panel-{{ grading_scheme.id }}"
+         hx-get="{% url 'grading_scheme_checkboxes' exam_selected.id grading_scheme.id %}"
+         hx-trigger="revealed"
+         hx-target="this"
+         hx-swap="innerHTML">
+      <div class="text-muted">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  {#  async function mountCK5(textarea) {#}
+  {#  // avoid double-mounting#}
+  {#  if (textarea._ck5) return;#}
+  {#  textarea._ck5 = await window.ClassicEditor.create(textarea, {#}
+  {#    // keep this minimal; your CKEDITOR_5_CONFIGS still apply on the server#}
+  {#  });#}
+  {#}#}
+  {##}
+  {#function initCK5(root=document) {#}
+  {#  root.querySelectorAll('textarea.django_ckeditor_5').forEach(mountCK5);#}
+  {#}#}
+  {##}
+  {#function syncCK5(root=document) {#}
+  {#  root.querySelectorAll('textarea.django_ckeditor_5').forEach(el => {#}
+  {#    if (el._ck5) el.value = el._ck5.getData();#}
+  {#  });#}
+  {#}#}
+  {##}
+  {#document.addEventListener('DOMContentLoaded', () => initCK5());#}
+  {##}
+  {#// When HTMX swaps in your grading scheme panel or checkbox panel, init editors there#}
+  {#document.body.addEventListener('htmx:afterSwap', (evt) => {#}
+  {#  const t = evt.detail && evt.detail.target;#}
+  {#  if (!t || !t.id) return;#}
+  {#  if (t.id === 'grading-scheme-panel' || t.id.startsWith('chk-panel-')) {#}
+  {#    initCK5(t);#}
+  {#  }#}
+  {#});#}
+  {##}
+  {#// Ensure HTML is copied back into <textarea> before HTMX posts or normal submits#}
+  {#document.body.addEventListener('htmx:configRequest', (evt) => {#}
+  {#  const form = evt.detail.elt && evt.detail.elt.closest('form');#}
+  {#  if (form) syncCK5(form);#}
+  {#});#}
+  {#document.body.addEventListener('submit', (evt) => syncCK5(evt.target));#}
+</script>

@@ -1,0 +1,228 @@
+e{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% block extra_head %}
+
+<script type="text/javascript"  src="https://cdnjs.cloudflare.com/ajax/libs/jquery.textcomplete/1.8.0/jquery.textcomplete.js"></script>
+<script type="text/javascript" src="{% static 'js/jquery-comments.js' %}"></script>
+
+<script src="https://unpkg.com/@markerjs/markerjs3/umd/markerjs3.js"></script>
+
+<script type="text/javascript" src="{% static 'js/jspolygon.js' %}"></script>
+
+<!-- MathJax -->
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js">
+</script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/jquery-comments.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/reviewGroup.css' %}">
+
+{% endblock %}
+
+{% block title %}Review {{ pages_group }}{% endblock %}
+{% block scripts %}
+{% endblock %}
+
+{% block content %}
+{% if user.pk|is_review_blocked:exam_selected.pk %}
+    <div class="alert alert-warning" role="alert">
+        You are currently blocked for Review! <br><br> Please contact the teacher to be unblocked.
+    </div>
+{% else %}
+    {%  if copies_pages_list %}
+    <div class="row" style="height:50px;">
+        <div class="column" style="width:300px;margin-left:15px;">
+            <a href="{% url 'reviewView' exam_selected.pk %}" class="btn btn-dark btn-sm"><i class="fas fa-arrow-left fa-lg" style="margin-right:10px;"></i>Back to Summary</a>
+        </div>
+        <div class="column" style="margin-left:50px;">
+            <h3><i class="fas fa-glasses fa-l" style="margin-right:10px;"></i>Review {{ pages_group.group_name }}</h3>
+        </div>
+    </div>
+        <div>
+
+        </div>
+    <style>
+    :focus { outline: none; }
+    </style>
+    <div id="reviewGroup_div" class="d-flex" tabindex="0" style="height:92vh;">
+
+
+        <div id="pages_group_list" style="background-color:#f1f1f1;">
+            <a id="expandCollapseGroupListBt" type="button" data-bs-toggle="collapse" style="margin:5px 5px 5px 5px;float:right;" data-bs-target="#pages_group_list_table_div" aria-expanded="True" aria-controls="pages_group_list_table_div">
+                <i id="expand-group-list-icon" class="fa-lg" style="color:grey;"></i>
+                <i id="collapse-group-list-icon" class="fa mr-3 fa-angle-double-left" style="color:grey;"></i>
+            </a>
+            <div id="pages_group_list_table_div" class="collapse collapse-horizontal show">
+                <table class="table table-striped table-sm" id="table-copies-pages">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>id</th>
+                        <th>Copy</th>
+                        <th>Page</th>
+                        <th>Graded</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for page in copies_pages_list %}
+                    <tr id="copy_{{page.copy_no}}_{{page.page_no}}">
+                        <td>
+                            <i id="copy_{{page.copy_no}}_{{page.page_no}}_id" name="{{ forloop.counter }}" class="fa-solid fa-lock fa-xs" style="display:None; color: #df8134;"></i>
+                        </td>
+                        <td style="text-align:left;">
+                            {{ forloop.counter }}
+                        </td>
+                        <td style="text-align:left;">{{ page.copy_no }}</td>
+                        <td style="text-align:center;">{{ page.page_no }}</td>
+                        <td id="copy_{{page.copy_no}}_{{page.page_no}}_marked" style="text-align: center;padding-top:20px;">{% if page.marked %}<i class="fa-solid fa-circle-check fa-lg">{% endif %}</i></td>
+                        <td>
+                            {% if page.comment %}
+                            <i class="fas fa-comments fa-lg"></i>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="list-group" id="review-center-div" style="height:100%;margin-left:5px;width:60vw;position:relative;" >
+            <div id="pagination" class="list-group list-group-horizontal"></div>
+            <div id="copy_page_select" style="z-index:99;position:absolute;margin-top:100px;right:20px;"></div>
+            <div id="markerjs_div">
+                <div id="mjs-toolbar" class="markerjs-toolbar d-flex">
+                    <div class="toolbar-left d-flex">
+                        <button type="button" class="btn btn-light" id="btn-clear"><i class="fa-solid fa-broom fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-undo"><i class="fa-solid fa-arrow-rotate-left fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-redo"><i
+                                class="fa-solid fa-arrow-rotate-right fa-lg"></i>
+                        </button>
+                    </div>
+                    <div id="mjs-toolbar-center" class="toolbar-center d-flex">
+                        <button type="button" class="btn btn-light" id="btn-pointer"><i
+                                class="fa-solid fa-arrow-pointer fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-text-marker"><i class="fa-solid fa-t fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-freehand-marker">
+                            <i class="fa-solid fa-s fa-lg" style="margin-top:10px;transform:scaleY(-1) rotate(55deg);"></i>
+                            <i class="fa-solid fa-pencil fa-lg" style="margin-left:0px;"></i>
+                        </button>
+                    </div>
+                    <div class="toolbar-right d-flex">
+                        <p id="magnify-help" class="text-muted small d-none">
+                          Tip: click outside the image to stop magnifying.
+                        </p>
+                        <button type="button" class="btn btn-light" id="btn-magnify"><i class="fa-solid fa-magnifying-glass-plus fa-lg"></i></button>
+                    </div>
+                </div>
+                <div id="mjsapp" class="col-xs-6">
+                    <div id ="marker-wrapper">
+                        <div id="corr_box_div" class="corr-box-div"></div>
+                    </div>
+                </div>
+                <div id="mjs-bottom-bar" class="markerjs-bottom-bar">
+                    <div class="color-picker-wrapper">
+                        <button type="button" class="btn btn-light" id="btn-color"><i class="fa-solid fa-palette fa-lg"></i></button>
+
+                        <input type="color"
+                           class="form-control form-control-color"
+                           id="color-input"
+                           value="#CCCCCC"
+                           title="Choose a color"
+                           style="position:absolute; left:-9999px; width:0; height:0; opacity:0;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="height:100%;">
+            <p style="margin-right:20px;margin-top:10px;">
+                <a title="Discussion"
+                   class="js-toggle-comments"
+                   type="button"
+                   data-bs-toggle="modal"
+                   style="float:right;"
+                   data-bs-target="#commentsModal"
+                   aria-expanded="false"
+                   aria-controls="comments-div">
+                    <i id="comment-icon" class="fas fa-comments fa-2x" style="margin-left:10px;"></i>
+                </a>
+            </p>
+            {% if pages_group.use_grading_scheme %}
+                <div id="grading-scheme-div" style="position:relative;height:100%;background-color:#f1f1f1;padding:5px;padding-top:10px;margin-top:-19px;">
+                    <h6>Grading Schemes</h6>
+
+                    <ul class="nav nav-pills flex-column flex-md-row border" id="review-scheme-pills">
+                        {% for gs in grading_schemes %}
+                            <li class="nav-item" role="presentation">
+                                <a type="button"
+                                   id="review-scheme-link-{{ gs.id }}"
+                                   class="nav-link js-scheme-link {% if current_grading_scheme and current_grading_scheme.id == gs.id %}active{% endif %}"
+                                   aria-selected="{% if current_grading_scheme and current_grading_scheme.id == gs.id %}true{% else %}false{% endif %}"
+                                   data-exam-id="{{ exam_selected.id }}"
+                                   hx-trigger="never"
+                                   data-hx-get="{% url 'review_grading_scheme_panel' exam_selected.id gs.id 0 %}"
+                                   onclick="return sendScheme(this, event)">
+                                    {{ gs.name }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <div id="review-scheme-panel" class="tab-content"></div>
+                    <!-- Overlay (initially hidden) -->
+                    <div class="alert alert-warning block-overlay" id="grading-scheme-block-overlay">
+                        <span>Please return to a page linked to the review group in order to use the grading schemes.</span>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+        <div class="modal" id="commentsModal" tabindex="-1" aria-labelledby="commentsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header handle">
+                        <h5 class="modal-title" id="commentsModalLabel">
+                            <i class="fas fa-comments fa-lg"></i> Discussion
+                        </h5>
+                    </div>
+                    <div class="modal-body p-0">
+                        <div id="comments-container" style="padding:5px;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            window.REVIEW_GROUP_CONFIG = {
+                examId: {{ exam_selected.pk }},
+                pagesGroupId: {{ pages_group.id }},
+                useGradingScheme: {{ pages_group.use_grading_scheme|yesno:"true,false" }},
+                userId: {{ user.id }},
+                currPage: {{ currpage|default:"0" }},
+                csrfToken: "{{ csrf_token }}",
+
+                urls: {
+                    reviewStudentPageLocked: "{% url 'review_student_pages_group_is_locked' exam_selected.pk %}",
+                    getMarkersAndComments: "{% url 'get_markers_and_comments' exam_selected.pk %}",
+                    getCopyPage: "{% url 'get_copy_page' exam_selected.pk %}",
+                    saveMarkers: "{% url 'save_markers' exam_selected.pk %}",
+                    saveComment: "{% url 'save_comment' exam_selected.pk %}",
+                    updatePagesGroupCheckBox: "{% url 'update_pages_group_check_box' exam_selected.id %}",
+                    reviewGradingSchemePanelBase: "{% url 'review_grading_scheme_panel' exam_selected.id 0 0 %}"
+                },
+
+                // JSON already generated on the server
+                copiesPagesList: {{ json_copies_pages_list|safe }},
+                totalCopiesPages: {{ copies_pages_list|length }}
+            };
+        </script>
+
+        <script src="{% static 'js/reviewGroup.js' %}"></script>
+    {% else %}
+    <div class="alert alert-warning" role="alert" style="margin-top:20px;text-align:center;">No scans uploaded !</div>
+    {% endif %}
+{% endif %}
+    {% endblock %}

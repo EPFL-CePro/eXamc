@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -e
+
+# Block staging of .env files (except .env.example) and DB dumps under deploy/db/
+# - Allows only the exact file ".env.example" at the repo root.
+if git diff --cached --name-only \
+  | grep -E -v '^\.env\.example$' \
+  | grep -E '^\.env($|\.)|^deploy/db/.*\.(sql|sql\.gz|tar|tar\.gz)$' >/dev/null; then
+  echo "❌ Reject: you're about to commit a .env file or a database dump."
+  echo "   Move these files out of Git or add them to .gitignore."
+  exit 1
+fi

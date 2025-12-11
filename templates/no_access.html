@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+
+     {% if user.is_authenticated %}
+        <div class="jumbotron text-center">
+            <div class="alert alert-danger" role="alert">
+              {{ message }}
+            </div>
+        </div>
+     {% else %}
+
+        <div class="jumbotron text-center">
+            <h1>EXAMS-Stats</h1>
+            <a type="button" class="btn btn-dark" href="/oidc/authenticate">EPFL(Entra ID) login</a>
+            <a type="button" class="btn btn-dark" href="/login_form">login</a>
+            <br>
+            <br>
+            <a type="button" class="btn btn-dark" href="/generate_room_plan">Room plan</a>
+
+
+        </div>
+
+     {% endif %}
+
+{% endblock %}

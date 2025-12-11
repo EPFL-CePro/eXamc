@@ -1,0 +1,49 @@
+# examc/compose/test.yml
+services:
+  web:
+    user: "1000:2770"
+    restart: unless-stopped
+    volumes:
+      - static_volume:/static:ro    # static
+      - media_volume:/media:ro
+      - /srv/examc/private_media:/private_media:rw
+    # healthcheck
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H 'Host: examc.epfl.ch' http://127.0.0.1:8000/healthz/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+  nginx:
+    restart: unless-stopped
+    volumes:
+      - /srv/examc/certs/:/etc/nginx/certs:ro  # certs
+      - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/static:ro    # nginx static
+      - media_volume:/media:ro
+      - /srv/examc/private_media:/private_media:ro
+      - client_temp:/var/cache/nginx/client_temp
+    ports:
+      - "127.0.0.1:8080:80"
+      #- "8443:443"
+
+  mysql:
+    profiles: ["mysql-dockerized"]
+
+  redis:
+    restart: unless-stopped
+
+  celery:
+    restart: unless-stopped
+    environment:
+      CELERY_LOGLEVEL: "INFO"
+      CELERY_CONCURRENCY: "4"
+    volumes:
+      - /srv/examc/private_media:/private_media:rw
+
+  celery_beat:
+    restart: unless-stopped
+    environment:
+      CELERY_LOGLEVEL: "INFO"
+    volumes:
+      - /srv/examc/private_media:/private_media:rw

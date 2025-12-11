@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load django_tables2 %}
+{% block title %}Select Exam {% endblock %}
+{% block content %}
+<style>
+.table-striped tbody tr:hover{
+    cursor:pointer;
+}
+</style>
+<h4><i class="fa-solid fa-folder-open fa-l" style="margin-right:5px;"></i>Select Exam</h4>
+<div id="examList"  style="padding:10px;">
+    <div class="row">
+        <div class="col-sm-10">
+            {% include "django_tables2/bootstrap4.html" %}
+        </div>
+    </div>
+</div>
+<script>
+
+$('#select_exam_table_id').DataTable( {
+    paging:   true,
+    pageLength:50,
+    "bLengthChange": false,
+    "bInfo" : false,
+    scrollY: '79vh',
+    order:[],
+} );
+$("tr").click(function() {
+    tr = this;
+    td = tr.childNodes[1];
+    url = td.childNodes[0].innerHTML;
+    window.location =  url;
+});
+</script>
+{% endblock %}
