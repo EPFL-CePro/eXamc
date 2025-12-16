@@ -2,8 +2,8 @@
 Grading schemes
 ##############################
 
-Review Settings - Grading schemes
-----------------------------------
+Review Settings - Grading schemes :
+
 Grading schemes are a way of marking exams by adding predefined points. The corrector simply clicks on them.
 Different grading schemes can be used to provide multiple ways of marking the exam.
 
@@ -23,8 +23,8 @@ After that steps should be done :
 - Write the description of the grading (the way it will be corrected).
 - Save the modifications with the "save" button.
 
-Review settings - checkboxes
---------------------------------
+Review settings - checkboxes :
+
 These are separate answers. Each one has a name, points and a description.
 
 To add a checkbox, click on the green button "+" at the bottom. To create a checkbox:
@@ -38,8 +38,8 @@ To add a checkbox, click on the green button "+" at the bottom. To create a chec
   :width: 800
 
 
-During the correction
------------------------
+During the correction :
+
 
 The checkboxes are displayed as follows:
 

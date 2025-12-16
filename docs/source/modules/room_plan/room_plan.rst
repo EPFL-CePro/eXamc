@@ -47,3 +47,9 @@ Procedure:
 
    Info bubbles are available directly on the page
 
+.. toctree::
+   :maxdepth: 4
+
+   room_plan_special
+
+
