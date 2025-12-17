@@ -47,6 +47,7 @@ Contents
    modules/open_exam/open_exam
    modules/create_exam/create_exam
    modules/room_plan/room_plan
+   modules/room_plan/room_plan_special
    modules/exam_info/exam_info
    modules/review/review
    modules/amc/amc
