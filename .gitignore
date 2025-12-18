@@ -7293,3 +7293,4 @@ certs/
 *.pem
 .run_configurations/
 .gitignore
+.env.dev
