@@ -344,8 +344,8 @@ def questions_statistics_view(request,exam_pk):
             if currexam.overall:
                 question_stat_by_teacher_list = get_questions_stats_by_teacher(currexam)
 
-            mcq_questions = Question.objects.filter(exam=currexam).exclude(question_type__id=4)
-            open_questions = Question.objects.filter(exam=currexam,question_type__id=4)
+            mcq_questions = Question.objects.filter(exam=currexam,removed_from_common=False).exclude(question_type__id=4)
+            open_questions = Question.objects.filter(exam=currexam,question_type__id=4,removed_from_common=False)
 
             for question in open_questions.all():
                 print(question)

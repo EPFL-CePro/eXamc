@@ -266,7 +266,7 @@ def get_exam_teachers_short_str(exam_id):
 @register.filter
 def get_sum_questions_points(exam_id):
     exam = Exam.objects.get(pk=exam_id)
-    return exam.questions.all().aggregate(Sum('max_points')).get('max_points__sum')
+    return exam.questions.filter(removed_from_common=False).aggregate(Sum('max_points')).get('max_points__sum')
 
 @register.simple_tag
 def get_logo_url():

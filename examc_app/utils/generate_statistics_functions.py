@@ -39,75 +39,75 @@ from ..models import *
 #
 #     return True
 
-def update_overall_common_exam(exam):
-    if not exam.overall:
-        overall_code = '000_'+re.sub(r"\(.*?\)", "", exam.code).strip()
-        month_year = exam.date.strftime("%m-%Y")
-        overall_code += "_"+month_year
-        overall_exam, created = Exam.objects.get_or_create(code = overall_code,semester = exam.semester,year = exam.year)
-        if created:
-            overall_exam.name = 'COMMON'
-            overall_exam.pdf_catalog_name = exam.pdf_catalog_name
-            overall_exam.overall = True
-            overall_exam.date = exam.date
-            overall_exam.save()
-
-        # delete existing stats and questions
-        Question.objects.filter(exam__pk=overall_exam.pk).delete()
-        AnswerStatistic.objects.filter(question__exam=overall_exam).delete()
-        ScaleStatistic.objects.filter(exam=overall_exam).delete()
-        ScaleDistribution.objects.filter(scale_statistic__exam=overall_exam).delete()
-
-
-        # copy common questions
-        for question in exam.questions.all().filter(common=True):
-            question.pk = None
-            question.exam = overall_exam
-            question.save()
-    else:
-        overall_exam = exam
-
-    # init common exams
-    overall_exam = update_common_exams(overall_exam.pk)
-    # logger.info(overall_exam.questions.all())
-    # update overall present students
-    overall_exam.present_students = int(Student.objects.filter(exam__in=overall_exam.common_exams.all(), present=True).count())
-    overall_exam.save()
-
-
-    # copy scales from other commons
-    for comex in overall_exam.common_exams.all():
-        for scale in comex.scales.all():
-            if not Exam.objects.filter(pk=overall_exam.pk, scales__name=scale.name).exists():
-                overall_exam.scales.add(scale)
-                overall_exam.save()
-         # copy scales to other commons
-        for scale in overall_exam.scales.all():
-            scale_comex, created = Scale.objects.get_or_create(exam=comex,name = scale.name,total_points=scale.total_points)
-            if created:
-                scale_comex.total_points = scale.total_points
-                scale_comex.points_to_add = scale.points_to_add
-                scale_comex.min_grade = scale.min_grade
-                scale_comex.max_grade = scale.max_grade
-                scale_comex.rounding = scale.rounding
-                scale_comex.formula = scale.formula
-                scale_comex.save()
-        # update common questions to other commons
-        for question in comex.questions.all():
-            overall_question = Question.objects.filter(code=question.code, exam=overall_exam).first()
-            if overall_question :
-                # logger.info(comex)
-                # logger.info(question.code)
-                # logger.info(comex.pk)
-                question.common = True
-                question.question_type = overall_question.question_type
-                question.nb_answers = overall_question.nb_answers
-                question.max_points = overall_question.max_points
-            else:
-                question.common = False
-            question.save()
-
-    return overall_exam
+# def update_overall_common_exam(exam):
+#     if not exam.overall:
+#         overall_code = '000_'+re.sub(r"\(.*?\)", "", exam.code).strip()
+#         month_year = exam.date.strftime("%m-%Y")
+#         overall_code += "_"+month_year
+#         overall_exam, created = Exam.objects.get_or_create(code = overall_code,semester = exam.semester,year = exam.year)
+#         if created:
+#             overall_exam.name = 'COMMON'
+#             overall_exam.pdf_catalog_name = exam.pdf_catalog_name
+#             overall_exam.overall = True
+#             overall_exam.date = exam.date
+#             overall_exam.save()
+#
+#         # delete existing stats and questions
+#         Question.objects.filter(exam__pk=overall_exam.pk).delete()
+#         AnswerStatistic.objects.filter(question__exam=overall_exam).delete()
+#         ScaleStatistic.objects.filter(exam=overall_exam).delete()
+#         ScaleDistribution.objects.filter(scale_statistic__exam=overall_exam).delete()
+#
+#
+#         # copy common questions
+#         for question in exam.questions.all().filter(common=True):
+#             question.pk = None
+#             question.exam = overall_exam
+#             question.save()
+#     else:
+#         overall_exam = exam
+#
+#     # init common exams
+#     overall_exam = update_common_exams(overall_exam.pk)
+#     # logger.info(overall_exam.questions.all())
+#     # update overall present students
+#     overall_exam.present_students = int(Student.objects.filter(exam__in=overall_exam.common_exams.all(), present=True).count())
+#     overall_exam.save()
+#
+#
+#     # copy scales from other commons
+#     for comex in overall_exam.common_exams.all():
+#         for scale in comex.scales.all():
+#             if not Exam.objects.filter(pk=overall_exam.pk, scales__name=scale.name).exists():
+#                 overall_exam.scales.add(scale)
+#                 overall_exam.save()
+#          # copy scales to other commons
+#         for scale in overall_exam.scales.all():
+#             scale_comex, created = Scale.objects.get_or_create(exam=comex,name = scale.name,total_points=scale.total_points)
+#             if created:
+#                 scale_comex.total_points = scale.total_points
+#                 scale_comex.points_to_add = scale.points_to_add
+#                 scale_comex.min_grade = scale.min_grade
+#                 scale_comex.max_grade = scale.max_grade
+#                 scale_comex.rounding = scale.rounding
+#                 scale_comex.formula = scale.formula
+#                 scale_comex.save()
+#         # update common questions to other commons
+#         for question in comex.questions.all():
+#             overall_question = Question.objects.filter(code=question.code, exam=overall_exam).first()
+#             if overall_question :
+#                 # logger.info(comex)
+#                 # logger.info(question.code)
+#                 # logger.info(comex.pk)
+#                 question.common = True
+#                 question.question_type = overall_question.question_type
+#                 question.nb_answers = overall_question.nb_answers
+#                 question.max_points = overall_question.max_points
+#             else:
+#                 question.common = False
+#             question.save()
+#
+#     return overall_exam
 
 def generate_exam_stats(exam,progress_recorder,process_number,process_count):
     logger.info("GEN STATS for "+exam.code)
@@ -151,7 +151,10 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
             student_lower_list = list(student_lower_list)
             student_upper_list = list(student_upper_list)
 
-            question_list = exam.questions.all()
+            if exam.is_overall():
+                question_list = Question.objects.filter(exam=exam,removed_from_common=False).all()
+            else:
+                question_list = exam.questions.all()
 
             process_number += 1
             progress_recorder.set_progress(process_number, process_count,

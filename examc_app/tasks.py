@@ -3,6 +3,7 @@ import glob
 import json
 import os
 import pathlib
+import re
 import shutil
 import time
 import zipfile
@@ -19,7 +20,7 @@ from fpdf import FPDF
 from django.conf import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock
 from examc_app.utils.amc_functions import amc_automatic_data_capture
-from examc_app.utils.generate_statistics_functions import generate_exam_stats, update_overall_common_exam
+from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
 
@@ -384,7 +385,15 @@ def generate_statistics(self,exam_pk):
         if exam.common_exams.all():
             process_number += 1
             progress_recorder.set_progress(process_number, process_count, description='Updating common exams...')
-            overall_exam=update_overall_common_exam(exam)
+
+            if not exam.overall:
+                overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
+                month_year = exam.date.strftime("%m-%Y")
+                overall_code += "_" + month_year
+                overall_exam = Exam.objects.get(code=overall_code, semester=exam.semester, year=exam.year)
+            else:
+                overall_exam = exam
+            #overall_exam=update_overall_common_exam(exam)
             generate_exam_stats(overall_exam,progress_recorder,process_number,process_count)
         else:
             generate_exam_stats(exam,progress_recorder,process_number,process_count)

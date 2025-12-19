@@ -345,7 +345,7 @@ $(window).on("load",function(){
               <i class="fas fa-circle" style="font-size:18px;color:red;margin-left:10px;"></i> Best students have been less successful than worse students.
 
                 <p style="margin-top:20px;">
-                discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ exam_selected.students.all|length }} students)
+                discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ exam_selected.present_students }} students)
                 </p>
             </h6>
             {% if mcq_questions or open_questions %}
@@ -435,9 +435,6 @@ $(window).on("load",function(){
                         <div id="open_questions_statistics_div">
                             <table id="questions_statistics_open_dt" class="table table-striped table-sm">
                             <thead>
-                              <tr>
-                                <th colspan="7">discriminatory factor : {{ discriminatory_factor }}% ({{ discriminatory_qty }} / {{ exam_selected.students.all|length }} students)</th>
-                              </tr>
                               <tr>
                                 <th></th>
                                 <th>Question</th>

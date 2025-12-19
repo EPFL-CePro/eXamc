@@ -194,7 +194,13 @@ class Question(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField(blank=True,null=True,default='')
     formula = models.TextField(blank=True,null=True,default='')
+    removed_from_common = models.BooleanField(default=False)
     history = HistoricalRecords()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["exam", "code"], name="uniq_question_exam_code")
+        ]
 
     def is_common(self):
         return bool(self.common)
@@ -352,6 +358,11 @@ class Scale(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scales', null=True)
     final = models.BooleanField(default=0)
     history = HistoricalRecords()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["exam", "name"], name="uniq_scale_name_per_exam"),
+        ]
 
     def __str__(self):
         if self.exam:
