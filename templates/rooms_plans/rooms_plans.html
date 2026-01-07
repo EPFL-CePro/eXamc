@@ -36,7 +36,7 @@
         {% csrf_token %}
         {% for field in form %}
             <div class="fieldWrapper row" id="DIV-{{ field.name }}"
-                 style="padding: 10px;">
+                 style="padding: 10px;{% if field.name == 'special_file' and not form.initial.special_file %}display:none;{% endif %}">
                 {% if field.help_text %}
                     <i class="fas fa-info-circle tooltip-icon" data-toggle="tooltip" data-placement="top" title="{{ field.help_text }}"></i>
                 {% endif %}
@@ -45,6 +45,11 @@
                 </div>
                 <div class="col col-sm-4">
                     {{ field }}
+                    {% if field.name == 'special_file' %}
+                        <label class="custom-file-label custom-file-label small">Choose a csv file
+                            <input class="custom-file-input form-control" type="file" name="{{ field.name }}" accept="text/csv">
+                        </label>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}
@@ -63,6 +68,18 @@
         {% endfor %}
     </div>
     <script>
+
+        function showHideSpecialFile() {
+            skip_option = document.querySelector('input[name="skipping_option"]:checked').value;
+            numbering_option = document.querySelector('input[name="numbering_option"]:checked').value;
+            var el = $("#DIV-special_file");
+            if (skip_option === 'skip' || numbering_option === 'special') {
+                el.show();
+            } else {
+                el.hide();
+            }
+        }
+
         function showHideLastNumber() {
             
             num_option = $('input[name="fill_all_seats"]').is(':checked')
@@ -81,6 +98,7 @@
                 placement: 'top'
             });
             $('[data-toggle="tooltip"]').tooltip();
+            showHideSpecialFile('');
             
         });
     </script>
