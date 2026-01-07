@@ -110,7 +110,11 @@ def user_allowed(exam, user_id):
 def serve_signed_file(request):
     token = request.GET.get("token")
     if not token:
-        raise Http404("Missing token")
+        rooms_plans = request.GET.get("rooms_plans")
+        if rooms_plans:
+            return FileResponse(open(str(settings.ROOMS_PLANS_ROOT)+rooms_plans,"rb"), as_attachment=False)
+        else:
+            raise Http404("Missing token")
     try:
         full_path = verify_and_get_path(
             token,

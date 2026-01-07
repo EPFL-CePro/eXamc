@@ -286,7 +286,7 @@ class GenerateRoomPlanView(FormView):
                 export_file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
                 if os.path.exists(export_file_path):
                     export_files.append(export_file_path)
-                    export_file_url = os.path.join(settings.ROOMS_PLANS_URL, "export", export_file)
+                    export_file_url = "/protected/?rooms_plans=/export/"+export_file#+os.path.join(settings.ROOMS_PLANS_URL, "export", export_file)
                     export_files_url.append(export_file_url)
 
                     zip_filename = f'seat_map_{user_token}_export.zip'
