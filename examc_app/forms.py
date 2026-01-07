@@ -204,6 +204,24 @@ class SeatingForm(forms.Form):
         )
     )
 
+    numbering_option = forms.ChoiceField(
+        choices=[('continuous', 'Continuous'), ('special', 'Special')],
+        label='Numbering Option',
+        help_text="Select how seats are numbered. The special option is used for student needs. Upload a .csv with "
+                  "the special numbers. Fill in the first and last number then download. The numbers will be the one "
+                  "that are in the special file.",
+        widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value);"}),
+        initial='continuous'
+    )
+
+    skipping_option = forms.ChoiceField(
+        choices=[('noskip', 'No skip'), ('skip', 'Skip')],
+        label='Skip Option',
+        help_text="Choose whether to skip seats. Upload a .csv with the numbers to skip.",
+        widget=forms.RadioSelect(attrs={'onchange': "showHideSpecialFile(this.value)", 'id': 'id_skipping_option'}),
+        initial='noskip'
+    )
+
     fill_all_seats = forms.BooleanField(
         required=False,
         help_text="Fill all seats of the plans from the first number to the end of the plan.",
@@ -222,6 +240,13 @@ class SeatingForm(forms.Form):
         help_text="Enter the last seat number.",
         widget=forms.NumberInput(attrs={'id': 'id_last_seat_number'}),
         required=False
+    )
+
+    special_file = forms.FileField(
+        label='Special File',
+        required=False,
+        help_text="Upload a file for special seat numbers or skipping. A CSV file with all the numbers you want to skip or add.",
+        widget=forms.ClearableFileInput(attrs={'id': 'id_special_file'})
     )
 
     shape_to_draw = forms.ChoiceField(
