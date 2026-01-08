@@ -110,6 +110,7 @@ pyzbar==0.1.9
 pyzmq==27.0.0
 redis==7.0.1
 referencing==0.36.2
+reportlab==4.4.7
 requests==2.32.4
 roman-numerals-py==3.1.0
 rpds-py==0.26.0

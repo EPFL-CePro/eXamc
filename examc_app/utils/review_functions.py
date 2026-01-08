@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import time
+from decimal import Decimal
 from fileinput import filename
 from functools import lru_cache
 from os.path import isdir
@@ -24,7 +25,7 @@ import pyzbar.pyzbar as pyzbar
 from datetime import datetime
 
 from examc_app.signing import make_token_for
-from examc_app.utils.amc_db_queries import get_questions, get_question_start_page_by_student
+from examc_app.utils.amc_db_queries import get_questions, get_question_start_page_by_student, get_question_number
 from examc_app.utils.amc_functions import get_amc_project_path
 
 
