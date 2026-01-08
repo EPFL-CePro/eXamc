@@ -109,6 +109,12 @@ CSV_TO_JPG_MAP = {
     'STCC_F.csv': 'STCC_F.jpg',
     'STCC_G.csv': 'STCC_G.jpg',
     'STCC_H.csv': 'STCC_H.jpg',
+    'STCC_Garden.csv': 'STCC_Garden.jpg',
+    'STCC_Garden_I.csv': 'STCC_Garden.jpg',
+    'STCC_Garden_J.csv': 'STCC_Garden.jpg',
+    'STCC_Garden_K.csv': 'STCC_Garden.jpg',
+    'STCC_Garden_L.csv': 'STCC_Garden.jpg',
+    'STCC_Garden_M.csv': 'STCC_Garden.jpg',
 }
 
 
