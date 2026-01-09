@@ -831,8 +831,7 @@ def amc_mark_subprocess(request, exam,update_scoring_strategy):
                              '--grain ' + grain + ' '
                              '--arrondi ' + round_grade + ' '
                              '--notemin ' + notemin + ' '
-                             '--notemax ' + notemax + ' '
-                             '--plafond ' + plafond + ' ']
+                             '--notemax ' + notemax + ' ']
     errors = ''
     with subprocess.Popen(command,shell=True,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
         with open(project_path+'/amc-compiled.amc', 'r') as file:
@@ -878,10 +877,11 @@ def get_questions_scoring_details_list(exam):
                     new_copy = True
                     last_copy = value
 
-                if new_copy and key not in ['question','score','max_question']:
+                if new_copy and key not in ['question','score','max_question','mark']:
                     q_scoring_details_copy[key] = value
-                    if key == 'mark':
-                        new_copy = False
+                elif key == 'mark':
+                    new_copy = False
+
                 elif not new_copy and key in ['question','score','max_question']:
                     if key == 'question':
                         if q_question_scoring:
