@@ -1296,21 +1296,36 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
 
             for grading_scheme_checkbox in grading_scheme_checkboxes:
                 add_row = True
-                pg_checked_box = PagesGroupGradingSchemeCheckedBox.objects.filter(
+                row_points = 0
+                pg_checked_box_qs = PagesGroupGradingSchemeCheckedBox.objects.filter(
                     gradingSchemeCheckBox_id=grading_scheme_checkbox.id,
                     copy_nr=student.copie_no.zfill(4)
-                ).exists()
+                )
+                pg_checked_box_item = None
+                if pg_checked_box_qs.exists():
+                    pg_checked_box = True
+                    pg_checked_box_item = pg_checked_box_qs.all().first()
+                else:
+                    pg_checked_box = False
 
-                if grading_scheme_checkbox.name == 'ZERO' or (grading_scheme_checkbox.name == 'ADJ' and grading_scheme_checkbox.points == 0):
+                if grading_scheme_checkbox.name == 'ZERO' or (grading_scheme_checkbox.name == 'ADJ' and (not pg_checked_box_item or pg_checked_box_item.adjustment == 0)):
                     add_row = False
 
-                if pg_checked_box and add_row:
-                    points += grading_scheme_checkbox.points
+                if add_row:
+                    if pg_checked_box:
+                        if grading_scheme_checkbox.name == 'ADJ':
+                            row_points += pg_checked_box_item.adjustment
+                            max_points += row_points
+                        else:
+                            row_points = grading_scheme_checkbox.points
+                        points += row_points
+                    else:
+                        row_points = grading_scheme_checkbox.points
 
                 if add_row:
-                    description = 'Adjustment' if grading_scheme_checkbox.name == 'ZERO' else grading_scheme_checkbox.name
+                    description = 'Adjustment' if grading_scheme_checkbox.name == 'ADJ' else grading_scheme_checkbox.name
 
-                    table_rows.append([description, str(grading_scheme_checkbox.points), "✔" if pg_checked_box else "✘" ])
+                    table_rows.append([description, str(row_points), "✔" if pg_checked_box else "✘" ])
 
             table_rows.append(["Total", max_points, points])
 
@@ -1333,6 +1348,14 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
             c.drawString(2 * cm, y, q_title)
             y -= 0.8 * cm
 
+            # Compute column widths: table matches header line width
+            table_width = width - 4 * cm  # same width as header line
+            desc_w = 12 * cm  # keep fixed
+            remaining = table_width - desc_w
+            points_w = remaining / 2
+            validated_w = remaining / 2
+            col_widths = [desc_w, points_w, validated_w]
+
             # Measure table height
             table = Table(data, colWidths=[12 * cm, 3 * cm, 3 * cm])
             w, table_height = table.wrap(0, 0)
@@ -1354,7 +1377,7 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
                 data,
                 x=2 * cm,
                 y=y,
-                col_widths=[12 * cm, 3 * cm, 3 * cm]
+                col_widths=col_widths
             )
 
             y -= (used_height + 1.5 * cm)
@@ -1378,15 +1401,24 @@ def draw_table(c, data, x, y, col_widths):
     table = Table(data, colWidths=col_widths)
 
     table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 1, colors.black),
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-        ("ALIGN", (1, 1), (-1, -1), "CENTER"),
-        ("ALIGN", (0, 0), (0, -1), "LEFT"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        # header row style
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('ALIGN', (1, 0), (2, 0), 'CENTER'),   # Points + Validated centered in header
+
+        # body alignment for numeric columns
+        ('ALIGN', (1, 1), (2, -1), 'CENTER'),  # Points + Validated values centered
+
+        # total row bold
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+
+        # grid + padding
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
 
     w, h = table.wrap(0, 0)
