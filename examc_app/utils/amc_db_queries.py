@@ -580,6 +580,47 @@ def get_question_max_points(amc_data_path,question_name,copy_nr):
     max_points = strategy.split("=")[1]
     return max_points
 
+def get_question_number(amc_data_path, copy_nr, question_name):
+    db = AMC_DB(amc_data_path + "layout.sqlite")
+
+    # minimal safe quoting
+    qname = question_name.replace("'", "''")  # SQLite escaping
+
+    query_str = f"""
+    WITH q AS (
+      SELECT question
+      FROM layout_question
+      WHERE name = '{qname}'
+    ),
+    firstpos AS (
+      SELECT b.question,
+             MIN(b.page) AS p,
+             MIN(b.ymin) AS y0,
+             MIN(b.xmin) AS x0
+      FROM layout_box b
+      WHERE b.student = {int(copy_nr)}
+        AND b.role = 1
+      GROUP BY b.question
+    ),
+    ordered AS (
+      SELECT question,
+             ROW_NUMBER() OVER (ORDER BY p, y0, x0) AS qnum
+      FROM firstpos
+    )
+    SELECT o.qnum
+    FROM ordered o
+    JOIN q USING(question);
+    """
+
+    response = db.execute_query(query_str)
+    row = response.fetchone()
+    db.close()
+
+    if row is None:
+        raise ValueError(f"Question name '{question_name}' not found for student/copy {copy_nr}")
+
+    return row["qnum"]
+
 
 ################################################
 # AMC CONVERT
