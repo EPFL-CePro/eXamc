@@ -47,7 +47,13 @@
                 <label class="form-check-label" for="annotate_one_all_student">
                     One file for all students
                 </label>
-            </div>
+            </div><br/>
+            {% if has_grading_schemes %}
+                <div class="custom-control custom-switch mb-3">
+                  <input class="custom-control-input" type="checkbox"  name="annotate_with_grading_scheme" id="annotate_with_grading_scheme">
+                  <label class="custom-control-label" for="annotate_with_grading_scheme">Add grading scheme report with annotations</label>
+                </div>
+            {% endif %}
             <button type="button" class="btn btn-dark btn-sm" onclick="call_amc_annotate();" style="margin-top:20px;">
                 <img src="{% static 'img/amc_icons/amc-annotate.svg' %}" width="16px" height="16px"
                      style="margin-right:5px;"/>Annotate
@@ -125,6 +131,7 @@
         $('#ajax_info_modal').modal('show');
 
         const single_file = Number(document.getElementById('annotate_one_all_student').checked);
+        const add_grading_scheme_report = document.getElementById('annotate_with_grading_scheme').checked;
 
         $.ajax({
             url: "{% url 'call_amc_annotate' exam_selected.pk %}",
@@ -132,6 +139,7 @@
             data: {
                 'csrfmiddlewaretoken': "{{ csrf_token }}",
                 'single_file': single_file,
+                'add_grading_scheme_report' : add_grading_scheme_report
             },
             success: () => {
                 info_modal_msg.innerHTML = "Annotated files have been generated!";

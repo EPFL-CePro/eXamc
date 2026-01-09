@@ -94,6 +94,8 @@ def amc_view(request, exam_pk,curr_tab=None, task_id=None):
             scans_list = get_scans_list(exam)
             scans_list_json_string = json.dumps(scans_list)
 
+            has_grading_schemes = PagesGroup.objects.filter(exam=exam,use_grading_scheme=True).exists()
+
             exam_nb_pages = 1
             if data[0] and len(data[0])>0:
                 exam_nb_pages = max(data[0],key=lambda x: float(x['page']))['page']
@@ -121,6 +123,7 @@ def amc_view(request, exam_pk,curr_tab=None, task_id=None):
             context['count_missing_assoc'] = get_count_missing_associations(amc_data_path+'/data/')
             context['annotated_papers_available'] = check_annotated_papers_available(exam)
             context['has_results'] = has_results
+            context['has_grading_schemes'] = has_grading_schemes
             context['task_id'] = task_id
             context['curr_tab'] = curr_tab
             context['scans_list_json'] = json.loads(scans_list_json_string)
@@ -479,12 +482,13 @@ def amc_update_students_file(request, exam_pk):
 def call_amc_annotate(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     single_file = request.POST['single_file']
+    add_grading_scheme_report = request.POST['add_grading_scheme_report']
     if single_file == '1':
         single_file = True
     else:
         single_file = False
 
-    result = amc_annotate(exam,single_file)
+    result = amc_annotate(exam,single_file,add_grading_scheme_report)
 
     return HttpResponse(result)
 

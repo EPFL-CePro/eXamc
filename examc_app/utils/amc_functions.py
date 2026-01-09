@@ -1,5 +1,6 @@
 import base64
 import csv
+import io
 import json
 import logging
 import os
@@ -9,6 +10,7 @@ import time
 import xml.etree.ElementTree as xmlET
 import zipfile
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
 import chardet
@@ -22,10 +24,17 @@ from django.contrib.admin.utils import unquote
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
+from django.db.models import Sum
 from django.template.loader import get_template
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle
 from setuptools import glob
 
 from examc_app.decorators import exam_permission_required
+from examc_app.models import Student, Exam, PagesGroupGradingSchemeCheckedBox, QuestionGradingSchemeCheckBox, PagesGroup
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries import *
 
@@ -906,8 +915,6 @@ def amc_automatic_association(exam,assoc_primary_key):
 
 def check_students_csv_file(file):
 
-
-
     with open(file,'rb') as csvfile:
         data = csvfile.read()
         #check encoding
@@ -939,7 +946,7 @@ def check_students_csv_file(file):
 
     return "ok"
 
-def amc_annotate(exam,single_file):
+def amc_annotate(exam,single_file,add_grading_scheme_report):
     project_path = get_amc_project_path(exam, False)
     assoc_primary_key = get_amc_option_by_key(exam,'liste_key')
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
@@ -975,6 +982,9 @@ def amc_annotate(exam,single_file):
         student_report_data = get_student_report_data(project_path+"/data/")
         for st_rep in student_report_data:
             add_extra_to_annotated_pdf(st_rep['student'], st_rep['file'], project_path)
+
+        if add_grading_scheme_report:
+            add_grading_schemes_reports(exam.id)
 
         return result.stdout
 
@@ -1051,6 +1061,33 @@ def check_annotated_papers_available(exam):
         return True
     else:
         return False
+
+def add_grading_schemes_reports(exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+    students = Student.objects.filter(exam=exam_pk)
+    project_path = get_amc_project_path(exam, False)
+    annotated_pdfs_path = project_path+"/cr/corrections/pdf/"
+    for student in students:
+        annotated_pdf_path = annotated_pdfs_path+student.copie_no.zfill(4)+"_"+student.sciper+"_"+student.name.replace(" ","_")+".pdf"
+        annotated_pdf_bytes = open(annotated_pdf_path, "rb").read()
+        grading_scheme_report_bytes = build_grading_report_pdf_bytes(exam_pk, student.id)
+        merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
+
+        with open(annotated_pdf_path, "wb") as f:
+            f.write(merged)
+
+def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
+    writer = PdfWriter()
+
+    for pdf in pdfs_bytes:
+        reader = PdfReader(io.BytesIO(pdf))
+        for page in reader.pages:
+            writer.add_page(page)
+
+    out = io.BytesIO()
+    writer.write(out)
+    out.seek(0)
+    return out.getvalue()
 
 def create_annotated_zip(exam):
     corrections_path = get_amc_project_path(exam,False)+'/cr/corrections/'
@@ -1198,3 +1235,192 @@ def amc_send_annotated_papers(exam,selected_students,email_subject,email_body,em
                 result_list.append(student_send_result)
 
     return [count_sent, count_error, result_list]
+
+
+
+
+def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
+    """
+    Generate grading report and return the content in bytes
+    """
+    exam = Exam.objects.get(pk=exam_pk)
+    amc_data_path = get_amc_project_path(exam, False)
+
+    if amc_data_path:
+        amc_data_path += "/data/"
+
+        student = Student.objects.get(pk=student_pk)
+
+        buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+
+        def draw_header():
+            c.setFont("Helvetica-Bold", 18)
+            c.drawString(2 * cm, height - 2 * cm, "Grading Report")
+            c.setLineWidth(1)
+            c.line(2 * cm, height - 2.4 * cm, width - 2 * cm, height - 2.4 * cm)
+
+        def draw_footer(page_num, total_pages_placeholder="X"):
+            c.setFont("Helvetica", 10)
+            c.drawCentredString(width / 2, 1.2 * cm, f"{page_num}/{total_pages_placeholder}")
+
+        top_margin = 4 * cm
+        bottom_margin = 3 * cm
+        y = height - top_margin
+        page_num = 1
+
+        draw_header()
+
+        pages_groups = PagesGroup.objects.filter(exam__pk=exam_pk, use_grading_scheme=True)
+
+        for pages_group in pages_groups:
+            pages_group_grading_schemes = PagesGroupGradingSchemeCheckedBox.objects.filter(
+                pages_group=pages_group,
+                copy_nr=student.copie_no.zfill(4)
+            )
+
+            if not pages_group_grading_schemes.exists():
+                continue
+
+            grading_scheme_id = pages_group_grading_schemes.first().gradingSchemeCheckBox.questionGradingScheme.id
+
+            grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(
+                questionGradingScheme_id=grading_scheme_id
+            )
+
+            max_points = grading_scheme_checkboxes.aggregate(points__sum=Sum('points'))['points__sum'] or Decimal("0.00")
+
+            table_rows = [["Description", "Points", "Validated"]]
+            points = Decimal("0.00")
+
+            for grading_scheme_checkbox in grading_scheme_checkboxes:
+                add_row = True
+                row_points = 0
+                pg_checked_box_qs = PagesGroupGradingSchemeCheckedBox.objects.filter(
+                    gradingSchemeCheckBox_id=grading_scheme_checkbox.id,
+                    copy_nr=student.copie_no.zfill(4)
+                )
+                pg_checked_box_item = None
+                if pg_checked_box_qs.exists():
+                    pg_checked_box = True
+                    pg_checked_box_item = pg_checked_box_qs.all().first()
+                else:
+                    pg_checked_box = False
+
+                if grading_scheme_checkbox.name == 'ZERO' or (grading_scheme_checkbox.name == 'ADJ' and (not pg_checked_box_item or pg_checked_box_item.adjustment == 0)):
+                    add_row = False
+
+                if add_row:
+                    if pg_checked_box:
+                        if grading_scheme_checkbox.name == 'ADJ':
+                            row_points += pg_checked_box_item.adjustment
+                            max_points += row_points
+                        else:
+                            row_points = grading_scheme_checkbox.points
+                        points += row_points
+                    else:
+                        row_points = grading_scheme_checkbox.points
+
+                if add_row:
+                    description = 'Adjustment' if grading_scheme_checkbox.name == 'ADJ' else grading_scheme_checkbox.name
+
+                    table_rows.append([description, str(row_points), "✔" if pg_checked_box else "✘" ])
+
+            table_rows.append(["Total", max_points, points])
+
+            question_num = get_question_number(amc_data_path,student.copie_no,pages_group.group_name)
+            q_title = "Question "+str(question_num) + ":"
+
+            data = table_rows
+
+            # ====== PAGE BREAK CHECK ======
+            estimated_min_height = 2 * cm
+            if y < bottom_margin + estimated_min_height:
+                draw_footer(page_num)
+                c.showPage()
+                page_num += 1
+                draw_header()
+                y = height - top_margin
+
+            # Draw title
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(2 * cm, y, q_title)
+            y -= 0.8 * cm
+
+            # Compute column widths: table matches header line width
+            table_width = width - 4 * cm  # same width as header line
+            desc_w = 12 * cm  # keep fixed
+            remaining = table_width - desc_w
+            points_w = remaining / 2
+            validated_w = remaining / 2
+            col_widths = [desc_w, points_w, validated_w]
+
+            # Measure table height
+            table = Table(data, colWidths=[12 * cm, 3 * cm, 3 * cm])
+            w, table_height = table.wrap(0, 0)
+
+            if y - table_height < bottom_margin:
+                draw_footer(page_num)
+                c.showPage()
+                page_num += 1
+                draw_header()
+                y = height - top_margin
+
+                c.setFont("Helvetica-Bold", 12)
+                c.drawString(2 * cm, y, q_title)
+                y -= 0.8 * cm
+
+            # Draw the actual table
+            used_height = draw_table(
+                c,
+                data,
+                x=2 * cm,
+                y=y,
+                col_widths=col_widths
+            )
+
+            y -= (used_height + 1.5 * cm)
+
+        # End PDF
+        draw_footer(page_num)
+        c.showPage()
+        c.save()
+
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        return pdf_bytes
+    else:
+        return None
+
+def draw_table(c, data, x, y, col_widths):
+    """
+    Dessine un tableau ReportLab à la position x,y (y = haut du tableau).
+    Retourne la hauteur du tableau.
+    """
+    table = Table(data, colWidths=col_widths)
+
+    table.setStyle(TableStyle([
+        # header row style
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('ALIGN', (1, 0), (2, 0), 'CENTER'),   # Points + Validated centered in header
+
+        # body alignment for numeric columns
+        ('ALIGN', (1, 1), (2, -1), 'CENTER'),  # Points + Validated values centered
+
+        # total row bold
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+
+        # grid + padding
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+
+    w, h = table.wrap(0, 0)
+    table.drawOn(c, x, y - h)
+    return h
