@@ -101,6 +101,7 @@ CSV_TO_JPG_MAP = {
     'SG_0211.csv': 'SG_0211.jpg',
     'SG_0213.csv': 'SG_0213.jpg',
     'SG_1138.csv': 'SG_1138.jpg',
+    'STCC.csv': 'STCC.jpg',
     'STCC_A.csv': 'STCC.jpg',
     'STCC_B.csv': 'STCC_B.jpg',
     'STCC_C.csv': 'STCC_C.jpg',
