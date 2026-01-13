@@ -14,6 +14,7 @@ from time import sleep
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
 from django.contrib.sessions.models import Session
+from django.db.models import Sum
 from django.http import FileResponse
 from fpdf import FPDF
 
@@ -183,7 +184,7 @@ def import_csv_data(self, temp_csv_file_path, exam_pk):
         exam.save()
 
         progress_recorder.set_progress(process_number, process_count, description=str(process_number)+'/'+str(process_count)+' - Updating common exams...')
-        update_common_exams(exam.pk)
+        #update_common_exams(exam.pk)
 
         process_number+=1
 
@@ -395,6 +396,9 @@ def generate_statistics(self,exam_pk):
                 overall_exam = exam
             #overall_exam=update_overall_common_exam(exam)
             generate_exam_stats(overall_exam,progress_recorder,process_number,process_count)
+            overall_exam.present_students = overall_exam.common_exams.aggregate(sum_present=Sum('present_students'))['sum_present']
+            overall_exam.save()
+            print("************** "+str(overall_exam.present_students))
         else:
             generate_exam_stats(exam,progress_recorder,process_number,process_count)
 
