@@ -508,7 +508,7 @@ def create_stats_comVsInd(overall_exam):
                     if stud_ind_points>ind_max_points:
                         stud_ind_points=ind_max_points
 
-                    ind_pts += stud_ind_points;
+                    ind_pts += stud_ind_points
 
             com_rate = 0
             stat.global_avg_grade = 0
