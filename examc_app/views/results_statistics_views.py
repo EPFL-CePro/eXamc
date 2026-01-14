@@ -234,16 +234,11 @@ def export_data(request,exam_pk):
 @exam_permission_required(['manage','see_results'])
 def generate_stats(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
-    #generate_statistics(exam)
 
     task = generate_statistics.delay(exam.pk)
     task_id = task.task_id
 
-    # if not result == True:
-    #     messages.error(request, "Unable to upload file. " + result)
-
     return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
-    #return redirect('../examInfo/' + str(exam.pk))
 
 #@login_required
 @exam_permission_required(['manage','see_results'])
@@ -344,8 +339,8 @@ def questions_statistics_view(request,exam_pk):
             if currexam.overall:
                 question_stat_by_teacher_list = get_questions_stats_by_teacher(currexam)
 
-            mcq_questions = Question.objects.filter(exam=currexam).exclude(question_type__id=4)
-            open_questions = Question.objects.filter(exam=currexam,question_type__id=4)
+            mcq_questions = Question.objects.filter(exam=currexam,removed_from_common=False).exclude(question_type__id=4)
+            open_questions = Question.objects.filter(exam=currexam,question_type__id=4,removed_from_common=False)
 
             for question in open_questions.all():
                 print(question)

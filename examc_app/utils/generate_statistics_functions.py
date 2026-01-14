@@ -39,75 +39,75 @@ from ..models import *
 #
 #     return True
 
-def update_overall_common_exam(exam):
-    if not exam.overall:
-        overall_code = '000_'+re.sub(r"\(.*?\)", "", exam.code).strip()
-        month_year = exam.date.strftime("%m-%Y")
-        overall_code += "_"+month_year
-        overall_exam, created = Exam.objects.get_or_create(code = overall_code,semester = exam.semester,year = exam.year)
-        if created:
-            overall_exam.name = 'COMMON'
-            overall_exam.pdf_catalog_name = exam.pdf_catalog_name
-            overall_exam.overall = True
-            overall_exam.date = exam.date
-            overall_exam.save()
-
-        # delete existing stats and questions
-        Question.objects.filter(exam__pk=overall_exam.pk).delete()
-        AnswerStatistic.objects.filter(question__exam=overall_exam).delete()
-        ScaleStatistic.objects.filter(exam=overall_exam).delete()
-        ScaleDistribution.objects.filter(scale_statistic__exam=overall_exam).delete()
-
-
-        # copy common questions
-        for question in exam.questions.all().filter(common=True):
-            question.pk = None
-            question.exam = overall_exam
-            question.save()
-    else:
-        overall_exam = exam
-
-    # init common exams
-    overall_exam = update_common_exams(overall_exam.pk)
-    # logger.info(overall_exam.questions.all())
-    # update overall present students
-    overall_exam.present_students = int(Student.objects.filter(exam__in=overall_exam.common_exams.all(), present=True).count())
-    overall_exam.save()
-
-
-    # copy scales from other commons
-    for comex in overall_exam.common_exams.all():
-        for scale in comex.scales.all():
-            if not Exam.objects.filter(pk=overall_exam.pk, scales__name=scale.name).exists():
-                overall_exam.scales.add(scale)
-                overall_exam.save()
-         # copy scales to other commons
-        for scale in overall_exam.scales.all():
-            scale_comex, created = Scale.objects.get_or_create(exam=comex,name = scale.name,total_points=scale.total_points)
-            if created:
-                scale_comex.total_points = scale.total_points
-                scale_comex.points_to_add = scale.points_to_add
-                scale_comex.min_grade = scale.min_grade
-                scale_comex.max_grade = scale.max_grade
-                scale_comex.rounding = scale.rounding
-                scale_comex.formula = scale.formula
-                scale_comex.save()
-        # update common questions to other commons
-        for question in comex.questions.all():
-            overall_question = Question.objects.filter(code=question.code, exam=overall_exam).first()
-            if overall_question :
-                # logger.info(comex)
-                # logger.info(question.code)
-                # logger.info(comex.pk)
-                question.common = True
-                question.question_type = overall_question.question_type
-                question.nb_answers = overall_question.nb_answers
-                question.max_points = overall_question.max_points
-            else:
-                question.common = False
-            question.save()
-
-    return overall_exam
+# def update_overall_common_exam(exam):
+#     if not exam.overall:
+#         overall_code = '000_'+re.sub(r"\(.*?\)", "", exam.code).strip()
+#         month_year = exam.date.strftime("%m-%Y")
+#         overall_code += "_"+month_year
+#         overall_exam, created = Exam.objects.get_or_create(code = overall_code,semester = exam.semester,year = exam.year)
+#         if created:
+#             overall_exam.name = 'COMMON'
+#             overall_exam.pdf_catalog_name = exam.pdf_catalog_name
+#             overall_exam.overall = True
+#             overall_exam.date = exam.date
+#             overall_exam.save()
+#
+#         # delete existing stats and questions
+#         Question.objects.filter(exam__pk=overall_exam.pk).delete()
+#         AnswerStatistic.objects.filter(question__exam=overall_exam).delete()
+#         ScaleStatistic.objects.filter(exam=overall_exam).delete()
+#         ScaleDistribution.objects.filter(scale_statistic__exam=overall_exam).delete()
+#
+#
+#         # copy common questions
+#         for question in exam.questions.all().filter(common=True):
+#             question.pk = None
+#             question.exam = overall_exam
+#             question.save()
+#     else:
+#         overall_exam = exam
+#
+#     # init common exams
+#     overall_exam = update_common_exams(overall_exam.pk)
+#     # logger.info(overall_exam.questions.all())
+#     # update overall present students
+#     overall_exam.present_students = int(Student.objects.filter(exam__in=overall_exam.common_exams.all(), present=True).count())
+#     overall_exam.save()
+#
+#
+#     # copy scales from other commons
+#     for comex in overall_exam.common_exams.all():
+#         for scale in comex.scales.all():
+#             if not Exam.objects.filter(pk=overall_exam.pk, scales__name=scale.name).exists():
+#                 overall_exam.scales.add(scale)
+#                 overall_exam.save()
+#          # copy scales to other commons
+#         for scale in overall_exam.scales.all():
+#             scale_comex, created = Scale.objects.get_or_create(exam=comex,name = scale.name,total_points=scale.total_points)
+#             if created:
+#                 scale_comex.total_points = scale.total_points
+#                 scale_comex.points_to_add = scale.points_to_add
+#                 scale_comex.min_grade = scale.min_grade
+#                 scale_comex.max_grade = scale.max_grade
+#                 scale_comex.rounding = scale.rounding
+#                 scale_comex.formula = scale.formula
+#                 scale_comex.save()
+#         # update common questions to other commons
+#         for question in comex.questions.all():
+#             overall_question = Question.objects.filter(code=question.code, exam=overall_exam).first()
+#             if overall_question :
+#                 # logger.info(comex)
+#                 # logger.info(question.code)
+#                 # logger.info(comex.pk)
+#                 question.common = True
+#                 question.question_type = overall_question.question_type
+#                 question.nb_answers = overall_question.nb_answers
+#                 question.max_points = overall_question.max_points
+#             else:
+#                 question.common = False
+#             question.save()
+#
+#     return overall_exam
 
 def generate_exam_stats(exam,progress_recorder,process_number,process_count):
     logger.info("GEN STATS for "+exam.code)
@@ -120,6 +120,12 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
     distribution_list_all = []
 
     color_pos = 0
+
+    # if common exams, get common questions list
+    overall_exam = exam.common_exams.filter(overall=True).first()
+    common_questions_list = None
+    if overall_exam is not None:
+        common_questions_list = list(overall_exam.questions.values_list("code", flat=True))
 
     try:
         with transaction.atomic():
@@ -151,7 +157,10 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
             student_lower_list = list(student_lower_list)
             student_upper_list = list(student_upper_list)
 
-            question_list = exam.questions.all()
+            if exam.is_overall():
+                question_list = Question.objects.filter(exam=exam,removed_from_common=False).all()
+            else:
+                question_list = exam.questions.all()
 
             process_number += 1
             progress_recorder.set_progress(process_number, process_count,
@@ -191,7 +200,7 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
                             indiv_points = 0
                             common_points = 0
                             for sd in student.data.all():
-                                if sd.question.common:
+                                if sd.question.code in common_questions_list:
                                     common_points += sd.points
                                 else:
                                     indiv_points += sd.points
@@ -460,32 +469,35 @@ def create_dist_stats_by_section(exam):
 
     return True
 
-def create_stats_comVsInd(exam):
+def create_stats_comVsInd(overall_exam):
 
-    sections = Student.objects.filter(present=True,exam__in=exam.common_exams.all()).order_by().values('section').distinct()
+    sections = Student.objects.filter(present=True,exam__in=overall_exam.common_exams.all()).order_by().values('section').distinct()
 
-    for scale in exam.scales.all():
+    # get common questions list
+    common_questions_list = list(overall_exam.questions.filter(removed_from_common=False).values_list("code", flat=True))
+
+    for scale in overall_exam.scales.all():
         com_rate = 0
 
         # stats by teacher
-        for comex in exam.common_exams.all():
+        for comex in overall_exam.common_exams.all():
 
             stat, created = ComVsIndStatistic.objects.get_or_create(exam = comex, scale = scale, section ='')
 
-            #common = 0
-            #indiv = 0
-            com_pts = 0
-            ind_pts = 0
-            com_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__present=True, student__exam=comex, question__common=True, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
+            # #common = 0
+            # #indiv = 0
+            # com_pts = 0
+            # ind_pts = 0
+            com_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__present=True, student__exam=comex, question__code__in=common_questions_list, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
 
             if not comex.indiv_formula:
-                ind_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__present=True, student__exam=comex, question__common=False, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
+                ind_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__present=True, student__exam=comex, sum_pts__gt=0).exclude(question__code__in=common_questions_list).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
             else:
                 ind_pts = 0
                 for s in comex.students.all():
                     stud_ind_points = 0
                     for sd in s.data.all():
-                        if not sd.question.common:
+                        if not sd.question.code in common_questions_list:
                             stud_ind_points += sd.points
 
                     formula_arr = comex.indiv_formula.split(";")
@@ -496,7 +508,7 @@ def create_stats_comVsInd(exam):
                     if stud_ind_points>ind_max_points:
                         stud_ind_points=ind_max_points
 
-                    ind_pts += stud_ind_points;
+                    ind_pts += stud_ind_points
 
             com_rate = 0
             stat.global_avg_grade = 0
@@ -527,19 +539,19 @@ def create_stats_comVsInd(exam):
         # stats by section
         for section in sections:
 
-            stat, created = ComVsIndStatistic.objects.get_or_create(exam = exam, scale = scale, section = section.get('section'))
+            stat, created = ComVsIndStatistic.objects.get_or_create(exam = overall_exam, scale = scale, section = section.get('section'))
 
-            common = 0
-            indiv = 0
-            com_pts = 0
-            ind_pts = 0
+            # common = 0
+            # indiv = 0
+            # com_pts = 0
+            # ind_pts = 0
 
-            question_list = Question.objects.filter(exam__in=exam.common_exams.all()).distinct()
+            question_list = Question.objects.filter(exam__in=overall_exam.common_exams.all()).distinct()
 
-            section_presents = Student.objects.filter(exam__in=exam.common_exams.all(),section=section.get('section'),present=True).values('pk').aggregate(Count('pk')).get('pk__count')
+            section_presents = Student.objects.filter(exam__in=overall_exam.common_exams.all(),section=section.get('section'),present=True).values('pk').aggregate(Count('pk')).get('pk__count')
 
-            com_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__section=section.get('section'), student__present=True, student__exam__in=exam.common_exams.all(), question__common=True, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
-            ind_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__section=section.get('section'), student__present=True, student__exam__in=exam.common_exams.all(), question__common=False, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
+            com_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__section=section.get('section'), student__present=True, student__exam__in=overall_exam.common_exams.all(), question__code__in=common_questions_list, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
+            ind_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__section=section.get('section'), student__present=True, student__exam__in=overall_exam.common_exams.all(), sum_pts__gt=0).exclude(question__code__in=common_questions_list).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
             com_pts=Decimal(com_pts or 0)
             ind_pts=Decimal(ind_pts or 0)
             #print(section)
@@ -565,13 +577,15 @@ def create_stats_comVsInd(exam):
 
     return True
 
-def get_comVsInd_correlation(exam):
+def get_comVsInd_correlation(overall_exam):
     correlation_list = []
-
-    for comex in exam.common_exams.all():
-        #.values_list('points', flat=True)
-        common_pts_list = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True, question__common=True).order_by('student').annotate(sum=Sum('points', output_field=FloatField())).values_list('sum', flat=True)
-        indiv_pts_list = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True, question__common=False).order_by('student').annotate(sum=Sum('points', output_field=FloatField())).values_list('sum', flat=True)
+    # get common questions list
+    common_questions_list = list(overall_exam.questions.filter(removed_from_common=False).values_list("code", flat=True))
+    for comex in overall_exam.common_exams.all():
+        qs1 = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True, question__code__in=common_questions_list).order_by('student').annotate(sum=Sum('points', output_field=FloatField()))
+        qs2 = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True).exclude(question__code__in=common_questions_list).order_by('student').annotate(sum=Sum('points', output_field=FloatField()))
+        common_pts_list = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True, question__code__in=common_questions_list).order_by('student').annotate(sum=Sum('points', output_field=FloatField())).values_list('sum', flat=True)
+        indiv_pts_list = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True).exclude(question__code__in=common_questions_list).order_by('student').annotate(sum=Sum('points', output_field=FloatField())).values_list('sum', flat=True)
         common_pts_list = list(common_pts_list)
         indiv_pts_list = list(indiv_pts_list)
 

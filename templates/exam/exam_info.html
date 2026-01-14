@@ -12,7 +12,16 @@
 
 {% block content %}
 
-    
+<style>
+tr.question-removed-from-common td {
+  color: #9ca0a5 !important;
+  text-decoration: line-through;
+}
+
+tr.question-removed-from-common td * {
+  text-decoration: line-through;
+}
+</style>
 {% if user_allowed %}
 
     <div class="tab-content" id="exam-info-pills-tabContent">
@@ -33,8 +42,7 @@
                                     </button>
                                     <a id="regen-stats-bt-{{ comex.id }}" class="btn btn-dark btn-sm"
                                        href="{% url 'generate_stats' comex.pk %}"><i class="fa-solid fa-rotate-right"
-                                                                                    style="margin-right: 5px;"></i>Regen
-                                        stats</a>
+                                                                                    style="margin-right: 5px;"></i>Regen stats</a>
                                     <span style="float:right;margin-top:7px;">
                                         <a data-toggle="modal" data-target="#displayPdfModal-{{ comex.id }}" title="Show in pdf" style="font-size:12px;">catalog<i
                                                 class="far fa-file-pdf" style="font-size:24px;color:red"></i></a>
@@ -198,7 +206,7 @@
                                     </thead>
                                     <tbody>
                                     {% for question in comex.questions.all %}
-                                        <tr id="question-{{ question.pk }}">
+                                        <tr id="question-{{ question.pk }}" {% if question.removed_from_common %}class="question-removed-from-common"{% endif %}>
                                             <td>{{ question.code }}</td>
                                             <td>
                                                 <div class="btn-group-sm" role="group">
@@ -228,10 +236,10 @@
                                             <td><input id="maxpts-{{ question.pk }}" type="number" min="0"
                                                        value="{{ question.max_points }}" step=".01"
                                                        style="width:100px;" class="form-control form-control-sm"/></td>
-                                            {% if comex.common_exams.all %}
+                                            {% if comex.is_overall %}
                                             <td>
                                             <div class="custom-control custom-switch mb-3">
-                                                <input class="custom-control-input" type="checkbox" name="common-{{ question.pk }}" id="common-{{ question.pk }}" {% if question.common %} checked {% endif %}>
+                                                <input class="custom-control-input" type="checkbox" name="common-{{ question.pk }}" id="common-{{ question.pk }}" {% if not question.removed_from_common %} checked {% endif %}>
                                                 <label class="custom-control-label" for="common-{{ question.pk }}"></label>
                                             </div>
                                             </td>
@@ -260,10 +268,15 @@
                         </div>
                         <div id="collapseFour-{{ comex.id }}" class="collapse" aria-labelledby="headingFour-{{ comex.id }}">
                             <div id="common_settings_div-{{ comex.id }}" class="card-body">
+                                {% if exam_selected.is_overall %}
                                 <form id="form-exam-settings-common-{{ comex.id }}" method="post" style="padding:20px;max-width:1500px;" action="{% url 'validate_common_exams_settings' comex.pk %}">
                                     <div class="row">
                                         <div class="col-sm-5">
                                             <h6>Available exams</h6>
+                                            <p>conditions : <br/>
+                                                - similar code<br/>
+                                                - identical year and semester<br/>
+                                                - with data (questions)</p>
                                         </div>
                                         <div style="width:70px!important;"></div>
                                         <div class="col-sm-5">
@@ -275,7 +288,9 @@
                                         <div class="col-sm-5">
                                             <select name="{{ comex.id }}_common_from[]" id="{{ comex.id }}_multiselect" class="form-control" size="8" multiple="multiple">
                                                 {% for available_common in comex.get_available_common_exams %}
-                                                <option value="{{ available_common.id }}">{{ available_common.code }} - {{ available_common.name }} - {{ available_common.date }}</option>
+                                                <option value="{{ available_common.id }}" {% if not available_common.questions.exists %} disabled {% endif %}>
+                                                    {{ available_common.code }} - {{ available_common.name }} - {{ available_common.date }}
+                                                </option>
                                                 {% endfor %}
                                             </select>
                                         </div>
@@ -299,6 +314,24 @@
                                         <button type="submit" class="btn btn-dark btn-sm">Validate</button>
                                     </div>
                                 </form>
+                                {% else %}
+                                    {% if comex.get_common_exams_yc_common|length > 1 %}
+                                        <div class="alert alert-warning" role="alert">
+                                            Common exams are managed in the COMMON tab!
+                                        </div>
+                                        <hr>
+                                        <ul class="list-group">
+                                        <h6>Current common exams</h6>
+                                        {% for comex in comex.get_common_exams_without_common.all %}
+                                             <li class="list-group-item">
+                                            {{ comex.code }} - {{ comex.name }} - {{ comex.date }}
+                                             </li>
+                                        {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <a class="btn btn-dark btn-sm" href="{% url 'set_common_exam' comex.pk %}">Set common exam</a>
+                                    {% endif %}
+                                {% endif %}
                             </div>
                         </div>
                     </div>

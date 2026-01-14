@@ -100,9 +100,14 @@ class Exam(models.Model):
 
     def get_common_points(self):
         """ Return the total of points for common part. """
+        if self.overall:
+            overall_exam = self
+        else:
+            overall_exam = self.common_exams.filter(overall=True).first()
+        common_questions_list = list(overall_exam.questions.filter(removed_from_common=False).values_list("code", flat=True))
         common_pts = 0
         for question in self.questions.all():
-            if question.common:
+            if question.code in common_questions_list:
                 common_pts += question.max_points
 
         return common_pts
@@ -142,18 +147,20 @@ class Exam(models.Model):
             year = self.year
             exam = Exam.objects.filter(code__startswith=code,semester=semester, year=year).exclude(code=self.code).first()
 
-        exam_code_search_start = exam.code.split('(')[0]
-        code_split_end = exam.code.split(')')
-        if len(code_split_end) > 1:
-            exam_code_search_end = code_split_end[1]
-            exams = Exam.objects.filter(code__startswith=exam_code_search_start, code__endswith=exam_code_search_end, year=exam.year, semester=exam.semester)
-        else:
-            exams = Exam.objects.filter(code__startswith=exam_code_search_start, year=exam.year, semester=exam.semester)
         available_exams = []
-        common_exams = self.get_common_exams_yc_common()
-        for exam in exams:
-            if not exam in common_exams:
-                available_exams.append(exam)
+        if exam.questions.all():
+            exam_code_search_start = exam.code.split('(')[0]
+            code_split_end = exam.code.split(')')
+            if len(code_split_end) > 1:
+                exam_code_search_end = code_split_end[1]
+                exams = Exam.objects.filter(code__startswith=exam_code_search_start, code__endswith=exam_code_search_end, year=exam.year, semester=exam.semester)
+            else:
+                exams = Exam.objects.filter(code__startswith=exam_code_search_start, year=exam.year, semester=exam.semester)
+
+            common_exams = self.get_common_exams_yc_common()
+            for exam in exams:
+                if exam.questions.exists() and not exam in common_exams:
+                    available_exams.append(exam)
         return available_exams
 
 class ExamSection(models.Model):
@@ -192,7 +199,13 @@ class Question(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField(blank=True,null=True,default='')
     formula = models.TextField(blank=True,null=True,default='')
+    removed_from_common = models.BooleanField(default=False)
     history = HistoricalRecords()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["exam", "code"], name="uniq_question_exam_code")
+        ]
 
     def is_common(self):
         return bool(self.common)
@@ -350,6 +363,11 @@ class Scale(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scales', null=True)
     final = models.BooleanField(default=0)
     history = HistoricalRecords()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["exam", "name"], name="uniq_scale_name_per_exam"),
+        ]
 
     def __str__(self):
         if self.exam:

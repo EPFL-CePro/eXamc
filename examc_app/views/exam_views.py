@@ -18,7 +18,8 @@ from examc_app.tables import ExamSelectTable
 from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, \
     convert_html_to_latex, exam_generate_preview, update_folders_paths
-from examc_app.utils.results_statistics_functions import update_common_exams
+from examc_app.utils.results_statistics_functions import update_common_exams, update_common_exams_questions, \
+    update_common_exams_scales, update_common_exams_users
 from examc_app.tasks import generate_statistics
 
 
@@ -88,7 +89,7 @@ class ExamInfoView(ExamPermissionAndRedirectMixin,DetailView):
             context['exam'] = exam
             context['exam_selected'] = exam_selected
             context['question_types'] = QuestionType.objects.all()
-            context['sum_questions_points'] = exam.questions.all().aggregate(Sum('max_points'))
+            context['sum_questions_points'] = exam.questions.filter(removed_from_common=False).aggregate(Sum('max_points'))
             context['users_groups_add'] = users_groups_add
             context['semesters'] = semesters
             context['years'] = years
@@ -369,51 +370,90 @@ def update_questions(request,exam_pk):
                 quest.nb_answers = 0
         if 'COMMON' in question:
             quest.common = True if question['COMMON'] else False
+            quest.removed_from_common = False if question['COMMON'] else True
         quest.save()
 
     return HttpResponse(1)
 
+@exam_permission_required(['manage'])
+def set_common_exam(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+
+    # get or create overall exam if not from overall exam
+    if not exam.is_overall():
+        overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
+        month_year = exam.date.strftime("%m-%Y")
+        overall_code += "_" + month_year
+        overall_exam, created = Exam.objects.get_or_create(code=overall_code, semester=exam.semester,
+                                                           year=exam.year)
+        if created:
+            overall_exam.name = 'COMMON'
+            overall_exam.pdf_catalog_name = exam.pdf_catalog_name
+            overall_exam.date = exam.date
+            overall_exam.overall = True
+            overall_exam.res_and_stats_option = True
+            overall_exam.save()
+
+        exam.common_exams.add(overall_exam)
+        exam.save()
+
+        update_common_exams_questions(overall_exam.pk)
+        update_common_exams_scales(overall_exam.pk)
+        update_common_exams_users(overall_exam.pk)
+
+        task = generate_statistics.delay(overall_exam.pk)
+        task_id = task.task_id
+
+        return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
+
 #@login_required
+# @exam_permission_required(['manage'])
+# def validate_common_exams_settings(request,overall_exam_pk):
+    # overall_exam = Exam.objects.get(pk=overall_exam_pk)
+    # common_exams_ids = request.POST.getlist(str(overall_exam_pk)+'_common_to[]')
+    # if common_exams_ids:
+    #     common_exams = Exam.objects.filter(id__in=common_exams_ids)
+    #     overall_exam.common_exams.set(common_exams)
+    #     overall_exam.save()
+    #     update_common_exams(overall_exam)
+    #
+    #     # if common exam, update overall exam users
+    #     for comex in overall_exam.common_exams.all():
+    #         for exam_user in comex.exam_users.all():
+    #             if not overall_exam.exam_users.filter(user=exam_user.user).exists() and exam_user.group.pk != 3:
+    #                 new_exam_user = ExamUser()
+    #                 new_exam_user.user = exam_user.user
+    #                 new_exam_user.exam = overall_exam
+    #                 new_exam_user.group = exam_user.group
+    #                 new_exam_user.save()
+    #                 overall_exam.exam_users.add(new_exam_user)
+    #     overall_exam.save()
+    #
+    # else:
+    #
+    #
+    #
+    # return redirect('../examInfo/' + str(exam.pk))
 @exam_permission_required(['manage'])
 def validate_common_exams_settings(request,exam_pk):
-    exam = Exam.objects.get(pk=exam_pk)
-    common_exams_ids = request.POST.getlist(str(exam_pk)+'_common_to[]')
+    overall_exam = Exam.objects.get(pk=exam_pk)
+    common_exams_ids = request.POST.getlist(str(exam_pk) + '_common_to[]')
     if common_exams_ids:
         common_exams = Exam.objects.filter(id__in=common_exams_ids)
-        exam.common_exams.set(common_exams)
-
-
-        #get or create overall exam if not from overall exam
-        if not exam.is_overall():
-            overall_code = '000_'+re.sub(r"\(.*?\)", "", exam.code).strip()
-            month_year = exam.date.strftime("%m-%Y")
-            overall_code += "_"+month_year
-            overall_exam, created = Exam.objects.get_or_create(code = overall_code,semester = exam.semester,year = exam.year)
-            if created:
-                overall_exam.name = 'COMMON'
-                overall_exam.pdf_catalog_name = exam.pdf_catalog_name
-                overall_exam.date = exam.date
-                overall_exam.overall = True
-                overall_exam.save()
-
-            exam.common_exams.add(overall_exam)
-        else:
-            overall_exam = exam
-
-        exam.save()
-        update_common_exams(exam_pk)
-
-        # if common exam, update overall exam users
-        for comex in overall_exam.common_exams.all():
-            for exam_user in comex.exam_users.all():
-                if not overall_exam.exam_users.filter(user=exam_user.user).exists() and exam_user.group.pk != 3:
-                    new_exam_user = ExamUser()
-                    new_exam_user.user = exam_user.user
-                    new_exam_user.exam = overall_exam
-                    new_exam_user.group = exam_user.group
-                    new_exam_user.save()
-                    overall_exam.exam_users.add(new_exam_user)
+        overall_exam.common_exams.set(common_exams)
         overall_exam.save()
 
+        update_common_exams_questions(overall_exam.pk)
+        update_common_exams_scales(overall_exam.pk)
+        update_common_exams_users(overall_exam.pk)
 
-    return redirect('../examInfo/' + str(exam.pk))
+        task = generate_statistics.delay(overall_exam.pk)
+        task_id = task.task_id
+
+        return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
+    else:
+        redirect_exam = overall_exam.common_exams.first()
+        for exam in overall_exam.common_exams.all():
+            exam.common_exams.clear()
+        overall_exam.delete()
+        return redirect('../examInfo/' + str(redirect_exam.pk))

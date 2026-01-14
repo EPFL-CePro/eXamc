@@ -10,16 +10,160 @@ from decimal import *
 import numpy as np
 import pdfkit
 from django.conf import settings
-from django.db.models import Sum, FloatField
+from django.db import transaction
+from django.db.models import Sum, FloatField, Subquery
 from django.db.models.functions import Cast
 from django.template.loader import get_template
 
 from examc_app.models import *
 
+SCALE_COPY_FIELDS = (
+    "total_points",
+    "points_to_add",
+    "min_grade",
+    "max_grade",
+    "rounding",
+    "formula",
+    "final",
+)
 
-def update_common_exams(pk):
+def clone_scale(src: "Scale", *, exam) -> "Scale":
+    data = {f: getattr(src, f) for f in SCALE_COPY_FIELDS}
+    return src.__class__(exam=exam, name=src.name, **data)
 
-    exam = Exam.objects.get(pk=pk)
+def update_common_exams_scales(overall_exam_pk):
+    overall_exam = Exam.objects.get(pk=overall_exam_pk)
+    children = list(overall_exam.common_exams.all())
+
+    # --- Parent scales
+    parent_scales = list(overall_exam.scales.all())
+    parent_by_name = {s.name: s for s in parent_scales}
+    parent_names = set(parent_by_name.keys())
+
+    # --- Child names (existing)
+    child_to_names = {
+        c.id: set(c.scales.values_list("name", flat=True))
+        for c in children
+    }
+
+    to_create = []
+
+    # 1) Parent -> Children
+    for child in children:
+        missing = parent_names - child_to_names[child.id]
+        for name in missing:
+            to_create.append(clone_scale(parent_by_name[name], exam=child))
+
+    # 2) Children -> Parent (only names common to ALL children)
+    if children:
+        common_names = set.intersection(*(child_to_names[c.id] for c in children))
+    else:
+        common_names = set()
+
+    missing_in_parent = common_names - parent_names
+
+    if missing_in_parent:
+        # pick a source child scale per name (first child that has it)
+        # (all children should have it, but this avoids assumptions)
+        for name in missing_in_parent:
+            src = (
+                overall_exam.scales.model.objects
+                .filter(exam__in=children, name=name)
+                .order_by("exam_id")   # deterministic
+                .first()
+            )
+            if src:
+                to_create.append(clone_scale(src, exam=overall_exam))
+
+    with transaction.atomic():
+        if to_create:
+            overall_exam.scales.model.objects.bulk_create(to_create)
+
+def update_common_exams_users(overall_exam_pk):
+    overall_exam = Exam.objects.get(pk=overall_exam_pk)
+    for comex in overall_exam.common_exams.all():
+        for exam_user in comex.exam_users.all():
+            if not overall_exam.exam_users.filter(user=exam_user.user).exists() and exam_user.group.pk != 3:
+                new_exam_user = ExamUser()
+                new_exam_user.user = exam_user.user
+                new_exam_user.exam = overall_exam
+                new_exam_user.group = exam_user.group
+                new_exam_user.save()
+                overall_exam.exam_users.add(new_exam_user)
+    overall_exam.save()
+
+@transaction.atomic
+def update_common_exams_questions(overall_exam_pk):
+    overall_exam = Exam.objects.select_for_update().get(pk=overall_exam_pk)
+
+    child_exams = overall_exam.common_exams.all()
+    child_count = child_exams.count()
+
+    # get questions removed from common
+    removed_questions_codes = set(
+        Question.objects
+        .filter(exam=overall_exam, removed_from_common=True)
+        .values_list("code", flat=True)
+    )
+
+    # If no children, just clear and exit
+    overall_exam.questions.all().delete()
+    if child_count == 0:
+        return
+
+    common_codes = (
+        Question.objects
+        .filter(exam__in=child_exams)
+        .values('code')
+        .annotate(exam_cnt=Count('exam_id', distinct=True))
+        .filter(exam_cnt=child_count)
+        .values('code')
+    )
+
+    # All candidate questions across children for those codes
+    # Order so we deterministically pick one per code (lowest id)
+    candidates = (
+        Question.objects
+        .filter(exam__in=child_exams, code__in=Subquery(common_codes))
+        .order_by('code', 'id')
+        .select_related('section', 'question_type')
+    )
+
+    # Deduplicate by code (MySQL doesn't support DISTINCT ON)
+    picked = {}
+    for q in candidates:
+        picked.setdefault(q.code, q)
+
+    # Clone into parent exam (create NEW instances; don't mutate q)
+    new_questions = []
+    for q in picked.values():
+        removed = q.code in removed_questions_codes
+        new_questions.append(Question(
+            code=q.code,
+            section=q.section,
+            question_type=q.question_type,
+            max_points=q.max_points,
+            nb_answers=q.nb_answers,
+            correct_answer=q.correct_answer,
+            discriminatory_factor=q.discriminatory_factor,
+            upper_correct=q.upper_correct,
+            lower_correct=q.lower_correct,
+            di_calculation=q.di_calculation,
+            tot_answers=q.tot_answers,
+            remark=q.remark,
+            upper_avg=q.upper_avg,
+            lower_avg=q.lower_avg,
+            question_text=q.question_text,
+            formula=q.formula,
+            exam=overall_exam,
+            removed_from_common=removed
+        ))
+
+    Question.objects.bulk_create(new_questions, ignore_conflicts=True)
+
+def update_common_exams(overall_pk):
+
+    exam = Exam.objects.get(pk=overall_pk)
     #exam.common_exams.clear()
     #commons = Exam.objects.filter(name=exam.name,year__code=exam.year.code,semester__code=exam.semester.code)
     common_list = [e for e in exam.common_exams.all()]
@@ -35,6 +179,9 @@ def update_common_exams(pk):
                 common.common_exams.set(new_commons)
                 common.save()
     return exam
+
+def remove_common_exams(overall_pk):
+    return None
 
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
@@ -248,7 +395,7 @@ def get_common_list(exam):
 def get_questions_stats_by_teacher(exam):
     question_stat_list = []
 
-    com_questions = Question.objects.filter(common=True,exam=exam)
+    com_questions = Question.objects.filter(removed_from_common=False,common=True,exam=exam)
 
     for question in com_questions:
         question_stat = {'question':question}
