@@ -121,6 +121,12 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
 
     color_pos = 0
 
+    # if common exams, get common questions list
+    overall_exam = exam.common_exams.filter(overall=True).first()
+    common_questions_list = None
+    if overall_exam is not None:
+        common_questions_list = list(overall_exam.questions.values_list("code", flat=True))
+
     try:
         with transaction.atomic():
 
@@ -194,7 +200,7 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
                             indiv_points = 0
                             common_points = 0
                             for sd in student.data.all():
-                                if sd.question.common:
+                                if sd.question.code in common_questions_list:
                                     common_points += sd.points
                                 else:
                                     indiv_points += sd.points
@@ -463,32 +469,35 @@ def create_dist_stats_by_section(exam):
 
     return True
 
-def create_stats_comVsInd(exam):
+def create_stats_comVsInd(overall_exam):
 
-    sections = Student.objects.filter(present=True,exam__in=exam.common_exams.all()).order_by().values('section').distinct()
+    sections = Student.objects.filter(present=True,exam__in=overall_exam.common_exams.all()).order_by().values('section').distinct()
 
-    for scale in exam.scales.all():
+    # get common questions list
+    common_questions_list = list(overall_exam.questions.filter(removed_from_common=False).values_list("code", flat=True))
+
+    for scale in overall_exam.scales.all():
         com_rate = 0
 
         # stats by teacher
-        for comex in exam.common_exams.all():
+        for comex in overall_exam.common_exams.all():
 
             stat, created = ComVsIndStatistic.objects.get_or_create(exam = comex, scale = scale, section ='')
 
-            #common = 0
-            #indiv = 0
-            com_pts = 0
-            ind_pts = 0
-            com_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__present=True, student__exam=comex, question__common=True, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
+            # #common = 0
+            # #indiv = 0
+            # com_pts = 0
+            # ind_pts = 0
+            com_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__present=True, student__exam=comex, question__code__in=common_questions_list, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
 
             if not comex.indiv_formula:
-                ind_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__present=True, student__exam=comex, question__common=False, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
+                ind_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__present=True, student__exam=comex, sum_pts__gt=0).exclude(question__code__in=common_questions_list).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
             else:
                 ind_pts = 0
                 for s in comex.students.all():
                     stud_ind_points = 0
                     for sd in s.data.all():
-                        if not sd.question.common:
+                        if not sd.question.code in common_questions_list:
                             stud_ind_points += sd.points
 
                     formula_arr = comex.indiv_formula.split(";")
@@ -530,19 +539,19 @@ def create_stats_comVsInd(exam):
         # stats by section
         for section in sections:
 
-            stat, created = ComVsIndStatistic.objects.get_or_create(exam = exam, scale = scale, section = section.get('section'))
+            stat, created = ComVsIndStatistic.objects.get_or_create(exam = overall_exam, scale = scale, section = section.get('section'))
 
-            common = 0
-            indiv = 0
-            com_pts = 0
-            ind_pts = 0
+            # common = 0
+            # indiv = 0
+            # com_pts = 0
+            # ind_pts = 0
 
-            question_list = Question.objects.filter(exam__in=exam.common_exams.all()).distinct()
+            question_list = Question.objects.filter(exam__in=overall_exam.common_exams.all()).distinct()
 
-            section_presents = Student.objects.filter(exam__in=exam.common_exams.all(),section=section.get('section'),present=True).values('pk').aggregate(Count('pk')).get('pk__count')
+            section_presents = Student.objects.filter(exam__in=overall_exam.common_exams.all(),section=section.get('section'),present=True).values('pk').aggregate(Count('pk')).get('pk__count')
 
-            com_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__section=section.get('section'), student__present=True, student__exam__in=exam.common_exams.all(), question__common=True, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
-            ind_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__section=section.get('section'), student__present=True, student__exam__in=exam.common_exams.all(), question__common=False, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
+            com_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__section=section.get('section'), student__present=True, student__exam__in=overall_exam.common_exams.all(), question__code__in=common_questions_list, sum_pts__gt=0).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
+            ind_pts = StudentQuestionAnswer.objects.values('student').order_by('student').annotate(sum_pts=Sum('points')).filter(student__section=section.get('section'), student__present=True, student__exam__in=overall_exam.common_exams.all(), sum_pts__gt=0).exclude(question__code__in=common_questions_list).aggregate(sum_all=Sum('sum_pts')).get('sum_all')
             com_pts=Decimal(com_pts or 0)
             ind_pts=Decimal(ind_pts or 0)
             #print(section)
@@ -568,13 +577,15 @@ def create_stats_comVsInd(exam):
 
     return True
 
-def get_comVsInd_correlation(exam):
+def get_comVsInd_correlation(overall_exam):
     correlation_list = []
-
-    for comex in exam.common_exams.all():
-        #.values_list('points', flat=True)
-        common_pts_list = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True, question__common=True).order_by('student').annotate(sum=Sum('points', output_field=FloatField())).values_list('sum', flat=True)
-        indiv_pts_list = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True, question__common=False).order_by('student').annotate(sum=Sum('points', output_field=FloatField())).values_list('sum', flat=True)
+    # get common questions list
+    common_questions_list = list(overall_exam.questions.filter(removed_from_common=False).values_list("code", flat=True))
+    for comex in overall_exam.common_exams.all():
+        qs1 = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True, question__code__in=common_questions_list).order_by('student').annotate(sum=Sum('points', output_field=FloatField()))
+        qs2 = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True).exclude(question__code__in=common_questions_list).order_by('student').annotate(sum=Sum('points', output_field=FloatField()))
+        common_pts_list = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True, question__code__in=common_questions_list).order_by('student').annotate(sum=Sum('points', output_field=FloatField())).values_list('sum', flat=True)
+        indiv_pts_list = StudentQuestionAnswer.objects.values('student').filter(student__in=comex.students.all(), student__present=True).exclude(question__code__in=common_questions_list).order_by('student').annotate(sum=Sum('points', output_field=FloatField())).values_list('sum', flat=True)
         common_pts_list = list(common_pts_list)
         indiv_pts_list = list(indiv_pts_list)
 

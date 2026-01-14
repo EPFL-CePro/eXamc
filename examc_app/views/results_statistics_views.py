@@ -234,16 +234,11 @@ def export_data(request,exam_pk):
 @exam_permission_required(['manage','see_results'])
 def generate_stats(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
-    #generate_statistics(exam)
 
     task = generate_statistics.delay(exam.pk)
     task_id = task.task_id
 
-    # if not result == True:
-    #     messages.error(request, "Unable to upload file. " + result)
-
     return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
-    #return redirect('../examInfo/' + str(exam.pk))
 
 #@login_required
 @exam_permission_required(['manage','see_results'])

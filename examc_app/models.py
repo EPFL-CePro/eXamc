@@ -100,9 +100,14 @@ class Exam(models.Model):
 
     def get_common_points(self):
         """ Return the total of points for common part. """
+        if self.overall:
+            overall_exam = self
+        else:
+            overall_exam = self.common_exams.filter(overall=True).first()
+        common_questions_list = list(overall_exam.questions.filter(removed_from_common=False).values_list("code", flat=True))
         common_pts = 0
         for question in self.questions.all():
-            if question.common:
+            if question.code in common_questions_list:
                 common_pts += question.max_points
 
         return common_pts
