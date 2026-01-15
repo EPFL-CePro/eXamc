@@ -156,7 +156,8 @@ def update_common_exams_questions(overall_exam_pk):
             question_text=q.question_text,
             formula=q.formula,
             exam=overall_exam,
-            removed_from_common=removed
+            removed_from_common=removed,
+            common=True
         ))
 
     Question.objects.bulk_create(new_questions, ignore_conflicts=True)
@@ -403,7 +404,7 @@ def get_questions_stats_by_teacher(exam):
 
         for comex in exam.common_exams.all():
             exam_user = ExamUser.objects.filter(exam=comex,group__id=2).first()
-            teacher = {'teacher':exam_user.user.last_name.replace("-","_")}
+            teacher = {'teacher':exam_user.user.last_name.replace("-","_")+"_"+comex.code.split('(')[1].split(')')[0]}
 
             section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
             teacher.update({'sections':section_list})
