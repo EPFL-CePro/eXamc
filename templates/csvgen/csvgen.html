@@ -72,41 +72,41 @@
                 $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
             });
 
-            $('#download_bt').on('click', function () {
-                var studArray = $('#datatable').DataTable().rows().data().toArray();
-                download_csv(studArray);
-            });
+            {#$('#download_bt').on('click', function () {#}
+            {#    var studArray = $('#datatable').DataTable().rows().data().toArray();#}
+            {#    download_csv(studArray);#}
+            {#});#}
 
-            function download_csv(studArray) {
-                $.ajax({
-                    url: "{% url 'export_csv' %}",
-                    type: "POST",
-                    data: {
-                        'csrfmiddlewaretoken': "{{  csrf_token  }}",
-                        'students_list': JSON.stringify(studArray),
-                        'choice': "{{ csv_type_AMC }}"
-                    },
-                    xhrFields: {
-                        responseType: 'blob'
-                    },
-                    complete: function () {
-                        $('#spinner-div').hide()
-                    },
-                    success: function (response) {
-                        alert('CSV file will be downloaded');
-                        var link = document.createElement('a');
-                        link.href = window.URL.createObjectURL(response)
-                        link.download = 'students_list.csv';
-                        document.body.appendChild(link);
-                        link.click();
-                    },
-                    error: function (xhr, status, error) {
-
-                        alert('err');
-                    }
-                });
-            }
-        });
+        {#    function download_csv(studArray) {#}
+        {#        $.ajax({#}
+        {#            url: "{% url 'export_csv' %}",#}
+        {#            type: "POST",#}
+        {#            data: {#}
+        {#                'csrfmiddlewaretoken': "{{  csrf_token  }}",#}
+        {#                'students_list': JSON.stringify(studArray),#}
+        {#                'choice': "{{ csv_type_AMC }}"#}
+        {#            },#}
+        {#            xhrFields: {#}
+        {#                responseType: 'blob'#}
+        {#            },#}
+        {#            complete: function () {#}
+        {#                $('#spinner-div').hide()#}
+        {#            },#}
+        {#            success: function (response) {#}
+        {#                alert('CSV file will be downloaded');#}
+        {#                var link = document.createElement('a');#}
+        {#                link.href = window.URL.createObjectURL(response)#}
+        {#                link.download = 'students_list.csv';#}
+        {#                document.body.appendChild(link);#}
+        {#                link.click();#}
+        {#            },#}
+        {#            error: function (xhr, status, error) {#}
+        {##}
+        {#                alert('err');#}
+        {#            }#}
+        {#        });#}
+        {#    }#}
+        {#});#}
         <!--   $(document).ready(function () {-->
         <!--        $(document).ajaxStart(function () {-->
         <!--            $("#pageloader").fadeIn();-->
@@ -144,8 +144,9 @@
                         </div>
                     </div>
                     <div class="col-auto">
-                        <button class="btn btn-dark btn-sm d-flex align-items-center" type="button" onclick="submitForm();">
-                            <i class="bi bi-upload me-2"></i> Upload </button>
+                        <button class="btn btn-dark btn-sm d-flex align-items-center" type="submit">
+                          <i class="bi bi-upload me-2"></i> Upload
+                        </button>
                     </div>
                     <div class="col-auto">
                         <a href="{% static 'templates.zip' %}" class="btn btn-dark btn-sm" download>
@@ -180,12 +181,12 @@
                     {% endif %}
                 </li>
             {% endfor %}
-            {% if column_name and column_number %}
-                <button class="btn btn-success" type="button" id="download_bt"><span class="glyphicon glyphicon-upload"
-                                                                                     style="margin-right:5px;"></span>Download
-                    csv
-                </button>
-            {% endif %}
+{#            {% if column_name and column_number %}#}
+{#                <button class="btn btn-success" type="button" id="download_bt"><span class="glyphicon glyphicon-upload"#}
+{#                                                                                     style="margin-right:5px;"></span>Download#}
+{#                    csv#}
+{#                </button>#}
+{#            {% endif %}#}
         </div>
     </div>
 
