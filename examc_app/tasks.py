@@ -378,7 +378,7 @@ def generate_statistics(self,exam_pk):
         progress_recorder = ProgressRecorder(self)
         process_count = 5
         if exam.common_exams:
-            process_count = len(exam.common_exams.all())+6
+            process_count = process_count*len(exam.common_exams.all())-2
         process_number = 1
         progress_recorder.set_progress(0, process_count, description='')
 
@@ -395,12 +395,12 @@ def generate_statistics(self,exam_pk):
             else:
                 overall_exam = exam
             #overall_exam=update_overall_common_exam(exam)
-            generate_exam_stats(overall_exam,progress_recorder,process_number,process_count)
             overall_exam.present_students = overall_exam.common_exams.aggregate(sum_present=Sum('present_students'))['sum_present']
             overall_exam.save()
+            process_number = generate_exam_stats(overall_exam,progress_recorder,process_number,process_count)
             print("************** "+str(overall_exam.present_students))
         else:
-            generate_exam_stats(exam,progress_recorder,process_number,process_count)
+            process_number = generate_exam_stats(exam,progress_recorder,process_number,process_count)
 
         logger.info(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  -- > End generating stats !")
 
