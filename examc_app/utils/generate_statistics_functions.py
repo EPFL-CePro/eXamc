@@ -136,7 +136,7 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
                 common_list = exam.common_exams.all().filter(~Q(pk=exam.pk),overall=False)
                 print(common_list)
                 for com_exam in common_list:
-                    generate_exam_stats(com_exam,progress_recorder,process_number,process_count)
+                    process_number = generate_exam_stats(com_exam,progress_recorder,process_number,process_count)
 
                 discriminatory_count = round(exam.get_sum_common_students() * 27 / 100)
 
@@ -368,6 +368,8 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
 
     except IntegrityError as e:
         print("error :"+e.message)
+
+    return process_number
 
 def get_answer_remark_html(question, di_ref):
     upp_percent = 0;
