@@ -376,16 +376,10 @@ def generate_statistics(self,exam_pk):
         logger.info(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : Start generating statistics ---> ")
 
         progress_recorder = ProgressRecorder(self)
-        process_count = 5
-        if exam.common_exams:
-            process_count = process_count*len(exam.common_exams.all())-2
-        process_number = 1
-        progress_recorder.set_progress(0, process_count, description='')
 
         # update/init overall and common exams if common
         if exam.common_exams.all():
-            process_number += 1
-            progress_recorder.set_progress(process_number, process_count, description='Updating common exams...')
+
 
             if not exam.overall:
                 overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
@@ -394,12 +388,20 @@ def generate_statistics(self,exam_pk):
                 overall_exam = Exam.objects.get(code=overall_code, semester=exam.semester, year=exam.year)
             else:
                 overall_exam = exam
+            nb_common = len(overall_exam.common_exams.all())+1
+            process_count = nb_common*5-nb_common
+            process_number = 0
+            print(process_number)
+            progress_recorder.set_progress(process_number, process_count, description='Updating common exams...')
             #overall_exam=update_overall_common_exam(exam)
             overall_exam.present_students = overall_exam.common_exams.aggregate(sum_present=Sum('present_students'))['sum_present']
             overall_exam.save()
             process_number = generate_exam_stats(overall_exam,progress_recorder,process_number,process_count)
             print("************** "+str(overall_exam.present_students))
         else:
+            process_number = 0
+            process_count = 5
+            progress_recorder.set_progress(0, process_count, description='')
             process_number = generate_exam_stats(exam,progress_recorder,process_number,process_count)
 
         logger.info(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  -- > End generating stats !")
