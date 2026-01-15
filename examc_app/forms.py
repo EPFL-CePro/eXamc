@@ -71,7 +71,7 @@ class ManageReviewersForm(forms.ModelForm):
         self.fields['pages_groups'].queryset = self.pages_groups_choices
         self.fields['user'].widget.attrs['class'] = 'form-control'
         self.fields['user'].widget.attrs['style'] = 'width:300px'
-        self.fields['pages_groups'].disabled = True
+        self.fields['user'].disabled = True
         self.fields['pages_groups'].widget.attrs['class'] = 'form-control'
         self.fields['pages_groups'].widget.attrs['style'] = 'width:300px'
 
