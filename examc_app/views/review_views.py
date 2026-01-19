@@ -941,7 +941,7 @@ def delete_grading_scheme(request, exam_pk, grading_scheme_id):
     )
 
 ########### Grading Scheme Review Group
-@exam_permission_required(['review'])
+@exam_permission_required(['manage','review'])
 def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
     used_grading_scheme = other_grading_scheme_used(grading_scheme,copy_nr)
@@ -965,14 +965,14 @@ def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
     resp["X-Points"] = str(points)
     return resp
 
-@exam_permission_required(['review'])
+@exam_permission_required(['manage','review'])
 def review_grading_scheme_checkboxes(request, exam_pk, grading_scheme_id, copy_nr):
     grading_scheme_checkboxes = get_grading_scheme_checkboxes(grading_scheme_id, copy_nr)
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
 
     return render(request, "review/_review_grading_scheme_checkboxes.html", {"exam_selected":grading_scheme.pages_group.exam,"grading_scheme": grading_scheme, "grading_scheme_checkboxes": grading_scheme_checkboxes})
 
-@exam_permission_required(['review'])
+@exam_permission_required(['manage','review'])
 def update_pages_group_check_box(request,exam_pk):
     copy_nr = request.POST.get('copy_nr')
     item_id_str = request.POST.get('item_id')
