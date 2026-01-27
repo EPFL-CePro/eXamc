@@ -53,6 +53,14 @@ RUN set -eux; \
  && test -x /usr/bin/auto-multiple-choice \
  && rm -rf /var/lib/apt/lists/*
 
+# --- wkhtmltopdf
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libmariadb3 libzbar0 tzdata ca-certificates curl gnupg \
+    libgl1 libglib2.0-0 libsm6 libxext6 \
+    wkhtmltopdf \
+    fonts-dejavu-core fonts-liberation fonts-noto-core \
+ && rm -rf /var/lib/apt/lists/*
+
 
 # Copie des libs Python construites au stage "builder"
 COPY --from=builder /install /usr/local
