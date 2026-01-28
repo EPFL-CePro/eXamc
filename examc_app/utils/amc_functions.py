@@ -1090,13 +1090,13 @@ def add_grading_schemes_reports(exam_pk):
 
         # Optional: fail with a clearer message
         if not annotated_pdf_path.exists():
-            raise FileNotFoundError(f"Missing annotated PDF: {annotated_pdf_path}")
+            print(f"Missing annotated PDF: {annotated_pdf_path}")
+        else:
+            annotated_pdf_bytes = annotated_pdf_path.read_bytes()
+            grading_scheme_report_bytes = build_grading_report_pdf_bytes(exam_pk, student.id)
+            merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
 
-        annotated_pdf_bytes = annotated_pdf_path.read_bytes()
-        grading_scheme_report_bytes = build_grading_report_pdf_bytes(exam_pk, student.id)
-        merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
-
-        annotated_pdf_path.write_bytes(merged)
+            annotated_pdf_path.write_bytes(merged)
 
 def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     writer = PdfWriter()
