@@ -1,7 +1,7 @@
 # =========================
 # Stage 1 — BUILDER
 # =========================
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 DEBIAN_FONTEND=noninteractive
 WORKDIR /app
@@ -21,7 +21,7 @@ RUN python -m pip install --upgrade pip \
 # =========================
 # Stage 2 — RUNTIME (léger)
 # =========================
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 # Réglages Python “prod”
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -34,9 +34,12 @@ WORKDIR /app
 # - libmariadb3 : client C MariaDB (mysqlclient s’y lie)
 # - libzbar0    : tu l’avais dans ton Dockerfile (ex. lecture code-barres)
 # - tzdata/ca-certificates : TLS & timezone corrects
+# - wkhtmltopdf
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmariadb3 libzbar0 tzdata ca-certificates curl gnupg \
     libgl1 libglib2.0-0 libsm6 libxext6 \
+    wkhtmltopdf \
+    fonts-dejavu-core fonts-liberation fonts-noto-core \
  && rm -rf /var/lib/apt/lists/*
 
 # --- Auto Multiple Choice (AMC) depuis OBS (Debian) ---
@@ -51,14 +54,6 @@ RUN set -eux; \
       texlive-lang-european fonts-noto-core \
       latexmk ghostscript poppler-utils \
  && test -x /usr/bin/auto-multiple-choice \
- && rm -rf /var/lib/apt/lists/*
-
-# --- wkhtmltopdf
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libmariadb3 libzbar0 tzdata ca-certificates curl gnupg \
-    libgl1 libglib2.0-0 libsm6 libxext6 \
-    wkhtmltopdf \
-    fonts-dejavu-core fonts-liberation fonts-noto-core \
  && rm -rf /var/lib/apt/lists/*
 
 
