@@ -334,10 +334,10 @@ def questions_statistics_view(request,exam_pk):
             discriminatory_factor = Question.objects.filter(exam=currexam)[0].discriminatory_factor
             discriminatory_qty = round(currexam.present_students * discriminatory_factor / 100)
 
-            question_stat_by_teacher_list = []
+            question_stat_by_exam_list = []
 
             if currexam.overall:
-                question_stat_by_teacher_list = get_questions_stats_by_teacher(currexam)
+                question_stat_by_exam_list = get_questions_stats_by_exam(currexam)
 
             mcq_questions = Question.objects.filter(exam=currexam,removed_from_common=False).exclude(question_type__id=4)
             open_questions = Question.objects.filter(exam=currexam,question_type__id=4,removed_from_common=False)
@@ -352,7 +352,7 @@ def questions_statistics_view(request,exam_pk):
                            "discriminatory_factor": discriminatory_factor, "discriminatory_qty": discriminatory_qty,
                            "mcq_questions": mcq_questions,
                            "open_questions": open_questions,
-                           "questionsStatsByTeacher": question_stat_by_teacher_list,
+                           "questionsStatsByExam": question_stat_by_exam_list,
                            "common_list" : common_list,
                            "nav_url": "questionsStats"})
         else:

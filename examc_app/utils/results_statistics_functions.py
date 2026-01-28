@@ -309,81 +309,6 @@ def delete_exam_data(exam):
     Question.objects.filter(exam=exam).delete()
     Student.objects.filter(exam=exam).delete()
 
-# def import_exams_csv(csv_file):
-#
-#     decoded_file = csv_file.read().decode('utf-8')
-#     io_csv_string = io.StringIO(decoded_file)
-#     line_nr = 0
-#
-#     for fields in csv.reader(io_csv_string, delimiter=';'):
-#
-#         users = []
-#         if line_nr > 0:
-#
-#             # create primary user, user profile if not exist
-#             # UserProfile will be created automatically on User create
-#             user_profile = UserProfile.objects.filter(sciper=fields[4])
-#
-#             if not user_profile:
-#                 primary_user = User()
-#                 primary_user.username = fields[4]
-#                 primary_user.first_name = fields[5]
-#                 primary_user.last_name = fields[6]
-#                 primary_user.is_staff = True
-#                 primary_user.is_active = True
-#                 primary_user.save()
-#             else:
-#                 primary_user = User.objects.get(pk=UserProfile.objects.get(sciper=fields[4]).user.id)
-#
-#             print(primary_user.id)
-#
-#             #users.append(user)
-#
-#             # update UserProfile
-#             user_profile = UserProfile.objects.get(user=primary_user)
-#             user_profile.sciper = fields[4]
-#             user_profile.save()
-#
-#             # secondary teachers
-#             if fields[7]:
-#                 sec_teachers = fields[7].split('|')
-#                 for sec_teacher in sec_teachers:
-#                     sec_teacher_infos = sec_teacher.split(',')
-#
-#                     user_profile = UserProfile.objects.filter(sciper=sec_teacher_infos[0])
-#
-#                     if not user_profile:
-#                         user = User()
-#                         user.username = sec_teacher_infos[0]
-#                         user.first_name = sec_teacher_infos[1]
-#                         user.last_name = sec_teacher_infos[2]
-#                         user.is_staff = True
-#                         user.is_active = True
-#                         user.save()
-#                     else:
-#                         user = User.objects.get(pk=UserProfile.objects.get(sciper=sec_teacher_infos[0]).user.id)
-#
-#                     users.append(user)
-#
-#                     # update UserProfile
-#                     user_profile = UserProfile.objects.get(user=user)
-#                     user_profile.sciper = sec_teacher_infos[0]
-#                     user_profile.save()
-#
-#             # create exam
-#             exam = Exam()
-#             exam.code = fields[0]
-#             exam.name = fields[1]
-#             exam.year.code = fields[2]
-#             exam.semester.code = fields[3]
-#             exam.save()
-#             #exam.exam_users.users.add(*users)
-#             #exam.save()
-#
-#         line_nr += 1
-#
-#     return True
-
 def get_common_list(exam):
     common_list = []
     common_list.append(exam)
@@ -393,21 +318,21 @@ def get_common_list(exam):
         common_list.sort(key=operator.attrgetter('code'))
     return common_list
 
-def get_questions_stats_by_teacher(exam):
+def get_questions_stats_by_exam(exam):
     question_stat_list = []
 
     com_questions = Question.objects.filter(removed_from_common=False,common=True,exam=exam)
 
     for question in com_questions:
         question_stat = {'question':question}
-        teacher_list = []
+        exam_list = []
 
         for comex in exam.common_exams.all():
             exam_user = ExamUser.objects.filter(exam=comex,group__id=2).first()
-            teacher = {'teacher':exam_user.user.last_name.replace("-","_")+"_"+comex.code.split('(')[1].split(')')[0]}
+            exam = {'exam':exam_user.user.last_name.replace("-","_")+"_"+comex.code.split('(')[1].split(')')[0]}
 
             section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
-            teacher.update({'sections':section_list})
+            exam.update({'sections':section_list})
 
             present_students = comex.present_students if comex.present_students > 0 else 1
             answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
@@ -423,11 +348,11 @@ def get_questions_stats_by_teacher(exam):
             new_answer_list.append({'ticked':'NA','percent':100/present_students*na_answers})
 
 
-            teacher.update({'answers':new_answer_list})
+            exam.update({'answers':new_answer_list})
 
-            teacher_list.append(teacher)
+            exam_list.append(exam)
 
-        question_stat.update({'teachers':teacher_list})
+        question_stat.update({'exams':exam_list})
         question_stat_list.append(question_stat)
 
     return question_stat_list
