@@ -398,14 +398,14 @@
                 <div class="modal-content">
                   <div class="modal-header">
                     <h5 class="modal-title" id="ajax_info_modal_title">Process info</h5>
-                    <button type="button" class="close" onclick="$('#ajax_info_modal').modal('hide');"  aria-label="Close">
+                    <button id="ajax_modal_close" type="button" class="close" onclick="$('#ajax_info_modal').modal('hide');"  aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                     </button>
                   </div>
                   <div class="modal-body" id="ajax_info_modal_msg">
                   </div>
                   <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="$('#ajax_info_modal').modal('hide');">OK</button>
+                    <button id="ajax_modal_ok" type="button" class="btn btn-secondary" onclick="$('#ajax_info_modal').modal('hide');">OK</button>
                   </div>
                 </div>
               </div>
@@ -550,7 +550,29 @@ $(function () {
 ///-END TESTING
     
 
+    let ajaxInfoModalInitialized = false;
 
+    function setAjaxInfoModalLocked(locked) {
+      const okBtn = document.getElementById('ajax_modal_ok');
+      const closeBtn = document.getElementById('ajax_modal_close');
+
+      okBtn.disabled = locked;
+      closeBtn.disabled = locked;
+
+      // Optional: hide the "X" (top-right)
+      const xBtn = document.querySelector('#ajax_info_modal .close, #ajax_info_modal .btn-close');
+      if (xBtn) xBtn.style.pointerEvents = locked ? 'none' : 'auto';
+      if (xBtn) xBtn.style.opacity = locked ? '0.5' : '1';
+
+      // Configure modal once (prevents closing via backdrop/ESC)
+      if (!ajaxInfoModalInitialized) {
+        $('#ajax_info_modal').modal({
+          backdrop: 'static',
+          keyboard: false
+        });
+        ajaxInfoModalInitialized = true;
+      }
+    }
 
     // Hide submenus
     $('#body-row .collapse').collapse('hide');

@@ -24,7 +24,7 @@
         <a class="flex-sm-fill text-sm-center nav-link active" id="global-tab" data-toggle="pill" href="#pills-global" role="tab" aria-controls="pills-global" aria-selected="true">Common</a>
       </li>
       <li class="nav-item" role="presentation">
-        <a class="flex-sm-fill text-sm-center nav-link" id="byTeacher-tab" data-toggle="pill" href="#pills-byTeacher" role="tab" aria-controls="pills-byTeacher" aria-selected="false">By Teacher</a>
+        <a class="flex-sm-fill text-sm-center nav-link" id="byExam-tab" data-toggle="pill" href="#pills-byExam" role="tab" aria-controls="pills-byExam" aria-selected="false">By Exam</a>
       </li>
       <li class="nav-item" role="presentation">
         <a class="flex-sm-fill text-sm-center nav-link" id="bySection-tab" data-toggle="pill" href="#pills-bySection" role="tab" aria-controls="pills-bySection" aria-selected="false">By Section</a>
@@ -54,8 +54,8 @@
 
     {% if exam_selected.is_overall %}
       </div>
-      <div class="tab-pane fade" id="pills-byTeacher" role="tabpanel" aria-labelledby="pills-byTeacher-tab">
-        {% include "./general_statistics_byTeacher.html" %}
+      <div class="tab-pane fade" id="pills-byExam" role="tabpanel" aria-labelledby="pills-byExam-tab">
+        {% include "./general_statistics_byExam.html" %}
       </div>
       <div class="tab-pane fade" id="pills-bySection" role="tabpanel" aria-labelledby="pills-bySection-tab">
         {% include "./general_statistics_bySection.html" %}
@@ -142,7 +142,7 @@ var general_stats_chart_config = {
   {% if exam_selected.is_overall %}
 
   {% for scale in exam_selected.scales.all %}
-  var general_stats_byTeacher_chart_config{{scale.pk}} = {
+  var general_stats_byExam_chart_config{{scale.pk}} = {
     type: 'line',
     data: {
       labels: {{ grade_list }},
@@ -259,10 +259,10 @@ var general_stats_chart_config = {
       };
       {% endfor %}
 
-      var comVsIndByTeacher_labels = [];
+      var comVsIndByExam_labels = [];
       var comVsIndBySection_labels = [];
       {% for comex in exam_selected.common_exams.all %}
-        comVsIndByTeacher_labels.push('{{ comex.code }}');
+        comVsIndByExam_labels.push('{{ comex.code }}');
       {% endfor %}
       {% for section in exam_selected|get_sections_by_overall_exam %}
         comVsIndBySection_labels.push('{{ section.section }}');
@@ -270,10 +270,10 @@ var general_stats_chart_config = {
 
       {% for scale in exam_selected.scales.all %}
       {% with exam_selected|get_teachers_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
-      var general_stats_comVsIndByTeacher{{ scale.pk }} = {
+      var general_stats_comVsIndByExam{{ scale.pk }} = {
         type: 'bar',
         data:{
-          labels: comVsIndByTeacher_labels,
+          labels: comVsIndByExam_labels,
           datasets:[
             {
               label: "Global",
@@ -493,11 +493,11 @@ var general_stats_chart_config = {
 
       {% if exam_selected.is_overall %}
       {% for scale in exam_selected.scales.all %}
-      var ctxByTeacher{{scale.pk}} = document.getElementById('canvas-byTeacher-{{scale.pk}}');
-      if (typeof(ctxByTeacher{{scale.pk}}) != 'undefined' && ctxByTeacher{{scale.pk}} != null)
+      var ctxByExam{{scale.pk}} = document.getElementById('canvas-byExam-{{scale.pk}}');
+      if (typeof(ctxByExam{{scale.pk}}) != 'undefined' && ctxByExam{{scale.pk}} != null)
       {
-        ctxByTeacher{{scale.pk}} = ctxByTeacher{{scale.pk}}.getContext('2d');
-        window.myLine = new Chart(ctxByTeacher{{scale.pk}}, general_stats_byTeacher_chart_config{{scale.pk}});
+        ctxByExam{{scale.pk}} = ctxByExam{{scale.pk}}.getContext('2d');
+        window.myLine = new Chart(ctxByExam{{scale.pk}}, general_stats_byExam_chart_config{{scale.pk}});
       }
 
       var ctxBySection{{scale.pk}} = document.getElementById('canvas-bySection-{{scale.pk}}');
@@ -509,12 +509,12 @@ var general_stats_chart_config = {
       {% endfor %}
 
       {% for scale in exam_selected.scales.all %}
-      var ctxComVsIndByTeacher{{ scale.pk }} = document.getElementById('canvas-comVsIndByTeacher-{{ scale.pk }}');
-      ctxComVsIndByTeacher{{ scale.pk }}.height = 100;
-      if (typeof(ctxComVsIndByTeacher{{ scale.pk }}) != 'undefined' && ctxComVsIndByTeacher{{ scale.pk }} != null)
+      var ctxComVsIndByExam{{ scale.pk }} = document.getElementById('canvas-comVsIndByExam-{{ scale.pk }}');
+      ctxComVsIndByExam{{ scale.pk }}.height = 100;
+      if (typeof(ctxComVsIndByExam{{ scale.pk }}) != 'undefined' && ctxComVsIndByExam{{ scale.pk }} != null)
       {
-        ctxComVsIndByTeacher{{ scale.pk }} = ctxComVsIndByTeacher{{ scale.pk }}.getContext('2d');
-        window.myLine = new Chart(ctxComVsIndByTeacher{{ scale.pk }}, general_stats_comVsIndByTeacher{{ scale.pk }});
+        ctxComVsIndByExam{{ scale.pk }} = ctxComVsIndByExam{{ scale.pk }}.getContext('2d');
+        window.myLine = new Chart(ctxComVsIndByExam{{ scale.pk }}, general_stats_comVsIndByExam{{ scale.pk }});
       }
       var ctxComVsIndBySection{{ scale.pk }} = document.getElementById('canvas-comVsIndBySection-{{ scale.pk }}');
       ctxComVsIndBySection{{ scale.pk }}.height = 100;

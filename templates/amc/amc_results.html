@@ -125,7 +125,7 @@
     </div>
 </div>
 <script>
-    function call_amc_annotate() {
+    function old_call_amc_annotate() {
         const info_modal_msg = document.getElementById('ajax_info_modal_msg');
         info_modal_msg.innerHTML = "Generating annotated papers could take some time. A button to download the files will be available here when files are ready!";
         $('#ajax_info_modal').modal('show');
@@ -148,6 +148,63 @@
             error: (error) => console.log(error)
         });
     }
+
+    function call_amc_annotate() {
+        const info_modal_msg = document.getElementById('ajax_info_modal_msg');
+        info_modal_msg.innerHTML =
+            "Generating annotated papers could take some time. We'll update this message when files are ready!";
+        setAjaxInfoModalLocked(true);
+        $('#ajax_info_modal').modal('show');
+
+        const single_file = Number(document.getElementById('annotate_one_all_student').checked);
+        const add_grading_scheme_report = document.getElementById('annotate_with_grading_scheme').checked;
+
+        $.ajax({
+            url: "{% url 'call_amc_annotate' exam_selected.pk %}",
+            type: "POST",
+            dataType: "json",
+            data: {
+                csrfmiddlewaretoken: "{{ csrf_token }}",
+                single_file,
+                add_grading_scheme_report
+            },
+            success: (resp) => {
+                console.log("POST resp:", resp);
+                pollAnnotateJob(resp.status_url);
+            },
+            error: (xhr) => {
+                console.log(xhr);
+                setAjaxInfoModalLocked(false);
+                info_modal_msg.innerHTML = "Failed to start annotation job.";
+            }
+        });
+    }
+
+    function pollAnnotateJob(statusUrl) {
+        const info_modal_msg = document.getElementById('ajax_info_modal_msg');
+
+        const timer = setInterval(() => {
+        $.ajax({
+          url: statusUrl,
+          type: "GET",
+          success: (resp) => {
+            if (resp.status === "running" || resp.status === "queued") {
+              info_modal_msg.innerHTML = resp.progress || "Still working…";
+              return;
+            }
+            clearInterval(timer);
+            setAjaxInfoModalLocked(false);
+            if (resp.status === "done") {
+              // you currently return "result" not "download_url" -> this would be undefined
+              info_modal_msg.innerHTML = `Done!`;
+            } else {
+              info_modal_msg.innerHTML = `Annotation failed: ${resp.error || "unknown error"}`;
+            }
+          },
+          error: (xhr) => console.log(xhr)
+        });
+        }, 2000);
+        }
 
     function generate_amc_results() {
         $.ajax({

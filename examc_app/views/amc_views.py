@@ -4,16 +4,17 @@ import pathlib
 from urllib import request
 
 from asgiref.sync import async_to_sync, sync_to_async
+from celery.result import AsyncResult
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 
 from examc_app.decorators import exam_permission_required
 from examc_app.models import *
-from examc_app.tasks import import_csv_data, generate_marked_files_zip
+from examc_app.tasks import import_csv_data, generate_marked_files_zip, amc_annotate_task
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
@@ -479,7 +480,7 @@ def amc_update_students_file(request, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
-def call_amc_annotate(request,exam_pk):
+def old_call_amc_annotate(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     single_file = request.POST['single_file']
     add_grading_scheme_report = request.POST['add_grading_scheme_report']
@@ -491,6 +492,35 @@ def call_amc_annotate(request,exam_pk):
     result = amc_annotate(exam,single_file,add_grading_scheme_report)
 
     return HttpResponse(result)
+
+@require_POST
+@exam_permission_required(['manage'])
+def call_amc_annotate(request, exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+
+    single_file = request.POST.get("single_file") == "1"
+    add_grading_scheme_report = request.POST.get("add_grading_scheme_report") in ("true", "True", "1", True)
+
+    job = amc_annotate_task.delay(exam_pk, single_file, add_grading_scheme_report)
+    return JsonResponse({
+        "job_id": job.id,
+        "status_url": reverse("amc_annotate_status", args=[exam.pk,job.id]),
+    }, status=202)
+
+@require_GET
+@exam_permission_required(['manage'])
+def amc_annotate_status(request, exam_pk, job_id):
+    res = AsyncResult(job_id)
+
+    # Celery states: PENDING, STARTED, SUCCESS, FAILURE, RETRY...
+    if res.state in ("PENDING", "STARTED", "RETRY"):
+        return JsonResponse({"status": "running", "state": res.state})
+
+    if res.state == "FAILURE":
+        return JsonResponse({"status": "error", "state": res.state, "error": str(res.result)}, status=500)
+
+    # SUCCESS
+    return JsonResponse({"status": "done", "state": res.state, "result": res.result})
 
 #@login_required
 @exam_permission_required(['manage'])

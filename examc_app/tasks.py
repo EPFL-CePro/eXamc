@@ -20,7 +20,7 @@ from fpdf import FPDF
 
 from django.conf import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock
-from examc_app.utils.amc_functions import amc_automatic_data_capture
+from examc_app.utils.amc_functions import amc_automatic_data_capture, amc_annotate
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
@@ -431,3 +431,9 @@ def cleanup_review_locks():
     # Delete ReviewLocks where user is no longer active
     deleted_count, _ = ReviewLock.objects.exclude(user_id__in=active_user_ids).delete()
     return f"Deleted {deleted_count} review locks from logged-out users."
+
+@shared_task(bind=True)
+def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_report: bool):
+    exam = Exam.objects.get(pk=exam_pk)
+    result = amc_annotate(exam, single_file, add_grading_scheme_report)
+    return result

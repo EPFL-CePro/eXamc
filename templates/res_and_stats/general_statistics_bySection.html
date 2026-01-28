@@ -1,7 +1,7 @@
 {% load custom_tags %}
 </br>
 <h6>Scales :</h6>
-<ul class="nav nav-pills flex-column flex-sm-row border" id="stats-byTeacher-pills-tab" role="tablist">
+<ul class="nav nav-pills flex-column flex-sm-row border" id="stats-bySection-pills-tab" role="tablist">
   {% with exam.scales.all|first as first_scale %}
   {% for scale in exam.scales.all %}
   {% if scale.pk == first_scale.pk %}
@@ -16,7 +16,7 @@
   {% endfor %}
   {% endwith %}
 </ul>
-<div class="tab-content" id="stats-byTeacher-pills-tabContent" style="max-height:80vh;overflow-y:scroll;">
+<div class="tab-content" id="stats-bySection-pills-tabContent" style="max-height:80vh;overflow-y:scroll;">
   {% with exam.scales.all|first as first_scale %}
   {% for scale in exam.scales.all %}
   {% if scale.pk == first_scale.pk %}

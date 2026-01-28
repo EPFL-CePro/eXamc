@@ -280,7 +280,9 @@
             highlightMarkers.forEach(el => {
                 el.style.display = "none";
             });
-            setGradingSchemeBlockActive(true);
+            if(useGradingScheme) {
+                setGradingSchemeBlockActive(true);
+            }
 
         } else {
             // If page is locked/unavailable, skip to next (or wrap)
@@ -692,7 +694,9 @@
                 const exists = copiesPagesList.some(item =>
                   item.copy_no === copyNo && item.page_no === pageNo
                 );
-                setGradingSchemeBlockActive(exists);
+                if(useGradingScheme) {
+                    setGradingSchemeBlockActive(exists);
+                }
             },
         });
     }
@@ -1094,6 +1098,10 @@
 
         // Keyboard arrows → previous/next page
         $('#reviewGroup_div').on('keydown', function (event) {
+            // If a TextMarker is selected (editing/selection state), don't paginate on arrows.
+            if (selectedMarkerEditor === 'TextMarker') {
+                return;
+            }
             switch (event.key) {
                 case "ArrowLeft":
                 case "ArrowUp": {
