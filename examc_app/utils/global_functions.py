@@ -222,16 +222,3 @@ def update_folders_paths(old_path,new_path):
     if os.path.exists(str(settings.AMC_PROJECTS_ROOT)+old_path):
         shutil.move(str(settings.AMC_PROJECTS_ROOT)+old_path, str(settings.AMC_PROJECTS_ROOT)+new_path)
 
-
-
-def safe_filename_part(s: str) -> str:
-    # 1) normalize unicode (splits accents from letters)
-    s = unicodedata.normalize("NFKD", s)
-    # 2) drop diacritics by encoding to ASCII
-    s = s.encode("ascii", "ignore").decode("ascii")
-    # 3) spaces -> underscores
-    s = s.replace(" ", "_")
-    # 4) keep only safe chars (letters, digits, underscore, dash, dot)
-    s = re.sub(r"[^A-Za-z0-9_.-]+", "", s)
-    # 5) avoid empty parts
-    return s or "unknown"
