@@ -37,6 +37,7 @@ from examc_app.decorators import exam_permission_required
 from examc_app.models import Student, Exam, PagesGroupGradingSchemeCheckedBox, QuestionGradingSchemeCheckBox, PagesGroup
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries import *
+from examc_app.utils.global_functions import safe_filename_part
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -1065,16 +1066,24 @@ def check_annotated_papers_available(exam):
 def add_grading_schemes_reports(exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     students = Student.objects.filter(exam=exam_pk)
-    project_path = get_amc_project_path(exam, False)
-    annotated_pdfs_path = project_path+"/cr/corrections/pdf/"
+
+    project_path = Path(get_amc_project_path(exam, False))
+    annotated_pdfs_dir = project_path / "cr" / "corrections" / "pdf"
+
     for student in students:
-        annotated_pdf_path = annotated_pdfs_path+student.copie_no.zfill(4)+"_"+student.sciper+"_"+student.name.replace(" ","_")+".pdf"
-        annotated_pdf_bytes = open(annotated_pdf_path, "rb").read()
+        annotated_pdf_path = annotated_pdfs_dir / (
+            f"{student.copie_no.zfill(4)}_{student.sciper}_{safe_filename_part(student.name)}.pdf"
+        )
+
+        # Optional: fail with a clearer message
+        if not annotated_pdf_path.exists():
+            raise FileNotFoundError(f"Missing annotated PDF: {annotated_pdf_path}")
+
+        annotated_pdf_bytes = annotated_pdf_path.read_bytes()
         grading_scheme_report_bytes = build_grading_report_pdf_bytes(exam_pk, student.id)
         merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
 
-        with open(annotated_pdf_path, "wb") as f:
-            f.write(merged)
+        annotated_pdf_path.write_bytes(merged)
 
 def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     writer = PdfWriter()
