@@ -4,9 +4,11 @@ import io
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import time
+import unicodedata
 import xml.etree.ElementTree as xmlET
 import zipfile
 from datetime import datetime
@@ -37,10 +39,21 @@ from examc_app.decorators import exam_permission_required
 from examc_app.models import Student, Exam, PagesGroupGradingSchemeCheckedBox, QuestionGradingSchemeCheckBox, PagesGroup
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries import *
-from examc_app.utils.global_functions import safe_filename_part
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
+
+def safe_filename_part(s: str) -> str:
+    # 1) normalize unicode (splits accents from letters)
+    s = unicodedata.normalize("NFKD", s)
+    # 2) drop diacritics by encoding to ASCII
+    s = s.encode("ascii", "ignore").decode("ascii")
+    # 3) spaces -> underscores
+    s = s.replace(" ", "_")
+    # 4) keep only safe chars (letters, digits, underscore, dash, dot)
+    s = re.sub(r"[^A-Za-z0-9_.-]+", "", s)
+    # 5) avoid empty parts
+    return s or "unknown"
 
 def get_amc_update_document_info(exam):
     info = ''
