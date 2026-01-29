@@ -605,6 +605,14 @@ def get_grading_scheme_checkboxes(grading_scheme_id, copy_nr):
     grading_scheme_checkboxes_list = []
     item_id = None
 
+    # Full points checkbox
+    points = (PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=grading_scheme.pages_group,copy_nr=copy_nr).aggregate(total=Sum("gradingSchemeCheckBox__points"))["total"]) or 0
+    checked = False
+    if points == grading_scheme.max_points:
+        checked = True
+
+    grading_scheme_checkbox = {"item_id":0,"ref":"full","points":grading_scheme.max_points,"name":"FULL","description":"Full points","checked":checked,"adjustment":''}
+    grading_scheme_checkboxes_list.append(grading_scheme_checkbox)
     for checkbox in grading_scheme_checkboxes_qs:
         try:
             pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(

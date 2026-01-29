@@ -33,4 +33,33 @@
     if (first) first.click();
   }());
 
+  function initSortableIn(root) {
+    $(root).find("tbody[data-sortable='checkboxes']").each(function () {
+      const $tbody = $(this);
+
+      if ($tbody.data("sortable-initialized")) return;
+      $tbody.data("sortable-initialized", true);
+
+      $tbody.sortable({
+        handle: ".drag-handle",
+        items: "tr.sortable-row",
+        update: function () {
+          $tbody.find("tr.sortable-row").each(function (newPos) {
+            // Find the hidden position input inside this row
+            const $pos = $(this).find("input[name$='-position']");
+            $pos.val(newPos); // or newPos + 1 if you prefer 1-based positions
+          });
+        }
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    initSortableIn(document);
+  });
+
+  document.body.addEventListener("htmx:afterSwap", function (evt) {
+    initSortableIn(evt.target);
+  });
+
 </script>

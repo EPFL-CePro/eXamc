@@ -490,9 +490,13 @@ class QuestionGradingSchemeCheckBox(models.Model):
     questionGradingScheme = models.ForeignKey(QuestionGradingScheme, on_delete=models.CASCADE, related_name='checkboxes')
     name = models.CharField(max_length=100)
     points = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    description = models.TextField(default='')
+    description = models.TextField(blank=True, default="")
     adjustment = models.BooleanField(default=0)
+    position = models.IntegerField(default=0)
     history = HistoricalRecords()
+
+    class Meta:
+        ordering = ['position']
 
 #############################
 # Review Grading Schemes Checked Boxes
