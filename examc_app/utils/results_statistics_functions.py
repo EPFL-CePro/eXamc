@@ -329,10 +329,10 @@ def get_questions_stats_by_exam(exam):
 
         for comex in exam.common_exams.all():
             exam_user = ExamUser.objects.filter(exam=comex,group__id=2).first()
-            exam = {'exam':exam_user.user.last_name.replace("-","_")+"_"+comex.code.split('(')[1].split(')')[0]}
+            exam_dict = {'exam':exam_user.user.last_name.replace("-","_")+"_"+comex.code.split('(')[1].split(')')[0]}
 
             section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
-            exam.update({'sections':section_list})
+            exam_dict.update({'sections':section_list})
 
             present_students = comex.present_students if comex.present_students > 0 else 1
             answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
@@ -348,9 +348,9 @@ def get_questions_stats_by_exam(exam):
             new_answer_list.append({'ticked':'NA','percent':100/present_students*na_answers})
 
 
-            exam.update({'answers':new_answer_list})
+            exam_dict.update({'answers':new_answer_list})
 
-            exam_list.append(exam)
+            exam_list.append(exam_dict)
 
         question_stat.update({'exams':exam_list})
         question_stat_list.append(question_stat)
