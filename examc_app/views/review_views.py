@@ -604,7 +604,8 @@ def saveMarkers(request, exam_pk):
             return: A HTTP response indicating the success of the operation.
     """
     exam = Exam.objects.get(pk=exam_pk)
-    question_name = get_question_name_by_student_page(get_amc_project_path(exam, True)+"/data/",int(request.POST['copy_no']),int(request.POST['page_no']))
+    page_no = int(float(request.POST['page_no'].strip()))
+    question_name = get_question_name_by_student_page(get_amc_project_path(exam, True)+"/data/",int(request.POST['copy_no']),page_no)
     pages_group = PagesGroup.objects.get(exam=exam,group_name=question_name)
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
                                                               page_no=request.POST['page_no'], pages_group=pages_group,
