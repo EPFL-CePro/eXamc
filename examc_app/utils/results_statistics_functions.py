@@ -328,8 +328,7 @@ def get_questions_stats_by_exam(exam):
         exam_list = []
 
         for comex in exam.common_exams.all():
-            exam_user = ExamUser.objects.filter(exam=comex,group__id=2).first()
-            exam_dict = {'exam':exam_user.user.last_name.replace("-","_")+"_"+comex.code.split('(')[1].split(')')[0]}
+            exam_dict = {'exam':comex.code.replace('(','').replace(')','').replace('-','')}
 
             section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
             exam_dict.update({'sections':section_list})
