@@ -334,11 +334,12 @@ GradingSchemeFormSet = modelformset_factory(QuestionGradingScheme, form=GradingS
 class GradingSchemeCheckBoxForm(forms.ModelForm):
     class Meta:
         model = QuestionGradingSchemeCheckBox
-        fields = ['name', 'points', 'description']
+        fields = ['name', 'points', 'description', "position"]
         widgets = {
             "description": SummernoteWidget(
                 attrs={"summernote": {"width": "100%", "height": "150px"}}
             ),
+            "position": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
@@ -350,6 +351,8 @@ class GradingSchemeCheckBoxForm(forms.ModelForm):
                     f.widget.attrs['style'] = 'min-width:300px'
                 if fname == 'points':
                     f.widget.attrs['style'] = 'min-width:150px'
+            else:
+                f.required = False
 
 
 GradingSchemeCheckboxFormSet=modelformset_factory(QuestionGradingSchemeCheckBox, form=GradingSchemeCheckBoxForm, extra=0)

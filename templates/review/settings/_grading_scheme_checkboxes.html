@@ -8,11 +8,16 @@
   {{ grading_scheme_checkboxes_formset.management_form }}
   <table class="table">
       <thead>
-        <tr><th>Name</th><th {% if points != grading_scheme.max_points %} style="color:red" {% endif %}>Points  {{ points }} / {{ grading_scheme.max_points }}</th><th>Description</th><th>Delete</th></tr>
+        <tr><th></th><th>Name</th><th {% if points != grading_scheme.max_points %} style="color:red" {% endif %}>Points  {{ points }} / {{ grading_scheme.max_points }}</th><th>Description</th><th>Delete</th></tr>
       </thead>
-      <tbody>
+      <tbody data-sortable="checkboxes">
         {% for form in grading_scheme_checkboxes_formset.forms %}
-        <tr id="group-form">
+        <tr id="group-form" class="sortable-row" data-form-index="{{ forloop.counter0 }}">
+
+            <td class="drag-handle" style="cursor:move; text-align:center;padding-top:35px;">
+                <i class="fa-solid fa-grip-vertical"></i>
+            </td>
+
             {% for hidden in form.hidden_fields %}
                 {{ hidden }}
             {% endfor %}

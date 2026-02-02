@@ -278,13 +278,13 @@ $(window).on("load",function(){
 
     {% if questionsStatsByExam %}
       {% for qstat in questionsStatsByExam %}
-        {% for teacher in qstat.teachers %}
-        var ctxByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }} = document.getElementById('canvas-questionStatByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}');
-        ctxByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}.height = 500;
-        if (typeof(ctxByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}) != 'undefined' && ctxByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }} != null)
+        {% for exam in qstat.exams %}
+        var ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }} = document.getElementById('canvas-questionStatByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}');
+        ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}.height = 500;
+        if (typeof(ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}) != 'undefined' && ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }} != null)
         {
-          ctxByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }} = ctxByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}.getContext('2d');
-          window.myLine = new Chart(ctxByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}, questionStatByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }});
+          ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }} = ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}.getContext('2d');
+          window.myLine = new Chart(ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}, questionStatByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }});
         }
         {% endfor %}
       {% endfor %}

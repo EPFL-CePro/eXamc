@@ -145,6 +145,8 @@
         markerArea.targetHeight = targetHeight;
 
         $("#corrector_boxes_svg").empty();
+        $("#corr_box_div").empty();
+        $("#corr_box_div").removeAttr("style");
         if (Array.isArray(correctorBoxesData) && correctorBoxesData.length > 0) {
             drawCorrectorBoxes();
         }
@@ -880,11 +882,12 @@
                 shouldAddMarker = false;
 
                 if (
-                    left !== -1 &&
+                    (left !== -1 &&
                     (m.left !== left ||
                         m.top !== top ||
                         m.width !== width ||
-                        m.height !== height)
+                        m.height !== height))
+                    || useGradingScheme
                 ) {
                     shouldAddMarker = true;
                 }
@@ -1287,7 +1290,7 @@
      *
      * NOTE: name kept so Django's inline `onchange="updatePagesGroupCheckBox(...)"` still works.
      */
-    function updatePagesGroupCheckBox(itemId, checked, isAdjustment, zero) {
+    function updatePagesGroupCheckBox(itemId, checked, isAdjustment, zero,full) {
         let adjustValue = isAdjustment;
 
         if (isAdjustment) {
@@ -1312,7 +1315,8 @@
                 'adjustment': adjustValue,
                 'pages_group_id': pagesGroupId,
                 'grading_scheme_id': currentGradingSchemeId,
-                'zero': zero
+                'zero': zero,
+                'full':full
             },
             success: (response) => {
                 if (response === '') return;

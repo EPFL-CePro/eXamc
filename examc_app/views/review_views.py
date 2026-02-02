@@ -604,7 +604,8 @@ def saveMarkers(request, exam_pk):
             return: A HTTP response indicating the success of the operation.
     """
     exam = Exam.objects.get(pk=exam_pk)
-    question_name = get_question_name_by_student_page(get_amc_project_path(exam, True)+"/data/",int(request.POST['copy_no']),int(request.POST['page_no']))
+    page_no = int(float(request.POST['page_no'].strip()))
+    question_name = get_question_name_by_student_page(get_amc_project_path(exam, True)+"/data/",int(request.POST['copy_no']),page_no)
     pages_group = PagesGroup.objects.get(exam=exam,group_name=question_name)
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
                                                               page_no=request.POST['page_no'], pages_group=pages_group,
@@ -845,12 +846,13 @@ def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
 @exam_permission_required(['manage'])
 def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
-    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False).exclude(name='ZERO')
+    grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False).exclude(name='ZERO').order_by('position','pk')
     if request.method == "POST":
         formset = GradingSchemeCheckboxFormSet(request.POST, queryset=grading_scheme_checkboxes.all())
         saved = formset.is_valid()
         if saved:
             formset.save()
+            formset = GradingSchemeCheckboxFormSet(queryset=qs)
         else:
             print(formset.errors)
     else:
@@ -911,7 +913,7 @@ def add_new_grading_scheme(request, exam_pk, pages_group_id):
         max_points=max_points,
     )
 
-    # create adjustment checkbox and zero pts checkbox
+    # create adjustment, zero checkboxes
     QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ADJ", description="Adjustment", points=0, adjustment=True)
     QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ZERO", description="Zero", points=0, adjustment=False)
 
@@ -980,22 +982,29 @@ def update_pages_group_check_box(request,exam_pk):
     pages_group = PagesGroup.objects.get(pk=int(request.POST.get('pages_group_id')))
     adjustment = request.POST.get('adjustment')
     zero = request.POST.get('zero') == 'true'
+    full = request.POST.get('full') == 'true'
     if adjustment == '':
         adjustment = 0
     grading_scheme = QuestionGradingScheme.objects.get(pk=int(request.POST.get('grading_scheme_id')))
-    pggsc = None
     points_rnd = ''
 
-    if zero and checked:
+    if (zero and checked) or full:
         PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=pages_group, copy_nr=copy_nr).all().delete()
 
-    points_before = points = float(get_question_points(grading_scheme, copy_nr))
+    points_before = float(get_question_points(grading_scheme, copy_nr))
 
     item_id_split = item_id_str.split("-")
     item_id = item_id_split[2]
     ref = item_id_split[1]
     if checked:
-        if adjustment != '':
+        # if adjustment != '':
+        if full:
+            grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).exclude(name__in=('ZERO','ADJ'))
+            for gsc in grading_scheme_checkboxes:
+                if not gsc.name in ('ADJ', 'ZERO'):
+                    PagesGroupGradingSchemeCheckedBox.objects.create(pages_group=pages_group,
+                                                                     gradingSchemeCheckBox=gsc, copy_nr=copy_nr,adjustment=adjustment)
+        else:
             if ref == "gsc":
                 pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group, copy_nr=copy_nr,gradingSchemeCheckBox_id=item_id)
             else:
@@ -1003,8 +1012,7 @@ def update_pages_group_check_box(request,exam_pk):
 
             pggscb.adjustment = adjustment
             pggscb.save()
-        else:
-            PagesGroupGradingSchemeCheckedBox.objects.create(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id,adjustment=0)
+
         if not zero and checked:
             try:
                 PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group,copy_nr=copy_nr,gradingSchemeCheckBox__name='ZERO').delete()
@@ -1015,13 +1023,16 @@ def update_pages_group_check_box(request,exam_pk):
             if ref == "gsc":
                 PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr, gradingSchemeCheckBox_id=item_id).delete()
             else:
-                PagesGroupGradingSchemeCheckedBox.objects.get(id=item_id,pages_group=pages_group, copy_nr=copy_nr).delete()
+                if not full:
+                    PagesGroupGradingSchemeCheckedBox.objects.get(id=item_id,pages_group=pages_group, copy_nr=copy_nr).delete()
         except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
             pass
 
 
 
     points = float(get_question_points(grading_scheme, copy_nr))
+    if points > grading_scheme.max_points:
+        points = float(grading_scheme.max_points)
     if points == 0 or (points_before != points):
         exam = Exam.objects.get(pk=exam_pk)
         amc_data_path = get_amc_project_path(exam, True) + "/data/"
