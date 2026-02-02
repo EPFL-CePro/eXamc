@@ -175,25 +175,25 @@ $(document).ready(function() {
 
   {% if questionsStatsByExam %}
     {% for qstat in questionsStatsByExam %}
-      {% for teacher in qstat.teachers %}
-        var questionByExam_answers_label{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }} = [];
-        {% for answer in teacher.answers %}
-          questionByExam_answers_label{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}.push(' {{ answer.percent|floatformat:0 }}% - {{ answer.ticked }}');
+      {% for exam in qstat.exams %}
+        var questionByExam_answers_label{{ qstat.question.pk }}_{{ exam.exam }} = [];
+        {% for answer in exam.answers %}
+          questionByExam_answers_label{{ qstat.question.pk }}_{{ exam.exam }}.push(' {{ answer.percent|floatformat:0 }}% - {{ answer.ticked }}');
         {% endfor %}
 
-        var questionStatByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}= {
+        var questionStatByExam{{ qstat.question.pk }}_{{ exam.exam }}= {
           type: 'bar',
           data: {
-            labels: questionByExam_answers_label{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }},
+            labels: questionByExam_answers_label{{ qstat.question.pk }}_{{ exam.exam }},
             datasets: [
             {
               label: "percent",
               fill: false,
-              backgroundColor: palette('mpn65', {{ teacher.answers|length }}).map(function(hex) {
+              backgroundColor: palette('mpn65', {{ exam.answers|length }}).map(function(hex) {
                 return '#' + hex;
               }),
               data: [
-              {% for answer in teacher.answers %}
+              {% for answer in exam.answers %}
                 {{ answer.percent|floatformat:2 }},
               {% endfor %}
               ]},
@@ -279,12 +279,12 @@ $(window).on("load",function(){
     {% if questionsStatsByExam %}
       {% for qstat in questionsStatsByExam %}
         {% for exam in qstat.exams %}
-        var ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }} = document.getElementById('canvas-questionStatByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}');
-        ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}.height = 500;
-        if (typeof(ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}) != 'undefined' && ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }} != null)
+        var ctxByExam{{ qstat.question.pk }}_{{ exam.exam }} = document.getElementById('canvas-questionStatByExam{{ qstat.question.pk }}_{{ exam.exam }}');
+        ctxByExam{{ qstat.question.pk }}_{{ exam.exam }}.height = 500;
+        if (typeof(ctxByExam{{ qstat.question.pk }}_{{ exam.exam }}) != 'undefined' && ctxByExam{{ qstat.question.pk }}_{{ exam.exam }} != null)
         {
-          ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }} = ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}.getContext('2d');
-          window.myLine = new Chart(ctxByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }}, questionStatByExam{{ qstat.question.pk }}_{{ exam.exam.split|join:"_" }});
+          ctxByExam{{ qstat.question.pk }}_{{ exam.exam }} = ctxByExam{{ qstat.question.pk }}_{{ exam.exam }}.getContext('2d');
+          window.myLine = new Chart(ctxByExam{{ qstat.question.pk }}_{{ exam.exam }}, questionStatByExam{{ qstat.question.pk }}_{{ exam.exam }});
         }
         {% endfor %}
       {% endfor %}
@@ -479,7 +479,7 @@ $(window).on("load",function(){
         <button class="btn" onclick="downloadElementAsPDF({title:'Questions stats by exam',
                                                       subtitle:'{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }}',
                                                       elementId:'questions_statistics_by_teacher_table_div',
-                                                      fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_questions_stats_by_teacher.pdf'});"
+                                                      fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_questions_stats_by_exam.pdf'});"
            style="margin-left:10px">
             <i class="fa-regular fa-file-pdf fa-2xl" style="color: #db0a0a;"><i class="fa-solid fa-circle-arrow-down fa-2xs" style="margin-left:-35px;"></i></i>
         </button>
@@ -488,7 +488,7 @@ $(window).on("load",function(){
             <tbody>
               {% for qstat in questionsStatsByExam %}
               <tr>
-                <th class="text-center" colspan="{{ qstat.teachers|length }}" style="padding:50px 0px 0px 0px;">
+                <th class="text-center" colspan="{{ qstat.exams|length }}" style="padding:50px 0px 0px 0px;">
                   <h6>
                   {{ qstat.question }}
                   <a data-toggle="modal"
@@ -499,12 +499,12 @@ $(window).on("load",function(){
                 </th>
               </tr>
               <tr>
-                {% for teacher in qstat.teachers %}
+                {% for exam in qstat.exams %}
                 <th class="text-center">
-                  {{ teacher.teacher }}
+                  {{ exam.exam }}
                 </br>
-                  {% for section in teacher.sections %}
-                    {% if section == teacher.sections.0 %}
+                  {% for section in exam.sections %}
+                    {% if section == exam.sections.0 %}
                       {{ section }}
                     {% else %}
                       /{{ section }}
@@ -512,7 +512,7 @@ $(window).on("load",function(){
                   {% endfor %}
                 </br>
                 <div class="chart-container" style="width:125px; margin:auto;">
-                  <canvas id="canvas-questionStatByExam{{ qstat.question.pk }}_{{ teacher.teacher.split|join:"_" }}" class="chartjs-render-monitor"></canvas>
+                  <canvas id="canvas-questionStatByExam{{ qstat.question.pk }}_{{ exam.exam }}" class="chartjs-render-monitor"></canvas>
                 </div>
                 </th>
                 {% endfor %}

@@ -7294,3 +7294,9 @@ certs/
 .run_configurations/
 .gitignore
 .env.dev
+/maintenance_mode_state.txt
+/.env.test
+/django-summernote/2025-12-10/1a122894-24fe-4cd6-bda2-6a6addf855d1.webp
+/django-summernote/2025-12-10/1c439dc9-5557-42e7-9091-0f01ca230063.webp
+/django-summernote/2025-12-10/5668948f-482e-489d-a4a9-73d24bf2a22e.webp
+/django-summernote/2025-12-10/c1d67c8c-ca47-4c65-8a85-8339311cb434.webp
