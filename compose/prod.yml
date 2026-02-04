@@ -1,8 +1,12 @@
-# examc/compose/test.yml
+# examc/compose/prod.yml
 services:
   web:
     user: "1000:2770"
     restart: unless-stopped
+    environment:
+      WEB_CONCURRENCY: "6"
+      GUNICORN_THREADS: "4"
+      GUNICORN_WORKER_CLASS: "gthread"
     volumes:
       - static_volume:/static:ro    # static
       - media_volume:/media:ro

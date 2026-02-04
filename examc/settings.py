@@ -155,7 +155,7 @@ DATABASES = {
             "autocommit": True,
             "charset": "utf8mb4",
         },
-        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", "600"),
+        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", "60"),
     }
 }
 
