@@ -131,7 +131,7 @@
         $('#ajax_info_modal').modal('show');
 
         const single_file = Number(document.getElementById('annotate_one_all_student').checked);
-        const add_grading_scheme_report = document.getElementById('annotate_with_grading_scheme').checked;
+        const add_grading_scheme_report = document.getElementById('annotate_with_grading_scheme')?.checked ?? false;
 
         $.ajax({
             url: "{% url 'call_amc_annotate' exam_selected.pk %}",
@@ -157,7 +157,7 @@
         $('#ajax_info_modal').modal('show');
 
         const single_file = Number(document.getElementById('annotate_one_all_student').checked);
-        const add_grading_scheme_report = document.getElementById('annotate_with_grading_scheme').checked;
+        const add_grading_scheme_report = document.getElementById('annotate_with_grading_scheme')?.checked ?? false;
 
         $.ajax({
             url: "{% url 'call_amc_annotate' exam_selected.pk %}",
