@@ -13,7 +13,8 @@ echo "[entrypoint] CMD to exec: $*"
 # ---- Default command if none passed ----
 if [ "$#" -eq 0 ] || [ -z "${1:-}" ]; then
   # Pick your preferred default here (gunicorn recommended in prod)
-  set -- gunicorn examc.wsgi:application --bind 0.0.0.0:8000 --workers "${GUNICORN_WORKERS:-3}" --timeout "${GUNICORN_TIMEOUT:-120}"
+  set -- gunicorn examc.wsgi:application --config deploy/gunicorn.conf.py
+  #set -- gunicorn examc.wsgi:application --bind 0.0.0.0:8000 --workers "${GUNICORN_WORKERS:-3}" --timeout "${GUNICORN_TIMEOUT:-120}"
 fi
 echo "[entrypoint] CMD to exec: $*"
 
