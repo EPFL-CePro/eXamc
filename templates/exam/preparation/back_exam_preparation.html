@@ -2,7 +2,6 @@
 {% load static %}
 {% load custom_tags %}
 
-
 {% block title %}Exam preparation{% endblock %}
 
 {% block extra_head %}
@@ -36,9 +35,9 @@
                     </p>
                 </h6>
             </div>
-            <div id="collapse-first-page" class="collapse" aria-labelledby="first-page">
+            <div id="collapse-first-page" class="collapse" aria-labelledby="first-page" style="height:70%;">
                 <div class="card-body">
-                     <div style="height:30px;">
+                     <div >
                         <div style="float:left;"><h6>Instructions</h6></div>
                         <div id="view-first-page-buttons" style="float:right;display:block;">
                             <button type="button" class="btn btn-light" style="background-color: transparent;margin-top:-15px;" onclick="edit_first_page();"><i class="fa-solid fa-pen fa-lg"></i></button>
@@ -49,12 +48,10 @@
                         </div>
                     </div>
                     <div id="first-page-text-div">
-                        <div id="first-page-text" name="first-page-text" class="form-control ck ck-content" style="height:auto;overflow-y:auto;resize:vertical;">{{ exam.first_page_text |safe}}</div>
+                        <div id="first-page-text" name="first-page-text" class="form-control" style="height:auto;overflow-y:auto;resize:vertical;">{{ exam.first_page_text |safe}}</div>
                     </div>
                     <div id="first-page-text-edit-div" style="display: None;width:100%;">
-                        <form>
-                            {{ fp_txt_form.ckeditor_txt }}
-                        </form>
+                        {{ fp_txt_form.summernote_txt|safe }}
                     </div>
                 </div>
             </div>
@@ -250,7 +247,7 @@
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="modal-body">
-                    <form action="{% url 'exam_add_section_question' %}" method="post" style="padding:20px;">
+                    <form action="{% url 'exam_add_section_question' exam.pk %}" method="post" style="padding:20px;">
                         {% csrf_token %}
                         <div id="add-question-frm"></div>
                     </form>
@@ -444,15 +441,13 @@ function cancel_edit_answers(question,question_type){
 }
 
 function validate_first_page(){
-    ckeditor_first_page_text = window.editors['id_ckeditor_txt'];
-    value = ckeditor_first_page_text.getData();
+    summernote_first_page_text = document.getElementById('id_summernote_txt').value;
     $.ajax({
-        url : "{% url 'exam_update_first_page' %}",
+        url : "{% url 'exam_update_first_page' exam.pk %}",
         type : "POST",
         data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
-                'exam_pk' : {{ exam.pk }},
-                'first_page_text' : value,
+                'first_page_text' : summernote_first_page_text,
             },
             beforeSend : function(){
                 $('#loadingModal').modal('show');
@@ -478,7 +473,7 @@ function validate_section(section){
     value = ckeditor_section_header_text.getData();
 
     $.ajax({
-        url : "{% url 'exam_update_section' %}",
+        url : "{% url 'exam_update_section' exam.pk %}",
         type : "POST",
         data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -512,7 +507,7 @@ function validate_question(question){
     value = ckeditor_question_text.getData();
     
     $.ajax({
-        url : "{% url 'exam_update_question' %}",
+        url : "{% url 'exam_update_question' exam.pk %}",
         type : "POST",
         data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -564,7 +559,7 @@ function validate_answers(question,question_type){
         $('#answer-text-edit-div-'+answer_id).css('display','None');
     }
     $.ajax({
-        url : "{% url 'exam_update_answers' %}",
+        url : "{% url 'exam_update_answers' exam.pk %}",
         type : "POST",
         data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -589,7 +584,7 @@ function validate_answers(question,question_type){
 
 function remove_answer(question,answer){
     $.ajax({
-        url : "{% url 'exam_remove_answer' %}",
+        url : "{% url 'exam_remove_answer' exam.pk %}",
         type : "POST",
         data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -614,7 +609,7 @@ function remove_answer(question,answer){
 
 function add_answer(question,question_type){
     $.ajax({
-        url : "{% url 'exam_add_answer' %}",
+        url : "{% url 'exam_add_answer' exam.pk %}",
         type : "POST",
         data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -655,7 +650,7 @@ function set_add_question_visible_fields(question_type){
 
 function add_question(section_pk){
         $.ajax({
-                url : "{% url 'exam_add_section_question' %}",
+                url : "{% url 'exam_add_section_question' exam.pk %}",
                 type : "GET",
                 data : {
                     'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -690,7 +685,7 @@ function add_question(section_pk){
 
 function remove_question(section,question){
     $.ajax({
-        url : "{% url 'exam_remove_question' %}",
+        url : "{% url 'exam_remove_question' exam.pk %}",
         type : "POST",
         data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",
@@ -714,7 +709,7 @@ function remove_question(section,question){
 
 function remove_section(section){
     $.ajax({
-        url : "{% url 'exam_remove_section' %}",
+        url : "{% url 'exam_remove_section' exam.pk %}",
         type : "POST",
         data : {
                 'csrfmiddlewaretoken' : "{{ csrf_token }}",

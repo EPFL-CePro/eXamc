@@ -1,0 +1,22 @@
+<div id="prep-first-page-panel" class="card mt-3">
+    <div class="card-header">First page</div>
+
+    <div class="card-body">
+
+        <form
+                hx-post="{% url 'prep_first_page_panel' exam_selected.pk %}"
+                hx-target="#prep-first-page-panel"
+                hx-swap="outerHTML">
+
+            {% csrf_token %}
+
+            <div class="mb-2">
+                {{ fp_txt_form.first_page_text }}
+            </div>
+
+            <button class="btn btn-dark btn-sm">Save</button>
+
+        </form>
+
+    </div>
+</div>

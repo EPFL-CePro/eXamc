@@ -1,0 +1,7 @@
+<div id="prep-sections-list">
+    {% for section in sections %}
+        {% include "./_prep_section_card.html" with section=section section_form=section.form %}
+    {% empty %}
+        <div class="text-muted">No sections yet.</div>
+    {% endfor %}
+</div>

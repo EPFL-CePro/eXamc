@@ -1,0 +1,51 @@
+{% for answer in answers %}
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="drag-handle" style="cursor:move;margin-right:10px;">
+                <i class="fa-solid fa-grip-vertical"></i>
+            </span>
+
+            <div class="d-flex align-items-center flex-grow-1"
+                 role="button"
+                 data-bs-toggle="collapse"
+                 data-bs-target="#prep-answer-body-{{ answer.id }}"
+                 aria-expanded="false"
+                 aria-controls="prep-answer-body-{{ answer.id }}"
+                 style="cursor:pointer;">
+                <span>{{ answer.title }}</span>
+            </div>
+        </div>
+
+        <button
+            class="btn btn-sm btn-light float-end"
+            hx-post="{% url 'delete_prep_answer' exam_selected.pk answer.id %}"
+            hx-target="#prep-questions-block"
+            hx-swap="innerHTML">
+            <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
+        </button>
+    </div>
+
+    <div id="prep-answer-body-{{ answer.id }}" class="collapse">
+        <div class="card-body">
+
+        <div id="prep-answer-{{ answer.id }}" class="border p-2 mt-2 sortable-answer" data-answer-id="{{ answer.id }}">
+
+            {% include "./_prep_answer_row.html" with exam=exam question=question answer=answer answer_form=answer.form %}
+
+        </div>
+    </div>
+</div>
+
+{% empty %}
+    <div class="text-muted">No answers</div>
+{% endfor %}
+
+<button
+    class="btn btn-outline-dark btn-sm mt-2"
+    hx-post="{% url 'add_prep_answer' exam_selected.pk question.id %}"
+    hx-target="#answers-containers-{{ question.id }}"
+    hx-swap="outerHTML">
+    Add answer
+</button>

@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 
@@ -17,10 +18,14 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 
-from examc_app.forms import LoginForm
+
 from examc_app.models import ReviewLock
 from examc_app.signing import verify_and_get_path
 from examc_app.utils.results_statistics_functions import update_common_exams
+
+logger = logging.getLogger(__name__)
+
+User.__str__ = lambda user_instance: user_instance.first_name + " " + user_instance.last_name
 
 ### admin views ###
 def getCommonExams(request, pk):

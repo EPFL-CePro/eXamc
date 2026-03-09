@@ -1,0 +1,32 @@
+<form
+    hx-post="{% url 'prep_answer_panel' exam_selected.pk answer.id %}"
+    hx-target="#prep-answer-{{ answer.id }}"
+    hx-swap="outerHTML">
+
+    {% csrf_token %}
+
+    {% for hidden in answer_form.hidden_fields %}
+        {{ hidden }}
+    {% endfor %}
+
+    <label>Title</label>
+    {{ answer_form.title }}
+
+    <label class="mt-2">Answer text</label>
+    {{ answer_form.answer_text }}
+
+    <div class="form-check mt-2">
+        {{ answer_form.is_correct }}
+        <label>Correct</label>
+    </div>
+
+    <button class="btn btn-dark btn-sm mt-2">Save</button>
+
+    <button
+        class="btn btn-light btn-sm"
+        hx-post="{% url 'delete_prep_answer' exam_selected.pk answer.id %}"
+        hx-target="#answers-containers-{{ question.id }}"
+        hx-swap="outerHTML">
+        Delete
+    </button>
+</form>

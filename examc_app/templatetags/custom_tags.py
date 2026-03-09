@@ -13,7 +13,8 @@ from shapely import Polygon
 from django.conf import settings
 from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser, ReviewLock, \
     Scale, PagesGroupGradingSchemeCheckedBox
-from examc_app.models import ScaleStatistic, Student, AnswerStatistic, logger
+from examc_app.models import ScaleStatistic, Student, AnswerStatistic
+from examc_app.views import logger
 
 register = template.Library()
 

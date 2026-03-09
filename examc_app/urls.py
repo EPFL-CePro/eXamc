@@ -21,19 +21,23 @@ urlpatterns = [
 
     # PREPARATION
     path('create_exam_project', views.create_exam_project, name="create_exam_project"),
-    path('exam_preparation/<int:exam_pk>', views.exam_preparation_view,name="exam_preparation"),
-    path('exam_add_section/<int:exam_pk>', views.exam_add_section,name="exam_add_section"),
-    path('exam_add_section_question/<int:exam_pk>', views.exam_add_section_question, name="exam_add_section_question"),
-    path('exam_update_section/<int:exam_pk>', views.exam_update_section, name="exam_update_section"),
-    path('exam_update_question/<int:exam_pk>', views.exam_update_question, name="exam_update_question"),
-    path('exam_update_answers/<int:exam_pk>', views.exam_update_answers, name="exam_update_answers"),
-    path('exam_remove_answer/<int:exam_pk>',views.exam_remove_answer,name="exam_remove_answer"),
-    path('exam_remove_question/<int:exam_pk>',views.exam_remove_question,name="exam_remove_question"),
-    path('exam_remove_section/<int:exam_pk>',views.exam_remove_section,name="exam_remove_section"),
-    path('exam_add_answer/<int:exam_pk>',views.exam_add_answer,name="exam_add_answer"),
-    path('exam_update_first_page/<int:exam_pk>',views.exam_update_first_page,name="exam_update_first_page"),
+    path("exam_preparation/<int:exam_pk>/", views.exam_preparation_view, name="exam_preparation"),
+
+    path("exam_preparation/<int:exam_pk>/first-page/", views.prep_first_page_panel, name="prep_first_page_panel"),
+
+    path("exam_preparation/<int:exam_pk>/sections/", views.prep_sections_list, name="prep_sections_list"),
+    path("exam_preparation/<int:exam_pk>/sections/add/", views.add_prep_section, name="add_prep_section"),
+    path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/", views.prep_section_panel,name="prep_section_panel"),
+    path("exam_preparation/<int:exam_pk>/sections/reorder/", views.reorder_prep_sections,name="reorder_prep_sections"),
+    path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/delete/", views.delete_prep_section,name="delete_prep_section"),
+    path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/questions/add/", views.add_prep_question,name="add_prep_question"),
+    path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/", views.prep_question_panel,name="prep_question_panel"),
+    path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/delete/", views.delete_prep_question,name="delete_prep_question"),
+    path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/answers/", views.prep_answers_block,name="prep_answers_block"),
+    path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/answers/add/", views.add_prep_answer,name="add_prep_answer"),
+    path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/", views.prep_answer_panel, name="prep_answer_panel"),
+    path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/delete/", views.delete_prep_answer,name="delete_prep_answer"),
     path('exam_preview_pdf/<int:exam_pk>', views.exam_preview_pdf, name="exam_preview_pdf"),
-    path('get_header_section_txt/<int:exam_pk>', views.get_header_section_txt, name="get_header_section_txt"),
 
     # REVIEW SETTINGS
     path('upload_scans/<int:exam_pk>', views.upload_scans, name="upload_scans"),
