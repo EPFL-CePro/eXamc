@@ -1,0 +1,7 @@
+<div id="prep-questions-list-{{ section.id }}">
+    {% for question in questions %}
+        {% include "./_prep_question_block.html" with exam=exam section=section question=question question_form=question.form answers=question.answers %}
+    {% empty %}
+        <div class="text-muted">No questions</div>
+    {% endfor %}
+</div>

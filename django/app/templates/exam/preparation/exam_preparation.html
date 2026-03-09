@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Exam preparation{% endblock %}
+
+{% block extra_head %}
+    {{ fp_txt_form.media }}
+{% endblock %}
+
+{% block content %}
+
+<h4><i class="fas fa-edit"></i> Exam Preparation</h4>
+    <div id="prep-root" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+        <div style="text-align:right;max-width:70%;min-width:800px;padding:10px;">
+            <button onclick="preview_exam();" class="btn btn-dark btn-sm" type="button">
+                <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Preview
+            </button>
+        </div>
+
+        {% include "./_prep_first_page_card.html" %}
+        {% include "./_prep_sections_list.html" %}
+
+        <button style="margin-top:20px;" class="btn btn-light" title="Add Section"
+                    hx-post="{% url 'add_prep_section' exam_selected.pk %}"
+                    hx-target="#prep-sections-list"
+                    hx-swap="beforeend"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i>Add section</button>
+
+        {% include "./_prep_modals.html" %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+    <script>
+      window.EXAM_PREP_CONFIG = {
+        csrfToken: "{{ csrf_token }}",
+        urls: {
+            previewPdf: "{% url 'exam_preview_pdf' exam_selected.pk %}",
+            reorderSections: "{% url 'reorder_prep_sections' exam_selected.pk %}"
+        }
+      };
+    </script>
+    <script src="{% static 'js/preparation.js' %}"></script>
+
+{% endblock %}

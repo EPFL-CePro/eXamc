@@ -1,0 +1,67 @@
+{% load custom_tags %}
+<div id="prep-section-{{ section.id }}" class="card mt-3 sortable-section" data-section-id="{{ section.id }}">
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="drag-handle" style="cursor:move;margin-right:10px;">
+                <i class="fa-solid fa-grip-vertical"></i>
+            </span>
+
+            <div class="d-flex align-items-center flex-grow-1"
+                 role="button"
+                 data-bs-toggle="collapse"
+                 data-bs-target="#prep-section-body-{{ section.id }}"
+                 aria-expanded="false"
+                 aria-controls="prep-section-body-{{ section.id }}"
+                 style="cursor:pointer;">
+                <span>{{ section.title }}</span>
+            </div>
+        </div>
+
+        <button
+            class="btn btn-sm btn-light float-end"
+            hx-post="{% url 'delete_prep_section' exam_selected.pk section.id %}"
+            hx-target="#prep-sections-list"
+            hx-swap="innerHTML">
+            <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
+        </button>
+    </div>
+
+    <div id="prep-section-body-{{ section.id }}" class="collapse">
+        <div class="card-body">
+            <form
+                hx-post="{% url 'prep_section_panel' exam_selected.pk section.id %}"
+                hx-target="#prep-section-{{ section.id }}"
+                hx-swap="outerHTML">
+
+                {% csrf_token %}
+
+                {% for hidden in section_form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+
+                <label>Title</label>
+                {{ section_form.title }}
+
+                <label class="mt-2">Text</label>
+                {{ section_form.section_text }}
+
+                <button class="btn btn-dark btn-sm mt-2">Save</button>
+            </form>
+
+            <hr>
+            <div id="prep-questions-list-{{ section.id }}">
+                {% include "./_prep_questions_list.html" with section=section questions=section.questions %}
+            </div>
+            <button style="margin-top:20px;" class="btn btn-light" title="Add Question"
+                    hx-get="{% url 'add_prep_question' exam_selected.pk section.id %}"
+                    hx-target="#modalAddQuestionBody"
+                    hx-swap="innerHTML"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalAddQuestion">
+                <i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add question
+            </button>
+
+        </div>
+    </div>
+</div>
