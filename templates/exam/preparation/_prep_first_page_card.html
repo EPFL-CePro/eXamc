@@ -1,22 +1,32 @@
 <div id="prep-first-page-panel" class="card mt-3">
-    <div class="card-header">First page</div>
+    <div class="card-header">
+        <div class="d-flex align-items-center flex-grow-1"
+                 role="button"
+                 data-bs-toggle="collapse"
+                 data-bs-target="#prep-first-page-body"
+                 aria-expanded="false"
+                 aria-controls="prep-first-page-body"
+                 style="cursor:pointer;">
+                <span>First page</span>
+        </div>
+    </div>
+    <div id="prep-first-page-body" class="collapse">
+        <div class="card-body">
+            <form
+                    hx-post="{% url 'prep_first_page_panel' exam_selected.pk %}"
+                    hx-target="#prep-first-page-panel"
+                    hx-swap="outerHTML">
 
-    <div class="card-body">
+                {% csrf_token %}
 
-        <form
-                hx-post="{% url 'prep_first_page_panel' exam_selected.pk %}"
-                hx-target="#prep-first-page-panel"
-                hx-swap="outerHTML">
+                <div class="mb-2">
+                    {{ fp_txt_form.first_page_text }}
+                </div>
 
-            {% csrf_token %}
+                <button class="btn btn-dark btn-sm">Save</button>
 
-            <div class="mb-2">
-                {{ fp_txt_form.first_page_text }}
-            </div>
+            </form>
 
-            <button class="btn btn-dark btn-sm">Save</button>
-
-        </form>
-
+        </div>
     </div>
 </div>

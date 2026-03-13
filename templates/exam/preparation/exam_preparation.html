@@ -4,7 +4,8 @@
 {% block title %}Exam preparation{% endblock %}
 
 {% block extra_head %}
-    {{ fp_txt_form.media }}
+{#    {{ fp_txt_form.media }}#}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/preparation.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -17,6 +18,17 @@
                 <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Preview
             </button>
         </div>
+
+        <button
+            type="button"
+            class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
+            id="openScoringFormulasModal"
+            data-exam-pk="{{ exam_selected.pk }}"
+            data-prep-section=""
+            data-prep-question=""
+            data-prep-answer=""
+        ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Default questions scorings
+        </button>
 
         {% include "./_prep_first_page_card.html" %}
         {% include "./_prep_sections_list.html" %}
@@ -32,10 +44,12 @@
     <script>
       window.EXAM_PREP_CONFIG = {
         csrfToken: "{{ csrf_token }}",
+        examPk: "{{ exam_selected.pk }}",
         urls: {
             previewPdf: "{% url 'exam_preview_pdf' exam_selected.pk %}",
-            reorderSections: "{% url 'reorder_prep_sections' exam_selected.pk %}"
-        }
+            reorderSections: "{% url 'reorder_prep_sections' exam_selected.pk %}",
+            scoringFormulasModal: "{% url 'scoring_formulas_modal' exam_selected.pk %}"
+        },
       };
     </script>
     <script src="{% static 'js/preparation.js' %}"></script>

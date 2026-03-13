@@ -20,7 +20,7 @@
         <button
             class="btn btn-sm btn-light float-end"
             hx-post="{% url 'delete_prep_question' exam_selected.pk question.id %}"
-            hx-target="#prep-questions-list"
+            hx-target="#prep-questions-list-{{ section.id }}"
             hx-swap="innerHTML">
             <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
         </button>
@@ -39,14 +39,44 @@
                     {{ hidden }}
                 {% endfor %}
 
+                <div class="question-top-bar">
+                    <div class="question-top-left">
+                        <div class="field-block">
+                            <label class="mt-2">Type</label>
+                            {{ question_form.question_type }}
+                        </div>
+
+                        <div class="field-inline js-field-random">
+                            <label class="mt-2">Randomized answers</label>
+                            {{ question_form.random_answers }}
+                        </div>
+
+                        <div class="field-block js-field-maxpoints">
+                            <label class="mt-2">Max points</label>
+                            {{ question_form.max_points }}
+                        </div>
+
+                        <div class="field-block js-field-increment">
+                            <label class="mt-2">Point increment</label>
+                            {{ question_form.point_increment }}
+                        </div>
+                    </div>
+
+                    <div class="field-inline ms-auto">
+                        <label class="mt-2">Cancel question</label>
+                        {{ question_form.canceled }}
+                    </div>
+                </div>
+
+                <hr/>
+
                 <label>Title</label>
                 {{ question_form.title }}
 
-                <label class="mt-2">Type</label>
-                {{ question_form.question_type }}
-
-                <label class="mt-2">Question text</label>
-                {{ question_form.question_text }}
+                <div class="field-block  js-question-text">
+                    <label class="mt-2">Question text</label>
+                    {{ question_form.question_text }}
+                </div>
 
                 <button class="btn btn-dark btn-sm mt-2">Save</button>
             </form>

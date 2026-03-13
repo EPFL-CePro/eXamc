@@ -22,9 +22,7 @@ urlpatterns = [
     # PREPARATION
     path('create_exam_project', views.create_exam_project, name="create_exam_project"),
     path("exam_preparation/<int:exam_pk>/", views.exam_preparation_view, name="exam_preparation"),
-
     path("exam_preparation/<int:exam_pk>/first-page/", views.prep_first_page_panel, name="prep_first_page_panel"),
-
     path("exam_preparation/<int:exam_pk>/sections/", views.prep_sections_list, name="prep_sections_list"),
     path("exam_preparation/<int:exam_pk>/sections/add/", views.add_prep_section, name="add_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/", views.prep_section_panel,name="prep_section_panel"),
@@ -37,6 +35,8 @@ urlpatterns = [
     path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/answers/add/", views.add_prep_answer,name="add_prep_answer"),
     path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/", views.prep_answer_panel, name="prep_answer_panel"),
     path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/delete/", views.delete_prep_answer,name="delete_prep_answer"),
+    path("exam_preparation/<int:exam_pk>/scoring_formulas_modal/", views.scoring_formulas_modal, name="scoring_formulas_modal"),
+    path("exam_preparation/<int:exam_pk>/scoring_formula/<int:pk>/delete/", views.delete_scoring_formula, name="delete_scoring_formula"),
     path('exam_preview_pdf/<int:exam_pk>', views.exam_preview_pdf, name="exam_preview_pdf"),
 
     # REVIEW SETTINGS
