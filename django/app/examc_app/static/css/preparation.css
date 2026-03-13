@@ -1,0 +1,100 @@
+.question-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 1rem;
+}
+
+.question-top-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.field-block {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.field-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 40px;
+    flex: 0 0 auto;
+}
+
+.js-question-text,
+.js-answer-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+}
+
+.js-question-text {
+    margin-top: 0.5rem;
+}
+
+/* ANSWER LAYOUT: 2 small columns + 1 flexible editor column */
+.answer-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: start;
+    column-gap: 1rem;
+    row-gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.js-answer-fix-position,
+.js-answer-correct {
+    min-width: 140px;
+}
+
+.js-answer-text {
+    min-width: 0;
+}
+
+.js-answer-box-type,
+.js-answer-box-height {
+    min-width: 180px;
+}
+
+.js-answer-box-type select,
+.js-answer-box-height input {
+    width: 180px;
+}
+
+.answer-save {
+    margin-top: 28px;
+}
+
+.js-question-text .summernote-div,
+.js-answer-text .summernote-div {
+    width: 100% !important;
+    min-width: 0;
+    display: block;
+}
+
+.js-question-text iframe,
+.js-answer-text iframe {
+    display: block;
+    width: 100% !important;
+    border: 0;
+    min-width: 0;
+}
+
+.sortable-question,
+.sortable-answer,
+.card-body,
+.collapse,
+.collapse.show {
+    overflow: visible;
+    min-width: 0;
+}

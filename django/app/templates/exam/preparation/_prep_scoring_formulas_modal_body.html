@@ -1,0 +1,277 @@
+<div class="scoring-layout" id="scoringLayout">
+
+    <style>
+        #modalScoringFormulas .modal-dialog {
+            max-width: 90vw;
+        }
+
+        #modalScoringFormulas .modal-content {
+            height: 90vh;
+        }
+
+        #modalScoringFormulas .modal-body {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .scoring-layout {
+            display: flex;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .scoring-help-toggle {
+            align-self: flex-start;
+            padding: 5px 5px;
+        }
+
+        .scoring-help-toggle button {
+            white-space: nowrap;
+            padding: 0;
+            margin: 25px -10px 0 5px;
+        }
+
+        .scoring-help-panel {
+            width: 0;
+            min-width: 0;
+            overflow: hidden;
+            border-right: 1px solid #dee2e6;
+            background: #f8f9fa;
+            transition: width 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .scoring-help-panel.open {
+            width: 500px;
+            min-width: 500px;
+        }
+
+        .scoring-help-inner {
+            height: 100%;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .scoring-main-panel {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+    </style>
+    <aside class="scoring-help-panel" id="scoringHelpPanel">
+        <div class="scoring-help-inner">
+
+            <div class="alert alert-info">
+                Start with <code>b=1,m=0</code> for a basic correct/wrong scoring.
+                Use <code>formula=...</code> only for advanced scoring strategies.
+            </div>
+
+            <h5 class="mb-3">Scoring help</h5>
+
+            <p>
+                You can define scoring using either a <b>standard scale</b> (simple) or a
+                <b>formula</b> (advanced).
+            </p>
+
+
+            <!-- SIMPLE METHOD -->
+            <h6 class="mt-4">1. Standard scale (simple)</h6>
+
+            <p>
+                The easiest way is to define scoring values for correct and wrong answers.
+            </p>
+
+            <ul class="ps-3">
+                <li><code>b</code> : score for a correct answer</li>
+                <li><code>m</code> : score for a wrong answer</li>
+                <li><code>MAX</code> : maximum possible score</li>
+                <li><code>MIN</code> : minimum possible score</li>
+            </ul>
+
+            <h6 class="mt-3">Examples</h6>
+
+            <pre class="">b=1,m=0
+Correct answer: +1
+Wrong answer: 0</pre>
+
+            <pre class="">b=1,m=-1
+Correct answer: +1
+Wrong answer: -1</pre>
+
+            <pre class="">b=2,m=-0.5,MAX=2
+Correct answer: +2
+Wrong answer: -0.5
+Score capped at 2</pre>
+
+            <p class="">
+                Values are separated with commas.
+            </p>
+
+
+            <!-- ADVANCED METHOD -->
+            <h6 class="mt-4">2. Formula (advanced)</h6>
+
+            <p class="">
+                For complex scoring strategies you can use a formula.
+            </p>
+
+            <p class="">
+                Write formulas using:
+            </p>
+
+            <pre class="">formula=expression</pre>
+
+            <h6 class="mt-3">Available variables</h6>
+
+            <ul class=" ps-3">
+                <li><code>N</code> : total number of answers</li>
+                <li><code>NB</code> : number of correct answers</li>
+                <li><code>NBC</code> : correct answers checked</li>
+                <li><code>NM</code> : number of wrong answers</li>
+                <li><code>NMC</code> : wrong answers checked</li>
+                <li><code>IS</code> : 1 if simple question</li>
+                <li><code>IMULT</code> : 1 if multiple-choice question</li>
+            </ul>
+
+            <h6 class="mt-3">Operators</h6>
+
+            <p class="">
+                <code>+</code> <code>-</code> <code>*</code> <code>/</code>
+                <code>**</code> <code>%</code>
+            </p>
+
+            <h6 class="mt-3">Conditions</h6>
+
+            <pre class="">(condition ? value_if_true : value_if_false)</pre>
+
+            <h6 class="mt-3">Formula examples</h6>
+
+            <pre class="">formula=NBC-NMC</pre>
+
+            <pre class="">formula="max(0,NBC-NMC)"</pre>
+
+            <pre class="">formula="(NBC==NB ? 1 : 0)"</pre>
+
+        </div>
+    </aside>
+    <div class="scoring-help-toggle">
+        <button type="button" class="btn btn-sm btn-light" id="toggleScoringHelp">
+        </button>
+    </div>
+
+    <section class="scoring-main-panel" id="scoringMainPanel">
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% else %}
+            <form method="post" id="scoringFormulasForm" action="{% url 'scoring_formulas_modal' exam_pk %}">
+                {% csrf_token %}
+                {{ formset.management_form }}
+
+                <input type="hidden" name="prep_section" value="{{ prep_section|default:'' }}">
+                <input type="hidden" name="prep_question" value="{{ prep_question|default:'' }}">
+                <input type="hidden" name="prep_answer" value="{{ prep_answer|default:'' }}">
+                <table class="table table-bordered align-middle">
+                    <thead>
+                    <tr>
+                        <th style="width: 60px;">#</th>
+                        <th style="width: 220px;">Question type</th>
+                        <th>Formula</th>
+                        <th style="width: 100px;">Delete</th>
+                    </tr>
+                    </thead>
+                    <tbody id="scoringFormulasTableBody">
+                    {% for form in formset %}
+                        <tr class="scoring-formula-row">
+                            <td class="scoring-row-index">
+                                {{ forloop.counter }}
+                                {{ form.id }}
+                            </td>
+                            <td>
+                                {{ form.question_type }}
+                                {% if form.question_type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.question_type.errors }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ form.formula }}
+                                {% if form.formula.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.formula.errors }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if form.instance.pk %}
+                                    <button
+                                            type="button"
+                                            class="btn btn-light delete-scoring-formula-row"
+                                            data-delete-url="{% url 'delete_scoring_formula' exam_pk form.instance.pk %}"
+                                            title="Delete scoring"
+                                    >
+                                        <i class="fa-solid fa-circle-minus fa-xl text-danger"></i>
+                                    </button>
+                                {% else %}
+                                    <button
+                                            type="button"
+                                            class="btn btn-light remove-scoring-formula-row"
+                                            title="Remove row"
+                                    >
+                                        <i class="fa-solid fa-circle-minus fa-xl text-danger"></i>
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr class="no-scoring-formulas-row">
+                            <td colspan="4" class="text-center">No scoring found.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                <template id="emptyScoringFormulaRowTemplate">
+                    <tr class="scoring-formula-row">
+                        <td class="scoring-row-index">
+                            __index__
+                            {{ formset.empty_form.id }}
+                        </td>
+                        <td>
+                            {{ formset.empty_form.question_type }}
+                        </td>
+                        <td>
+                            {{ formset.empty_form.formula }}
+                        </td>
+                        <td class="text-center">
+                            <button
+                                    type="button"
+                                    class="btn btn-light remove-scoring-formula-row"
+                                    title="Remove row"
+                            >
+                                <i class="fa-solid fa-circle-minus fa-xl text-danger"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </template>
+
+                <div class="d-flex justify-content-between mt-3">
+                    <button
+                            type="button"
+                            class="btn btn-light"
+                            id="addScoringFormulaRow"
+                            title="Add scoring"
+                    >
+                        <i class="fa-solid fa-circle-plus fa-2xl me-1" style="color:green;"></i>
+                        Add scoring
+                    </button>
+
+                    <button type="submit" class="btn btn-dark btn-sm">Save</button>
+                </div>
+            </form>
+        {% endif %}
+    </section>
+
+</div>

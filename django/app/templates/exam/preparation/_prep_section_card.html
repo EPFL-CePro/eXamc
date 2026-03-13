@@ -29,6 +29,17 @@
 
     <div id="prep-section-body-{{ section.id }}" class="collapse">
         <div class="card-body">
+            <button
+                type="button"
+                class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
+                id="openScoringFormulasModal"
+                data-exam-pk="{{ exam_selected.pk }}"
+                data-prep-section="{{ section.id }}"
+                data-prep-question=""
+                data-prep-answer=""
+                style="margin-bottom: 10px;"
+            ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Section questions scorings
+            </button>
             <form
                 hx-post="{% url 'prep_section_panel' exam_selected.pk section.id %}"
                 hx-target="#prep-section-{{ section.id }}"
@@ -42,6 +53,9 @@
 
                 <label>Title</label>
                 {{ section_form.title }}
+
+                <label class="mt-3">Randomized questions</label>
+                {{ section_form.random_questions }}
 
                 <label class="mt-2">Text</label>
                 {{ section_form.section_text }}

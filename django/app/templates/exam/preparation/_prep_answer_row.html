@@ -1,4 +1,5 @@
 <form
+    class="js-answer-form"
     hx-post="{% url 'prep_answer_panel' exam_selected.pk answer.id %}"
     hx-target="#prep-answer-{{ answer.id }}"
     hx-swap="outerHTML">
@@ -9,24 +10,32 @@
         {{ hidden }}
     {% endfor %}
 
-    <label>Title</label>
-    {{ answer_form.title }}
+    <div class="answer-row">
+        <div class="field-block js-answer-fix-position">
+            <label>Fixed</label>
+            {{ answer_form.fix_position }}
+        </div>
 
-    <label class="mt-2">Answer text</label>
-    {{ answer_form.answer_text }}
+        <div class="field-block js-answer-correct">
+            <label>Correct</label>
+            {{ answer_form.is_correct }}
+        </div>
 
-    <div class="form-check mt-2">
-        {{ answer_form.is_correct }}
-        <label>Correct</label>
+        <div class="field-block js-answer-text">
+            <label>Answer text</label>
+            {{ answer_form.answer_text }}
+        </div>
+
+        <div class="field-block js-answer-box-type">
+            <label>Answer box type</label>
+            {{ answer_form.box_type }}
+        </div>
+
+        <div class="field-block js-answer-box-height">
+            <label>Answer box height</label>
+            {{ answer_form.box_height_mm }}
+        </div>
     </div>
 
     <button class="btn btn-dark btn-sm mt-2">Save</button>
-
-    <button
-        class="btn btn-light btn-sm"
-        hx-post="{% url 'delete_prep_answer' exam_selected.pk answer.id %}"
-        hx-target="#answers-containers-{{ question.id }}"
-        hx-swap="outerHTML">
-        Delete
-    </button>
 </form>
