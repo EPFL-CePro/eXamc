@@ -1,6 +1,6 @@
 <div id="prep-sections-list">
-    {% for section in sections %}
-        {% include "./_prep_section_card.html" with section=section section_form=section.form %}
+    {% for item in section_items %}
+        {% include "./_prep_section_card.html" with section=item.section section_form=item.section_form questions=item.questions %}
     {% empty %}
         <div class="text-muted">No sections yet.</div>
     {% endfor %}

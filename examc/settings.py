@@ -313,13 +313,17 @@ SUMMERNOTE_CONFIG = {
         "width": "100%",
         "height": "280px",
         "toolbar": [
-            ["style", ["bold", "italic", "underline", "clear"]],
-            ["para", ["ul", "ol", "paragraph"]],
-            ['table', ['table']],
-            ["insert", ["link","picture","math"]],
+            ["style", ["bold", "italic", "underline"]],
+            ['font', ['strikethrough', 'superscript', 'subscript']],
+            #['color', ['color']],
+            ["para", ["ul", "ol"]],
+            ["insert", ["picture","math","table"]],
             ["view", ["fullscreen", "codeview"]],
             ["misc", ["undo", "redo"]],
         ],
+        "callbacks": {
+            "onImageUpload": "function(files) { uploadImage(files[0]); }"
+        }
         # DO NOT put 'plugins' or 'math' here — they won’t be passed to the iframe.
     },
 

@@ -75,13 +75,6 @@
     margin-top: 28px;
 }
 
-.js-question-text .summernote-div,
-.js-answer-text .summernote-div {
-    width: 100% !important;
-    min-width: 0;
-    display: block;
-}
-
 .js-question-text iframe,
 .js-answer-text iframe {
     display: block;
@@ -97,4 +90,8 @@
 .collapse.show {
     overflow: visible;
     min-width: 0;
+}
+
+textarea.markdown-editor {
+    display: none!important;
 }

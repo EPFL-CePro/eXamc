@@ -28,18 +28,19 @@
 
     <div id="prep-answer-body-{{ answer.id }}" class="collapse">
         <div class="card-body">
-
-        <div id="prep-answer-{{ answer.id }}" class="border p-2 mt-2 sortable-answer" data-answer-id="{{ answer.id }}">
-
-            {% include "./_prep_answer_row.html" with exam=exam question=question answer=answer answer_form=answer.form %}
-
+            <div
+                hx-get="{% url 'prep_answer_panel' exam_selected.pk answer.id %}"
+                hx-trigger="load"
+                hx-target="this"
+                hx-swap="outerHTML">
+            </div>
         </div>
     </div>
-</div>
 
 {% empty %}
     <div class="text-muted">No answers</div>
 {% endfor %}
+
 <button
     class="btn btn-light"
     hx-post="{% url 'add_prep_answer' exam_selected.pk question.id %}"

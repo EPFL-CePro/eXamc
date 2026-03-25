@@ -1,5 +1,11 @@
 {% for question in questions %}
-    {% include "./_prep_question_block.html" with exam=exam section=section question=question question_form=question.form answers=question.answers %}
+    <div
+        id="prep-question-{{ question.id }}"
+        hx-get="{% url 'prep_question_panel' exam_selected.pk question.id %}"
+        hx-trigger="load"
+        hx-target="this"
+        hx-swap="outerHTML">
+    </div>
 {% empty %}
     <div class="text-muted">No questions</div>
 {% endfor %}

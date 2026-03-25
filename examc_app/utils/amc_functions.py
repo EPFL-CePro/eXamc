@@ -1446,3 +1446,4 @@ def draw_table(c, data, x, y, col_widths):
     w, h = table.wrap(0, 0)
     table.drawOn(c, x, y - h)
     return h
+

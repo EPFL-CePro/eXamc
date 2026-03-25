@@ -40,6 +40,7 @@ class Exam(models.Model):
     res_and_stats_option = models.BooleanField(default=0)
     prep_option = models.BooleanField(default=0)
     pdf_catalog_name = models.CharField(max_length=200, blank=True,null=True)
+    duration = models.CharField(max_length=200, blank=True, null=True)
     history = HistoricalRecords()
 
     class Meta:

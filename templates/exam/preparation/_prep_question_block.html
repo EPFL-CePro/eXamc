@@ -1,4 +1,5 @@
-<div id="prep-question-{{ question.id }}" class="border p-3 mt-2 sortable-question" data-question-id="{{ question.id }}">
+<div id="prep-question-{{ question.id }}" class="border p-3 mt-2 sortable-question"
+     data-question-id="{{ question.id }}">
     <div class="card-header d-flex justify-content-between align-items-center">
 
         <div class="d-flex align-items-center gap-2">
@@ -10,7 +11,7 @@
                  role="button"
                  data-bs-toggle="collapse"
                  data-bs-target="#prep-question-body-{{ question.id }}"
-                 aria-expanded="false"
+                 aria-expanded="{% if saved %}true{% else %}false{% endif %}"
                  aria-controls="prep-question-body-{{ question.id }}"
                  style="cursor:pointer;">
                 <span>{{ question.title }}</span>
@@ -18,20 +19,21 @@
         </div>
 
         <button
-            class="btn btn-sm btn-light float-end"
-            hx-post="{% url 'delete_prep_question' exam_selected.pk question.id %}"
-            hx-target="#prep-questions-list-{{ section.id }}"
-            hx-swap="innerHTML">
+                class="btn btn-sm btn-light float-end"
+                hx-post="{% url 'delete_prep_question' exam_selected.pk question.id %}"
+                hx-target="#prep-questions-list-{{ section.id }}"
+                hx-swap="innerHTML">
             <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
         </button>
     </div>
 
-    <div id="prep-question-body-{{ question.id }}" class="collapse">
+    <div id="prep-question-body-{{ question.id }}" class="collapse{% if saved %} show{% endif %}">
         <div class="card-body">
             <form
-                hx-post="{% url 'prep_question_panel' exam_selected.pk question.id %}"
-                hx-target="#prep-question-{{ question.id }}"
-                hx-swap="outerHTML">
+                    novalidate
+                    hx-post="{% url 'prep_question_panel' exam_selected.pk question.id %}"
+                    hx-target="#prep-question-{{ question.id }}"
+                    hx-swap="outerHTML">
 
                 {% csrf_token %}
 
@@ -40,43 +42,76 @@
                 {% endfor %}
 
                 <div class="question-top-bar">
-                    <div class="question-top-left">
-                        <div class="field-block">
-                            <label class="mt-2">Type</label>
-                            {{ question_form.question_type }}
-                        </div>
-
-                        <div class="field-inline js-field-random">
-                            <label class="mt-2">Randomized answers</label>
-                            {{ question_form.random_answers }}
-                        </div>
-
-                        <div class="field-block js-field-maxpoints">
-                            <label class="mt-2">Max points</label>
-                            {{ question_form.max_points }}
-                        </div>
-
-                        <div class="field-block js-field-increment">
-                            <label class="mt-2">Point increment</label>
-                            {{ question_form.point_increment }}
-                        </div>
+                    <div class="field-block">
+                        <label>Title</label>
+                        {{ question_form.title }}
+                        {% if question_form.title.errors %}
+                            <div class="text-danger small">{{ question_form.title.errors }}</div>
+                        {% endif %}
                     </div>
 
-                    <div class="field-inline ms-auto">
-                        <label class="mt-2">Cancel question</label>
+                    <div class="field-block">
+                        <label>Question type</label>
+                        {{ question_form.question_type }}
+                        {% if question_form.question_type.errors %}
+                            <div class="text-danger small">{{ question_form.question_type.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-block js-field-random">
+                        <label>Randomized answers</label>
+                        {{ question_form.random_answers }}
+                        {% if question_form.random_answers.errors %}
+                            <div class="text-danger small">{{ question_form.random_answers.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-block js-field-maxpoints">
+                        <label>Max points</label>
+                        {{ question_form.max_points }}
+                        {% if question_form.max_points.errors %}
+                            <div class="text-danger small">{{ question_form.max_points.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-block js-field-increment">
+                        <label>Point increment</label>
+                        {{ question_form.point_increment }}
+                        {% if question_form.point_increment.errors %}
+                            <div class="text-danger small">{{ question_form.point_increment.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-block">
+                        <label>Cancel question</label>
                         {{ question_form.canceled }}
+                        {% if question_form.canceled.errors %}
+                            <div class="text-danger small">{{ question_form.canceled.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-block">
+                        <label>Fixed</label>
+                        {{ question_form.new_page }}
+                        {% if question_form.new_page.errors %}
+                            <div class="text-danger small">{{ question_form.new_page.errors }}</div>
+                        {% endif %}
                     </div>
                 </div>
 
-                <hr/>
-
-                <label>Title</label>
-                {{ question_form.title }}
-
-                <div class="field-block  js-question-text">
-                    <label class="mt-2">Question text</label>
+                <div class="mt-3">
+                    <label>Question text</label>
                     {{ question_form.question_text }}
+                    {% if question_form.question_text.errors %}
+                        <div class="text-danger small">{{ question_form.question_text.errors }}</div>
+                    {% endif %}
                 </div>
+
+                {% if question_form.non_field_errors %}
+                    <div class="text-danger small mt-2">
+                        {{ question_form.non_field_errors }}
+                    </div>
+                {% endif %}
 
                 <button class="btn btn-dark btn-sm mt-2">Save</button>
             </form>
@@ -84,8 +119,9 @@
             <hr>
 
             <div id="answers-containers-{{ question.id }}">
-                {% include "./_prep_answers_block.html" with exam=exam question=question answers=answers %}
+                {% include "./_prep_answers_block.html" with question=question answers=answers exam_selected=exam_selected %}
             </div>
+
         </div>
     </div>
 </div>
