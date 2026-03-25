@@ -1,41 +1,66 @@
-<form
-    class="js-answer-form"
-    hx-post="{% url 'prep_answer_panel' exam_selected.pk answer.id %}"
-    hx-target="#prep-answer-{{ answer.id }}"
-    hx-swap="outerHTML">
+<div id="prep-answer-{{ answer.id }}" class="border p-2 mt-2 sortable-answer" data-answer-id="{{ answer.id }}">
+    <form
+        novalidate
+        class="js-answer-form"
+        hx-post="{% url 'prep_answer_panel' exam_selected.pk answer.id %}"
+        hx-target="#prep-answer-{{ answer.id }}"
+        hx-swap="outerHTML">
 
-    {% csrf_token %}
+        {% csrf_token %}
 
-    {% for hidden in answer_form.hidden_fields %}
-        {{ hidden }}
-    {% endfor %}
+        {% for hidden in answer_form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+        {{ answer_form.title.as_hidden }}
 
-    <div class="answer-row">
-        <div class="field-block js-answer-fix-position">
-            <label>Fixed</label>
-            {{ answer_form.fix_position }}
+        <div class="answer-row">
+            <div class="field-block js-answer-fix-position">
+                <label>Fixed</label>
+                {{ answer_form.fix_position }}
+                {% if answer_form.fix_position.errors %}
+                    <div class="text-danger small">{{ answer_form.fix_position.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="field-block js-answer-correct">
+                <label>Correct</label>
+                {{ answer_form.is_correct }}
+                {% if answer_form.is_correct.errors %}
+                    <div class="text-danger small">{{ answer_form.is_correct.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="field-block js-answer-text">
+                <label>Answer text</label>
+                {{ answer_form.answer_text }}
+                {% if answer_form.answer_text.errors %}
+                    <div class="text-danger small">{{ answer_form.answer_text.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="field-block js-answer-box-type">
+                <label>Answer box type</label>
+                {{ answer_form.box_type }}
+                {% if answer_form.box_type.errors %}
+                    <div class="text-danger small">{{ answer_form.box_type.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="field-block js-answer-box-height">
+                <label>Answer box height (mm)</label>
+                {{ answer_form.box_height_mm }}
+                {% if answer_form.box_height_mm.errors %}
+                    <div class="text-danger small">{{ answer_form.box_height_mm.errors }}</div>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="field-block js-answer-correct">
-            <label>Correct</label>
-            {{ answer_form.is_correct }}
-        </div>
+        {% if answer_form.non_field_errors %}
+            <div class="text-danger small mt-2">
+                {{ answer_form.non_field_errors }}
+            </div>
+        {% endif %}
 
-        <div class="field-block js-answer-text">
-            <label>Answer text</label>
-            {{ answer_form.answer_text }}
-        </div>
-
-        <div class="field-block js-answer-box-type">
-            <label>Answer box type</label>
-            {{ answer_form.box_type }}
-        </div>
-
-        <div class="field-block js-answer-box-height">
-            <label>Answer box height</label>
-            {{ answer_form.box_height_mm }}
-        </div>
-    </div>
-
-    <button class="btn btn-dark btn-sm mt-2">Save</button>
-</form>
+        <button class="btn btn-dark btn-sm mt-2">Save</button>
+    </form>
+</div>

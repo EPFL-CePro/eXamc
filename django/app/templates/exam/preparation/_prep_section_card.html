@@ -11,7 +11,7 @@
                  role="button"
                  data-bs-toggle="collapse"
                  data-bs-target="#prep-section-body-{{ section.id }}"
-                 aria-expanded="false"
+                 aria-expanded="{% if saved %}true{% else %}false{% endif %}"
                  aria-controls="prep-section-body-{{ section.id }}"
                  style="cursor:pointer;">
                 <span>{{ section.title }}</span>
@@ -27,7 +27,7 @@
         </button>
     </div>
 
-    <div id="prep-section-body-{{ section.id }}" class="collapse">
+    <div id="prep-section-body-{{ section.id }}" class="collapse{% if saved %} show{% endif %}">
         <div class="card-body">
             <button
                 type="button"
@@ -41,6 +41,7 @@
             ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Section questions scorings
             </button>
             <form
+                novalidate
                 hx-post="{% url 'prep_section_panel' exam_selected.pk section.id %}"
                 hx-target="#prep-section-{{ section.id }}"
                 hx-swap="outerHTML">
@@ -65,7 +66,7 @@
 
             <hr>
             <div id="prep-questions-list-{{ section.id }}">
-                {% include "./_prep_questions_list.html" with section=section questions=section.questions %}
+                {% include "./_prep_questions_list.html" with section=section questions=questions exam_selected=exam_selected %}
             </div>
             <button style="margin-top:20px;" class="btn btn-light" title="Add Question"
                     hx-get="{% url 'add_prep_question' exam_selected.pk section.id %}"

@@ -4,13 +4,13 @@
                  role="button"
                  data-bs-toggle="collapse"
                  data-bs-target="#prep-first-page-body"
-                 aria-expanded="false"
+                 aria-expanded="{% if saved %}true{% else %}false{% endif %}"
                  aria-controls="prep-first-page-body"
                  style="cursor:pointer;">
                 <span>First page</span>
         </div>
     </div>
-    <div id="prep-first-page-body" class="collapse">
+    <div id="prep-first-page-body" class="collapse{% if saved %} show{% endif %}">
         <div class="card-body">
             <form
                     hx-post="{% url 'prep_first_page_panel' exam_selected.pk %}"

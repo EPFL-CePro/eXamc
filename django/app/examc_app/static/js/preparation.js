@@ -18,6 +18,9 @@
         dragHandle: ".drag-handle"
     };
 
+    const markdownEditors = new Map();
+    let markdownEditorSeq = 0;
+
     function getElement(selector) {
         return document.querySelector(selector);
     }
@@ -105,12 +108,6 @@
     function initSectionSortable() {
         const list = getElement(Selectors.sectionList);
 
-        console.log("initSectionSortable", {
-            listExists: !!list,
-            reorderUrl: URLS.reorderSections,
-            sortableExists: typeof Sortable !== "undefined"
-        });
-
         if (!list || !URLS.reorderSections || typeof Sortable === "undefined") {
             return;
         }
@@ -162,12 +159,105 @@
                         if (newList) {
                             list.replaceWith(newList);
                             initSectionSortable();
+                            initPreparationUI(newList);
+                            initMarkdownEditors(newList);
                         }
                     })
                     .catch(function (error) {
                         console.error("[preparation.js] reorderSections failed:", error);
                     });
             }
+        });
+    }
+
+    // =============================
+    // Markdown editors manager
+    // =============================
+
+    function collectMarkdownTextareas(root = document) {
+        if (!root) return [];
+
+        const textareas = [];
+
+        if (root.matches && root.matches("textarea.markdown-editor")) {
+            textareas.push(root);
+        }
+
+        if (root.querySelectorAll) {
+            textareas.push(...root.querySelectorAll("textarea.markdown-editor"));
+        }
+
+        return textareas;
+    }
+
+    function syncTextarea(textarea) {
+        const instance = markdownEditors.get(textarea);
+        if (!instance) return;
+
+        textarea.value = instance.editor.getMarkdown();
+    }
+
+    function syncMarkdownEditors(rootOrForm = document) {
+        collectMarkdownTextareas(rootOrForm).forEach((textarea) => {
+            syncTextarea(textarea);
+        });
+    }
+
+    function destroyMarkdownEditors(root = document) {
+        collectMarkdownTextareas(root).forEach((textarea) => {
+            const instance = markdownEditors.get(textarea);
+            if (!instance) return;
+
+            syncTextarea(textarea);
+            instance.editor.destroy();
+
+            if (instance.container && instance.container.parentNode) {
+                instance.container.remove();
+            }
+
+            textarea.style.display = "";
+            markdownEditors.delete(textarea);
+            delete textarea.dataset.markdownEditorId;
+        });
+    }
+
+    function initMarkdownEditors(root = document) {
+        if (typeof toastui === "undefined" || !toastui.Editor) {
+            return;
+        }
+
+        collectMarkdownTextareas(root).forEach((textarea) => {
+            if (markdownEditors.has(textarea)) {
+                return;
+            }
+
+            const container = document.createElement("div");
+            container.className = "toastui-editor-container mb-3";
+
+            textarea.parentNode.insertBefore(container, textarea.nextSibling);
+            textarea.style.display = "none";
+
+            const editor = new toastui.Editor({
+                el: container,
+                initialEditType: "wysiwyg",
+                previewStyle: "vertical",
+                height: "300px",
+                initialValue: textarea.value || "",
+                usageStatistics: false
+            });
+
+            const instance = {
+                id: `md-${++markdownEditorSeq}`,
+                editor: editor,
+                container: container
+            };
+
+            markdownEditors.set(textarea, instance);
+            textarea.dataset.markdownEditorId = instance.id;
+
+            editor.on("change", function () {
+                textarea.value = editor.getMarkdown();
+            });
         });
     }
 
@@ -304,74 +394,6 @@
     function initPreparationUI(container = document) {
         bindQuestionFields(container);
         bindAnswerForms(container);
-    }
-
-    function resizeSummernoteIframe(iframe) {
-        if (!iframe) return;
-
-        function applyResize() {
-            try {
-                const doc = iframe.contentDocument || iframe.contentWindow.document;
-                if (!doc) return;
-
-                const body = doc.body;
-                const html = doc.documentElement;
-                if (!body || !html) return;
-
-                const newHeight = Math.max(
-                    parseInt(iframe.getAttribute("height"), 10) || 180,
-                    body.scrollHeight,
-                    body.offsetHeight,
-                    html.scrollHeight,
-                    html.offsetHeight
-                );
-
-                iframe.style.height = newHeight + "px";
-                iframe.setAttribute("height", newHeight);
-
-                const wrapper = iframe.closest(".summernote-div");
-                if (wrapper) {
-                    wrapper.style.height = newHeight + "px";
-                }
-            } catch (e) {
-                console.warn("Summernote resize failed", e);
-            }
-        }
-
-        const attachEditorListeners = () => {
-            try {
-                const doc = iframe.contentDocument || iframe.contentWindow.document;
-                if (!doc) return;
-
-                doc.addEventListener("input", applyResize);
-                doc.addEventListener("keyup", applyResize);
-                doc.addEventListener("paste", function () {
-                    setTimeout(applyResize, 0);
-                });
-            } catch (e) {
-            }
-        };
-
-        if (iframe.contentDocument?.readyState === "complete") {
-            applyResize();
-            attachEditorListeners();
-        } else {
-            iframe.addEventListener("load", function () {
-                applyResize();
-                attachEditorListeners();
-            }, {once: true});
-        }
-
-        setTimeout(applyResize, 50);
-        setTimeout(applyResize, 150);
-        setTimeout(applyResize, 300);
-        setTimeout(applyResize, 600);
-    }
-
-    function resizeAllSummernoteIframes(container = document) {
-        container.querySelectorAll(".summernote-div iframe").forEach((iframe) => {
-            resizeSummernoteIframe(iframe);
-        });
     }
 
     const ScoringFormulasModal = {
@@ -634,8 +656,6 @@
                 this.submit(form);
             });
         }
-
-
     };
 
     document.addEventListener("click", function (event) {
@@ -649,25 +669,48 @@
         if (typeof CSRF !== "undefined" && CSRF) {
             event.detail.headers["X-CSRFToken"] = CSRF;
         }
+
+        const elt = event.detail.elt;
+        const form = elt && elt.closest ? elt.closest("form") : null;
+        if (!form) return;
+
+        collectMarkdownTextareas(form).forEach((textarea) => {
+            const instance = markdownEditors.get(textarea);
+            if (!instance) return;
+
+            const value = instance.editor.getMarkdown();
+            textarea.value = value;
+            event.detail.parameters[textarea.name] = value;
+        });
+    });
+
+    document.body.addEventListener("htmx:beforeRequest", function (event) {
+        const elt = event.detail.elt;
+        const form = elt && elt.closest ? elt.closest("form") : null;
+        if (form) {
+            syncMarkdownEditors(form);
+        }
+    });
+
+    document.body.addEventListener("htmx:beforeSwap", function (event) {
+        const target = event.detail.target;
+        if (!target) return;
+
+        destroyMarkdownEditors(target);
     });
 
     document.body.addEventListener("htmx:afterSwap", function (event) {
         initSectionSortable();
         initPreparationUI(event.target);
-        resizeAllSummernoteIframes(event.target);
-    });
-
-    document.addEventListener("shown.bs.collapse", function (event) {
-        resizeAllSummernoteIframes(event.target);
+        initMarkdownEditors(event.target);
     });
 
     document.addEventListener("DOMContentLoaded", function () {
         initSectionSortable();
         ScoringFormulasModal.bindEvents();
         initPreparationUI(document);
-        resizeAllSummernoteIframes(document);
+        initMarkdownEditors(document);
     });
 
     window.preview_exam = previewExam;
-})
-();
+})();
