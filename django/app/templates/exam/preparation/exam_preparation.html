@@ -14,23 +14,32 @@
 
 <h4><i class="fas fa-edit"></i> Exam Preparation</h4>
     <div id="prep-root" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        <div class="d-flex align-items-center justify-content-between w-100">
+            <button
+                type="button"
+                class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
+                id="openScoringFormulasModal"
+                data-exam-pk="{{ exam_selected.pk }}"
+                data-prep-section=""
+                data-prep-question=""
+                data-prep-answer=""
+            ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Default questions scorings
+            </button>
+            <div class="d-flex">
+                <button class="btn btn-outline-dark btn-sm latex-btn me-2" type="button" onclick="openEditLaTeXFileDialog('commands');">
+                    <img src="{% static 'img/LaTeX/latex-original.png' %}" style="height:12px;margin:0px;">
+                    <span class="latex-text ms-1">commands</span>
+                </button>
 
-        <div style="text-align:right;max-width:70%;min-width:800px;padding:10px;">
+                <button class="btn btn-outline-dark btn-sm latex-btn" type="button" onclick="openEditLaTeXPackagesDialog('packages');">
+                    <img src="{% static 'img/LaTeX/latex-original.png' %}" style="height:12px;margin:0px;">
+                    <span class="latex-text ms-1">packages</span>
+                </button>
+            </div>
             <button onclick="preview_exam();" class="btn btn-dark btn-sm" type="button">
                 <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Preview
             </button>
         </div>
-
-        <button
-            type="button"
-            class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
-            id="openScoringFormulasModal"
-            data-exam-pk="{{ exam_selected.pk }}"
-            data-prep-section=""
-            data-prep-question=""
-            data-prep-answer=""
-        ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Default questions scorings
-        </button>
 
         {% include "./_prep_first_page_card.html" %}
         {% include "./_prep_sections_list.html" %}
@@ -48,9 +57,14 @@
         csrfToken: "{{ csrf_token }}",
         examPk: "{{ exam_selected.pk }}",
         urls: {
-            previewPdf: "{% url 'exam_preview_pdf' exam_selected.pk %}",
+            previewStart: "{% url 'exam_preview_start' exam_selected.pk %}",
+            previewStatus: "{% url 'exam_preview_status' exam_selected.pk 0 %}".replace("/0/", "/__JOB_ID__/"),
             reorderSections: "{% url 'reorder_prep_sections' exam_selected.pk %}",
-            scoringFormulasModal: "{% url 'scoring_formulas_modal' exam_selected.pk %}"
+            scoringFormulasModal: "{% url 'scoring_formulas_modal' exam_selected.pk %}",
+            editLatexFile: "{% url 'edit_latex_file' exam_selected.pk %}",
+            saveLatexFile: "{% url 'save_latex_edited_file' exam_selected.pk %}",
+            editLatexPackages: "{% url 'edit_latex_packages' exam_selected.pk %}",
+            saveLatexPackages: "{% url 'save_latex_edited_packages' exam_selected.pk %}",
         },
       };
     </script>

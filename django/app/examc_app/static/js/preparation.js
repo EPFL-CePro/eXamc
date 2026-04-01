@@ -79,31 +79,117 @@
         return ajaxRequest("POST", url, data, callbacks);
     }
 
+    let currentPreviewJobId = null;
+    let previewPollingTimer = null;
+
+    function resetPreviewUi() {
+        $("#exam_preview_loading").hide();
+        $("#exam_preview_error").hide();
+        $("#exam_preview_pdf").hide().attr("src", "");
+    }
+
+    function setPreviewLoading(isLoading) {
+        if (isLoading) {
+            $("#exam_preview_loading").show();
+        } else {
+            $("#exam_preview_loading").hide();
+        }
+    }
+
+    function showPreviewError(message) {
+        $("#exam_preview_error_message").val(message || "Error during preview generation.");
+        $("#exam_preview_error").show();
+        $("#exam_preview_pdf").hide();
+        $("#exam_preview_loading").hide();
+    }
+
+    function showPreviewPdf(pdfUrl) {
+        $("#exam_preview_pdf").attr("src", pdfUrl).show();
+        $("#exam_preview_error").hide();
+        $("#exam_preview_loading").hide();
+    }
+
+    function stopPreviewPolling() {
+        if (previewPollingTimer) {
+            clearTimeout(previewPollingTimer);
+            previewPollingTimer = null;
+        }
+    }
+
     function previewExam() {
-        if (!URLS.previewPdf) {
-            console.warn("[preparation.js] Missing previewPdf URL");
+        if (!URLS.previewStart) {
+            console.warn("[preparation.js] Missing previewStart URL");
             return;
         }
 
-        $("#exam_preview_error").hide();
-        $("#exam_preview_pdf").hide();
+        stopPreviewPolling();
+        resetPreviewUi();
+        setPreviewLoading(true);
+        showModal("#exam_preview_dialog");
 
-        ajaxGet(URLS.previewPdf, {}, {
+        ajaxGet(URLS.previewStart, {}, {
             success: function (data) {
-                if (typeof data === "string" && data.endsWith(".log")) {
-                    $("#exam_preview_error_message").val(data);
-                    $("#exam_preview_error").show();
-                } else {
-                    $("#exam_preview_pdf").attr("src", data).show();
+                if (!data.job_id) {
+                    showPreviewError("Impossible to start preview.");
+                    return;
                 }
 
-                showModal("#exam_preview_dialog");
+                currentPreviewJobId = data.job_id;
+                pollPreviewStatus(data.job_id);
             },
             error: function (xhr) {
-                console.error("[preparation.js] previewExam failed:", xhr);
+                let message = "Error starting preview.";
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    message = xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    message = xhr.responseText;
+                }
+                showPreviewError(message);
             }
         });
     }
+
+    function pollPreviewStatus(jobId, attempt = 0) {
+        const maxAttempts = 60;
+        const url = URLS.previewStatus.replace("__JOB_ID__", jobId);
+
+        if (attempt >= maxAttempts) {
+            showPreviewError("Le preview prend trop de temps ou le worker est bloqué.");
+            return;
+        }
+
+        ajaxGet(url, {}, {
+            success: function (data) {
+                if (data.status === "pending" || data.status === "running") {
+                    setPreviewLoading(true);
+                    previewPollingTimer = setTimeout(function () {
+                        pollPreviewStatus(jobId, attempt + 1);
+                    }, 1000);
+                    return;
+                }
+
+                if (data.status === "error") {
+                    showPreviewError(data.error || "Erreur de compilation.");
+                    return;
+                }
+
+                if (data.status === "success" && data.pdf_url) {
+                    showPreviewPdf(data.pdf_url);
+                    return;
+                }
+
+                showPreviewError("Statut de preview inattendu.");
+            },
+            error: function () {
+                showPreviewError("Erreur lors de la récupération du statut.");
+            }
+        });
+    }
+
+    $(document).on("hidden.bs.modal", "#exam_preview_dialog", function () {
+        stopPreviewPolling();
+        currentPreviewJobId = null;
+    });
 
     function initSectionSortable() {
         const list = getElement(Selectors.sectionList);
@@ -658,6 +744,207 @@
         }
     };
 
+    // =============================
+    // Edit LaTeX file managaement
+    // =============================
+
+    function openEditLaTeXFileDialog(type) {
+        ajaxGet(URLS.editLatexFile, {type: type}, {
+            success: (data) => {
+                document.getElementById('latex_source_text').value = JSON.parse(data)[1];
+                document.getElementById('edit_latex_file_modal_title').innerText = "Edit " + type;
+                document.getElementById('edit_latex_file_type').innerText = type;
+                $('#edit_latex_file_modal').modal('show');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        })
+
+    }
+
+    function saveEditedLaTeXFile() {
+        const data = {
+            source: document.getElementById('latex_source_text').value,
+            type: document.getElementById('edit_latex_file_type').innerText
+        };
+
+        ajaxPost(URLS.saveLatexFile, data, {
+            success: (data) => {
+                $('#edit_latex_file_modal').modal('hide');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        })
+    }
+
+    // =============================
+    // LaTeX packages management
+    // =============================
+
+    let latexAvailablePackages = [];
+    let currentUsedPackages = [];
+
+    function uniq(arr) {
+        return [...new Set(arr)];
+    }
+
+    function sortStrings(arr) {
+        return [...arr].sort((a, b) => a.localeCompare(b));
+    }
+
+    function normalizeAvailablePackages(rawPackages) {
+        return uniq(
+            (rawPackages || [])
+                .map(pkg => typeof pkg === "string" ? pkg : pkg.name)
+                .filter(Boolean)
+        );
+    }
+
+    function normalizeUsedPackages(rawPackages) {
+        return uniq((rawPackages || []).filter(Boolean));
+    }
+
+    function renderUsedPackages() {
+        const container = document.getElementById("used_latex_packages_list");
+        container.innerHTML = "";
+
+        if (!currentUsedPackages.length) {
+            container.innerHTML = `<div class="latex-empty-state">No package selected.</div>`;
+            return;
+        }
+
+        sortStrings(currentUsedPackages).forEach(pkg => {
+            const chip = document.createElement("div");
+            chip.className = "latex-chip";
+
+            const label = document.createElement("span");
+            label.textContent = pkg;
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "latex-chip-remove";
+            removeBtn.innerHTML = "&times;";
+            removeBtn.title = `Remove ${pkg}`;
+            removeBtn.onclick = () => removeUsedPackage(pkg);
+
+            chip.appendChild(label);
+            chip.appendChild(removeBtn);
+            container.appendChild(chip);
+        });
+    }
+
+    function getFilteredAvailablePackages(searchText = "") {
+        const usedSet = new Set(currentUsedPackages);
+        const query = searchText.trim().toLowerCase();
+
+        return sortStrings(
+            latexAvailablePackages.filter(pkg => {
+                if (usedSet.has(pkg)) return false;
+                if (!query) return true;
+                return pkg.toLowerCase().includes(query);
+            })
+        ).slice(0, 50);
+    }
+
+    function renderPackageSearchResults(searchText = "") {
+        const container = document.getElementById("latex_package_search_results");
+        const results = getFilteredAvailablePackages(searchText);
+
+        if (!results.length) {
+            container.style.display = "none";
+            container.innerHTML = "";
+            return;
+        }
+
+        container.innerHTML = "";
+
+        results.forEach(pkg => {
+            const item = document.createElement("div");
+            item.className = "latex-search-item";
+            item.textContent = pkg;
+            item.onclick = () => {
+                addUsedPackage(pkg);
+                document.getElementById("latex_package_search").value = "";
+                renderPackageSearchResults("");
+            };
+            container.appendChild(item);
+        });
+
+        container.style.display = "block";
+    }
+
+    function addUsedPackage(pkg) {
+        if (!pkg || currentUsedPackages.includes(pkg)) return;
+        currentUsedPackages.push(pkg);
+        currentUsedPackages = uniq(currentUsedPackages);
+        renderUsedPackages();
+    }
+
+    function removeUsedPackage(pkg) {
+        currentUsedPackages = currentUsedPackages.filter(p => p !== pkg);
+        renderUsedPackages();
+        renderPackageSearchResults(document.getElementById("latex_package_search").value);
+    }
+
+    function bindLatexPackageSearch() {
+        const input = document.getElementById("latex_package_search");
+        const results = document.getElementById("latex_package_search_results");
+
+        input.oninput = () => {
+            renderPackageSearchResults(input.value);
+        };
+
+        input.onfocus = () => {
+            renderPackageSearchResults(input.value);
+        };
+
+        document.addEventListener("click", function (event) {
+            if (!input.contains(event.target) && !results.contains(event.target)) {
+                results.style.display = "none";
+            }
+        });
+    }
+
+    function openEditLaTeXPackagesDialog(type) {
+        ajaxGet(URLS.editLatexPackages, {type: type}, {
+            success: (data) => {
+                if (typeof data === "string") {
+                  data = JSON.parse(data);
+                }
+
+                latexAvailablePackages = normalizeAvailablePackages(data.latex_available_packages);
+                currentUsedPackages = normalizeUsedPackages(data.used_packages);
+
+                bindLatexPackageSearch();
+                renderUsedPackages();
+                renderPackageSearchResults("");
+
+                $('#edit_latex_packages_modal').modal('show');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
+
+    function saveEditedLaTeXPackages() {
+        const data = {
+            new_used_packages: currentUsedPackages
+        };
+
+        ajaxPost(URLS.saveLatexPackages, data, {
+            success: (data) => {
+                $('#edit_latex_packages_modal').modal('hide');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
+
+
     document.addEventListener("click", function (event) {
         const handle = event.target.closest(Selectors.dragHandle);
         if (handle) {
@@ -713,4 +1000,8 @@
     });
 
     window.preview_exam = previewExam;
+    window.openEditLaTeXFileDialog = openEditLaTeXFileDialog;
+    window.saveEditedLaTeXFile = saveEditedLaTeXFile;
+    window.openEditLaTeXPackagesDialog = openEditLaTeXPackagesDialog;
+    window.saveEditedLaTeXPackages = saveEditedLaTeXPackages;
 })();

@@ -1,11 +1,13 @@
+import os
+import shutil
+import subprocess
+from functools import lru_cache
 from pathlib import Path
 import re
 import pypandoc
-from bs4 import BeautifulSoup
-from xml.etree import ElementTree as ET
 
 from examc import settings
-from examc_app.models import PrepSection, PrepQuestion, PrepQuestionAnswer, BOX_TYPE_CHOICES, Exam
+from examc_app.models import PrepSection, PrepQuestion, PrepQuestionAnswer, BOX_TYPE_CHOICES, Exam, ScoringStrategy
 from examc_app.utils.amc_functions import get_amc_project_path
 
 #PLACEHOLDERS FOR TEMPLATES
@@ -330,6 +332,9 @@ def update_exam_latex(exam: Exam):
 
             render_question_tex_from_html(question, section_latex_file_path, template_question_latex_path)
 
+            if question.question_type.code != 'OPEN':
+                update_question_scoring_latex_file(question.pk)
+
         exam_tex = (
             exam_tex
             .replace(PH_SECTIONS, f"\input{{./{section_filename}}} \n" + f"{PH_SECTIONS}")
@@ -482,6 +487,8 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
 
     for answer in question.prepAnswers.all():
         question_tex = render_answer_tex_from_html(answer, question_tex)
+        if question.question_type.code != 'OPEN':
+            update_answer_scoring_latex_file(answer.pk)
 
     section_tex = section.replace(
         PH_SECTION_QUESTIONS,
@@ -520,3 +527,204 @@ def render_answer_tex_from_html(answer: PrepQuestionAnswer, question_tex: str) -
 
     return question_tex
 
+## scoring formulas
+def update_global_scoring_latex_file(scoring_formulas,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+    amc_project_path = Path(get_amc_project_path(exam, False))
+    filepath = amc_project_path / "global_scoring.tex"
+
+    lines = []
+
+    for scoring_formula in scoring_formulas:
+        if scoring_formula.question_type.code == 'SCQ':
+            lines.append(f"\\baremeDefautS{{{scoring_formula.formula}}}")
+        elif scoring_formula.question_type.code == 'MCQ':
+            lines.append(f"\\baremeDefautM{{{scoring_formula.formula}}}")
+        elif scoring_formula.question_type.code == 'TF':
+            lines.append(f"\\newcommand{{\\baremeDefautTF}}{{{scoring_formula.formula}}}")
+
+    content = "% Auto-generated scoring formulas\n"
+    if lines:
+        content += "\n".join(lines) + "\n"
+
+    filepath.write_text(content, encoding="utf-8")
+
+    return True
+
+def update_question_scoring_latex_file(question_pk):
+    question = PrepQuestion.objects.get(pk=question_pk)
+    if question.prepQuestionScoringFormulas :
+        scoring_formula = question.prepQuestionScoringFormulas.first()
+        amc_project_path = Path(get_amc_project_path(question.prep_section.exam, False))
+        section_filename = f"section_{question.prep_section.position}.tex"
+        file_path = amc_project_path / section_filename
+        question_latex_id = f"{question.question_type.code}-{question.position}"
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        pattern = re.compile(
+            rf".*\\begin{{(question(?:mult)?)}}{{{re.escape(question_latex_id)}}}(?:\\bareme{{.*?}})?\s*$"
+        )
+
+        new_lines = []
+        for line in lines:
+            m = pattern.search(line)
+            if m:
+                env = m.group(1)
+                new_lines.append(f"\\begin{{{env}}}{{{question_latex_id}}}\\bareme{{{scoring_formula.formula}}}\n")
+            else:
+                new_lines.append(line)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+
+    return True
+
+def update_answer_scoring_latex_file(answer_pk):
+    answer = PrepQuestionAnswer.objects.get(pk=answer_pk)
+    if answer.prepAnswersScoringFormulas :
+        scoring_formula = answer.prepAnswersScoringFormulas.first()
+        amc_project_path = Path(get_amc_project_path(answer.prep_question.prep_section.exam, False))
+        section_filename = f"section_{answer.prep_question.prep_section.position}.tex"
+        file_path = amc_project_path / section_filename
+        answer_txt = markdown_to_latex_pandoc(answer.answer_text)
+        question_latex_id = f"{answer.prep_question.question_type.code}-{answer.prep_question.position}"
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Match one full question block for the given code
+        block_pattern = re.compile(
+            rf"""
+            \\begin{{question(?:mult)?}}{{{re.escape(question_latex_id)}}}   # question start
+            (?:\\bareme{{.*?}})?                                # optional bareme
+            .*?                                                 # block content
+            \\end{{question}}                                   # question end
+            """,
+            re.DOTALL | re.VERBOSE,
+        )
+
+        def update_block(match):
+            block = match.group(0)
+
+            # Match a choice line containing exactly the wanted answer text
+            answer_pattern = re.compile(
+                rf"^(.*?(?:\\correctchoice|\\wrongchoice){{{re.escape(answer_txt)}}})(\s*)$",
+                re.MULTILINE,
+            )
+
+            def repl_answer(m):
+                return f"{m.group(1)}\\bareme{{{scoring_formula.formula}}}{m.group(2)}"
+
+            new_block, n = answer_pattern.subn(repl_answer, block, count=1)
+            return new_block
+
+        new_content, n_blocks = block_pattern.subn(update_block, content, count=1)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+    return True
+
+# functions to get LaTeX package installed on server
+INTERNAL_PATTERNS = [
+    r"-\d{4}-\d{2}-\d{2}$",   # rollback/versioned files like xparse-2020-10-01
+    r"^latexrelease$",
+    r"^fixltx2e$",
+    r"^expl3.*$",
+    r"^l3.*$",
+]
+
+_internal_res = [re.compile(p) for p in INTERNAL_PATTERNS]
+
+
+def has_kpsewhich() -> bool:
+    return shutil.which("kpsewhich") is not None
+
+
+def run_cmd(args):
+    return subprocess.run(args, capture_output=True, text=True)
+
+
+@lru_cache(maxsize=1)
+def get_tex_search_paths() -> list[str]:
+    if not has_kpsewhich():
+        return []
+
+    result = run_cmd(["kpsewhich", "-show-path=tex"])
+    if result.returncode != 0:
+        return []
+
+    sep = ";" if os.name == "nt" else ":"
+    raw_paths = result.stdout.strip().split(sep)
+
+    paths = []
+    for p in raw_paths:
+        p = p.strip()
+        if not p:
+            continue
+
+        p = os.path.expanduser(p)
+
+        # Skip kpathsea path modifiers / non-real entries
+        if p.startswith("!!"):
+            p = p[2:]
+
+        # Ignore unresolved brace-ish or recursive markers if present
+        if p in {"", ".", "//"}:
+            continue
+
+        # Keep existing dirs only
+        if os.path.isdir(p):
+            paths.append(os.path.normpath(p))
+
+    # Deduplicate while preserving order
+    return list(dict.fromkeys(paths))
+
+
+def is_user_selectable_package(name: str) -> bool:
+    if not name:
+        return False
+    return not any(rx.match(name) or rx.search(name) for rx in _internal_res)
+
+
+@lru_cache(maxsize=1)
+def list_available_latex_packages() -> list[str]:
+    packages = []
+
+    for base in get_tex_search_paths():
+        for root, _, files in os.walk(base):
+            for filename in files:
+                if not filename.endswith(".sty"):
+                    continue
+
+                name = filename[:-4]
+                if is_user_selectable_package(name):
+                    packages.append({"name":name,"selected":None})
+
+    return packages
+
+def extract_used_packages(file_contents: str) -> list[str]:
+    used = []
+
+    matches = re.findall(
+        r"\\usepackage(?:\[[^\]]*\])?\{([^}]*)\}",
+        file_contents
+    )
+
+    for match in matches:
+        for pkg in match.split(","):
+            pkg = pkg.strip()
+            if pkg:
+                used.append(pkg)
+
+    return used
+
+
+def package_exists(package_name: str) -> bool:
+    if not has_kpsewhich():
+        return False
+
+    result = run_cmd(["kpsewhich", f"{package_name}.sty"])
+    return result.returncode == 0 and bool(result.stdout.strip())

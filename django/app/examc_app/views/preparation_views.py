@@ -1,20 +1,24 @@
 import json
+import os
+import re
+from datetime import timedelta
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.db.models import Max
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.db import transaction
+from django.http import HttpResponseBadRequest, JsonResponse, Http404, FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 
+from examc_app.tasks import compile_exam_preview_task
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import (
     CreateExamProjectForm,
     CreatePrepQuestionForm,
     ExamFirstPageForm,
-    PrepQuestionAnswerForm,
-    PrepQuestionForm,
     PrepScoringFormulaFormSet,
-    PrepSectionForm,
 )
 from examc_app.models import (
     AcademicYear,
@@ -25,100 +29,22 @@ from examc_app.models import (
     PrepQuestionAnswer,
     PrepScoringFormula,
     PrepSection,
-    Semester,
+    Semester, ExamPreviewJob,
 )
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.global_functions import add_course_teachers_ldap
-from examc_app.utils.preparation_html_to_latex_functions import (
+from examc_app.utils.preparation_functions import build_sections_list_context, build_section_form, get_questions, \
+    renumber_sections, build_question_form, get_answers, renumber_questions, build_answer_form, renumber_answers, \
+    get_scoring_formula_scope, get_scoring_formula_queryset, create_prep_section, create_prep_question, \
+    create_prep_answer, compile_exam_preview, get_exam_preview_pdf_path, save_scoring_formulas, \
+    delete_exam_preview_job_files
+from examc_app.utils.preparation_latex_functions import (
     render_first_page_tex_from_html,
     update_exam_latex,
 )
 from examc_app.views import logger
 
 
-# -------------------------
-# Small context helpers
-# -------------------------
-
-def _get_sections(exam):
-    return list(exam.prepSections.all().order_by("position", "pk"))
-
-
-def _get_questions(section):
-    return list(section.prepQuestions.all().order_by("position", "pk"))
-
-
-def _get_answers(question):
-    return list(question.prepAnswers.all().order_by("position", "pk"))
-
-
-def _build_section_form(section, *, data=None):
-    return PrepSectionForm(
-        data=data,
-        instance=section,
-        prefix=f"section-{section.pk}",
-    )
-
-
-def _build_question_form(question, *, data=None):
-    return PrepQuestionForm(
-        data=data,
-        instance=question,
-        prefix=f"question-{question.pk}",
-    )
-
-
-def _build_answer_form(answer, *, data=None):
-    return PrepQuestionAnswerForm(
-        data=data,
-        instance=answer,
-        prefix=f"answer-{answer.pk}",
-    )
-
-
-def _build_sections_list_context(exam):
-    sections = _get_sections(exam)
-
-    section_items = [
-        {
-            "section": section,
-            "section_form": _build_section_form(section),
-            "questions": _get_questions(section),
-        }
-        for section in sections
-    ]
-
-    return {
-        "sections": sections,
-        "section_items": section_items,
-    }
-
-
-def _renumber_sections(exam):
-    sections = _get_sections(exam)
-    for index, section in enumerate(sections, start=1):
-        if section.position != index:
-            section.position = index
-            section.save(update_fields=["position"])
-    return _get_sections(exam)
-
-
-def _renumber_questions(section):
-    questions = _get_questions(section)
-    for index, question in enumerate(questions, start=1):
-        if question.position != index:
-            question.position = index
-            question.save(update_fields=["position"])
-    return _get_questions(section)
-
-
-def _renumber_answers(question):
-    answers = _get_answers(question)
-    for index, answer in enumerate(answers, start=1):
-        if answer.position != index:
-            answer.position = index
-            answer.save(update_fields=["position"])
-    return _get_answers(question)
 
 
 # -------------------------
@@ -197,7 +123,7 @@ def exam_preparation_view(request, exam_pk):
             "exam_selected": exam,
             "fp_txt_form": first_page_form,
             "nav_url": "exam_preparation",
-            **_build_sections_list_context(exam),
+            **build_sections_list_context(exam),
         },
     )
 
@@ -257,7 +183,7 @@ def prep_sections_list(request, exam_pk):
         "exam/preparation/_prep_sections_list.html",
         {
             "exam_selected": exam,
-            **_build_sections_list_context(exam),
+            **build_sections_list_context(exam),
         },
     )
 
@@ -267,7 +193,7 @@ def prep_section_panel(request, exam_pk, section_id):
     section = get_object_or_404(PrepSection, pk=section_id, exam_id=exam_pk)
 
     if request.method == "POST":
-        form = _build_section_form(section, data=request.POST)
+        form = build_section_form(section, data=request.POST)
         saved = form.is_valid()
 
         if saved:
@@ -275,10 +201,10 @@ def prep_section_panel(request, exam_pk, section_id):
             section.refresh_from_db()
             update_exam_latex(section.exam)
     else:
-        form = _build_section_form(section)
+        form = build_section_form(section)
         saved = False
 
-    questions = _get_questions(section)
+    questions = get_questions(section)
 
     return render(
         request,
@@ -326,7 +252,7 @@ def reorder_prep_sections(request, exam_pk):
         "exam/preparation/_prep_sections_list.html",
         {
             "exam_selected": exam,
-            **_build_sections_list_context(exam),
+            **build_sections_list_context(exam),
         },
     )
 
@@ -335,14 +261,7 @@ def reorder_prep_sections(request, exam_pk):
 def add_prep_section(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
-    next_position = (exam.prepSections.aggregate(max_pos=Max("position"))["max_pos"] or 0) + 1
-
-    section = PrepSection.objects.create(
-        exam=exam,
-        title="New section",
-        section_text="",
-        position=next_position,
-    )
+    section = create_prep_section(exam)
 
     return render(
         request,
@@ -350,8 +269,8 @@ def add_prep_section(request, exam_pk):
         {
             "exam_selected": exam,
             "section": section,
-            "section_form": _build_section_form(section),
-            "questions": _get_questions(section),
+            "section_form": build_section_form(section),
+            "questions": get_questions(section),
             "expanded": True,
             "saved": False,
         },
@@ -364,7 +283,7 @@ def delete_prep_section(request, exam_pk, section_id):
     section = get_object_or_404(PrepSection, pk=section_id, exam=exam)
 
     section.delete()
-    _renumber_sections(exam)
+    renumber_sections(exam)
     update_exam_latex(exam)
 
     return render(
@@ -372,7 +291,7 @@ def delete_prep_section(request, exam_pk, section_id):
         "exam/preparation/_prep_sections_list.html",
         {
             "exam_selected": exam,
-            **_build_sections_list_context(exam),
+            **build_sections_list_context(exam),
         },
     )
 
@@ -390,7 +309,7 @@ def prep_question_panel(request, exam_pk, question_id):
     )
 
     if request.method == "POST":
-        form = _build_question_form(question, data=request.POST)
+        form = build_question_form(question, data=request.POST)
         saved = form.is_valid()
 
         if saved:
@@ -398,10 +317,10 @@ def prep_question_panel(request, exam_pk, question_id):
             question.refresh_from_db()
             update_exam_latex(question.prep_section.exam)
     else:
-        form = _build_question_form(question)
+        form = build_question_form(question)
         saved = False
 
-    answers = _get_answers(question)
+    answers = get_answers(question)
 
     return render(
         request,
@@ -430,40 +349,12 @@ def add_prep_question(request, exam_pk, section_id):
             nb_answers = form.cleaned_data.get("nb_answers") or 0
             title = form.cleaned_data.get("title") or "New question"
 
-            next_position = (section.prepQuestions.aggregate(max_pos=Max("position"))["max_pos"] or 0) + 1
-
-            question = PrepQuestion.objects.create(
-                prep_section=section,
+            create_prep_question(
+                section=section,
                 question_type=question_type,
                 title=title,
-                question_text="",
-                position=next_position,
+                nb_answers=nb_answers,
             )
-
-            if question_type.code in ["SCQ", "MCQ"]:
-                for i in range(nb_answers):
-                    PrepQuestionAnswer.objects.create(
-                        prep_question=question,
-                        title=f"Answer {i + 1}",
-                        answer_text="",
-                        is_correct=False,
-                        position=i + 1,
-                    )
-            elif question_type.code == "TF":
-                PrepQuestionAnswer.objects.create(
-                    prep_question=question,
-                    title="TRUE",
-                    answer_text="TRUE",
-                    is_correct=False,
-                    position=1,
-                )
-                PrepQuestionAnswer.objects.create(
-                    prep_question=question,
-                    title="FALSE",
-                    answer_text="FALSE",
-                    is_correct=False,
-                    position=2,
-                )
 
             update_exam_latex(section.exam)
 
@@ -473,7 +364,7 @@ def add_prep_question(request, exam_pk, section_id):
                 {
                     "exam_selected": exam,
                     "section": section,
-                    "questions": _get_questions(section),
+                    "questions": get_questions(section),
                 },
             )
 
@@ -510,7 +401,7 @@ def delete_prep_question(request, exam_pk, question_id):
     section = question.prep_section
 
     question.delete()
-    _renumber_questions(section)
+    renumber_questions(section)
     update_exam_latex(section.exam)
 
     return render(
@@ -519,7 +410,7 @@ def delete_prep_question(request, exam_pk, question_id):
         {
             "exam_selected": section.exam,
             "section": section,
-            "questions": _get_questions(section),
+            "questions": get_questions(section),
         },
     )
 
@@ -542,7 +433,7 @@ def prep_answers_block(request, exam_pk, question_id):
         {
             "exam_selected": question.prep_section.exam,
             "question": question,
-            "answers": _get_answers(question),
+            "answers": get_answers(question),
         },
     )
 
@@ -556,7 +447,7 @@ def prep_answer_panel(request, exam_pk, answer_id):
     )
 
     if request.method == "POST":
-        form = _build_answer_form(answer, data=request.POST)
+        form = build_answer_form(answer, data=request.POST)
         saved = form.is_valid()
 
         if saved:
@@ -564,7 +455,7 @@ def prep_answer_panel(request, exam_pk, answer_id):
             answer.refresh_from_db()
             update_exam_latex(answer.prep_question.prep_section.exam)
     else:
-        form = _build_answer_form(answer)
+        form = build_answer_form(answer)
         saved = False
 
     return render(
@@ -588,15 +479,7 @@ def add_prep_answer(request, exam_pk, question_id):
         prep_section__exam_id=exam_pk,
     )
 
-    next_position = (question.prepAnswers.aggregate(max_pos=Max("position"))["max_pos"] or 0) + 1
-
-    PrepQuestionAnswer.objects.create(
-        prep_question=question,
-        title="New answer",
-        answer_text="",
-        is_correct=False,
-        position=next_position,
-    )
+    create_prep_answer(question)
 
     update_exam_latex(question.prep_section.exam)
 
@@ -606,7 +489,7 @@ def add_prep_answer(request, exam_pk, question_id):
         {
             "exam_selected": question.prep_section.exam,
             "question": question,
-            "answers": _get_answers(question),
+            "answers": get_answers(question),
         },
     )
 
@@ -621,7 +504,7 @@ def delete_prep_answer(request, exam_pk, answer_id):
     question = answer.prep_question
 
     answer.delete()
-    _renumber_answers(question)
+    renumber_answers(question)
     update_exam_latex(question.prep_section.exam)
 
     return render(
@@ -630,55 +513,122 @@ def delete_prep_answer(request, exam_pk, answer_id):
         {
             "exam_selected": question.prep_section.exam,
             "question": question,
-            "answers": _get_answers(question),
+            "answers": get_answers(question),
         },
     )
 
 
 @exam_permission_required(["manage"])
 def exam_preview_pdf(request, exam_pk):
-    return HttpResponse("")
+    exam = get_object_or_404(Exam, pk=exam_pk)
 
+    result = compile_exam_preview(exam)
 
-# -------------------------
-# Scoring formulas
-# -------------------------
+    if not result["ok"]:
+        return JsonResponse({"error": result["error"]}, status=result["status"])
 
-def _get_scoring_formula_scope(prep_section=None, prep_question=None, prep_answer=None):
-    if prep_answer:
-        return "answer"
-    if prep_question:
-        return "question"
-    if prep_section:
-        return "section"
-    return "exam"
+    return JsonResponse({
+        "pdf_url": reverse("exam_preview_pdf_file", kwargs={"exam_pk": exam.pk})
+    })
 
+@exam_permission_required(["manage"])
+def exam_preview_pdf_file(request, exam_pk, job_pk):
+    job = get_object_or_404(
+        ExamPreviewJob,
+        pk=job_pk,
+        exam_id=exam_pk,
+        requested_by=request.user,
+    )
 
-def _get_scoring_formula_queryset(exam_pk, prep_section=None, prep_question=None, prep_answer=None):
-    queryset = PrepScoringFormula.objects.filter(exam_id=exam_pk)
+    if job.status != "success" or not job.pdf_path:
+        raise Http404("Preview PDF not ready")
 
-    if prep_answer:
-        queryset = queryset.filter(prep_answer_id=prep_answer)
-    elif prep_question:
-        queryset = queryset.filter(
-            prep_question_id=prep_question,
-            prep_answer__isnull=True,
+    pdf_path = Path(job.pdf_path)
+    if not pdf_path.exists():
+        raise Http404("Preview PDF file missing")
+
+    return FileResponse(open(pdf_path, "rb"), content_type="application/pdf")
+
+@exam_permission_required(["manage"])
+def exam_preview_start(request, exam_pk):
+    exam = get_object_or_404(Exam, pk=exam_pk)
+
+    print(f"[preview] start request exam={exam.pk} user={request.user.pk}")
+
+    active_jobs = ExamPreviewJob.objects.filter(
+        exam=exam,
+        requested_by=request.user,
+        status__in=["pending", "running"],
+    )
+
+    for active_job in active_jobs:
+        print(f"[preview] closing active job={active_job.pk}")
+        active_job.status = "error"
+        active_job.error_message = "Replaced by a new preview request."
+        active_job.save(update_fields=["status", "error_message", "updated_at"])
+
+    old_jobs = ExamPreviewJob.objects.filter(
+        exam=exam,
+        requested_by=request.user,
+    )
+
+    for old_job in old_jobs:
+        delete_exam_preview_job_files(old_job)
+
+    old_jobs.delete()
+
+    job = ExamPreviewJob.objects.create(
+        exam=exam,
+        requested_by=request.user,
+        status="pending",
+        pdf_path="",
+        error_message="",
+    )
+
+    print(f"[preview] created job={job.pk}")
+
+    def enqueue():
+        print(f"[preview] enqueueing celery task for job={job.pk}")
+        async_result = compile_exam_preview_task.apply_async(
+            args=[job.pk],
+            queue="celery",
+            routing_key="celery",
         )
-    elif prep_section:
-        queryset = queryset.filter(
-            prep_section_id=prep_section,
-            prep_question__isnull=True,
-            prep_answer__isnull=True,
-        )
-    else:
-        queryset = queryset.filter(
-            prep_section__isnull=True,
-            prep_question__isnull=True,
-            prep_answer__isnull=True,
-        )
+        print(f"[preview] celery task queued for job={job.pk}, task_id={async_result.id}")
 
-    return queryset.order_by("pk")
+    transaction.on_commit(enqueue)
 
+    print(f"[preview] response returned for job={job.pk}")
+
+    return JsonResponse({
+        "job_id": job.pk,
+        "status": job.status,
+        "reused": False,
+    })
+
+@exam_permission_required(["manage"])
+def exam_preview_status(request, exam_pk, job_pk):
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    job = get_object_or_404(
+        ExamPreviewJob,
+        pk=job_pk,
+        exam=exam,
+        requested_by=request.user,
+    )
+
+    data = {
+        "status": job.status,
+    }
+
+    if job.status == "success":
+        data["pdf_url"] = reverse(
+            "exam_preview_pdf_file",
+            kwargs={"exam_pk": exam.pk, "job_pk": job.pk},
+        )
+    elif job.status == "error":
+        data["error"] = job.error_message
+
+    return JsonResponse(data)
 
 @exam_permission_required(["manage"])
 def scoring_formulas_modal(request, exam_pk):
@@ -687,13 +637,13 @@ def scoring_formulas_modal(request, exam_pk):
         prep_question = request.GET.get("prep_question") or None
         prep_answer = request.GET.get("prep_answer") or None
 
-        scope = _get_scoring_formula_scope(
+        scope = get_scoring_formula_scope(
             prep_section=prep_section,
             prep_question=prep_question,
             prep_answer=prep_answer,
         )
 
-        queryset = _get_scoring_formula_queryset(
+        queryset = get_scoring_formula_queryset(
             exam_pk=exam_pk,
             prep_section=prep_section,
             prep_question=prep_question,
@@ -729,13 +679,13 @@ def scoring_formulas_modal(request, exam_pk):
         prep_question = request.POST.get("prep_question") or None
         prep_answer = request.POST.get("prep_answer") or None
 
-        scope = _get_scoring_formula_scope(
+        scope = get_scoring_formula_scope(
             prep_section=prep_section,
             prep_question=prep_question,
             prep_answer=prep_answer,
         )
 
-        queryset = _get_scoring_formula_queryset(
+        queryset = get_scoring_formula_queryset(
             exam_pk=exam_pk,
             prep_section=prep_section,
             prep_question=prep_question,
@@ -755,35 +705,14 @@ def scoring_formulas_modal(request, exam_pk):
         )
 
         if formset.is_valid():
-            instances = formset.save(commit=False)
-
-            for obj in formset.deleted_objects:
-                obj.delete()
-
-            for instance in instances:
-                if not instance.formula:
-                    continue
-
-                instance.exam_id = exam_pk
-
-                if scope == "exam":
-                    instance.prep_section = None
-                    instance.prep_question = None
-                    instance.prep_answer = None
-                elif scope == "section":
-                    instance.prep_section_id = prep_section
-                    instance.prep_question = None
-                    instance.prep_answer = None
-                elif scope == "question":
-                    instance.prep_section = None
-                    instance.prep_question_id = prep_question
-                    instance.prep_answer = None
-                elif scope == "answer":
-                    instance.prep_section = None
-                    instance.prep_question = None
-                    instance.prep_answer_id = prep_answer
-
-                instance.save()
+            save_scoring_formulas(
+                formset,
+                exam_pk=exam_pk,
+                scope=scope,
+                prep_section=prep_section,
+                prep_question=prep_question,
+                prep_answer=prep_answer,
+            )
 
             return JsonResponse(
                 {
@@ -841,3 +770,90 @@ def delete_scoring_formula(request, exam_pk, pk):
             "message": "Scoring formula deleted successfully.",
         }
     )
+
+@exam_permission_required(['manage'])
+def edit_latex_file(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+    file_type = request.GET.get('type')
+    amc_project_path = get_amc_project_path(exam, False)
+    if file_type == 'packages':
+        filepath = Path(amc_project_path) / "packages.tex"
+    else:
+        filepath = Path(amc_project_path) / "commands.tex"
+
+    f = open(filepath, 'r')
+    file_contents = f.read()
+    f.close()
+    return HttpResponse(json.dumps([os.path.relpath(filepath, amc_project_path), file_contents]))
+
+@exam_permission_required(['manage'])
+def edit_latex_packages(request,exam_pk):
+    exam = Exam.objects.get(pk=exam_pk)
+    amc_project_path = get_amc_project_path(exam, False)
+    filepath= Path(amc_project_path) / "packages.tex"
+    f = open(filepath, 'r')
+    file_contents = f.read()
+
+    latex_packages_available = list_available_latex_packages()
+    used_packages = extract_used_packages(file_contents)
+
+    return JsonResponse({
+        "latex_available_packages": sorted({pkg["name"] for pkg in latex_packages_available}),
+        "used_packages": sorted(set(used_packages)),
+    })
+
+
+@exam_permission_required(['manage'])
+def save_latex_edited_file(request,exam_pk):
+    data = request.POST['source']
+    exam = Exam.objects.get(pk=exam_pk)
+    file_type = request.POST['type']
+    amc_project_path = get_amc_project_path(exam, False)
+    if file_type == 'packages':
+        filepath = Path(amc_project_path) / "packages.tex"
+    else:
+        filepath = Path(amc_project_path) / "commands.tex"
+
+    f = open(filepath, 'r+', encoding="utf-8")
+    f.truncate(0)
+    f.write(data)
+    f.close()
+    return HttpResponse('ok')
+
+
+@exam_permission_required(['manage'])
+def save_latex_edited_packages(request,exam_pk):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
+
+    new_used_packages = request.POST.getlist("new_used_packages[]", "[]")
+
+    cleaned_packages = []
+    seen = set()
+
+    for pkg in new_used_packages:
+        if isinstance(pkg, str):
+            pkg = pkg.strip()
+            if pkg and pkg not in seen:
+                seen.add(pkg)
+                cleaned_packages.append(pkg)
+
+    exam = Exam.objects.get(pk=exam_pk)
+    amc_project_path = get_amc_project_path(exam, False)
+    filepath = Path(amc_project_path) / "packages.tex"
+
+    lines = [
+        f"\\usepackage{{{pkg}}}"
+        for pkg in cleaned_packages
+    ]
+
+    content = "% Auto-generated package list\n"
+    if lines:
+        content += "\n".join(lines) + "\n"
+
+    filepath.write_text(content, encoding="utf-8")
+
+    return JsonResponse({
+        "success": True,
+        "used_packages": cleaned_packages,
+    })
