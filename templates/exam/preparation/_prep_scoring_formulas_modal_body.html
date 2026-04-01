@@ -176,7 +176,9 @@ Score capped at 2</pre>
                     <thead>
                     <tr>
                         <th style="width: 60px;">#</th>
+                        {% if scope != "question" and scope != "answer"  %}
                         <th style="width: 220px;">Question type</th>
+                        {% endif %}
                         <th>Formula</th>
                         <th style="width: 100px;">Delete</th>
                     </tr>
@@ -188,6 +190,7 @@ Score capped at 2</pre>
                                 {{ forloop.counter }}
                                 {{ form.id }}
                             </td>
+                            {% if scope != "question" and scope != "answer" %}
                             <td>
                                 {{ form.question_type }}
                                 {% if form.question_type.errors %}
@@ -196,6 +199,7 @@ Score capped at 2</pre>
                                     </div>
                                 {% endif %}
                             </td>
+                            {% endif %}
                             <td>
                                 {{ form.formula }}
                                 {% if form.formula.errors %}
@@ -239,9 +243,15 @@ Score capped at 2</pre>
                             __index__
                             {{ formset.empty_form.id }}
                         </td>
-                        <td>
-                            {{ formset.empty_form.question_type }}
-                        </td>
+                        {% if scope != "question" %}
+                            {{ form.question_type }}
+                            {% if form.question_type.errors %}
+                                <td>
+                                    {{ formset.empty_form.question_type }}
+                                </td>
+                            {% endif %}
+                        {% endif %}
+
                         <td>
                             {{ formset.empty_form.formula }}
                         </td>
@@ -258,6 +268,7 @@ Score capped at 2</pre>
                 </template>
 
                 <div class="d-flex justify-content-between mt-3">
+                    {% if  scope == "exam" or not formset.forms %}
                     <button
                             type="button"
                             class="btn btn-light"
@@ -267,6 +278,7 @@ Score capped at 2</pre>
                         <i class="fa-solid fa-circle-plus fa-2xl me-1" style="color:green;"></i>
                         Add scoring
                     </button>
+                    {% endif %}
 
                     <button type="submit" class="btn btn-dark btn-sm">Save</button>
                 </div>

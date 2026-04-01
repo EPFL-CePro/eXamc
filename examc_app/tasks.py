@@ -1,6 +1,4 @@
 import csv
-import glob
-import json
 import os
 import pathlib
 import re
@@ -8,23 +6,21 @@ import shutil
 import time
 import zipfile
 from contextlib import closing
-from datetime import datetime
-from time import sleep
 
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
 from django.contrib.sessions.models import Session
 from django.db.models import Sum
-from django.http import FileResponse
-from fpdf import FPDF
+from datetime import datetime
 
 from django.conf import settings
-from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock
-from examc_app.utils.amc_functions import amc_automatic_data_capture, amc_annotate
+from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, ExamPreviewJob
+from examc_app.utils.amc_functions import amc_annotate
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
-from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
+from examc_app.utils.preparation_functions import compile_exam_preview
+from examc_app.utils.results_statistics_functions import delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
-
+from django.utils import timezone
 
 
 @shared_task(bind=True)
@@ -437,3 +433,32 @@ def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_
     exam = Exam.objects.get(pk=exam_pk)
     result = amc_annotate(exam, single_file, add_grading_scheme_report)
     return result
+
+@shared_task(bind=True)
+def compile_exam_preview_task(self, job_id):
+    print(f"[preview-task] entered task job_id={job_id}")
+    job = ExamPreviewJob.objects.get(pk=job_id)
+
+    try:
+        job.status = "running"
+        job.error_message = ""
+        job.pdf_path = ""
+        job.save(update_fields=["status", "error_message", "pdf_path", "updated_at"])
+
+        result = compile_exam_preview(job.exam, job_id=job.pk)
+        print(f"[preview-task] result for job={job_id}: {result}")
+
+        if result["ok"]:
+            job.status = "success"
+            job.pdf_path = str(result["pdf_path"])
+        else:
+            job.status = "error"
+            job.error_message = result["error"]
+
+    except Exception as e:
+        print(f"[preview-task] exception for job={job_id}: {e}")
+        job.status = "error"
+        job.error_message = str(e)
+
+    job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
+    print(f"[preview-task] end job={job_id} status={job.status}")

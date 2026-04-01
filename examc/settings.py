@@ -357,16 +357,20 @@ MAINTENANCE_MODE_IGNORE_URLS = (
 )
 
 ### CONSTANCE FOR MAINTENANCE
-CONSTANCE_REDIS_URL = env("CONSTANCE_REDIS_CONNECTION", default="redis://redis:6379/0")
+CONSTANCE_REDIS_URL = env("CONSTANCE_REDIS_CONNECTION", default="redis://localhost:6379/0")
 parsed = urlparse(CONSTANCE_REDIS_URL)
 
 REDIS_CONNECTION = {
-    "host": parsed.hostname or "redis",
+    "host": parsed.hostname or "localhost",
     "port": parsed.port or 6379,
     "db": int((parsed.path or "/0").lstrip("/")),
 }
+
 CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
 CONSTANCE_REDIS_CONNECTION = REDIS_CONNECTION
+
+print("CONSTANCE_REDIS_URL =", CONSTANCE_REDIS_URL)
+print("CONSTANCE_REDIS_CONNECTION =", REDIS_CONNECTION)
 
 # Admin widgets/fields for Constance
 CONSTANCE_ADDITIONAL_FIELDS = {
@@ -421,10 +425,10 @@ CONSTANCE_CONFIG_FIELDSETS = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("DJANGO_CACHE_URL", default="redis://redis:6379/1"),
+        "LOCATION": env("DJANGO_CACHE_URL", default="redis://localhost:6379/1"),
     },
     "maintenance_mode": {  # dedicated cache for the flag (optional but nice)
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("DJANGO_MAINTENANCE_CACHE_URL", default="redis://redis:6379/2"),
+        "LOCATION": env("DJANGO_MAINTENANCE_CACHE_URL", default="redis://localhost:6379/2"),
     },
 }

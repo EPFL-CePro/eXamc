@@ -1,4 +1,15 @@
 <div id="prep-answer-{{ answer.id }}" class="border p-2 mt-2 sortable-answer" data-answer-id="{{ answer.id }}">
+    <button
+        type="button"
+        class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
+        id="openScoringFormulasModal"
+        data-exam-pk="{{ exam_selected.pk }}"
+        data-prep-section=""
+        data-prep-question=""
+        data-prep-answer="{{ answer.id }}"
+        style="margin-bottom: 10px;"
+    ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
+    </button>
     <form
         novalidate
         class="js-answer-form"

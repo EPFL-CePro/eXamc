@@ -5,8 +5,10 @@
 from django.db import models
 from simple_history.models import HistoricalRecords
 
+from examc import settings
 from examc_app.models import QuestionType, Exam
 
+AUTH_USER_MODEL = "auth.User"
 BOX_TYPE_CHOICES = [("grid","Grid"),("blank","Blank")]
 
 
@@ -53,3 +55,21 @@ class PrepScoringFormula(models.Model):
     question_type = models.ForeignKey(QuestionType, on_delete=models.CASCADE, related_name='prepScoringFormulas', blank=True, null=True)
     formula = models.CharField(max_length=500)
     history = HistoricalRecords()
+
+class ExamPreviewJob(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("running", "Running"),
+        ("success", "Success"),
+        ("error", "Error"),
+    ]
+
+    exam = models.ForeignKey("Exam", on_delete=models.CASCADE)
+    requested_by = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    pdf_path = models.TextField(blank=True, default="")
+    error_message = models.TextField(blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

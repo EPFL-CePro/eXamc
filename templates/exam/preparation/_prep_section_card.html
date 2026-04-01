@@ -29,17 +29,6 @@
 
     <div id="prep-section-body-{{ section.id }}" class="collapse{% if saved %} show{% endif %}">
         <div class="card-body">
-            <button
-                type="button"
-                class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
-                id="openScoringFormulasModal"
-                data-exam-pk="{{ exam_selected.pk }}"
-                data-prep-section="{{ section.id }}"
-                data-prep-question=""
-                data-prep-answer=""
-                style="margin-bottom: 10px;"
-            ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Section questions scorings
-            </button>
             <form
                 novalidate
                 hx-post="{% url 'prep_section_panel' exam_selected.pk section.id %}"

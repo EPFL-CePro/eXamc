@@ -37,7 +37,13 @@ urlpatterns = [
     path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/delete/", views.delete_prep_answer,name="delete_prep_answer"),
     path("exam_preparation/<int:exam_pk>/scoring_formulas_modal/", views.scoring_formulas_modal, name="scoring_formulas_modal"),
     path("exam_preparation/<int:exam_pk>/scoring_formula/<int:pk>/delete/", views.delete_scoring_formula, name="delete_scoring_formula"),
-    path('exam_preview_pdf/<int:exam_pk>', views.exam_preview_pdf, name="exam_preview_pdf"),
+    path("exams/<int:exam_pk>/preview/start/", views.exam_preview_start, name="exam_preview_start"),
+    path("exams/<int:exam_pk>/preview/status/<int:job_pk>/", views.exam_preview_status, name="exam_preview_status"),
+    path("exams/<int:exam_pk>/preview/file/<int:job_pk>/", views.exam_preview_pdf_file, name="exam_preview_pdf_file"),
+    path('edit_latex_file/<int:exam_pk>', views.edit_latex_file, name="edit_latex_file"),
+    path('save_latex_edited_file/<int:exam_pk>', views.save_latex_edited_file, name="save_latex_edited_file"),
+    path('edit_latex_packages/<int:exam_pk>', views.edit_latex_packages, name="edit_latex_packages"),
+    path('save_latex_edited_packages/<int:exam_pk>', views.save_latex_edited_packages, name="save_latex_edited_packages"),
 
     # REVIEW SETTINGS
     path('upload_scans/<int:exam_pk>', views.upload_scans, name="upload_scans"),
