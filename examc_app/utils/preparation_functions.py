@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from django.db.models import Max, QuerySet, Model
+from django.http import HttpResponseForbidden
 
 from examc import settings
 from examc_app.forms import PrepQuestionAnswerForm, PrepSectionForm, PrepQuestionForm
@@ -101,6 +102,14 @@ def renumber_answers(question):
 # -------------------------
 # Creation / mutation helpers
 # -------------------------
+
+def ensure_exam_not_finalized(exam):
+    if exam.is_finalized:
+        return HttpResponseForbidden(
+            "This exam is finalized. Unlock editing before making changes."
+        )
+    return None
+
 def create_prep_section(exam, title="New section", section_text=""):
     next_position = (
         exam.prepSections.aggregate(max_pos=Max("position"))["max_pos"] or 0

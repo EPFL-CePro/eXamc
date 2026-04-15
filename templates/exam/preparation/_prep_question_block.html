@@ -3,9 +3,11 @@
     <div class="card-header d-flex justify-content-between align-items-center">
 
         <div class="d-flex align-items-center gap-2">
-            <span class="drag-handle" style="cursor:move;margin-right:10px;">
-                <i class="fa-solid fa-grip-vertical"></i>
-            </span>
+            {% if not is_exam_finalized %}
+                <span class="drag-handle" style="cursor:move;margin-right:10px;">
+                    <i class="fa-solid fa-grip-vertical"></i>
+                </span>
+            {% endif %}
 
             <div class="d-flex align-items-center flex-grow-1"
                  role="button"
@@ -17,7 +19,7 @@
                 <span>{{ question.title }}</span>
             </div>
         </div>
-
+        {% if not is_exam_finalized %}
         <button
                 class="btn btn-sm btn-light float-end"
                 hx-post="{% url 'delete_prep_question' exam_selected.pk question.id %}"
@@ -25,6 +27,7 @@
                 hx-swap="innerHTML">
             <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
         </button>
+    {% endif %}
     </div>
 
     <div id="prep-question-body-{{ question.id }}" class="collapse{% if saved %} show{% endif %}">
@@ -123,8 +126,9 @@
                         {{ question_form.non_field_errors }}
                     </div>
                 {% endif %}
-
-                <button class="btn btn-dark btn-sm mt-2">Save</button>
+                {% if not is_exam_finalized %}
+                    <button class="btn btn-dark btn-sm mt-2">Save</button>
+                {% endif %}
             </form>
 
             <hr>

@@ -462,7 +462,7 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
         template
         .replace(PH_QUESTION_TEXT, latex_fragment_text)
         .replace(PH_SECTION_ID, f'SECTION-{question.prep_section.position}')
-        .replace(PH_QUESTION_ID, f'{question.question_type.code}-{question.position}')
+        .replace(PH_QUESTION_ID, f'SECTION-{question.prep_section.position}-{question.question_type.code}-{question.position}')
     )
 
     if question.new_page:
@@ -473,7 +473,7 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
             question_tex
             .replace(PH_QUESTION_TITLE, f'{question.title}')
             .replace(PH_CORR_POINTS, corr_box_number_to_text(float(question.max_points), float(question.point_increment)))
-            .replace(PH_QUESTION_ID, f'{question.question_type.code}-{question.position}')
+            .replace(PH_QUESTION_ID, f'SECTION-{question.prep_section.position}-{question.question_type.code}-{question.position}')
         )
     else:
         question_tex = (
@@ -553,12 +553,12 @@ def update_global_scoring_latex_file(scoring_formulas,exam_pk):
 
 def update_question_scoring_latex_file(question_pk):
     question = PrepQuestion.objects.get(pk=question_pk)
-    if question.prepQuestionScoringFormulas :
+    if question.prepQuestionScoringFormulas.exists() :
         scoring_formula = question.prepQuestionScoringFormulas.first()
         amc_project_path = Path(get_amc_project_path(question.prep_section.exam, False))
         section_filename = f"section_{question.prep_section.position}.tex"
         file_path = amc_project_path / section_filename
-        question_latex_id = f"{question.question_type.code}-{question.position}"
+        question_latex_id = f"SECTION-{question.prep_section.position}-{question.question_type.code}-{question.position}"
 
         with open(file_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -583,13 +583,13 @@ def update_question_scoring_latex_file(question_pk):
 
 def update_answer_scoring_latex_file(answer_pk):
     answer = PrepQuestionAnswer.objects.get(pk=answer_pk)
-    if answer.prepAnswersScoringFormulas :
+    if answer.prepAnswersScoringFormulas.exists() :
         scoring_formula = answer.prepAnswersScoringFormulas.first()
         amc_project_path = Path(get_amc_project_path(answer.prep_question.prep_section.exam, False))
         section_filename = f"section_{answer.prep_question.prep_section.position}.tex"
         file_path = amc_project_path / section_filename
         answer_txt = markdown_to_latex_pandoc(answer.answer_text)
-        question_latex_id = f"{answer.prep_question.question_type.code}-{answer.prep_question.position}"
+        question_latex_id = f"SECTION-{answer.prep_question.prep_section.position}-{answer.prep_question.question_type.code}-{answer.prep_question.position}"
 
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()

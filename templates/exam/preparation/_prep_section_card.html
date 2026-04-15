@@ -3,9 +3,11 @@
     <div class="card-header d-flex justify-content-between align-items-center">
 
         <div class="d-flex align-items-center gap-2">
-            <span class="drag-handle" style="cursor:move;margin-right:10px;">
-                <i class="fa-solid fa-grip-vertical"></i>
-            </span>
+            {% if not is_exam_finalized %}
+                <span class="drag-handle" style="cursor:move;margin-right:10px;">
+                    <i class="fa-solid fa-grip-vertical"></i>
+                </span>
+            {% endif %}
 
             <div class="d-flex align-items-center flex-grow-1"
                  role="button"
@@ -17,7 +19,7 @@
                 <span>{{ section.title }}</span>
             </div>
         </div>
-
+        {% if not is_exam_finalized %}
         <button
             class="btn btn-sm btn-light float-end"
             hx-post="{% url 'delete_prep_section' exam_selected.pk section.id %}"
@@ -25,6 +27,7 @@
             hx-swap="innerHTML">
             <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
         </button>
+        {% endif %}
     </div>
 
     <div id="prep-section-body-{{ section.id }}" class="collapse{% if saved %} show{% endif %}">
@@ -49,22 +52,25 @@
 
                 <label class="mt-2">Text</label>
                 {{ section_form.section_text }}
-
-                <button class="btn btn-dark btn-sm mt-2">Save</button>
+                {% if not is_exam_finalized %}
+                    <button class="btn btn-dark btn-sm mt-2">Save</button>
+                {% endif %}
             </form>
 
             <hr>
             <div id="prep-questions-list-{{ section.id }}">
                 {% include "./_prep_questions_list.html" with section=section questions=questions exam_selected=exam_selected %}
             </div>
-            <button style="margin-top:20px;" class="btn btn-light" title="Add Question"
-                    hx-get="{% url 'add_prep_question' exam_selected.pk section.id %}"
-                    hx-target="#modalAddQuestionBody"
-                    hx-swap="innerHTML"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modalAddQuestion">
-                <i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add question
-            </button>
+            {% if not is_exam_finalized %}
+                <button style="margin-top:20px;" class="btn btn-light" title="Add Question"
+                        hx-get="{% url 'add_prep_question' exam_selected.pk section.id %}"
+                        hx-target="#modalAddQuestionBody"
+                        hx-swap="innerHTML"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalAddQuestion">
+                    <i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add question
+                </button>
+            {% endif %}
 
         </div>
     </div>

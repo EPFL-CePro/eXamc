@@ -8,6 +8,10 @@
     const CSRF = CFG.csrfToken || "";
     const EXAM_PK = CFG.examPk || "";
 
+    function isExamFinalized() {
+        return !!(window.EXAM_PREP_CONFIG && window.EXAM_PREP_CONFIG.isFinalized);
+    }
+
     const Selectors = {
         loadingModal: "#loadingModal",
         sectionList: "#prep-sections-list",
@@ -79,6 +83,152 @@
         return ajaxRequest("POST", url, data, callbacks);
     }
 
+    let currentGenFinalJobId = null;
+    let genFinalPollingTimer = null;
+    let genFinalWasSuccessful = false;
+
+    function resetGenFinalUi() {
+        console.log("resetGenFinalUi called");
+        $("#generate_final_loading").hide();
+        $("#generate_final_error").hide();
+        $("#generate_final_success").hide().html("");
+    }
+
+    function setGenFinalLoading(isLoading) {
+        if (isLoading) {
+            $("#generate_final_loading").show();
+        } else {
+            $("#generate_final_loading").hide();
+        }
+    }
+
+    function showGenFinalError(message) {
+        $("#generate_final_error_message").val(message || "Error during final files generation.");
+        $("#generate_final_error").show();
+        $("#generate_final_loading").hide();
+    }
+
+    function showGenFinalSuccess(data) {
+        console.log("showGenFinalSuccess called");
+
+        const $success = $("#generate_final_exam_files_dialog #generate_final_success");
+        console.log("before show:", $success.attr("style"));
+
+        genFinalWasSuccessful = true;
+
+        $("#generate_final_loading").hide();
+        $("#generate_final_error").hide();
+
+        const summary = data.summary || {};
+        const resultHtml = `
+            <div class="alert alert-success">Final exam generated successfully.</div>
+            <div class="mb-3">
+                <strong>Build ID:</strong> ${data.build_id || "-"}<br>
+                <strong>Pages:</strong> ${summary.pages || 0}<br>
+                <strong>Boxes:</strong> ${summary.boxes || 0}<br>
+                <strong>Marks:</strong> ${summary.marks || 0}<br>
+                <strong>Zones:</strong> ${summary.zones || 0}<br>
+                <strong>Digits:</strong> ${summary.digits || 0}<br>
+                <strong>Unknown payloads:</strong> ${summary.unknown_payloads || 0}
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                ${data.subject_pdf_path ? `<a class="btn btn-primary btn-sm" href="${data.subject_pdf_path}" target="_blank">Open subject PDF</a>` : ""}
+                ${data.catalog_pdf_path ? `<a class="btn btn-outline-primary btn-sm" href="${data.catalog_pdf_path}" target="_blank">Open catalog PDF</a>` : ""}
+            </div>
+        `;
+
+        $("#generate_final_success").html(resultHtml).show();
+
+        $success.html(resultHtml).css("display", "block");
+
+        console.log("after show:", $success.attr("style"));
+
+        setTimeout(function () {
+            console.log("500ms later:", $("#generate_final_exam_files_dialog #generate_final_success").attr("style"));
+        }, 500);
+    }
+
+    function stopGenFinalPolling() {
+        if (genFinalPollingTimer) {
+            clearTimeout(genFinalPollingTimer);
+            genFinalPollingTimer = null;
+        }
+    }
+
+    function generateFinalExamFiles() {
+        if (!URLS.generateFinalStart) {
+            console.warn("[preparation.js] Missing generateFinalStart URL");
+            return;
+        }
+
+        genFinalWasSuccessful = false;
+
+        stopGenFinalPolling();
+        resetGenFinalUi();
+        setGenFinalLoading(true);
+        showModal("#generate_final_exam_files_dialog");
+
+        ajaxGet(URLS.generateFinalStart, {}, {
+            success: function (data) {
+                if (!data.job_id) {
+                    showGenFinalError("Impossible to start final exam files generation.");
+                    return;
+                }
+
+                currentGenFinalJobId = data.job_id;
+                pollGenFinalStatus(data.job_id);
+            },
+            error: function (xhr) {
+                let message = "Error starting final exam files generation.";
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    message = xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    message = xhr.responseText;
+                }
+                showGenFinalError(message);
+            }
+        });
+    }
+
+    function pollGenFinalStatus(jobId, attempt = 0) {
+        const maxAttempts = 60;
+        const url = URLS.generateFinalStatus.replace("__JOB_ID__", jobId);
+
+        if (attempt >= maxAttempts) {
+            showGenFinalError("Generation took to much time or worker is blocked");
+            return;
+        }
+
+        ajaxGet(url, {}, {
+            success: function (data) {
+                if (data.status === "pending" || data.status === "running") {
+                    setGenFinalLoading(true);
+                    genFinalPollingTimer = setTimeout(function () {
+                        pollGenFinalStatus(jobId, attempt + 1);
+                    }, 1000);
+                    return;
+                }
+
+                if (data.status === "error") {
+                    showGenFinalError(data.error || "Error during generation.");
+                    return;
+                }
+
+                if (data.status === "success" ) {
+                    stopGenFinalPolling();
+                    showGenFinalSuccess(data);
+                    return;
+                }
+
+                showGenFinalError("Generation status unattended.");
+            },
+            error: function () {
+                showGenFinalError("Error getting status.");
+            }
+        });
+    }
+
+    // AMC - generate final exam files
     let currentPreviewJobId = null;
     let previewPollingTimer = null;
 
@@ -186,15 +336,22 @@
         });
     }
 
-    $(document).on("hidden.bs.modal", "#exam_preview_dialog", function () {
-        stopPreviewPolling();
-        currentPreviewJobId = null;
-    });
+    function openUnlockEditingModal() {
+        showModal("#unlock_exam_editing_modal");
+    }
+
+    function confirmUnlockEditing() {
+        const form = document.getElementById("unlockExamEditingForm");
+        if (form) {
+            form.submit();
+        }
+    }
+
 
     function initSectionSortable() {
         const list = getElement(Selectors.sectionList);
 
-        if (!list || !URLS.reorderSections || typeof Sortable === "undefined") {
+        if (!list || !URLS.reorderSections || typeof Sortable === "undefined" || isExamFinalized()) {
             return;
         }
 
@@ -253,6 +410,135 @@
                         console.error("[preparation.js] reorderSections failed:", error);
                     });
             }
+        });
+    }
+
+    function initQuestionSortable() {
+        if (typeof Sortable === "undefined" || isExamFinalized()) {
+            return;
+        }
+
+        document.querySelectorAll('[id^="prep-questions-list-"]').forEach(function (list) {
+            const sectionCard = list.closest(".sortable-section");
+            const sectionId = sectionCard ? sectionCard.dataset.sectionId : null;
+            if (!sectionId || !URLS.reorderQuestionsTemplate) return;
+
+            if (list._sortableInstance) {
+                list._sortableInstance.destroy();
+            }
+
+            list._sortableInstance = Sortable.create(list, {
+                handle: Selectors.dragHandle,
+                draggable: ".sortable-question",
+                animation: 150,
+                onEnd: function () {
+                    const orderedQuestions = [];
+
+                    list.querySelectorAll(".sortable-question").forEach(function (card, index) {
+                        orderedQuestions.push({
+                            id: card.dataset.questionId,
+                            position: index + 1
+                        });
+                    });
+
+                    const url = URLS.reorderQuestionsTemplate.replace("__SECTION_ID__", sectionId);
+
+                    fetch(url, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": CSRF
+                        },
+                        body: JSON.stringify({ questions: orderedQuestions })
+                    })
+                        .then(function (response) {
+                            if (!response.ok) throw new Error("Failed to reorder questions");
+                            return response.text();
+                        })
+                        .then(function (html) {
+                            const wrapper = document.createElement("div");
+                            wrapper.innerHTML = html.trim();
+                            const newList = wrapper.firstElementChild;
+
+                            if (newList) {
+                                list.replaceWith(newList);
+                                initSectionSortable();
+                                initQuestionSortable();
+                                initAnswerSortable();
+                                initPreparationUI(document);
+                                initMarkdownEditors(document);
+                            }
+                        })
+                        .catch(function (error) {
+                            console.error("[preparation.js] reorderQuestions failed:", error);
+                        });
+                }
+            });
+        });
+    }
+
+
+    function initAnswerSortable() {
+        if (typeof Sortable === "undefined" || isExamFinalized()) {
+            return;
+        }
+
+        document.querySelectorAll('[id^="prep-answers-list-"]').forEach(function (list) {
+            const questionId = list.dataset.questionId;
+            if (!questionId || !URLS.reorderAnswersTemplate ) return;
+
+            if (list._sortableInstance) {
+                list._sortableInstance.destroy();
+            }
+
+            list._sortableInstance = Sortable.create(list, {
+                handle: Selectors.dragHandle,
+                draggable: ".sortable-answer-wrapper",
+                animation: 150,
+                onEnd: function () {
+                    const orderedAnswers = [];
+
+                    list.querySelectorAll(".sortable-answer-wrapper").forEach(function (card, index) {
+                        orderedAnswers.push({
+                            id: card.dataset.answerId,
+                            position: index + 1
+                        });
+                    });
+
+                    const url = URLS.reorderAnswersTemplate.replace("__QUESTION_ID__", questionId);
+
+                    fetch(url, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": CSRF
+                        },
+                        body: JSON.stringify({ answers: orderedAnswers })
+                    })
+                        .then(function (response) {
+                            if (!response.ok) throw new Error("Failed to reorder answers");
+                            return response.text();
+                        })
+                        .then(function (html) {
+                            const wrapper = document.createElement("div");
+                            wrapper.innerHTML = html.trim();
+                            const newBlock = wrapper.firstElementChild;
+
+                            const target = document.getElementById(`answers-containers-${questionId}`);
+                            if (newBlock && target) {
+                                target.replaceWith(newBlock);
+                                initSectionSortable();
+                                initQuestionSortable();
+                                initAnswerSortable();
+                                initPreparationUI(document);
+                                initMarkdownEditors(document);
+                            }
+                        })
+                        .catch(function (error) {
+                            console.error("[preparation.js] reorderAnswers failed:", error);
+                        });
+                }
+            });
         });
     }
 
@@ -944,6 +1230,20 @@
         });
     }
 
+    $(document).on("hidden.bs.modal", "#generate_final_exam_files_dialog", function () {
+        stopGenFinalPolling();
+        currentGenFinalJobId = null;
+
+        if (genFinalWasSuccessful) {
+            window.location.reload();
+        }
+    });
+
+    $(document).on("hidden.bs.modal", "#exam_preview_dialog", function () {
+        stopPreviewPolling();
+        currentPreviewJobId = null;
+    });
+
 
     document.addEventListener("click", function (event) {
         const handle = event.target.closest(Selectors.dragHandle);
@@ -988,20 +1288,31 @@
 
     document.body.addEventListener("htmx:afterSwap", function (event) {
         initSectionSortable();
+        initQuestionSortable();
+        initAnswerSortable();
         initPreparationUI(event.target);
         initMarkdownEditors(event.target);
     });
 
     document.addEventListener("DOMContentLoaded", function () {
         initSectionSortable();
+        initQuestionSortable();
+        initAnswerSortable();
         ScoringFormulasModal.bindEvents();
         initPreparationUI(document);
         initMarkdownEditors(document);
+
+        const confirmUnlockBtn = document.getElementById("confirmUnlockEditingBtn");
+        if (confirmUnlockBtn) {
+            confirmUnlockBtn.addEventListener("click", confirmUnlockEditing);
+        }
     });
 
-    window.preview_exam = previewExam;
+    window.previewExam = previewExam;
     window.openEditLaTeXFileDialog = openEditLaTeXFileDialog;
     window.saveEditedLaTeXFile = saveEditedLaTeXFile;
     window.openEditLaTeXPackagesDialog = openEditLaTeXPackagesDialog;
     window.saveEditedLaTeXPackages = saveEditedLaTeXPackages;
+    window.generateFinalExamFiles = generateFinalExamFiles;
+    window.openUnlockEditingModal = openUnlockEditingModal;
 })();

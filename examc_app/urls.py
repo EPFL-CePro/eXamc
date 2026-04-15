@@ -27,6 +27,8 @@ urlpatterns = [
     path("exam_preparation/<int:exam_pk>/sections/add/", views.add_prep_section, name="add_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/", views.prep_section_panel,name="prep_section_panel"),
     path("exam_preparation/<int:exam_pk>/sections/reorder/", views.reorder_prep_sections,name="reorder_prep_sections"),
+    path("reorder_prep_questions/<int:exam_pk>/<int:section_id>", views.reorder_prep_questions, name="reorder_prep_questions"),
+    path("reorder_prep_answers/<int:exam_pk>/<int:question_id>", views.reorder_prep_answers, name="reorder_prep_answers"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/delete/", views.delete_prep_section,name="delete_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/questions/add/", views.add_prep_question,name="add_prep_question"),
     path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/", views.prep_question_panel,name="prep_question_panel"),
@@ -44,6 +46,10 @@ urlpatterns = [
     path('save_latex_edited_file/<int:exam_pk>', views.save_latex_edited_file, name="save_latex_edited_file"),
     path('edit_latex_packages/<int:exam_pk>', views.edit_latex_packages, name="edit_latex_packages"),
     path('save_latex_edited_packages/<int:exam_pk>', views.save_latex_edited_packages, name="save_latex_edited_packages"),
+    path('generate_final_exam_files/start/<int:exam_pk>',views.generate_final_exam_files_start,name="generate_final_exam_files_start"),
+    path('generate_final_exam_files/status/<int:exam_pk>/<int:job_pk>',views.generate_final_exam_files_status,name="generate_final_exam_files_status"),
+    path("unlock_exam_editing/<int:exam_pk>", views.unlock_exam_editing, name="unlock_exam_editing"),
+
 
     # REVIEW SETTINGS
     path('upload_scans/<int:exam_pk>', views.upload_scans, name="upload_scans"),

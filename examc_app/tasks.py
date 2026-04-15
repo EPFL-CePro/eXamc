@@ -14,7 +14,8 @@ from django.db.models import Sum
 from datetime import datetime
 
 from django.conf import settings
-from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, ExamPreviewJob
+from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, ExamAMCJob
+from examc_app.utils.amc.amc_build_functions import generate_final_exam_files
 from examc_app.utils.amc_functions import amc_annotate
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.preparation_functions import compile_exam_preview
@@ -437,7 +438,7 @@ def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_
 @shared_task(bind=True)
 def compile_exam_preview_task(self, job_id):
     print(f"[preview-task] entered task job_id={job_id}")
-    job = ExamPreviewJob.objects.get(pk=job_id)
+    job = ExamAMCJob.objects.get(pk=job_id)
 
     try:
         job.status = "running"
@@ -462,3 +463,44 @@ def compile_exam_preview_task(self, job_id):
 
     job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
     print(f"[preview-task] end job={job_id} status={job.status}")
+
+@shared_task(bind=True)
+def generate_final_exam_files_task(self, job_id):
+    job = ExamAMCJob.objects.get(pk=job_id)
+
+    try:
+        job.status = "running"
+        job.error_message = ""
+        job.celery_task_id = self.request.id or ""
+        job.save(update_fields=["status", "error_message", "celery_task_id", "updated_at"])
+
+        result = generate_final_exam_files(job.exam, job.requested_by, job_id=job.pk)
+
+        if result["ok"]:
+            job.status = "success"
+            job.pdf_path = result.get("pdf_path", "")
+            job.result_json = result
+            if result.get("build_id"):
+                job.exam_build_id = result["build_id"]
+                job.exam.is_finalized = True
+                job.exam.finalized_at = timezone.now()
+                job.exam.finalized_build_id = result["build_id"]
+                job.exam.save(update_fields=["is_finalized", "finalized_at", "finalized_build"])
+        else:
+            job.status = "error"
+            job.error_message = result.get("error", "Unknown error")
+            job.result_json = result
+
+    except Exception as e:
+        job.status = "error"
+        job.error_message = str(e)
+        job.result_json = {"ok": False, "error": str(e)}
+
+    job.save(update_fields=[
+        "status",
+        "error_message",
+        "pdf_path",
+        "result_json",
+        "exam_build",
+        "updated_at",
+    ])
