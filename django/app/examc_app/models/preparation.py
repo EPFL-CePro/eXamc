@@ -56,7 +56,15 @@ class PrepScoringFormula(models.Model):
     formula = models.CharField(max_length=500)
     history = HistoricalRecords()
 
-class ExamPreviewJob(models.Model):
+class ExamAMCJob(models.Model):
+    JOB_TYPE_CHOICES = [
+        ("preview", "Preview"),
+        ("final_build", "Final build"),
+        ("layout_extract", "Layout extraction"),
+        ("scoring_extract", "Scoring extraction"),
+        ("data_capture", "Data capture"),
+    ]
+
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("running", "Running"),
@@ -67,9 +75,21 @@ class ExamPreviewJob(models.Model):
     exam = models.ForeignKey("Exam", on_delete=models.CASCADE)
     requested_by = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE)
 
+    job_type = models.CharField(max_length=30, choices=JOB_TYPE_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
+    exam_build = models.ForeignKey(
+        "ExamBuild",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="jobs",
+    )
+
     pdf_path = models.TextField(blank=True, default="")
+    result_json = models.JSONField(blank=True, null=True)
     error_message = models.TextField(blank=True, default="")
+    celery_task_id = models.CharField(max_length=255, blank=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

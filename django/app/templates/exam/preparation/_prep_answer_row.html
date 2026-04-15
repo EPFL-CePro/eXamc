@@ -71,7 +71,8 @@
                 {{ answer_form.non_field_errors }}
             </div>
         {% endif %}
-
-        <button class="btn btn-dark btn-sm mt-2">Save</button>
+        {% if not is_exam_finalized %}
+            <button class="btn btn-dark btn-sm mt-2">Save</button>
+        {% endif %}
     </form>
 </div>

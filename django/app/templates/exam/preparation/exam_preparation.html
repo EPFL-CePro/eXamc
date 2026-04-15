@@ -14,6 +14,11 @@
 
 <h4><i class="fas fa-edit"></i> Exam Preparation</h4>
     <div id="prep-root" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        {% if is_exam_finalized %}
+            <div class="alert alert-warning mt-3">
+                This exam has been finalized. Editing is locked. Download the final files or unlock editing to modify the exam.
+            </div>
+        {% endif %}
         <div class="d-flex align-items-center justify-content-between w-100">
             <button
                 type="button"
@@ -23,32 +28,78 @@
                 data-prep-section=""
                 data-prep-question=""
                 data-prep-answer=""
-            ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Default questions scorings
+                {% if is_exam_finalized %}disabled{% endif %}
+            >
+                <i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>
+                Default questions scorings
             </button>
+
             <div class="d-flex">
-                <button class="btn btn-outline-dark btn-sm latex-btn me-2" type="button" onclick="openEditLaTeXFileDialog('commands');">
+                <button
+                    class="btn btn-outline-dark btn-sm latex-btn me-2"
+                    type="button"
+                    onclick="openEditLaTeXFileDialog('commands');"
+                    {% if is_exam_finalized %}disabled{% endif %}
+                >
                     <img src="{% static 'img/LaTeX/latex-original.png' %}" style="height:12px;margin:0px;">
                     <span class="latex-text ms-1">commands</span>
                 </button>
 
-                <button class="btn btn-outline-dark btn-sm latex-btn" type="button" onclick="openEditLaTeXPackagesDialog('packages');">
+                <button
+                    class="btn btn-outline-dark btn-sm latex-btn"
+                    type="button"
+                    onclick="openEditLaTeXPackagesDialog('packages');"
+                    {% if is_exam_finalized %}disabled{% endif %}
+                >
                     <img src="{% static 'img/LaTeX/latex-original.png' %}" style="height:12px;margin:0px;">
                     <span class="latex-text ms-1">packages</span>
                 </button>
             </div>
-            <button onclick="preview_exam();" class="btn btn-dark btn-sm" type="button">
+
+            <button onclick="previewExam();" class="btn btn-dark btn-sm" type="button" {% if is_exam_finalized %}disabled{% endif %}>
                 <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Preview
             </button>
+
+            {% if not is_exam_finalized %}
+                <button onclick="generateFinalExamFiles();" class="btn btn-dark btn-sm" type="button">
+                    <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Generate final
+                </button>
+            {% else %}
+                <div class="dropdown">
+                    <button class="btn btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Download final files
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% if final_subject_pdf %}
+                            <li><a class="dropdown-item" href="{{ final_subject_pdf }}" target="_blank">Exam subject</a></li>
+                        {% endif %}
+                        {% if final_catalog_pdf %}
+                            <li><a class="dropdown-item" href="{{ final_catalog_pdf }}" target="_blank">Exam catalog</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <form method="post" action="{% url 'unlock_exam_editing' exam_selected.pk %}" class="ms-2" id="unlockExamEditingForm">
+                    {% csrf_token %}
+                    <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        onclick="openUnlockEditingModal();"
+                    >
+                        Unlock editing
+                    </button>
+                </form>
+            {% endif %}
         </div>
 
         {% include "./_prep_first_page_card.html" %}
         {% include "./_prep_sections_list.html" %}
-
-        <button style="margin-top:20px;" class="btn btn-light" title="Add Section"
-                    hx-post="{% url 'add_prep_section' exam_selected.pk %}"
-                    hx-target="#prep-sections-list"
-                    hx-swap="beforeend"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i>Add section</button>
-
+        {% if not is_exam_finalized %}
+            <button style="margin-top:20px;" class="btn btn-light" title="Add Section"
+                        hx-post="{% url 'add_prep_section' exam_selected.pk %}"
+                        hx-target="#prep-sections-list"
+                        hx-swap="beforeend"><i class="fa-solid fa-circle-plus fa-2xl" style="margin-right:5px;color:green;"></i>Add section</button>
+        {% endif %}
         {% include "./_prep_modals.html" %}
     </div>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
@@ -56,16 +107,21 @@
       window.EXAM_PREP_CONFIG = {
         csrfToken: "{{ csrf_token }}",
         examPk: "{{ exam_selected.pk }}",
+        isFinalized: "{{ is_exam_finalized|yesno:"true,false" }}",
         urls: {
             previewStart: "{% url 'exam_preview_start' exam_selected.pk %}",
             previewStatus: "{% url 'exam_preview_status' exam_selected.pk 0 %}".replace("/0/", "/__JOB_ID__/"),
             reorderSections: "{% url 'reorder_prep_sections' exam_selected.pk %}",
+            reorderQuestionsTemplate: "{% url 'reorder_prep_questions' exam_selected.pk 0 %}".replace("/0", "/__SECTION_ID__"),
+            reorderAnswersTemplate: "{% url 'reorder_prep_answers' exam_selected.pk 0 %}".replace("/0", "/__QUESTION_ID__"),
             scoringFormulasModal: "{% url 'scoring_formulas_modal' exam_selected.pk %}",
             editLatexFile: "{% url 'edit_latex_file' exam_selected.pk %}",
             saveLatexFile: "{% url 'save_latex_edited_file' exam_selected.pk %}",
             editLatexPackages: "{% url 'edit_latex_packages' exam_selected.pk %}",
             saveLatexPackages: "{% url 'save_latex_edited_packages' exam_selected.pk %}",
-        },
+            generateFinalStart: "{% url 'generate_final_exam_files_start' exam_selected.pk %}",
+            generateFinalStatus: "{% url 'generate_final_exam_files_status' exam_selected.pk 0 %}".replace("/0", "/__JOB_ID__")
+        }
       };
     </script>
     <script src="{% static 'js/preparation.js' %}"></script>

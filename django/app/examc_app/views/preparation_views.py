@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponseBadRequest, JsonResponse, Http404, FileResponse, HttpResponse
@@ -12,7 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from examc_app.tasks import compile_exam_preview_task
+from examc_app.tasks import compile_exam_preview_task, generate_final_exam_files_task
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import (
     CreateExamProjectForm,
@@ -29,18 +30,20 @@ from examc_app.models import (
     PrepQuestionAnswer,
     PrepScoringFormula,
     PrepSection,
-    Semester, ExamPreviewJob,
+    Semester, ExamAMCJob
 )
+from examc_app.utils.amc.amc_build_functions import build_final_exam
+from examc_app.utils.amc.amc_layout_functions import extract_layout_from_xy
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.global_functions import add_course_teachers_ldap
 from examc_app.utils.preparation_functions import build_sections_list_context, build_section_form, get_questions, \
     renumber_sections, build_question_form, get_answers, renumber_questions, build_answer_form, renumber_answers, \
     get_scoring_formula_scope, get_scoring_formula_queryset, create_prep_section, create_prep_question, \
     create_prep_answer, compile_exam_preview, get_exam_preview_pdf_path, save_scoring_formulas, \
-    delete_exam_preview_job_files
+    delete_exam_preview_job_files, ensure_exam_not_finalized
 from examc_app.utils.preparation_latex_functions import (
     render_first_page_tex_from_html,
-    update_exam_latex,
+    update_exam_latex, list_available_latex_packages, extract_used_packages,
 )
 from examc_app.views import logger
 
@@ -116,6 +119,21 @@ def exam_preparation_view(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
     first_page_form = ExamFirstPageForm(instance=exam)
 
+    final_subject_pdf = ""
+    final_catalog_pdf = ""
+
+    if exam.is_finalized and exam.finalized_build and exam.finalized_build.project_path:
+        project_path = Path(exam.finalized_build.project_path)
+        exam_prefix = exam.code or f"exam-{exam.pk}"
+
+        subject_pdf = project_path / f"{exam_prefix}-sujet.pdf"
+        catalog_pdf = project_path / f"{exam_prefix}-catalog.pdf"
+
+        if subject_pdf.exists():
+            final_subject_pdf = str(subject_pdf)
+        if catalog_pdf.exists():
+            final_catalog_pdf = str(catalog_pdf)
+
     return render(
         request,
         "exam/preparation/exam_preparation.html",
@@ -123,9 +141,31 @@ def exam_preparation_view(request, exam_pk):
             "exam_selected": exam,
             "fp_txt_form": first_page_form,
             "nav_url": "exam_preparation",
+            "is_exam_finalized": exam.is_finalized,
+            "final_subject_pdf": final_subject_pdf,
+            "final_catalog_pdf": final_catalog_pdf,
             **build_sections_list_context(exam),
         },
     )
+
+@exam_permission_required(["manage"])
+def unlock_exam_editing(request, exam_pk):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    exam = get_object_or_404(Exam, pk=exam_pk)
+
+    exam.is_finalized = False
+    exam.finalized_at = None
+    exam.save(update_fields=["is_finalized", "finalized_at"])
+
+    messages.warning(
+        request,
+        "Editing has been unlocked. Any previously generated final files may now be inconsistent. "
+        "All printed documents should be destroyed and final files must be generated again before use."
+    )
+
+    return redirect("exam_preparation", exam_pk=exam.pk)
 
 
 # -------------------------
@@ -137,6 +177,9 @@ def prep_first_page_panel(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
     if request.method == "POST":
+        locked = ensure_exam_not_finalized(exam)
+        if locked:
+            return locked
         form = ExamFirstPageForm(request.POST, instance=exam)
         saved = form.is_valid()
 
@@ -166,6 +209,7 @@ def prep_first_page_panel(request, exam_pk):
             "exam_selected": exam,
             "fp_txt_form": form,
             "saved": saved,
+            "is_exam_finalized": exam.is_finalized,
         },
     )
 
@@ -193,6 +237,9 @@ def prep_section_panel(request, exam_pk, section_id):
     section = get_object_or_404(PrepSection, pk=section_id, exam_id=exam_pk)
 
     if request.method == "POST":
+        locked = ensure_exam_not_finalized(section.exam)
+        if locked:
+            return locked
         form = build_section_form(section, data=request.POST)
         saved = form.is_valid()
 
@@ -216,6 +263,7 @@ def prep_section_panel(request, exam_pk, section_id):
             "questions": questions,
             "expanded": True,
             "saved": saved,
+            "is_exam_finalized": section.exam.is_finalized,
         },
     )
 
@@ -226,6 +274,10 @@ def reorder_prep_sections(request, exam_pk):
         return HttpResponseBadRequest("Invalid method")
 
     exam = get_object_or_404(Exam, pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
 
     try:
         payload = json.loads(request.body)
@@ -256,10 +308,105 @@ def reorder_prep_sections(request, exam_pk):
         },
     )
 
+@exam_permission_required(["manage"])
+def reorder_prep_questions(request, exam_pk, section_id):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    section = get_object_or_404(PrepSection, pk=section_id, exam_id=exam_pk)
+
+    if section.exam.is_finalized:
+        return HttpResponseBadRequest("Exam is finalized")
+
+    try:
+        payload = json.loads(request.body)
+        questions_data = payload.get("questions", [])
+    except (json.JSONDecodeError, TypeError):
+        return HttpResponseBadRequest("Invalid JSON")
+
+    question_map = {question.id: question for question in section.prepQuestions.all()}
+
+    for item in questions_data:
+        try:
+            question_id = int(item["id"])
+            position = int(item["position"])
+        except (KeyError, TypeError, ValueError):
+            continue
+
+        question = question_map.get(question_id)
+        if question and question.position != position:
+            question.position = position
+            question.save(update_fields=["position"])
+
+    update_exam_latex(section.exam)
+
+    return render(
+        request,
+        "exam/preparation/_prep_questions_list.html",
+        {
+            "exam_selected": section.exam,
+            "section": section,
+            "questions": get_questions(section),
+            "is_exam_finalized": section.exam.is_finalized,
+        },
+    )
+
+
+@exam_permission_required(["manage"])
+def reorder_prep_answers(request, exam_pk, question_id):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    question = get_object_or_404(
+        PrepQuestion,
+        pk=question_id,
+        prep_section__exam_id=exam_pk,
+    )
+
+    if question.prep_section.exam.is_finalized:
+        return HttpResponseBadRequest("Exam is finalized")
+
+    try:
+        payload = json.loads(request.body)
+        answers_data = payload.get("answers", [])
+    except (json.JSONDecodeError, TypeError):
+        return HttpResponseBadRequest("Invalid JSON")
+
+    answer_map = {answer.id: answer for answer in question.prepAnswers.all()}
+
+    for item in answers_data:
+        try:
+            answer_id = int(item["id"])
+            position = int(item["position"])
+        except (KeyError, TypeError, ValueError):
+            continue
+
+        answer = answer_map.get(answer_id)
+        if answer and answer.position != position:
+            answer.position = position
+            answer.save(update_fields=["position"])
+
+    update_exam_latex(question.prep_section.exam)
+
+    return render(
+        request,
+        "exam/preparation/_prep_answers_block.html",
+        {
+            "exam_selected": question.prep_section.exam,
+            "question": question,
+            "answers": get_answers(question),
+            "is_exam_finalized": question.prep_section.exam.is_finalized,
+        },
+    )
+
 
 @exam_permission_required(["manage"])
 def add_prep_section(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
 
     section = create_prep_section(exam)
 
@@ -280,6 +427,11 @@ def add_prep_section(request, exam_pk):
 @exam_permission_required(["manage"])
 def delete_prep_section(request, exam_pk, section_id):
     exam = get_object_or_404(Exam, pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
     section = get_object_or_404(PrepSection, pk=section_id, exam=exam)
 
     section.delete()
@@ -309,6 +461,11 @@ def prep_question_panel(request, exam_pk, question_id):
     )
 
     if request.method == "POST":
+
+        locked = ensure_exam_not_finalized(exam)
+        if locked:
+            return locked
+
         form = build_question_form(question, data=request.POST)
         saved = form.is_valid()
 
@@ -332,6 +489,7 @@ def prep_question_panel(request, exam_pk, question_id):
             "question_form": form,
             "answers": answers,
             "saved": saved,
+            "is_exam_finalized": question.prep_section.exam.is_finalized,
         },
     )
 
@@ -342,6 +500,10 @@ def add_prep_question(request, exam_pk, section_id):
     section = get_object_or_404(PrepSection, pk=section_id, exam=exam)
 
     if request.method == "POST":
+        locked = ensure_exam_not_finalized(exam)
+        if locked:
+            return locked
+
         form = CreatePrepQuestionForm(request.POST)
 
         if form.is_valid():
@@ -393,6 +555,12 @@ def add_prep_question(request, exam_pk, section_id):
 
 @exam_permission_required(["manage"])
 def delete_prep_question(request, exam_pk, question_id):
+    exam = Exam.objects.get(pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
     question = get_object_or_404(
         PrepQuestion,
         pk=question_id,
@@ -434,6 +602,7 @@ def prep_answers_block(request, exam_pk, question_id):
             "exam_selected": question.prep_section.exam,
             "question": question,
             "answers": get_answers(question),
+            "is_exam_finalized": question.prep_section.exam.is_finalized,
         },
     )
 
@@ -447,6 +616,10 @@ def prep_answer_panel(request, exam_pk, answer_id):
     )
 
     if request.method == "POST":
+        locked = ensure_exam_not_finalized(answer.prep_question.prep_section.exam)
+        if locked:
+            return locked
+
         form = build_answer_form(answer, data=request.POST)
         saved = form.is_valid()
 
@@ -467,12 +640,19 @@ def prep_answer_panel(request, exam_pk, answer_id):
             "answer": answer,
             "answer_form": form,
             "saved": saved,
+            "is_exam_finalized": answer.prep_question.prep_section.exam.is_finalized,
         },
     )
 
 
 @exam_permission_required(["manage"])
 def add_prep_answer(request, exam_pk, question_id):
+    exam = Exam.objects.get(pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
     question = get_object_or_404(
         PrepQuestion,
         pk=question_id,
@@ -496,6 +676,11 @@ def add_prep_answer(request, exam_pk, question_id):
 
 @exam_permission_required(["manage"])
 def delete_prep_answer(request, exam_pk, answer_id):
+    exam = Exam.objects.get(pk=exam_pk)
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
     answer = get_object_or_404(
         PrepQuestionAnswer,
         pk=answer_id,
@@ -534,7 +719,7 @@ def exam_preview_pdf(request, exam_pk):
 @exam_permission_required(["manage"])
 def exam_preview_pdf_file(request, exam_pk, job_pk):
     job = get_object_or_404(
-        ExamPreviewJob,
+        ExamAMCJob,
         pk=job_pk,
         exam_id=exam_pk,
         requested_by=request.user,
@@ -555,9 +740,10 @@ def exam_preview_start(request, exam_pk):
 
     print(f"[preview] start request exam={exam.pk} user={request.user.pk}")
 
-    active_jobs = ExamPreviewJob.objects.filter(
+    active_jobs = ExamAMCJob.objects.filter(
         exam=exam,
         requested_by=request.user,
+        job_type="exam_preview",
         status__in=["pending", "running"],
     )
 
@@ -567,8 +753,9 @@ def exam_preview_start(request, exam_pk):
         active_job.error_message = "Replaced by a new preview request."
         active_job.save(update_fields=["status", "error_message", "updated_at"])
 
-    old_jobs = ExamPreviewJob.objects.filter(
+    old_jobs = ExamAMCJob.objects.filter(
         exam=exam,
+        job_type="exam_preview",
         requested_by=request.user,
     )
 
@@ -577,9 +764,10 @@ def exam_preview_start(request, exam_pk):
 
     old_jobs.delete()
 
-    job = ExamPreviewJob.objects.create(
+    job = ExamAMCJob.objects.create(
         exam=exam,
         requested_by=request.user,
+        job_type="exam_preview",
         status="pending",
         pdf_path="",
         error_message="",
@@ -610,7 +798,7 @@ def exam_preview_start(request, exam_pk):
 def exam_preview_status(request, exam_pk, job_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
     job = get_object_or_404(
-        ExamPreviewJob,
+        ExamAMCJob,
         pk=job_pk,
         exam=exam,
         requested_by=request.user,
@@ -753,6 +941,12 @@ def scoring_formulas_modal(request, exam_pk):
 @exam_permission_required(["manage"])
 def delete_scoring_formula(request, exam_pk, pk):
     if request.method != "POST":
+        exam = Exam.objects.get(pk=exam_pk)
+
+        locked = ensure_exam_not_finalized(exam)
+        if locked:
+            return locked
+
         return JsonResponse(
             {
                 "success": False,
@@ -774,6 +968,11 @@ def delete_scoring_formula(request, exam_pk, pk):
 @exam_permission_required(['manage'])
 def edit_latex_file(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
     file_type = request.GET.get('type')
     amc_project_path = get_amc_project_path(exam, False)
     if file_type == 'packages':
@@ -789,6 +988,11 @@ def edit_latex_file(request,exam_pk):
 @exam_permission_required(['manage'])
 def edit_latex_packages(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
     amc_project_path = get_amc_project_path(exam, False)
     filepath= Path(amc_project_path) / "packages.tex"
     f = open(filepath, 'r')
@@ -807,6 +1011,11 @@ def edit_latex_packages(request,exam_pk):
 def save_latex_edited_file(request,exam_pk):
     data = request.POST['source']
     exam = Exam.objects.get(pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
     file_type = request.POST['type']
     amc_project_path = get_amc_project_path(exam, False)
     if file_type == 'packages':
@@ -825,6 +1034,11 @@ def save_latex_edited_file(request,exam_pk):
 def save_latex_edited_packages(request,exam_pk):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=405)
+
+    exam = Exam.objects.get(pk=exam_pk)
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
 
     new_used_packages = request.POST.getlist("new_used_packages[]", "[]")
 
@@ -857,3 +1071,97 @@ def save_latex_edited_packages(request,exam_pk):
         "success": True,
         "used_packages": cleaned_packages,
     })
+
+@exam_permission_required(["manage"])
+def generate_final_exam_files_start(request, exam_pk):
+    exam = get_object_or_404(Exam, pk=exam_pk)
+
+    print(f"[generate final exam] start request exam={exam.pk} user={request.user.pk}")
+
+    active_jobs = ExamAMCJob.objects.filter(
+        exam=exam,
+        requested_by=request.user,
+        job_type="final_build",
+        status__in=["pending", "running"],
+    )
+
+    for active_job in active_jobs:
+        print(f"[generate final exam] closing active job={active_job.pk}")
+        active_job.status = "error"
+        active_job.error_message = "Replaced by a new preview request."
+        active_job.save(update_fields=["status", "error_message", "updated_at"])
+
+    old_jobs = ExamAMCJob.objects.filter(
+        exam=exam,
+        requested_by=request.user,
+    )
+
+    old_jobs.delete()
+
+    job = ExamAMCJob.objects.create(
+        exam=exam,
+        requested_by=request.user,
+        job_type="final_build",
+        status="pending",
+        pdf_path="",
+        error_message="",
+    )
+
+    print(f"[generate final exam] created job={job.pk}")
+
+    def enqueue():
+        print(f"[generate final exam] enqueueing celery task for job={job.pk}")
+        async_result = generate_final_exam_files_task.apply_async(
+            args=[job.pk],
+            queue="celery",
+            routing_key="celery",
+        )
+        print(f"[generate final exam] celery task queued for job={job.pk}, task_id={async_result.id}")
+
+    transaction.on_commit(enqueue)
+
+    print(f"[generate final exam] response returned for job={job.pk}")
+
+    return JsonResponse({
+        "job_id": job.pk,
+        "status": job.status,
+        "reused": False,
+    })
+
+@exam_permission_required(["manage"])
+def generate_final_exam_files_status(request, exam_pk, job_pk):
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    job = get_object_or_404(
+        ExamAMCJob,
+        pk=job_pk,
+        exam=exam,
+        requested_by=request.user,
+    )
+
+    data = {
+        "status": job.status,
+    }
+
+    if job.status == "success":
+        result = job.result_json or {}
+        data["build_id"] = job.exam_build_id
+        data["pdf_path"] = job.pdf_path or ""
+        data["subject_pdf_path"] = result.get("subject_pdf_path", "")
+        data["catalog_pdf_path"] = result.get("catalog_pdf_path", "")
+        data["exam_calage_xy_path"] = result.get("exam_calage_xy_path", "")
+        data["result"] = result
+
+        layout_result = result.get("layout_result", {})
+        data["summary"] = {
+            "pages": layout_result.get("pages", 0),
+            "boxes": layout_result.get("boxes", 0),
+            "marks": layout_result.get("marks", 0),
+            "zones": layout_result.get("zones", 0),
+            "digits": layout_result.get("digits", 0),
+            "unknown_payloads": layout_result.get("unknown_payloads", 0),
+        }
+
+    elif job.status == "error":
+        data["error"] = job.error_message or "Unknown error"
+
+    return JsonResponse(data)

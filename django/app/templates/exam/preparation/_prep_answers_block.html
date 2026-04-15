@@ -1,51 +1,61 @@
-{% for answer in answers %}
-    <div class="card-header d-flex justify-content-between align-items-center">
+<div id="answers-containers-{{ question.id }}">
+    <div id="prep-answers-list-{{ question.id }}" data-question-id="{{ question.id }}">
+        {% for answer in answers %}
+            <div class="sortable-answer-wrapper" data-answer-id="{{ answer.id }}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        {% if not is_exam_finalized %}
+                            <span class="drag-handle" style="cursor:move;margin-right:10px;">
+                                <i class="fa-solid fa-grip-vertical"></i>
+                            </span>
+                        {% endif %}
 
-        <div class="d-flex align-items-center gap-2">
-            <span class="drag-handle" style="cursor:move;margin-right:10px;">
-                <i class="fa-solid fa-grip-vertical"></i>
-            </span>
+                        <div class="d-flex align-items-center flex-grow-1"
+                             role="button"
+                             data-bs-toggle="collapse"
+                             data-bs-target="#prep-answer-body-{{ answer.id }}"
+                             aria-expanded="false"
+                             aria-controls="prep-answer-body-{{ answer.id }}"
+                             style="cursor:pointer;">
+                            <span>{% if question.question_type.code == 'OPEN' %}Answer box{% else %}{{ answer.title }}{% endif %}</span>
+                        </div>
+                    </div>
 
-            <div class="d-flex align-items-center flex-grow-1"
-                 role="button"
-                 data-bs-toggle="collapse"
-                 data-bs-target="#prep-answer-body-{{ answer.id }}"
-                 aria-expanded="false"
-                 aria-controls="prep-answer-body-{{ answer.id }}"
-                 style="cursor:pointer;">
-                <span>{% if question.question_type.code == 'OPEN' %}Answer box{% else %}{{ answer.title }}{% endif %}</span>
+                    {% if not is_exam_finalized %}
+                        <button
+                            class="btn btn-sm btn-light float-end"
+                            hx-post="{% url 'delete_prep_answer' exam_selected.pk answer.id %}"
+                            hx-target="#answers-containers-{{ question.id }}"
+                            hx-swap="outerHTML">
+                            <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
+                        </button>
+                    {% endif %}
+                </div>
+
+                <div id="prep-answer-body-{{ answer.id }}" class="collapse">
+                    <div class="card-body">
+                        <div
+                            hx-get="{% url 'prep_answer_panel' exam_selected.pk answer.id %}"
+                            hx-trigger="load"
+                            hx-target="this"
+                            hx-swap="outerHTML">
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        {% empty %}
+            <div class="text-muted">No answers</div>
+        {% endfor %}
+    </div>
 
+    {% if not is_exam_finalized %}
         <button
-            class="btn btn-sm btn-light float-end"
-            hx-post="{% url 'delete_prep_answer' exam_selected.pk answer.id %}"
+            class="btn btn-light"
+            hx-post="{% url 'add_prep_answer' exam_selected.pk question.id %}"
             hx-target="#answers-containers-{{ question.id }}"
-            hx-swap="innerHTML">
-            <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
+            hx-swap="outerHTML">
+            <i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>
+            Add answer {% if question.question_type.code == 'OPEN' %}box{% endif %}
         </button>
-    </div>
-
-    <div id="prep-answer-body-{{ answer.id }}" class="collapse">
-        <div class="card-body">
-            <div
-                hx-get="{% url 'prep_answer_panel' exam_selected.pk answer.id %}"
-                hx-trigger="load"
-                hx-target="this"
-                hx-swap="outerHTML">
-            </div>
-        </div>
-    </div>
-
-{% empty %}
-    <div class="text-muted">No answers</div>
-{% endfor %}
-
-<button
-    class="btn btn-light"
-    hx-post="{% url 'add_prep_answer' exam_selected.pk question.id %}"
-    hx-target="#answers-containers-{{ question.id }}"
-    hx-swap="outerHTML">
-    <i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>
-    Add answer {% if question.question_type.code == 'OPEN' %}box{% endif %}
-</button>
+    {% endif %}
+</div>

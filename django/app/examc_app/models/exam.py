@@ -8,7 +8,6 @@ from django.utils import timezone
 from simple_history.models import HistoricalRecords
 from django.db.models import Count
 
-
 class AcademicYear(models.Model):
     """ Stores academic year data """
     code = models.CharField(max_length=9,blank=False)
@@ -28,7 +27,6 @@ class Exam(models.Model):
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT,related_name='exams',)
     year = models.ForeignKey(AcademicYear, on_delete=models.RESTRICT,related_name='exams')
     date = models.DateField(default=timezone.now, blank=True,null=True)
-    #users = models.ManyToManyField(User, blank=True)
     present_students = models.IntegerField(default=0)
     common_exams = models.ManyToManyField("self", blank=True)
     overall = models.BooleanField(default=0)
@@ -41,6 +39,9 @@ class Exam(models.Model):
     prep_option = models.BooleanField(default=0)
     pdf_catalog_name = models.CharField(max_length=200, blank=True,null=True)
     duration = models.CharField(max_length=200, blank=True, null=True)
+    is_finalized = models.BooleanField(default=False)
+    finalized_at = models.DateTimeField(blank=True, null=True)
+    finalized_build = models.ForeignKey("ExamBuild", on_delete=models.SET_NULL,null=True, blank=True, related_name="finalized_for_exams",)
     history = HistoricalRecords()
 
     class Meta:
