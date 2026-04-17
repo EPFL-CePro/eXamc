@@ -19,20 +19,25 @@ def b64url_decode(s: str) -> str:
 def b64url_encode(s: str) -> str:
     return base64.urlsafe_b64encode(s.encode()).rstrip(b"=").decode()
 
-def make_token_for(rel_path: str,type_root: str) -> str:
-    """
-    Crée un token signé qui embarque {type, path}, et renvoie une URL
-    du style: /protected/?token=<TOKEN>
-    """
-    type = type_root.rstrip("/").split("/")[-1]  # "scans" | "marked_scans" | "amc_projects" | ...
-    payload = {"type": type, "path": rel_path}
-    if type == 'extra':
-        payload['path'] = type_root.replace(str(settings.AMC_PROJECTS_ROOT), "")[1:]+rel_path
-    # JSON -> base64url pour un token compact et sans caractères spéciaux
+def make_token_for(rel_path: str, type_root, token_type: str | None = None) -> str:
+    root_str = str(type_root)
+    type_name = token_type or Path(root_str).name
+
+    payload = {"type": type_name, "path": rel_path}
+
+    if type_name == "extra":
+        payload["path"] = root_str.replace(str(settings.AMC_PROJECTS_ROOT), "").lstrip("/") + rel_path
+
     msg = b64url_encode(json.dumps(payload, separators=(",", ":")))
-    token = signer.sign(msg)  # TimestampSigner
-    copy_page = rel_path.split('.jpg')[0].split("/").pop()
-    return f"{settings.SIGNED_FILES_URL}{copy_page}/?{urlencode({'token': token})}"
+    token = signer.sign(msg)
+
+    base_url = str(settings.SIGNED_FILES_URL).rstrip("/") + "/"
+
+    if type_name in {"amc_document"}:
+        return f"{base_url}?{urlencode({'token': token})}"
+
+    copy_page = rel_path.split(".jpg")[0].split("/").pop()
+    return f"{base_url}{copy_page}/?{urlencode({'token': token})}"
 
 def verify_and_get_path(token: str, max_age=None) -> Path:
     """
@@ -71,6 +76,7 @@ def verify_and_get_path(token: str, max_age=None) -> Path:
         "assoc":          Path(settings.AMC_PROJECTS_ROOT),
         "extra":          Path(settings.AMC_PROJECTS_ROOT),
         "private_media":  Path(settings.PRIVATE_MEDIA_ROOT),
+        "amc_document" :  Path(settings.AMC_PROJECTS_ROOT)
     }
     root = roots.get(typ)
     if root is None:

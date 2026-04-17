@@ -107,7 +107,7 @@
       window.EXAM_PREP_CONFIG = {
         csrfToken: "{{ csrf_token }}",
         examPk: "{{ exam_selected.pk }}",
-        isFinalized: "{{ is_exam_finalized|yesno:"true,false" }}",
+        isFinalized: {{ is_exam_finalized|yesno:"true,false" }},
         urls: {
             previewStart: "{% url 'exam_preview_start' exam_selected.pk %}",
             previewStatus: "{% url 'exam_preview_status' exam_selected.pk 0 %}".replace("/0/", "/__JOB_ID__/"),

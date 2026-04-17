@@ -1,3 +1,18 @@
+"""
+AMC scoring log extraction helpers.
+
+This module parses AMC ``.amc`` log files and converts their scoring-related
+messages into structured Python objects that can be mapped back onto a frozen
+``ExamBuild`` snapshot.
+
+Main responsibilities:
+- parse raw AMC message lines into students, questions, answers, and variables
+- run lightweight validation checks on the parsed structure
+- map parsed AMC question/answer data to ``ExamBuildQuestion`` and build-answer
+  snapshot rows
+- expose one high-level extraction entrypoint for the grading layer
+"""
+
 import re
 from dataclasses import dataclass, field
 
@@ -23,11 +38,17 @@ AMC_MESSAGE_PATTERNS = {
 
 
 class ScoringExtractionError(Exception):
+    """
+    Raised when AMC scoring extraction cannot proceed.
+    """
     pass
 
 
 @dataclass
 class ParsedAnswer:
+    """
+    Parsed AMC answer state inside one question.
+    """
     answer_number: int
     is_correct: bool
     strategy: str = ""
@@ -35,6 +56,9 @@ class ParsedAnswer:
 
 @dataclass
 class ParsedQuestion:
+    """
+    Parsed AMC question state for one student sheet.
+    """
     amc_question_number: int
     title: str = ""
     is_multiple: bool = False
@@ -46,6 +70,9 @@ class ParsedQuestion:
 
 @dataclass
 class ParsedStudentSheet:
+    """
+    Parsed AMC student/copy section.
+    """
     student_number: int
     alias_of: int | None = None
     questions: dict = field(default_factory=dict)
@@ -54,6 +81,9 @@ class ParsedStudentSheet:
 
 @dataclass
 class ParsedAmcScoring:
+    """
+    Top-level parsed representation of a scoring AMC log.
+    """
     total_sheets: int | None = None
     default_simple_strategy: str = ""
     default_multiple_strategy: str = ""
@@ -62,16 +92,28 @@ class ParsedAmcScoring:
     students: list = field(default_factory=list)
 
 
+
 def load_amc_log_lines(amc_log_path):
+    """
+    Read the AMC log file and return all lines.
+    """
     with open(amc_log_path, "r", encoding="utf-8", errors="replace") as f:
         return f.readlines()
 
 
+
 def parse_amc_scoring_log(amc_log_path) -> ParsedAmcScoring:
     """
-    Parse AMC .amc log file into a structured Python object.
+    Parse an AMC ``.amc`` scoring log into a structured Python object.
 
-    This follows the same core message patterns used by AMC-prepare.pl.
+    The parser follows AMC's message-based output style. It tracks the current
+    student and current question while scanning the file line by line.
+
+    Args:
+        amc_log_path: Path to the AMC log file.
+
+    Returns:
+        ParsedAmcScoring: Parsed scoring structure.
     """
     lines = load_amc_log_lines(amc_log_path)
     parsed = ParsedAmcScoring()
@@ -158,8 +200,8 @@ def parse_amc_scoring_log(amc_log_path) -> ParsedAmcScoring:
             strategy = m.group(1)
 
             if current_student and current_question:
-                # question-level strategy unless a more detailed answer strategy system
-                # is added later
+                # Question-level strategy unless a more detailed answer strategy
+                # system is added later.
                 if current_question.question_strategy:
                     current_question.question_strategy += "," + strategy
                 else:
@@ -193,10 +235,17 @@ def parse_amc_scoring_log(amc_log_path) -> ParsedAmcScoring:
     return parsed
 
 
+
 def validate_parsed_amc_scoring(parsed: ParsedAmcScoring):
     """
-    Basic sanity checks inspired by AMC's own validation logic.
-    Returns a list of warning/error strings.
+    Run lightweight sanity checks on parsed AMC scoring data.
+
+    This validation is intentionally soft: it returns human-readable issues
+    instead of raising immediately. That makes it usable for diagnostics in
+    admin tooling and grading workflows.
+
+    Returns:
+        list[str]: Warning/error messages detected in the parsed content.
     """
     issues = []
 
@@ -215,11 +264,21 @@ def validate_parsed_amc_scoring(parsed: ParsedAmcScoring):
     return issues
 
 
+
 def map_parsed_scoring_to_build(build: ExamBuild, parsed: ParsedAmcScoring):
     """
-    Map parsed AMC question titles / rendered IDs onto ExamBuildQuestion rows.
+    Map parsed AMC scoring data onto the frozen build snapshot.
 
-    Returns a structure ready for persistence or further grading logic.
+    The mapping uses ``rendered_id`` for questions and rendered answer numbers
+    for answers. The returned structure is suitable for downstream grading or
+    persistence logic.
+
+    Args:
+        build: Frozen exam build snapshot.
+        parsed: Parsed AMC scoring structure.
+
+    Returns:
+        dict: Build-aware mapped representation of the parsed scoring data.
     """
     build_questions_by_rendered_id = {
         question.rendered_id: question
@@ -283,14 +342,24 @@ def map_parsed_scoring_to_build(build: ExamBuild, parsed: ParsedAmcScoring):
     }
 
 
+
 def extract_scoring_from_amc_log(build: ExamBuild, amc_log_path=None, validate=True):
     """
-    High-level entrypoint:
-    - parse build.amc_log_path
-    - validate it
-    - map to build snapshot objects
+    High-level scoring extraction entrypoint.
 
-    Returns a dict ready to be consumed by your grading layer.
+    Flow:
+    - resolve the AMC log path
+    - parse the log into structured data
+    - optionally validate the parsed content
+    - map parsed objects to the build snapshot
+
+    Args:
+        build: Frozen exam build snapshot.
+        amc_log_path: Optional override path. Defaults to ``build.amc_log_path``.
+        validate: Whether validation issues should be computed.
+
+    Returns:
+        dict: Parsed object, validation issues, and build-aware mapped data.
     """
     amc_log_path = amc_log_path or build.amc_log_path
     if not amc_log_path:

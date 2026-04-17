@@ -41,7 +41,7 @@ class PrepQuestionAnswer(models.Model):
     title = models.CharField(max_length=500)
     answer_text = models.TextField(default='', blank=True, null=True)
     is_correct = models.BooleanField(default=False)
-    box_type = models.CharField(max_length=10, choices=BOX_TYPE_CHOICES,default="grid", blank=True, null=True)
+    box_type = models.CharField(max_length=10, choices=BOX_TYPE_CHOICES,default="null", blank=True, null=True)
     box_height_mm = models.IntegerField(default=0,blank=True, null=True)
     position = models.IntegerField(default=0)
     fix_position = models.BooleanField(default=False)
@@ -93,3 +93,8 @@ class ExamAMCJob(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    progress_current = models.PositiveIntegerField(default=0)
+    progress_total = models.PositiveIntegerField(default=0)
+    progress_percent = models.PositiveIntegerField(default=0)
+    progress_message = models.CharField(max_length=255, blank=True, default="")

@@ -1,7 +1,5 @@
 import json
 import os
-import re
-from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -11,8 +9,8 @@ from django.db import transaction
 from django.http import HttpResponseBadRequest, JsonResponse, Http404, FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 
+from examc_app.signing import make_token_for
 from examc_app.tasks import compile_exam_preview_task, generate_final_exam_files_task
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import (
@@ -32,15 +30,13 @@ from examc_app.models import (
     PrepSection,
     Semester, ExamAMCJob
 )
-from examc_app.utils.amc.amc_build_functions import build_final_exam
-from examc_app.utils.amc.amc_layout_functions import extract_layout_from_xy
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.global_functions import add_course_teachers_ldap
 from examc_app.utils.preparation_functions import build_sections_list_context, build_section_form, get_questions, \
     renumber_sections, build_question_form, get_answers, renumber_questions, build_answer_form, renumber_answers, \
     get_scoring_formula_scope, get_scoring_formula_queryset, create_prep_section, create_prep_question, \
-    create_prep_answer, compile_exam_preview, get_exam_preview_pdf_path, save_scoring_formulas, \
-    delete_exam_preview_job_files, ensure_exam_not_finalized
+    create_prep_answer, compile_exam_preview, save_scoring_formulas, \
+    delete_exam_preview_job_files, ensure_exam_not_finalized, update_open_answers
 from examc_app.utils.preparation_latex_functions import (
     render_first_page_tex_from_html,
     update_exam_latex, list_available_latex_packages, extract_used_packages,
@@ -129,10 +125,13 @@ def exam_preparation_view(request, exam_pk):
         subject_pdf = project_path / f"{exam_prefix}-sujet.pdf"
         catalog_pdf = project_path / f"{exam_prefix}-catalog.pdf"
 
+        root = Path(settings.AMC_PROJECTS_ROOT).resolve()
         if subject_pdf.exists():
-            final_subject_pdf = str(subject_pdf)
+            rel_path = subject_pdf.resolve().relative_to(root).as_posix()
+            final_subject_pdf = make_token_for(rel_path, settings.AMC_PROJECTS_ROOT,token_type="amc_document")
         if catalog_pdf.exists():
-            final_catalog_pdf = str(catalog_pdf)
+            rel_path = catalog_pdf.resolve().relative_to(root).as_posix()
+            final_catalog_pdf = make_token_for(rel_path, settings.AMC_PROJECTS_ROOT,token_type="amc_document")
 
     return render(
         request,
@@ -157,6 +156,7 @@ def unlock_exam_editing(request, exam_pk):
 
     exam.is_finalized = False
     exam.finalized_at = None
+    exam.finalized_build = None
     exam.save(update_fields=["is_finalized", "finalized_at"])
 
     messages.warning(
@@ -461,7 +461,7 @@ def prep_question_panel(request, exam_pk, question_id):
     )
 
     if request.method == "POST":
-
+        exam = Exam.objects.get(pk=exam_pk)
         locked = ensure_exam_not_finalized(exam)
         if locked:
             return locked
@@ -472,6 +472,10 @@ def prep_question_panel(request, exam_pk, question_id):
         if saved:
             form.save()
             question.refresh_from_db()
+
+            if question.question_type.code == 'OPEN':
+                update_open_answers(question)
+
             update_exam_latex(question.prep_section.exam)
     else:
         form = build_question_form(question)
@@ -731,6 +735,9 @@ def exam_preview_pdf_file(request, exam_pk, job_pk):
     pdf_path = Path(job.pdf_path)
     if not pdf_path.exists():
         raise Http404("Preview PDF file missing")
+    # else:
+    #     rel_path = pdf_path.resolve().relative_to(Path(settings.AMC_PROJECTS_ROOT).resolve()).as_posix()
+    #     preview_pdf_path = make_token_for(rel_path, settings.AMC_PROJECTS_ROOT, token_type="amc_document")
 
     return FileResponse(open(pdf_path, "rb"), content_type="application/pdf")
 
@@ -1139,29 +1146,23 @@ def generate_final_exam_files_status(request, exam_pk, job_pk):
     )
 
     data = {
-        "status": job.status,
+        "complete": job.status in ["success", "error"],
+        "success": True if job.status == "success" else False if job.status == "error" else None,
+        "state": job.status.upper(),
+        "progress": {
+            "pending": job.status == "pending",
+            "current": job.progress_current or 0,
+            "total": job.progress_total or 6,
+            "percent": job.progress_percent or 0,
+            "description": job.progress_message or "",
+        },
     }
 
     if job.status == "success":
         result = job.result_json or {}
-        data["build_id"] = job.exam_build_id
-        data["pdf_path"] = job.pdf_path or ""
-        data["subject_pdf_path"] = result.get("subject_pdf_path", "")
-        data["catalog_pdf_path"] = result.get("catalog_pdf_path", "")
-        data["exam_calage_xy_path"] = result.get("exam_calage_xy_path", "")
         data["result"] = result
 
-        layout_result = result.get("layout_result", {})
-        data["summary"] = {
-            "pages": layout_result.get("pages", 0),
-            "boxes": layout_result.get("boxes", 0),
-            "marks": layout_result.get("marks", 0),
-            "zones": layout_result.get("zones", 0),
-            "digits": layout_result.get("digits", 0),
-            "unknown_payloads": layout_result.get("unknown_payloads", 0),
-        }
-
     elif job.status == "error":
-        data["error"] = job.error_message or "Unknown error"
+        data["result"] = job.error_message or "Unknown error"
 
     return JsonResponse(data)

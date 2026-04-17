@@ -1,3 +1,26 @@
+"""
+AMC exam build pipeline.
+
+This module is the orchestration layer for converting the current Django exam
+preparation state into persistent AMC artifacts and a frozen ``ExamBuild``
+snapshot.
+
+Main responsibilities:
+- compute a stable hash of the preparation source content
+- create immutable build snapshot rows for questions and answers
+- compile AMC artifacts in an isolated temporary workspace
+- promote successful outputs back into the persistent project folder
+- keep SUBJECT artifacts as the canonical source for layout/scoring extraction
+- trigger subject-only layout page population and XY extraction
+
+Important invariants:
+- subject compilation is canonical for database-related paths and extraction
+- catalog compilation is only a convenience artifact and must not drive DB state
+- temporary workspace files should not be stored on the build after promotion
+- frozen snapshot data must reflect the exact question/answer state at build time
+"""
+
+import inspect
 import shutil
 import subprocess
 import tempfile
@@ -8,6 +31,7 @@ from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
+from examc import settings
 from examc_app.models import (
     Exam,
     ExamBuild,
@@ -21,7 +45,7 @@ from examc_app.utils.amc.amc_helpers import (
 )
 from examc_app.utils.amc.amc_helpers import get_amc_project_path
 from examc_app.utils.amc.amc_layout_functions import extract_layout_from_xy, get_subject_copy_and_page_counts_from_xy, \
-    populate_subject_layout_pages
+    populate_subject_layout_pages, get_pdf_page_metrics, LayoutExtractionError
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 
 
@@ -30,11 +54,25 @@ from examc_app.utils.preparation_latex_functions import update_exam_latex
 # ---------------------------------------------------------------------------
 
 def get_next_exam_build_version(exam: Exam) -> int:
+    """
+    Return the next monotonically increasing build version number for an exam.
+    """
     max_version = exam.builds.aggregate(max_version=Max("version"))["max_version"] or 0
     return max_version + 1
 
 
+
 def compute_exam_source_hash(exam: Exam) -> str:
+    """
+    Compute a deterministic hash of the exam preparation content.
+
+    The hash is based on the main exam metadata plus the ordered tree of
+    sections, questions, and answers. It can be used to detect whether two
+    builds were produced from identical source content.
+
+    Returns:
+        str: SHA-256 hex digest.
+    """
     chunks = [
         f"exam:{exam.pk}",
         f"exam_code:{exam.code}",
@@ -108,6 +146,16 @@ def create_exam_build_snapshot(
     project_path: str = "",
     latex_main_path: str = "",
 ) -> ExamBuild:
+    """
+    Create a frozen ``ExamBuild`` snapshot from the current preparation state.
+
+    The snapshot duplicates the question/answer information needed later for
+    layout extraction, scan mapping, and scoring, so future edits to the exam do
+    not retroactively change an older build.
+
+    Returns:
+        ExamBuild: Newly created build in ``draft`` status.
+    """
     version = get_next_exam_build_version(exam)
     source_hash = compute_exam_source_hash(exam)
     locked_at = timezone.now() if lock_build else None
@@ -129,7 +177,7 @@ def create_exam_build_snapshot(
         "prepQuestions__prepAnswers",
         "prepQuestions__question_type",
     )
-
+    global_index = 1
     for section in sections:
         for question in section.prepQuestions.order_by("position", "pk"):
             question_type_code = question.question_type.code if question.question_type else ""
@@ -139,6 +187,7 @@ def create_exam_build_snapshot(
                 build=build,
                 prep_question=question,
                 rendered_id=rendered_id,
+                amc_question_number=global_index,
                 rendered_code=rendered_id,
                 rendered_position=question.position,
                 section_position=section.position,
@@ -152,28 +201,33 @@ def create_exam_build_snapshot(
                 new_page_snapshot=question.new_page,
                 canceled_snapshot=question.canceled,
             )
+            global_index += 1
 
             for answer in question.prepAnswers.order_by("position", "pk"):
-                ExamBuildAnswer.objects.create(
-                    build_question=build_question,
-                    prep_answer=answer,
-                    rendered_answer_number=answer.position,
-                    rendered_position=answer.position,
-                    rendered_code=get_amc_answer_code(question, answer),
-                    prep_answer_id_snapshot=answer.pk,
-                    title_snapshot=answer.title or "",
-                    answer_text_snapshot=answer.answer_text or "",
-                    is_correct_snapshot=answer.is_correct,
-                    box_type_snapshot=answer.box_type or "",
-                    box_height_mm_snapshot=answer.box_height_mm,
-                    fix_position_snapshot=answer.fix_position,
-                )
+                if not answer.box_type:
+                    ExamBuildAnswer.objects.create(
+                        build_question=build_question,
+                        prep_answer=answer,
+                        rendered_answer_number=answer.position,
+                        rendered_position=answer.position,
+                        rendered_code=get_amc_answer_code(question, answer),
+                        prep_answer_id_snapshot=answer.pk,
+                        title_snapshot=answer.title or "",
+                        answer_text_snapshot=answer.answer_text or "",
+                        is_correct_snapshot=answer.is_correct,
+                        box_type_snapshot=answer.box_type or "",
+                        box_height_mm_snapshot=answer.box_height_mm,
+                        fix_position_snapshot=answer.fix_position,
+                    )
 
     return build
 
 
 @transaction.atomic
 def mark_exam_build_building(build: ExamBuild) -> ExamBuild:
+    """
+    Mark a build as currently compiling.
+    """
     build.status = "building"
     build.save(update_fields=["status", "updated_at"])
     return build
@@ -187,8 +241,13 @@ def mark_exam_build_ready(
     amc_log_path: str = "",
     xy_path: str = "",
     build_log: str = "",
-    lock_build: bool = True,
+    lock_build: bool = False,
 ) -> ExamBuild:
+    """
+    Mark a build as ready and persist the canonical artifact paths.
+
+    Only subject artifacts should be stored as canonical DB-facing paths.
+    """
     build.status = "ready"
 
     if compiled_pdf_path:
@@ -200,9 +259,10 @@ def mark_exam_build_ready(
     if build_log:
         build.build_log = build_log
 
-    if lock_build and not build.is_locked:
-        build.is_locked = True
-        build.locked_at = timezone.now()
+    if lock_build:
+        if not build.is_locked:
+            build.is_locked = True
+            build.locked_at = timezone.now()
 
     build.save(
         update_fields=[
@@ -221,6 +281,9 @@ def mark_exam_build_ready(
 
 @transaction.atomic
 def mark_exam_build_error(build: ExamBuild, error_message: str, build_log: str = "") -> ExamBuild:
+    """
+    Mark a build as failed and persist the error details.
+    """
     build.status = "error"
     build.error_message = error_message or ""
     if build_log:
@@ -248,6 +311,18 @@ def write_amc_config_file(
     catalog_externe: bool = False,
     student_file: str = "student_prev.csv",
 ) -> Path:
+    """
+    Write the AMC configuration include used for one compilation mode.
+
+    Args:
+        workspace_path: Temporary compilation workspace.
+        sujet_externe: Whether subject mode should be enabled.
+        catalog_externe: Whether catalog mode should be enabled.
+        student_file: Student CSV file to expose to the LaTeX build.
+
+    Returns:
+        Path: Created config file path.
+    """
     config_path = workspace_path / "amc-compiled-config.tex"
 
     lines = [
@@ -265,6 +340,7 @@ def write_amc_config_file(
     config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return config_path
 
+
 IGNORED_BUILD_FILES = {
     "amc-compiled.pdf",
     "amc-compiled.amc",
@@ -279,7 +355,15 @@ IGNORED_BUILD_FILES = {
     "catalog.amc",
 }
 
+
 def copy_project_to_workspace(source_project_path: str, workspace_path: Path) -> None:
+    """
+    Copy the persistent AMC project into a temporary workspace.
+
+    Generated artifacts listed in ``IGNORED_BUILD_FILES`` are skipped so the
+    workspace always recompiles from the current sources instead of inheriting
+    stale outputs.
+    """
     source_path = Path(source_project_path)
     if not source_path.exists():
         raise FileNotFoundError(f"AMC project path does not exist: {source_path}")
@@ -295,7 +379,11 @@ def copy_project_to_workspace(source_project_path: str, workspace_path: Path) ->
             shutil.copy2(item, destination)
 
 
+
 def _read_log_file_if_exists(log_path: Path) -> str:
+    """
+    Read a log file if present, returning an empty string otherwise.
+    """
     if not log_path.exists():
         return ""
     try:
@@ -304,11 +392,17 @@ def _read_log_file_if_exists(log_path: Path) -> str:
         return ""
 
 
+
 def _ensure_xy_output(workspace_path: Path) -> Path | None:
     """
-    Normalize XY output:
-    - if calage.xy exists, use it
-    - else if amc-compiled.xy exists, copy it to calage.xy
+    Normalize the expected XY output file name.
+
+    Preference order:
+    - use ``calage.xy`` if it already exists
+    - otherwise copy ``amc-compiled.xy`` to ``calage.xy``
+
+    Returns:
+        Path | None: Normalized ``calage.xy`` path when available.
     """
     calage_xy = workspace_path / "calage.xy"
     compiled_xy = workspace_path / "amc-compiled.xy"
@@ -323,6 +417,7 @@ def _ensure_xy_output(workspace_path: Path) -> Path | None:
     return None
 
 
+
 def compile_exam_in_workspace(
     workspace_path: Path,
     *,
@@ -331,11 +426,14 @@ def compile_exam_in_workspace(
     mode: str = "subject",
 ) -> dict:
     """
-    Compile in a temporary workspace.
+    Compile an exam in a temporary workspace.
 
-    Modes:
-    - subject: uses students.csv, produces layout files
-    - catalog: uses student_prev.csv, one-copy catalog PDF
+    Supported modes:
+    - ``subject``: uses ``students.csv`` and produces canonical layout artifacts
+    - ``catalog``: uses ``student_prev.csv`` and produces a one-copy catalog PDF
+
+    Returns:
+        dict: Success flag, paths, logs, and error/status details.
     """
     main_tex = get_exam_latex_main_file(workspace_path)
     if not main_tex.exists():
@@ -440,6 +538,7 @@ def compile_exam_in_workspace(
 # Persistent project promotion
 # ---------------------------------------------------------------------------
 
+
 PERSISTENT_AMC_FILES = [
     "exam.tex",
     "first_page.tex",
@@ -453,16 +552,18 @@ PERSISTENT_AMC_FILES = [
     "amc-compiled-config.tex",
     "amc-compiled.xy",
     "calage.xy",
+    "subject.log",
+    "subject.amc",
+    "catalog.log",
+    "catalog.amc",
 ]
-
-
-def _safe_exam_prefix(exam: Exam) -> str:
-    return exam.code or f"exam-{exam.pk}"
-
 
 def export_exam_named_artifacts(project_path: Path, exam: Exam) -> dict:
     """
-    Create AMC-style user-facing filenames alongside internal amc-compiled.* files.
+    Create AMC-style user-facing filenames alongside internal compiled files.
+
+    This is mainly a convenience export layer for files such as
+    ``{prefix}-sujet.pdf`` and ``{prefix}-calage.xy``.
     """
     prefix = _safe_exam_prefix(exam)
 
@@ -487,29 +588,12 @@ def export_exam_named_artifacts(project_path: Path, exam: Exam) -> dict:
 
     return exported
 
-
-PERSISTENT_AMC_FILES = [
-    "exam.tex",
-    "first_page.tex",
-    "packages.tex",
-    "commands.tex",
-    "global_scoring.tex",
-    "amc-compiled.pdf",
-    "amc-compiled.amc",
-    "amc-compiled.log",
-    "amc-compiled.aux",
-    "amc-compiled-config.tex",
-    "amc-compiled.xy",
-    "calage.xy",
-    "subject.log",
-    "subject.amc",
-    "catalog.log",
-    "catalog.amc",
-]
-
-
 def _safe_exam_prefix(exam: Exam) -> str:
+    """
+    Return a filesystem-safe exam prefix, falling back to ``exam-{pk}``.
+    """
     return exam.code or f"exam-{exam.pk}"
+
 
 
 def promote_workspace_to_project(
@@ -518,10 +602,13 @@ def promote_workspace_to_project(
     exam: Exam,
 ) -> dict:
     """
-    Replace the persistent AMC project folder contents with the latest successful
-    build artifacts and current source files.
+    Replace the persistent AMC project folder with the latest successful outputs.
 
-    Keeps one latest AMC-compatible project folder per exam.
+    The result is one current AMC-compatible project folder per exam containing
+    the latest sources and promoted subject/catalog artifacts.
+
+    Returns:
+        dict: Paths to the promoted project and key artifacts.
     """
     project_path = Path(persistent_project_path)
     project_path.mkdir(parents=True, exist_ok=True)
@@ -567,7 +654,7 @@ def promote_workspace_to_project(
         "project_path": str(project_path),
         "compiled_pdf_path": str(project_path / "amc-compiled.pdf") if (project_path / "amc-compiled.pdf").exists() else "",
         "amc_log_path": str(project_path / "subject.amc") if (project_path / "subject.amc").exists() else "",
-        "xy_path": str(project_path / "calage.xy") if (project_path / "calage.xy").exists() else "",
+        "xy_path": str(project_path / f"{prefix}-calage.xy") if (project_path / f"{prefix}-calage.xy").exists() else "",
         "subject_pdf_path": str(project_path / f"{prefix}-sujet.pdf") if (project_path / f"{prefix}-sujet.pdf").exists() else "",
         "catalog_pdf_path": str(project_path / f"{prefix}-catalog.pdf") if (project_path / f"{prefix}-catalog.pdf").exists() else "",
         "exam_calage_xy_path": str(project_path / f"{prefix}-calage.xy") if (project_path / f"{prefix}-calage.xy").exists() else "",
@@ -590,14 +677,19 @@ def build_final_exam(
     latex_engine: str = "pdflatex",
 ) -> ExamBuild:
     """
-    Final build pipeline:
-    1. Regenerate current LaTeX into the persistent AMC project folder
-    2. Create frozen ExamBuild snapshot
-    3. Copy persistent project into a temporary workspace
-    4. Compile subject mode (students.csv) -> EXAM-sujet.pdf + subject XY/log
-    5. Compile catalog mode (student_prev.csv) -> EXAM-catalog.pdf
-    6. Promote successful outputs back into the persistent project folder
-    7. Bind ExamBuild paths to SUBJECT artifacts only
+    Run the full final build pipeline for one exam.
+
+    Flow:
+    1. Regenerate current LaTeX into the persistent AMC project folder.
+    2. Create a frozen ``ExamBuild`` snapshot.
+    3. Copy the persistent project into a temporary workspace.
+    4. Compile subject mode using ``students.csv``.
+    5. Compile catalog mode using ``student_prev.csv``.
+    6. Promote successful outputs back to the persistent project folder.
+    7. Bind canonical build paths to the promoted SUBJECT artifacts only.
+
+    Returns:
+        ExamBuild: Build in ``ready`` or ``error`` state.
     """
     persistent_project_path = get_amc_project_path(exam, False)
     exam_prefix = exam.code or f"exam-{exam.pk}"
@@ -607,7 +699,7 @@ def build_final_exam(
     build = create_exam_build_snapshot(
         exam=exam,
         user=user,
-        lock_build=False,
+        lock_build=True,
         latex_engine=latex_engine,
         project_path=persistent_project_path,
         latex_main_path=str(Path(persistent_project_path) / "exam.tex"),
@@ -615,16 +707,14 @@ def build_final_exam(
 
     try:
         mark_exam_build_building(build)
-
-        with tempfile.TemporaryDirectory(prefix=f"amc_exam_{exam.pk}_") as tmp_dir:
+        Path(settings.AMC_TMP_ROOT).mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=settings.AMC_TMP_ROOT,prefix=f"amc_exam_{exam.pk}_") as tmp_dir:
             workspace_path = Path(tmp_dir)
 
             copy_project_to_workspace(persistent_project_path, workspace_path)
 
-            # -----------------------------------------------------------
             # SUBJECT BUILD
             # students.csv -> canonical build for DB/layout extraction
-            # -----------------------------------------------------------
             subject_result = compile_exam_in_workspace(
                 workspace_path,
                 timeout=timeout,
@@ -661,10 +751,8 @@ def build_final_exam(
                 else subject_result.get("xy_path", "")
             )
 
-            # -----------------------------------------------------------
             # CATALOG BUILD
             # student_prev.csv -> exported convenience artifact only
-            # -----------------------------------------------------------
             catalog_result = compile_exam_in_workspace(
                 workspace_path,
                 timeout=timeout,
@@ -685,16 +773,14 @@ def build_final_exam(
             if catalog_pdf.exists():
                 shutil.copy2(catalog_pdf, catalog_named_pdf)
 
-            # -----------------------------------------------------------
             # PROMOTE TO PERSISTENT PROJECT FOLDER
-            # -----------------------------------------------------------
             promoted = promote_workspace_to_project(
                 workspace_path=workspace_path,
                 persistent_project_path=persistent_project_path,
                 exam=exam,
             )
 
-            # SUBJECT is canonical for DB-related paths
+            # SUBJECT is canonical for DB-related paths.
             final_subject_pdf_path = (
                 promoted.get("subject_pdf_path", "")
                 or str(subject_named_pdf)
@@ -718,7 +804,7 @@ def build_final_exam(
                 lock_build=True,
             )
 
-            # Keep build pointing to persistent folder, not temp
+            # Keep build pointing to the persistent folder, not the temp workspace.
             build.project_path = promoted["project_path"]
             build.latex_main_path = str(Path(promoted["project_path"]) / "exam.tex")
             build.save(update_fields=["project_path", "latex_main_path", "updated_at"])
@@ -730,7 +816,24 @@ def build_final_exam(
         return build
 
 
+
 def generate_final_exam_files(exam, user, job_id, timeout=30):
+    """
+    Build the final exam and extract the canonical subject layout into the DB.
+
+    This is the high-level pipeline used by the application when it needs both
+    the generated files and the normalized layout rows.
+
+    Flow:
+    - build/promote subject and catalog artifacts
+    - resolve canonical subject PDF and XY files
+    - derive subject copy/page counts from the subject XY file
+    - populate ``LayoutPage`` rows using subject page metrics
+    - extract subject-only layout objects onto those pages
+
+    Returns:
+        dict: Success or error payload with artifact paths and extraction counts.
+    """
     build = build_final_exam(
         exam,
         user=user,
@@ -772,21 +875,29 @@ def generate_final_exam_files(exam, user, job_id, timeout=30):
         if not subject_xy_path:
             raise Exception("Subject XY path is missing; cannot extract subject layout.")
 
-        # SUBJECT ONLY: determine copy/page structure from subject XY
+        # SUBJECT ONLY: determine copy/page structure from subject XY.
         counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
+        pdf_metrics = get_pdf_page_metrics(subject_pdf_path, dpi=300.0)
 
-        # SUBJECT ONLY: populate page metadata
+        if pdf_metrics["page_count"] != counts["total_pages"]:
+            raise LayoutExtractionError(
+                f"PDF/XY page mismatch: PDF={pdf_metrics['page_count']} XY={counts['total_pages']}"
+            )
+
         page_result = populate_subject_layout_pages(
             build,
             total_copies=counts["total_copies"],
             pages_per_copy=counts["pages_per_copy"],
+            dpi=pdf_metrics["dpi"],
+            width=pdf_metrics["width"],
+            height=pdf_metrics["height"],
         )
 
-        # SUBJECT ONLY: attach boxes/zones/digits to existing pages
+        # SUBJECT ONLY: attach boxes/zones/digits to existing pages.
         layout_result = extract_layout_from_xy(
             build,
             xy_path=subject_xy_path,
-            clear_existing=False,
+            clear_existing=True,
         )
 
         return {
@@ -815,4 +926,3 @@ def generate_final_exam_files(exam, user, job_id, timeout=30):
             "amc_log_path": build.amc_log_path or "",
             "xy_path": build.xy_path or "",
         }
-
