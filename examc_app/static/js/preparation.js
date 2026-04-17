@@ -162,7 +162,6 @@
         }
 
         genFinalWasSuccessful = false;
-
         stopGenFinalPolling();
         resetGenFinalUi();
         setGenFinalLoading(true);
@@ -176,8 +175,52 @@
                 }
 
                 currentGenFinalJobId = data.job_id;
-                pollGenFinalStatus(data.job_id);
+
+                //use shared progress modal
+                if (typeof CeleryProgressBar !== "undefined") {
+                    const statusUrl = URLS.generateFinalStatus.replace("__JOB_ID__", data.job_id);
+
+                    showSharedProgressBarModal();
+
+                    CeleryProgressBar.initProgressBar(statusUrl, {
+                        progressBarId: 'progress-bar',
+                        progressBarMessageId: 'progress-bar-message',
+                        pollInterval: 1000,
+
+                        onSuccess: function (progressBarElement, progressBarMessageElement, result) {
+                            progressBarElement.style.width = "100%";
+                            progressBarElement.style.backgroundColor = "#76ce60";
+                            progressBarMessageElement.textContent = "Final files generated successfully.";
+
+                            hideSharedProgressBarModal();
+
+                            const normalized = normalizeGenFinalSuccessPayload(result);
+                            showGenFinalSuccess(normalized);
+                        },
+
+                        onTaskError: function (progressBarElement, progressBarMessageElement, excMessage) {
+                            progressBarElement.style.backgroundColor = "#dc4f63";
+                            progressBarMessageElement.textContent = "Generation failed: " + excMessage;
+
+                            hideSharedProgressBarModal();
+                            showGenFinalError(excMessage);
+                        },
+
+                        onError: function (progressBarElement, progressBarMessageElement, excMessage) {
+                            progressBarElement.style.backgroundColor = "#dc4f63";
+                            progressBarMessageElement.textContent = "Error: " + excMessage;
+
+                            hideSharedProgressBarModal();
+                            showGenFinalError(excMessage);
+                        }
+                    });
+
+                } else {
+                    // fallback to old polling if progress bar not available
+                    pollGenFinalStatus(data.job_id);
+                }
             },
+
             error: function (xhr) {
                 let message = "Error starting final exam files generation.";
                 if (xhr.responseJSON && xhr.responseJSON.error) {
@@ -188,6 +231,44 @@
                 showGenFinalError(message);
             }
         });
+    }
+
+    function resetSharedProgressBarUi() {
+        $('#progress-bar').css('width', '0%');
+        $('#progress-bar').css('background-color', '#68a9ef');
+        $('#progress-bar-message').text('Starting...');
+    }
+
+    function showSharedProgressBarModal() {
+        resetSharedProgressBarUi();
+        $('#celeryProgressBarModal').modal('show');
+    }
+
+    function hideSharedProgressBarModal() {
+        $('#celeryProgressBarModal').modal('hide');
+    }
+
+    /**
+     * Normalize backend result into your existing success format
+     */
+    function normalizeGenFinalSuccessPayload(result) {
+        if (!result) return {};
+
+        return {
+            build_id: result.build_id,
+            pdf_path: result.pdf_path || "",
+            subject_pdf_path: result.subject_pdf_path || "",
+            catalog_pdf_path: result.catalog_pdf_path || "",
+            exam_calage_xy_path: result.exam_calage_xy_path || "",
+            summary: result.summary || (result.layout_result ? {
+                pages: result.layout_result.pages || 0,
+                boxes: result.layout_result.boxes || 0,
+                marks: result.layout_result.marks || 0,
+                zones: result.layout_result.zones || 0,
+                digits: result.layout_result.digits || 0,
+                unknown_payloads: result.layout_result.unknown_payloads || 0,
+            } : {})
+        };
     }
 
     function pollGenFinalStatus(jobId, attempt = 0) {
@@ -1230,6 +1311,38 @@
         });
     }
 
+    function applyFinalizedReadOnlyState(container = document) {
+        if (!isExamFinalized()) return;
+
+        // Disable inputs inside prep area only
+        container.querySelectorAll(
+            '#prep-first-page-panel input:not([type="hidden"]), #prep-first-page-panel textarea, #prep-first-page-panel select,' +
+            '.sortable-section input:not([type="hidden"]), .sortable-section textarea, .sortable-section select,' +
+            '.sortable-question input:not([type="hidden"]), .sortable-question textarea, .sortable-question select,' +
+            '.sortable-answer input:not([type="hidden"]), .sortable-answer textarea, .sortable-answer select'
+        ).forEach(function (el) {
+            if (el.closest('#unlockExamEditingForm')) return;
+            el.disabled = true;
+            el.classList.add('is-finalized-readonly');
+        });
+
+        // Toast UI wrappers
+        container.querySelectorAll('#prep-root .toastui-editor-container')
+            .forEach(function (editorEl) {
+                editorEl.classList.add('finalized-editor-readonly');
+
+                if (document.activeElement && editorEl.contains(document.activeElement)) {
+                    document.activeElement.blur();
+                }
+
+                editorEl.querySelectorAll('.ProseMirror, [contenteditable="true"]').forEach(function (el) {
+                    el.setAttribute('contenteditable', 'false');
+                    el.setAttribute('tabindex', '-1');
+                    el.classList.add('finalized-editor-surface');
+                });
+            });
+    }
+
     $(document).on("hidden.bs.modal", "#generate_final_exam_files_dialog", function () {
         stopGenFinalPolling();
         currentGenFinalJobId = null;
@@ -1292,6 +1405,7 @@
         initAnswerSortable();
         initPreparationUI(event.target);
         initMarkdownEditors(event.target);
+        applyFinalizedReadOnlyState(event.target);
     });
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -1301,6 +1415,7 @@
         ScoringFormulasModal.bindEvents();
         initPreparationUI(document);
         initMarkdownEditors(document);
+        applyFinalizedReadOnlyState(document);
 
         const confirmUnlockBtn = document.getElementById("confirmUnlockEditingBtn");
         if (confirmUnlockBtn) {

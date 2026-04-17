@@ -214,6 +214,7 @@ CATALOG_ROOT = PRIVATE_MEDIA_ROOT / 'catalogs/'
 # AMC projects folder
 AMC_PROJECTS_ROOT = PRIVATE_MEDIA_ROOT / 'amc_projects/'
 AMC_PROJECTS_URL = '/amc_projects/'
+AMC_TMP_ROOT = PRIVATE_MEDIA_ROOT / 'amc_tmp'
 
 # AMC config file
 AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'

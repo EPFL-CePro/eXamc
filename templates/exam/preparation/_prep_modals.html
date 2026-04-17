@@ -156,3 +156,41 @@
     </div>
   </div>
 </div>
+
+<div id="edit_latex_packages_modal" class="modal fade" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit LaTeX packages</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div>
+          <label class="form-label fw-semibold">Used packages</label>
+          <div id="used_latex_packages_list" class="latex-package-chips"></div>
+        </div>
+        <div class="mb-4 position-relative">
+          <label for="latex_package_search" class="form-label fw-semibold">Add package</label>
+          <input
+            type="text"
+            id="latex_package_search"
+            class="form-control"
+            placeholder="Search available packages..."
+            autocomplete="off"
+          >
+          <div id="latex_package_search_results" class="latex-search-results shadow-sm"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="saveEditedLaTeXPackages()">
+          Save changes
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

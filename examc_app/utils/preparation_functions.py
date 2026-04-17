@@ -3,6 +3,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 
@@ -28,7 +29,10 @@ def get_questions(section):
 
 
 def get_answers(question):
-    return list(question.prepAnswers.all().order_by("position", "pk"))
+    if question.question_type.code == 'OPEN':
+        return list(question.prepAnswers.filter(box_type__isnull=False).order_by("position","pk"))
+    else:
+        return list(question.prepAnswers.all().order_by("position", "pk"))
 
 def build_sections_list_context(exam):
     sections = get_sections(exam)
@@ -146,6 +150,9 @@ def create_prep_answer(question, title="New answer", answer_text="", is_correct=
     next_position = (
         question.prepAnswers.aggregate(max_pos=Max("position"))["max_pos"] or 0
     ) + 1
+    box_type = None
+    if question.question_type.code == 'OPEN':
+        box_type = 'grid'
 
     answer = PrepQuestionAnswer.objects.create(
         prep_question=question,
@@ -153,6 +160,7 @@ def create_prep_answer(question, title="New answer", answer_text="", is_correct=
         answer_text=answer_text,
         is_correct=is_correct,
         position=next_position,
+        box_type=box_type
     )
 
     return answer
@@ -162,7 +170,6 @@ def _create_default_answers_for_question(question, question_type, nb_answers=0):
 
     if code in {"SCQ", "MCQ"}:
         _create_scq_mcq_answers(question, nb_answers)
-
     elif code == "TF":
         _create_tf_answers(question)
 
@@ -173,6 +180,32 @@ def _create_scq_mcq_answers(question, nb_answers):
             title=f"Answer {i + 1}",
             answer_text="",
             is_correct=False,
+            position=i + 1,
+        )
+
+def update_open_answers(question : PrepQuestion):
+
+    question.prepAnswers.filter(box_type__isnull=True).delete()
+    max_points = Decimal(str(question.max_points))
+    increment = Decimal(str(question.point_increment))
+
+    if increment <= 0:
+        raise ValueError("increment must be > 0")
+    if max_points < 0:
+        raise ValueError("max_points must be >= 0")
+    if max_points % increment != 0:
+        raise ValueError("max_points must be divisible by increment")
+
+    steps = int(max_points / increment)
+
+    for i in range(steps + 1):
+        value = i * increment
+
+        PrepQuestionAnswer.objects.create(
+            prep_question=question,
+            title=f"{value:g} point{'s' if value != 1 else ''}",
+            answer_text="",
+            is_correct=(i == steps),
             position=i + 1,
         )
 

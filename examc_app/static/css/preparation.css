@@ -182,3 +182,16 @@
 textarea.markdown-editor {
     display: none!important;
 }
+
+.finalized-editor-readonly .ProseMirror,
+.finalized-editor-readonly .toastui-editor-contents,
+.finalized-editor-surface {
+    background-color: #f8f9fa;
+    cursor: default;
+}
+
+.finalized-editor-readonly .toastui-editor-toolbar,
+.finalized-editor-readonly .toastui-editor-defaultUI-toolbar,
+.finalized-editor-readonly .toastui-editor-mode-switch {
+    display: none !important;
+}

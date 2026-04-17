@@ -23,7 +23,9 @@
                     {{ fp_txt_form.first_page_text }}
                 </div>
 
-                <button class="btn btn-dark btn-sm">Save</button>
+                {% if not is_exam_finalized %}
+                    <button class="btn btn-dark btn-sm">Save</button>
+                {% endif %}
 
             </form>
 

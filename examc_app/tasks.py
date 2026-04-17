@@ -1,9 +1,11 @@
 import csv
+import logging
 import os
 import pathlib
 import re
 import shutil
 import time
+import uuid
 import zipfile
 from contextlib import closing
 
@@ -12,17 +14,18 @@ from celery_progress.backend import ProgressRecorder, logger
 from django.contrib.sessions.models import Session
 from django.db.models import Sum
 from datetime import datetime
+from django.utils import timezone
 
 from django.conf import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, ExamAMCJob
-from examc_app.utils.amc.amc_build_functions import generate_final_exam_files
+from examc_app.utils.amc.amc_build_functions import build_final_exam
+from examc_app.utils.amc.amc_layout_functions import extract_layout_from_xy, populate_subject_layout_pages, \
+    LayoutExtractionError, get_pdf_page_metrics, get_subject_copy_and_page_counts_from_xy
 from examc_app.utils.amc_functions import amc_annotate
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.preparation_functions import compile_exam_preview
 from examc_app.utils.results_statistics_functions import delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
-from django.utils import timezone
-
 
 @shared_task(bind=True)
 def import_csv_data(self, temp_csv_file_path, exam_pk):
@@ -457,50 +460,206 @@ def compile_exam_preview_task(self, job_id):
             job.error_message = result["error"]
 
     except Exception as e:
-        print(f"[preview-task] exception for job={job_id}: {e}")
+        error_ref = f"AMC-{uuid.uuid4().hex[:8].upper()}"
+
+        logger.error(
+            "Exam generation returned error | error_ref=%s | job_id=%s | exam_id=%s | result=%s",
+            error_ref,
+            job_id,
+            getattr(job, "exam_id", None),
+            result,
+        )
+
         job.status = "error"
-        job.error_message = str(e)
+        job.error_message = f"An error occurred while generating the exam. Reference: {error_ref}"
+        job.result_json = {
+            "ok": False,
+            "error": "An error occurred while generating the exam.",
+            "error_ref": error_ref,
+            "debug": result,
+        }
 
     job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
     print(f"[preview-task] end job={job_id} status={job.status}")
 
-@shared_task(bind=True)
-def generate_final_exam_files_task(self, job_id):
-    job = ExamAMCJob.objects.get(pk=job_id)
+# ---------------------------------------------------------------------------
+# AMC JOB PROGRESS HELPER
+# ---------------------------------------------------------------------------
+def update_amc_job_progress(job, *, current, total, message, status="running"):
+    percent = int((current / total) * 100) if total else 0
 
-    try:
-        job.status = "running"
-        job.error_message = ""
-        job.celery_task_id = self.request.id or ""
-        job.save(update_fields=["status", "error_message", "celery_task_id", "updated_at"])
-
-        result = generate_final_exam_files(job.exam, job.requested_by, job_id=job.pk)
-
-        if result["ok"]:
-            job.status = "success"
-            job.pdf_path = result.get("pdf_path", "")
-            job.result_json = result
-            if result.get("build_id"):
-                job.exam_build_id = result["build_id"]
-                job.exam.is_finalized = True
-                job.exam.finalized_at = timezone.now()
-                job.exam.finalized_build_id = result["build_id"]
-                job.exam.save(update_fields=["is_finalized", "finalized_at", "finalized_build"])
-        else:
-            job.status = "error"
-            job.error_message = result.get("error", "Unknown error")
-            job.result_json = result
-
-    except Exception as e:
-        job.status = "error"
-        job.error_message = str(e)
-        job.result_json = {"ok": False, "error": str(e)}
-
+    job.status = status
+    job.progress_current = current
+    job.progress_total = total
+    job.progress_percent = percent
+    job.progress_message = message
     job.save(update_fields=[
         "status",
-        "error_message",
-        "pdf_path",
-        "result_json",
-        "exam_build",
+        "progress_current",
+        "progress_total",
+        "progress_percent",
+        "progress_message",
         "updated_at",
     ])
+
+@shared_task(bind=True)
+def generate_final_exam_files_task(self, job_id):
+    job = ExamAMCJob.objects.select_related("exam", "requested_by").get(pk=job_id)
+    exam = job.exam
+
+    TOTAL_STEPS = 6
+
+    try:
+        update_amc_job_progress(
+            job,
+            current=0,
+            total=TOTAL_STEPS,
+            message="Waiting for worker...",
+            status="pending",
+        )
+
+        update_amc_job_progress(
+            job,
+            current=1,
+            total=TOTAL_STEPS,
+            message="Generating LaTeX and compiling subject/catalog PDFs...",
+            status="running",
+        )
+
+        build = build_final_exam(
+            exam,
+            user=job.requested_by,
+            timeout=60,
+        )
+
+        if build.status != "ready":
+            job.status = "error"
+            job.error_message = build.error_message or "Final exam build failed."
+            job.exam_build_id = build.pk if build else None
+            job.save(update_fields=["status", "error_message", "exam_build_id", "updated_at"])
+            return
+
+        project_path = pathlib.Path(build.project_path) if build.project_path else None
+        exam_prefix = exam.code or f"exam-{exam.pk}"
+
+        subject_pdf_path = ""
+        catalog_pdf_path = ""
+        subject_xy_path = build.xy_path or ""
+
+        if project_path and project_path.exists():
+            subject_pdf = project_path / f"{exam_prefix}-sujet.pdf"
+            catalog_pdf = project_path / f"{exam_prefix}-catalog.pdf"
+            subject_xy = project_path / f"{exam_prefix}-calage.xy"
+
+            if subject_pdf.exists():
+                subject_pdf_path = str(subject_pdf)
+            elif build.compiled_pdf_path:
+                subject_pdf_path = build.compiled_pdf_path
+
+            if catalog_pdf.exists():
+                catalog_pdf_path = str(catalog_pdf)
+
+            if subject_xy.exists():
+                subject_xy_path = str(subject_xy)
+
+        if not subject_xy_path:
+            raise LayoutExtractionError("Subject XY path is missing; cannot extract subject layout.")
+
+        update_amc_job_progress(
+            job,
+            current=2,
+            total=TOTAL_STEPS,
+            message="Reading subject XY structure...",
+        )
+
+        counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
+
+        update_amc_job_progress(
+            job,
+            current=3,
+            total=TOTAL_STEPS,
+            message="Reading subject PDF metrics...",
+        )
+
+        pdf_metrics = get_pdf_page_metrics(subject_pdf_path, dpi=300.0)
+
+        if pdf_metrics["page_count"] != counts["total_pages"]:
+            raise LayoutExtractionError(
+                f"PDF/XY page mismatch: PDF={pdf_metrics['page_count']} XY={counts['total_pages']}"
+            )
+
+        update_amc_job_progress(
+            job,
+            current=4,
+            total=TOTAL_STEPS,
+            message="Creating layout pages...",
+        )
+
+        page_result = populate_subject_layout_pages(
+            build,
+            total_copies=counts["total_copies"],
+            pages_per_copy=counts["pages_per_copy"],
+            dpi=pdf_metrics["dpi"],
+            width=pdf_metrics["width"],
+            height=pdf_metrics["height"],
+        )
+
+        update_amc_job_progress(
+            job,
+            current=5,
+            total=TOTAL_STEPS,
+            message="Extracting layout boxes, digits, zones, and marks...",
+        )
+
+        layout_result = extract_layout_from_xy(
+            build,
+            xy_path=subject_xy_path,
+            clear_existing=True,
+        )
+
+        result = {
+            "ok": True,
+            "job_id": job.pk,
+            "build_id": build.pk,
+            "pdf_path": subject_pdf_path or build.compiled_pdf_path or "",
+            "subject_pdf_path": subject_pdf_path or "",
+            "catalog_pdf_path": catalog_pdf_path or "",
+            "amc_log_path": build.amc_log_path or "",
+            "xy_path": subject_xy_path,
+            "exam_calage_xy_path": subject_xy_path,
+            "page_result": page_result,
+            "layout_result": layout_result,
+        }
+
+        update_amc_job_progress(
+            job,
+            current=6,
+            total=TOTAL_STEPS,
+            message="Final build complete.",
+            status="success",
+        )
+
+        exam.is_finalized = True
+        exam.finalized_at = timezone.now()
+        exam.finalized_build = build
+        exam.save(update_fields=["is_finalized", "finalized_at", "finalized_build"])
+
+        job.status = "success"
+        job.exam_build_id = build.pk
+        job.pdf_path = subject_pdf_path or build.compiled_pdf_path or ""
+        job.result_json = result
+        job.error_message = ""
+        job.save(update_fields=[
+            "status",
+            "exam_build_id",
+            "pdf_path",
+            "result_json",
+            "error_message",
+            "updated_at",
+        ])
+
+    except Exception as exc:
+        job.status = "error"
+        job.error_message = str(exc)
+        job.save(update_fields=["status", "error_message", "updated_at"])
+        raise

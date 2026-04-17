@@ -73,6 +73,7 @@ class ExamBuildQuestion(models.Model):
     section_position = models.PositiveIntegerField(default=1)
     question_type_code = models.CharField(max_length=20)
     prep_question_id_snapshot = models.IntegerField(blank=True, null=True)
+    amc_question_number = models.PositiveIntegerField(null=True, blank=True)
 
     # Snapshots to preserve build history even if preparation content changes later.
     title_snapshot = models.CharField(max_length=500, blank=True, default="")

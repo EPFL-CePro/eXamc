@@ -100,164 +100,6 @@ def replace_unicode_math_and_text(html: str) -> str:
 
     return html
 
-# def mathml_to_latex_simple(mathml: str) -> str:
-#     root = ET.fromstring(mathml)
-#
-#     def strip_ns(tag):
-#         return tag.split("}", 1)[-1]
-#
-#     def walk(node):
-#         tag = strip_ns(node.tag)
-#
-#         if tag in ["math", "mrow"]:
-#             return "".join(walk(c) for c in node)
-#
-#         if tag == "semantics":
-#             for c in node:
-#                 if strip_ns(c.tag) != "annotation":
-#                     return walk(c)
-#             return ""
-#
-#         if tag == "mi":
-#             text = (node.text or "").strip()
-#             if node.attrib.get("mathvariant") == "double-struck":
-#                 return rf"\mathbb{{{text}}}"
-#             return text
-#
-#         if tag == "mn":
-#             return (node.text or "").strip()
-#
-#         if tag == "mo":
-#             text = (node.text or "").strip()
-#             return {
-#                 "∈": r"\in",
-#                 "∖": r"\setminus",
-#                 "⊂": r"\subset",
-#                 "≤": r"\le",
-#                 "≥": r"\ge",
-#                 "≠": r"\neq",
-#                 ":": ":",
-#             }.get(text, text)
-#
-#         if tag == "mfrac":
-#             children = list(node)
-#             if len(children) == 2:
-#                 return rf"\frac{{{walk(children[0])}}}{{{walk(children[1])}}}"
-#             return ""
-#
-#         if tag == "msup":
-#             children = list(node)
-#             if len(children) == 2:
-#                 return rf"{walk(children[0])}^{{{walk(children[1])}}}"
-#             return ""
-#
-#         return "".join(walk(c) for c in node)
-#
-#     return walk(root)
-
-# def preprocess_math_html(html_text: str) -> str:
-#     soup = BeautifulSoup(html_text, "html.parser")
-#
-#     for math_node in soup.select(".note-math"):
-#         latex_node = math_node.select_one(".note-latex")
-#
-#         if latex_node and latex_node.text.strip():
-#             latex = latex_node.text.strip()
-#             math_node.replace_with(soup.new_string(f"${latex}$"))
-#             continue
-#
-#         mathml_node = math_node.select_one(".katex-mathml math")
-#         if mathml_node is not None:
-#             latex = mathml_to_latex_simple(str(mathml_node))
-#             math_node.replace_with(soup.new_string(f"${latex}$"))
-#             continue
-#
-#         katex_node = math_node.select_one(".katex")
-#         if katex_node is not None:
-#             # rendered math exists, but no reliable source latex
-#             # remove the rendered widget but keep surrounding plain text if any
-#             katex_node.decompose()
-#
-#         math_node.unwrap()
-#
-#     return str(soup)
-
-# def preprocess_images(soup):
-#     for img in soup.find_all("img"):
-#         src = img.get("src", "").strip()
-#
-#         if not src:
-#             img.decompose()
-#             continue
-#
-#         # remove style attributes
-#         img.attrs = {"src": src}
-#
-#     return soup
-
-# def preprocess_summernote_html(html_text: str) -> str:
-#     soup = BeautifulSoup(html_text or "", "html.parser")
-#
-#     # 1. Convert math blocks to raw LaTeX
-#     for math_node in soup.select(".note-math"):
-#         latex = None
-#
-#         latex_node = math_node.select_one(".note-latex")
-#         if latex_node and latex_node.text.strip():
-#             latex = latex_node.text.strip()
-#
-#         if not latex:
-#             mathml_node = math_node.select_one(".katex-mathml math")
-#             if mathml_node is not None:
-#                 try:
-#                     latex = mathml_to_latex_simple(str(mathml_node))
-#                 except Exception:
-#                     latex = None
-#
-#         if latex:
-#             math_node.replace_with(soup.new_string(f"${latex}$"))
-#             continue
-#
-#         # No reliable LaTeX source: remove rendered KaTeX but keep text around it
-#         for katex in math_node.select(".katex"):
-#             katex.decompose()
-#
-#         math_node.unwrap()
-#
-#     # 2. Clean images
-#     for img in soup.find_all("img"):
-#         src = (img.get("src") or "").strip()
-#
-#         if not src:
-#             img.decompose()
-#             continue
-#
-#         # Keep only safe/needed attrs
-#         attrs = {"src": src}
-#
-#         alt = (img.get("alt") or "").strip()
-#         if alt:
-#             attrs["alt"] = alt
-#
-#         img.attrs = attrs
-#
-#     # 3. Remove inline styles/classes from normal tags
-#     for tag in soup.find_all(True):
-#         if tag.name == "img":
-#             continue
-#         if tag.name == "a":
-#             href = tag.get("href")
-#             tag.attrs = {"href": href} if href else {}
-#         else:
-#             tag.attrs = {}
-#
-#     return str(soup)
-
-# def normalize_summernote_html(html: str) -> str:
-#     html = html or ""
-#     html = re.sub(r"<p>\s*(<br\s*/?>)?\s*</p>", "", html, flags=re.I)
-#     return html.strip()
-
 
 def postprocess_latex(latex: str) -> str:
     latex = latex.strip()
@@ -280,23 +122,6 @@ def markdown_to_latex_pandoc(markdown: str) -> str:
         extra_args=["--wrap=none"],
     )
     return postprocess_latex(latex)
-
-# def html_to_latex_pandoc(html: str) -> str:
-#     html = preprocess_summernote_html(html)
-#     html = normalize_summernote_html(html)
-#     html = replace_unicode_math_and_text(html)
-#
-#     latex = pypandoc.convert_text(
-#         html,
-#         to="latex",
-#         format="html",
-#         extra_args=[
-#             "--wrap=none",
-#         ],
-#     )
-#
-#     latex = postprocess_latex(latex)
-#     return latex
 
 def update_exam_latex(exam: Exam):
     amc_project_path = get_amc_project_path(exam, False)
@@ -337,9 +162,9 @@ def update_exam_latex(exam: Exam):
 
         exam_tex = (
             exam_tex
-            .replace(PH_SECTIONS, f"\input{{./{section_filename}}} \n" + f"{PH_SECTIONS}")
-            .replace(PH_SECTIONS_INSERT, f"\input{{./{section_header_filename}}} \n" + f"{PH_SECTIONS_INSERT}")
-            .replace(PH_SECTIONS_INSERT, f"\insertgroup{{{section_grp_name}}} \n" + f"{PH_SECTIONS_INSERT}")
+            .replace(PH_SECTIONS, f"\\input{{./{section_filename}}} \n" + f"{PH_SECTIONS}")
+            .replace(PH_SECTIONS_INSERT, f"\\input{{./{section_header_filename}}} \n" + f"{PH_SECTIONS_INSERT}")
+            .replace(PH_SECTIONS_INSERT, f"\\insertgroup{{{section_grp_name}}} \n" + f"{PH_SECTIONS_INSERT}")
         )
 
     Path(exam_latex_path_output).write_text(exam_tex, encoding="utf-8")
@@ -509,21 +334,23 @@ def render_answer_tex_from_html(answer: PrepQuestionAnswer, question_tex: str) -
     if PH_QUESTION_ANSWERS not in question_tex:
         raise ValueError(f"Placeholder {PH_QUESTION_ANSWERS!r} not found in template")
 
+    answer_type_text = None
     if answer.prep_question.question_type.code == 'OPEN':
-        if answer.box_type == BOX_TYPE_CHOICES[0]:
-            answer_type_text = f'\\SplitOpenGrid{{{answer.box_height_mm}mm}}'
-        else:
-            answer_type_text = f'\\SplitOpenBox{{{answer.box_height_mm}mm}}'
-
+        if answer.box_type:
+            if answer.box_type == BOX_TYPE_CHOICES[0]:
+                answer_type_text = f'\\SplitOpenGrid{{{answer.box_height_mm}mm}}'
+            else:
+                answer_type_text = f'\\SplitOpenBox{{{answer.box_height_mm}mm}}'
     else:
         if answer.is_correct:
-            answer_type_text = f'\correctchoice{{{latex_fragment_text}}}'
+            answer_type_text = f'\\correctchoice{{{latex_fragment_text}}}'
         else:
-            answer_type_text = f'\wrongchoice{{{latex_fragment_text}}}'
+            answer_type_text = f'\\wrongchoice{{{latex_fragment_text}}}'
 
-    question_tex = question_tex.replace(
-        PH_QUESTION_ANSWERS,
-        answer_type_text + "\n" + f"{PH_QUESTION_ANSWERS}")
+    if answer_type_text:
+        question_tex = question_tex.replace(
+            PH_QUESTION_ANSWERS,
+            answer_type_text + "\n" + f"{PH_QUESTION_ANSWERS}")
 
     return question_tex
 
