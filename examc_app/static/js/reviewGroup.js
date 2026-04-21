@@ -136,13 +136,20 @@
         const rect = mjs3App.getBoundingClientRect();
         const imgW = sourceImage.naturalWidth || 1;
         const imgH = sourceImage.naturalHeight || 1;
-        const imageRatio = imgW / imgH;
+        // const imageRatio = imgW / imgH;
+        // const targetWidth = rect.width - 20;
+        // const targetHeight = targetWidth / imageRatio;
 
-        const targetWidth = rect.width - 20;
-        const targetHeight = targetWidth / imageRatio;
+        // markerArea.targetWidth = targetWidth;
+        // markerArea.targetHeight = targetHeight;
 
-        markerArea.targetWidth = targetWidth;
-        markerArea.targetHeight = targetHeight;
+        const maxWidth = rect.width - 20;
+        const maxHeight = rect.height - 20;
+
+        const scale = Math.min(maxWidth / imgW, maxHeight / imgH);
+
+        markerArea.targetWidth = imgW * scale;
+        markerArea.targetHeight = imgH * scale;
 
         $("#corrector_boxes_svg").empty();
         $("#corr_box_div").empty();
