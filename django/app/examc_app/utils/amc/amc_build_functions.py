@@ -602,19 +602,58 @@ def promote_workspace_to_project(
     exam: Exam,
 ) -> dict:
     """
-    Replace the persistent AMC project folder with the latest successful outputs.
+    Promote the successful temporary AMC workspace back into the persistent
+    per-exam AMC project folder.
 
-    The result is one current AMC-compatible project folder per exam containing
-    the latest sources and promoted subject/catalog artifacts.
+    Design intent
+    -------------
+    The persistent AMC project folder must always end in the canonical
+    SUBJECT state after a successful final build.
+
+    This helper is therefore used only after the full final pipeline has run,
+    with the following expected compile order:
+
+    1. CATALOG
+    2. SUBJECT pass 1
+    3. SUBJECT pass 2 (final canonical state)
+
+    Because SUBJECT is compiled last, the workspace already contains the
+    final AMC config/data/log state that later features depend on.
+    This helper copies that state back into the persistent project folder.
+
+    Canonical rules
+    ---------------
+    - SUBJECT is canonical and drives downstream processing.
+    - CATALOG is kept only as a side artifact PDF/log pair.
+    - Returned canonical paths must point to SUBJECT artifacts only.
+    - The generic AMC files in ``PERSISTENT_AMC_FILES`` are copied from the
+      final workspace state, which must therefore be the final SUBJECT state.
+
+    Args:
+        workspace_path:
+            Temporary AMC workspace containing the successful final build.
+        persistent_project_path:
+            Persistent per-exam AMC project directory to replace/update.
+        exam:
+            Exam instance used to derive the artifact prefix.
 
     Returns:
-        dict: Paths to the promoted project and key artifacts.
+        dict:
+            Promoted project paths and artifact paths. Canonical output fields
+            such as ``compiled_pdf_path``, ``amc_log_path``, and ``xy_path``
+            always point to SUBJECT artifacts.
     """
     project_path = Path(persistent_project_path)
     project_path.mkdir(parents=True, exist_ok=True)
 
     prefix = _safe_exam_prefix(exam)
 
+    # Files explicitly managed by this promotion step.
+    #
+    # PERSISTENT_AMC_FILES contains the generic AMC project files that must
+    # reflect the final workspace state. Since SUBJECT is compiled last in the
+    # final build pipeline, these generic files are expected to represent the
+    # final SUBJECT configuration.
     managed_names = set(PERSISTENT_AMC_FILES)
     managed_names.update(
         {
@@ -624,6 +663,8 @@ def promote_workspace_to_project(
         }
     )
 
+    # Remove previous managed files so promotion behaves like a clean replace
+    # for all artifacts owned by the final build process.
     for name in managed_names:
         target = project_path / name
         if target.exists():
@@ -632,14 +673,19 @@ def promote_workspace_to_project(
             else:
                 target.unlink()
 
+    # Copy the generic AMC project state first.
+    #
+    # Important: this relies on the workspace already being in final SUBJECT
+    # state when this function is called.
     for name in PERSISTENT_AMC_FILES:
         source = workspace_path / name
         if source.exists():
             shutil.copy2(source, project_path / name)
 
+    # Copy named promoted artifacts explicitly.
     subject_pdf = workspace_path / f"{prefix}-sujet.pdf"
     catalog_pdf = workspace_path / f"{prefix}-catalog.pdf"
-    exam_calage_xy = workspace_path / f"{prefix}-calage.xy"
+    subject_xy = workspace_path / f"{prefix}-calage.xy"
 
     if subject_pdf.exists():
         shutil.copy2(subject_pdf, project_path / subject_pdf.name)
@@ -647,54 +693,108 @@ def promote_workspace_to_project(
     if catalog_pdf.exists():
         shutil.copy2(catalog_pdf, project_path / catalog_pdf.name)
 
-    if exam_calage_xy.exists():
-        shutil.copy2(exam_calage_xy, project_path / exam_calage_xy.name)
+    if subject_xy.exists():
+        shutil.copy2(subject_xy, project_path / subject_xy.name)
+
+    # Canonical return values MUST point to subject artifacts only.
+    final_subject_pdf_path = project_path / f"{prefix}-sujet.pdf"
+    final_catalog_pdf_path = project_path / f"{prefix}-catalog.pdf"
+    final_subject_xy_path = project_path / f"{prefix}-calage.xy"
+    final_subject_amc_path = project_path / "subject.amc"
+    final_subject_log_path = project_path / "subject.log"
+    final_catalog_amc_path = project_path / "catalog.amc"
+    final_catalog_log_path = project_path / "catalog.log"
 
     return {
         "project_path": str(project_path),
-        "compiled_pdf_path": str(project_path / "amc-compiled.pdf") if (project_path / "amc-compiled.pdf").exists() else "",
-        "amc_log_path": str(project_path / "subject.amc") if (project_path / "subject.amc").exists() else "",
-        "xy_path": str(project_path / f"{prefix}-calage.xy") if (project_path / f"{prefix}-calage.xy").exists() else "",
-        "subject_pdf_path": str(project_path / f"{prefix}-sujet.pdf") if (project_path / f"{prefix}-sujet.pdf").exists() else "",
-        "catalog_pdf_path": str(project_path / f"{prefix}-catalog.pdf") if (project_path / f"{prefix}-catalog.pdf").exists() else "",
-        "exam_calage_xy_path": str(project_path / f"{prefix}-calage.xy") if (project_path / f"{prefix}-calage.xy").exists() else "",
-        "subject_log_path": str(project_path / "subject.log") if (project_path / "subject.log").exists() else "",
-        "subject_amc_path": str(project_path / "subject.amc") if (project_path / "subject.amc").exists() else "",
-        "catalog_log_path": str(project_path / "catalog.log") if (project_path / "catalog.log").exists() else "",
-        "catalog_amc_path": str(project_path / "catalog.amc") if (project_path / "catalog.amc").exists() else "",
+
+        # Canonical outputs: always SUBJECT
+        "compiled_pdf_path": str(final_subject_pdf_path) if final_subject_pdf_path.exists() else "",
+        "amc_log_path": str(final_subject_amc_path) if final_subject_amc_path.exists() else "",
+        "xy_path": str(final_subject_xy_path) if final_subject_xy_path.exists() else "",
+
+        # Explicit named artifacts
+        "subject_pdf_path": str(final_subject_pdf_path) if final_subject_pdf_path.exists() else "",
+        "catalog_pdf_path": str(final_catalog_pdf_path) if final_catalog_pdf_path.exists() else "",
+        "exam_calage_xy_path": str(final_subject_xy_path) if final_subject_xy_path.exists() else "",
+
+        # Subject logs/config
+        "subject_log_path": str(final_subject_log_path) if final_subject_log_path.exists() else "",
+        "subject_amc_path": str(final_subject_amc_path) if final_subject_amc_path.exists() else "",
+
+        # Catalog logs/config
+        "catalog_log_path": str(final_catalog_log_path) if final_catalog_log_path.exists() else "",
+        "catalog_amc_path": str(final_catalog_amc_path) if final_catalog_amc_path.exists() else "",
     }
 
+# --------------------------------------------------------------------------
+# Progress helper
+# --------------------------------------------------------------------------
+def _report_progress(progress_callback, percent, message):
+    if progress_callback:
+        progress_callback(percent=percent, message=message)
 
 # ---------------------------------------------------------------------------
 # Main entrypoint
 # ---------------------------------------------------------------------------
-
+# IMPORTANT:
+# Final generation intentionally compiles CATALOG first and SUBJECT last.
+# SUBJECT must remain the canonical retained AMC project state because
+# later features (layout extraction, scan processing, downstream data usage)
+# depend on subject files/config remaining in place after the build.
 def build_final_exam(
     exam: Exam,
     user=None,
     *,
     timeout: int = 60,
     latex_engine: str = "pdflatex",
+    progress_callback=None,
 ) -> ExamBuild:
     """
-    Run the full final build pipeline for one exam.
+    Build the final AMC project for one exam.
 
-    Flow:
-    1. Regenerate current LaTeX into the persistent AMC project folder.
-    2. Create a frozen ``ExamBuild`` snapshot.
-    3. Copy the persistent project into a temporary workspace.
-    4. Compile subject mode using ``students.csv``.
-    5. Compile catalog mode using ``student_prev.csv``.
-    6. Promote successful outputs back to the persistent project folder.
-    7. Bind canonical build paths to the promoted SUBJECT artifacts only.
+    This pipeline intentionally compiles the two AMC modes in the following order:
+
+    1. Generate LaTeX once without a known ``pages_per_copy`` value.
+    2. Create and lock an ``ExamBuild`` snapshot.
+    3. Copy the persistent AMC project into a temporary workspace.
+    4. Compile CATALOG first using ``student_prev.csv``.
+       - This produces only the catalog PDF side artifact.
+       - It must never become the canonical build state.
+    5. Compile SUBJECT (pass 1) using ``students.csv``.
+       - Read the generated subject XY file to determine the real
+         ``pages_per_copy``.
+    6. Regenerate LaTeX with the final ``pages_per_copy`` injected.
+    7. Refresh generated ``.tex`` files inside the temporary workspace.
+    8. Recompile SUBJECT (pass 2).
+       - This final subject compilation is the canonical build output.
+    9. Promote successful workspace artifacts back to the persistent project.
+    10. Bind canonical ``ExamBuild`` paths to SUBJECT artifacts only.
+
+    Important invariants:
+    - SUBJECT is always the canonical final build state.
+    - CATALOG is kept only as a side artifact: ``{prefix}-catalog.pdf``.
+    - Layout extraction and downstream processing must always use SUBJECT XY.
+    - The persistent AMC project folder must end in SUBJECT state, because
+      later features rely on the retained subject config/data files.
 
     Returns:
-        ExamBuild: Build in ``ready`` or ``error`` state.
+        ExamBuild:
+            A build in ``ready`` state when the final subject build succeeds,
+            otherwise a build in ``error`` state.
     """
+
+    _report_progress(progress_callback, 10, "Preparing AMC workspace...")
+
     persistent_project_path = get_amc_project_path(exam, False)
     exam_prefix = exam.code or f"exam-{exam.pk}"
 
-    update_exam_latex(exam)
+    # ------------------------------------------------------------------
+    # INITIAL LATEX GENERATION (without final pages_per_copy yet)
+    # ------------------------------------------------------------------
+    _report_progress(progress_callback, 12, "Generating LaTeX sources...")
+    update_exam_latex(exam, pages_per_copy=None)
+    _report_progress(progress_callback, 18, "LaTeX sources generated.")
 
     build = create_exam_build_snapshot(
         exam=exam,
@@ -708,13 +808,66 @@ def build_final_exam(
     try:
         mark_exam_build_building(build)
         Path(settings.AMC_TMP_ROOT).mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=settings.AMC_TMP_ROOT,prefix=f"amc_exam_{exam.pk}_") as tmp_dir:
+
+        with tempfile.TemporaryDirectory(
+            dir=settings.AMC_TMP_ROOT,
+            prefix=f"amc_exam_{exam.pk}_",
+        ) as tmp_dir:
             workspace_path = Path(tmp_dir)
 
             copy_project_to_workspace(persistent_project_path, workspace_path)
 
-            # SUBJECT BUILD
-            # students.csv -> canonical build for DB/layout extraction
+            subject_build_log = ""
+            subject_amc_log_path = ""
+            subject_xy_path = ""
+
+            # ==========================================================
+            # STEP 1 - CATALOG BUILD FIRST
+            # ==========================================================
+            #
+            # Goal:
+            # - produce {prefix}-catalog.pdf
+            # - do NOT let catalog become canonical project/build state
+            #
+            # Why first?
+            # - we want the final retained state in the workspace/project
+            #   to be the SUBJECT state, because later features depend on it.
+            # ==========================================================
+            _report_progress(progress_callback, 25, "Compiling catalog PDF...")
+
+            catalog_result = compile_exam_in_workspace(
+                workspace_path,
+                timeout=timeout,
+                latex_engine=latex_engine,
+                mode="catalog",
+            )
+
+            if not catalog_result["ok"]:
+                mark_exam_build_error(
+                    build,
+                    error_message=catalog_result["error"],
+                    build_log=catalog_result.get("build_log", ""),
+                )
+                return build
+
+            catalog_pdf = workspace_path / "amc-compiled.pdf"
+            catalog_named_pdf = workspace_path / f"{exam_prefix}-catalog.pdf"
+            if catalog_pdf.exists():
+                shutil.copy2(catalog_pdf, catalog_named_pdf)
+
+            _report_progress(progress_callback, 35, "Catalog PDF compiled.")
+
+            # ==========================================================
+            # STEP 2 - SUBJECT BUILD PASS 1
+            # ==========================================================
+            #
+            # Goal:
+            # - compile subject once
+            # - extract subject XY
+            # - determine the real pages_per_copy
+            # ==========================================================
+            _report_progress(progress_callback, 42, "Compiling subject PDF...")
+
             subject_result = compile_exam_in_workspace(
                 workspace_path,
                 timeout=timeout,
@@ -751,36 +904,112 @@ def build_final_exam(
                 else subject_result.get("xy_path", "")
             )
 
-            # CATALOG BUILD
-            # student_prev.csv -> exported convenience artifact only
-            catalog_result = compile_exam_in_workspace(
-                workspace_path,
-                timeout=timeout,
-                latex_engine=latex_engine,
-                mode="catalog",
-            )
-
-            if not catalog_result["ok"]:
+            if not subject_xy_path:
                 mark_exam_build_error(
                     build,
-                    error_message=catalog_result["error"],
-                    build_log=catalog_result.get("build_log", "") or subject_build_log,
+                    error_message="Subject XY path is missing after subject compilation.",
+                    build_log=subject_build_log,
                 )
                 return build
 
-            catalog_pdf = workspace_path / "amc-compiled.pdf"
-            catalog_named_pdf = workspace_path / f"{exam_prefix}-catalog.pdf"
-            if catalog_pdf.exists():
-                shutil.copy2(catalog_pdf, catalog_named_pdf)
+            _report_progress(progress_callback, 50, "Reading subject page structure...")
 
-            # PROMOTE TO PERSISTENT PROJECT FOLDER
+            counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
+            pages_per_copy = counts["pages_per_copy"]
+
+            # ==========================================================
+            # STEP 3 - REGENERATE LATEX WITH REAL PAGE COUNT
+            # ==========================================================
+            _report_progress(progress_callback, 58, "Injecting final page count into LaTeX...")
+            update_exam_latex(exam, pages_per_copy=pages_per_copy)
+
+            # Refresh generated TeX files in workspace so the second subject
+            # compilation uses the final page-aware sources.
+            _report_progress(progress_callback, 62, "Refreshing generated LaTeX files...")
+            for src in Path(persistent_project_path).glob("*.tex"):
+                shutil.copy2(src, workspace_path / src.name)
+
+            # ==========================================================
+            # STEP 4 - SUBJECT BUILD PASS 2 (CANONICAL FINAL STATE)
+            # ==========================================================
+            #
+            # This is the most important compilation of the pipeline.
+            # After this step:
+            # - the workspace contains the final canonical subject state
+            # - promotion back to the persistent project must preserve this
+            # - ExamBuild canonical paths must point to subject artifacts only
+            # ==========================================================
+            _report_progress(
+                progress_callback,
+                72,
+                "Recompiling subject PDF with final page count...",
+            )
+
+            subject_result = compile_exam_in_workspace(
+                workspace_path,
+                timeout=timeout,
+                latex_engine=latex_engine,
+                mode="subject",
+            )
+
+            if not subject_result["ok"]:
+                mark_exam_build_error(
+                    build,
+                    error_message=subject_result["error"],
+                    build_log=subject_result.get("build_log", "") or subject_build_log,
+                )
+                return build
+
+            subject_pdf = workspace_path / "amc-compiled.pdf"
+            subject_named_pdf = workspace_path / f"{exam_prefix}-sujet.pdf"
+            if subject_pdf.exists():
+                shutil.copy2(subject_pdf, subject_named_pdf)
+
+            subject_xy = workspace_path / "calage.xy"
+            subject_named_xy = workspace_path / f"{exam_prefix}-calage.xy"
+            if subject_xy.exists():
+                shutil.copy2(subject_xy, subject_named_xy)
+
+            subject_build_log = subject_result.get("build_log", "") or subject_build_log
+            subject_amc_log_path = (
+                subject_result.get("renamed_amc_path", "")
+                or subject_result.get("amc_log_path", "")
+                or subject_amc_log_path
+            )
+            subject_xy_path = (
+                str(subject_named_xy)
+                if subject_named_xy.exists()
+                else subject_result.get("xy_path", "")
+            )
+
+            if not subject_xy_path:
+                mark_exam_build_error(
+                    build,
+                    error_message="Final subject XY path is missing after recompilation.",
+                    build_log=subject_build_log,
+                )
+                return build
+
+            _report_progress(progress_callback, 82, "Final subject PDF compiled.")
+
+            # ==========================================================
+            # STEP 5 - PROMOTE WORKSPACE TO PERSISTENT PROJECT
+            # ==========================================================
+            #
+            # Because SUBJECT was compiled last, the promoted project state
+            # naturally stays in the final subject configuration.
+            #
+            # CATALOG is still kept as a side artifact PDF, but must never be
+            # bound as the canonical build output.
+            # ==========================================================
+            _report_progress(progress_callback, 88, "Saving generated artifacts...")
+
             promoted = promote_workspace_to_project(
                 workspace_path=workspace_path,
                 persistent_project_path=persistent_project_path,
                 exam=exam,
             )
 
-            # SUBJECT is canonical for DB-related paths.
             final_subject_pdf_path = (
                 promoted.get("subject_pdf_path", "")
                 or str(subject_named_pdf)
@@ -795,6 +1024,7 @@ def build_final_exam(
                 or subject_xy_path
             )
 
+            # Canonical ExamBuild paths MUST point to subject artifacts only.
             mark_exam_build_ready(
                 build,
                 compiled_pdf_path=final_subject_pdf_path,
@@ -804,7 +1034,6 @@ def build_final_exam(
                 lock_build=True,
             )
 
-            # Keep build pointing to the persistent folder, not the temp workspace.
             build.project_path = promoted["project_path"]
             build.latex_main_path = str(Path(promoted["project_path"]) / "exam.tex")
             build.save(update_fields=["project_path", "latex_main_path", "updated_at"])
@@ -814,115 +1043,3 @@ def build_final_exam(
     except Exception as exc:
         mark_exam_build_error(build, str(exc))
         return build
-
-
-
-def generate_final_exam_files(exam, user, job_id, timeout=30):
-    """
-    Build the final exam and extract the canonical subject layout into the DB.
-
-    This is the high-level pipeline used by the application when it needs both
-    the generated files and the normalized layout rows.
-
-    Flow:
-    - build/promote subject and catalog artifacts
-    - resolve canonical subject PDF and XY files
-    - derive subject copy/page counts from the subject XY file
-    - populate ``LayoutPage`` rows using subject page metrics
-    - extract subject-only layout objects onto those pages
-
-    Returns:
-        dict: Success or error payload with artifact paths and extraction counts.
-    """
-    build = build_final_exam(
-        exam,
-        user=user,
-        timeout=timeout,
-    )
-
-    if build.status != "ready":
-        return {
-            "ok": False,
-            "error": build.error_message or "Final exam build failed.",
-            "job_id": job_id,
-            "build_id": build.pk if build else None,
-        }
-
-    try:
-        project_path = Path(build.project_path) if build.project_path else None
-        exam_prefix = exam.code or f"exam-{exam.pk}"
-
-        subject_pdf_path = ""
-        catalog_pdf_path = ""
-        subject_xy_path = build.xy_path or ""
-
-        if project_path and project_path.exists():
-            subject_pdf = project_path / f"{exam_prefix}-sujet.pdf"
-            catalog_pdf = project_path / f"{exam_prefix}-catalog.pdf"
-            subject_xy = project_path / f"{exam_prefix}-calage.xy"
-
-            if subject_pdf.exists():
-                subject_pdf_path = str(subject_pdf)
-            elif build.compiled_pdf_path:
-                subject_pdf_path = build.compiled_pdf_path
-
-            if catalog_pdf.exists():
-                catalog_pdf_path = str(catalog_pdf)
-
-            if subject_xy.exists():
-                subject_xy_path = str(subject_xy)
-
-        if not subject_xy_path:
-            raise Exception("Subject XY path is missing; cannot extract subject layout.")
-
-        # SUBJECT ONLY: determine copy/page structure from subject XY.
-        counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
-        pdf_metrics = get_pdf_page_metrics(subject_pdf_path, dpi=300.0)
-
-        if pdf_metrics["page_count"] != counts["total_pages"]:
-            raise LayoutExtractionError(
-                f"PDF/XY page mismatch: PDF={pdf_metrics['page_count']} XY={counts['total_pages']}"
-            )
-
-        page_result = populate_subject_layout_pages(
-            build,
-            total_copies=counts["total_copies"],
-            pages_per_copy=counts["pages_per_copy"],
-            dpi=pdf_metrics["dpi"],
-            width=pdf_metrics["width"],
-            height=pdf_metrics["height"],
-        )
-
-        # SUBJECT ONLY: attach boxes/zones/digits to existing pages.
-        layout_result = extract_layout_from_xy(
-            build,
-            xy_path=subject_xy_path,
-            clear_existing=True,
-        )
-
-        return {
-            "ok": True,
-            "job_id": job_id,
-            "build_id": build.pk,
-            "pdf_path": subject_pdf_path or build.compiled_pdf_path or "",
-            "subject_pdf_path": subject_pdf_path or "",
-            "catalog_pdf_path": catalog_pdf_path or "",
-            "amc_log_path": build.amc_log_path or "",
-            "xy_path": subject_xy_path,
-            "exam_calage_xy_path": subject_xy_path,
-            "page_result": page_result,
-            "layout_result": layout_result,
-        }
-
-    except Exception as e:
-        return {
-            "ok": False,
-            "error": f"Layout extraction failed: {str(e)}",
-            "job_id": job_id,
-            "build_id": build.pk,
-            "pdf_path": build.compiled_pdf_path or "",
-            "subject_pdf_path": build.compiled_pdf_path or "",
-            "catalog_pdf_path": "",
-            "amc_log_path": build.amc_log_path or "",
-            "xy_path": build.xy_path or "",
-        }

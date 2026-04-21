@@ -120,7 +120,7 @@
             editLatexPackages: "{% url 'edit_latex_packages' exam_selected.pk %}",
             saveLatexPackages: "{% url 'save_latex_edited_packages' exam_selected.pk %}",
             generateFinalStart: "{% url 'generate_final_exam_files_start' exam_selected.pk %}",
-            generateFinalStatus: "{% url 'generate_final_exam_files_status' exam_selected.pk 0 %}".replace("/0", "/__JOB_ID__")
+            celeryTaskStatusTemplate: "{% url 'celery_progress:task_status' 'TASK_ID_PLACEHOLDER' %}".replace("TASK_ID_PLACEHOLDER", "__TASK_ID__"),
         }
       };
     </script>

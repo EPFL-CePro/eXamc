@@ -745,8 +745,6 @@ def exam_preview_pdf_file(request, exam_pk, job_pk):
 def exam_preview_start(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
-    print(f"[preview] start request exam={exam.pk} user={request.user.pk}")
-
     active_jobs = ExamAMCJob.objects.filter(
         exam=exam,
         requested_by=request.user,
@@ -755,7 +753,6 @@ def exam_preview_start(request, exam_pk):
     )
 
     for active_job in active_jobs:
-        print(f"[preview] closing active job={active_job.pk}")
         active_job.status = "error"
         active_job.error_message = "Replaced by a new preview request."
         active_job.save(update_fields=["status", "error_message", "updated_at"])
@@ -780,23 +777,18 @@ def exam_preview_start(request, exam_pk):
         error_message="",
     )
 
-    print(f"[preview] created job={job.pk}")
+    async_result = compile_exam_preview_task.apply_async(
+        args=[job.pk],
+        queue="celery",
+        routing_key="celery",
+    )
 
-    def enqueue():
-        print(f"[preview] enqueueing celery task for job={job.pk}")
-        async_result = compile_exam_preview_task.apply_async(
-            args=[job.pk],
-            queue="celery",
-            routing_key="celery",
-        )
-        print(f"[preview] celery task queued for job={job.pk}, task_id={async_result.id}")
-
-    transaction.on_commit(enqueue)
-
-    print(f"[preview] response returned for job={job.pk}")
+    job.celery_task_id = async_result.id
+    job.save(update_fields=["celery_task_id", "updated_at"])
 
     return JsonResponse({
         "job_id": job.pk,
+        "task_id": async_result.id,
         "status": job.status,
         "reused": False,
     })
@@ -1083,8 +1075,6 @@ def save_latex_edited_packages(request,exam_pk):
 def generate_final_exam_files_start(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
-    print(f"[generate final exam] start request exam={exam.pk} user={request.user.pk}")
-
     active_jobs = ExamAMCJob.objects.filter(
         exam=exam,
         requested_by=request.user,
@@ -1093,16 +1083,14 @@ def generate_final_exam_files_start(request, exam_pk):
     )
 
     for active_job in active_jobs:
-        print(f"[generate final exam] closing active job={active_job.pk}")
         active_job.status = "error"
-        active_job.error_message = "Replaced by a new preview request."
+        active_job.error_message = "Replaced by a new final build request."
         active_job.save(update_fields=["status", "error_message", "updated_at"])
 
     old_jobs = ExamAMCJob.objects.filter(
         exam=exam,
         requested_by=request.user,
     )
-
     old_jobs.delete()
 
     job = ExamAMCJob.objects.create(
@@ -1114,55 +1102,18 @@ def generate_final_exam_files_start(request, exam_pk):
         error_message="",
     )
 
-    print(f"[generate final exam] created job={job.pk}")
+    async_result = generate_final_exam_files_task.apply_async(
+        args=[job.pk],
+        queue="celery",
+        routing_key="celery",
+    )
 
-    def enqueue():
-        print(f"[generate final exam] enqueueing celery task for job={job.pk}")
-        async_result = generate_final_exam_files_task.apply_async(
-            args=[job.pk],
-            queue="celery",
-            routing_key="celery",
-        )
-        print(f"[generate final exam] celery task queued for job={job.pk}, task_id={async_result.id}")
-
-    transaction.on_commit(enqueue)
-
-    print(f"[generate final exam] response returned for job={job.pk}")
+    job.celery_task_id = async_result.id
+    job.save(update_fields=["celery_task_id", "updated_at"])
 
     return JsonResponse({
         "job_id": job.pk,
+        "task_id": async_result.id,
         "status": job.status,
         "reused": False,
     })
-
-@exam_permission_required(["manage"])
-def generate_final_exam_files_status(request, exam_pk, job_pk):
-    exam = get_object_or_404(Exam, pk=exam_pk)
-    job = get_object_or_404(
-        ExamAMCJob,
-        pk=job_pk,
-        exam=exam,
-        requested_by=request.user,
-    )
-
-    data = {
-        "complete": job.status in ["success", "error"],
-        "success": True if job.status == "success" else False if job.status == "error" else None,
-        "state": job.status.upper(),
-        "progress": {
-            "pending": job.status == "pending",
-            "current": job.progress_current or 0,
-            "total": job.progress_total or 6,
-            "percent": job.progress_percent or 0,
-            "description": job.progress_message or "",
-        },
-    }
-
-    if job.status == "success":
-        result = job.result_json or {}
-        data["result"] = result
-
-    elif job.status == "error":
-        data["result"] = job.error_message or "Unknown error"
-
-    return JsonResponse(data)
