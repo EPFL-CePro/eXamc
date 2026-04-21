@@ -123,18 +123,33 @@ def markdown_to_latex_pandoc(markdown: str) -> str:
     )
     return postprocess_latex(latex)
 
-def update_exam_latex(exam: Exam):
+def write_exam_generated_vars(project_path: str, pages_per_copy: int | None) -> str:
+    if pages_per_copy is None:
+        pages_value = "2"
+    else:
+        pages_value = str(int(pages_per_copy))
+
+    vars_tex_path = Path(project_path) / "examc_generated_vars.tex"
+    vars_tex_path.write_text(
+        "% Auto-generated file - do not edit\n"
+        f"\\newcommand{{\\TotalPagesPerCopy}}{{{pages_value}}}\n",
+        encoding="utf-8",
+    )
+    return str(vars_tex_path)
+
+def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
     amc_project_path = get_amc_project_path(exam, False)
     amc_project_template_path = str(settings.AMC_PROJECTS_ROOT) + "/templates/base"
     template_exam_latex_path = amc_project_template_path + "/exam_template.tex"
     exam_latex_path_output = amc_project_path + "/exam.tex"
     exam_template = Path(template_exam_latex_path).read_text(encoding="utf-8")
     exam_tex = exam_template
+    write_exam_generated_vars(amc_project_path, pages_per_copy)
 
     #first update first page
     template_first_page_latex_path = amc_project_template_path + "/first_page_template.tex"
     first_page_latex_path_output = amc_project_path + "/first_page.tex"
-    render_first_page_tex_from_html(exam, exam.first_page_text, template_first_page_latex_path, first_page_latex_path_output)
+    render_first_page_tex_from_html(exam, exam.first_page_text, template_first_page_latex_path, first_page_latex_path_output,pages_per_copy)
 
     for section in exam.prepSections.order_by("position").all():
         template_section_header_latex_path = amc_project_template_path + "/section_header_template.tex"
@@ -170,7 +185,7 @@ def update_exam_latex(exam: Exam):
     Path(exam_latex_path_output).write_text(exam_tex, encoding="utf-8")
     return exam_latex_path_output
 
-def render_first_page_tex_from_html(exam: Exam, html: str, template_path: str, output_path: str) -> str:
+def render_first_page_tex_from_html(exam: Exam, html: str, template_path: str, output_path: str, pages_per_copy: int = None) -> str:
     template = Path(template_path).read_text(encoding="utf-8")
     latex_fragment = markdown_to_latex_pandoc(html)
 
@@ -206,7 +221,11 @@ def render_first_page_tex_from_html(exam: Exam, html: str, template_path: str, o
     )
 
     if VAR_NB_PAGES in final_tex:
-        final_tex = final_tex.replace(VAR_NB_PAGES, "\\getpagerefnumber{LastPage}")
+        if pages_per_copy is not None:
+            final_tex = final_tex.replace(VAR_NB_PAGES, str(pages_per_copy))
+        else:
+            # fallback for preview / early compile
+            final_tex = final_tex.replace(VAR_NB_PAGES, "??")
 
     Path(output_path).write_text(final_tex, encoding="utf-8")
     return output_path

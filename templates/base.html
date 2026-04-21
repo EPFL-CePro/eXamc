@@ -501,7 +501,7 @@
 {% if task_id %}
 function processProgress(progressBarElement, progressBarMessageElement, progress) {
     progressBarElement.style.width = progress.percent + "%";
-    var description = progress.description || "Processing..."
+    var description = progress.description || "Processing...";
     progressBarMessageElement.innerHTML = description;
     progressBarElement.innerText = progress.percent + "%";
 }
@@ -548,8 +548,7 @@ $(function () {
 });
 
 {% endif %}
-///-END TESTING
-    
+
 
     let ajaxInfoModalInitialized = false;
 

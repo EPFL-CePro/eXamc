@@ -482,62 +482,61 @@ def compile_exam_preview_task(self, job_id):
     job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
     print(f"[preview-task] end job={job_id} status={job.status}")
 
-# ---------------------------------------------------------------------------
-# AMC JOB PROGRESS HELPER
-# ---------------------------------------------------------------------------
-def update_amc_job_progress(job, *, current, total, message, status="running"):
-    percent = int((current / total) * 100) if total else 0
-
-    job.status = status
-    job.progress_current = current
-    job.progress_total = total
-    job.progress_percent = percent
-    job.progress_message = message
-    job.save(update_fields=[
-        "status",
-        "progress_current",
-        "progress_total",
-        "progress_percent",
-        "progress_message",
-        "updated_at",
-    ])
-
 @shared_task(bind=True)
 def generate_final_exam_files_task(self, job_id):
+    progress_recorder = ProgressRecorder(self)
+
     job = ExamAMCJob.objects.select_related("exam", "requested_by").get(pk=job_id)
     exam = job.exam
 
-    TOTAL_STEPS = 6
+    def set_progress(current, description):
+        progress_recorder.set_progress(current, 100, description=description)
+
+    def make_amc_progress_callback(progress_recorder):
+        def _callback(*, percent, message):
+            progress_recorder.set_progress(percent, 100, description=message)
+        return _callback
 
     try:
-        update_amc_job_progress(
-            job,
-            current=0,
-            total=TOTAL_STEPS,
-            message="Waiting for worker...",
-            status="pending",
-        )
+        job.status = "running"
+        job.error_message = ""
+        job.result_json = {}
+        job.pdf_path = ""
+        job.exam_build_id = None
+        job.save(update_fields=[
+            "status",
+            "error_message",
+            "result_json",
+            "pdf_path",
+            "exam_build_id",
+            "updated_at",
+        ])
 
-        update_amc_job_progress(
-            job,
-            current=1,
-            total=TOTAL_STEPS,
-            message="Generating LaTeX and compiling subject/catalog PDFs...",
-            status="running",
-        )
+        set_progress(0, "Waiting for worker...")
+        set_progress(5, "Preparing final exam build...")
+
+        progress_callback = make_amc_progress_callback(progress_recorder)
 
         build = build_final_exam(
             exam,
             user=job.requested_by,
             timeout=60,
+            progress_callback=progress_callback,
         )
 
         if build.status != "ready":
             job.status = "error"
             job.error_message = build.error_message or "Final exam build failed."
             job.exam_build_id = build.pk if build else None
-            job.save(update_fields=["status", "error_message", "exam_build_id", "updated_at"])
-            return
+            job.save(update_fields=[
+                "status",
+                "error_message",
+                "exam_build_id",
+                "updated_at",
+            ])
+            raise Exception(job.error_message)
+
+        set_progress(60, "Resolving generated artifacts...")
 
         project_path = pathlib.Path(build.project_path) if build.project_path else None
         exam_prefix = exam.code or f"exam-{exam.pk}"
@@ -565,22 +564,18 @@ def generate_final_exam_files_task(self, job_id):
         if not subject_xy_path:
             raise LayoutExtractionError("Subject XY path is missing; cannot extract subject layout.")
 
-        update_amc_job_progress(
-            job,
-            current=2,
-            total=TOTAL_STEPS,
-            message="Reading subject XY structure...",
-        )
-
+        set_progress(68, "Reading subject XY structure...")
         counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
 
-        update_amc_job_progress(
-            job,
-            current=3,
-            total=TOTAL_STEPS,
-            message="Reading subject PDF metrics...",
-        )
+        warnings = []
 
+        if counts["pages_per_copy"] % 4 != 0:
+            warnings.append(
+                f"This exam has {counts['pages_per_copy']} pages per copy. "
+                f"For booklet printing, the total number of pages per copy should be a multiple of 4."
+            )
+
+        set_progress(76, "Reading subject PDF metrics...")
         pdf_metrics = get_pdf_page_metrics(subject_pdf_path, dpi=300.0)
 
         if pdf_metrics["page_count"] != counts["total_pages"]:
@@ -588,13 +583,7 @@ def generate_final_exam_files_task(self, job_id):
                 f"PDF/XY page mismatch: PDF={pdf_metrics['page_count']} XY={counts['total_pages']}"
             )
 
-        update_amc_job_progress(
-            job,
-            current=4,
-            total=TOTAL_STEPS,
-            message="Creating layout pages...",
-        )
-
+        set_progress(86, "Creating layout pages...")
         page_result = populate_subject_layout_pages(
             build,
             total_copies=counts["total_copies"],
@@ -604,17 +593,11 @@ def generate_final_exam_files_task(self, job_id):
             height=pdf_metrics["height"],
         )
 
-        update_amc_job_progress(
-            job,
-            current=5,
-            total=TOTAL_STEPS,
-            message="Extracting layout boxes, digits, zones, and marks...",
-        )
-
+        set_progress(96, "Extracting layout boxes, digits, zones, and marks...")
         layout_result = extract_layout_from_xy(
             build,
             xy_path=subject_xy_path,
-            clear_existing=True,
+            clear_existing=False,
         )
 
         result = {
@@ -629,15 +612,16 @@ def generate_final_exam_files_task(self, job_id):
             "exam_calage_xy_path": subject_xy_path,
             "page_result": page_result,
             "layout_result": layout_result,
+            "warnings": warnings,
+            "summary": {
+                "pages": layout_result.get("pages", 0),
+                "boxes": layout_result.get("boxes", 0),
+                "marks": layout_result.get("marks", 0),
+                "zones": layout_result.get("zones", 0),
+                "digits": layout_result.get("digits", 0),
+                "unknown_payloads": layout_result.get("unknown_payloads", 0),
+            },
         }
-
-        update_amc_job_progress(
-            job,
-            current=6,
-            total=TOTAL_STEPS,
-            message="Final build complete.",
-            status="success",
-        )
 
         exam.is_finalized = True
         exam.finalized_at = timezone.now()
@@ -657,6 +641,9 @@ def generate_final_exam_files_task(self, job_id):
             "error_message",
             "updated_at",
         ])
+
+        set_progress(100, "Final build complete.")
+        return result
 
     except Exception as exc:
         job.status = "error"

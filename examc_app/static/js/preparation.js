@@ -84,7 +84,6 @@
     }
 
     let currentGenFinalJobId = null;
-    let genFinalPollingTimer = null;
     let genFinalWasSuccessful = false;
 
     function resetGenFinalUi() {
@@ -120,8 +119,17 @@
         $("#generate_final_error").hide();
 
         const summary = data.summary || {};
+        let warningsHtml = "";
+
+        if (data.warnings && data.warnings.length > 0) {
+            warningsHtml = data.warnings
+                .map(w => `<div class="alert alert-warning">${w}</div>`)
+                .join("");
+        }
+
         const resultHtml = `
             <div class="alert alert-success">Final exam generated successfully.</div>
+            ${warningsHtml}
             <div class="mb-3">
                 <strong>Build ID:</strong> ${data.build_id || "-"}<br>
                 <strong>Pages:</strong> ${summary.pages || 0}<br>
@@ -132,8 +140,7 @@
                 <strong>Unknown payloads:</strong> ${summary.unknown_payloads || 0}
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                ${data.subject_pdf_path ? `<a class="btn btn-primary btn-sm" href="${data.subject_pdf_path}" target="_blank">Open subject PDF</a>` : ""}
-                ${data.catalog_pdf_path ? `<a class="btn btn-outline-primary btn-sm" href="${data.catalog_pdf_path}" target="_blank">Open catalog PDF</a>` : ""}
+                You can now download files using the button "DOWNLOAD FINAL FILES" on the EXAM PREPARATION interface!
             </div>
         `;
 
@@ -148,13 +155,6 @@
         }, 500);
     }
 
-    function stopGenFinalPolling() {
-        if (genFinalPollingTimer) {
-            clearTimeout(genFinalPollingTimer);
-            genFinalPollingTimer = null;
-        }
-    }
-
     function generateFinalExamFiles() {
         if (!URLS.generateFinalStart) {
             console.warn("[preparation.js] Missing generateFinalStart URL");
@@ -162,14 +162,13 @@
         }
 
         genFinalWasSuccessful = false;
-        stopGenFinalPolling();
         resetGenFinalUi();
         setGenFinalLoading(true);
         showModal("#generate_final_exam_files_dialog");
 
         ajaxGet(URLS.generateFinalStart, {}, {
             success: function (data) {
-                if (!data.job_id) {
+                if (!data.job_id || !data.task_id) {
                     showGenFinalError("Impossible to start final exam files generation.");
                     return;
                 }
@@ -178,20 +177,32 @@
 
                 //use shared progress modal
                 if (typeof CeleryProgressBar !== "undefined") {
-                    const statusUrl = URLS.generateFinalStatus.replace("__JOB_ID__", data.job_id);
+                    if (!URLS.celeryTaskStatusTemplate) {
+                        showGenFinalError("Missing celery task status URL.");
+                        return;
+                    }
+
+                    const statusUrl = URLS.celeryTaskStatusTemplate.replace("__TASK_ID__", data.task_id);
 
                     showSharedProgressBarModal();
 
+                    console.log("final build start response", data);
+                    console.log("celery status template", URLS.celeryTaskStatusTemplate);
+                    console.log("statusUrl", statusUrl);
+
                     CeleryProgressBar.initProgressBar(statusUrl, {
-                        progressBarId: 'progress-bar',
-                        progressBarMessageId: 'progress-bar-message',
+                        progressBarId: "progress-bar",
+                        progressBarMessageId: "progress-bar-message",
                         pollInterval: 1000,
 
-                        onSuccess: function (progressBarElement, progressBarMessageElement, result) {
-                            progressBarElement.style.width = "100%";
-                            progressBarElement.style.backgroundColor = "#76ce60";
-                            progressBarMessageElement.textContent = "Final files generated successfully.";
+                        onProgress: function (progressBarElement, progressBarMessageElement, progress) {
+                            const description = progress.description || "Processing...";
+                            progressBarElement.style.width = progress.percent + "%";
+                            progressBarElement.innerText = progress.percent + "%";
+                            progressBarMessageElement.innerHTML = description;
+                        },
 
+                        onResult: function (resultElement, result) {
                             hideSharedProgressBarModal();
 
                             const normalized = normalizeGenFinalSuccessPayload(result);
@@ -200,24 +211,22 @@
 
                         onTaskError: function (progressBarElement, progressBarMessageElement, excMessage) {
                             progressBarElement.style.backgroundColor = "#dc4f63";
-                            progressBarMessageElement.textContent = "Generation failed: " + excMessage;
+                            progressBarMessageElement.textContent = "Generation failed: " + (excMessage || "Unknown error");
 
                             hideSharedProgressBarModal();
-                            showGenFinalError(excMessage);
+                            showGenFinalError(excMessage || "Generation failed.");
                         },
 
                         onError: function (progressBarElement, progressBarMessageElement, excMessage) {
                             progressBarElement.style.backgroundColor = "#dc4f63";
-                            progressBarMessageElement.textContent = "Error: " + excMessage;
+                            progressBarMessageElement.textContent = "Error: " + (excMessage || "Unknown error");
 
                             hideSharedProgressBarModal();
-                            showGenFinalError(excMessage);
+                            showGenFinalError(excMessage || "Error while tracking generation progress.");
                         }
                     });
-
                 } else {
-                    // fallback to old polling if progress bar not available
-                    pollGenFinalStatus(data.job_id);
+                    showGenFinalError("Celery progress bar is not available.");
                 }
             },
 
@@ -254,59 +263,24 @@
     function normalizeGenFinalSuccessPayload(result) {
         if (!result) return {};
 
+        const payload = result.result ? result.result : result;
+
         return {
-            build_id: result.build_id,
-            pdf_path: result.pdf_path || "",
-            subject_pdf_path: result.subject_pdf_path || "",
-            catalog_pdf_path: result.catalog_pdf_path || "",
-            exam_calage_xy_path: result.exam_calage_xy_path || "",
-            summary: result.summary || (result.layout_result ? {
-                pages: result.layout_result.pages || 0,
-                boxes: result.layout_result.boxes || 0,
-                marks: result.layout_result.marks || 0,
-                zones: result.layout_result.zones || 0,
-                digits: result.layout_result.digits || 0,
-                unknown_payloads: result.layout_result.unknown_payloads || 0,
+            build_id: payload.build_id,
+            pdf_path: payload.pdf_path || "",
+            subject_pdf_path: payload.subject_pdf_path || "",
+            catalog_pdf_path: payload.catalog_pdf_path || "",
+            exam_calage_xy_path: payload.exam_calage_xy_path || "",
+            warnings: payload.warnings || [],   // 👈 ADD THIS
+            summary: payload.summary || (payload.layout_result ? {
+                pages: payload.layout_result.pages || 0,
+                boxes: payload.layout_result.boxes || 0,
+                marks: payload.layout_result.marks || 0,
+                zones: payload.layout_result.zones || 0,
+                digits: payload.layout_result.digits || 0,
+                unknown_payloads: payload.layout_result.unknown_payloads || 0,
             } : {})
         };
-    }
-
-    function pollGenFinalStatus(jobId, attempt = 0) {
-        const maxAttempts = 60;
-        const url = URLS.generateFinalStatus.replace("__JOB_ID__", jobId);
-
-        if (attempt >= maxAttempts) {
-            showGenFinalError("Generation took to much time or worker is blocked");
-            return;
-        }
-
-        ajaxGet(url, {}, {
-            success: function (data) {
-                if (data.status === "pending" || data.status === "running") {
-                    setGenFinalLoading(true);
-                    genFinalPollingTimer = setTimeout(function () {
-                        pollGenFinalStatus(jobId, attempt + 1);
-                    }, 1000);
-                    return;
-                }
-
-                if (data.status === "error") {
-                    showGenFinalError(data.error || "Error during generation.");
-                    return;
-                }
-
-                if (data.status === "success" ) {
-                    stopGenFinalPolling();
-                    showGenFinalSuccess(data);
-                    return;
-                }
-
-                showGenFinalError("Generation status unattended.");
-            },
-            error: function () {
-                showGenFinalError("Error getting status.");
-            }
-        });
     }
 
     // AMC - generate final exam files
@@ -1344,7 +1318,6 @@
     }
 
     $(document).on("hidden.bs.modal", "#generate_final_exam_files_dialog", function () {
-        stopGenFinalPolling();
         currentGenFinalJobId = null;
 
         if (genFinalWasSuccessful) {
