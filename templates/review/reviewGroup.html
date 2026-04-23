@@ -95,15 +95,12 @@ e{% extends 'base.html' %}
                 <div id="mjs-toolbar" class="markerjs-toolbar d-flex">
                     <div class="toolbar-left d-flex">
                         <button type="button" class="btn btn-light" id="btn-clear"><i class="fa-solid fa-broom fa-lg"></i></button>
-                        <button type="button" class="btn btn-light" id="btn-undo"><i class="fa-solid fa-arrow-rotate-left fa-lg"></i></button>
-                        <button type="button" class="btn btn-light" id="btn-redo"><i
-                                class="fa-solid fa-arrow-rotate-right fa-lg"></i>
-                        </button>
                     </div>
                     <div id="mjs-toolbar-center" class="toolbar-center d-flex">
                         <button type="button" class="btn btn-light" id="btn-pointer"><i
                                 class="fa-solid fa-arrow-pointer fa-lg"></i></button>
                         <button type="button" class="btn btn-light" id="btn-text-marker"><i class="fa-solid fa-t fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-frame-marker"><i class="fa-regular fa-square fa-lg"></i></button>
                         <button type="button" class="btn btn-light" id="btn-freehand-marker">
                             <i class="fa-solid fa-s fa-lg" style="margin-top:10px;transform:scaleY(-1) rotate(55deg);"></i>
                             <i class="fa-solid fa-pencil fa-lg" style="margin-left:0px;"></i>
@@ -118,7 +115,7 @@ e{% extends 'base.html' %}
                 </div>
                 <div id="mjsapp" class="col-xs-6">
                     <div id ="marker-wrapper">
-                        <div id="corr_box_div" class="corr-box-div"></div>
+{#                        <div id="corr_box_div" class="corr-box-div"></div>#}
                     </div>
                 </div>
                 <div id="mjs-bottom-bar" class="markerjs-bottom-bar">

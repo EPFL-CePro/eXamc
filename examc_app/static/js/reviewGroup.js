@@ -37,9 +37,6 @@
     /** Last marker.js state for the current page (JSON object). */
     let markerState = null;
 
-    /** Data URL of the rendered annotated image. */
-    let markedImageDataUrl = null;
-
     /** ID of the currently selected row/cell in the copies/pages table. */
     let currentSourceElementId = null;
 
@@ -68,9 +65,17 @@
     // Marker.js setup
     // ---------------------------------------------------------------------------
 
-    const {MarkerArea, Renderer} = markerjs3;
+    const {MarkerArea} = markerjs3;
     const mjs3App = document.querySelector("#mjsapp");
     const markerWrapper = document.querySelector("#marker-wrapper");
+    const colorInput = document.getElementById('color-input');
+    const markerToolbarCenter = document.getElementById('mjs-toolbar-center');
+    const clearMarkersButton = document.getElementById('btn-clear');
+    const pointerButton = document.getElementById('btn-pointer');
+    const textMarkerButton = document.getElementById('btn-text-marker');
+    const frameMarkerButton = document.getElementById('btn-frame-marker');
+    const freehandMarkerButton = document.getElementById('btn-freehand-marker');
+    const colorButton = document.getElementById('btn-color');
 
     /** @type {MarkerArea} */
     let markerArea = new MarkerArea();
@@ -85,6 +90,12 @@
      * @type {string|null}
      */
     let selectedMarkerEditor = null;
+    let markerToolbarDomBound = false;
+    let deleteKeyHandlerBound = false;
+    let suppressMarkerPersistence = 0;
+    let lastPersistedMarkerState = null;
+    let allowHighlightOnlySaveOnce = false;
+    let resizeInProgress = false;
 
     // ---------------------------------------------------------------------------
     // Initial wiring & global event listeners
@@ -111,7 +122,17 @@
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
-            layoutSourceImageAndBoxes();
+            if (!currentReviewCopyNo() || !currentReviewPageNo() || resizeInProgress) {
+                return;
+            }
+            resizeInProgress = true;
+            try {
+                const copyNo = currentReviewCopyNo();
+                const pageNo = currentReviewPageNo();
+                setMarkerArea(copyNo, pageNo, true);
+            } finally {
+                resizeInProgress = false;
+            }
         }, 150);
     });
 
@@ -124,39 +145,136 @@
     }
 
     /**
+     * Markerjs helpers
+     */
+    function getStageCorrBoxDiv() {
+        const stage = getMarkerStage();
+        if (!stage) return null;
+
+        let corrBoxDiv = stage.querySelector('#corr_box_div');
+        if (!corrBoxDiv) {
+            corrBoxDiv = document.createElement('div');
+            corrBoxDiv.id = 'corr_box_div';
+            stage.appendChild(corrBoxDiv);
+        }
+
+        corrBoxDiv.style.position = 'absolute';
+        corrBoxDiv.style.left = '0';
+        corrBoxDiv.style.top = '0';
+        corrBoxDiv.style.width = '100%';
+        corrBoxDiv.style.height = '100%';
+        corrBoxDiv.style.margin = '0';
+        corrBoxDiv.style.zIndex = '1000';
+        corrBoxDiv.style.pointerEvents = 'none';
+        corrBoxDiv.style.gridColumnStart = '1';
+        corrBoxDiv.style.gridRowStart = '1';
+
+        return corrBoxDiv;
+    }
+
+    function getMarkerStage() {
+        if (!markerArea?.shadowRoot) return null;
+        return markerArea.shadowRoot.querySelector('.canvas-container > div');
+    }
+
+    function waitForMarkerReadyAndMount(tries = 20) {
+        const stage = getMarkerStage();
+
+        if (!stage) {
+            if (tries > 0) {
+                requestAnimationFrame(() => waitForMarkerReadyAndMount(tries - 1));
+            }
+            return;
+        }
+
+        // IMPORTANT: wait until markerjs actually inserted the image
+        const img = stage.querySelector('img');
+        if (!img) {
+            if (tries > 0) {
+                requestAnimationFrame(() => waitForMarkerReadyAndMount(tries - 1));
+            }
+            return;
+        }
+
+        const mounted = mountCorrBoxOverlayInStage();
+
+        if (mounted && correctorBoxesData?.length) {
+            drawCorrectorBoxes();
+        }
+    }
+
+    function mountCorrBoxOverlayInStage(tries = 10) {
+        const stage = getMarkerStage();
+
+        if (!stage) {
+            if (tries > 0) {
+                requestAnimationFrame(() => mountCorrBoxOverlayInStage(tries - 1));
+            }
+            return null;
+        }
+
+        return getStageCorrBoxDiv();
+    }
+
+    function currentReviewCopyNo() {
+        return currentSourceIdParts[1];
+    }
+
+    function currentReviewPageNo() {
+        return currentSourceIdParts[2];
+    }
+
+    function currentPageIsInReviewGroup(copyNo, pageNo) {
+        return copiesPagesList.some(item =>
+            item.copy_no === copyNo && item.page_no === pageNo
+        );
+    }
+
+    function bindMarkerWheelToWrapper() {
+        if (!markerArea || !markerArea.shadowRoot) return;
+
+        const canvasContainer = markerArea.shadowRoot.querySelector('.canvas-container');
+        if (!canvasContainer) return;
+
+        if (canvasContainer.__wheelBound) return;
+        canvasContainer.__wheelBound = true;
+
+        canvasContainer.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            markerWrapper.scrollTop += e.deltaY;
+            markerWrapper.scrollLeft += e.deltaX;
+        }, { passive: false });
+    }
+
+    /**
      * Attach image to markerArea, size it to fit, and redraw corrector boxes.
      */
     function layoutSourceImageAndBoxes() {
         markerArea.targetImage = sourceImage;
 
-        if (!mjs3App.contains(markerArea)) {
-            mjs3App.appendChild(markerArea);
+        if (!markerWrapper.contains(markerArea)) {
+            markerWrapper.appendChild(markerArea);
         }
 
         const rect = mjs3App.getBoundingClientRect();
         const imgW = sourceImage.naturalWidth || 1;
         const imgH = sourceImage.naturalHeight || 1;
-        // const imageRatio = imgW / imgH;
-        // const targetWidth = rect.width - 20;
-        // const targetHeight = targetWidth / imageRatio;
+        const imageRatio = imgW / imgH;
 
-        // markerArea.targetWidth = targetWidth;
-        // markerArea.targetHeight = targetHeight;
+        const targetWidth = rect.width - 20;
+        const targetHeight = targetWidth / imageRatio;
 
-        const maxWidth = rect.width - 20;
-        const maxHeight = rect.height - 20;
+        markerArea.targetWidth = targetWidth;
+        markerArea.targetHeight = targetHeight;
 
-        const scale = Math.min(maxWidth / imgW, maxHeight / imgH);
-
-        markerArea.targetWidth = imgW * scale;
-        markerArea.targetHeight = imgH * scale;
-
-        $("#corrector_boxes_svg").empty();
-        $("#corr_box_div").empty();
-        $("#corr_box_div").removeAttr("style");
-        if (Array.isArray(correctorBoxesData) && correctorBoxesData.length > 0) {
-            drawCorrectorBoxes();
+        const stage = getMarkerStage();
+        const existingStageOverlay = stage?.querySelector('#corr_box_div');
+        if (existingStageOverlay) {
+            existingStageOverlay.innerHTML = '';
         }
+        waitForMarkerReadyAndMount();
     }
 
     // ---------------------------------------------------------------------------
@@ -370,11 +488,11 @@
 
         if (!color) return;
 
-        document.getElementById('color-input').value = color;
+        colorInput.value = color;
     }
 
     // Apply color picker changes back to current marker editor
-    document.getElementById('color-input').addEventListener('input', (ev) => {
+    colorInput.addEventListener('input', (ev) => {
         const editor = markerArea.currentMarkerEditor;
         if (!editor) return;
 
@@ -393,95 +511,128 @@
      * Update toolbar active button and bottom bar visibility based on selected editor.
      */
     function updateMarkerToolbarSelection() {
-        const buttons = document.querySelectorAll('#mjs-toolbar-center .btn');
+        const buttons = markerToolbarCenter.querySelectorAll('.btn');
         buttons.forEach(btn => btn.classList.remove('active'));
 
         switch (selectedMarkerEditor) {
             case 'TextMarker':
-                document.getElementById('btn-text-marker').classList.add('active');
+                textMarkerButton.classList.add('active');
+                showBottomBar(true);
+                break;
+            case 'FrameMarker':
+                frameMarkerButton.classList.add('active');
                 showBottomBar(true);
                 break;
             case 'FreehandMarker':
-                document.getElementById('btn-freehand-marker').classList.add('active');
+                freehandMarkerButton.classList.add('active');
                 showBottomBar(true);
                 break;
             default:
-                document.getElementById('btn-pointer').classList.add('active');
+                pointerButton.classList.add('active');
                 showBottomBar(false);
         }
     }
 
+    function applyCorrBoxHighlightToCurrentPage(corrBoxIndex, tries = 20) {
+        const index = Number(corrBoxIndex);
+
+        if (index === -1) {
+            createMarker4CorrBox(-1, -1, -1, -1, false);
+            return true;
+        }
+
+        if (!correctorBoxesData.length) {
+            return false;
+        }
+
+        const corrBoxDiv = getStageCorrBoxDiv();
+        const corrBoxesPolygons = corrBoxDiv?.querySelectorAll('#corrector_boxes_svg polygon');
+        const polygonEl = corrBoxesPolygons?.[index];
+
+        if (!polygonEl) {
+            if (tries > 0) {
+                requestAnimationFrame(() => applyCorrBoxHighlightToCurrentPage(index, tries - 1));
+            }
+            return false;
+        }
+
+        const pos = polygonEl
+            .getAttribute('data-bounds')
+            .split(',')
+            .map(Number);
+
+        createMarker4CorrBox(pos[0], pos[1], pos[2], pos[3], false);
+        return true;
+    }
+
     /**
-     * Attach event handlers for marker toolbar buttons and markerArea events.
-     * Called each time a new MarkerArea instance is created.
+     * Attach one-time DOM/global handlers for marker toolbar actions.
      */
-    function bindMarkerToolbarEvents() {
-        // Text marker
-        document.getElementById('btn-text-marker').addEventListener('click', function () {
+    function bindMarkerToolbarDomEvents() {
+        if (markerToolbarDomBound) {
+            return;
+        }
+        markerToolbarDomBound = true;
+
+        textMarkerButton.addEventListener('click', function () {
             markerArea.createMarker("TextMarker");
             selectedMarkerEditor = "TextMarker";
             updateMarkerToolbarSelection();
         });
 
-        // Freehand marker
-        document.getElementById('btn-freehand-marker').addEventListener('click', function () {
+        frameMarkerButton.addEventListener('click', function () {
+            markerArea.createMarker("FrameMarker");
+            selectedMarkerEditor = "FrameMarker";
+            updateMarkerToolbarSelection();
+        });
+
+        freehandMarkerButton.addEventListener('click', function () {
             markerArea.createMarker("FreehandMarker");
             selectedMarkerEditor = "FreehandMarker";
             updateMarkerToolbarSelection();
         });
 
-        // Pointer / selection
-        document.getElementById('btn-pointer').addEventListener('click', function () {
+        pointerButton.addEventListener('click', function () {
             markerArea.switchToSelectMode();
             selectedMarkerEditor = null;
             updateMarkerToolbarSelection();
         });
 
-        // Clear markers (except HighlightMarker)
-        document.getElementById('btn-clear').addEventListener('click', function () {
+        clearMarkersButton.addEventListener('click', function () {
             const currentState = markerArea.getState();
             currentState.markers = currentState.markers.filter(
                 m => m.typeName === 'HighlightMarker'
             );
-            markerArea.restoreState(currentState);
+            allowHighlightOnlySaveOnce = true;
+            restoreMarkerAreaState(currentState);
             layoutSourceImageAndBoxes();
-            onMarkerChange();
+            onMarkerChange({allowHighlightOnly: true});
         });
 
-        // Undo / Redo
-        document.getElementById('btn-undo').addEventListener('click', function () {
-            if (markerArea.isUndoPossible) {
-                markerArea.undo();
-                onMarkerChange();
-            }
-        });
-
-        document.getElementById('btn-redo').addEventListener('click', function () {
-            if (markerArea.isRedoPossible) {
-                markerArea.redo();
-                onMarkerChange();
-            }
-        });
-
-        // Color button triggers color input
-        document.getElementById('btn-color').addEventListener('click', (e) => {
+        colorButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.getElementById('color-input').click();
+            colorInput.click();
         });
 
-        // Delete key → delete selected markers (except when typing in an input)
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Delete') {
-                const tag = document.activeElement && document.activeElement.tagName;
-                if (tag === 'INPUT' || tag === 'TEXTAREA') {
-                    return;
+        if (!deleteKeyHandlerBound) {
+            deleteKeyHandlerBound = true;
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Delete') {
+                    const tag = document.activeElement && document.activeElement.tagName;
+                    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                        return;
+                    }
+                    markerArea.deleteSelectedMarkers();
+                    e.preventDefault();
                 }
-                markerArea.deleteSelectedMarkers();
-                e.preventDefault();
-            }
-        });
+            });
+        }
+    }
 
-        // Marker events
+    /**
+     * Attach per-MarkerArea listeners. Called each time a new MarkerArea instance is created.
+     */
+    function bindMarkerAreaInstanceEvents() {
         markerArea.addEventListener('markerdeselect', (ev) => {
             if (selectedMarkerEditor === ev.detail.markerEditor.marker.typeName) {
                 selectedMarkerEditor = null;
@@ -491,7 +642,7 @@
         });
 
         markerArea.addEventListener("markerdelete", () => {
-            onMarkerChange();
+            onMarkerChange({allowHighlightOnly: true, allowEmpty: true});
             showBottomBar(false);
         });
 
@@ -510,6 +661,28 @@
         });
     }
 
+    function restoreMarkerAreaState(state) {
+        suppressMarkerPersistence += 1;
+        try {
+            markerArea.restoreState(state);
+        } finally {
+            // markerjs may emit marker events during restore; keep persistence
+            // disabled until the next frame to avoid saving partial state.
+            requestAnimationFrame(() => {
+                suppressMarkerPersistence = Math.max(0, suppressMarkerPersistence - 1);
+            });
+        }
+    }
+
+    function hasNonHighlightMarkers(state) {
+        return Boolean(state?.markers?.some(marker => marker.typeName !== 'HighlightMarker'));
+    }
+
+    function hasOnlyHighlightMarkers(state) {
+        return Boolean(state?.markers?.length) &&
+            state.markers.every(marker => marker.typeName === 'HighlightMarker');
+    }
+
     // ---------------------------------------------------------------------------
     // MarkerArea lifecycle
     // ---------------------------------------------------------------------------
@@ -523,10 +696,13 @@
      * @returns {boolean} true if markers loaded (page unlocked), false if locked.
      */
     function setMarkerArea(copyNo, pageNo, fromCopy = false) {
-        markerWrapper.removeChild(markerArea);
+        if (markerWrapper.contains(markerArea)) {
+            markerWrapper.removeChild(markerArea);
+        }
         markerArea = new MarkerArea();
         markerWrapper.appendChild(markerArea);
-        bindMarkerToolbarEvents();
+        bindMarkerToolbarDomEvents();
+        bindMarkerAreaInstanceEvents();
         updateMarkerToolbarSelection();
 
         const ok = fetchMarkersAndComments(examId, copyNo, pageNo, fromCopy);
@@ -537,23 +713,38 @@
         pageNo = currentSourceIdParts[2];
 
         if (markerState) {
-            markerArea.restoreState(markerState);
+            restoreMarkerAreaState(markerState);
         }
+        requestAnimationFrame(() => {
+            bindMarkerWheelToWrapper();
+        });
 
         return true;
     }
 
     /**
-     * Called whenever markers change: rasterizes state and sends it to backend.
+     * Called whenever markers change: saves current marker state to backend.
      */
-    async function onMarkerChange() {
-        const renderer = new Renderer();
-        renderer.targetImage = markerArea.targetImage;
-        renderer.naturalSize = true;
-        renderer.imageType = 'image/jpeg';
-
-        markedImageDataUrl = await renderer.rasterize(markerArea.getState());
-        persistMarkers(markerArea, examId, pagesGroupId);
+    async function onMarkerChange(options = {}) {
+        if (suppressMarkerPersistence > 0) {
+            return;
+        }
+        const stateSnapshot = markerArea.getState();
+        const allowHighlightOnly = options.allowHighlightOnly === true;
+        const allowEmpty = options.allowEmpty === true;
+        // Grading/corr-box restore can transiently produce a highlight-only state.
+        // Do not let that overwrite a page that already has real annotations.
+        if (
+            hasOnlyHighlightMarkers(stateSnapshot) &&
+            hasNonHighlightMarkers(lastPersistedMarkerState) &&
+            !allowHighlightOnlySaveOnce &&
+            !allowHighlightOnly
+        ) {
+            return;
+        }
+        allowHighlightOnlySaveOnce = false;
+        markerState = stateSnapshot;
+        persistMarkers(stateSnapshot, examId, pagesGroupId, allowHighlightOnly, allowEmpty);
     }
 
     // ---------------------------------------------------------------------------
@@ -699,12 +890,8 @@
             },
             success: () => {
                 setMarkerArea(copyNo, pageNo, true);
-                //disable grading scheme if not in pages group for review
-                const exists = copiesPagesList.some(item =>
-                  item.copy_no === copyNo && item.page_no === pageNo
-                );
                 if(useGradingScheme) {
-                    setGradingSchemeBlockActive(exists);
+                    setGradingSchemeBlockActive(currentPageIsInReviewGroup(copyNo, pageNo));
                 }
             },
         });
@@ -745,10 +932,12 @@
                         success: (raw) => {
                             if (raw !== "None") {
                                 const dataFull = JSON.parse(raw);
+                                const parsedMarkers = JSON.parse(dataFull.markers);
 
                                 setSourceScan(dataFull.copyPageUrl, fromCopy);
 
-                                markerState = JSON.parse(dataFull.markers);
+                                markerState = parsedMarkers;
+                                lastPersistedMarkerState = parsedMarkers;
                                 const comments = dataFull.comments;
                                 correctorBoxesData = JSON.parse(dataFull.corrector_boxes);
                                 initComments(comments);
@@ -786,45 +975,26 @@
      * Draw corrector boxes as SVG polygons overlayed on the image.
      * Uses original coordinates (correctorBoxesData) scaled to current zoom.
      */
+
     function drawCorrectorBoxes() {
         const svgns = 'http://www.w3.org/2000/svg';
 
-        const baseWidth = sourceImage.naturalWidth || 1;
-        let imgScale = markerArea.targetWidth / baseWidth;
-        imgScale = imgScale * markerArea.zoomLevel;
-
-        const corrBoxDiv = document.getElementById('corr_box_div');
+        const corrBoxDiv = getStageCorrBoxDiv();
         if (!corrBoxDiv) return;
 
-        corrBoxDiv.style.position = 'absolute';
-        corrBoxDiv.style.zIndex = '988';
-        corrBoxDiv.style.width = '75%';
+        const baseWidth = sourceImage.naturalWidth || 1;
+        const imgScale = markerArea.targetWidth / baseWidth;
 
-        const xs = correctorBoxesData.map(p => p.x);
-        const ys = correctorBoxesData.map(p => p.y);
+        corrBoxDiv.innerHTML = '';
 
-        const minX = Math.min(...xs);
-        const maxX = Math.max(...xs);
-        const minY = Math.min(...ys);
-        const maxY = Math.max(...ys);
+        const boxesSvg = document.createElementNS(svgns, 'svg');
+        boxesSvg.id = 'corrector_boxes_svg';
+        boxesSvg.setAttribute('width', `${markerArea.targetWidth}`);
+        boxesSvg.setAttribute('height', `${markerArea.targetHeight}`);
+        boxesSvg.setAttribute('viewBox', `0 0 ${markerArea.targetWidth} ${markerArea.targetHeight}`);
+        boxesSvg.setAttribute('style', 'width:100%;height:100%;pointer-events:none;');
 
-        const xPos = minX * imgScale;
-        const yPos = minY * imgScale;
-        const margin = 10;
-
-        corrBoxDiv.id = 'corr_box_div';
-        corrBoxDiv.style.height = `${(maxY - minY) * imgScale}px`;
-        corrBoxDiv.style.left = `${xPos}px`;
-        corrBoxDiv.style.top = `${yPos}px`;
-        corrBoxDiv.style.margin = `${margin}px`;
-
-        let boxesSvg = corrBoxDiv.querySelector('#corrector_boxes_svg');
-        if (!boxesSvg) {
-            boxesSvg = document.createElementNS(svgns, 'svg');
-            boxesSvg.id = 'corrector_boxes_svg';
-            boxesSvg.setAttribute('style', 'width:100%;height:100%;');
-            corrBoxDiv.appendChild(boxesSvg);
-        }
+        corrBoxDiv.appendChild(boxesSvg);
 
         let polygon = null;
         let boxLeft = 0;
@@ -832,52 +1002,152 @@
         let boxWidth = 0;
         let boxHeight = 0;
 
-        for (let pos of correctorBoxesData) {
+        for (const pos of correctorBoxesData) {
+            const sx = pos.x * imgScale;
+            const sy = pos.y * imgScale;
+
             if (pos.corner === 1) {
-                boxLeft = pos.x * imgScale;
-                boxTop = pos.y * imgScale;
+                boxLeft = sx;
+                boxTop = sy;
                 polygon = document.createElementNS(svgns, 'polygon');
             }
 
             if (polygon) {
                 const point = boxesSvg.createSVGPoint();
-                point.x = pos.x * imgScale - xPos;
-                point.y = pos.y * imgScale - yPos;
+                point.x = sx;
+                point.y = sy;
                 polygon.points.appendItem(point);
             }
 
             if (pos.corner === 2) {
-                boxWidth = (pos.x * imgScale) - boxLeft;
+                boxWidth = sx - boxLeft;
             }
 
             if (pos.corner === 4 && polygon) {
-                boxHeight = (pos.y * imgScale) - boxTop;
-                boxesSvg.appendChild(polygon);
+                boxHeight = sy - boxTop;
+
+                const clickLeft = boxLeft;
+                const clickTop = boxTop;
+                const clickWidth = boxWidth;
+                const clickHeight = boxHeight;
+
                 polygon.setAttribute('fill', 'transparent');
                 polygon.setAttribute('stroke', 'purple');
                 polygon.setAttribute('stroke-width', '3');
                 polygon.setAttribute('opacity', '0.7');
-                polygon.setAttribute('data-bounds', `${boxLeft},${boxTop},${boxWidth},${boxHeight}`);
+                polygon.setAttribute('data-bounds', `${clickLeft},${clickTop},${clickWidth},${clickHeight}`);
+                polygon.style.pointerEvents = 'none';
+
                 if (!useGradingScheme) {
-                    polygon.setAttribute(
-                        'onclick',
-                        `createMarker4CorrBox(${boxLeft},${boxTop},${boxWidth},${boxHeight});`
-                    );
+                    polygon.style.pointerEvents = 'auto';
+                    polygon.addEventListener('click', () => {
+                        createMarker4CorrBox(clickLeft, clickTop, clickWidth, clickHeight);
+                    });
                 }
+
+                boxesSvg.appendChild(polygon);
                 polygon = null;
             }
         }
-
-        const corrHeight = maxY * imgScale - yPos + 1;
-        corrBoxDiv.style.height = `${corrHeight}px`;
     }
+    // function drawCorrectorBoxes() {
+    //     const svgns = 'http://www.w3.org/2000/svg';
+    //
+    //     const baseWidth = sourceImage.naturalWidth || 1;
+    //     let imgScale = markerArea.targetWidth / baseWidth;
+    //     imgScale = imgScale * markerArea.zoomLevel;
+    //
+    //     const corrBoxDiv = document.getElementById('corr_box_div');
+    //     if (!corrBoxDiv) return;
+    //
+    //     corrBoxDiv.style.position = 'absolute';
+    //     corrBoxDiv.style.zIndex = '988';
+    //     corrBoxDiv.style.width = '75%';
+    //
+    //     const xs = correctorBoxesData.map(p => p.x);
+    //     const ys = correctorBoxesData.map(p => p.y);
+    //
+    //     const minX = Math.min(...xs);
+    //     const maxX = Math.max(...xs);
+    //     const minY = Math.min(...ys);
+    //     const maxY = Math.max(...ys);
+    //
+    //     const stageOffset = getMarkerStageOffset();
+    //
+    //     const xPos = minX * imgScale + stageOffset.x;
+    //     const yPos = minY * imgScale + stageOffset.x;
+    //     const marginLeft = 10;
+    //
+    //     corrBoxDiv.id = 'corr_box_div';
+    //     corrBoxDiv.style.height = `${(maxY - minY) * imgScale}px`;
+    //     corrBoxDiv.style.left = `${xPos}px`;
+    //     corrBoxDiv.style.top = `${yPos}px`;
+    //     corrBoxDiv.style.marginLeft = `${marginLeft}px`;
+    //
+    //     let boxesSvg = corrBoxDiv.querySelector('#corrector_boxes_svg');
+    //     if (!boxesSvg) {
+    //         boxesSvg = document.createElementNS(svgns, 'svg');
+    //         boxesSvg.id = 'corrector_boxes_svg';
+    //         boxesSvg.setAttribute('style', 'width:100%;height:100%;');
+    //         corrBoxDiv.appendChild(boxesSvg);
+    //     }
+    //
+    //     let polygon = null;
+    //     let boxLeft = 0;
+    //     let boxTop = 0;
+    //     let boxWidth = 0;
+    //     let boxHeight = 0;
+    //
+    //     for (let pos of correctorBoxesData) {
+    //         if (pos.corner === 1) {
+    //             boxLeft = pos.x * imgScale;
+    //             boxTop = pos.y * imgScale;
+    //             polygon = document.createElementNS(svgns, 'polygon');
+    //         }
+    //
+    //         if (polygon) {
+    //             const point = boxesSvg.createSVGPoint();
+    //             point.x = pos.x * imgScale - xPos;
+    //             point.y = pos.y * imgScale - yPos;
+    //             polygon.points.appendItem(point);
+    //         }
+    //
+    //         if (pos.corner === 2) {
+    //             boxWidth = (pos.x * imgScale) - boxLeft;
+    //         }
+    //
+    //         if (pos.corner === 4 && polygon) {
+    //             boxHeight = (pos.y * imgScale) - boxTop;
+    //             boxesSvg.appendChild(polygon);
+    //             polygon.setAttribute('fill', 'transparent');
+    //             polygon.setAttribute('stroke', 'purple');
+    //             polygon.setAttribute('stroke-width', '3');
+    //             polygon.setAttribute('opacity', '0.7');
+    //             polygon.setAttribute('data-bounds', `${boxLeft},${boxTop},${boxWidth},${boxHeight}`);
+    //             if (!useGradingScheme) {
+    //                 polygon.setAttribute(
+    //                     'onclick',
+    //                     `createMarker4CorrBox(${boxLeft},${boxTop},${boxWidth},${boxHeight});`
+    //                 );
+    //             }
+    //             polygon = null;
+    //         }
+    //     }
+    //
+    //     const corrHeight = maxY * imgScale - yPos + 1;
+    //     corrBoxDiv.style.height = `${corrHeight}px`;
+    // }
 
     /**
      * Highlight a corrector box using a single HighlightMarker in MarkerArea.
      * If left = -1, all highlight markers are removed.
      */
-    function createMarker4CorrBox(left, top, width, height) {
-        const state = markerArea.getState();
+    function createMarker4CorrBox(left, top, width, height, persist = true) {
+        const liveState = markerArea.getState();
+        const state =
+            liveState?.markers?.length || !markerState?.markers?.length
+                ? liveState
+                : markerState;
         const markers = state.markers ? [...state.markers] : [];
 
         let shouldAddMarker = true;
@@ -917,8 +1187,11 @@
         }
 
         const newState = {...state, markers};
-        markerArea.restoreState(newState);
-        onMarkerChange();
+        markerState = newState;
+        restoreMarkerAreaState(newState);
+        if (persist) {
+            onMarkerChange();
+        }
     }
 
     // ---------------------------------------------------------------------------
@@ -948,7 +1221,7 @@
     /**
      * Send markers + rasterized image to backend and keep table highlight in sync.
      */
-    function persistMarkers(markerAreaParam, examIdParam, groupId) {
+    function persistMarkers(markerStateParam, examIdParam, groupId, allowHighlightOnly = false, allowEmpty = false) {
         const copyNo = currentSourceIdParts[1];
         const pageNo = currentSourceIdParts[2];
         const rowId = currentSourceIdParts[3];
@@ -958,13 +1231,13 @@
             groupId,
             copyNo,
             pageNo,
-            JSON.stringify(markerAreaParam.getState()),
-            markedImageDataUrl,
+            JSON.stringify(markerStateParam),
             sourceImage.getAttribute("src"),
-            rowId
+            rowId,
+            allowHighlightOnly,
+            allowEmpty
         );
 
-        initCopyPagesTableOnClickRowEvent(true);
         const currentEl = document.getElementById(currentSourceElementId);
         if (currentEl) {
             currentEl.style.backgroundColor = "yellow";
@@ -974,7 +1247,7 @@
     /**
      * AJAX: save markers and rasterized image to backend.
      */
-    function saveMarkers(examIdParam, groupId, copyNo, pageNo, markersJson, markedImgDataUrl, filename, rowId) {
+    function saveMarkers(examIdParam, groupId, copyNo, pageNo, markersJson, filename, rowId, allowHighlightOnly, allowEmpty) {
         $.ajax({
             url: urls.saveMarkers,
             type: "POST",
@@ -985,10 +1258,12 @@
                 'copy_no': copyNo,
                 'page_no': "" + pageNo,
                 'markers': markersJson,
-                'marked_img_dataUrl': markedImgDataUrl,
-                'filename': filename
+                'filename': filename,
+                'allow_highlight_only_replace': allowHighlightOnly ? 'true' : 'false',
+                'allow_empty_replace': allowEmpty ? 'true' : 'false'
             },
             success: (marked) => {
+                lastPersistedMarkerState = JSON.parse(markersJson);
                 const markedInfoEl = document.getElementById(currentSourceElementId + "_marked");
                 if (!markedInfoEl) return;
 
@@ -1351,16 +1626,9 @@
                 if (corrBoxIndex === -1) {
                     createMarker4CorrBox(-1, -1, -1, -1);
                 } else {
-                    const corrBoxesPolygons =
-                        document.querySelectorAll('#corrector_boxes_svg polygon');
-                    const polygonEl =
-                        corrBoxesPolygons[parseInt(corrBoxIndex, 10)];
-                    if (polygonEl) {
-                        const pos = polygonEl
-                            .getAttribute('data-bounds')
-                            .split(',')
-                            .map(Number);
-                        createMarker4CorrBox(pos[0], pos[1], pos[2], pos[3]);
+                    if (!applyCorrBoxHighlightToCurrentPage(corrBoxIndex)) {
+                        reloadGradingSchemeCheckboxPanel(currentGradingSchemeId);
+                        return;
                     }
                 }
 
@@ -1408,6 +1676,8 @@
 
             const usedId = e.detail.xhr &&
                 e.detail.xhr.getResponseHeader('X-Used-Grading-Scheme-Id');
+            const corrBoxIndex = e.detail.xhr &&
+                e.detail.xhr.getResponseHeader('X-Corr-Box-Index');
             const activeId = usedId || el.id.replace('review-scheme-link-', '');
             currentGradingSchemeId = activeId;
 
@@ -1421,6 +1691,10 @@
                 disableOtherSchemesExcept(usedId);
             } else {
                 enableAllSchemes();
+            }
+
+            if (corrBoxIndex != null) {
+                applyCorrBoxHighlightToCurrentPage(corrBoxIndex);
             }
 
             const toActivate = document.getElementById('review-scheme-link-' + activeId);

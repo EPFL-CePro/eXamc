@@ -22,9 +22,12 @@ from django.conf import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock
 from examc_app.utils.amc_functions import amc_automatic_data_capture, amc_annotate
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
+from examc_app.utils.marker_rendering import regenerate_marked_scans_for_exam
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
 
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 
 @shared_task(bind=True)
@@ -328,6 +331,15 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
         if not os.path.exists(export_tmp_dir):
             os.mkdir(export_tmp_dir)
 
+        total_markers = regenerate_marked_scans_for_exam(
+            exam,
+            progress_callback=lambda index, total: progress_recorder.set_progress(
+                index,
+                total,
+                description=f"{index}/{total} - Rendering marked scans..."
+            )
+        )
+
         # list files from scans dir
         dir_list = [x for x in os.listdir(scans_dir) if x != '0000']
         for dir in sorted(dir_list):
@@ -338,6 +350,9 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
                 os.mkdir(copy_export_subdir)
 
             for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+                if pathlib.Path(filename).suffix.lower() not in IMAGE_EXTENSIONS:
+                    continue
+
                 # check if a marked file exist, if yes copy it, or copy original scans
 
                 marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))

@@ -1,37 +1,31 @@
 #mjsapp {
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
     position: relative;
-    display: flex;
+    display: block;
+    overflow: hidden;
 }
 
 #markerjs_div {
     height: calc(100vh - 140px);
     display: flex;
-    aspect-ratio: 1/1.49;
     flex-direction: column;
     border-bottom: 1px solid #3a3a3a;
+    min-height: 0;
 }
 
 #marker-wrapper {
     position: relative;
     width: 100%;
     height: 100%;
-    display: block !important;
-    overflow-y: auto;
-    overflow-x: auto;
+    overflow: hidden;
     background: #3a3a3a;
 }
 
-#marker-wrapper mjs-marker-area {
-    position: relative;
-    z-index: 0;
-}
-
 mjs-marker-area {
-    /*flex: 1 1 auto;*/
     width: 100%;
-    height: 100%;
+    height: auto !important;
     display: block !important;
     overflow: visible;
     background: #3a3a3a;

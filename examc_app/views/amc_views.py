@@ -17,6 +17,7 @@ from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip, amc_annotate_task
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
+from examc_app.utils.marker_rendering import regenerate_marked_scans_for_exam, regenerate_marked_scans_for_page_markers
 from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
 
 
@@ -310,6 +311,17 @@ def call_amc_automatic_data_capture(request,from_review,exam_pk):
 def import_scans_from_review_pages(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     scans_list = request.POST.getlist('pages_list[]')
+    selected_filenames = {pathlib.Path(scan).name for scan in scans_list}
+
+    if selected_filenames:
+        selected_page_markers = [
+            page_markers
+            for page_markers in PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
+            if pathlib.Path(page_markers.filename).name in selected_filenames
+        ]
+        if selected_page_markers:
+            regenerate_marked_scans_for_page_markers(selected_page_markers)
+
     amc_proj_path = get_amc_project_path(exam, False)
     file_list_path = amc_proj_path + "/list-file"
     if os.path.exists(file_list_path):
@@ -317,7 +329,15 @@ def import_scans_from_review_pages(request, exam_pk):
 
     with open(file_list_path, "w") as f:
         for scan in scans_list:
-            f.write(scan + "\n")
+            scan_path = pathlib.Path(scan)
+            marked_scan = pathlib.Path(
+                str(scan_path).replace(str(settings.SCANS_ROOT), str(settings.MARKED_SCANS_ROOT))
+            )
+            marked_scan = marked_scan.with_name(f"marked_{marked_scan.stem}.png")
+            if marked_scan.exists():
+                f.write(str(marked_scan) + "\n")
+            else:
+                f.write(scan + "\n")
 
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
@@ -335,6 +355,9 @@ def import_scans_from_review(request, exam_pk):
     print('*********** scans dir: '+scans_dir)
     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
         exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+
+    regenerate_marked_scans_for_exam(exam)
+
     export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
         exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
     export_subdir = export_subdir.replace(" ", "_")
@@ -355,9 +378,10 @@ def import_scans_from_review(request, exam_pk):
         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
             # check if a marked file exist, if yes copy it, or copy original scans
 
-            marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
+            scan_filename = pathlib.Path(filename)
+            marked_file_path = pathlib.Path(marked_dir) / dir / f"marked_{scan_filename.stem}.png"
             if os.path.exists(marked_file_path):
-                shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
+                shutil.copyfile(marked_file_path, copy_export_subdir + "/" + marked_file_path.name)
             else:
                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
@@ -366,9 +390,8 @@ def import_scans_from_review(request, exam_pk):
     print('########### scans dir: '+scans_dir)
     files = sorted(glob.glob(scans_dir + '/**/*.*', recursive=True))
     for file in files:
-        marked_file_path = file.replace(scans_dir,marked_dir).rsplit('/', 1)[0]
-        marked_file_path += "/marked_"+file.replace('.jpeg', '.png').split('/')[-1]
-        marked_file_path = pathlib.Path(marked_file_path)
+        file_path = pathlib.Path(file)
+        marked_file_path = pathlib.Path(marked_dir) / file_path.parent.name / f"marked_{file_path.stem}.png"
         if os.path.exists(marked_file_path):
             tmp_file_list.write(str(marked_file_path) + "\n")
         else:
@@ -647,4 +670,3 @@ def get_amc_scan_url(request,exam_pk):
             #scan_path = make_token_for(scan_path,scan_root)
 
     return HttpResponse(scan_path)
-
