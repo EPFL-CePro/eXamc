@@ -89,6 +89,24 @@ e{% extends 'base.html' %}
             </div>
         </div>
         <div class="list-group" id="review-center-div" style="height:100%;margin-left:5px;width:60vw;position:relative;" >
+            <div class="review-shortcuts-hint-row">
+                <div id="navigation-shortcuts-help" class="review-shortcuts-hint review-shortcuts-hint-top" role="note" aria-label="Navigation shortcuts">
+                    <span class="hint-item">
+                        <span class="hint-icons" aria-hidden="true">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </span>
+                        <span>page</span>
+                    </span>
+                    <span class="hint-item">
+                        <span class="hint-icons" aria-hidden="true">
+                            <i class="fa-solid fa-arrow-up"></i>
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </span>
+                        <span>student</span>
+                    </span>
+                </div>
+            </div>
             <div id="pagination" class="list-group list-group-horizontal"></div>
             <div id="copy_page_select" style="z-index:99;position:absolute;margin-top:100px;right:20px;"></div>
             <div id="markerjs_div">
@@ -97,11 +115,11 @@ e{% extends 'base.html' %}
                         <button type="button" class="btn btn-light" id="btn-clear"><i class="fa-solid fa-broom fa-lg"></i></button>
                     </div>
                     <div id="mjs-toolbar-center" class="toolbar-center d-flex">
-                        <button type="button" class="btn btn-light" id="btn-pointer"><i
+                        <button type="button" class="btn btn-light" id="btn-pointer" title="Select (Shift+V)" aria-label="Select (Shift+V)"><i
                                 class="fa-solid fa-arrow-pointer fa-lg"></i></button>
-                        <button type="button" class="btn btn-light" id="btn-text-marker"><i class="fa-solid fa-t fa-lg"></i></button>
-                        <button type="button" class="btn btn-light" id="btn-frame-marker"><i class="fa-regular fa-square fa-lg"></i></button>
-                        <button type="button" class="btn btn-light" id="btn-freehand-marker">
+                        <button type="button" class="btn btn-light" id="btn-text-marker" title="Text marker (Shift+T)" aria-label="Text marker (Shift+T)"><i class="fa-solid fa-t fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-frame-marker" title="Rectangle marker (Shift+R)" aria-label="Rectangle marker (Shift+R)"><i class="fa-regular fa-square fa-lg"></i></button>
+                        <button type="button" class="btn btn-light" id="btn-freehand-marker" title="Freehand marker (Shift+F)" aria-label="Freehand marker (Shift+F)">
                             <i class="fa-solid fa-s fa-lg" style="margin-top:10px;transform:scaleY(-1) rotate(55deg);"></i>
                             <i class="fa-solid fa-pencil fa-lg" style="margin-left:0px;"></i>
                         </button>
@@ -207,6 +225,7 @@ e{% extends 'base.html' %}
                     getCopyPage: "{% url 'get_copy_page' exam_selected.pk %}",
                     saveMarkers: "{% url 'save_markers' exam_selected.pk %}",
                     saveComment: "{% url 'save_comment' exam_selected.pk %}",
+                    savePagesGroupStudentNote: "{% url 'save_pages_group_student_report_note' exam_selected.id %}",
                     updatePagesGroupCheckBox: "{% url 'update_pages_group_check_box' exam_selected.id %}",
                     reviewGradingSchemePanelBase: "{% url 'review_grading_scheme_panel' exam_selected.id 0 0 %}"
                 },

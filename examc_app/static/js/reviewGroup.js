@@ -420,6 +420,95 @@
         }
     }
 
+    function getCurrentGroupIndex() {
+        const byCurrPage = Number(currPage) - 1;
+        if (Number.isInteger(byCurrPage) && byCurrPage >= 0 && byCurrPage < groupCopiesPagesList.length) {
+            return byCurrPage;
+        }
+
+        const copyNo = currentReviewCopyNo();
+        const pageNo = currentReviewPageNo();
+        const byCurrentSource = groupCopiesPagesList.findIndex(item =>
+            String(item.copy_no) === String(copyNo) && String(item.page_no) === String(pageNo)
+        );
+
+        return byCurrentSource >= 0 ? byCurrentSource : 0;
+    }
+
+    function findStudentTargetIndex(direction) {
+        if (!groupCopiesPagesList.length) return -1;
+
+        const currentIndex = getCurrentGroupIndex();
+        const currentEntry = groupCopiesPagesList[currentIndex];
+        if (!currentEntry) return -1;
+
+        const currentCopyNo = String(currentEntry.copy_no);
+        let scanIndex = currentIndex + direction;
+
+        while (scanIndex >= 0 && scanIndex < groupCopiesPagesList.length) {
+            const candidate = groupCopiesPagesList[scanIndex];
+            if (candidate && String(candidate.copy_no) !== currentCopyNo) {
+                const targetCopyNo = String(candidate.copy_no);
+                const currentPageNo = Number(currentReviewPageNo());
+
+                const samePageIdx = groupCopiesPagesList.findIndex(item =>
+                    String(item.copy_no) === targetCopyNo && Number(item.page_no) === currentPageNo
+                );
+                if (samePageIdx !== -1) return samePageIdx;
+
+                return groupCopiesPagesList.findIndex(item => String(item.copy_no) === targetCopyNo);
+            }
+            scanIndex += direction;
+        }
+
+        return -1;
+    }
+
+    function navigatePageByOffset(offset) {
+        const target = getCurrentGroupIndex() + offset + 1;
+        createPagination(copiesPagesList.length, target);
+    }
+
+    function navigateStudentByOffset(offset) {
+        const targetIndex = findStudentTargetIndex(offset);
+        if (targetIndex === -1) return;
+        createPagination(copiesPagesList.length, targetIndex + 1);
+    }
+
+    function shouldIgnoreReviewNavigationShortcut(event) {
+        if (selectedMarkerEditor === 'TextMarker') {
+            return true;
+        }
+
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return false;
+        }
+
+        if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function shouldIgnoreToolShortcut(event) {
+        if (event.ctrlKey || event.metaKey || event.altKey) {
+            return true;
+        }
+
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return false;
+        }
+
+        if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Update the main source image and table highlighting from a backend path.
      *
@@ -575,27 +664,19 @@
         markerToolbarDomBound = true;
 
         textMarkerButton.addEventListener('click', function () {
-            markerArea.createMarker("TextMarker");
-            selectedMarkerEditor = "TextMarker";
-            updateMarkerToolbarSelection();
+            activateMarkerTool('text');
         });
 
         frameMarkerButton.addEventListener('click', function () {
-            markerArea.createMarker("FrameMarker");
-            selectedMarkerEditor = "FrameMarker";
-            updateMarkerToolbarSelection();
+            activateMarkerTool('rectangle');
         });
 
         freehandMarkerButton.addEventListener('click', function () {
-            markerArea.createMarker("FreehandMarker");
-            selectedMarkerEditor = "FreehandMarker";
-            updateMarkerToolbarSelection();
+            activateMarkerTool('freehand');
         });
 
         pointerButton.addEventListener('click', function () {
-            markerArea.switchToSelectMode();
-            selectedMarkerEditor = null;
-            updateMarkerToolbarSelection();
+            activateMarkerTool('select');
         });
 
         clearMarkersButton.addEventListener('click', function () {
@@ -627,6 +708,35 @@
                 }
             });
         }
+    }
+
+    /**
+     * Activate a marker tool exactly like toolbar button clicks.
+     *
+     * @param {'select'|'text'|'rectangle'|'freehand'} tool
+     */
+    function activateMarkerTool(tool) {
+        switch (tool) {
+            case 'text':
+                markerArea.createMarker("TextMarker");
+                selectedMarkerEditor = "TextMarker";
+                break;
+            case 'rectangle':
+                markerArea.createMarker("FrameMarker");
+                selectedMarkerEditor = "FrameMarker";
+                break;
+            case 'freehand':
+                markerArea.createMarker("FreehandMarker");
+                selectedMarkerEditor = "FreehandMarker";
+                break;
+            case 'select':
+            default:
+                markerArea.switchToSelectMode();
+                selectedMarkerEditor = null;
+                break;
+        }
+
+        updateMarkerToolbarSelection();
     }
 
     /**
@@ -1381,25 +1491,79 @@
 
         SidebarCollapse();
 
-        // Keyboard arrows → previous/next page
+        // Keyboard navigation:
+        // Left/Right = previous/next page
+        // Up/Down = previous/next student (copy)
+        // Shift+V/T/R/F = select/text/rectangle/freehand tools
         $('#reviewGroup_div').on('keydown', function (event) {
-            // If a TextMarker is selected (editing/selection state), don't paginate on arrows.
-            if (selectedMarkerEditor === 'TextMarker') {
+            const key = String(event.key || '');
+            const isArrowKey =
+                key === "ArrowLeft" ||
+                key === "ArrowRight" ||
+                key === "ArrowUp" ||
+                key === "ArrowDown";
+
+            if (isArrowKey) {
+                if (shouldIgnoreReviewNavigationShortcut(event)) {
+                    return;
+                }
+
+                switch (key) {
+                    case "ArrowLeft": {
+                        navigatePageByOffset(-1);
+                        event.preventDefault();
+                        break;
+                    }
+                    case "ArrowRight": {
+                        navigatePageByOffset(1);
+                        event.preventDefault();
+                        break;
+                    }
+                    case "ArrowUp": {
+                        navigateStudentByOffset(-1);
+                        event.preventDefault();
+                        break;
+                    }
+                    case "ArrowDown": {
+                        navigateStudentByOffset(1);
+                        event.preventDefault();
+                        break;
+                    }
+                }
                 return;
             }
-            switch (event.key) {
-                case "ArrowLeft":
-                case "ArrowUp": {
-                    const previousBtn = document.getElementById('previous_page');
-                    if (previousBtn) previousBtn.click();
+
+            if (shouldIgnoreToolShortcut(event)) {
+                return;
+            }
+
+            if (!event.shiftKey) {
+                return;
+            }
+
+            switch (key.toLowerCase()) {
+                case "v": {
+                    activateMarkerTool('select');
+                    event.preventDefault();
                     break;
                 }
-                case "ArrowRight":
-                case "ArrowDown": {
-                    const nextBtn = document.getElementById('next_page');
-                    if (nextBtn) nextBtn.click();
+                case "t": {
+                    activateMarkerTool('text');
+                    event.preventDefault();
                     break;
                 }
+                case "r": {
+                    activateMarkerTool('rectangle');
+                    event.preventDefault();
+                    break;
+                }
+                case "f": {
+                    activateMarkerTool('freehand');
+                    event.preventDefault();
+                    break;
+                }
+                default:
+                    break;
             }
         }).focus();
     });
@@ -1566,13 +1730,59 @@
         });
     }
 
+    function setStudentReportNoteStatus(textarea, message, isError = false) {
+        const container = textarea.closest('.mb-1');
+        if (!container) return;
+        const status = container.querySelector('.js-student-report-note-status');
+        if (!status) return;
+        status.textContent = message;
+        status.classList.toggle('text-danger', isError);
+    }
+
+    function initStudentReportNoteFields(root = document) {
+        const noteFields = root.querySelectorAll('.js-student-report-note');
+        noteFields.forEach((field) => {
+            field.dataset.lastSavedValue = field.value;
+        });
+    }
+
+    function saveStudentReportNote(textarea) {
+        if (!textarea || !urls.savePagesGroupStudentNote) return;
+        if (textarea.disabled) return;
+
+        const pagesGroupId = textarea.getAttribute('data-pages-group-id');
+        const copyNo = currentSourceIdParts[1];
+        const content = textarea.value || '';
+        if (!pagesGroupId || !copyNo) return;
+        if (textarea.dataset.lastSavedValue === content) return;
+
+        setStudentReportNoteStatus(textarea, 'Saving...');
+        $.ajax({
+            url: urls.savePagesGroupStudentNote,
+            type: "POST",
+            data: {
+                'csrfmiddlewaretoken': csrfToken,
+                'pages_group_id': pagesGroupId,
+                'copy_nr': copyNo,
+                'content': content
+            },
+            success: () => {
+                textarea.dataset.lastSavedValue = content;
+                setStudentReportNoteStatus(textarea, 'Saved');
+            },
+            error: () => {
+                setStudentReportNoteStatus(textarea, 'Save failed', true);
+            }
+        });
+    }
+
     /**
      * Called when a grading scheme checkbox or its adjustment changes.
      * Updates backend, points display, highlight, and corrector box highlight.
      *
      * NOTE: name kept so Django's inline `onchange="updatePagesGroupCheckBox(...)"` still works.
      */
-    function updatePagesGroupCheckBox(itemId, checked, isAdjustment, zero,full) {
+    function updatePagesGroupCheckBox(itemId, checked, isAdjustment, zero, full) {
         let adjustValue = isAdjustment;
 
         if (isAdjustment) {
@@ -1703,14 +1913,10 @@
                 toActivate.setAttribute('aria-selected', 'true');
             }
 
-            const examIdAttr = el.getAttribute('data-exam-id');
-            const checkPanel = document.getElementById('chk-panel-' + activeId);
-            if (checkPanel && examIdAttr) {
-                const chkUrl =
-                    `/review_grading_scheme_checkboxes/${examIdAttr}/${activeId}/${encodeURIComponent(copyNo)}`;
-                checkPanel.setAttribute('hx-get', chkUrl);
-                htmx.ajax('GET', chkUrl, {target: checkPanel, swap: 'innerHTML', source: checkPanel});
-            }
+            // Checkbox panel is loaded by HTMX from the swapped scheme panel
+            // (`hx-trigger="load once"` in _review_grading_scheme_panel.html).
+            // Avoid firing an extra concurrent request here, which can race
+            // against swaps and produce null-target HTMX errors.
 
             document.body.removeEventListener('htmx:afterSwap', onAfterSwap);
         };
@@ -1798,9 +2004,17 @@
         document.body.addEventListener('htmx:afterSwap', (evt) => {
             if (evt.target && evt.target.id === 'review-scheme-panel') {
                 initSplitters(evt.target);
+                initStudentReportNoteFields(evt.target);
             }
         });
     })();
+
+    document.body.addEventListener('change', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLTextAreaElement)) return;
+        if (!target.classList.contains('js-student-report-note')) return;
+        saveStudentReportNote(target);
+    });
 
     // ---------------------------------------------------------------------------
     // Expose functions used from inline HTML
@@ -1809,5 +2023,8 @@
     window.updatePagesGroupCheckBox = updatePagesGroupCheckBox;
     window.sendScheme = sendScheme;
     window.createMarker4CorrBox = createMarker4CorrBox;
+    window.saveStudentReportNote = saveStudentReportNote;
+
+    initStudentReportNoteFields(document);
 
 })();

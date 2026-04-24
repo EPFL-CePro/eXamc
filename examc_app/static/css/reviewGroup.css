@@ -57,6 +57,55 @@ mjs-marker-area {
     justify-content: flex-end;
 }
 
+.review-shortcuts-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #f0f0f0;
+    font-size: 0.78rem;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.review-shortcuts-hint .hint-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.review-shortcuts-hint .hint-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+}
+
+.review-shortcuts-hint-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.review-shortcuts-hint-top {
+    background: #f1f1f1;
+    color: #464646;
+    border: 1px solid #d6d6d6;
+}
+
+.review-shortcuts-hint-top .hint-icons {
+    color: #373737;
+}
+
+@media (max-width: 1200px) {
+    .review-shortcuts-hint,
+    .review-shortcuts-hint-row {
+        display: none;
+    }
+}
+
 /* Buttons align nicely */
 .markerjs-toolbar .btn {
     margin: 0 3px;
@@ -233,6 +282,3 @@ mjs-marker-area {
   font-size: 1.1rem;
   pointer-events: auto;         /* block clicks to stuff underneath */
 }
-
-
-

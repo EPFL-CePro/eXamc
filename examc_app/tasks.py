@@ -8,7 +8,7 @@ import shutil
 import time
 import zipfile
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 
 from celery import shared_task
@@ -16,6 +16,7 @@ from celery_progress.backend import ProgressRecorder, logger
 from django.contrib.sessions.models import Session
 from django.db.models import Sum
 from django.http import FileResponse
+from django.utils import timezone
 from fpdf import FPDF
 
 from django.conf import settings
@@ -433,9 +434,14 @@ def generate_statistics(self,exam_pk):
 
 @shared_task
 def cleanup_review_locks():
+    now = timezone.now()
+    timeout_seconds = max(1, int(getattr(settings, 'REVIEW_LOCK_TIMEOUT', settings.AUTO_LOGOUT_DELAY)))
+    lock_threshold = now - timedelta(seconds=timeout_seconds)
+
+    expired_deleted_count, _ = ReviewLock.objects.filter(updated_at__lt=lock_threshold).delete()
+
     # Get active user IDs from sessions
     active_user_ids = set()
-    now = datetime.now()
 
     for session in Session.objects.filter(expire_date__gt=now):
         data = session.get_decoded()
@@ -444,8 +450,12 @@ def cleanup_review_locks():
             active_user_ids.add(int(uid))
 
     # Delete ReviewLocks where user is no longer active
-    deleted_count, _ = ReviewLock.objects.exclude(user_id__in=active_user_ids).delete()
-    return f"Deleted {deleted_count} review locks from logged-out users."
+    inactive_deleted_count, _ = ReviewLock.objects.exclude(user_id__in=active_user_ids).delete()
+    total = expired_deleted_count + inactive_deleted_count
+    return (
+        f"Deleted {total} review locks "
+        f"(expired={expired_deleted_count}, inactive_user={inactive_deleted_count})."
+    )
 
 @shared_task(bind=True)
 def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_report: bool):
