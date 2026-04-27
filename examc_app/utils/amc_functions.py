@@ -615,6 +615,33 @@ def update_amc_mark_zone_data(exam,zoneid,copy,page):
 
         update_data_zone(amc_data_path,manual,zoneid, copy, page)
 
+def _is_valid_amc_options_xml(options_xml_path):
+    try:
+        with open(options_xml_path, "r", encoding="utf-8", errors="ignore") as options_file:
+            options_content = options_file.read().lstrip()
+        return options_content.startswith("<project>")
+    except OSError:
+        return False
+
+def _find_amc_project_dir(extracted_root_path):
+    candidates = []
+
+    for current_root, _, files in os.walk(extracted_root_path):
+        if "options.xml" not in files:
+            continue
+
+        options_xml_path = os.path.join(current_root, "options.xml")
+        if _is_valid_amc_options_xml(options_xml_path):
+            relative_depth = len(Path(current_root).relative_to(extracted_root_path).parts)
+            candidates.append((relative_depth, current_root))
+
+    if not candidates:
+        return None
+
+    # Prefer the closest directory to archive root if multiple candidates exist.
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    return candidates[0][1]
+
 def create_amc_project_dir_from_zip(exam,zip_file):
     file_name = f"exam_{exam.pk}_amc_project.zip"
     temp_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, file_name)
@@ -628,23 +655,30 @@ def create_amc_project_dir_from_zip(exam,zip_file):
     zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code
     tmp_extract_path = zip_path + "/tmp_extract"
 
+    os.makedirs(zip_path, exist_ok=True)
+    if os.path.exists(tmp_extract_path):
+        shutil.rmtree(tmp_extract_path)
+
     # extract zip file in tmp dir
     with zipfile.ZipFile(temp_file_path, 'r') as zip_ref:
         print("start extraction")
         zip_ref.extractall(tmp_extract_path)
 
-    if not os.path.isfile(tmp_extract_path + "/options.xml"):
-        dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
-        tmp_extract_path += "/" + dirs[0]
-        if not os.path.isfile(tmp_extract_path + "/options.xml"):
-            return 'The zip file does not contains options.xml file in the two first level of folders !'
+    project_dir_path = _find_amc_project_dir(tmp_extract_path)
+    if not project_dir_path:
+        shutil.rmtree(tmp_extract_path, ignore_errors=True)
+        return 'The zip file does not contain a valid AMC project folder with an options.xml starting with <project>!'
 
     # move to destination amc_projects
     amc_project_path = get_amc_project_path(exam, True)
     # Remove destination folder if it exists
     if os.path.exists(amc_project_path):
         shutil.rmtree(amc_project_path)
-    shutil.move(tmp_extract_path, amc_project_path)
+    shutil.move(project_dir_path, amc_project_path)
+
+    # Remove remaining extracted files (wrapper folders, etc.).
+    if os.path.exists(tmp_extract_path):
+        shutil.rmtree(tmp_extract_path, ignore_errors=True)
 
     return 'AMC project folder uploaded !'
 
