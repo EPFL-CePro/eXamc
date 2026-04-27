@@ -1,37 +1,31 @@
 #mjsapp {
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
     position: relative;
-    display: flex;
+    display: block;
+    overflow: hidden;
 }
 
 #markerjs_div {
     height: calc(100vh - 140px);
     display: flex;
-    aspect-ratio: 1/1.49;
     flex-direction: column;
     border-bottom: 1px solid #3a3a3a;
+    min-height: 0;
 }
 
 #marker-wrapper {
     position: relative;
     width: 100%;
     height: 100%;
-    display: block !important;
-    overflow-y: auto;
-    overflow-x: auto;
+    overflow: hidden;
     background: #3a3a3a;
 }
 
-#marker-wrapper mjs-marker-area {
-    position: relative;
-    z-index: 0;
-}
-
 mjs-marker-area {
-    /*flex: 1 1 auto;*/
     width: 100%;
-    height: 100%;
+    height: auto !important;
     display: block !important;
     overflow: visible;
     background: #3a3a3a;
@@ -61,6 +55,55 @@ mjs-marker-area {
 .toolbar-right {
     flex: 1;
     justify-content: flex-end;
+}
+
+.review-shortcuts-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #f0f0f0;
+    font-size: 0.78rem;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.review-shortcuts-hint .hint-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.review-shortcuts-hint .hint-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+}
+
+.review-shortcuts-hint-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.review-shortcuts-hint-top {
+    background: #f1f1f1;
+    color: #464646;
+    border: 1px solid #d6d6d6;
+}
+
+.review-shortcuts-hint-top .hint-icons {
+    color: #373737;
+}
+
+@media (max-width: 1200px) {
+    .review-shortcuts-hint,
+    .review-shortcuts-hint-row {
+        display: none;
+    }
 }
 
 /* Buttons align nicely */
@@ -239,6 +282,3 @@ mjs-marker-area {
   font-size: 1.1rem;
   pointer-events: auto;         /* block clicks to stuff underneath */
 }
-
-
-

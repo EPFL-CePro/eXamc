@@ -8,7 +8,7 @@ import shutil
 import time
 import zipfile
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 
 from celery import shared_task
@@ -16,15 +16,19 @@ from celery_progress.backend import ProgressRecorder, logger
 from django.contrib.sessions.models import Session
 from django.db.models import Sum
 from django.http import FileResponse
+from django.utils import timezone
 from fpdf import FPDF
 
 from django.conf import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock
 from examc_app.utils.amc_functions import amc_automatic_data_capture, amc_annotate
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
+from examc_app.utils.marker_rendering import regenerate_marked_scans_for_exam
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
 
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 
 @shared_task(bind=True)
@@ -328,6 +332,15 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
         if not os.path.exists(export_tmp_dir):
             os.mkdir(export_tmp_dir)
 
+        total_markers = regenerate_marked_scans_for_exam(
+            exam,
+            progress_callback=lambda index, total: progress_recorder.set_progress(
+                index,
+                total,
+                description=f"{index}/{total} - Rendering marked scans..."
+            )
+        )
+
         # list files from scans dir
         dir_list = [x for x in os.listdir(scans_dir) if x != '0000']
         for dir in sorted(dir_list):
@@ -338,6 +351,9 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
                 os.mkdir(copy_export_subdir)
 
             for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+                if pathlib.Path(filename).suffix.lower() not in IMAGE_EXTENSIONS:
+                    continue
+
                 # check if a marked file exist, if yes copy it, or copy original scans
 
                 marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
@@ -418,9 +434,14 @@ def generate_statistics(self,exam_pk):
 
 @shared_task
 def cleanup_review_locks():
+    now = timezone.now()
+    timeout_seconds = max(1, int(getattr(settings, 'REVIEW_LOCK_TIMEOUT', settings.AUTO_LOGOUT_DELAY)))
+    lock_threshold = now - timedelta(seconds=timeout_seconds)
+
+    expired_deleted_count, _ = ReviewLock.objects.filter(updated_at__lt=lock_threshold).delete()
+
     # Get active user IDs from sessions
     active_user_ids = set()
-    now = datetime.now()
 
     for session in Session.objects.filter(expire_date__gt=now):
         data = session.get_decoded()
@@ -429,8 +450,12 @@ def cleanup_review_locks():
             active_user_ids.add(int(uid))
 
     # Delete ReviewLocks where user is no longer active
-    deleted_count, _ = ReviewLock.objects.exclude(user_id__in=active_user_ids).delete()
-    return f"Deleted {deleted_count} review locks from logged-out users."
+    inactive_deleted_count, _ = ReviewLock.objects.exclude(user_id__in=active_user_ids).delete()
+    total = expired_deleted_count + inactive_deleted_count
+    return (
+        f"Deleted {total} review locks "
+        f"(expired={expired_deleted_count}, inactive_user={inactive_deleted_count})."
+    )
 
 @shared_task(bind=True)
 def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_report: bool):

@@ -2,23 +2,25 @@
     This file contains all views used for the review module
 """
 
-import base64
 import json
 import os
-import re
 import sys
 import zipfile
+from datetime import timedelta
 from decimal import Decimal
 from functools import wraps, partial
 
 from cv2.detail import strip
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.db import IntegrityError, transaction
 from django.db.models import Sum
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import DetailView
 from shapely.geometry import Polygon
@@ -610,12 +612,36 @@ def saveMarkers(request, exam_pk):
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
                                                               page_no=request.POST['page_no'], pages_group=pages_group,
                                                               exam=exam)
-    dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
-    ImageData = request.POST.get('marked_img_dataUrl')
     markers = json.loads(request.POST['markers'])
+    allow_highlight_only_replace = request.POST.get('allow_highlight_only_replace') == 'true'
+    allow_empty_replace = request.POST.get('allow_empty_replace') == 'true'
+
+    def has_non_highlight_markers(marker_state):
+        return any(marker.get('typeName') != 'HighlightMarker' for marker in marker_state.get('markers', []))
+
+    def has_only_highlight_markers(marker_state):
+        marker_list = marker_state.get('markers', [])
+        return bool(marker_list) and all(marker.get('typeName') == 'HighlightMarker' for marker in marker_list)
+
     marked = False
     if markers["markers"]:
-        scan_markers.markers = request.POST['markers']
+        existing_markers = None
+        if scan_markers.markers:
+            existing_markers = json.loads(scan_markers.markers)
+
+        should_reject_highlight_only_overwrite = (
+            existing_markers is not None
+            and has_non_highlight_markers(existing_markers)
+            and has_only_highlight_markers(markers)
+            and not allow_highlight_only_replace
+        )
+
+        if should_reject_highlight_only_overwrite:
+            markers = existing_markers
+        else:
+            scan_markers.markers = request.POST['markers']
+
+        scan_markers.markers = json.dumps(markers)
         fn = request.POST['filename'].replace("/protected/?token=","").replace('%3A',':')
         fn = verify_and_get_path(fn)
         fn = str(fn).replace(str(settings.BASE_DIR),"../..")
@@ -630,30 +656,29 @@ def saveMarkers(request, exam_pk):
 
         scan_markers.save()
 
-        if dataUrlPattern.match(ImageData):
-            ImageData = dataUrlPattern.match(ImageData).group(2)
-            # Decode the 64 bit string into 32 bit
-            ImageData = base64.b64decode(ImageData)
-
-            marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-                exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d") + "/" + scan_markers.copie_no + "/" + "marked_" + \
-                              scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
-            os.makedirs(os.path.dirname(marked_img_path), exist_ok=True)
-
-            with open(marked_img_path, "wb") as marked_file:
-                marked_file.write(ImageData)
-
         # update page markers users entry
         page_markers_user, created = PageMarkersUser.objects.get_or_create(pageMarkers=scan_markers,user=request.user)
         page_markers_user.modified = datetime.now()
         page_markers_user.save()
     else:
-        marked_img_path = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-            exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d") + "/" + scan_markers.copie_no + "/" + "marked_" + \
-                          scan_markers.filename.rsplit("/", 1)[-1].replace('.jpeg', '.png')
-        if os.path.exists(marked_img_path):
-            os.remove(marked_img_path)
-        scan_markers.delete()
+        existing_markers = None
+        if scan_markers.markers:
+            existing_markers = json.loads(scan_markers.markers)
+
+        should_reject_empty_delete = (
+            existing_markers is not None
+            and has_non_highlight_markers(existing_markers)
+            and not allow_empty_replace
+        )
+
+        if should_reject_empty_delete:
+            markers = existing_markers
+            scan_markers.markers = json.dumps(markers)
+            scan_markers.correctorBoxMarked = "HighlightMarker" in scan_markers.markers
+            scan_markers.save()
+            marked = scan_markers.correctorBoxMarked
+        else:
+            scan_markers.delete()
 
     return HttpResponse(marked)
 
@@ -751,44 +776,78 @@ def update_page_group_markers(request,exam_pk):
     else:
         return HttpResponse("Invalid request method", status=405)
 
+
+def cleanup_expired_review_locks():
+    timeout_seconds = max(1, int(getattr(settings, 'REVIEW_LOCK_TIMEOUT', settings.AUTO_LOGOUT_DELAY)))
+    lock_threshold = timezone.now() - timedelta(seconds=timeout_seconds)
+    ReviewLock.objects.filter(updated_at__lt=lock_threshold).delete()
+
+
 @exam_permission_required(['manage','review'])
 def review_student_pages_group_is_locked(request,exam_pk):
+    if request.method != 'POST':
+        return HttpResponse("Invalid request method", status=405)
+
     pages_group_id = request.POST.get('pages_group_id')
     copy_no = request.POST.get('copy_no')
-    pages_group = PagesGroup.objects.get(pk=pages_group_id)
-    student = Student.objects.get(copie_no=int(copy_no), exam=pages_group.exam)
+    if not pages_group_id or copy_no is None:
+        return HttpResponse(status=400)
 
-    review_lock_qs = ReviewLock.objects.filter(pages_group__id=request.POST.get('pages_group_id'),student=student).exclude(user = request.user)
-    if not review_lock_qs:
-        #remove old lock and create new if not same pages group
-        old_lock_qs = ReviewLock.objects.filter(user=request.user)
+    try:
+        copy_no_int = int(copy_no)
+    except (TypeError, ValueError):
+        return HttpResponse(status=400)
 
-        add_new = True
-        if old_lock_qs:
-            for old_lock in old_lock_qs.all():
-                if old_lock.pages_group != pages_group or old_lock.student != student:
-                    old_lock.delete()
-                else:
-                    add_new = False
+    pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
+    student = get_object_or_404(Student, copie_no=copy_no_int, exam=pages_group.exam)
 
-        if add_new:
-            #add new lock
-            new_lock = ReviewLock()
-            new_lock.user = request.user
-            new_lock.student = student
-            new_lock.pages_group = pages_group
-            new_lock.save()
-        return HttpResponse('')
+    cleanup_expired_review_locks()
 
-    return HttpResponse(review_lock_qs.first().user.username)
+    with transaction.atomic():
+        lock = (
+            ReviewLock.objects
+            .select_related('user')
+            .filter(pages_group=pages_group, student=student)
+            .first()
+        )
+
+        if lock and lock.user_id != request.user.id:
+            return HttpResponse(lock.user.username)
+
+        if lock and lock.user_id == request.user.id:
+            ReviewLock.objects.filter(pk=lock.pk).update(updated_at=timezone.now())
+        elif not lock:
+            try:
+                ReviewLock.objects.create(
+                    user=request.user,
+                    student=student,
+                    pages_group=pages_group,
+                )
+            except IntegrityError:
+                existing_lock = (
+                    ReviewLock.objects
+                    .select_related('user')
+                    .get(pages_group=pages_group, student=student)
+                )
+                if existing_lock.user_id != request.user.id:
+                    return HttpResponse(existing_lock.user.username)
+                ReviewLock.objects.filter(pk=existing_lock.pk).update(updated_at=timezone.now())
+
+    # Keep only the current lock for this user.
+    ReviewLock.objects.filter(user=request.user).exclude(
+        pages_group=pages_group,
+        student=student,
+    ).delete()
+
+    return HttpResponse('')
 
 @exam_permission_required(['manage','review'])
 def remove_review_user_locks(request,exam_pk):
+    if request.method != 'POST':
+        return HttpResponse("Invalid request method", status=405)
 
-    review_lock_qs = ReviewLock.objects.filter(user = request.user)
-
-    for lock in review_lock_qs.all():
-        lock.delete()
+    ReviewLock.objects.filter(user=request.user).delete()
+    return HttpResponse('ok')
 
 @exam_permission_required(['manage','review'])
 def get_copy_page(request,exam_pk):
@@ -943,6 +1002,40 @@ def delete_grading_scheme(request, exam_pk, grading_scheme_id):
     )
 
 ########### Grading Scheme Review Group
+def get_review_corr_box_index(grading_scheme, copy_nr):
+    if not copy_nr or str(copy_nr) in ('0', 'None', ''):
+        return -1
+
+    pages_group = grading_scheme.pages_group
+    points = float(get_question_points(grading_scheme, copy_nr))
+
+    if points > grading_scheme.max_points:
+        points = float(grading_scheme.max_points)
+
+    if points > 0:
+        exam = pages_group.exam
+        amc_data_path = get_amc_project_path(exam, True) + "/data/"
+        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+        max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
+        amc_corr_boxes = select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
+
+        nb_boxes = len(amc_corr_boxes) / 4 - 1
+        if nb_boxes <= 0 or max_points <= 0:
+            return -1
+
+        points_per_box = max_points / nb_boxes
+        round_value = 1 / points_per_box
+        points_rnd = round(points * round_value) / round_value
+        return round(points_rnd / (max_points / nb_boxes))
+
+    zero_checked = PagesGroupGradingSchemeCheckedBox.objects.filter(
+        pages_group=pages_group,
+        copy_nr=copy_nr,
+        gradingSchemeCheckBox__name='ZERO'
+    ).exists()
+    return 0 if zero_checked else -1
+
+
 @exam_permission_required(['manage','review'])
 def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
@@ -950,6 +1043,15 @@ def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
     if used_grading_scheme:
         grading_scheme = used_grading_scheme
     points = get_question_points(grading_scheme, copy_nr)
+    note_enabled = str(copy_nr) not in ('0', 'None', '')
+    student_report_note = ""
+    if note_enabled:
+        note = PagesGroupStudentReportNote.objects.filter(
+            pages_group=grading_scheme.pages_group,
+            copy_nr=copy_nr,
+        ).first()
+        if note:
+            student_report_note = note.content
 
     resp = render(
         request,
@@ -960,19 +1062,68 @@ def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
             "copy_nr": copy_nr,
             "points": points,
             "current_grading_scheme": grading_scheme,
+            "student_report_note": student_report_note,
+            "student_report_note_enabled": note_enabled,
         },
     )
     # Tell the client which scheme is actually in effect and points:
     resp["X-Used-Grading-Scheme-Id"] = str(grading_scheme.id)
     resp["X-Points"] = str(points)
+    resp["X-Corr-Box-Index"] = str(get_review_corr_box_index(grading_scheme, copy_nr))
     return resp
 
 @exam_permission_required(['manage','review'])
 def review_grading_scheme_checkboxes(request, exam_pk, grading_scheme_id, copy_nr):
     grading_scheme_checkboxes = get_grading_scheme_checkboxes(grading_scheme_id, copy_nr)
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    note_enabled = str(copy_nr) not in ('0', 'None', '')
+    student_report_note = ""
+    if note_enabled:
+        note = PagesGroupStudentReportNote.objects.filter(
+            pages_group=grading_scheme.pages_group,
+            copy_nr=copy_nr,
+        ).first()
+        if note:
+            student_report_note = note.content
 
-    return render(request, "review/_review_grading_scheme_checkboxes.html", {"exam_selected":grading_scheme.pages_group.exam,"grading_scheme": grading_scheme, "grading_scheme_checkboxes": grading_scheme_checkboxes})
+    return render(
+        request,
+        "review/_review_grading_scheme_checkboxes.html",
+        {
+            "exam_selected": grading_scheme.pages_group.exam,
+            "grading_scheme": grading_scheme,
+            "grading_scheme_checkboxes": grading_scheme_checkboxes,
+            "student_report_note": student_report_note,
+            "student_report_note_enabled": note_enabled,
+        },
+    )
+
+@exam_permission_required(['manage','review'])
+def save_pages_group_student_report_note(request, exam_pk):
+    pages_group_id = request.POST.get('pages_group_id')
+    copy_nr = request.POST.get('copy_nr')
+    content = request.POST.get('content', '')
+
+    if not pages_group_id or str(copy_nr) in ('', 'None', '0'):
+        return HttpResponse(status=400)
+
+    pages_group = get_object_or_404(PagesGroup, pk=int(pages_group_id), exam_id=exam_pk)
+    note = content.strip()
+    if note == '':
+        PagesGroupStudentReportNote.objects.filter(
+            pages_group=pages_group,
+            copy_nr=copy_nr,
+        ).delete()
+    else:
+        student_report_note, _ = PagesGroupStudentReportNote.objects.get_or_create(
+            pages_group=pages_group,
+            copy_nr=copy_nr,
+        )
+        student_report_note.content = content
+        student_report_note.user = request.user
+        student_report_note.save()
+
+    return HttpResponse('ok')
 
 @exam_permission_required(['manage','review'])
 def update_pages_group_check_box(request,exam_pk):
@@ -1058,4 +1209,3 @@ def update_pages_group_check_box(request,exam_pk):
         return HttpResponse(json.dumps([box_to_check,points_rnd,max_points]))
 
     return HttpResponse('')
-

@@ -183,7 +183,6 @@ class Question(models.Model):
     """ Stores question data for an exam, related to :model:`examc_app.Exam` """
     code = models.CharField(max_length=50)
     common = models.BooleanField(default=0)
-    section = models.ForeignKey(ExamSection, on_delete=models.CASCADE,related_name='questions',blank=True,null=True)
     question_type = models.ForeignKey(QuestionType, on_delete=models.CASCADE,related_name='questions',blank=False,null=True)
     max_points = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     nb_answers = models.IntegerField(default=2)
@@ -314,6 +313,23 @@ class PagesGroupComment(models.Model):
             "profile_picture_url": profile_picture,
             "created_by_current_user": created_by_curr_user
         }
+
+class PagesGroupStudentReportNote(models.Model):
+    """Stores the per-question note exported in grading scheme report PDFs."""
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='studentReportNotes')
+    copy_nr = models.CharField(max_length=10, default='0')
+    content = models.TextField(blank=True, default='')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='studentReportNotes')
+    modified = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['pages_group', 'copy_nr'],
+                name='uniq_pages_group_student_report_note_copy',
+            ),
+        ]
 
 
 class PageMarkers(models.Model):
@@ -474,6 +490,19 @@ class ReviewLock(models.Model):
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='reviewLocks')
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='reviewLocks')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewLocks')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['pages_group', 'student'],
+                name='uniq_review_lock_pages_group_student',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['updated_at'], name='review_lock_updated_idx'),
+        ]
 
 
 ###########################
@@ -702,4 +731,3 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
 #         indexes = [
 #             models.Index(fields=['student', 'page'], name='layout_index_zone'),
 #         ]
-

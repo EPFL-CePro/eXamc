@@ -64,6 +64,7 @@ urlpatterns = [
     path('get_copy_page/<int:exam_pk>',views.get_copy_page,name="get_copy_page"),
     path('review_grading_scheme_panel/<int:exam_pk>/<int:grading_scheme_id>/<str:copy_nr>', views.review_grading_scheme_panel, name="review_grading_scheme_panel"),
     path('review_grading_scheme_checkboxes/<int:exam_pk>/<int:grading_scheme_id>/<str:copy_nr>', views.review_grading_scheme_checkboxes, name="review_grading_scheme_checkboxes"),
+    path('save_pages_group_student_report_note/<int:exam_pk>', views.save_pages_group_student_report_note, name="save_pages_group_student_report_note"),
     path('update_pages_group_check_box/<int:exam_pk>',views.update_pages_group_check_box, name="update_pages_group_check_box"),
 
     # REVIEW EXPORT

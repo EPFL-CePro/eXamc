@@ -121,6 +121,7 @@ MIDDLEWARE = [
 ]
 
 AUTO_LOGOUT_DELAY = 1800 # seconds
+REVIEW_LOCK_TIMEOUT = env_int("REVIEW_LOCK_TIMEOUT", str(AUTO_LOGOUT_DELAY))  # seconds
 
 ROOT_URLCONF = 'examc.urls'
 

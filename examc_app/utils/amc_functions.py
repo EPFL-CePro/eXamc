@@ -36,7 +36,14 @@ from reportlab.platypus import Table, TableStyle
 from setuptools import glob
 
 from examc_app.decorators import exam_permission_required
-from examc_app.models import Student, Exam, PagesGroupGradingSchemeCheckedBox, QuestionGradingSchemeCheckBox, PagesGroup
+from examc_app.models import (
+    Student,
+    Exam,
+    PagesGroupGradingSchemeCheckedBox,
+    QuestionGradingSchemeCheckBox,
+    PagesGroup,
+    PagesGroupStudentReportNote,
+)
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries import *
 
@@ -608,6 +615,33 @@ def update_amc_mark_zone_data(exam,zoneid,copy,page):
 
         update_data_zone(amc_data_path,manual,zoneid, copy, page)
 
+def _is_valid_amc_options_xml(options_xml_path):
+    try:
+        with open(options_xml_path, "r", encoding="utf-8", errors="ignore") as options_file:
+            options_content = options_file.read().lstrip()
+        return options_content.startswith("<project>")
+    except OSError:
+        return False
+
+def _find_amc_project_dir(extracted_root_path):
+    candidates = []
+
+    for current_root, _, files in os.walk(extracted_root_path):
+        if "options.xml" not in files:
+            continue
+
+        options_xml_path = os.path.join(current_root, "options.xml")
+        if _is_valid_amc_options_xml(options_xml_path):
+            relative_depth = len(Path(current_root).relative_to(extracted_root_path).parts)
+            candidates.append((relative_depth, current_root))
+
+    if not candidates:
+        return None
+
+    # Prefer the closest directory to archive root if multiple candidates exist.
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    return candidates[0][1]
+
 def create_amc_project_dir_from_zip(exam,zip_file):
     file_name = f"exam_{exam.pk}_amc_project.zip"
     temp_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, file_name)
@@ -621,23 +655,30 @@ def create_amc_project_dir_from_zip(exam,zip_file):
     zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code
     tmp_extract_path = zip_path + "/tmp_extract"
 
+    os.makedirs(zip_path, exist_ok=True)
+    if os.path.exists(tmp_extract_path):
+        shutil.rmtree(tmp_extract_path)
+
     # extract zip file in tmp dir
     with zipfile.ZipFile(temp_file_path, 'r') as zip_ref:
         print("start extraction")
         zip_ref.extractall(tmp_extract_path)
 
-    if not os.path.isfile(tmp_extract_path + "/options.xml"):
-        dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
-        tmp_extract_path += "/" + dirs[0]
-        if not os.path.isfile(tmp_extract_path + "/options.xml"):
-            return 'The zip file does not contains options.xml file in the two first level of folders !'
+    project_dir_path = _find_amc_project_dir(tmp_extract_path)
+    if not project_dir_path:
+        shutil.rmtree(tmp_extract_path, ignore_errors=True)
+        return 'The zip file does not contain a valid AMC project folder with an options.xml starting with <project>!'
 
     # move to destination amc_projects
     amc_project_path = get_amc_project_path(exam, True)
     # Remove destination folder if it exists
     if os.path.exists(amc_project_path):
         shutil.rmtree(amc_project_path)
-    shutil.move(tmp_extract_path, amc_project_path)
+    shutil.move(project_dir_path, amc_project_path)
+
+    # Remove remaining extracted files (wrapper folders, etc.).
+    if os.path.exists(tmp_extract_path):
+        shutil.rmtree(tmp_extract_path, ignore_errors=True)
 
     return 'AMC project folder uploaded !'
 
@@ -1259,6 +1300,34 @@ def amc_send_annotated_papers(exam,selected_students,email_subject,email_body,em
     return [count_sent, count_error, result_list]
 
 
+def wrap_canvas_text_lines(c, text, max_width, font_name="Helvetica", font_size=10):
+    """Wrap text to fit a ReportLab canvas width and preserve explicit new lines."""
+    if not text:
+        return []
+
+    c.setFont(font_name, font_size)
+    wrapped_lines = []
+    paragraphs = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+
+    for paragraph in paragraphs:
+        words = paragraph.split()
+        if not words:
+            wrapped_lines.append("")
+            continue
+
+        current = words[0]
+        for word in words[1:]:
+            candidate = f"{current} {word}"
+            if c.stringWidth(candidate, font_name, font_size) <= max_width:
+                current = candidate
+            else:
+                wrapped_lines.append(current)
+                current = word
+        wrapped_lines.append(current)
+
+    return wrapped_lines
+
+
 
 
 def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
@@ -1295,11 +1364,12 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
         draw_header()
 
         pages_groups = PagesGroup.objects.filter(exam__pk=exam_pk, use_grading_scheme=True)
+        copy_nr = student.copie_no.zfill(4)
 
         for pages_group in pages_groups:
             pages_group_grading_schemes = PagesGroupGradingSchemeCheckedBox.objects.filter(
                 pages_group=pages_group,
-                copy_nr=student.copie_no.zfill(4)
+                copy_nr=copy_nr
             )
 
             if not pages_group_grading_schemes.exists():
@@ -1321,7 +1391,7 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
                 row_points = 0
                 pg_checked_box_qs = PagesGroupGradingSchemeCheckedBox.objects.filter(
                     gradingSchemeCheckBox_id=grading_scheme_checkbox.id,
-                    copy_nr=student.copie_no.zfill(4)
+                    copy_nr=copy_nr
                 )
                 pg_checked_box_item = None
                 if pg_checked_box_qs.exists():
@@ -1401,8 +1471,44 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
                 y=y,
                 col_widths=col_widths
             )
+            y -= (used_height + 0.6 * cm)
 
-            y -= (used_height + 1.5 * cm)
+            student_note_obj = PagesGroupStudentReportNote.objects.filter(
+                pages_group=pages_group,
+                copy_nr=copy_nr,
+            ).first()
+            student_note = student_note_obj.content.strip() if student_note_obj else ""
+            if student_note:
+                note_title = "Comment:"
+                note_lines = wrap_canvas_text_lines(
+                    c,
+                    student_note,
+                    max_width=width - 4.4 * cm,
+                    font_name="Helvetica",
+                    font_size=10,
+                )
+
+                title_height = 0.6 * cm
+                line_height = 0.45 * cm
+                note_height = title_height + (max(1, len(note_lines)) * line_height) + 0.4 * cm
+
+                if y - note_height < bottom_margin:
+                    draw_footer(page_num)
+                    c.showPage()
+                    page_num += 1
+                    draw_header()
+                    y = height - top_margin
+
+                c.setFont("Helvetica-Bold", 10)
+                c.drawString(2 * cm, y, note_title)
+                y -= title_height
+
+                c.setFont("Helvetica", 10)
+                for line in note_lines:
+                    c.drawString(2.2 * cm, y, line)
+                    y -= line_height
+
+            y -= 0.9 * cm
 
         # End PDF
         draw_footer(page_num)
