@@ -35,6 +35,21 @@ from examc_app.utils.amc_functions import *
 from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import *
+from examc_app.utils.review_settings_guards import (
+    decimal_value_changed,
+    grading_scheme_has_usage,
+    pages_group_has_review_activity,
+    pages_group_name_available,
+    pages_group_settings_changed,
+)
+
+
+def get_locked_pages_group_ids_for_exam(exam):
+    return [
+        pages_group.pk
+        for pages_group in PagesGroup.objects.filter(exam=exam)
+        if pages_group_has_review_activity(pages_group)
+    ]
 
 #@method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewView(ExamPermissionAndRedirectMixin,DetailView):
@@ -186,6 +201,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
             if amc_project_path:
                 pagesGroups = PagesGroup.objects.filter(exam=exam)
                 grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
+                locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
                 questions = get_questions(get_amc_project_path(exam, True)+"/data/")
                 questions_choices = [ (q['name'],q['name']) for q in questions]
                 formsetPagesGroups = PagesGroupsFormSet(queryset=pagesGroups, initial=[
@@ -200,11 +216,13 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
                 context['curr_tab'] = curr_tab
                 context['summernote_media_form'] = summernote_media_form
                 context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
+                context['locked_pages_group_ids'] = locked_pages_group_ids
             else:
 
                 context['user_allowed'] = True
                 context['nav_url'] = "reviewSettingsView"
                 context['curr_tab'] = curr_tab
+                context['locked_pages_group_ids'] = []
 
             context['exam_selected'] = exam
             if exam.common_exams:
@@ -232,7 +250,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
         """
         self.object = self.get_object()
         exam = Exam.objects.get(pk=self.kwargs['exam_pk'])
-        error_msg = ''
+        error_messages = []
 
         if "submit-reviewers" in self.request.POST:
             curr_tab = "reviewers"
@@ -254,15 +272,37 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
             formset = PagesGroupsFormSet(self.request.POST,form_kwargs={"questions_choices": questions_choices})
             if formset.is_valid():
                 for form in formset:
-                    print(form)
                     if form.is_valid() and form.cleaned_data:
-                        error_msg = None
-                        pagesGroup = form.save(commit=False)
-                        if form.cleaned_data["nb_pages"] > -1 :
-                            pagesGroup.exam = exam
-                            pagesGroup.save()
+                        pages_group = form.save(commit=False)
+                        if form.cleaned_data["nb_pages"] > -1:
+                            existing_group = None
+                            if pages_group.pk:
+                                existing_group = PagesGroup.objects.filter(pk=pages_group.pk, exam=exam).first()
+                                if existing_group and pages_group_has_review_activity(existing_group):
+                                    if pages_group_settings_changed(existing_group, pages_group):
+                                        error_messages.append(
+                                            f"Pages group '{existing_group.group_name}' is locked because review data already exists. "
+                                            f"Only grading help can still be edited."
+                                        )
+                                        continue
+
+                            if not pages_group_name_available(
+                                exam,
+                                pages_group.group_name,
+                                exclude_pages_group_id=pages_group.pk,
+                            ):
+                                error_messages.append(
+                                    f"Question '{pages_group.group_name}' is already used by another pages group."
+                                )
+                                continue
+
+                            pages_group.exam = exam
+                            pages_group.save()
             else:
                 print(formset.errors)
+                error_messages.append("Some pages groups are invalid. Please correct the form and retry.")
+
+        error_msg = " ".join(dict.fromkeys(error_messages)) if error_messages else None
 
         formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam))
 
@@ -272,6 +312,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
             {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
 
         grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
+        locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
 
         context = super(ReviewSettingsView, self).get_context_data(**kwargs)
         if user_allowed(exam, self.request.user.id):
@@ -289,6 +330,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
             context['curr_tab'] = curr_tab
             context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
             context['error_msg'] = error_msg
+            context['locked_pages_group_ids'] = locked_pages_group_ids
         else:
             context['user_allowed'] = False
             context['nav_url'] = "reviewSettingsView"
@@ -347,7 +389,14 @@ def delete_pages_group(request, group_pk, exam_pk):
        Returns:
            HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
        """
-    pages_group = PagesGroup.objects.get(pk=group_pk)
+    pages_group = get_object_or_404(PagesGroup, pk=group_pk, exam_id=exam_pk)
+    if pages_group_has_review_activity(pages_group):
+        messages.error(
+            request,
+            f"Pages group '{pages_group.group_name}' is locked and cannot be deleted because review data already exists.",
+        )
+        return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
+
     pages_group.delete()
 
     return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
@@ -881,9 +930,19 @@ def grading_scheme_pages_group(request, exam_pk, pages_group_id: int,current_gra
 @exam_permission_required(['manage'])
 def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    scheme_in_use = grading_scheme_has_usage(grading_scheme)
 
     if request.method == "POST":
-        grading_scheme_form = GradingSchemeForm(request.POST, instance=grading_scheme)
+        post_data = request.POST.copy()
+        error_msg = None
+        if scheme_in_use and decimal_value_changed(
+            grading_scheme.max_points,
+            post_data.get("max_points"),
+        ):
+            post_data["max_points"] = str(grading_scheme.max_points)
+            error_msg = "Max points are locked because this grading scheme has already been used in review."
+
+        grading_scheme_form = GradingSchemeForm(post_data, instance=grading_scheme)
         saved = grading_scheme_form.is_valid()
         if saved:
             grading_scheme_form.save()
@@ -892,60 +951,137 @@ def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
                 request,
                 "review/settings/_grading_scheme_pages_group.html",
                 {"exam_selected": grading_scheme.pages_group.exam, "pages_group": grading_scheme.pages_group, "grading_schemes": grading_schemes,
-                 "current_grading_scheme": grading_scheme, "saved": saved},
+                 "current_grading_scheme": grading_scheme, "saved": saved, "error_msg": error_msg},
             )
-        else:
-            print(grading_scheme_form.errors)
-    else:
-        grading_scheme_form = GradingSchemeForm(instance=grading_scheme)
-        saved = False
 
-        return render(request, "review/settings/_grading_scheme_panel.html", {"exam_selected": grading_scheme.pages_group.exam, "grading_scheme": grading_scheme, "grading_scheme_form": grading_scheme_form})
+        return render(
+            request,
+            "review/settings/_grading_scheme_panel.html",
+            {
+                "exam_selected": grading_scheme.pages_group.exam,
+                "grading_scheme": grading_scheme,
+                "grading_scheme_form": grading_scheme_form,
+                "error_msg": error_msg,
+                "scheme_in_use": scheme_in_use,
+            },
+        )
+
+    grading_scheme_form = GradingSchemeForm(instance=grading_scheme)
+    return render(
+        request,
+        "review/settings/_grading_scheme_panel.html",
+        {
+            "exam_selected": grading_scheme.pages_group.exam,
+            "grading_scheme": grading_scheme,
+            "grading_scheme_form": grading_scheme_form,
+            "scheme_in_use": scheme_in_use,
+        },
+    )
 
 @exam_permission_required(['manage'])
 def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    scheme_in_use = grading_scheme_has_usage(grading_scheme)
     grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False).exclude(name='ZERO').order_by('position','pk')
+    error_msg = None
     if request.method == "POST":
         formset = GradingSchemeCheckboxFormSet(request.POST, queryset=grading_scheme_checkboxes.all())
         saved = formset.is_valid()
         if saved:
-            formset.save()
-            formset = GradingSchemeCheckboxFormSet(queryset=qs)
+            blocked_points_change = False
+            for form in formset:
+                if not form.cleaned_data:
+                    continue
+
+                checkbox = form.instance
+                checkbox.name = form.cleaned_data["name"]
+                checkbox.description = form.cleaned_data.get("description", "")
+                checkbox.position = form.cleaned_data["position"]
+                if scheme_in_use:
+                    if decimal_value_changed(checkbox.points, form.cleaned_data.get("points")):
+                        blocked_points_change = True
+                else:
+                    checkbox.points = form.cleaned_data["points"]
+                checkbox.save()
+
+            if blocked_points_change:
+                error_msg = "Checkbox points are locked because this grading scheme has already been used in review."
+
+            formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[
+                {'id': None, 'name': 'new', 'points': 0}])
         else:
             print(formset.errors)
+            error_msg = "Some grading scheme checkbox values are invalid."
     else:
         formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[
                     {'id': None, 'name': 'new', 'points': 0}])
         saved = False
 
+    if scheme_in_use:
+        for form in formset.forms:
+            form.fields["points"].widget.attrs["readonly"] = True
+
     points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).aggregate(points__sum=Sum('points'))['points__sum']
 
-    return render(request, "review/settings/_grading_scheme_checkboxes.html", {"exam_selected":grading_scheme.pages_group.exam,"grading_scheme": grading_scheme, "grading_scheme_checkboxes_formset": formset, "saved": saved, "points": points})
+    return render(
+        request,
+        "review/settings/_grading_scheme_checkboxes.html",
+        {
+            "exam_selected": grading_scheme.pages_group.exam,
+            "grading_scheme": grading_scheme,
+            "grading_scheme_checkboxes_formset": formset,
+            "saved": saved,
+            "points": points,
+            "error_msg": error_msg,
+            "scheme_in_use": scheme_in_use,
+        },
+    )
 
 @exam_permission_required(['manage'])
 def add_new_grading_scheme_checkbox(request, exam_pk, grading_scheme_id):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    scheme_in_use = grading_scheme_has_usage(grading_scheme)
     points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).aggregate(points__sum=Sum('points'))['points__sum']
+    error_msg = None
 
-    QuestionGradingSchemeCheckBox.objects.create(
-        questionGradingScheme=grading_scheme,
-        name="NEW",
-        points=0,
-    )
+    if scheme_in_use:
+        error_msg = "Checkboxes are locked and cannot be added because this grading scheme has already been used in review."
+    else:
+        QuestionGradingSchemeCheckBox.objects.create(
+            questionGradingScheme=grading_scheme,
+            name="NEW",
+            points=0,
+        )
     # Return the UPDATED partial
     grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False).exclude(name='ZERO')
     formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[{'id': None, 'name': 'new', 'points': 0}])
     saved = False
 
-    return render(request, "review/settings/_grading_scheme_checkboxes.html", {"exam_selected": grading_scheme.pages_group.exam, "grading_scheme": grading_scheme,"grading_scheme_checkboxes_formset": formset, "saved": saved, "points": points})
+    return render(
+        request,
+        "review/settings/_grading_scheme_checkboxes.html",
+        {
+            "exam_selected": grading_scheme.pages_group.exam,
+            "grading_scheme": grading_scheme,
+            "grading_scheme_checkboxes_formset": formset,
+            "saved": saved,
+            "points": points,
+            "error_msg": error_msg,
+            "scheme_in_use": scheme_in_use,
+        },
+    )
 
 @exam_permission_required(['manage'])
 def delete_grading_scheme_checkbox(request, exam_pk, grading_scheme_checkbox_id):
     grading_scheme_checkbox = QuestionGradingSchemeCheckBox.objects.get(pk=grading_scheme_checkbox_id)
 
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_checkbox.questionGradingScheme.id)
-    grading_scheme_checkbox.delete()
+    scheme_in_use = grading_scheme_has_usage(grading_scheme)
+    error_msg = None
+    if scheme_in_use:
+        error_msg = "Checkboxes are locked and cannot be deleted because this grading scheme has already been used in review."
+    else:
+        grading_scheme_checkbox.delete()
     points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).aggregate(points__sum=Sum('points'))['points__sum']
     grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,
                                                                              adjustment=False).exclude(name='ZERO')
@@ -955,7 +1091,7 @@ def delete_grading_scheme_checkbox(request, exam_pk, grading_scheme_checkbox_id)
 
     return render(request, "review/settings/_grading_scheme_checkboxes.html",
                   {"exam_selected": grading_scheme.pages_group.exam, "grading_scheme": grading_scheme,
-                   "grading_scheme_checkboxes_formset": formset, "saved": saved, "points":points})
+                   "grading_scheme_checkboxes_formset": formset, "saved": saved, "points":points, "error_msg": error_msg, "scheme_in_use": scheme_in_use})
 
 
 
@@ -989,7 +1125,11 @@ def add_new_grading_scheme(request, exam_pk, pages_group_id):
 def delete_grading_scheme(request, exam_pk, grading_scheme_id):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
     pages_group = grading_scheme.pages_group
-    grading_scheme.delete()
+    error_msg = None
+    if grading_scheme_has_usage(grading_scheme):
+        error_msg = "This grading scheme is locked and cannot be deleted because it is already used in review."
+    else:
+        grading_scheme.delete()
     grading_schemes = pages_group.gradingSchemes.all()
     if grading_schemes:
         current_grading_scheme = grading_schemes[0]
@@ -998,7 +1138,7 @@ def delete_grading_scheme(request, exam_pk, grading_scheme_id):
 
     return render(request,"review/settings/_grading_scheme_pages_group.html",
         {"exam_selected": pages_group.exam, "pages_group": pages_group, "grading_schemes": grading_schemes,
-         "current_grading_scheme": current_grading_scheme},
+         "current_grading_scheme": current_grading_scheme, "error_msg": error_msg},
     )
 
 ########### Grading Scheme Review Group

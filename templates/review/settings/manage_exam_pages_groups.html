@@ -22,6 +22,13 @@
     {% if error_msg %}
         <div class="alert alert-danger " role="alert" style="margin:20px;text-align:center;">{{ error_msg }}</div>
     {% endif %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'warning' }}" role="alert" style="margin:20px;text-align:center;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
     <table class="table" style="max-width:1000px">
       <thead>
         <tr>
@@ -32,11 +39,12 @@
             {% endfor %}
             <th scope="col">Delete</th>
             <th scope="col">Grading Help</th>
+            <th scope="col">Status</th>
         </tr>
       </thead>
       <tbody id="group-tbody">
         {% for form in exam_pages_groups_formset.initial_forms %}
-        <tr id="group-form">
+        <tr id="group-form" {% if form.instance.pk in locked_pages_group_ids %}class="table-light"{% endif %}>
             {% for hidden in form.hidden_fields %}
                 {{ hidden }}
             {% endfor %}
@@ -46,8 +54,25 @@
                 </td>
             {% endfor %}
 
-            <td><a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value exam_selected.pk %}"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a></td>
+            <td>
+                {% if form.instance.pk in locked_pages_group_ids %}
+                    <span class="btn btn-light disabled" title="Locked because review data already exists.">
+                        <i class="fa-solid fa-lock fa-lg" style="margin-right:5px;color:#6c757d;"></i>
+                    </span>
+                {% else %}
+                    <a class="btn btn-light" href="{% url 'delete_pages_group' form.hidden_fields.0.value exam_selected.pk %}">
+                        <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
+                    </a>
+                {% endif %}
+            </td>
             <td><button type="button" id="grading-help-bt" title="Grading Help" class="btn btn-light" onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )"><i class="fas fa-question-circle fa-xl"></i></button></td>
+            <td>
+                {% if form.instance.pk in locked_pages_group_ids %}
+                    <span class="text-muted"><i class="fa-solid fa-lock"></i> Locked</span>
+                {% else %}
+                    <span class="text-muted">Editable</span>
+                {% endif %}
+            </td>
 {#            <td><button type="button" id="corrector-box-bt" title="Corrector Boxes" class="btn btn-light" onclick="openModalCorrectorBox({{ form.hidden_fields.0.value }})"><i class="fas fa-highlighter fa-xl" style="color:#7A03CCFF;"></i></button></td>#}
         </tr>
         {% endfor %}

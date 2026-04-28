@@ -28,6 +28,12 @@
         </a>
     </li>
 </ul>
+<div class="small text-muted mt-2">
+  Adding a new grading scheme is allowed. Existing used schemes remain locked for destructive changes.
+</div>
+{% if error_msg %}
+  <div class="alert alert-danger mt-2 mb-2">{{ error_msg }}</div>
+{% endif %}
 {% if saved %}<div class="alert alert-success mb-3">Saved.</div>{% endif %}
 <div id="scheme-panel-{{ pages_group.id }}" class="tab-content"></div>
 
