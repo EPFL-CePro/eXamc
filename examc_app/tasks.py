@@ -26,6 +26,7 @@ from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.marker_rendering import regenerate_marked_scans_for_exam
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
+from examc_app.utils.zip_security import safe_extract_zip
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
@@ -254,7 +255,8 @@ def import_exam_scans(self, zip_file_path, exam_pk,delete_old):
         # extract zip file in tmp dir
         with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
             print("start extraction")
-            zip_ref.extractall(tmp_extract_path)
+            # Security hardening: validated extraction (no traversal/symlink/oversized archive).
+            safe_extract_zip(zip_ref, tmp_extract_path)
 
         dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
 

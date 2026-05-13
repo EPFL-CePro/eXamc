@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pathlib import Path
 
 import pytz
 import requests
@@ -107,12 +108,25 @@ def user_allowed(exam, user_id):
         return False
 
 @require_GET
-def serve_signed_file(request):
+def serve_signed_file(request, file_hint=None):
     token = request.GET.get("token")
     if not token:
         rooms_plans = request.GET.get("rooms_plans")
         if rooms_plans:
-            return FileResponse(open(str(settings.ROOMS_PLANS_ROOT)+rooms_plans,"rb"), as_attachment=False)
+            relative_rooms_plan = rooms_plans.lstrip("/")
+            if not relative_rooms_plan.startswith("export/"):
+                raise Http404("Invalid room plan path")
+
+            rooms_root = Path(settings.ROOMS_PLANS_ROOT).resolve()
+            export_root = (rooms_root / "export").resolve()
+            full_path = (rooms_root / relative_rooms_plan).resolve()
+            try:
+                full_path.relative_to(export_root)
+            except ValueError:
+                raise Http404("Invalid room plan path")
+            if not full_path.is_file():
+                raise Http404("Room plan file not found")
+            return FileResponse(open(full_path, "rb"), as_attachment=False)
         else:
             raise Http404("Missing token")
     try:
@@ -133,4 +147,3 @@ def force_oidc_logout(request):
 def test(request):
     #detect_layout()
     return render(request,'index.html')
-

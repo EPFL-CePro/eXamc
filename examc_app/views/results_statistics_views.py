@@ -8,9 +8,10 @@ from django.core.files.base import ContentFile
 from django.db.models.functions import Cast
 from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
+from django.views.decorators.http import require_POST
 
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import ExportResultsForm
@@ -32,9 +33,10 @@ logger = logging.getLogger(__name__)
 # STUDENTS MANAGEMENT
 #@login_required
 @exam_permission_required(['manage','see_results'])
+@require_POST
 def update_student_present(request,exam_pk,student_pk,value):
 
-    student = Student.objects.get(pk=student_pk)
+    student = get_object_or_404(Student, pk=student_pk, exam_id=exam_pk)
 
     logger.info(value)
 
@@ -48,7 +50,7 @@ def update_student_present(request,exam_pk,student_pk,value):
     student.save()
     student.exam.save()
 
-    exam = Exam.objects.get(pk=exam_pk)
+    exam = get_object_or_404(Exam, pk=exam_pk)
 
     task = generate_statistics.delay(exam_pk)
     task_id = task.task_id
@@ -86,6 +88,7 @@ def import_data_4_stats(request,exam_pk,task_id=None):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def upload_amc_csv(request, exam_pk):
     csv_file = request.FILES["amc_csv_file"]
     temp_csv_file_name = "tmp_upload_amc_csv_"+datetime.datetime.now().strftime("%Y%m%d%H%M%S")+".csv"
@@ -106,6 +109,7 @@ def upload_amc_csv(request, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def upload_catalog_pdf(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     catalog = request.FILES["catalog_pdf_file"]

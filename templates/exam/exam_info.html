@@ -147,20 +147,42 @@ tr.question-removed-from-common td * {
                                                        style="background-color: transparent;"><i
                                                         class="fa-solid fa-circle-check fa-2xl"></i></a></td>
                                             {% else %}
-                                                <td><a class="btn btn-light btn-sm"
-                                                       {% if comex.common_exams.all %}
-                                                       onclick="setFinalScaleCommon({{ scale.pk }},{{ comex.pk }});"
-                                                       {% else %}
-                                                        href="{% url 'set_final_scale' scale.pk comex.pk 0 %}"
-                                                       {% endif %}
-                                                       style="background-color: transparent;"><i
-                                                        class="fa-solid fa-circle-xmark fa-2xl"
-                                                        style="color:lightgray;"></i></a></td>
+                                                <td>
+                                                    {% if comex.common_exams.all %}
+                                                        <button type="button"
+                                                                class="btn btn-light btn-sm"
+                                                                onclick="setFinalScaleCommon({{ scale.pk }},{{ comex.pk }});"
+                                                                style="background-color: transparent;">
+                                                            <i class="fa-solid fa-circle-xmark fa-2xl"
+                                                               style="color:lightgray;"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <form method="post"
+                                                              action="{% url 'set_final_scale' scale.pk comex.pk 0 %}"
+                                                              class="d-inline">
+                                                            {% csrf_token %}
+                                                            <button type="submit"
+                                                                    class="btn btn-light btn-sm"
+                                                                    style="background-color: transparent;">
+                                                                <i class="fa-solid fa-circle-xmark fa-2xl"
+                                                                   style="color:lightgray;"></i>
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+                                                </td>
                                             {% endif %}
-                                            <td><a class="btn btn-light btn-sm"
-                                                   href="{% url 'delete_exam_scale' scale.pk comex.pk %}"><i
-                                                    class="fa-solid fa-circle-minus fa-2xl"
-                                                    style="margin-right:5px;color:red;"></i></a></td>
+                                            <td>
+                                                <form method="post"
+                                                      action="{% url 'delete_exam_scale' scale.pk comex.pk %}"
+                                                      class="d-inline"
+                                                      onsubmit="return confirm('Delete this scale?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-light btn-sm">
+                                                        <i class="fa-solid fa-circle-minus fa-2xl"
+                                                           style="margin-right:5px;color:red;"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
 
                                         </tr>
                                     {% endfor %}
@@ -329,7 +351,10 @@ tr.question-removed-from-common td * {
                                         {% endfor %}
                                         </ul>
                                     {% else %}
-                                        <a class="btn btn-dark btn-sm" href="{% url 'set_common_exam' comex.pk %}">Set common exam</a>
+                                        <form method="post" action="{% url 'set_common_exam' comex.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-dark btn-sm">Set common exam</button>
+                                        </form>
                                     {% endif %}
                                 {% endif %}
                             </div>
@@ -451,8 +476,14 @@ tr.question-removed-from-common td * {
                       <p>Do you want to set this final scale for all common exams ?</p>
                   </div>
                   <div class="modal-footer">
-                    <a id="validateFinalScaleCommonAll" type="button" class="btn btn-dark btn-sm">Yes, for all!</a>
-                    <a id="validateFinalScaleCommonIndiv" type="button" class="btn btn-dark btn-sm">No, only for this exam!</a>
+                    <form id="validateFinalScaleCommonAllForm" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button id="validateFinalScaleCommonAll" type="submit" class="btn btn-dark btn-sm">Yes, for all!</button>
+                    </form>
+                    <form id="validateFinalScaleCommonIndivForm" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button id="validateFinalScaleCommonIndiv" type="submit" class="btn btn-dark btn-sm">No, only for this exam!</button>
+                    </form>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="$('#setFinalScaleCommonModal').modal('hide');" style="margin-left:50px;">Close</button>
                   </div>
                 </div>
@@ -618,8 +649,8 @@ document.getElementById("newUserEmail-{{ comex.id }}").addEventListener("keypres
 {% endfor %}
 
 function setFinalScaleCommon(scale_pk, exam_pk){
-    $('#validateFinalScaleCommonAll').attr('href','/set_final_scale/'+scale_pk+'/'+exam_pk+'/1');
-    $('#validateFinalScaleCommonIndiv').attr('href','/set_final_scale/'+scale_pk+'/'+exam_pk+'/0');
+    $('#validateFinalScaleCommonAllForm').attr('action','/set_final_scale/'+scale_pk+'/'+exam_pk+'/1');
+    $('#validateFinalScaleCommonIndivForm').attr('action','/set_final_scale/'+scale_pk+'/'+exam_pk+'/0');
     $('#setFinalScaleCommonModal').modal('show');
 }
 
