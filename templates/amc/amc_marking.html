@@ -280,6 +280,8 @@ function openManualAssociationDialog(){
 
             for(let i = 0; i < data_assoc_json.length; i++) {
                 let row = data_assoc_json[i];
+                const linkedManual = row.manual !== null && row.manual !== '' ? String(row.manual) : '';
+                const linkedAuto = row.auto !== null && row.auto !== '' ? String(row.auto) : '';
                 var tr = document.createElement('tr');
                 var td = document.createElement('td');
                 td.appendChild(document.createTextNode(row.student));
@@ -317,6 +319,13 @@ function openManualAssociationDialog(){
                     opt.set
                     student_select.appendChild(stud.cloneNode(true));
                 });
+
+                // Default selection: manual association if present, otherwise automatic association.
+                const preselectedStudent = linkedManual || linkedAuto;
+                if (preselectedStudent) {
+                    student_select.value = preselectedStudent;
+                }
+
                 td.appendChild(student_select);
                 tr.appendChild(td);
                 if(manual === '' && auto === ''){

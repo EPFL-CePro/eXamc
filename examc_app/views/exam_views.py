@@ -8,6 +8,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView
 from django_tables2 import SingleTableView, LazyPaginator
 
@@ -101,6 +102,7 @@ class ExamInfoView(ExamPermissionAndRedirectMixin,DetailView):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def ldap_search_exam_user_by_email(request,exam_pk):
     """
     Search in LDAP by email.
@@ -137,6 +139,7 @@ def ldap_search_exam_user_by_email(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def update_exam_users(request,exam_pk):
     """
            Add new users to exam.
@@ -181,6 +184,7 @@ def update_exam_users(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def update_exam_info(request,exam_pk):
     """
            Update exam info.
@@ -252,6 +256,7 @@ class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def delete_exam_scale(request, scale_pk, exam_pk):
     scale_to_delete = Scale.objects.get(pk=scale_pk)
     exam_to_manage = Exam.objects.get(pk=exam_pk)
@@ -277,6 +282,7 @@ def delete_exam_scale(request, scale_pk, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def update_exam(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     field_name = request.POST['field']
@@ -292,6 +298,7 @@ def update_exam(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def set_final_scale(request, scale_pk, exam_pk,all_common=0):
     final_scale = Scale.objects.get(id=scale_pk)
 
@@ -316,6 +323,7 @@ def set_final_scale(request, scale_pk, exam_pk,all_common=0):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def update_exam_options(request,exam_pk):
     if request.method == 'POST':
         exam = Exam.objects.get(pk=exam_pk)
@@ -352,6 +360,7 @@ def update_exam_options(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def update_questions(request,exam_pk):
     data = json.loads(request.POST.get('data'))
     for question in data:
@@ -376,6 +385,7 @@ def update_questions(request,exam_pk):
     return HttpResponse(1)
 
 @exam_permission_required(['manage'])
+@require_POST
 def set_common_exam(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
 
@@ -435,6 +445,7 @@ def set_common_exam(request,exam_pk):
     #
     # return redirect('../examInfo/' + str(exam.pk))
 @exam_permission_required(['manage'])
+@require_POST
 def validate_common_exams_settings(request,exam_pk):
     overall_exam = Exam.objects.get(pk=exam_pk)
     common_exams_ids = request.POST.getlist(str(exam_pk) + '_common_to[]')

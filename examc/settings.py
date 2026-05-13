@@ -241,6 +241,8 @@ OIDC_RP_SIGN_ALGO = "RS256"
 LOGIN_URL = "/oidc/authenticate/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+OIDC_SUPERUSER_GROUPS = [group for group in env("OIDC_SUPERUSER_GROUPS", "CePro_admin_IT_AppGrpU").split(",") if group]
+OIDC_STAFF_GROUPS = [group for group in env("OIDC_STAFF_GROUPS", "CePro_admin_IT_AppGrpU").split(",") if group]
 
 # Only use this setting if you want to store the access token in the session
 # To use access token to call API

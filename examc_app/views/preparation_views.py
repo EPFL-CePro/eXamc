@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 #
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
+from django.views.decorators.http import require_POST
 
 from django.conf import settings
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, SummernoteForm
@@ -120,6 +121,7 @@ def exam_preparation_view(request,pk):
                     "nav_url": "exam_preparation"})
 
 @login_required
+@require_POST
 def exam_add_section(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     section_num = 1
@@ -210,6 +212,7 @@ def exam_add_section_question(request):
     return HttpResponse(None)
 
 @login_required
+@require_POST
 def exam_update_section(request):
     section = ExamSection.objects.get(pk=request.POST.get('section_pk'))
 
@@ -220,6 +223,7 @@ def exam_update_section(request):
     return HttpResponse('ok')
 
 @login_required
+@require_POST
 def get_header_section_txt(request):
     """
       Get the section header text.
@@ -240,6 +244,7 @@ def get_header_section_txt(request):
     return HttpResponse(section.header_text)
 
 @login_required
+@require_POST
 def exam_update_question(request):
     question = Question.objects.get(pk=request.POST.get('question_pk'))
 
@@ -257,6 +262,7 @@ def exam_update_question(request):
     return HttpResponse('ok')
 
 @login_required
+@require_POST
 def exam_update_answers(request):
 
     answers = json.loads(request.POST.get('answers'))
@@ -270,6 +276,7 @@ def exam_update_answers(request):
     return HttpResponse('ok')
 
 @login_required
+@require_POST
 def exam_add_answer(request):
     if request.method == 'POST':
         question = Question.objects.get(pk=request.POST.get('question_pk'))
@@ -285,6 +292,7 @@ def exam_add_answer(request):
     return HttpResponse('ok')
 
 @login_required
+@require_POST
 def exam_remove_answer(request):
     answer = QuestionAnswer.objects.get(pk=request.POST.get('answer_pk'))
     exam = answer.question.exam
@@ -299,12 +307,14 @@ def exam_remove_answer(request):
     return HttpResponse('ok')
 
 @login_required
+@require_POST
 def exam_remove_question(request):
     question = Question.objects.get(pk=request.POST.get('question_pk'))
     question.delete()
     return HttpResponse('ok')
 
 @login_required
+@require_POST
 def exam_remove_section(request):
     section = ExamSection.objects.get(pk=request.POST.get('section_pk'))
     section.delete()
@@ -320,6 +330,7 @@ def exam_remove_section(request):
     return HttpResponse('ok')
 
 @login_required
+@require_POST
 def exam_update_first_page(request):
     exam = Exam.objects.get(pk=request.POST.get('exam_pk'))
     exam.first_page_text = request.POST.get('first_page_text')

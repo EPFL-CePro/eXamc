@@ -159,7 +159,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <button onclick="callAutomaticDataCapture_process(true,false)" class="btn btn-primary btn-sm">Import selected</button>
+                                    <button id="importSelectedPagesBt" onclick="callAutomaticDataCapture_process(true,false)" class="btn btn-primary btn-sm" disabled>Import selected</button>
                                 </div>
                             </div>
                         </div>
@@ -296,32 +296,70 @@
 <script>
 
 var scans_list_json = JSON.parse(document.getElementById('json_scans_list').textContent);
+if (!Array.isArray(scans_list_json)) {
+    scans_list_json = [];
+}
+
+function updateImportSelectedButtonState() {
+    var import_selected_bt = $('#importSelectedPagesBt');
+    if (import_selected_bt.length === 0) {
+        return;
+    }
+    var selected_pages_count = $('#scans_to_import_multiselect_to option').length;
+    import_selected_bt.prop('disabled', selected_pages_count === 0);
+}
+
 $(window).on("load",function() {
     setSelectableCopyListHTML();
     setSelectableCopyPageListHTML(0);
 
     $('#scans_to_import_multiselect').multiselect();
+    updateImportSelectedButtonState();
+    $('#scans_to_import_multiselect_to').on('change', updateImportSelectedButtonState);
+    [
+        '#scans_to_import_multiselect_rightAll',
+        '#scans_to_import_multiselect_rightSelected',
+        '#scans_to_import_multiselect_leftSelected',
+        '#scans_to_import_multiselect_leftAll'
+    ].forEach(function(selector) {
+        $(selector).on('click', function() {
+            setTimeout(updateImportSelectedButtonState, 0);
+        });
+    });
 });
 
 function setSelectableCopyListHTML(){
     //init copies list for scans to select
-    copies_list = '<select class="form-control" size="8">';
+    var copies_list = '<select class="form-control" size="8" onchange="setSelectableCopyPageListHTML(this.value)">';
+    if (scans_list_json.length === 0) {
+        copies_list += '<option value="" disabled selected>No copies available</option>';
+    }
     for(var i = 0; i < scans_list_json.length; i++){
-        copies_list += '<option value="'+i+'" onclick="setSelectableCopyPageListHTML('+i+')" class="">'+scans_list_json[i].copy+'</option>'
+        copies_list += '<option value="'+i+'" class="">'+scans_list_json[i].copy+'</option>';
     }
     copies_list += '</select>';
     document.getElementById('copies-list').innerHTML = copies_list;
 }
 
 function setSelectableCopyPageListHTML(copy){
-    files_list = '';
+    var files_list = '';
     //files_list += '<select name="scans_to_import_from[]" id="scans_to_import_multiselect" class="" size="8" multiple="multiple">';
 
-    scans_to_import_multiselect = $('#scans_to_import_multiselect')[0];
+    var scans_to_import_multiselect = $('#scans_to_import_multiselect')[0];
+    if (!scans_to_import_multiselect) {
+        return;
+    }
 
-    for(var i = 0; i < scans_list_json[copy].pages.length; i++) {
-        file = scans_list_json[copy].pages[i].page;
-        path = scans_list_json[copy].pages[i].path;
+    var copy_index = Number(copy);
+    var selected_copy = scans_list_json[copy_index];
+    if (!selected_copy || !Array.isArray(selected_copy.pages)) {
+        scans_to_import_multiselect.innerHTML = '';
+        return;
+    }
+
+    for(var i = 0; i < selected_copy.pages.length; i++) {
+        var file = selected_copy.pages[i].page;
+        var path = selected_copy.pages[i].path;
         files_list += '<option value="'+path+'" class="">'+file+'</option>';
     }
     //files_list += '</select>';
@@ -738,7 +776,5 @@ function zoomDataCapturePrevious(copy,page){
 }
 
 </script>
-
-
 
 

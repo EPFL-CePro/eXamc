@@ -239,7 +239,12 @@
             </div>
             {% endfor %}
         </div>
-        <a id="add-section" href="{% url 'exam_add_section' exam.pk %}" class="btn btn-light" style="background-color: transparent;text-align: left;"  type="button"><i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add Section</a>
+        <form method="post" action="{% url 'exam_add_section' exam.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button id="add-section" class="btn btn-light" style="background-color: transparent;text-align: left;" type="submit">
+                <i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add Section
+            </button>
+        </form>
     </div>
     
     <div id="add-question-modal" class="modal" tabindex="-1" role="dialog">

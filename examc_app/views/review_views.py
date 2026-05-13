@@ -17,11 +17,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect
+from django.http import HttpResponse, FileResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 from shapely.geometry import Polygon
 
@@ -348,6 +349,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin,DetailView):
 # @login_required
 # @menu_access_required
 @exam_permission_required(['manage'])
+@require_POST
 def add_new_pages_group(request, exam_pk):
     """
         Add a new pages group for an exam.
@@ -375,6 +377,7 @@ def add_new_pages_group(request, exam_pk):
 # @login_required
 # @menu_access_required
 @exam_permission_required(['manage'])
+@require_POST
 def delete_pages_group(request, group_pk, exam_pk):
     """
        Delete a pages group.
@@ -406,6 +409,7 @@ def delete_pages_group(request, group_pk, exam_pk):
 # @login_required
 # @menu_access_required
 @exam_permission_required(['manage'])
+@require_POST
 def edit_pages_group_grading_help(request,exam_pk):
     """
        Edit the grading help.
@@ -419,7 +423,7 @@ def edit_pages_group_grading_help(request,exam_pk):
        Returns:
            HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
        """
-    pages_group = PagesGroup.objects.get(pk=request.POST.get('group_pk'))
+    pages_group = get_object_or_404(PagesGroup, pk=request.POST.get('group_pk'), exam_id=exam_pk)
     pages_group.grading_help = request.POST['grading_help']
     pages_group.save()
 
@@ -429,6 +433,7 @@ def edit_pages_group_grading_help(request,exam_pk):
 # @login_required
 # @menu_access_required
 @exam_permission_required(['manage','review'])
+@require_POST
 def get_pages_group_grading_help(request,exam_pk):
     """
       Get the grading help.
@@ -443,7 +448,7 @@ def get_pages_group_grading_help(request,exam_pk):
           HttpResponse: An HTTP response containing the grading help for the pages group.
       """
 
-    pages_group = PagesGroup.objects.get(pk=request.POST.get('group_pk'))
+    pages_group = get_object_or_404(PagesGroup, pk=request.POST.get('group_pk'), exam_id=exam_pk)
     # grading_help_group_form = ckeditorForm()
     # grading_help_group_form.initial['ckeditor_txt'] = pages_group.grading_help
 
@@ -543,7 +548,20 @@ def generate_marked_files(request, exam_pk, task_id=None):
 #@login_required
 @exam_permission_required(['manage'])
 def download_marked_files(request,filename, exam_pk):
-    zip_file = open(str(settings.EXPORT_TMP_ROOT)+"/"+filename, 'rb')
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    if os.path.basename(filename) != filename or not filename.endswith(".zip"):
+        raise Http404("Invalid filename")
+
+    expected_prefix = f"marked_{exam.year.code}_{exam.semester.code}_{exam.code}_"
+    if not filename.startswith(expected_prefix):
+        raise Http404("Invalid export file")
+
+    export_root = os.path.realpath(str(settings.EXPORT_TMP_ROOT))
+    file_path = os.path.realpath(os.path.join(export_root, filename))
+    if not file_path.startswith(export_root + os.sep) or not os.path.isfile(file_path):
+        raise Http404("Export file not found")
+
+    zip_file = open(file_path, 'rb')
     return FileResponse(zip_file)
 
 # TESTING
@@ -646,6 +664,7 @@ def upload_scans(request, exam_pk, task_id=None):
                                                                'files': [],'nav_url':'upload_scans'})
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def saveMarkers(request, exam_pk):
     """  Save the markers and comments for a given exam page group.
         This function saves the markers and comments provided by the user for a specific exam page group.
@@ -732,6 +751,7 @@ def saveMarkers(request, exam_pk):
     return HttpResponse(marked)
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def getMarkersAndComments(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     data_dict = {}
@@ -770,23 +790,37 @@ def getMarkersAndComments(request, exam_pk):
 
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def saveComment(request,exam_pk):
     if 'delete' in request.POST:
-        PagesGroupComment.objects.get(pk=request.POST['comment_id']).delete()
+        get_object_or_404(
+            PagesGroupComment,
+            pk=request.POST['comment_id'],
+            pages_group__exam_id=exam_pk,
+        ).delete()
     else:
         comment_data = json.loads(request.POST['comment'])
         if not comment_data['id'].startswith('c'):
-            comment = PagesGroupComment.objects.get(pk=comment_data['id'])
+            comment = get_object_or_404(
+                PagesGroupComment,
+                pk=comment_data['id'],
+                pages_group__exam_id=exam_pk,
+            )
             comment.content = comment_data['content']
             comment.modified = datetime.now()
             comment.save()
         else:
+            pages_group = get_object_or_404(
+                PagesGroup,
+                pk=request.POST['group_id'],
+                exam_id=exam_pk,
+            )
             comment = PagesGroupComment()
             comment.is_new = True
             comment.content = comment_data['content']
             comment.created = datetime.now()
             comment.user_id = request.user.id
-            comment.pages_group_id = request.POST['group_id']
+            comment.pages_group = pages_group
             comment.copy_no = request.POST['copy_no']
             if comment_data['parent']:
                 comment.parent_id = int(comment_data['parent'])
@@ -798,11 +832,12 @@ def saveComment(request,exam_pk):
     return HttpResponse('deleted')
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def update_page_group_markers(request,exam_pk):
     if request.method == 'POST':
 
         exam = Exam.objects.get(pk=exam_pk)
-        pages_group = PagesGroup.objects.get(pk=request.POST['pages_group_pk'])
+        pages_group = get_object_or_404(PagesGroup, pk=request.POST['pages_group_pk'], exam_id=exam_pk)
         scan_markers, created = PageMarkers.objects.get_or_create(copie_no='CORR-BOX',
                                                                   pages_group=pages_group,
                                                                   nb_pages=pages_group.nb_pages,
@@ -833,6 +868,7 @@ def cleanup_expired_review_locks():
 
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def review_student_pages_group_is_locked(request,exam_pk):
     if request.method != 'POST':
         return HttpResponse("Invalid request method", status=405)
@@ -891,6 +927,7 @@ def review_student_pages_group_is_locked(request,exam_pk):
     return HttpResponse('')
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def remove_review_user_locks(request,exam_pk):
     if request.method != 'POST':
         return HttpResponse("Invalid request method", status=405)
@@ -899,6 +936,7 @@ def remove_review_user_locks(request,exam_pk):
     return HttpResponse('ok')
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def get_copy_page(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     copy_nr = request.POST.get('copy_no')
@@ -912,10 +950,17 @@ def get_copy_page(request,exam_pk):
 ############ Grading schemes settings
 @exam_permission_required(['manage'])
 def grading_scheme_pages_group(request, exam_pk, pages_group_id: int,current_grading_scheme_id=None):
-    grading_schemes = QuestionGradingScheme.objects.filter(pages_group_id=pages_group_id, pages_group__use_grading_scheme=True)
-    pages_group = PagesGroup.objects.get(pk=pages_group_id)
+    pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
+    grading_schemes = QuestionGradingScheme.objects.filter(
+        pages_group=pages_group,
+        pages_group__use_grading_scheme=True,
+    )
     if current_grading_scheme_id:
-        current_grading_scheme = QuestionGradingScheme.objects.get(pk=current_grading_scheme_id)
+        current_grading_scheme = get_object_or_404(
+            QuestionGradingScheme,
+            pk=current_grading_scheme_id,
+            pages_group=pages_group,
+        )
     else:
         if grading_schemes:
             current_grading_scheme = grading_schemes[0]
@@ -929,7 +974,11 @@ def grading_scheme_pages_group(request, exam_pk, pages_group_id: int,current_gra
 
 @exam_permission_required(['manage'])
 def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
-    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    grading_scheme = get_object_or_404(
+        QuestionGradingScheme,
+        pk=grading_scheme_id,
+        pages_group__exam_id=exam_pk,
+    )
     scheme_in_use = grading_scheme_has_usage(grading_scheme)
 
     if request.method == "POST":
@@ -980,7 +1029,11 @@ def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
 
 @exam_permission_required(['manage'])
 def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
-    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    grading_scheme = get_object_or_404(
+        QuestionGradingScheme,
+        pk=grading_scheme_id,
+        pages_group__exam_id=exam_pk,
+    )
     scheme_in_use = grading_scheme_has_usage(grading_scheme)
     grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,adjustment=False).exclude(name='ZERO').order_by('position','pk')
     error_msg = None
@@ -1038,8 +1091,13 @@ def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
     )
 
 @exam_permission_required(['manage'])
+@require_POST
 def add_new_grading_scheme_checkbox(request, exam_pk, grading_scheme_id):
-    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    grading_scheme = get_object_or_404(
+        QuestionGradingScheme,
+        pk=grading_scheme_id,
+        pages_group__exam_id=exam_pk,
+    )
     scheme_in_use = grading_scheme_has_usage(grading_scheme)
     points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).aggregate(points__sum=Sum('points'))['points__sum']
     error_msg = None
@@ -1072,10 +1130,14 @@ def add_new_grading_scheme_checkbox(request, exam_pk, grading_scheme_id):
     )
 
 @exam_permission_required(['manage'])
+@require_POST
 def delete_grading_scheme_checkbox(request, exam_pk, grading_scheme_checkbox_id):
-    grading_scheme_checkbox = QuestionGradingSchemeCheckBox.objects.get(pk=grading_scheme_checkbox_id)
-
-    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_checkbox.questionGradingScheme.id)
+    grading_scheme_checkbox = get_object_or_404(
+        QuestionGradingSchemeCheckBox,
+        pk=grading_scheme_checkbox_id,
+        questionGradingScheme__pages_group__exam_id=exam_pk,
+    )
+    grading_scheme = grading_scheme_checkbox.questionGradingScheme
     scheme_in_use = grading_scheme_has_usage(grading_scheme)
     error_msg = None
     if scheme_in_use:
@@ -1096,9 +1158,10 @@ def delete_grading_scheme_checkbox(request, exam_pk, grading_scheme_checkbox_id)
 
 
 @exam_permission_required(['manage'])
+@require_POST
 def add_new_grading_scheme(request, exam_pk, pages_group_id):
-    pages_group = PagesGroup.objects.get(pk=pages_group_id)
-    exam = Exam.objects.get(pk=exam_pk)
+    pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
+    exam = get_object_or_404(Exam, pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
     max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, None))
 
@@ -1113,7 +1176,7 @@ def add_new_grading_scheme(request, exam_pk, pages_group_id):
     QuestionGradingSchemeCheckBox.objects.create(questionGradingScheme=grading_scheme, name="ZERO", description="Zero", points=0, adjustment=False)
 
     grading_schemes = QuestionGradingScheme.objects.filter(pages_group_id=pages_group_id)
-    pages_group = PagesGroup.objects.get(pk=pages_group_id)
+    pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
     return render(
         request,
         "review/settings/_grading_scheme_pages_group.html",
@@ -1122,8 +1185,13 @@ def add_new_grading_scheme(request, exam_pk, pages_group_id):
     )
 
 @exam_permission_required(['manage'])
+@require_POST
 def delete_grading_scheme(request, exam_pk, grading_scheme_id):
-    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    grading_scheme = get_object_or_404(
+        QuestionGradingScheme,
+        pk=grading_scheme_id,
+        pages_group__exam_id=exam_pk,
+    )
     pages_group = grading_scheme.pages_group
     error_msg = None
     if grading_scheme_has_usage(grading_scheme):
@@ -1178,7 +1246,11 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
 
 @exam_permission_required(['manage','review'])
 def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
-    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    grading_scheme = get_object_or_404(
+        QuestionGradingScheme,
+        pk=grading_scheme_id,
+        pages_group__exam_id=exam_pk,
+    )
     used_grading_scheme = other_grading_scheme_used(grading_scheme,copy_nr)
     if used_grading_scheme:
         grading_scheme = used_grading_scheme
@@ -1214,8 +1286,12 @@ def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
 
 @exam_permission_required(['manage','review'])
 def review_grading_scheme_checkboxes(request, exam_pk, grading_scheme_id, copy_nr):
-    grading_scheme_checkboxes = get_grading_scheme_checkboxes(grading_scheme_id, copy_nr)
-    grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
+    grading_scheme = get_object_or_404(
+        QuestionGradingScheme,
+        pk=grading_scheme_id,
+        pages_group__exam_id=exam_pk,
+    )
+    grading_scheme_checkboxes = get_grading_scheme_checkboxes(grading_scheme.id, copy_nr)
     note_enabled = str(copy_nr) not in ('0', 'None', '')
     student_report_note = ""
     if note_enabled:
@@ -1239,6 +1315,7 @@ def review_grading_scheme_checkboxes(request, exam_pk, grading_scheme_id, copy_n
     )
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def save_pages_group_student_report_note(request, exam_pk):
     pages_group_id = request.POST.get('pages_group_id')
     copy_nr = request.POST.get('copy_nr')
@@ -1266,17 +1343,24 @@ def save_pages_group_student_report_note(request, exam_pk):
     return HttpResponse('ok')
 
 @exam_permission_required(['manage','review'])
+@require_POST
 def update_pages_group_check_box(request,exam_pk):
     copy_nr = request.POST.get('copy_nr')
     item_id_str = request.POST.get('item_id')
     checked = request.POST.get('checked') == 'true'
-    pages_group = PagesGroup.objects.get(pk=int(request.POST.get('pages_group_id')))
+    pages_group = get_object_or_404(PagesGroup, pk=int(request.POST.get('pages_group_id')), exam_id=exam_pk)
     adjustment = request.POST.get('adjustment')
     zero = request.POST.get('zero') == 'true'
     full = request.POST.get('full') == 'true'
     if adjustment == '':
         adjustment = 0
-    grading_scheme = QuestionGradingScheme.objects.get(pk=int(request.POST.get('grading_scheme_id')))
+    grading_scheme = get_object_or_404(
+        QuestionGradingScheme,
+        pk=int(request.POST.get('grading_scheme_id')),
+        pages_group__exam_id=exam_pk,
+    )
+    if grading_scheme.pages_group_id != pages_group.id:
+        return HttpResponse("Invalid grading scheme for pages group", status=400)
     points_rnd = ''
 
     if (zero and checked) or full:

@@ -46,6 +46,7 @@ from examc_app.models import (
 )
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries import *
+from examc_app.utils.zip_security import safe_extract_zip
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -175,59 +176,63 @@ def latex_files_to_list(path,amc_project_path):
 
     return file_list
 
-##testing
-def process(request):
-    # If you're getting IP from a form, ensure this value is passed
-    ip = request.POST.get('ip', 'www.google.ch')  # Default IP to google.ch
-
-    # Load the template that will be used for each line of the subprocess output
-    template = get_template("subprocess.html")
-
-    # Using subprocess to execute the ping command and stream the output
-    with subprocess.Popen([f'ping -c5 {ip}'], shell=True, stdout=subprocess.PIPE, bufsize=1,
-                          universal_newlines=True) as p:
-        # Iterate over each line in the stdout of the subprocess
-        for line in p.stdout:
-            # Yield rendered template with each line
-            yield line.strip()  # Strip to remove extra newlines
-
-    # If the subprocess has a non-zero exit code, raise an error
-    if p.returncode != 0:
-        raise subprocess.CalledProcessError(p.returncode, p.args)
-
-def amc_update_documents_subprocess(exam,nb_copies,scoring_only,preview=False):
-    amc_project_path = get_amc_project_path(exam, False)
-    if preview:
-        os.rename(amc_project_path + "/students.csv", amc_project_path + "/students.bck")
-        os.rename(amc_project_path + "/sample.csv", amc_project_path + "/students.csv")
-
-    if scoring_only:
-        command = ['auto-multiple-choice prepare '
-                     '--mode b '
-                     '--data "' + amc_project_path + '/data/" '
-                                                     '--with pdflatex '
-                                                     '--filter latex '
-                                                     '--prefix "'
-                     + amc_project_path + '/" "'
-                     + amc_project_path + '/exam.tex" ']
-    else:
-        amc_update_options_xml_by_key(exam, 'nombre_copies', nb_copies)
-        exam_file = get_amc_option_by_key(exam, 'doc_question')
-        correction_file = get_amc_option_by_key(exam, 'doc_catalog')
-        doc_setting = get_amc_option_by_key(exam, 'doc_setting')
-        command = ['auto-multiple-choice prepare '
-                                 '--mode s '
-                                 '--with pdflatex '
-                                 '--filter latex '
-                                 '--prefix "'
-                                 +get_amc_project_path(exam,False)+'/" "'
-                                 +get_amc_project_path(exam,False)+'/exam.tex" '
-                                 '--data "'+get_amc_project_path(exam,False)+'/data/" '
-                                 '--out-sujet "'+exam_file+'" '
-                                 '--out-catalog "'+correction_file+'" '
-                                 '--out-calage "'+doc_setting+'" ']
-
-    subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+# ##testing
+# def process(request):
+#     # If you're getting IP from a form, ensure this value is passed
+#     ip = request.POST.get('ip', 'www.google.ch').strip()  # Default IP to google.ch
+#     if not re.fullmatch(r"[A-Za-z0-9.\-:]+", ip):
+#         raise ValidationError("Invalid host")
+#
+#     # Load the template that will be used for each line of the subprocess output
+#     template = get_template("subprocess.html")
+#
+#     # Using subprocess to execute the ping command and stream the output
+#     with subprocess.Popen(["ping", "-c5", ip], stdout=subprocess.PIPE, bufsize=1,
+#                           universal_newlines=True) as p:
+#         # Iterate over each line in the stdout of the subprocess
+#         for line in p.stdout:
+#             # Yield rendered template with each line
+#             yield line.strip()  # Strip to remove extra newlines
+#
+#     # If the subprocess has a non-zero exit code, raise an error
+#     if p.returncode != 0:
+#         raise subprocess.CalledProcessError(p.returncode, p.args)
+#
+# def amc_update_documents_subprocess(exam,nb_copies,scoring_only,preview=False):
+#     amc_project_path = get_amc_project_path(exam, False)
+#     if preview:
+#         os.rename(amc_project_path + "/students.csv", amc_project_path + "/students.bck")
+#         os.rename(amc_project_path + "/sample.csv", amc_project_path + "/students.csv")
+#
+#     if scoring_only:
+#         command = [
+#             "auto-multiple-choice", "prepare",
+#             "--mode", "b",
+#             "--data", f"{amc_project_path}/data/",
+#             "--with", "pdflatex",
+#             "--filter", "latex",
+#             "--prefix", f"{amc_project_path}/",
+#             f"{amc_project_path}/exam.tex",
+#         ]
+#     else:
+#         amc_update_options_xml_by_key(exam, 'nombre_copies', nb_copies)
+#         exam_file = get_amc_option_by_key(exam, 'doc_question')
+#         correction_file = get_amc_option_by_key(exam, 'doc_catalog')
+#         doc_setting = get_amc_option_by_key(exam, 'doc_setting')
+#         command = [
+#             "auto-multiple-choice", "prepare",
+#             "--mode", "s",
+#             "--with", "pdflatex",
+#             "--filter", "latex",
+#             "--prefix", f"{get_amc_project_path(exam,False)}/",
+#             f"{get_amc_project_path(exam,False)}/exam.tex",
+#             "--data", f"{get_amc_project_path(exam,False)}/data/",
+#             "--out-sujet", exam_file,
+#             "--out-catalog", correction_file,
+#             "--out-calage", doc_setting,
+#         ]
+#
+#     subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
 
 
 
@@ -239,36 +244,34 @@ def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
         os.rename(amc_project_path+"/sample.csv",amc_project_path+"/students.csv")
 
     if scoring_only:
-        result = subprocess.run(['auto-multiple-choice prepare '
-                                 '--mode b '
-                                 '--data "' + amc_project_path+ '/data/" '
-                                 '--with pdflatex '
-                                 '--filter latex '
-                                 '--prefix "'
-                                 +amc_project_path+'/" "'
-                                 +amc_project_path+'/exam.tex" ']
-                                , shell=True
-                                , capture_output=True
-                                , text=True)
+        command = [
+            "auto-multiple-choice", "prepare",
+            "--mode", "b",
+            "--data", f"{amc_project_path}/data/",
+            "--with", "pdflatex",
+            "--filter", "latex",
+            "--prefix", f"{amc_project_path}/",
+            f"{amc_project_path}/exam.tex",
+        ]
+        result = subprocess.run(command, capture_output=True, text=True)
     else:
         amc_update_options_xml_by_key(exam,'nombre_copies',nb_copies)
         exam_file = get_amc_option_by_key(exam,'doc_question')
         correction_file = get_amc_option_by_key(exam,'doc_catalog')
         doc_setting = get_amc_option_by_key(exam,'doc_setting')
-        result = subprocess.run(['auto-multiple-choice prepare '
-                                 '--mode s '
-                                 '--with pdflatex '
-                                 '--filter latex '
-                                 '--prefix "'
-                                 +get_amc_project_path(exam,False)+'/" "'
-                                 +get_amc_project_path(exam,False)+'/exam.tex" '
-                                 '--data "'+get_amc_project_path(exam,False)+'/data/" '
-                                 '--out-sujet "'+exam_file+'" '
-                                 '--out-catalog "'+correction_file+'" '
-                                 '--out-calage "'+doc_setting+'" ']
-                                ,shell=True
-                                , capture_output=True
-                                , text=True)
+        command = [
+            "auto-multiple-choice", "prepare",
+            "--mode", "s",
+            "--with", "pdflatex",
+            "--filter", "latex",
+            "--prefix", f"{get_amc_project_path(exam,False)}/",
+            f"{get_amc_project_path(exam,False)}/exam.tex",
+            "--data", f"{get_amc_project_path(exam,False)}/data/",
+            "--out-sujet", exam_file,
+            "--out-catalog", correction_file,
+            "--out-calage", doc_setting,
+        ]
+        result = subprocess.run(command, capture_output=True, text=True)
 
     if preview:
         os.rename(amc_project_path+"/students.csv",amc_project_path+"/sample.csv")
@@ -280,12 +283,12 @@ def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
 def amc_layout_detection(exam):
     project_path = get_amc_project_path(exam,False)
     doc_setting = get_amc_option_by_key(exam,'doc_setting')
-    result = subprocess.run(['auto-multiple-choice meptex '
-                             '--src "'+project_path+'/'+doc_setting+'" '
-                             '--data "'+project_path+'/data/"']
-                            ,shell=True
-                            , capture_output=True
-                            , text=True)
+    command = [
+        "auto-multiple-choice", "meptex",
+        "--src", f"{project_path}/{doc_setting}",
+        "--data", f"{project_path}/data/",
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
     if result.stderr:
         return "ERR:"+result.stderr
     else:
@@ -314,7 +317,8 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
                 # extract zip file in tmp dir
         with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
             print("start extraction")
-            zip_ref.extractall(tmp_extract_path)
+            # Security hardening: validated extraction (no traversal/symlink/oversized archive).
+            safe_extract_zip(zip_ref, tmp_extract_path)
 
             file_list_path = tmp_dir_path + "/list-file"
             tmp_file_list = open(file_list_path, "a+")
@@ -328,13 +332,12 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
 
     print("////////////////////////////// exists : " +str(os.path.exists("/private_media/scans/2025-2026/1/CEPRO-666_20251015/0010/copy_0010_08.jpg")))
     # prepare scan images (see amc doc)
-    command = ['auto-multiple-choice getimages '
-                             '--list "' + file_list_path + '" ']
+    command = ["auto-multiple-choice", "getimages", "--list", file_list_path]
     if not from_review:
-        command[0] += ' --copy-to "' + project_path + '/scans" '
+        command.extend(["--copy-to", f"{project_path}/scans"])
 
     yield "Getting images ...\n"
-    subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True)
+    subprocess.run(command, capture_output=True, text=True)
 
     os.rename(file_list_path, file_list_path + ".txt")
     file_list_path += ".txt"
@@ -342,16 +345,18 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
     box_prop = get_amc_option_by_key(exam, "box_size_proportion")
 
     # analyse scans
-    command = ['auto-multiple-choice analyse '
-                             '--prop ' + box_prop + ' '
-                             '--data "' + project_path + '/data/" '
-                            '--projet "' + project_path + '" '
-                            '--liste-fichiers "' + file_list_path + '" '
-                            '--try-three ']
+    command = [
+        "auto-multiple-choice", "analyse",
+        "--prop", box_prop,
+        "--data", f"{project_path}/data/",
+        "--projet", project_path,
+        "--liste-fichiers", file_list_path,
+        "--try-three",
+    ]
 
     yield "Automatic data capture ...\n"
     errors = ''
-    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
         for line in process.stdout:
             print(line.strip())
             if "ERR:" in line:
@@ -415,7 +420,8 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
                 # extract zip file in tmp dir
         with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
             print("start extraction")
-            zip_ref.extractall(tmp_extract_path)
+            # Security hardening: validated extraction (no traversal/symlink/oversized archive).
+            safe_extract_zip(zip_ref, tmp_extract_path)
 
             file_list_path = tmp_dir_path+"/list-file"
             tmp_file_list = open(file_list_path, "a+")
@@ -428,13 +434,11 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
     print('amc getimages')
 
     # prepare scan images (see amc doc)
-    command = ['auto-multiple-choice getimages '
-               '--list "' + file_list_path + '" ']
+    command = ["auto-multiple-choice", "getimages", "--list", file_list_path]
     if not from_review:
-        command[0] += ' --copy-to "' + project_path + '/scans" '
+        command.extend(["--copy-to", f"{project_path}/scans"])
 
-    result = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
-    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
         for line in process.stdout:
             print(line.strip())
     # if result.stderr:
@@ -458,13 +462,15 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
     print("before analyse")
     # analyse scans
     print("amc analyse")
-    command = ['auto-multiple-choice analyse '
-               '--prop ' + box_prop + ' '
-                '--data "' + project_path + '/data/" '
-                '--projet "' + project_path + '" '
-                '--liste-fichiers "' + file_list_path + '" '
-                '--try-three ']
-    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
+    command = [
+        "auto-multiple-choice", "analyse",
+        "--prop", box_prop,
+        "--data", f"{project_path}/data/",
+        "--projet", project_path,
+        "--liste-fichiers", file_list_path,
+        "--try-three",
+    ]
+    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
         for line in process.stdout:
             print(line.strip())
 
@@ -662,7 +668,8 @@ def create_amc_project_dir_from_zip(exam,zip_file):
     # extract zip file in tmp dir
     with zipfile.ZipFile(temp_file_path, 'r') as zip_ref:
         print("start extraction")
-        zip_ref.extractall(tmp_extract_path)
+        # Security hardening: validated extraction (no traversal/symlink/oversized archive).
+        safe_extract_zip(zip_ref, tmp_extract_path)
 
     project_dir_path = _find_amc_project_dir(tmp_extract_path)
     if not project_dir_path:
@@ -841,17 +848,19 @@ def amc_mark(exam,update_scoring_strategy):
     plafond = get_amc_option_by_key(exam, "note_max_plafond")
     yield "Start marking ...\n"
 
-    command = ['auto-multiple-choice note '
-                             '--data "' + project_path + '/data/" '
-                             '--seuil ' + threshold + ' '
-                             '--seuil-up '  + threshold_up + ' '
-                             '--grain ' + grain + ' '
-                             '--arrondi ' + round_grade + ' '
-                             '--notemin ' + notemin + ' '
-                             '--notemax ' + notemax + ' '
-                             '--plafond ' + plafond + ' ']
+    command = [
+        "auto-multiple-choice", "note",
+        "--data", f"{project_path}/data/",
+        "--seuil", threshold,
+        "--seuil-up", threshold_up,
+        "--grain", grain,
+        "--arrondi", round_grade,
+        "--notemin", notemin,
+        "--notemax", notemax,
+        "--plafond", plafond,
+    ]
     errors = ''
-    with subprocess.Popen(command,shell=True,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+    with subprocess.Popen(command,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
         with open(project_path+'/amc-compiled.amc', 'r') as file:
             # Read each line in the file
             for line in file:
@@ -879,16 +888,18 @@ def amc_mark_subprocess(request, exam,update_scoring_strategy):
     notemax = get_amc_option_by_key(exam, "note_max")
     plafond = get_amc_option_by_key(exam, "note_max_plafond")
 
-    command = ['auto-multiple-choice note '
-                             '--data "' + project_path + '/data/" '
-                             '--seuil ' + threshold + ' '
-                             '--seuil-up '  + threshold_up + ' '
-                             '--grain ' + grain + ' '
-                             '--arrondi ' + round_grade + ' '
-                             '--notemin ' + notemin + ' '
-                             '--notemax ' + notemax + ' ']
+    command = [
+        "auto-multiple-choice", "note",
+        "--data", f"{project_path}/data/",
+        "--seuil", threshold,
+        "--seuil-up", threshold_up,
+        "--grain", grain,
+        "--arrondi", round_grade,
+        "--notemin", notemin,
+        "--notemax", notemax,
+    ]
     errors = ''
-    with subprocess.Popen(command,shell=True,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+    with subprocess.Popen(command,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
         with open(project_path+'/amc-compiled.amc', 'r') as file:
             # Read each line in the file
             for line in file:
@@ -955,14 +966,14 @@ def amc_automatic_association(exam,assoc_primary_key):
     project_path = get_amc_project_path(exam, False)
     amc_update_options_xml_by_key(exam,'liste_key',assoc_primary_key)
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
-    result = subprocess.run(['auto-multiple-choice association-auto '
-                                  '--data "' + project_path + '/data/" '
-                                  '--pre-association '
-                                  '--liste "' + students_list + '" '
-                                  '--liste-key ' + assoc_primary_key + ' ']
-                            , shell=True
-                            , capture_output=True
-                            , text=True)
+    command = [
+        "auto-multiple-choice", "association-auto",
+        "--data", f"{project_path}/data/",
+        "--pre-association",
+        "--liste", students_list,
+        "--liste-key", assoc_primary_key,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
     if result.stderr:
         return "ERR:" + result.stderr
     else:
@@ -1011,25 +1022,23 @@ def amc_annotate(exam,single_file,add_grading_scheme_report):
     verdict_qc = get_amc_option_by_key(exam,'verdict_qc').replace('"','\\"')
     symbols = get_annotation_symbols(exam)
     annote_position = get_amc_option_by_key(exam,'annote_position')
-    single_file_option = ''
+    command = [
+        "auto-multiple-choice", "annotate",
+        "--project", project_path,
+        "--names-file", students_list,
+        "--association-key", assoc_primary_key,
+        "--filename-model", filename_model,
+        "--symbols", symbols,
+        "--verdict", verdict,
+        "--verdict-question", verdict_q,
+        "--verdict-question-cancelled", verdict_qc,
+        "--position", annote_position,
+        "--compose", "0",
+    ]
     if single_file:
-        single_file_option = '--single-output'
+        command.append("--single-output")
 
-    result = subprocess.run(['auto-multiple-choice annotate '
-                                  '--project "' + project_path + '" '
-                                  '--names-file "' + students_list + '" '
-                                  '--association-key "' + assoc_primary_key + '" '
-                                  '--filename-model "' + filename_model + '" '
-                                  ''+single_file_option + ' '
-                                  '--symbols "' + symbols + '" '
-                                  '--verdict "' + verdict + '" '
-                                  '--verdict-question "' + verdict_q + '" '
-                                  '--verdict-question-cancelled "' + verdict_qc + '" '
-                                  '--position "'+ annote_position + '" '
-                                  '--compose 0']
-                            , shell=True
-                            , capture_output=True
-                            , text=True)
+    result = subprocess.run(command, capture_output=True, text=True)
     if result.stderr:
         return "ERR:" + result.stderr
     else:
@@ -1168,19 +1177,19 @@ def amc_generate_results(exam):
     results_csv_path = project_path+"/exports/"+exam.code+"_amc_raw.csv"
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
 
-    result = subprocess.run(['auto-multiple-choice export '
-                                '--data "' + project_path + '/data/" '
-                                '--module CSV '
-                                '--fich-noms "' + students_list + '" '
-                                '--o "' + results_csv_path + '" '
-                                '--sort l '
-                                '--useall 1 '
-                                '--option-out ticked=AB '
-                                '--option columns=ID,SCIPER,NAME,SECTION,EMAIL '
-                                '--option separateur=";" ']
-                                , shell=True
-                                , capture_output=True
-                                , text=True)
+    command = [
+        "auto-multiple-choice", "export",
+        "--data", f"{project_path}/data/",
+        "--module", "CSV",
+        "--fich-noms", students_list,
+        "--o", results_csv_path,
+        "--sort", "l",
+        "--useall", "1",
+        "--option-out", "ticked=AB",
+        "--option", "columns=ID,SCIPER,NAME,SECTION,EMAIL",
+        "--option", "separateur=;",
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
     if result.stderr:
         return "ERR:" + result.stderr
     else:
@@ -1196,7 +1205,73 @@ def get_amc_results_file_path(exam):
 
 def get_amc_manual_association_data(exam):
     project_path = get_amc_project_path(exam, False)
-    amc_assoc_img_path = get_amc_project_url(exam) + "/cr/"
+    amc_assoc_img_path = ""
+    if project_path:
+        amc_assoc_img_path = str(Path(project_path) / "cr") + "/"
+
+    def _assoc_image_relpath(raw_image_path: str) -> str:
+        """Convert AMC association image path/url to path relative to AMC_PROJECTS_ROOT."""
+        path_value = str(raw_image_path or "").strip()
+        if not path_value:
+            return ""
+
+        # Common case from SQL: "/amc_projects/<year>/<sem>/<exam>/cr/<file>"
+        amc_url_prefix = str(settings.AMC_PROJECTS_URL).rstrip("/") + "/"
+        if path_value.startswith(amc_url_prefix):
+            return path_value[len(amc_url_prefix):]
+
+        # If a full filesystem path is returned, relativize it against AMC root.
+        amc_root = Path(settings.AMC_PROJECTS_ROOT).resolve()
+        candidate = Path(path_value)
+        try:
+            candidate_resolved = candidate.resolve()
+            return str(candidate_resolved.relative_to(amc_root))
+        except Exception:
+            pass
+
+        # Fallback for mixed/legacy strings containing "/amc_projects/".
+        marker = "/amc_projects/"
+        if marker in path_value:
+            return path_value.split(marker, 1)[1]
+
+        return path_value.lstrip("/")
+
+    def _resolve_existing_assoc_relpath(rel_path: str) -> str:
+        """Best-effort fix when DB image path does not map to an existing file."""
+        if not rel_path or not project_path:
+            return rel_path
+
+        amc_root = Path(settings.AMC_PROJECTS_ROOT).resolve()
+        rel_candidate = Path(rel_path)
+        file_candidate = (amc_root / rel_candidate).resolve()
+        if file_candidate.exists():
+            return rel_path
+
+        cr_dir = Path(project_path).resolve() / "cr"
+        if not cr_dir.exists():
+            return rel_path
+
+        # Try exact filename match anywhere under cr/
+        file_name = rel_candidate.name
+        if file_name:
+            exact_name_matches = [p for p in cr_dir.rglob("*") if p.is_file() and p.name.lower() == file_name.lower()]
+            if exact_name_matches:
+                try:
+                    return str(exact_name_matches[0].resolve().relative_to(amc_root))
+                except Exception:
+                    return rel_path
+
+        # Fallback to stem match.
+        stem = rel_candidate.stem
+        if stem:
+            exact_stem_matches = [p for p in cr_dir.rglob("*") if p.is_file() and p.stem.lower() == stem.lower()]
+            if exact_stem_matches:
+                try:
+                    return str(exact_stem_matches[0].resolve().relative_to(amc_root))
+                except Exception:
+                    return rel_path
+
+        return rel_path
 
     if project_path:
         amc_data_path = project_path+"/data/"
@@ -1208,7 +1283,12 @@ def get_amc_manual_association_data(exam):
 
         # signing images
         for assoc in data_assoc:
-            assoc["image_path"] = make_token_for(assoc["image_path"].replace('/amc_projects/',''),'assoc')
+            rel_path = _assoc_image_relpath(assoc.get("image_path"))
+            rel_path = _resolve_existing_assoc_relpath(rel_path)
+            signed_url = make_token_for(rel_path, str(settings.AMC_PROJECTS_ROOT))
+            if "?token=" in signed_url:
+                signed_url = f"{settings.SIGNED_FILES_URL}?token={signed_url.split('?token=', 1)[1]}"
+            assoc["image_path"] = signed_url
 
         return {"data_assoc":json.dumps(data_assoc),"data_students":json.dumps(students_data)}
 

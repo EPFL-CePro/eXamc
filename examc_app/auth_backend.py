@@ -1,4 +1,5 @@
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
+from django.conf import settings
 
 class ExamcOIDCBackend(OIDCAuthenticationBackend):
     def get_userinfo(self, access_token, id_token, payload):
@@ -21,15 +22,11 @@ class ExamcOIDCBackend(OIDCAuthenticationBackend):
         user.last_name = claims.get("family_name", "")
         user.email = claims.get("email", user.email)
 
-        print("OIDC claims keys: %s", list(claims.keys()))
-        print("groups: %s", claims.get("groups"))
-        print("picture: %s", claims.get("picture"))
-        print("roles: %s", claims.get("roles"))
-        groups = list(claims.get("groups", []))
-        if "CePro_admin_IT_AppGrpU" in groups:
-            user.is_superuser = True
-        else:
-            user.is_superuser = False  # optional: decide if you want to remove superuser status
-        user.is_staff = True
+        groups = set(claims.get("groups", []))
+        superuser_groups = set(getattr(settings, "OIDC_SUPERUSER_GROUPS", []))
+        staff_groups = set(getattr(settings, "OIDC_STAFF_GROUPS", []))
+
+        user.is_superuser = bool(groups.intersection(superuser_groups))
+        user.is_staff = bool(groups.intersection(staff_groups))
         user.save()
         return user
