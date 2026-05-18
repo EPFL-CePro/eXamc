@@ -26,6 +26,7 @@ class Migration(migrations.Migration):
             model_name='historicalpagesgroupgradingschemecheckedbox',
             name='comment',
             field=models.TextField(default=''),
+        ),
         migrations.RemoveField(
             model_name='historicalexamsection',
             name='exam',
@@ -34,6 +35,7 @@ class Migration(migrations.Migration):
             model_name='pagesgroupgradingschemecheckedbox',
             name='comment',
             field=models.TextField(default=''),
+        ),
         migrations.RemoveField(
             model_name='historicalexamsection',
             name='history_user',

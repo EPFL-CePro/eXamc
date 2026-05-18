@@ -1,11 +1,3 @@
-import shutil
-from decimal import Decimal
-
-from django.contrib.auth.decorators import login_required
-#
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from django.views.decorators.http import require_POST
 import json
 import os
 from pathlib import Path
@@ -172,18 +164,6 @@ def unlock_exam_editing(request, exam_pk):
         "Editing has been unlocked. Any previously generated final files may now be inconsistent. "
         "All printed documents should be destroyed and final files must be generated again before use."
     )
-@login_required
-@require_POST
-def exam_add_section(request,exam_pk):
-    exam = Exam.objects.get(pk=exam_pk)
-    section_num = 1
-    if exam.sections.all():
-        section_num += len(exam.sections.all())
-    section = ExamSection()
-    section.title = "Section "+str(section_num)
-    section.section_number = section_num
-    section.exam = exam
-    section.save()
 
     return redirect("exam_preparation", exam_pk=exam.pk)
 
@@ -592,10 +572,6 @@ def delete_prep_question(request, exam_pk, question_id):
     )
     section = question.prep_section
 
-@login_required
-@require_POST
-def exam_update_section(request):
-    section = ExamSection.objects.get(pk=request.POST.get('section_pk'))
     question.delete()
     renumber_questions(section)
     update_exam_latex(section.exam)
@@ -611,11 +587,6 @@ def exam_update_section(request):
     )
 
 
-@login_required
-@require_POST
-def get_header_section_txt(request):
-    """
-      Get the section header text.
 # -------------------------
 # Answers
 # -------------------------
@@ -648,10 +619,6 @@ def prep_answer_panel(request, exam_pk, answer_id):
         prep_question__prep_section__exam_id=exam_pk,
     )
 
-@login_required
-@require_POST
-def exam_update_question(request):
-    question = Question.objects.get(pk=request.POST.get('question_pk'))
     if request.method == "POST":
         locked = ensure_exam_not_finalized(answer.prep_question.prep_section.exam)
         if locked:
@@ -682,9 +649,6 @@ def exam_update_question(request):
     )
 
 
-@login_required
-@require_POST
-def exam_update_answers(request):
 @exam_permission_required(["manage"])
 def add_prep_answer(request, exam_pk, question_id):
     exam = Exam.objects.get(pk=exam_pk)
@@ -699,12 +663,6 @@ def add_prep_answer(request, exam_pk, question_id):
         prep_section__exam_id=exam_pk,
     )
 
-@login_required
-@require_POST
-def exam_add_answer(request):
-    if request.method == 'POST':
-        question = Question.objects.get(pk=request.POST.get('question_pk'))
-        nb_answers = question.answers.all().count()
     create_prep_answer(question)
 
     update_exam_latex(question.prep_section.exam)
@@ -720,11 +678,6 @@ def exam_add_answer(request):
     )
 
 
-@login_required
-@require_POST
-def exam_remove_answer(request):
-    answer = QuestionAnswer.objects.get(pk=request.POST.get('answer_pk'))
-    exam = answer.question.exam
 @exam_permission_required(["manage"])
 def delete_prep_answer(request, exam_pk, answer_id):
     exam = Exam.objects.get(pk=exam_pk)
@@ -788,31 +741,10 @@ def exam_preview_pdf_file(request, exam_pk, job_pk):
 
     return FileResponse(open(pdf_path, "rb"), content_type="application/pdf")
 
-@login_required
-@require_POST
-def exam_remove_question(request):
-    question = Question.objects.get(pk=request.POST.get('question_pk'))
-    question.delete()
-    return HttpResponse('ok')
 @exam_permission_required(["manage"])
 def exam_preview_start(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
-@login_required
-@require_POST
-def exam_remove_section(request):
-    section = ExamSection.objects.get(pk=request.POST.get('section_pk'))
-    section.delete()
-    # redo numbering
-    sections = ExamSection.objects.filter(exam__pk=section.exam.id).order_by('section_number')
-    i = 1
-    for s in sections.all():
-        if s.title == 'Section '+str(s.section_number):
-            s.title = 'Section '+str(i)
-        s.section_number = i
-        s.save()
-        i += 1
-    return HttpResponse('ok')
     active_jobs = ExamAMCJob.objects.filter(
         exam=exam,
         requested_by=request.user,
@@ -820,11 +752,6 @@ def exam_remove_section(request):
         status__in=["pending", "running"],
     )
 
-@login_required
-@require_POST
-def exam_update_first_page(request):
-    exam = Exam.objects.get(pk=request.POST.get('exam_pk'))
-    exam.first_page_text = request.POST.get('first_page_text')
     for active_job in active_jobs:
         active_job.status = "error"
         active_job.error_message = "Replaced by a new preview request."
@@ -1125,9 +1052,6 @@ def save_latex_edited_packages(request,exam_pk):
                 cleaned_packages.append(pkg)
 
     exam = Exam.objects.get(pk=exam_pk)
-    result = exam_generate_preview(exam)
-    return HttpResponse(result)
-
     amc_project_path = get_amc_project_path(exam, False)
     filepath = Path(amc_project_path) / "packages.tex"
 
