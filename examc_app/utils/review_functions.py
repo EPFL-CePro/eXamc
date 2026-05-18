@@ -29,6 +29,9 @@ from examc_app.utils.amc_db_queries import get_questions, get_question_start_pag
 from examc_app.utils.amc_functions import get_amc_project_path
 
 
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+
+
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
 def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,process_number):
 
@@ -446,6 +449,9 @@ def generate_marked_pdfs(exam,files_path, with_comments=False, progress_recorder
         pdf.set_auto_page_break(0)
         pdf.set_margins(0,0,0)
         for image in sorted(os.listdir(files_path + "/" + subdir)):
+            if pathlib.Path(image).suffix.lower() not in IMAGE_EXTENSIONS:
+                continue
+
             pdf.add_page()
 
             # force image to sRGB if grayscale

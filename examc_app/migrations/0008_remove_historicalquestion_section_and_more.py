@@ -22,10 +22,18 @@ class Migration(migrations.Migration):
             model_name='question',
             name='section',
         ),
+        migrations.AddField(
+            model_name='historicalpagesgroupgradingschemecheckedbox',
+            name='comment',
+            field=models.TextField(default=''),
         migrations.RemoveField(
             model_name='historicalexamsection',
             name='exam',
         ),
+        migrations.AddField(
+            model_name='pagesgroupgradingschemecheckedbox',
+            name='comment',
+            field=models.TextField(default=''),
         migrations.RemoveField(
             model_name='historicalexamsection',
             name='history_user',

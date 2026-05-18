@@ -11,6 +11,7 @@ from django.db.models import Max, Q, FloatField
 from scipy import stats
 
 from examc_app.utils.results_statistics_functions import *
+from examc_app.utils.safe_math import safe_eval_decimal_expression
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -210,8 +211,18 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
                             ind_max_points = Decimal(formula_arr[0])
                             com_max_points = Decimal(formula_arr[1])
                             print(indiv_points)
-                            indiv_formula = formula_arr[2].replace("SIP",str(indiv_points)).replace("SCP",str(common_points)).replace("IP",str(ind_max_points)).replace("CP",str(com_max_points))
-                            indiv_points = Decimal(eval(indiv_formula))
+                            # Security hardening: evaluate formula with restricted AST evaluator
+                            # instead of Python eval(...).
+                            indiv_formula = formula_arr[2]
+                            indiv_points = safe_eval_decimal_expression(
+                                indiv_formula,
+                                {
+                                    "SIP": Decimal(str(indiv_points)),
+                                    "SCP": Decimal(str(common_points)),
+                                    "IP": ind_max_points,
+                                    "CP": com_max_points,
+                                },
+                            )
                             if indiv_points>ind_max_points:
                                 indiv_points=ind_max_points
                             print(indiv_formula)
@@ -506,8 +517,18 @@ def create_stats_comVsInd(overall_exam):
                     formula_arr = comex.indiv_formula.split(";")
                     ind_max_points = Decimal(formula_arr[0])
                     com_max_points = Decimal(formula_arr[1])
-                    indiv_formula = formula_arr[2].replace("SIP",str(stud_ind_points)).replace("SCP",str(com_pts)).replace("IP",str(ind_max_points)).replace("CP",str(com_max_points))
-                    stud_ind_points = Decimal(eval(indiv_formula))
+                    # Security hardening: evaluate formula with restricted AST evaluator
+                    # instead of Python eval(...).
+                    indiv_formula = formula_arr[2]
+                    stud_ind_points = safe_eval_decimal_expression(
+                        indiv_formula,
+                        {
+                            "SIP": Decimal(str(stud_ind_points)),
+                            "SCP": Decimal(str(com_pts or 0)),
+                            "IP": ind_max_points,
+                            "CP": com_max_points,
+                        },
+                    )
                     if stud_ind_points>ind_max_points:
                         stud_ind_points=ind_max_points
 

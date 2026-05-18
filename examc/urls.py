@@ -17,7 +17,7 @@ from celery_progress.urls import app_name
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
 from django.urls import path, include
 
@@ -39,7 +39,7 @@ urlpatterns = ([
     path('admin/course/import_courses_data/', CourseAdmin.import_courses_json_data),
     path('examSelect', views.ExamSelectView.as_view(), name="examSelect"),
     path('select_exam/<int:pk>', views.select_exam, name="select_exam"),
-    path('getCommonExams/<int:pk>', views.getCommonExams, name="getCommonExams"),
+    path('getCommonExams/<int:pk>', staff_member_required(views.getCommonExams), name="getCommonExams"),
     path('documentation',views.documentation_view, name="documentation"),
     path('oidc/', include('mozilla_django_oidc.urls')),
     #Signed files url

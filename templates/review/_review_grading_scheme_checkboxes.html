@@ -7,6 +7,10 @@
     .table-no-right-pad tbody tr:first-child > td {
         border-top: 0 !important;
     }
+
+    .review-checkbox-row {
+        cursor: pointer;
+    }
 </style>
 <table class="table table-md table-fixed-cols table-no-right-pad" id="review-grading-scheme-checkboxes-dt">
     <colgroup>
@@ -16,7 +20,8 @@
     </colgroup>
     <tbody>
     {% for gsc in grading_scheme_checkboxes %}
-        <tr>
+        <tr class="review-checkbox-row"
+            onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
             <td style="padding-bottom: 0px;">
                 <div class="custom-control custom-switch mb-3">
                     <input class="custom-control-input" type="checkbox"
@@ -52,10 +57,43 @@
                 </td>
             </tr>
             <tr>
-                <td colspan="3" style="border-top:None;padding-top:0px;padding-left:70px;padding-right:20px;">{{ gsc.description|safe }}</td>
+                <td colspan="3"
+                    style="border-top:None;padding-top:0px;padding-left:70px;padding-right:20px;"
+                    class="review-checkbox-row"
+                    onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">{{ gsc.description|safe }}</td>
             </tr>
             {% endif %}
 
     {% endfor %}
+
     </tbody>
 </table>
+<script>
+    window.toggleReviewCheckboxFromRow = window.toggleReviewCheckboxFromRow || function (event, checkboxId) {
+        const target = event && event.target instanceof Element ? event.target : null;
+        if (target && target.closest('input, label, button, a, textarea, select')) {
+            return;
+        }
+
+        const checkbox = document.getElementById(checkboxId);
+        if (!checkbox || checkbox.disabled) {
+            return;
+        }
+
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', {bubbles: true}));
+    };
+</script>
+<hr/>
+<div class="mb-1">
+    <label for="student-report-note-{{ grading_scheme.pages_group.id }}" class="form-label mb-1">
+        Note for student
+    </label>
+    <textarea
+            id="student-report-note-{{ grading_scheme.pages_group.id }}"
+            class="form-control form-control-sm js-student-report-note"
+            data-pages-group-id="{{ grading_scheme.pages_group.id }}"
+            rows="4"
+            placeholder="Visible in AMC annotated PDF when enabling 'Add grading scheme report with annotations'."
+            {% if not student_report_note_enabled %}disabled{% endif %}>{{ student_report_note }}</textarea>
+</div>

@@ -2,6 +2,7 @@ import json
 import os
 import pathlib
 from urllib import request
+from pathlib import Path
 
 from asgiref.sync import async_to_sync, sync_to_async
 from celery.result import AsyncResult
@@ -10,6 +11,7 @@ from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST, require_GET
 
 from examc_app.decorators import exam_permission_required
@@ -17,7 +19,59 @@ from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip, amc_annotate_task
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
+from examc_app.utils.marker_rendering import regenerate_marked_scans_for_exam, regenerate_marked_scans_for_page_markers
 from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
+
+
+AMC_ANNOTATE_JOBS_SESSION_KEY = "amc_annotate_jobs"
+AMC_ANNOTATE_JOB_TTL_SECONDS = 24 * 3600
+AMC_ANNOTATE_JOB_MAX_TRACKED = 200
+
+
+def _prune_amc_annotate_jobs(raw_jobs):
+    """Keep only valid/recent annotate jobs for session ownership checks."""
+    if not isinstance(raw_jobs, dict):
+        return {}
+
+    now_ts = int(timezone.now().timestamp())
+    min_ts = now_ts - AMC_ANNOTATE_JOB_TTL_SECONDS
+    pruned = {}
+    for job_id, meta in raw_jobs.items():
+        if not isinstance(meta, dict):
+            continue
+        created_at = int(meta.get("created_at", 0))
+        exam_pk = meta.get("exam_pk")
+        if created_at < min_ts or exam_pk is None:
+            continue
+        pruned[str(job_id)] = {
+            "exam_pk": int(exam_pk),
+            "created_at": created_at,
+        }
+
+    if len(pruned) > AMC_ANNOTATE_JOB_MAX_TRACKED:
+        # Keep the newest jobs only.
+        sorted_items = sorted(pruned.items(), key=lambda item: item[1]["created_at"], reverse=True)
+        pruned = dict(sorted_items[:AMC_ANNOTATE_JOB_MAX_TRACKED])
+
+    return pruned
+
+
+def _track_amc_annotate_job(request, exam_pk, job_id):
+    jobs = _prune_amc_annotate_jobs(request.session.get(AMC_ANNOTATE_JOBS_SESSION_KEY, {}))
+    jobs[str(job_id)] = {
+        "exam_pk": int(exam_pk),
+        "created_at": int(timezone.now().timestamp()),
+    }
+    request.session[AMC_ANNOTATE_JOBS_SESSION_KEY] = _prune_amc_annotate_jobs(jobs)
+    request.session.modified = True
+
+
+def _is_amc_annotate_job_owned(request, exam_pk, job_id):
+    jobs = _prune_amc_annotate_jobs(request.session.get(AMC_ANNOTATE_JOBS_SESSION_KEY, {}))
+    request.session[AMC_ANNOTATE_JOBS_SESSION_KEY] = jobs
+    request.session.modified = True
+    meta = jobs.get(str(job_id))
+    return bool(meta and int(meta.get("exam_pk")) == int(exam_pk))
 
 
 #@login_required
@@ -178,6 +232,7 @@ def amc_data_capture_manual(request, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def get_amc_marks_positions(request,exam_pk):
 
     exam = Exam.objects.get(pk=exam_pk)
@@ -223,6 +278,7 @@ def get_unrecognized_pages(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def update_amc_mark_zone(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     zoneid = request.POST['zoneid']
@@ -233,19 +289,41 @@ def update_amc_mark_zone(request,exam_pk):
 
     return HttpResponse('')
 
+def _resolve_amc_project_file(amc_project_path: str, relative_path: str) -> Path:
+    project_root = Path(amc_project_path).resolve()
+    candidate = (project_root / relative_path).resolve()
+    try:
+        candidate.relative_to(project_root)
+    except ValueError as exc:
+        raise Http404("Invalid AMC project filepath") from exc
+    return candidate
+
+
+def _resolve_students_list_path(exam, amc_project_path: str) -> Path:
+    students_list_raw = get_amc_option_by_key(exam, 'listeetudiants').replace("%PROJET", amc_project_path)
+    students_list_path = Path(students_list_raw).resolve()
+    project_root = Path(amc_project_path).resolve()
+    try:
+        students_list_path.relative_to(project_root)
+    except ValueError as exc:
+        raise Http404("Invalid students list filepath") from exc
+    return students_list_path
+
+
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def edit_amc_file(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     amc_project_path = get_amc_project_path(exam, False)
     if request.POST['filepath'] == 'students_list':
-        filepath = get_amc_option_by_key(exam,'listeetudiants').replace("%PROJET",get_amc_project_path(exam,False))
+        filepath = _resolve_students_list_path(exam, amc_project_path)
         f = open(filepath, 'r')
         file_contents = f.read()
         f.close()
-        return HttpResponse(json.dumps([os.path.relpath(filepath, amc_project_path), file_contents]))
+        return HttpResponse(json.dumps([os.path.relpath(str(filepath), amc_project_path), file_contents]))
     else:
-        filepath = amc_project_path + "/" + request.POST['filepath']
+        filepath = _resolve_amc_project_file(amc_project_path, request.POST['filepath'])
         f = open(filepath, 'r', encoding='utf-8')
         file_contents = f.read()
         f.close()
@@ -253,11 +331,12 @@ def edit_amc_file(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def save_amc_edited_file(request,exam_pk):
     data = request.POST['data']
     exam = Exam.objects.get(pk=exam_pk)
     amc_project_path = get_amc_project_path(exam, False)
-    filepath = amc_project_path + "/" + request.POST['filepath']
+    filepath = _resolve_amc_project_file(amc_project_path, request.POST['filepath'])
     if 'is_students_list' in request.POST:
         tmp_filepath = get_amc_project_path(exam,False)+'/_tmp_students.csv'
         shutil.copyfile(filepath, tmp_filepath)
@@ -273,7 +352,7 @@ def save_amc_edited_file(request,exam_pk):
             check += " -- file not updated !"
         return HttpResponse(check)
     else:
-        filepath = amc_project_path + "/" + request.POST['filepath']
+        filepath = _resolve_amc_project_file(amc_project_path, request.POST['filepath'])
         f = open(filepath, 'r+', encoding="utf-8")
         f.truncate(0)
         f.write(data)
@@ -282,6 +361,7 @@ def save_amc_edited_file(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def call_amc_update_documents(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     nb_copies = request.POST['nb_copies']
@@ -292,6 +372,7 @@ def call_amc_update_documents(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def call_amc_layout_detection(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     result = amc_layout_detection(exam)
@@ -299,17 +380,30 @@ def call_amc_layout_detection(request,exam_pk):
         result = get_amc_layout_detection_info(exam)
     return HttpResponse(result)
 
+@require_POST
 @exam_permission_required(['manage'])
-def call_amc_automatic_data_capture(request,from_review,exam_pk):
+def call_amc_automatic_data_capture(request,exam_pk,from_review=False):
     exam = Exam.objects.get(pk=exam_pk)
     zip_file = request.FILES['amc_scans_zip_file']
 
-    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,False,file_list_path=None))
+    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,from_review,file_list_path=None))
 
 @exam_permission_required(['manage'])
+@require_POST
 def import_scans_from_review_pages(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     scans_list = request.POST.getlist('pages_list[]')
+    selected_filenames = {pathlib.Path(scan).name for scan in scans_list}
+
+    if selected_filenames:
+        selected_page_markers = [
+            page_markers
+            for page_markers in PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
+            if pathlib.Path(page_markers.filename).name in selected_filenames
+        ]
+        if selected_page_markers:
+            regenerate_marked_scans_for_page_markers(selected_page_markers)
+
     amc_proj_path = get_amc_project_path(exam, False)
     file_list_path = amc_proj_path + "/list-file"
     if os.path.exists(file_list_path):
@@ -317,11 +411,20 @@ def import_scans_from_review_pages(request, exam_pk):
 
     with open(file_list_path, "w") as f:
         for scan in scans_list:
-            f.write(scan + "\n")
+            scan_path = pathlib.Path(scan)
+            marked_scan = pathlib.Path(
+                str(scan_path).replace(str(settings.SCANS_ROOT), str(settings.MARKED_SCANS_ROOT))
+            )
+            marked_scan = marked_scan.with_name(f"marked_{marked_scan.stem}.png")
+            if marked_scan.exists():
+                f.write(str(marked_scan) + "\n")
+            else:
+                f.write(scan + "\n")
 
     return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
 
 @exam_permission_required(['manage'])
+@require_POST
 def import_scans_from_review(request, exam_pk):
     print('************** importing scans from review')
     exam = Exam.objects.get(pk=exam_pk)
@@ -335,6 +438,9 @@ def import_scans_from_review(request, exam_pk):
     print('*********** scans dir: '+scans_dir)
     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
         exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+
+    regenerate_marked_scans_for_exam(exam)
+
     export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
         exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
     export_subdir = export_subdir.replace(" ", "_")
@@ -355,9 +461,10 @@ def import_scans_from_review(request, exam_pk):
         for filename in sorted(os.listdir(scans_dir + "/" + dir)):
             # check if a marked file exist, if yes copy it, or copy original scans
 
-            marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
+            scan_filename = pathlib.Path(filename)
+            marked_file_path = pathlib.Path(marked_dir) / dir / f"marked_{scan_filename.stem}.png"
             if os.path.exists(marked_file_path):
-                shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
+                shutil.copyfile(marked_file_path, copy_export_subdir + "/" + marked_file_path.name)
             else:
                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
@@ -366,9 +473,8 @@ def import_scans_from_review(request, exam_pk):
     print('########### scans dir: '+scans_dir)
     files = sorted(glob.glob(scans_dir + '/**/*.*', recursive=True))
     for file in files:
-        marked_file_path = file.replace(scans_dir,marked_dir).rsplit('/', 1)[0]
-        marked_file_path += "/marked_"+file.replace('.jpeg', '.png').split('/')[-1]
-        marked_file_path = pathlib.Path(marked_file_path)
+        file_path = pathlib.Path(file)
+        marked_file_path = pathlib.Path(marked_dir) / file_path.parent.name / f"marked_{file_path.stem}.png"
         if os.path.exists(marked_file_path):
             tmp_file_list.write(str(marked_file_path) + "\n")
         else:
@@ -400,6 +506,7 @@ def open_amc_catalog_pdf(request, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def view_amc_log_file(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     amc_log_file_path = get_amc_project_path(exam,False)+"/amc-compiled.log"
@@ -410,6 +517,7 @@ def view_amc_log_file(request, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def get_amc_zooms(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     copy = request.POST['copy']
@@ -421,6 +529,7 @@ def get_amc_zooms(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def add_unrecognized_page(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     page = request.POST['unrec_page']
@@ -433,6 +542,7 @@ def add_unrecognized_page(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def call_amc_mark(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     update_scoring_strategy = request.POST['update_scoring_strategy']
@@ -442,6 +552,7 @@ def call_amc_mark(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def call_amc_automatic_association(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     assoc_primary_key = request.POST['assoc_primary_key']
@@ -456,6 +567,7 @@ def call_amc_automatic_association(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def amc_update_students_file(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     students_list_csv = request.FILES['students_list_csv']
@@ -480,6 +592,7 @@ def amc_update_students_file(request, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def old_call_amc_annotate(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     single_file = request.POST['single_file']
@@ -502,6 +615,7 @@ def call_amc_annotate(request, exam_pk):
     add_grading_scheme_report = request.POST.get("add_grading_scheme_report") in ("true", "True", "1", True)
 
     job = amc_annotate_task.delay(exam_pk, single_file, add_grading_scheme_report)
+    _track_amc_annotate_job(request, exam_pk, job.id)
     return JsonResponse({
         "job_id": job.id,
         "status_url": reverse("amc_annotate_status", args=[exam.pk,job.id]),
@@ -510,6 +624,9 @@ def call_amc_annotate(request, exam_pk):
 @require_GET
 @exam_permission_required(['manage'])
 def amc_annotate_status(request, exam_pk, job_id):
+    if not _is_amc_annotate_job_owned(request, exam_pk, job_id):
+        return JsonResponse({"status": "forbidden", "error": "Unknown or unauthorized job id."}, status=403)
+
     res = AsyncResult(job_id)
 
     # Celery states: PENDING, STARTED, SUCCESS, FAILURE, RETRY...
@@ -536,6 +653,7 @@ def download_annotated_pdf(request, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def call_amc_generate_results(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     result = amc_generate_results(exam)
@@ -555,12 +673,15 @@ def call_amc_generate_results(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage'])
+@require_POST
 def amc_manual_association_data(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     data = get_amc_manual_association_data(exam)
 
     return HttpResponse(json.dumps(data))
 
+@require_POST
+@exam_permission_required(['manage'])
 def amc_set_manual_association(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     copy_nr = request.POST['copy_nr']
@@ -570,6 +691,8 @@ def amc_set_manual_association(request,exam_pk):
 
     return HttpResponse(result)
 
+@require_POST
+@exam_permission_required(['manage'])
 def amc_send_annotated_papers_data(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     data = get_amc_send_annotated_papers_data(exam)
@@ -647,4 +770,3 @@ def get_amc_scan_url(request,exam_pk):
             #scan_path = make_token_for(scan_path,scan_root)
 
     return HttpResponse(scan_path)
-
