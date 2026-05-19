@@ -7,6 +7,7 @@ from django import template
 from django.contrib.auth.models import User
 from django.db.models import FloatField, Sum
 from django.db.models.functions import Cast
+from django.templatetags.static import static
 from matplotlib.sphinxext.plot_directive import exception_template
 from shapely import Polygon
 
@@ -273,9 +274,9 @@ def get_sum_questions_points(exam_id):
 def get_logo_url():
     env = os.getenv("ENV")
     if env == 'prod':
-        return settings.STATIC_URL + "img/eXamc_bg_transp_200.png"
+        return static("img/eXamc_bg_transp_200.png")
     else:
-        return settings.STATIC_URL + "img/eXamc_bg_transp_200_dev.png"
+        return static("img/eXamc_bg_transp_200_dev.png")
 
 @register.filter
 def is_review_blocked(user_id,exam_id):
@@ -298,4 +299,3 @@ def get_by_first_element(lst, value):
     except Exception:
         return None
     return None
-
