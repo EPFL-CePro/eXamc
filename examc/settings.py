@@ -182,6 +182,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 STATIC_URL = '/static/'
 STATIC_ROOT = os.environ.get("STATIC_ROOT", "/static")
+STATIC_ASSET_VERSION = env("STATIC_ASSET_VERSION", APP_VERSION)
+
+# Avoid stale client-side assets after deploys:
+# - dev: plain static storage (no manifest requirement)
+# - test/prod: hashed filenames via manifest storage
+if DEBUG:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+else:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"},
+    }
 
 # Signed files expiration timeout ms
 SIGNED_FILES_EXPIRATION_TIMEOUT = 300
@@ -334,7 +349,7 @@ SUMMERNOTE_CONFIG = {
     "js": (
         # order matters a little less, but keep KaTeX before the plugin if the plugin calls it immediately
         "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js",
-         f"{settings.STATIC_URL}js/summernote-math.js"
+         f"{settings.STATIC_URL}js/summernote-math.js?v={STATIC_ASSET_VERSION}"
     ),
     "attachment_storage_class": "examc_app.storage.SummernoteSignedPrivateStorage",
     # optional:
