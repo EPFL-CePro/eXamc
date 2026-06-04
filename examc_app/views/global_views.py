@@ -114,14 +114,14 @@ def serve_signed_file(request, file_hint=None):
         rooms_plans = request.GET.get("rooms_plans")
         if rooms_plans:
             relative_rooms_plan = rooms_plans.lstrip("/")
-            if not relative_rooms_plan.startswith("export/"):
+            if not (relative_rooms_plan.startswith("export/") or relative_rooms_plan.startswith("map/")):
                 raise Http404("Invalid room plan path")
 
             rooms_root = Path(settings.ROOMS_PLANS_ROOT).resolve()
-            export_root = (rooms_root / "export").resolve()
+            folder_root = (rooms_root / rooms_plans.split("/")[0]).resolve()
             full_path = (rooms_root / relative_rooms_plan).resolve()
             try:
-                full_path.relative_to(export_root)
+                full_path.relative_to(folder_root)
             except ValueError:
                 raise Http404("Invalid room plan path")
             if not full_path.is_file():
