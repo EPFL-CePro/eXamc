@@ -149,7 +149,7 @@
                         </button>
                     </div>
                     <div class="col-auto">
-                        <a href="{% static 'templates.zip' %}" class="btn btn-dark btn-sm" download>
+                        <a href="{% url 'download_csvgen_templates' %}" class="btn btn-dark btn-sm" download>
                             <i class="bi bi-download me-2"></i> Download example Excel </a>
                     </div>
                 </div>
@@ -260,7 +260,9 @@
         <div class="modal-dialog modal-sm" role="document" style="width:350px;">
 
 
-            <img src="{% static 'images_csvgen/30.gif' %}" style="width: 80%; height: 80%; alignment-baseline: middle;">
+            <div class="d-flex justify-content-center align-items-center p-4">
+                <div class="spinner-border text-dark" role="status" aria-label="Loading"></div>
+            </div>
         </div>
     </div>
     </div>

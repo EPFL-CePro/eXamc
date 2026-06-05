@@ -1,7 +1,8 @@
 import os
 from datetime import datetime
-from io import StringIO
+from io import BytesIO, StringIO
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pandas as pd
 import json
@@ -25,6 +26,45 @@ column_number = False
 
 def csvgen(request):
     return render(request, "csvgen/csvgen.html", {"csv_type_AMC": CSV_TYPE_AMC})
+
+
+def download_csvgen_templates(request):
+    template_definitions = {
+        "amc_students_template.xlsx": pd.DataFrame(
+            [
+                {
+                    "name": "Doe John",
+                    "sciper": 123456,
+                    "email": "john.doe@example.com",
+                    "seat": 1,
+                    "room": "CO 1",
+                }
+            ],
+            columns=["name", "sciper", "email", "seat", "room"],
+        ),
+        "ans_students_template.xlsx": pd.DataFrame(
+            [
+                {
+                    "class name": "Section A",
+                    "email": "john.doe@example.com",
+                    "sciper": 123456,
+                    "name": "Doe John",
+                }
+            ],
+            columns=["class name", "email", "sciper", "name"],
+        ),
+    }
+
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, "w", ZIP_DEFLATED) as archive:
+        for filename, dataframe in template_definitions.items():
+            excel_buffer = BytesIO()
+            dataframe.to_excel(excel_buffer, index=False)
+            archive.writestr(filename, excel_buffer.getvalue())
+
+    response = HttpResponse(zip_buffer.getvalue(), content_type="application/zip")
+    response["Content-Disposition"] = 'attachment; filename="csvgen_templates.zip"'
+    return response
 
 
 # class of both files
