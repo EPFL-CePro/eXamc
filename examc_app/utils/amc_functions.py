@@ -624,8 +624,12 @@ def update_amc_mark_zone_data(exam,zoneid,copy,page):
 def _is_valid_amc_options_xml(options_xml_path):
     try:
         with open(options_xml_path, "r", encoding="utf-8", errors="ignore") as options_file:
-            options_content = options_file.read().lstrip()
-        return options_content.startswith("<project>")
+            first_line = options_file.readline().strip()
+            second_line = options_file.readline().strip()
+        return (
+            first_line == '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            and second_line == "<project>"
+        )
     except OSError:
         return False
 
