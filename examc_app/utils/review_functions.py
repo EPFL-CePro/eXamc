@@ -341,6 +341,16 @@ def get_copies_pages_by_group(pagesGroup):
         (row["copie_no"], row["page_no"]): bool(row["markers"]) and bool(row["correctorBoxMarked"])
         for row in scans_markers
     }
+    grading_scheme_marked_copies = set()
+    if pagesGroup.use_grading_scheme:
+        grading_scheme_marked_copies = {
+            str(copy_nr).zfill(4)
+            for copy_nr in (
+                PagesGroupGradingSchemeCheckedBox.objects
+                .filter(pages_group=pagesGroup)
+                .values_list("copy_nr", flat=True)
+            )
+        }
 
     # Comments -> set of copy_no strings
     comments_set = set(
@@ -411,7 +421,10 @@ def get_copies_pages_by_group(pagesGroup):
                 # Normalize keys like before
                 copy_no_z4 = str(copy_no).zfill(4)
                 page_no_norm = str(page_no_real).zfill(2).replace(".", "x")
-                marked = markers_idx.get((copy_no_z4, page_no_norm), False)
+                if pagesGroup.use_grading_scheme:
+                    marked = copy_no_z4 in grading_scheme_marked_copies and page_no_int == from_p
+                else:
+                    marked = markers_idx.get((copy_no_z4, page_no_norm), False)
                 copies_pages_list.append({
                     "copy_no": copy_no,
                     "page_no": page_no_real,

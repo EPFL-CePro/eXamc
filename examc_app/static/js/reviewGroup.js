@@ -680,14 +680,19 @@
         });
 
         clearMarkersButton.addEventListener('click', function () {
-            const currentState = markerArea.getState();
-            currentState.markers = currentState.markers.filter(
-                m => m.typeName === 'HighlightMarker'
-            );
+            const currentState = keepCorrectorBoxMarkersOnly(markerArea.getState());
             allowHighlightOnlySaveOnce = true;
             restoreMarkerAreaState(currentState);
             layoutSourceImageAndBoxes();
-            onMarkerChange({allowHighlightOnly: true});
+            requestAnimationFrame(() => {
+                onMarkerChange({allowHighlightOnly: true, allowEmpty: true});
+                if (useGradingScheme) {
+                    const active = document.querySelector('a[id^="review-scheme-link-"].active');
+                    if (active) {
+                        setTimeout(() => sendScheme(active), 0);
+                    }
+                }
+            });
         });
 
         colorButton.addEventListener('click', (e) => {
@@ -698,9 +703,10 @@
         if (!deleteKeyHandlerBound) {
             deleteKeyHandlerBound = true;
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Delete') {
-                    const tag = document.activeElement && document.activeElement.tagName;
-                    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    const activeElement = document.activeElement;
+                    const tag = activeElement && activeElement.tagName;
+                    if (tag === 'INPUT' || tag === 'TEXTAREA' || activeElement?.isContentEditable) {
                         return;
                     }
                     markerArea.deleteSelectedMarkers();
@@ -791,6 +797,13 @@
     function hasOnlyHighlightMarkers(state) {
         return Boolean(state?.markers?.length) &&
             state.markers.every(marker => marker.typeName === 'HighlightMarker');
+    }
+
+    function keepCorrectorBoxMarkersOnly(state) {
+        return {
+            ...state,
+            markers: (state.markers || []).filter(marker => marker.typeName === 'HighlightMarker')
+        };
     }
 
     // ---------------------------------------------------------------------------
