@@ -3,6 +3,7 @@
 """
 
 import json
+import math
 import os
 import sys
 import zipfile
@@ -1232,9 +1233,7 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
             return -1
 
         points_per_box = max_points / nb_boxes
-        round_value = 1 / points_per_box
-        points_rnd = round(points * round_value) / round_value
-        return round(points_rnd / (max_points / nb_boxes))
+        return math.floor(points / points_per_box + 0.5)
 
     zero_checked = PagesGroupGradingSchemeCheckedBox.objects.filter(
         pages_group=pages_group,
@@ -1417,13 +1416,11 @@ def update_pages_group_check_box(request,exam_pk):
 
 
         if points > 0:
-            points_per_box = max_points / (len(amc_corr_boxes) /4 - 1)
             nb_boxes = len(amc_corr_boxes) / 4 - 1
-            round_value = 1/points_per_box
+            points_per_box = max_points / nb_boxes
 
-            points_rnd = round(points*round_value)/round_value
-
-            box_to_check = round(points_rnd/(max_points/nb_boxes))
+            box_to_check = math.floor(points / points_per_box + 0.5)
+            points_rnd = box_to_check * points_per_box
         else:
             points_rnd = 0
             if zero and checked:

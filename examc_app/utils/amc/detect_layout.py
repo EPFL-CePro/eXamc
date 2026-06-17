@@ -229,7 +229,7 @@ def detect_layout():
     def add_flag(identifier, flag):
         """
         Replicates the behavior in the Perl sub add_flag.
-        If line is \dontscan{X}, we parse X => (student, question) in "S,Q" form
+        If line is \\dontscan{X}, we parse X => (student, question) in "S,Q" form
         and add the flag to the last flags entry if it matches, or create new.
         """
         match_sq = re.match(r'^(\d+),(\d+)$', identifier)
@@ -546,4 +546,3 @@ def detect_layout():
 
     # End progress
     avance.fin()
-
