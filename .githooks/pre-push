@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+if [ -d "../venv/bin" ]; then
+  export PATH="../venv/bin:$PATH"
+elif [ -d ".venv/bin" ]; then
+  export PATH=".venv/bin:$PATH"
+fi
+
+if ! python3 -m bandit --version >/dev/null 2>&1; then
+  echo "Missing local security tooling: bandit"
+  echo "Install it with: python3 -m pip install bandit pip-audit"
+  exit 1
+fi
+
+if ! python3 -m pip_audit --version >/dev/null 2>&1; then
+  echo "Missing local security tooling: pip-audit"
+  echo "Install it with: python3 -m pip install bandit pip-audit"
+  exit 1
+fi
+
+bash scripts/security_check.sh

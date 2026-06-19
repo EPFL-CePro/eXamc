@@ -8,12 +8,14 @@ import os
 from decimal import *
 
 import numpy as np
-import pdfkit
-from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum, FloatField, Subquery
 from django.db.models.functions import Cast
-from django.template.loader import get_template
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from examc_app.models import *
 
@@ -244,11 +246,37 @@ def generate_scale_pdf(exam,scale,folder_path):
 
     scale_list[grade_list[-1]] = str(round(last_step,2))+"- max"
 
-    template = get_template(settings.SCALE_PDF_TEMPLATE)
-
-    html = template.render({"EXAM": exam,"SCALE":scale_list})  # Renders the template with the context data.
-
-    pdfkit.from_string(html, output_path = folder_path+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_SCALE.pdf")#, configuration = config)
+    output_path = folder_path+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_SCALE.pdf"
+    styles = getSampleStyleSheet()
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=A4,
+        rightMargin=3 * cm,
+        leftMargin=3 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+    )
+    table_data = [["Points", "Grade"]]
+    table_data.extend([[value, key] for key, value in scale_list.items()])
+    table = Table(table_data, colWidths=[7 * cm, 4 * cm])
+    table.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.whitesmoke]),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    doc.build([
+        Paragraph(str(exam.name), styles["Title"]),
+        Paragraph("Semester "+str(exam.semester.code)+" "+str(exam.year.code), styles["Heading2"]),
+        Spacer(1, 1 * cm),
+        table,
+    ])
 
     return True
 
