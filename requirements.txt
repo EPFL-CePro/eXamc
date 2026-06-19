@@ -112,7 +112,7 @@ referencing==0.36.2
 reportlab==4.4.7
 requests==2.33.0
 roman-numerals-py==3.1.0
-rpds-py==0.26.0
+rpds-py==2026.5.1
 scipy==1.16.0
 setuptools==80.9.0
 shapely==2.1.1
