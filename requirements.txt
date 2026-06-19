@@ -129,7 +129,7 @@ sphinxcontrib-serializinghtml==2.0.0
 sqlparse==0.5.4
 stack-data==0.6.3
 tablib==3.8.0
-tinycss2==1.4.0
+tinycss2==1.5.1
 tornado==6.5.7
 traitlets==5.14.3
 types-docutils==0.22.2.20250924
