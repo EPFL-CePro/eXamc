@@ -535,6 +535,7 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
     gradingSchemeCheckBox = models.ForeignKey(QuestionGradingSchemeCheckBox, on_delete=models.CASCADE, related_name='pagesGroupGradingSchemeCheckedBoxes', null=True)
     copy_nr = models.CharField(max_length=10, default='0')
     adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='pagesGroupGradingSchemeCheckedBoxes')
     history = HistoricalRecords()
 
 

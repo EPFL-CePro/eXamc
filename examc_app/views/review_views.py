@@ -1377,7 +1377,7 @@ def update_pages_group_check_box(request,exam_pk):
             for gsc in grading_scheme_checkboxes:
                 if not gsc.name in ('ADJ', 'ZERO'):
                     PagesGroupGradingSchemeCheckedBox.objects.create(pages_group=pages_group,
-                                                                     gradingSchemeCheckBox=gsc, copy_nr=copy_nr,adjustment=adjustment)
+                                                                     gradingSchemeCheckBox=gsc, copy_nr=copy_nr, adjustment=adjustment, user=request.user)
         else:
             if ref == "gsc":
                 pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group, copy_nr=copy_nr,gradingSchemeCheckBox_id=item_id)
@@ -1385,6 +1385,7 @@ def update_pages_group_check_box(request,exam_pk):
                 pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(id = item_id, pages_group=pages_group, copy_nr=copy_nr)
 
             pggscb.adjustment = adjustment
+            pggscb.user = request.user
             pggscb.save()
 
         if not zero and checked:
@@ -1402,6 +1403,10 @@ def update_pages_group_check_box(request,exam_pk):
         except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
             pass
 
+    PagesGroupGradingSchemeCheckedBox.objects.filter(
+        pages_group=pages_group,
+        copy_nr=copy_nr,
+    ).update(user_id=request.user.id)
 
 
     points = float(get_question_points(grading_scheme, copy_nr))

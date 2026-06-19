@@ -192,8 +192,12 @@ def get_frm_by_id(l, i):
 @register.filter
 def get_pages_group_graded_count_txt(pages_group_id,user_id=None):
     pages_group = PagesGroup.objects.get(pk=pages_group_id)
-    count_graded = 0
-    if user_id and user_id != 0:
+    if pages_group.use_grading_scheme:
+        graded_qs = PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=pages_group)
+        if user_id and user_id != 0:
+            graded_qs = graded_qs.filter(user_id=user_id)
+        count_graded = graded_qs.values("copy_nr").distinct().count()
+    elif user_id and user_id != 0:
         count_graded = PageMarkers.objects.filter(pages_group=pages_group, correctorBoxMarked=True,pageMarkers_users__user__id=user_id).count()
     else:
         count_graded = PageMarkers.objects.filter(pages_group=pages_group,correctorBoxMarked=True).count()
