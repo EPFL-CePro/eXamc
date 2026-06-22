@@ -20,6 +20,7 @@ regenerated on demand.
 import base64
 import io
 import json
+import logging
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,6 +39,8 @@ DEFAULT_FONT_PATHS = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/TTF/DejaVuSans.ttf",
 )
+
+logger = logging.getLogger(__name__)
 
 
 def resolve_scan_path(page_markers) -> Path:
@@ -483,7 +486,7 @@ def build_grading_corr_box_marker(page_markers, state: dict, image_width: int, i
     }
 
 
-def render_marked_scan(page_markers, extra_markers: list[dict] | None = None) -> Path:
+def render_marked_scan(page_markers, extra_markers: list[dict] | None = None, require_grading_marker: bool = False) -> Path | None:
     """Render one marked scan image from a ``PageMarkers`` database row.
 
     Args:
@@ -514,6 +517,8 @@ def render_marked_scan(page_markers, extra_markers: list[dict] | None = None) ->
     if getattr(page_markers.pages_group, "use_grading_scheme", False):
         markers_to_render = [marker for marker in markers_to_render if marker.get("typeName") != "HighlightMarker"]
         derived_grading_marker = build_grading_corr_box_marker(page_markers, state, base_img.width, base_img.height)
+        if require_grading_marker and not derived_grading_marker:
+            return None
 
     for marker in markers_to_render:
         render_marker(base_img, marker, scale_x, scale_y)
@@ -581,7 +586,15 @@ def build_empty_marker_state(image_path: Path) -> str:
 def build_synthetic_page_markers_for_grading(pages_group, copy_nr):
     """Build a PageMarkers-like object for grading-only rendering."""
     amc_data_path = get_amc_project_path(pages_group.exam, True) + "/data/"
-    question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+    try:
+        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+    except (IndexError, TypeError, ValueError, AttributeError):
+        logger.warning(
+            "Skipping grading-only render: no AMC question page for pages_group=%s copy_nr=%s",
+            pages_group.id,
+            copy_nr,
+        )
+        return None
     if question_page is None:
         return None
 
@@ -605,6 +618,22 @@ def render_grading_only_marked_scans_for_exam(
     selected_filenames: set[str] | None = None,
 ) -> int:
     """Render grading-derived correction boxes when no PageMarkers row exists."""
+    rendered = 0
+    for _synthetic_page_markers, _output_path in iter_render_grading_only_marked_scans(
+        exam,
+        rendered_keys=rendered_keys,
+        selected_filenames=selected_filenames,
+    ):
+        rendered += 1
+    return rendered
+
+
+def iter_render_grading_only_marked_scans(
+    exam,
+    rendered_keys: set[tuple[int, str, str]] | None = None,
+    selected_filenames: set[str] | None = None,
+):
+    """Yield each grading-derived marked scan rendered without a PageMarkers row."""
     if rendered_keys is None:
         rendered_keys = {
             render_key(row["pages_group_id"], row["copie_no"], row["page_no"])
@@ -624,7 +653,6 @@ def render_grading_only_marked_scans_for_exam(
         .values("pages_group_id", "copy_nr")
         .distinct()
     )
-    rendered = 0
     pages_groups = {
         pages_group.id: pages_group
         for pages_group in exam.pagesGroup.filter(use_grading_scheme=True)
@@ -634,21 +662,28 @@ def render_grading_only_marked_scans_for_exam(
         pages_group = pages_groups.get(row["pages_group_id"])
         if not pages_group:
             continue
-        synthetic_page_markers = build_synthetic_page_markers_for_grading(pages_group, row["copy_nr"])
-        if not synthetic_page_markers:
-            continue
-        if selected_filenames and Path(synthetic_page_markers.filename).name not in selected_filenames:
-            continue
+        try:
+            synthetic_page_markers = build_synthetic_page_markers_for_grading(pages_group, row["copy_nr"])
+            if not synthetic_page_markers:
+                continue
+            if selected_filenames and Path(synthetic_page_markers.filename).name not in selected_filenames:
+                continue
 
-        key = render_key(pages_group.id, synthetic_page_markers.copie_no, synthetic_page_markers.page_no)
-        if key in rendered_keys:
-            continue
+            key = render_key(pages_group.id, synthetic_page_markers.copie_no, synthetic_page_markers.page_no)
+            if key in rendered_keys:
+                continue
 
-        render_marked_scan(synthetic_page_markers)
-        rendered_keys.add(key)
-        rendered += 1
-
-    return rendered
+            output_path = render_marked_scan(synthetic_page_markers, require_grading_marker=True)
+            if not output_path:
+                continue
+            rendered_keys.add(key)
+            yield synthetic_page_markers, output_path
+        except Exception:
+            logger.exception(
+                "Skipping grading-only marked scan render for pages_group=%s copy_nr=%s",
+                pages_group.id,
+                row["copy_nr"],
+            )
 
 
 def regenerate_marked_scans_for_exam(exam, progress_callback: Callable[[int, int], None] | None = None) -> int:

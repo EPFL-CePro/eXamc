@@ -20,9 +20,10 @@ from examc_app.tasks import import_csv_data, generate_marked_files_zip, amc_anno
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import (
-    regenerate_marked_scans_for_exam,
-    regenerate_marked_scans_for_page_markers,
-    render_grading_only_marked_scans_for_exam,
+    get_exam_marked_scans_dir,
+    iter_render_grading_only_marked_scans,
+    render_key,
+    render_marked_scan,
 )
 from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
 
@@ -397,17 +398,43 @@ def call_amc_automatic_data_capture(request,exam_pk,from_review=False):
 def import_scans_from_review_pages(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     scans_list = request.POST.getlist('pages_list[]')
+    return StreamingHttpResponse(
+        stream_import_scans_from_review_pages(request, exam, scans_list)
+    )
+
+
+def stream_import_scans_from_review_pages(request, exam, scans_list):
     selected_filenames = {pathlib.Path(scan).name for scan in scans_list}
+    rendered_keys = set()
 
     if selected_filenames:
+        yield "Generating marked scans from review annotations ...\n"
         selected_page_markers = [
             page_markers
             for page_markers in PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
             if pathlib.Path(page_markers.filename).name in selected_filenames
         ]
-        if selected_page_markers:
-            regenerate_marked_scans_for_page_markers(selected_page_markers)
-        render_grading_only_marked_scans_for_exam(exam, selected_filenames=selected_filenames)
+        total = len(selected_page_markers)
+        for index, page_markers in enumerate(selected_page_markers, start=1):
+            render_marked_scan(page_markers)
+            rendered_keys.add(render_key(page_markers.pages_group_id, page_markers.copie_no, page_markers.page_no))
+            yield (
+                f"{index}/{total} - Generated marked scan "
+                f"copy {page_markers.copie_no} page {page_markers.page_no}\n"
+            )
+
+        grading_count = 0
+        for page_markers, output_path in iter_render_grading_only_marked_scans(
+            exam,
+            rendered_keys=rendered_keys,
+            selected_filenames=selected_filenames,
+        ):
+            grading_count += 1
+            yield (
+                f"Generated grading scheme marked scan "
+                f"copy {page_markers.copie_no} page {page_markers.page_no}: {output_path.name}\n"
+            )
+        yield f"Marked scan generation completed ({total + grading_count} file(s)).\n"
 
     amc_proj_path = get_amc_project_path(exam, False)
     file_list_path = amc_proj_path + "/list-file"
@@ -426,13 +453,18 @@ def import_scans_from_review_pages(request, exam_pk):
             else:
                 f.write(scan + "\n")
 
-    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
+    yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
 
 @exam_permission_required(['manage'])
 @require_POST
 def import_scans_from_review(request, exam_pk):
     print('************** importing scans from review')
     exam = Exam.objects.get(pk=exam_pk)
+
+    return StreamingHttpResponse(stream_import_scans_from_review(request, exam))
+
+
+def stream_import_scans_from_review(request, exam):
 
     amc_proj_path = get_amc_project_path(exam, False)
     file_list_path = amc_proj_path + "/list-file"
@@ -444,7 +476,30 @@ def import_scans_from_review(request, exam_pk):
     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
         exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
 
-    regenerate_marked_scans_for_exam(exam)
+    yield "Generating marked scans from review annotations ...\n"
+    marked_scans_root = get_exam_marked_scans_dir(exam)
+    if marked_scans_root.exists():
+        shutil.rmtree(marked_scans_root)
+
+    page_markers_qs = PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
+    total = page_markers_qs.count()
+    rendered_keys = set()
+    for index, page_markers in enumerate(page_markers_qs.iterator(), start=1):
+        render_marked_scan(page_markers)
+        rendered_keys.add(render_key(page_markers.pages_group_id, page_markers.copie_no, page_markers.page_no))
+        yield (
+            f"{index}/{total} - Generated marked scan "
+            f"copy {page_markers.copie_no} page {page_markers.page_no}\n"
+        )
+
+    grading_count = 0
+    for page_markers, output_path in iter_render_grading_only_marked_scans(exam, rendered_keys=rendered_keys):
+        grading_count += 1
+        yield (
+            f"Generated grading scheme marked scan "
+            f"copy {page_markers.copie_no} page {page_markers.page_no}: {output_path.name}\n"
+        )
+    yield f"Marked scan generation completed ({total + grading_count} file(s)).\n"
 
     export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
         exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
@@ -488,7 +543,7 @@ def import_scans_from_review(request, exam_pk):
 
     tmp_file_list.close()
 
-    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path))
+    yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
 
 
 @exam_permission_required(['manage'])

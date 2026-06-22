@@ -712,7 +712,7 @@ def saveMarkers(request, exam_pk):
 
         scan_markers.markers = json.dumps(markers)
         fn = request.POST['filename'].replace("/protected/?token=","").replace('%3A',':')
-        fn = verify_and_get_path(f)
+        fn = verify_and_get_path(fn)
         fn = str(fn).replace(str(settings.BASE_DIR),"../..")
         scan_markers.filename = fn
 
