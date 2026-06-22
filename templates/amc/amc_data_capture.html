@@ -414,6 +414,53 @@ amcScansFromLocalFrm.addEventListener("submit", (e) => {
     callAutomaticDataCapture_process(false);
 })
 
+function appendProcessOutput(text) {
+    if (!text) {
+        return;
+    }
+    amc_process_modal_body.append(document.createTextNode(text));
+    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+}
+
+function makeProcessProgressHandler() {
+    let seenLength = 0;
+    return function(event) {
+        const response = event.currentTarget.responseText || '';
+        const chunk = response.substring(seenLength);
+        seenLength = response.length;
+        appendProcessOutput(chunk);
+    };
+}
+
+function showProcessError(xhr, textStatus, errorThrown) {
+    let message = 'Error occurred';
+    const details = [];
+
+    if (xhr && xhr.status) {
+        message += ' (' + xhr.status + ')';
+    } else {
+        message += ' (request interrupted before a server response)';
+        details.push('The browser did not receive an HTTP response. Check whether the request was canceled, the connection timed out, or the proxy/server closed the stream.');
+    }
+
+    if (textStatus) {
+        details.push('jQuery status: ' + textStatus);
+    }
+    if (errorThrown) {
+        details.push('Error: ' + errorThrown);
+    }
+    if (xhr && typeof xhr.readyState !== 'undefined') {
+        details.push('XHR readyState: ' + xhr.readyState);
+    }
+    if (xhr && xhr.responseText) {
+        details.push(xhr.responseText);
+    }
+
+    amc_process_modal_body.text('');
+    appendProcessOutput(message + '\n');
+    appendProcessOutput(details.join('\n') + '\n');
+}
+
 function callAutomaticDataCapture_process(from_review,all_from_review=false) {
     $("#closeConfirmAutomaticDataCaptureModalBt").click();
     amc_process_modal_title = document.getElementById('amc_process_modal_title');
@@ -431,20 +478,13 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
                 },
                 xhrFields: {
                     // This triggers each time progress is made on the request
-                    onprogress: function(event) {
-                        amc_process_modal_body.html('');
-                        var response = event.currentTarget.responseText;
-                        amc_process_modal_body.html(response.replace('\n','<br/>'));
-                        amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
-                    }
+                    onprogress: makeProcessProgressHandler()
                 },
                 success: function() {
-                    amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                    appendProcessOutput('** AUTOMATIC DATACAPTURE COMPLETED! **');
                 },
-                error: function(xhr) {
-                    amc_process_modal_body.html('<p>Error occurred'
-                        + (xhr.status ? ' (' + xhr.status + ')' : '')
-                        + '</p><pre>' + (xhr.responseText || '') + '</pre>');
+                error: function(xhr, textStatus, errorThrown) {
+                    showProcessError(xhr, textStatus, errorThrown);
                 }
             });
         }else{
@@ -459,20 +499,13 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
                 },
                 xhrFields: {
                     // This triggers each time progress is made on the request
-                    onprogress: function(event) {
-                        amc_process_modal_body.html('');
-                        var response = event.currentTarget.responseText;
-                        amc_process_modal_body.html(response.replace('\n','<br/>'));
-                        amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
-                    }
+                    onprogress: makeProcessProgressHandler()
                 },
                 success: function() {
-                    amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                    appendProcessOutput('** AUTOMATIC DATACAPTURE COMPLETED! **');
                 },
-                error: function(xhr) {
-                    amc_process_modal_body.html('<p>Error occurred'
-                        + (xhr.status ? ' (' + xhr.status + ')' : '')
-                        + '</p><pre>' + (xhr.responseText || '') + '</pre>');
+                error: function(xhr, textStatus, errorThrown) {
+                    showProcessError(xhr, textStatus, errorThrown);
                 }
             });
 
@@ -482,26 +515,20 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
         frmData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
         frmData.append('exam_pk', {{ exam_selected.pk }});
         $.ajax({
-            url: "{% url 'import_scans_from_review' exam_selected.pk %}",
+            url: "{% url 'call_amc_automatic_data_capture' exam_selected.pk %}",
             type: "POST",
             data:frmData,
             contentType: false,
             processData: false,
             xhrFields: {
                 // This triggers each time progress is made on the request
-                onprogress: function(event) {
-                    amc_process_modal_body.html('');
-                    var response = event.currentTarget.responseText;
-                    amc_process_modal_body.html(response.replace('\n','<br/>'));
-                    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
-                }
+                onprogress: makeProcessProgressHandler()
             },
             success: function() {
-                amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
-                amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                appendProcessOutput('** AUTOMATIC DATACAPTURE COMPLETED! **');
             },
-            error: function() {
-                amc_process_modal_body.html('<p>Error occurred</p>');
+            error: function(xhr, textStatus, errorThrown) {
+                showProcessError(xhr, textStatus, errorThrown);
             }
         });
     }
@@ -780,4 +807,3 @@ function zoomDataCapturePrevious(copy,page){
 }
 
 </script>
-
