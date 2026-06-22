@@ -19,7 +19,11 @@ from examc_app.models import *
 from examc_app.tasks import import_csv_data, generate_marked_files_zip, amc_annotate_task
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.marker_rendering import regenerate_marked_scans_for_exam, regenerate_marked_scans_for_page_markers
+from examc_app.utils.marker_rendering import (
+    regenerate_marked_scans_for_exam,
+    regenerate_marked_scans_for_page_markers,
+    render_grading_only_marked_scans_for_exam,
+)
 from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
 
 
@@ -403,6 +407,7 @@ def import_scans_from_review_pages(request, exam_pk):
         ]
         if selected_page_markers:
             regenerate_marked_scans_for_page_markers(selected_page_markers)
+        render_grading_only_marked_scans_for_exam(exam, selected_filenames=selected_filenames)
 
     amc_proj_path = get_amc_project_path(exam, False)
     file_list_path = amc_proj_path + "/list-file"

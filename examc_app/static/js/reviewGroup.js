@@ -1387,16 +1387,20 @@
             },
             success: (marked) => {
                 lastPersistedMarkerState = JSON.parse(markersJson);
-                const markedInfoEl = document.getElementById(currentSourceElementId + "_marked");
-                if (!markedInfoEl) return;
-
-                markedInfoEl.innerHTML = "";
-                if (marked === 'True') {
-                    markedInfoEl.innerHTML =
-                        '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
-                }
+                setCurrentPageMarkedIcon(marked === 'True');
             },
         });
+    }
+
+    function setCurrentPageMarkedIcon(marked) {
+        const markedInfoEl = document.getElementById(currentSourceElementId + "_marked");
+        if (!markedInfoEl) return;
+
+        markedInfoEl.innerHTML = "";
+        if (marked) {
+            markedInfoEl.innerHTML =
+                '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
+        }
     }
 
     // ---------------------------------------------------------------------------
@@ -1830,6 +1834,10 @@
                 const corrBoxIndex = respData[0];
                 const points = respData[1];
                 const maxPointsRaw = respData[2];
+                const marked = respData[3];
+                if (typeof marked !== 'undefined') {
+                    setCurrentPageMarkedIcon(Boolean(marked));
+                }
 
                 if (points !== '') {
                     const maxPoints = Number(maxPointsRaw);

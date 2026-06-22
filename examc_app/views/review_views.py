@@ -712,7 +712,7 @@ def saveMarkers(request, exam_pk):
 
         scan_markers.markers = json.dumps(markers)
         fn = request.POST['filename'].replace("/protected/?token=","").replace('%3A',':')
-        fn = verify_and_get_path(fn)
+        fn = verify_and_get_path(f)
         fn = str(fn).replace(str(settings.BASE_DIR),"../..")
         scan_markers.filename = fn
 
@@ -1409,29 +1409,34 @@ def update_pages_group_check_box(request,exam_pk):
     ).update(user_id=request.user.id)
 
 
+    marked = PagesGroupGradingSchemeCheckedBox.objects.filter(
+        pages_group=pages_group,
+        copy_nr=copy_nr,
+    ).exists()
+
     points = float(get_question_points(grading_scheme, copy_nr))
     if points > grading_scheme.max_points:
         points = float(grading_scheme.max_points)
-    if points == 0 or (points_before != points):
-        exam = Exam.objects.get(pk=exam_pk)
-        amc_data_path = get_amc_project_path(exam, True) + "/data/"
-        question_page = select_copy_question_page(amc_data_path,copy_nr,pages_group.group_name)
-        max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-        amc_corr_boxes = select_marks_positions(amc_data_path,int(copy_nr),question_page,None)
 
+    exam = Exam.objects.get(pk=exam_pk)
+    amc_data_path = get_amc_project_path(exam, True) + "/data/"
+    question_page = select_copy_question_page(amc_data_path,copy_nr,pages_group.group_name)
+    max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
+    amc_corr_boxes = select_marks_positions(amc_data_path,int(copy_nr),question_page,None)
 
-        if points > 0:
-            nb_boxes = len(amc_corr_boxes) / 4 - 1
+    if points > 0:
+        nb_boxes = len(amc_corr_boxes) / 4 - 1
+        if nb_boxes > 0 and max_points > 0:
             points_per_box = max_points / nb_boxes
-
             box_to_check = math.floor(points / points_per_box + 0.5)
             points_rnd = box_to_check * points_per_box
         else:
-            points_rnd = 0
-            if zero and checked:
-                box_to_check = 0
-            else:
-                box_to_check = -1
-        return HttpResponse(json.dumps([box_to_check,points_rnd,max_points]))
-
-    return HttpResponse('')
+            box_to_check = -1
+            points_rnd = points
+    else:
+        points_rnd = 0
+        if zero and checked:
+            box_to_check = 0
+        else:
+            box_to_check = -1
+    return HttpResponse(json.dumps([box_to_check,points_rnd,max_points,marked]))
