@@ -441,8 +441,10 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
                 success: function() {
                     amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
                 },
-                error: function() {
-                    amc_process_modal_body.html('<p>Error occurred</p>');
+                error: function(xhr) {
+                    amc_process_modal_body.html('<p>Error occurred'
+                        + (xhr.status ? ' (' + xhr.status + ')' : '')
+                        + '</p><pre>' + (xhr.responseText || '') + '</pre>');
                 }
             });
         }else{
@@ -467,8 +469,10 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
                 success: function() {
                     amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
                 },
-                error: function() {
-                    amc_process_modal_body.html('<p>Error occurred</p>');
+                error: function(xhr) {
+                    amc_process_modal_body.html('<p>Error occurred'
+                        + (xhr.status ? ' (' + xhr.status + ')' : '')
+                        + '</p><pre>' + (xhr.responseText || '') + '</pre>');
                 }
             });
 
@@ -776,5 +780,4 @@ function zoomDataCapturePrevious(copy,page){
 }
 
 </script>
-
 
