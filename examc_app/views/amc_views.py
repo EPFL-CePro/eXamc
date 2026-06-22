@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pathlib
 from urllib import request
@@ -31,6 +32,40 @@ from examc_app.utils.review_functions import generate_marked_pdfs, create_studen
 AMC_ANNOTATE_JOBS_SESSION_KEY = "amc_annotate_jobs"
 AMC_ANNOTATE_JOB_TTL_SECONDS = 24 * 3600
 AMC_ANNOTATE_JOB_MAX_TRACKED = 200
+
+logger = logging.getLogger(__name__)
+
+
+def streaming_text_response(iterator):
+    response = StreamingHttpResponse(iterator, content_type="text/plain; charset=utf-8")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    return response
+
+
+def logged_stream(iterator, operation, exam_pk, user=None):
+    user_pk = getattr(user, "pk", None)
+    logger.info("AMC stream started operation=%s exam=%s user=%s", operation, exam_pk, user_pk)
+    try:
+        for chunk in iterator:
+            yield chunk
+    except GeneratorExit:
+        logger.warning("AMC stream client disconnected operation=%s exam=%s user=%s", operation, exam_pk, user_pk)
+        raise
+    except (BrokenPipeError, ConnectionResetError):
+        logger.warning(
+            "AMC stream connection interrupted operation=%s exam=%s user=%s",
+            operation,
+            exam_pk,
+            user_pk,
+            exc_info=True,
+        )
+        raise
+    except Exception:
+        logger.exception("AMC stream failed operation=%s exam=%s user=%s", operation, exam_pk, user_pk)
+        raise
+    else:
+        logger.info("AMC stream completed operation=%s exam=%s user=%s", operation, exam_pk, user_pk)
 
 
 def _prune_amc_annotate_jobs(raw_jobs):
@@ -391,15 +426,33 @@ def call_amc_automatic_data_capture(request,exam_pk,from_review=False):
     exam = Exam.objects.get(pk=exam_pk)
     zip_file = request.FILES['amc_scans_zip_file']
 
-    return StreamingHttpResponse(amc_automatic_datacapture_subprocess(request, exam,zip_file,from_review,file_list_path=None))
+    return streaming_text_response(
+        logged_stream(
+            amc_automatic_datacapture_subprocess(request, exam,zip_file,from_review,file_list_path=None),
+            "automatic_data_capture_upload",
+            exam.pk,
+            request.user,
+        )
+    )
 
 @exam_permission_required(['manage'])
 @require_POST
 def import_scans_from_review_pages(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     scans_list = request.POST.getlist('pages_list[]')
-    return StreamingHttpResponse(
-        stream_import_scans_from_review_pages(request, exam, scans_list)
+    logger.info(
+        "AMC import selected review scans requested exam=%s user=%s selected_count=%s",
+        exam.pk,
+        getattr(request.user, "pk", None),
+        len(scans_list),
+    )
+    return streaming_text_response(
+        logged_stream(
+            stream_import_scans_from_review_pages(request, exam, scans_list),
+            "import_scans_from_review_pages",
+            exam.pk,
+            request.user,
+        )
     )
 
 
@@ -408,6 +461,11 @@ def stream_import_scans_from_review_pages(request, exam, scans_list):
     rendered_keys = set()
 
     if selected_filenames:
+        logger.info(
+            "AMC selected review import marked scan generation started exam=%s selected_count=%s",
+            exam.pk,
+            len(selected_filenames),
+        )
         yield "Generating marked scans from review annotations ...\n"
         selected_page_markers = [
             page_markers
@@ -415,6 +473,11 @@ def stream_import_scans_from_review_pages(request, exam, scans_list):
             if pathlib.Path(page_markers.filename).name in selected_filenames
         ]
         total = len(selected_page_markers)
+        logger.info(
+            "AMC selected review import user marker pages found exam=%s marker_count=%s",
+            exam.pk,
+            total,
+        )
         for index, page_markers in enumerate(selected_page_markers, start=1):
             render_marked_scan(page_markers)
             rendered_keys.add(render_key(page_markers.pages_group_id, page_markers.copie_no, page_markers.page_no))
@@ -435,6 +498,12 @@ def stream_import_scans_from_review_pages(request, exam, scans_list):
                 f"copy {page_markers.copie_no} page {page_markers.page_no}: {output_path.name}\n"
             )
         yield f"Marked scan generation completed ({total + grading_count} file(s)).\n"
+        logger.info(
+            "AMC selected review import marked scan generation completed exam=%s user_marker_count=%s grading_only_count=%s",
+            exam.pk,
+            total,
+            grading_count,
+        )
 
     amc_proj_path = get_amc_project_path(exam, False)
     file_list_path = amc_proj_path + "/list-file"
@@ -442,6 +511,7 @@ def stream_import_scans_from_review_pages(request, exam, scans_list):
         os.remove(file_list_path)
 
     with open(file_list_path, "w") as f:
+        file_list_count = 0
         for scan in scans_list:
             scan_path = pathlib.Path(scan)
             marked_scan = pathlib.Path(
@@ -452,16 +522,35 @@ def stream_import_scans_from_review_pages(request, exam, scans_list):
                 f.write(str(marked_scan) + "\n")
             else:
                 f.write(scan + "\n")
+            file_list_count += 1
+
+    logger.info(
+        "AMC selected review import file list written exam=%s path=%s count=%s",
+        exam.pk,
+        file_list_path,
+        file_list_count,
+    )
 
     yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
 
 @exam_permission_required(['manage'])
 @require_POST
 def import_scans_from_review(request, exam_pk):
-    print('************** importing scans from review')
     exam = Exam.objects.get(pk=exam_pk)
+    logger.info(
+        "AMC import all review scans requested exam=%s user=%s",
+        exam.pk,
+        getattr(request.user, "pk", None),
+    )
 
-    return StreamingHttpResponse(stream_import_scans_from_review(request, exam))
+    return streaming_text_response(
+        logged_stream(
+            stream_import_scans_from_review(request, exam),
+            "import_scans_from_review",
+            exam.pk,
+            request.user,
+        )
+    )
 
 
 def stream_import_scans_from_review(request, exam):
@@ -472,17 +561,20 @@ def stream_import_scans_from_review(request, exam):
         os.remove(file_list_path)
 
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
-    print('*********** scans dir: '+scans_dir)
+    logger.info("AMC full review import scans_dir exam=%s path=%s", exam.pk, scans_dir)
     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
         exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
 
     yield "Generating marked scans from review annotations ...\n"
+    logger.info("AMC full review import marked scan generation started exam=%s", exam.pk)
     marked_scans_root = get_exam_marked_scans_dir(exam)
     if marked_scans_root.exists():
+        logger.info("AMC full review import removing previous marked scan directory exam=%s path=%s", exam.pk, marked_scans_root)
         shutil.rmtree(marked_scans_root)
 
     page_markers_qs = PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
     total = page_markers_qs.count()
+    logger.info("AMC full review import user marker pages found exam=%s marker_count=%s", exam.pk, total)
     rendered_keys = set()
     for index, page_markers in enumerate(page_markers_qs.iterator(), start=1):
         render_marked_scan(page_markers)
@@ -500,6 +592,12 @@ def stream_import_scans_from_review(request, exam):
             f"copy {page_markers.copie_no} page {page_markers.page_no}: {output_path.name}\n"
         )
     yield f"Marked scan generation completed ({total + grading_count} file(s)).\n"
+    logger.info(
+        "AMC full review import marked scan generation completed exam=%s user_marker_count=%s grading_only_count=%s",
+        exam.pk,
+        total,
+        grading_count,
+    )
 
     export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
         exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
@@ -530,18 +628,27 @@ def stream_import_scans_from_review(request, exam):
 
 
     tmp_file_list = open(file_list_path, "w")
-    print('########### scans dir: '+scans_dir)
     files = sorted(glob.glob(scans_dir + '/**/*.*', recursive=True))
+    file_list_count = 0
+    marked_file_count = 0
     for file in files:
         file_path = pathlib.Path(file)
         marked_file_path = pathlib.Path(marked_dir) / file_path.parent.name / f"marked_{file_path.stem}.png"
         if os.path.exists(marked_file_path):
             tmp_file_list.write(str(marked_file_path) + "\n")
+            marked_file_count += 1
         else:
             tmp_file_list.write(file + "\n")
-            print('########### -- file: '+file)
+        file_list_count += 1
 
     tmp_file_list.close()
+    logger.info(
+        "AMC full review import file list written exam=%s path=%s count=%s marked_count=%s",
+        exam.pk,
+        file_list_path,
+        file_list_count,
+        marked_file_count,
+    )
 
     yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
 
@@ -607,7 +714,7 @@ def call_amc_mark(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     update_scoring_strategy = request.POST['update_scoring_strategy']
 
-    return StreamingHttpResponse(amc_mark_subprocess(request, exam, update_scoring_strategy))
+    return streaming_text_response(amc_mark_subprocess(request, exam, update_scoring_strategy))
    # result = amc_mark(exam,update_scoring_strategy)
 
 #@login_required

@@ -295,88 +295,131 @@ def amc_layout_detection(exam):
         return result.stdout
 
 def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file_list_path=None):
-    print('******************** start datacapture')
+    logger.info(
+        "AMC datacapture started exam=%s from_review=%s file_list_path=%s",
+        exam.pk,
+        from_review,
+        file_list_path,
+    )
     project_path = get_amc_project_path(exam, False)
     tmp_dir_path = None
 
-    if not from_review:
-        tmp_dir_path = project_path + "/tmp"
-        if os.path.exists(tmp_dir_path):
-            try:
-                shutil.rmtree(tmp_dir_path)
-            except Exception as e:
-                t = ''
-        os.mkdir(tmp_dir_path)
+    try:
+        if not from_review:
+            tmp_dir_path = project_path + "/tmp"
+            if os.path.exists(tmp_dir_path):
+                try:
+                    shutil.rmtree(tmp_dir_path)
+                except Exception:
+                    logger.exception("AMC datacapture failed removing tmp dir exam=%s path=%s", exam.pk, tmp_dir_path)
+            os.mkdir(tmp_dir_path)
 
-        tmp_extract_path = tmp_dir_path + "/tmp_extract"
-        file_name = f"exam_{exam.pk}_amc_scans.zip"
-        tmp_file_path = tmp_dir_path + "/" + file_name
-        with open(tmp_file_path, 'wb') as temp_file:
-            for chunk in file_path.chunks():
-                temp_file.write(chunk)
-                # extract zip file in tmp dir
-        with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
-            print("start extraction")
-            # Security hardening: validated extraction (no traversal/symlink/oversized archive).
-            safe_extract_zip(zip_ref, tmp_extract_path)
+            tmp_extract_path = tmp_dir_path + "/tmp_extract"
+            file_name = f"exam_{exam.pk}_amc_scans.zip"
+            tmp_file_path = tmp_dir_path + "/" + file_name
+            logger.info("AMC datacapture upload extraction started exam=%s tmp_file=%s", exam.pk, tmp_file_path)
+            with open(tmp_file_path, 'wb') as temp_file:
+                for chunk in file_path.chunks():
+                    temp_file.write(chunk)
+                    # extract zip file in tmp dir
+            with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+                # Security hardening: validated extraction (no traversal/symlink/oversized archive).
+                safe_extract_zip(zip_ref, tmp_extract_path)
 
-            file_list_path = tmp_dir_path + "/list-file"
-            tmp_file_list = open(file_list_path, "a+")
-            print('******************* '+file_list_path)
+                file_list_path = tmp_dir_path + "/list-file"
+                tmp_file_list = open(file_list_path, "a+")
 
-            files = glob.glob(tmp_extract_path + '/**/*.*', recursive=True)
-            for file in files:
-                tmp_file_list.write(file + "\n")
+                files = glob.glob(tmp_extract_path + '/**/*.*', recursive=True)
+                for file in files:
+                    tmp_file_list.write(file + "\n")
 
-            tmp_file_list.close()
+                tmp_file_list.close()
+                logger.info(
+                    "AMC datacapture upload extraction completed exam=%s extracted_count=%s file_list_path=%s",
+                    exam.pk,
+                    len(files),
+                    file_list_path,
+                )
 
-    print("////////////////////////////// exists : " +str(os.path.exists("/private_media/scans/2025-2026/1/CEPRO-666_20251015/0010/copy_0010_08.jpg")))
-    # prepare scan images (see amc doc)
-    command = ["auto-multiple-choice", "getimages", "--list", file_list_path]
-    if not from_review:
-        command.extend(["--copy-to", f"{project_path}/scans"])
+        # prepare scan images (see amc doc)
+        command = ["auto-multiple-choice", "getimages", "--list", file_list_path]
+        if not from_review:
+            command.extend(["--copy-to", f"{project_path}/scans"])
 
-    yield "Getting images ...\n"
-    subprocess.run(command, capture_output=True, text=True)
+        logger.info("AMC datacapture getimages started exam=%s command=%s", exam.pk, command)
+        yield "Getting images ...\n"
+        getimages_result = subprocess.run(command, capture_output=True, text=True)
+        logger.info(
+            "AMC datacapture getimages completed exam=%s returncode=%s stdout_len=%s stderr_len=%s",
+            exam.pk,
+            getimages_result.returncode,
+            len(getimages_result.stdout or ""),
+            len(getimages_result.stderr or ""),
+        )
+        if getimages_result.stderr:
+            logger.warning("AMC datacapture getimages stderr exam=%s stderr=%s", exam.pk, getimages_result.stderr)
 
-    os.rename(file_list_path, file_list_path + ".txt")
-    file_list_path += ".txt"
+        os.rename(file_list_path, file_list_path + ".txt")
+        file_list_path += ".txt"
+        logger.info("AMC datacapture file list renamed exam=%s file_list_path=%s", exam.pk, file_list_path)
 
-    box_prop = get_amc_option_by_key(exam, "box_size_proportion")
+        box_prop = get_amc_option_by_key(exam, "box_size_proportion")
 
-    # analyse scans
-    command = [
-        "auto-multiple-choice", "analyse",
-        "--prop", box_prop,
-        "--data", f"{project_path}/data/",
-        "--projet", project_path,
-        "--liste-fichiers", file_list_path,
-        "--try-three",
-    ]
+        # analyse scans
+        command = [
+            "auto-multiple-choice", "analyse",
+            "--prop", box_prop,
+            "--data", f"{project_path}/data/",
+            "--projet", project_path,
+            "--liste-fichiers", file_list_path,
+            "--try-three",
+        ]
 
-    yield "Automatic data capture ...\n"
-    errors = ''
-    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
-        for line in process.stdout:
-            print(line.strip())
-            if "ERR:" in line:
-                errors += line
-            yield line
+        logger.info("AMC datacapture analyse started exam=%s command=%s", exam.pk, command)
+        yield "Automatic data capture ...\n"
+        errors = ''
+        with subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=1,
+            universal_newlines=True,
+        ) as process:
+            for line in process.stdout:
+                logger.info("AMC analyse exam=%s output=%s", exam.pk, line.strip())
+                if "ERR:" in line:
+                    errors += line
+                yield line
 
-        if  process.returncode and process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, process.args)
+            returncode = process.wait()
+            logger.info("AMC datacapture analyse completed exam=%s returncode=%s", exam.pk, returncode)
+            if returncode:
+                raise subprocess.CalledProcessError(returncode, process.args)
 
-    # check consistency between AMC page recognition and review pages
-    yield "Checking data consistency ...\n"
-    check_pages_recognition_consistency(exam)
+        # check consistency between AMC page recognition and review pages
+        logger.info("AMC datacapture consistency check started exam=%s", exam.pk)
+        yield "Checking data consistency ...\n"
+        check_pages_recognition_consistency(exam)
+        logger.info("AMC datacapture consistency check completed exam=%s", exam.pk)
 
-    if tmp_dir_path:
-        shutil.rmtree(tmp_dir_path)
-    print(file_list_path)
-    # if file_list_path:
-    #     os.remove(file_list_path)
-    if errors:
-        yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
+        if tmp_dir_path:
+            shutil.rmtree(tmp_dir_path)
+            logger.info("AMC datacapture tmp dir removed exam=%s path=%s", exam.pk, tmp_dir_path)
+        # if file_list_path:
+        #     os.remove(file_list_path)
+        if errors:
+            logger.warning("AMC datacapture analyse reported errors exam=%s errors=%s", exam.pk, errors)
+            yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
+        logger.info("AMC datacapture completed exam=%s from_review=%s", exam.pk, from_review)
+    except GeneratorExit:
+        logger.warning("AMC datacapture client disconnected exam=%s from_review=%s", exam.pk, from_review)
+        raise
+    except (BrokenPipeError, ConnectionResetError):
+        logger.warning("AMC datacapture connection interrupted exam=%s from_review=%s", exam.pk, from_review, exc_info=True)
+        raise
+    except Exception:
+        logger.exception("AMC datacapture failed exam=%s from_review=%s file_list_path=%s", exam.pk, from_review, file_list_path)
+        raise
 
 def check_pages_recognition_consistency(exam):
     project_path = get_amc_project_path(exam, False)
