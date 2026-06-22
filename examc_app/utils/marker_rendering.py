@@ -22,15 +22,16 @@ import io
 import json
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Callable
 
 from django.conf import settings
+from django.db.models import Sum
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
 from examc_app.models import PageMarkers, PagesGroupGradingSchemeCheckedBox
 from examc_app.utils.amc_db_queries import get_question_max_points, select_copy_question_page
 from examc_app.utils.amc_functions import get_amc_project_path, get_amc_marks_positions_data
-from examc_app.utils.review_functions import get_question_points
 
 
 DEFAULT_FONT_PATHS = (
@@ -96,6 +97,56 @@ def get_exam_marked_scans_dir(exam) -> Path:
         f"{exam.code}_{exam.date.strftime('%Y%m%d')}"
     )
     return Path(settings.MARKED_SCANS_ROOT) / project_subdir
+
+
+def copy_number_variants(copy_nr) -> list[str]:
+    """Return common stored forms for a copy number, preserving priority."""
+    raw = str(copy_nr)
+    variants = [raw, raw.zfill(4), raw.zfill(2), raw.lstrip("0") or "0"]
+    return list(dict.fromkeys(variants))
+
+
+def render_key(pages_group_id, copy_nr, page_no) -> tuple[int, str, str]:
+    """Normalize page identity across zero-padded and non-padded values."""
+    return (
+        pages_group_id,
+        str(copy_nr).zfill(4),
+        str(page_no).lstrip("0") or "0",
+    )
+
+
+def get_grading_copy_nr(pages_group, copy_nr, grading_scheme=None) -> str:
+    """Resolve the copy number form used in grading checked-box rows."""
+    variants = copy_number_variants(copy_nr)
+    checked_boxes = PagesGroupGradingSchemeCheckedBox.objects.filter(
+        pages_group=pages_group,
+        copy_nr__in=variants,
+    )
+    if grading_scheme:
+        checked_boxes = checked_boxes.filter(
+            gradingSchemeCheckBox__questionGradingScheme=grading_scheme,
+        )
+
+    used_copy_nrs = set(checked_boxes.values_list("copy_nr", flat=True))
+    for variant in variants:
+        if variant in used_copy_nrs:
+            return variant
+    return str(copy_nr)
+
+
+def get_grading_question_points(grading_scheme, copy_nr):
+    """Compute grading-scheme points using the stored copy number variant."""
+    grading_copy_nr = get_grading_copy_nr(grading_scheme.pages_group, copy_nr, grading_scheme)
+    checked_boxes = PagesGroupGradingSchemeCheckedBox.objects.filter(
+        pages_group=grading_scheme.pages_group,
+        copy_nr=grading_copy_nr,
+        gradingSchemeCheckBox__questionGradingScheme=grading_scheme,
+    )
+    points = checked_boxes.aggregate(total=Sum("gradingSchemeCheckBox__points"))["total"] or 0
+    adjustment = checked_boxes.filter(gradingSchemeCheckBox__name="ADJ").first()
+    if adjustment:
+        points += adjustment.adjustment
+    return points
 
 
 def parse_rgba(color: str, opacity: float = 1.0) -> tuple[int, int, int, int]:
@@ -346,7 +397,7 @@ def get_active_grading_scheme(page_markers):
         PagesGroupGradingSchemeCheckedBox.objects
         .filter(
             pages_group=page_markers.pages_group,
-            copy_nr=str(page_markers.copie_no),
+            copy_nr__in=copy_number_variants(page_markers.copie_no),
         )
         .select_related("gradingSchemeCheckBox__questionGradingScheme")
         .first()
@@ -362,9 +413,9 @@ def get_review_corr_box_index_for_page(page_markers):
     if not grading_scheme:
         return -1
 
-    copy_nr = str(page_markers.copie_no)
     pages_group = grading_scheme.pages_group
-    points = float(get_question_points(grading_scheme, copy_nr))
+    copy_nr = get_grading_copy_nr(pages_group, page_markers.copie_no, grading_scheme)
+    points = float(get_grading_question_points(grading_scheme, copy_nr))
 
     if points > float(grading_scheme.max_points):
         points = float(grading_scheme.max_points)
@@ -374,7 +425,7 @@ def get_review_corr_box_index_for_page(page_markers):
         question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
 
         # Only the page that owns the corr boxes should render the grading overlay.
-        if str(page_markers.page_no) != str(question_page):
+        if str(question_page) not in copy_number_variants(page_markers.page_no):
             return -1
 
         max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
@@ -390,7 +441,7 @@ def get_review_corr_box_index_for_page(page_markers):
 
     zero_checked = PagesGroupGradingSchemeCheckedBox.objects.filter(
         pages_group=pages_group,
-        copy_nr=copy_nr,
+        copy_nr__in=copy_number_variants(copy_nr),
         gradingSchemeCheckBox__name="ZERO",
     ).exists()
     return 0 if zero_checked else -1
@@ -480,6 +531,126 @@ def render_marked_scan(page_markers, extra_markers: list[dict] | None = None) ->
     return output_path
 
 
+def build_scan_path_for_copy_page(exam, copy_nr, page_no) -> Path | None:
+    """Find the original scan file for a copy/page under SCANS_ROOT."""
+    project_subdir = (
+        f"{exam.year.code}/"
+        f"{exam.semester.code}/"
+        f"{exam.code}_{exam.date.strftime('%Y%m%d')}"
+    )
+    copy_dir = Path(settings.SCANS_ROOT) / project_subdir / str(copy_nr).zfill(4)
+    if not copy_dir.exists():
+        return None
+
+    page_variants = copy_number_variants(page_no)
+    copy_z4 = str(copy_nr).zfill(4)
+    suffixes = (".jpg", ".jpeg", ".png")
+    candidates = [
+        copy_dir / f"copy_{copy_z4}_{page}{suffix}"
+        for page in page_variants
+        for suffix in suffixes
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    for candidate in sorted(copy_dir.iterdir()):
+        if not candidate.is_file() or candidate.suffix.lower() not in suffixes:
+            continue
+        parts = candidate.stem.rsplit("_", 2)
+        if len(parts) != 3:
+            continue
+        _, file_copy_nr, file_page_no = parts
+        if file_copy_nr == copy_z4 and file_page_no in page_variants:
+            return candidate
+    return None
+
+
+def build_empty_marker_state(image_path: Path) -> str:
+    """Create minimal markerjs state for a scan without stored annotations."""
+    with Image.open(image_path) as image:
+        width, height = image.size
+    return json.dumps({
+        "version": 3,
+        "width": width,
+        "height": height,
+        "markers": [],
+    })
+
+
+def build_synthetic_page_markers_for_grading(pages_group, copy_nr):
+    """Build a PageMarkers-like object for grading-only rendering."""
+    amc_data_path = get_amc_project_path(pages_group.exam, True) + "/data/"
+    question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+    if question_page is None:
+        return None
+
+    image_path = build_scan_path_for_copy_page(pages_group.exam, copy_nr, question_page)
+    if not image_path:
+        return None
+
+    return SimpleNamespace(
+        exam=pages_group.exam,
+        pages_group=pages_group,
+        copie_no=str(copy_nr).zfill(4),
+        page_no=str(question_page),
+        filename=str(image_path),
+        markers=build_empty_marker_state(image_path),
+    )
+
+
+def render_grading_only_marked_scans_for_exam(
+    exam,
+    rendered_keys: set[tuple[int, str, str]] | None = None,
+    selected_filenames: set[str] | None = None,
+) -> int:
+    """Render grading-derived correction boxes when no PageMarkers row exists."""
+    if rendered_keys is None:
+        rendered_keys = {
+            render_key(row["pages_group_id"], row["copie_no"], row["page_no"])
+            for row in (
+                PageMarkers.objects
+                .filter(exam=exam)
+                .exclude(markers__isnull=True)
+                .exclude(markers="")
+                .values("pages_group_id", "copie_no", "page_no")
+            )
+        }
+
+    checked_groups = (
+        PagesGroupGradingSchemeCheckedBox.objects
+        .filter(pages_group__exam=exam, pages_group__use_grading_scheme=True)
+        .exclude(gradingSchemeCheckBox__isnull=True)
+        .values("pages_group_id", "copy_nr")
+        .distinct()
+    )
+    rendered = 0
+    pages_groups = {
+        pages_group.id: pages_group
+        for pages_group in exam.pagesGroup.filter(use_grading_scheme=True)
+    }
+
+    for row in checked_groups:
+        pages_group = pages_groups.get(row["pages_group_id"])
+        if not pages_group:
+            continue
+        synthetic_page_markers = build_synthetic_page_markers_for_grading(pages_group, row["copy_nr"])
+        if not synthetic_page_markers:
+            continue
+        if selected_filenames and Path(synthetic_page_markers.filename).name not in selected_filenames:
+            continue
+
+        key = render_key(pages_group.id, synthetic_page_markers.copie_no, synthetic_page_markers.page_no)
+        if key in rendered_keys:
+            continue
+
+        render_marked_scan(synthetic_page_markers)
+        rendered_keys.add(key)
+        rendered += 1
+
+    return rendered
+
+
 def regenerate_marked_scans_for_exam(exam, progress_callback: Callable[[int, int], None] | None = None) -> int:
     """Regenerate all derived marked scan images for an exam from DB marker state."""
     marked_dir = get_exam_marked_scans_dir(exam)
@@ -488,13 +659,15 @@ def regenerate_marked_scans_for_exam(exam, progress_callback: Callable[[int, int
 
     page_markers_qs = PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
     total = page_markers_qs.count()
+    rendered_keys = set()
 
     for index, page_markers in enumerate(page_markers_qs.iterator(), start=1):
         if progress_callback:
             progress_callback(index, max(1, total))
         render_marked_scan(page_markers)
+        rendered_keys.add(render_key(page_markers.pages_group_id, page_markers.copie_no, page_markers.page_no))
 
-    return total
+    return total + render_grading_only_marked_scans_for_exam(exam, rendered_keys)
 
 
 def regenerate_marked_scans_for_page_markers(page_markers_qs) -> int:
