@@ -1,3 +1,5 @@
+import logging
+
 from django import forms
 from django.contrib import admin, messages
 from django.db import transaction
@@ -10,6 +12,8 @@ from simple_history.admin import SimpleHistoryAdmin
 from .models import *
 from .models import Exam
 from .utils.admin_functions import parse_exams_data_csv, parse_courses_data_json
+
+logger = logging.getLogger(__name__)
 
 
 class CsvImportForm(forms.Form):

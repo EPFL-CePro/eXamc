@@ -1,3 +1,4 @@
+import logging
 import operator
 import shutil
 import zipfile
@@ -13,6 +14,7 @@ from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import require_POST
 
+from examc import settings
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import ExportResultsForm
 from examc_app.signing import make_token_for
