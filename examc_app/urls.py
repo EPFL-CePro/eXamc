@@ -84,6 +84,7 @@ urlpatterns = [
     path('call_amc_automatic_data_capture/<int:exam_pk>', views.call_amc_automatic_data_capture, name="call_amc_automatic_data_capture"),
     path('import_scans_from_review/<int:exam_pk>', views.import_scans_from_review, name="import_scans_from_review"),
     path('import_scans_from_review_pages/<int:exam_pk>', views.import_scans_from_review_pages, name="import_scans_from_review_pages"),
+    path('amc_import_from_review_status/<int:exam_pk>/<str:job_id>/', views.amc_import_from_review_status, name='amc_import_from_review_status'),
     path('call_amc_annotate/<int:exam_pk>', views.call_amc_annotate, name="call_amc_annotate"),
     path('amc_annotate_status/<int:exam_pk>/<str:job_id>/', views.amc_annotate_status, name='amc_annotate_status'),
     path('open_amc_exam_pdf/<int:exam_pk>', views.open_amc_exam_pdf, name="open_amc_exam_pdf"),

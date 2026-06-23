@@ -20,10 +20,21 @@ from django.utils import timezone
 from fpdf import FPDF
 
 from django.conf import settings
-from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock
-from examc_app.utils.amc_functions import amc_automatic_data_capture, amc_annotate
+from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, PageMarkers
+from examc_app.utils.amc_functions import (
+    amc_automatic_data_capture,
+    amc_automatic_datacapture_subprocess,
+    amc_annotate,
+    get_amc_project_path,
+)
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
-from examc_app.utils.marker_rendering import regenerate_marked_scans_for_exam
+from examc_app.utils.marker_rendering import (
+    get_exam_marked_scans_dir,
+    iter_render_grading_only_marked_scans,
+    regenerate_marked_scans_for_exam,
+    render_key,
+    render_marked_scan,
+)
 from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
 from examc_app.utils.zip_security import safe_extract_zip
@@ -458,6 +469,162 @@ def cleanup_review_locks():
         f"Deleted {total} review locks "
         f"(expired={expired_deleted_count}, inactive_user={inactive_deleted_count})."
     )
+
+
+def _set_amc_import_progress(task, lines, status="running"):
+    task.update_state(
+        state="PROGRESS",
+        meta={
+            "status": status,
+            "output": "".join(lines[-500:]),
+            "line_count": len(lines),
+        },
+    )
+
+
+def _append_amc_import_line(task, lines, line):
+    lines.append(line if line.endswith("\n") else line + "\n")
+    _set_amc_import_progress(task, lines)
+    logger.info("AMC import task progress: %s", line.strip())
+
+
+def _render_review_marked_scans(task, exam, selected_filenames=None):
+    lines = []
+    rendered_keys = set()
+    is_selected_import = selected_filenames is not None
+    selected_filenames = set(selected_filenames or [])
+
+    if is_selected_import:
+        _append_amc_import_line(
+            task,
+            lines,
+            f"Generating marked scans from review annotations for {len(selected_filenames)} selected page(s) ...",
+        )
+        page_markers_list = [
+            page_markers
+            for page_markers in PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
+            if pathlib.Path(page_markers.filename).name in selected_filenames
+        ]
+        total = len(page_markers_list)
+    else:
+        _append_amc_import_line(task, lines, "Generating marked scans from review annotations ...")
+        marked_scans_root = get_exam_marked_scans_dir(exam)
+        if marked_scans_root.exists():
+            shutil.rmtree(marked_scans_root)
+
+        page_markers_qs = PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
+        total = page_markers_qs.count()
+        page_markers_list = page_markers_qs.iterator()
+
+    for index, page_markers in enumerate(page_markers_list, start=1):
+        render_marked_scan(page_markers)
+        rendered_keys.add(render_key(page_markers.pages_group_id, page_markers.copie_no, page_markers.page_no))
+        _append_amc_import_line(
+            task,
+            lines,
+            f"{index}/{total} - Generated marked scan copy {page_markers.copie_no} page {page_markers.page_no}",
+        )
+
+    grading_count = 0
+    for page_markers, output_path in iter_render_grading_only_marked_scans(
+        exam,
+        rendered_keys=rendered_keys,
+        selected_filenames=selected_filenames if is_selected_import else None,
+    ):
+        grading_count += 1
+        _append_amc_import_line(
+            task,
+            lines,
+            (
+                "Generated grading scheme marked scan "
+                f"copy {page_markers.copie_no} page {page_markers.page_no}: {output_path.name}"
+            ),
+        )
+
+    _append_amc_import_line(task, lines, f"Marked scan generation completed ({total + grading_count} file(s)).")
+    return lines
+
+
+def _write_review_import_file_list(exam, scans_list=None):
+    amc_proj_path = get_amc_project_path(exam, False)
+    file_list_path = amc_proj_path + "/list-file"
+    if os.path.exists(file_list_path):
+        os.remove(file_list_path)
+
+    if scans_list is None:
+        scans_dir = (
+            str(settings.SCANS_ROOT)
+            + "/"
+            + str(exam.year.code)
+            + "/"
+            + str(exam.semester.code)
+            + "/"
+            + exam.code
+            + "_"
+            + exam.date.strftime("%Y%m%d")
+        )
+        scans_list = sorted(glob.glob(scans_dir + "/**/*.*", recursive=True))
+
+    count = 0
+    marked_count = 0
+    with open(file_list_path, "w") as f:
+        for scan in scans_list:
+            scan_path = pathlib.Path(scan)
+            marked_scan = pathlib.Path(
+                str(scan_path).replace(str(settings.SCANS_ROOT), str(settings.MARKED_SCANS_ROOT))
+            )
+            marked_scan = marked_scan.with_name(f"marked_{marked_scan.stem}.png")
+            if marked_scan.exists():
+                f.write(str(marked_scan) + "\n")
+                marked_count += 1
+            else:
+                f.write(str(scan) + "\n")
+            count += 1
+
+    return file_list_path, count, marked_count
+
+
+@shared_task(bind=True)
+def amc_import_from_review_task(self, exam_pk, scans_list=None):
+    lines = []
+    try:
+        exam = Exam.objects.get(pk=exam_pk)
+        selected_filenames = None
+        if scans_list is not None:
+            selected_filenames = {pathlib.Path(scan).name for scan in scans_list}
+
+        _append_amc_import_line(self, lines, f"Starting AMC import from review for exam {exam.pk} ...")
+        lines.extend(_render_review_marked_scans(self, exam, selected_filenames=selected_filenames))
+
+        file_list_path, file_count, marked_count = _write_review_import_file_list(exam, scans_list=scans_list)
+        _append_amc_import_line(
+            self,
+            lines,
+            f"AMC file list written ({file_count} file(s), {marked_count} marked scan(s)).",
+        )
+
+        for line in amc_automatic_datacapture_subprocess(None, exam, None, True, file_list_path=file_list_path):
+            _append_amc_import_line(self, lines, line)
+
+        _append_amc_import_line(self, lines, "AMC import from review completed.")
+        return {
+            "status": "done",
+            "output": "".join(lines[-500:]),
+            "line_count": len(lines),
+        }
+    except Exception as exception:
+        _append_amc_import_line(self, lines, f"AMC import from review failed: {type(exception).__name__}: {exception}")
+        self.update_state(
+            state="FAILURE",
+            meta={
+                "exc_type": type(exception).__name__,
+                "exc_message": str(exception),
+                "output": "".join(lines[-500:]),
+                "line_count": len(lines),
+            },
+        )
+        raise
+
 
 @shared_task(bind=True)
 def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_report: bool):
