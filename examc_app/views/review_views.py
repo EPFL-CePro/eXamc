@@ -3,6 +3,7 @@
 """
 
 import json
+import logging
 import math
 import os
 import sys
@@ -44,6 +45,8 @@ from examc_app.utils.review_settings_guards import (
     pages_group_name_available,
     pages_group_settings_changed,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_locked_pages_group_ids_for_exam(exam):

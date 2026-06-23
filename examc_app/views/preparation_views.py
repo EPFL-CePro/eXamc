@@ -1,3 +1,4 @@
+import logging
 import shutil
 from decimal import Decimal
 
@@ -11,6 +12,8 @@ from django.conf import settings
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, SummernoteForm
 from examc_app.models import *
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def create_exam_project(request):

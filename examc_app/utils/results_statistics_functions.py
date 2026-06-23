@@ -3,6 +3,7 @@
 import _io
 import csv
 import io
+import logging
 import operator
 import os
 from decimal import *
@@ -18,6 +19,8 @@ from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from examc_app.models import *
+
+logger = logging.getLogger(__name__)
 
 SCALE_COPY_FIELDS = (
     "total_points",

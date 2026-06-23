@@ -7,6 +7,7 @@ from pathlib import Path
 
 from asgiref.sync import async_to_sync, sync_to_async
 from celery.result import AsyncResult
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse, JsonResponse
