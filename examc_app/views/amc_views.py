@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST, require_GET
 
 from examc_app.decorators import exam_permission_required
 from examc_app.models import *
-from examc_app.tasks import import_csv_data, generate_marked_files_zip, amc_annotate_task
+from examc_app.tasks import import_csv_data, generate_marked_files_zip, amc_annotate_task, amc_import_from_review_task
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import (
@@ -30,6 +30,7 @@ from examc_app.utils.review_functions import generate_marked_pdfs, create_studen
 
 
 AMC_ANNOTATE_JOBS_SESSION_KEY = "amc_annotate_jobs"
+AMC_IMPORT_JOBS_SESSION_KEY = "amc_import_jobs"
 AMC_ANNOTATE_JOB_TTL_SECONDS = 24 * 3600
 AMC_ANNOTATE_JOB_MAX_TRACKED = 200
 
@@ -109,6 +110,24 @@ def _track_amc_annotate_job(request, exam_pk, job_id):
 def _is_amc_annotate_job_owned(request, exam_pk, job_id):
     jobs = _prune_amc_annotate_jobs(request.session.get(AMC_ANNOTATE_JOBS_SESSION_KEY, {}))
     request.session[AMC_ANNOTATE_JOBS_SESSION_KEY] = jobs
+    request.session.modified = True
+    meta = jobs.get(str(job_id))
+    return bool(meta and int(meta.get("exam_pk")) == int(exam_pk))
+
+
+def _track_amc_import_job(request, exam_pk, job_id):
+    jobs = _prune_amc_annotate_jobs(request.session.get(AMC_IMPORT_JOBS_SESSION_KEY, {}))
+    jobs[str(job_id)] = {
+        "exam_pk": int(exam_pk),
+        "created_at": int(timezone.now().timestamp()),
+    }
+    request.session[AMC_IMPORT_JOBS_SESSION_KEY] = _prune_amc_annotate_jobs(jobs)
+    request.session.modified = True
+
+
+def _is_amc_import_job_owned(request, exam_pk, job_id):
+    jobs = _prune_amc_annotate_jobs(request.session.get(AMC_IMPORT_JOBS_SESSION_KEY, {}))
+    request.session[AMC_IMPORT_JOBS_SESSION_KEY] = jobs
     request.session.modified = True
     meta = jobs.get(str(job_id))
     return bool(meta and int(meta.get("exam_pk")) == int(exam_pk))
@@ -446,14 +465,12 @@ def import_scans_from_review_pages(request, exam_pk):
         getattr(request.user, "pk", None),
         len(scans_list),
     )
-    return streaming_text_response(
-        logged_stream(
-            stream_import_scans_from_review_pages(request, exam, scans_list),
-            "import_scans_from_review_pages",
-            exam.pk,
-            request.user,
-        )
-    )
+    job = amc_import_from_review_task.delay(exam.pk, scans_list)
+    _track_amc_import_job(request, exam.pk, job.id)
+    return JsonResponse({
+        "job_id": job.id,
+        "status_url": reverse("amc_import_from_review_status", args=[exam.pk, job.id]),
+    }, status=202)
 
 
 def stream_import_scans_from_review_pages(request, exam, scans_list):
@@ -543,14 +560,51 @@ def import_scans_from_review(request, exam_pk):
         getattr(request.user, "pk", None),
     )
 
-    return streaming_text_response(
-        logged_stream(
-            stream_import_scans_from_review(request, exam),
-            "import_scans_from_review",
-            exam.pk,
-            request.user,
-        )
-    )
+    job = amc_import_from_review_task.delay(exam.pk)
+    _track_amc_import_job(request, exam.pk, job.id)
+    return JsonResponse({
+        "job_id": job.id,
+        "status_url": reverse("amc_import_from_review_status", args=[exam.pk, job.id]),
+    }, status=202)
+
+
+@require_GET
+@exam_permission_required(['manage'])
+def amc_import_from_review_status(request, exam_pk, job_id):
+    if not _is_amc_import_job_owned(request, exam_pk, job_id):
+        return JsonResponse({"status": "forbidden", "error": "Unknown or unauthorized job id."}, status=403)
+
+    res = AsyncResult(job_id)
+
+    if res.state in ("PENDING", "STARTED", "RETRY"):
+        return JsonResponse({"status": "running", "state": res.state, "output": ""})
+
+    if res.state == "PROGRESS":
+        meta = res.info if isinstance(res.info, dict) else {}
+        return JsonResponse({
+            "status": "running",
+            "state": res.state,
+            "output": meta.get("output", ""),
+            "line_count": meta.get("line_count", 0),
+        })
+
+    if res.state == "FAILURE":
+        meta = res.info if isinstance(res.info, dict) else {}
+        return JsonResponse({
+            "status": "error",
+            "state": res.state,
+            "error": meta.get("exc_message", str(res.result)),
+            "output": meta.get("output", ""),
+            "line_count": meta.get("line_count", 0),
+        }, status=500)
+
+    result = res.result if isinstance(res.result, dict) else {}
+    return JsonResponse({
+        "status": "done",
+        "state": res.state,
+        "output": result.get("output", ""),
+        "line_count": result.get("line_count", 0),
+    })
 
 
 def stream_import_scans_from_review(request, exam):

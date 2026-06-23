@@ -461,6 +461,46 @@ function showProcessError(xhr, textStatus, errorThrown) {
     appendProcessOutput(details.join('\n') + '\n');
 }
 
+function setProcessOutput(text) {
+    amc_process_modal_body.text(text || '');
+    amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+}
+
+function pollAmcImportJob(statusUrl) {
+    const timer = setInterval(function() {
+        $.ajax({
+            url: statusUrl,
+            type: "GET",
+            dataType: "json",
+            success: function(resp) {
+                setProcessOutput(resp.output || 'Processing ...\n');
+                if (resp.status === "running" || resp.status === "queued") {
+                    return;
+                }
+
+                clearInterval(timer);
+                if (resp.status === "done") {
+                    appendProcessOutput('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                } else {
+                    appendProcessOutput('Error occurred\n' + (resp.error || 'Unknown error') + '\n');
+                }
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                clearInterval(timer);
+                const resp = xhr.responseJSON || {};
+                if (resp.output) {
+                    setProcessOutput(resp.output);
+                }
+                if (resp.error) {
+                    appendProcessOutput('Error occurred\n' + resp.error + '\n');
+                } else {
+                    showProcessError(xhr, textStatus, errorThrown);
+                }
+            }
+        });
+    }, 2000);
+}
+
 function callAutomaticDataCapture_process(from_review,all_from_review=false) {
     $("#closeConfirmAutomaticDataCaptureModalBt").click();
     amc_process_modal_title = document.getElementById('amc_process_modal_title');
@@ -473,15 +513,13 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
             $.ajax({
                 url: "{% url 'import_scans_from_review' exam_selected.pk %}",
                 type: "POST",
+                dataType: "json",
                 data : {
                    'csrfmiddlewaretoken' : '{{ csrf_token }}',
                 },
-                xhrFields: {
-                    // This triggers each time progress is made on the request
-                    onprogress: makeProcessProgressHandler()
-                },
-                success: function() {
-                    appendProcessOutput('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                success: function(resp) {
+                    setProcessOutput('AMC import job started ...\n');
+                    pollAmcImportJob(resp.status_url);
                 },
                 error: function(xhr, textStatus, errorThrown) {
                     showProcessError(xhr, textStatus, errorThrown);
@@ -493,16 +531,14 @@ function callAutomaticDataCapture_process(from_review,all_from_review=false) {
             $.ajax({
                 url: "{% url 'import_scans_from_review_pages' exam_selected.pk %}",
                 type: "POST",
+                dataType: "json",
                 data : {
                    'csrfmiddlewaretoken' : '{{ csrf_token }}',
                     'pages_list' : selectedPagesValues
                 },
-                xhrFields: {
-                    // This triggers each time progress is made on the request
-                    onprogress: makeProcessProgressHandler()
-                },
-                success: function() {
-                    appendProcessOutput('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                success: function(resp) {
+                    setProcessOutput('AMC import job started ...\n');
+                    pollAmcImportJob(resp.status_url);
                 },
                 error: function(xhr, textStatus, errorThrown) {
                     showProcessError(xhr, textStatus, errorThrown);
