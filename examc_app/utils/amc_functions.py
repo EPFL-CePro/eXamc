@@ -1065,8 +1065,8 @@ def amc_annotate(exam,single_file,add_grading_scheme_report):
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
     filename_model = get_amc_option_by_key(exam,'modele_regroupement')
     verdict = get_amc_option_by_key(exam,'verdict').replace('\n','\r\n')
-    verdict_q = get_amc_option_by_key(exam,'verdict_q').replace('"','\\"')
-    verdict_qc = get_amc_option_by_key(exam,'verdict_qc').replace('"','\\"')
+    verdict_q = get_amc_option_by_key(exam,'verdict_q')
+    verdict_qc = get_amc_option_by_key(exam,'verdict_qc')
     symbols = get_annotation_symbols(exam)
     annote_position = get_amc_option_by_key(exam,'annote_position')
     command = [
