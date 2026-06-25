@@ -1,14 +1,13 @@
 # examc_app/mixins.py
 from django.contrib.auth.mixins import AccessMixin
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.models import Permission
 from django.shortcuts import get_object_or_404, redirect
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.template.response import TemplateResponse
 from django.urls import reverse
 
-from .models import Exam, ExamUser
+from .models import Exam
+from .permissions import exam_group_names_allow, get_exam_group_names
 
 
 class ExamPermissionAndRedirectMixin(AccessMixin):
@@ -34,31 +33,16 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
         elif request.user.is_anonymous:
             return self._no_access("You are not an authenticated user.")
 
-        # 2) collect this user’s groups for the exam
-        group_ids = ExamUser.objects.filter(
-            user=request.user, exam=exam
-        ).values_list("group_id", flat=True)
-
-        # 3) check if common exam and teacher and add
-        if exam.common_exams.all():
-            group_ids_common = ExamUser.objects.filter(
-                user=request.user, exam__in=exam.common_exams.all(), group__id__in=[2,5,6]
-            )
-            group_ids = group_ids.union(group_ids_common)
+        # 2) collect this user's groups for the exam
+        group_names = get_exam_group_names(request.user, exam)
 
         # if they don't even belong to this exam
-        if not group_ids:
+        if not group_names:
             return self._no_access("You have no access to this exam.")
 
         # helper to test any codename
         def has(codename_list):
-            ct = ContentType.objects.get_for_model(Exam)
-            perm = Permission.objects.filter(
-                content_type=ct,
-                codename__in=codename_list,
-                group__id__in=group_ids
-            )
-            return perm.exists()
+            return exam_group_names_allow(group_names, codename_list)
 
         # 3a) Redirect mode (ExamInfoView)
         if self.redirect_enabled:
@@ -70,7 +54,7 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
             if has(['review']):
                 return redirect(reverse('reviewView', kwargs={'exam_pk': exam.pk}))
             if has(['see_results']):
-                return redirect(reverse('studentResults', kwargs={'exam_pk': exam.pk}))
+                return redirect(reverse('studentsResults', kwargs={'exam_pk': exam.pk}))
             # nothing else
             return self._no_access("You don’t have access to this exam.")
 

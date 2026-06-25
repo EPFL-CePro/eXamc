@@ -7,6 +7,11 @@ from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 from examc_app.views.rooms_plans_special_views import GenerateRoomPlanSpecialView
 
 urlpatterns = [
+    # IMPERSONATION
+    path('impersonate/', views.impersonate_user_select, name="impersonate_select"),
+    path('impersonate/<int:user_pk>/start/', views.impersonate_start, name="impersonate_start"),
+    path('impersonate/stop/', views.impersonate_stop, name="impersonate_stop"),
+
     # EXAM INFO
     path('update_exam_users/<int:exam_pk>', views.update_exam_users, name="update_exam_users"),
     path('update_exam_info/<int:exam_pk>', views.update_exam_info, name="update_exam_info"),
