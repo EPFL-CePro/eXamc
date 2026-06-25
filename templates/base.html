@@ -123,6 +123,23 @@
 {% endif %}
 
 <body>
+{% if request.impersonator %}
+<div class="impersonation-banner alert alert-warning" role="alert">
+    <div>
+        <i class="fa-solid fa-user-secret"></i>
+        Impersonating {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
+        as {{ request.impersonator.first_name }} {{ request.impersonator.last_name }} ({{ request.impersonator.username }})
+    </div>
+    <form method="post" action="{% url 'impersonate_stop' %}" class="impersonation-stop-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-outline-dark btn-sm">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            Stop impersonation
+        </button>
+    </form>
+</div>
+{% endif %}
 {#<main>#}
 <script type="text/javascript">
 
@@ -321,6 +338,12 @@
 
                     <hr class="hr-sidebar"> 
                     {% if user|is_admin %}
+                    <a href="{% url 'impersonate_select' %}?next={{ request.get_full_path|urlencode }}" class="bg-dark list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-start align-items-center">
+                            <span class="fas fa-user-secret" style="color: #10E6BC;margin-right:5px;"></span>
+                            <span class="menu-collapsed" style="color: #10E6BC;margin-right:5px;">Impersonate</span>
+                        </div>
+                    </a>
                     <a href="{% url 'admin:index' %}" class="bg-dark list-group-item list-group-item-action" target="_blank">
                         <div class="d-flex w-100 justify-content-start align-items-center">
                             <span class="fas fa-carrot fa-spin" style="color: #10E6BC;margin-right:5px;"></span>

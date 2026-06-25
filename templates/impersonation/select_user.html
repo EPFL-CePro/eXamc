@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Impersonate user{% endblock %}
+
+{% block content %}
+<h4><i class="fa-solid fa-user-secret" style="margin-right:5px;"></i>Impersonate user</h4>
+
+<div class="alert alert-warning" role="alert">
+    You are connected as {{ real_user.first_name }} {{ real_user.last_name }} ({{ real_user.username }}).
+    Select a user below to browse eXamc with their permissions.
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-sm" id="impersonation-users-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Last login</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for target_user in impersonation_users %}
+                <tr>
+                    <td>{{ target_user.username }}</td>
+                    <td>{{ target_user.first_name }} {{ target_user.last_name }}</td>
+                    <td>{{ target_user.email }}</td>
+                    <td>{{ target_user.last_login|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <form method="post" action="{% url 'impersonate_start' target_user.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-dark btn-sm">
+                                <i class="fa-solid fa-user-secret" style="margin-right:5px;"></i>Impersonate
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5">No active non-superuser account is available.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    $(function () {
+        $('#impersonation-users-table').DataTable({
+            paging: true,
+            pageLength: 50,
+            bLengthChange: false,
+            bInfo: false,
+            order: []
+        });
+    });
+</script>
+{% endblock %}

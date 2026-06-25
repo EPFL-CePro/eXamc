@@ -28,6 +28,8 @@ def env_bool(key, default="0"): return str(os.getenv(key, default)).lower() in (
 def env_int(key, default="0"):
     try: return int(os.getenv(key, default))
     except (TypeError, ValueError): return int(default)
+def env_list(key, default=""):
+    return [value.strip() for value in env(key, default).split(",") if value.strip()]
 
 # Optional: load .env only for local dev (outside Docker)
 if os.getenv("DJANGO_DOTENV", "0") == "1" or not os.getenv("SECRET_KEY"):
@@ -112,6 +114,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'examc_app.middleware.impersonation.ImpersonationMiddleware',
     'maintenance_mode.middleware.MaintenanceModeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -258,6 +261,13 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 OIDC_SUPERUSER_GROUPS = [group for group in env("OIDC_SUPERUSER_GROUPS", "CePro_admin_IT_AppGrpU").split(",") if group]
 OIDC_STAFF_GROUPS = [group for group in env("OIDC_STAFF_GROUPS", "CePro_admin_IT_AppGrpU").split(",") if group]
+
+EXAM_PERMISSION_GROUP_NAMES = {
+    "manage": env_list("EXAM_PERMISSION_MANAGE_GROUP_NAMES", "Teacher,Assistant,Coordinator"),
+    "review": env_list("EXAM_PERMISSION_REVIEW_GROUP_NAMES", "Teacher,Reviewer,Coordinator,Assistant"),
+    "see_results": env_list("EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES", "Teacher,Assistant,Coordinator,Results,Statistics"),
+}
+COMMON_EXAM_GROUP_NAMES = env_list("COMMON_EXAM_GROUP_NAMES", "Teacher,Results,Statistics")
 
 # Only use this setting if you want to store the access token in the session
 # To use access token to call API

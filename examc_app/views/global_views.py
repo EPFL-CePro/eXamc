@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -14,14 +15,42 @@ from django.contrib.sessions.models import Session
 from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, HttpResponse, FileResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.views.decorators.http import require_GET
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_GET, require_POST
 
 from examc_app.forms import LoginForm
+from examc_app.middleware.impersonation import (
+    IMPERSONATED_SESSION_KEY,
+    IMPERSONATOR_SESSION_KEY,
+    clear_impersonation_session,
+)
 from examc_app.models import ReviewLock
 from examc_app.signing import verify_and_get_path
 from examc_app.utils.results_statistics_functions import update_common_exams
+
+logger = logging.getLogger(__name__)
+
+
+def _get_real_user(request):
+    return getattr(request, "impersonator", None) or request.user
+
+
+def _is_impersonation_admin(user):
+    return user.is_authenticated and user.is_superuser
+
+
+def _get_safe_next_url(request):
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    return reverse("home")
+
 
 ### admin views ###
 def getCommonExams(request, pk):
@@ -52,6 +81,65 @@ def select_exam(request, pk, nav_url=None):
         return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
     else:
         return HttpResponseRedirect(reverse(nav_url, kwargs={'pk': str(pk)}))
+
+
+@login_required
+def impersonate_user_select(request):
+    real_user = _get_real_user(request)
+    if not _is_impersonation_admin(real_user):
+        return HttpResponseForbidden("Only superusers can impersonate users.")
+
+    users = User.objects.filter(is_active=True).exclude(
+        pk=real_user.pk
+    ).exclude(
+        is_superuser=True
+    ).order_by("last_name", "first_name", "username")
+
+    return render(request, "impersonation/select_user.html", {
+        "impersonation_users": users,
+        "real_user": real_user,
+    })
+
+
+@login_required
+@require_POST
+def impersonate_start(request, user_pk):
+    real_user = _get_real_user(request)
+    if not _is_impersonation_admin(real_user):
+        return HttpResponseForbidden("Only superusers can impersonate users.")
+
+    target_user = get_object_or_404(User, pk=user_pk, is_active=True)
+    if target_user.is_superuser:
+        return HttpResponseForbidden("Superuser accounts cannot be impersonated.")
+    if target_user.pk == real_user.pk:
+        return HttpResponseForbidden("You cannot impersonate your own account.")
+
+    request.session[IMPERSONATOR_SESSION_KEY] = real_user.pk
+    request.session[IMPERSONATED_SESSION_KEY] = target_user.pk
+    logger.info(
+        "User %s started impersonating user %s",
+        real_user.username,
+        target_user.username,
+    )
+
+    return redirect("home")
+
+
+@login_required
+@require_POST
+def impersonate_stop(request):
+    impersonator = getattr(request, "impersonator", None)
+    impersonated = request.user if impersonator else None
+    clear_impersonation_session(request.session)
+
+    if impersonator and impersonated:
+        logger.info(
+            "User %s stopped impersonating user %s",
+            impersonator.username,
+            impersonated.username,
+        )
+
+    return redirect(_get_safe_next_url(request))
 
 
 ### global views ###
