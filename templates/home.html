@@ -1,35 +1,162 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Home{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/home-dashboard.css' %}">
+{% endblock %}
 
 {% block content %}
 
      {% if user.is_authenticated %}
-        <div class="jumbotron text-center">
-            <h1>eXamc</h1>
-            {{ user }}
-            <h5>Welcome {{ user.first_name }} {{ user.last_name }}</h5>
-            <h5>Please select an exam from the top left button to start !</h5>
-            {% if user.is_superuser %}
-            <hr/>
-            <h5 style="margin-top:100px;">Users last connection</h5>
-            <table class="table table-striped table-sm" style="width:450px;margin-left:calc((100vw - 800px)/2);">
-                <thead style="display:block">
-                <tr>
-                    <th style="width:200px;">Username</th>
-                    <th style="width:250px;">Last connection</th>
-                </tr>
-                </thead>
-                <tbody style="display:block;height:50vh;;overflow-y:auto;">
-                {% for lcuser in last_connection_users %}
-                    <tr>
-                        <td style="width:200px;">{{ lcuser.username }}</td>
-                        <td style="width:250px">{{ lcuser.last_login }}</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
+        <div class="dashboard-header">
+            <div>
+                <h3 class="dashboard-title"><i class="fa-solid fa-table-columns dashboard-title-icon"></i>{{ dashboard_type }}</h3>
+                <div class="dashboard-muted">
+                    Welcome {{ user.first_name }} {{ user.last_name }}
+                </div>
+            </div>
+            <div class="dashboard-muted text-right">
+                {{ dashboard_exam_count }} exam{{ dashboard_exam_count|pluralize }} available
+                {% if dashboard_exam_count > dashboard_exam_limit %}
+                    <br>Showing {{ dashboard_exam_limit }} most recent exams
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div>
+                <div class="dashboard-panel">
+                    <h4><i class="fa-solid fa-book-open dashboard-section-icon"></i>My exams</h4>
+                    {% if dashboard_exams %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Exam</th>
+                                        <th>Date</th>
+                                        <th>Role</th>
+                                        <th>Modules</th>
+                                        <th>Review</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in dashboard_exams %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ item.exam.code }}</strong><br>
+                                                <span class="dashboard-muted">{{ item.exam.name }}</span>
+                                            </td>
+                                            <td>{{ item.exam.date|date:"Y-m-d" }}</td>
+                                            <td>{{ item.role }}</td>
+                                            <td>
+                                                <div class="dashboard-badges">
+                                                    {% for badge in item.module_badges %}
+                                                        <span class="badge badge-secondary">{{ badge }}</span>
+                                                    {% empty %}
+                                                        <span class="dashboard-muted">No module</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </td>
+                                            <td class="dashboard-progress">
+                                                {% if item.review_progress %}
+                                                    <div class="dashboard-muted">{{ item.review_progress.graded }} / {{ item.review_progress.total }}</div>
+                                                    <div class="progress dashboard-review-progress">
+                                                        <div class="progress-bar {% if item.review_progress.percent == 100 %}bg-success{% else %}bg-warning{% endif %}"
+                                                             role="progressbar"
+                                                             style="width: {{ item.review_progress.percent }}%;"
+                                                             aria-valuenow="{{ item.review_progress.percent }}"
+                                                             aria-valuemin="0"
+                                                             aria-valuemax="100"></div>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="dashboard-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="dashboard-actions">
+                                                    {% for action in item.actions %}
+                                                        <a class="btn btn-dark btn-sm" href="{{ action.url }}">
+                                                            <i class="fa-solid {{ action.icon }} dashboard-action-icon"></i>{{ action.label }}
+                                                        </a>
+                                                    {% endfor %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="dashboard-muted">No exam is currently assigned to your account.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <div class="dashboard-panel">
+                    <h4><i class="fa-solid fa-list-check dashboard-section-icon"></i>To do</h4>
+                    {% if dashboard_todos %}
+                        {% for todo in dashboard_todos %}
+                            <div class="dashboard-todo-item">
+                                <div class="dashboard-icon"><i class="fa-solid {{ todo.icon }}"></i></div>
+                                <div>
+                                    <div><strong>{{ todo.title }}</strong></div>
+                                    <div class="dashboard-muted">{{ todo.description }}</div>
+                                    {% if todo.url %}
+                                        <a class="btn btn-outline-dark btn-sm mt-2" href="{{ todo.url }}">Open</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="dashboard-muted">Nothing pending for your current exams.</div>
+                    {% endif %}
+                </div>
+
+                <div class="dashboard-panel">
+                    <h4><i class="fa-solid fa-bolt dashboard-section-icon"></i>Shortcuts</h4>
+                    {% for shortcut in dashboard_shortcuts %}
+                        <a class="dashboard-shortcut" href="{{ shortcut.url }}" {% if shortcut.label == "Admin" %}target="_blank"{% endif %}>
+                            <div class="dashboard-icon"><i class="fa-solid {{ shortcut.icon }}"></i></div>
+                            <div>
+                                <div><strong>{{ shortcut.label }}</strong></div>
+                                <div class="dashboard-muted">{{ shortcut.description }}</div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+
+                {% if user.is_superuser %}
+                    <div class="dashboard-panel">
+                        <h4><i class="fa-solid fa-clock-rotate-left dashboard-section-icon"></i>Users last connection</h4>
+                        <div class="dashboard-users-scroll">
+                            <table class="table table-striped table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Last connection</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lcuser in last_connection_users %}
+                                        <tr>
+                                            <td>{{ lcuser.username }}</td>
+                                            <td>{{ lcuser.last_login }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="2" class="dashboard-muted">No login data available.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
         </div>
      {% else %}
 

@@ -7257,6 +7257,11 @@ autoupload/
 manage.py
 rooms_plans/export/
 static/
+!examc_app/static/
+examc_app/static/*
+!examc_app/static/css/
+examc_app/static/css/*
+!examc_app/static/css/home-dashboard.css
 examc/wsgi.py
 
 # Envs (ne JAMAIS versionner)
