@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -14,24 +15,93 @@ from django.contrib.sessions.models import Session
 from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, HttpResponse, FileResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.views.decorators.http import require_GET
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_GET, require_POST
 
 from examc_app.forms import LoginForm
+from examc_app.middleware.impersonation import (
+    IMPERSONATED_SESSION_KEY,
+    IMPERSONATOR_SESSION_KEY,
+    clear_impersonation_session,
+)
 from examc_app.models import Exam, ExamUser, PageMarkers, PagesGroupGradingSchemeCheckedBox, ReviewLock
+from examc_app.permissions import exam_group_names_allow
 from examc_app.signing import verify_and_get_path
 from examc_app.utils.results_statistics_functions import update_common_exams
 
+logger = logging.getLogger(__name__)
+
 DASHBOARD_EXAM_LIMIT = 8
 DASHBOARD_TODO_LIMIT = 8
-MANAGE_GROUP_IDS = {2, 4}
-REVIEW_GROUP_IDS = {2, 3, 4}
-RESULTS_GROUP_IDS = {2, 4, 5, 6}
 
 
-def _has_group(group_ids, allowed_group_ids):
-    return bool(set(group_ids) & allowed_group_ids)
+def _get_real_user(request):
+    return getattr(request, "impersonator", None) or request.user
+
+
+def _is_impersonation_admin(user):
+    return user.is_authenticated and user.is_superuser
+
+
+def _get_safe_next_url(request):
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    return reverse("home")
+
+
+def _normalize_group_names(group_names):
+    return {
+        group_name.strip().casefold()
+        for group_name in group_names
+        if group_name and group_name.strip()
+    }
+
+
+def _get_reviewer_group_names():
+    return _normalize_group_names(getattr(settings, "EXAM_REVIEWER_GROUP_NAMES", ()))
+
+
+def _get_exam_user_group_names(exam_users):
+    return [
+        exam_user.group.name
+        for exam_user in exam_users
+        if exam_user.group
+    ]
+
+
+def _exam_users_allow(exam_users, permission_codenames):
+    return exam_group_names_allow(
+        _get_exam_user_group_names(exam_users),
+        permission_codenames,
+    )
+
+
+def _exam_user_allows(exam_user, permission_codenames):
+    if not exam_user.group:
+        return False
+    return exam_group_names_allow([exam_user.group.name], permission_codenames)
+
+
+def _is_reviewer_exam_user(exam_user):
+    if not exam_user.group:
+        return False
+    return exam_user.group.name.strip().casefold() in _get_reviewer_group_names()
+
+
+def _exam_has_reviewer(exam):
+    reviewer_group_names = _get_reviewer_group_names()
+    exam_group_names = ExamUser.objects.filter(
+        exam=exam,
+        group__isnull=False,
+    ).values_list("group__name", flat=True)
+    return bool(_normalize_group_names(exam_group_names) & reviewer_group_names)
 
 
 def _get_user_exam_users(exam, user):
@@ -56,22 +126,21 @@ def _get_dashboard_type(user, exam_users):
     if user.is_superuser:
         return "Superuser dashboard"
 
-    group_ids = {exam_user.group_id for exam_user in exam_users if exam_user.group_id}
-    if _has_group(group_ids, MANAGE_GROUP_IDS):
+    group_names = _get_exam_user_group_names(exam_users)
+    if exam_group_names_allow(group_names, ["manage"]):
         return "Teacher dashboard"
-    if _has_group(group_ids, {3}):
+    if _normalize_group_names(group_names) & _get_reviewer_group_names():
         return "Reviewer dashboard"
-    if _has_group(group_ids, RESULTS_GROUP_IDS):
+    if exam_group_names_allow(group_names, ["see_results"]):
         return "Results dashboard"
     return "User dashboard"
 
 
 def _get_exam_capabilities(user, exam_users):
-    group_ids = {exam_user.group_id for exam_user in exam_users if exam_user.group_id}
     return {
-        "manage": user.is_superuser or _has_group(group_ids, MANAGE_GROUP_IDS),
-        "review": user.is_superuser or _has_group(group_ids, REVIEW_GROUP_IDS),
-        "results": user.is_superuser or _has_group(group_ids, RESULTS_GROUP_IDS),
+        "manage": user.is_superuser or _exam_users_allow(exam_users, ["manage"]),
+        "review": user.is_superuser or _exam_users_allow(exam_users, ["review"]),
+        "results": user.is_superuser or _exam_users_allow(exam_users, ["see_results"]),
     }
 
 
@@ -188,7 +257,7 @@ def _add_manage_todos(todos, exam):
                 "fa-cogs",
             )
         else:
-            if not ExamUser.objects.filter(exam=exam, group_id=3).exists():
+            if not _exam_has_reviewer(exam):
                 _add_todo(
                     todos,
                     f"{exam.code}: assign reviewers",
@@ -239,7 +308,7 @@ def _add_review_todos(todos, user, exam, exam_users):
     review_exam_users = [
         exam_user
         for exam_user in exam_users
-        if exam_user.group_id in REVIEW_GROUP_IDS
+        if _exam_user_allows(exam_user, ["review"])
     ]
     for exam_user in review_exam_users:
         if exam_user.review_blocked:
@@ -253,7 +322,7 @@ def _add_review_todos(todos, user, exam, exam_users):
             continue
 
         pages_groups = list(exam_user.pages_groups.all())
-        if not pages_groups and exam_user.group_id == 3:
+        if not pages_groups and _is_reviewer_exam_user(exam_user):
             _add_todo(
                 todos,
                 f"{exam.code}: no assigned page group",
@@ -339,8 +408,6 @@ def _get_dashboard_context(user):
         "dashboard_todos": todos,
         "dashboard_shortcuts": shortcuts,
     }
-
-
 ### admin views ###
 def getCommonExams(request, pk):
     update_common_exams(pk)
@@ -374,6 +441,65 @@ def select_exam(request, pk, nav_url=None):
         return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
     else:
         return HttpResponseRedirect(reverse(nav_url, kwargs={'pk': str(pk)}))
+
+
+@login_required
+def impersonate_user_select(request):
+    real_user = _get_real_user(request)
+    if not _is_impersonation_admin(real_user):
+        return HttpResponseForbidden("Only superusers can impersonate users.")
+
+    users = User.objects.filter(is_active=True).exclude(
+        pk=real_user.pk
+    ).exclude(
+        is_superuser=True
+    ).order_by("last_name", "first_name", "username")
+
+    return render(request, "impersonation/select_user.html", {
+        "impersonation_users": users,
+        "real_user": real_user,
+    })
+
+
+@login_required
+@require_POST
+def impersonate_start(request, user_pk):
+    real_user = _get_real_user(request)
+    if not _is_impersonation_admin(real_user):
+        return HttpResponseForbidden("Only superusers can impersonate users.")
+
+    target_user = get_object_or_404(User, pk=user_pk, is_active=True)
+    if target_user.is_superuser:
+        return HttpResponseForbidden("Superuser accounts cannot be impersonated.")
+    if target_user.pk == real_user.pk:
+        return HttpResponseForbidden("You cannot impersonate your own account.")
+
+    request.session[IMPERSONATOR_SESSION_KEY] = real_user.pk
+    request.session[IMPERSONATED_SESSION_KEY] = target_user.pk
+    logger.info(
+        "User %s started impersonating user %s",
+        real_user.username,
+        target_user.username,
+    )
+
+    return redirect("home")
+
+
+@login_required
+@require_POST
+def impersonate_stop(request):
+    impersonator = getattr(request, "impersonator", None)
+    impersonated = request.user if impersonator else None
+    clear_impersonation_session(request.session)
+
+    if impersonator and impersonated:
+        logger.info(
+            "User %s stopped impersonating user %s",
+            impersonator.username,
+            impersonated.username,
+        )
+
+    return redirect(_get_safe_next_url(request))
 
 
 ### global views ###

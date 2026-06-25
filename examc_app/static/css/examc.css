@@ -35,3 +35,27 @@
 
 #commentsModal .modal-header.handle { cursor: move; }
 
+.impersonation-banner {
+    align-items: center;
+    border-radius: 0;
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    margin: 0;
+    min-height: 48px;
+    padding-right: 24px;
+    text-align: right;
+}
+
+.impersonation-stop-form {
+    margin: 0;
+}
+
+@media (max-width: 767.98px) {
+    .impersonation-banner {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-right: 16px;
+        text-align: left;
+    }
+}

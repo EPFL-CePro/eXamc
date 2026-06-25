@@ -1,14 +1,13 @@
 # examc_app/decorators.py
 from functools import wraps
 from django.contrib.auth.decorators import login_required
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.models import Permission
 from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponseForbidden, Http404
 from django.template.response import TemplateResponse
 from django.urls import reverse
 
-from .models import Exam, ExamUser
+from .models import Exam
+from .permissions import exam_group_names_allow, get_exam_group_names
 
 # def is_admin(function):
 #     def wrapper(request, *args, **kwargs):
@@ -34,27 +33,14 @@ def exam_permission_required(
             if request.user.is_superuser:
                 return view_func(request, *args, **kwargs)
 
-            # fetch the user’s groups *for this exam*
-            group_ids = ExamUser.objects.filter(
-                user=request.user, exam=exam
-            ).values_list("group_id", flat=True)
+            # fetch the user's groups *for this exam*
+            group_names = get_exam_group_names(request.user, exam)
 
-            if exam.common_exams.all():
-                group_ids_common = ExamUser.objects.filter(
-                    user=request.user, exam__in=exam.common_exams.all(), group__id__in=[2, 5, 6]
-                )
-                group_ids = group_ids.union(group_ids_common)
-
-            if not group_ids:
+            if not group_names:
                 return TemplateResponse(request, "no_access.html", {"message": "No access to this exam."}, status=403)
 
             # check the permission on one of those groups
-            ct = ContentType.objects.get_for_model(Exam)
-            allowed = Permission.objects.filter(
-                content_type=ct,
-                codename__in=perm_codenames,
-                group__id__in=group_ids
-            ).exists()
+            allowed = exam_group_names_allow(group_names, perm_codenames)
 
             if not allowed:
                 return TemplateResponse(request, "no_access.html", {"message": f"No permission for {perm_codenames}."}, status=403)
