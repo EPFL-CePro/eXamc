@@ -53,6 +53,7 @@ def get_exam_group_names(user, exam):
 
 
 def exam_group_names_allow(group_names, permission_codenames):
+    group_names = _normalize_group_names(group_names)
     permission_group_names = _get_configured_permission_group_names()
     for codename in permission_codenames:
         if group_names & permission_group_names.get(codename, set()):

@@ -131,7 +131,7 @@ ROOT_URLCONF = 'examc.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'docs/build/html')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'examc_app/static/docs/html')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -238,8 +238,8 @@ AMC_PROJECTS_URL = '/amc_projects/'
 AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
 
 # Documentation folder
-DOCUMENTATION_ROOT = BASE_DIR / 'docs/build/html/'
-DOCUMENTATION_URL = '/docs/build/html/'
+DOCUMENTATION_ROOT = BASE_DIR / 'examc_app/static/docs/html/'
+DOCUMENTATION_URL = STATIC_URL + 'docs/html/'
 
 # NEW ENTRA ID
 ####################################################
@@ -268,6 +268,7 @@ EXAM_PERMISSION_GROUP_NAMES = {
     "see_results": env_list("EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES", "Teacher,Assistant,Coordinator,Results,Statistics"),
 }
 COMMON_EXAM_GROUP_NAMES = env_list("COMMON_EXAM_GROUP_NAMES", "Teacher,Results,Statistics")
+EXAM_REVIEWER_GROUP_NAMES = env_list("EXAM_REVIEWER_GROUP_NAMES", "Reviewer")
 
 # Only use this setting if you want to store the access token in the session
 # To use access token to call API

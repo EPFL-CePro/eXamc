@@ -16,6 +16,7 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, HttpResponse, FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
@@ -28,6 +29,7 @@ from examc_app.middleware.impersonation import (
 )
 from examc_app.models import ReviewLock
 from examc_app.signing import verify_and_get_path
+from examc_app.utils.dashboard import get_dashboard_context
 from examc_app.utils.results_statistics_functions import update_common_exams
 
 logger = logging.getLogger(__name__)
@@ -61,18 +63,21 @@ def getCommonExams(request, pk):
 def home(request):
     user_info = request.user.__dict__
     user_info.update(request.user.__dict__)
-    print("XXXXXXXXXXXXXX "+str(settings.BASE_DIR))
     last_connection_users = []
     if request.user.is_superuser:
         for u in User.objects.all().order_by('-last_login'):
             if u.last_login:
                 datetime_zone = u.last_login.astimezone(pytz.timezone(settings.TIME_ZONE))
                 last_connection_users.append({"username":u.get_username(),"last_login" : datetime_zone.strftime('%Y-%m-%d %H:%M:%S')})
-    return render(request, 'home.html', {
+    context = {
         'user': request.user,
         'user_info': user_info,
         'last_connection_users': last_connection_users,
-    })
+    }
+    if request.user.is_authenticated:
+        context.update(get_dashboard_context(request.user))
+
+    return render(request, 'home.html', context)
 
 
 def select_exam(request, pk, nav_url=None):
@@ -184,8 +189,7 @@ def log_in(request):
 #         return redirect(settings.LOGIN_URL)
 
 def documentation_view(request):
-    doc_index_content = open(str(settings.DOCUMENTATION_ROOT)+"/index.html")
-    return render(request, 'index.html')
+    return redirect(static("docs/html/index.html"))
 
 def user_allowed(exam, user_id):
     exam_users = User.objects.filter(Q(exam=exam) | Q(exam__in=exam.common_exams.all()))
