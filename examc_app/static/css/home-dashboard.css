@@ -1,3 +1,13 @@
+#amc-pills-tab {
+    display: none;
+}
+
+.dashboard-shell {
+    box-sizing: border-box;
+    min-height: 0;
+    padding-right: 6px;
+}
+
 .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -26,6 +36,13 @@
     align-items: start;
 }
 
+.dashboard-side-column {
+    display: grid;
+    grid-template-rows: minmax(0, 7fr) minmax(0, 3fr);
+    gap: 20px;
+    height: 72vh;
+}
+
 .dashboard-panel {
     border: 1px solid #dee2e6;
     border-radius: 6px;
@@ -36,7 +53,64 @@
 
 .dashboard-panel h4 {
     font-size: 1.05rem;
+    margin-bottom: 0;
+}
+
+.dashboard-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
     margin-bottom: 14px;
+}
+
+.dashboard-exams-table {
+    max-height: 52vh;
+    overflow: auto;
+}
+
+.dashboard-exams-table thead th {
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.dashboard-exam-tools {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.dashboard-filter-group .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dashboard-filter-count {
+    color: inherit;
+    font-size: 0.78rem;
+    opacity: 0.75;
+}
+
+.dashboard-search {
+    position: relative;
+    width: 220px;
+}
+
+.dashboard-search .form-control {
+    padding-left: 30px;
+}
+
+.dashboard-search-icon {
+    color: #6c757d;
+    font-size: 0.82rem;
+    left: 10px;
+    position: absolute;
+    top: 9px;
+    z-index: 2;
 }
 
 .dashboard-muted {
@@ -62,6 +136,20 @@
     gap: 12px;
     padding: 12px 0;
     border-bottom: 1px solid #e9ecef;
+}
+
+.dashboard-todos-panel,
+.dashboard-shortcuts-panel {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+    min-height: 0;
+}
+
+.dashboard-panel-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .dashboard-shortcut {
@@ -96,8 +184,12 @@
 }
 
 .dashboard-users-scroll {
-    max-height: 300px;
+    max-height: 185px;
     overflow-y: auto;
+}
+
+.dashboard-users-panel {
+    margin-bottom: 0;
 }
 
 @media (max-width: 1100px) {
@@ -107,5 +199,31 @@
 
     .dashboard-grid {
         grid-template-columns: 1fr;
+    }
+
+    .dashboard-side-column {
+        display: block;
+        height: auto;
+    }
+
+    .dashboard-todos-panel,
+    .dashboard-shortcuts-panel {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .dashboard-panel-heading,
+    .dashboard-exam-tools {
+        display: block;
+    }
+
+    .dashboard-filter-group,
+    .dashboard-search {
+        width: 100%;
+    }
+
+    .dashboard-search {
+        margin-top: 8px;
     }
 }

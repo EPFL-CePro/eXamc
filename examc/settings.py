@@ -131,7 +131,7 @@ ROOT_URLCONF = 'examc.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'docs/build/html')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'examc_app/static/docs/html')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -238,8 +238,8 @@ AMC_PROJECTS_URL = '/amc_projects/'
 AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
 
 # Documentation folder
-DOCUMENTATION_ROOT = BASE_DIR / 'docs/build/html/'
-DOCUMENTATION_URL = '/docs/build/html/'
+DOCUMENTATION_ROOT = BASE_DIR / 'examc_app/static/docs/html/'
+DOCUMENTATION_URL = STATIC_URL + 'docs/html/'
 
 # NEW ENTRA ID
 ####################################################
