@@ -16,7 +16,6 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, HttpResponse, FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
@@ -188,8 +187,21 @@ def log_in(request):
 #         logout(request)
 #         return redirect(settings.LOGIN_URL)
 
-def documentation_view(request):
-    return redirect(static("docs/html/index.html"))
+def documentation_view(request, path="index.html"):
+    docs_root = Path(settings.DOCUMENTATION_ROOT).resolve()
+    relative_path = (path or "index.html").lstrip("/")
+    full_path = (docs_root / relative_path).resolve()
+    try:
+        full_path.relative_to(docs_root)
+    except ValueError:
+        raise Http404("Invalid documentation path")
+
+    if full_path.is_dir():
+        full_path = full_path / "index.html"
+    if not full_path.is_file():
+        raise Http404("Documentation file not found")
+
+    return FileResponse(open(full_path, "rb"), as_attachment=False)
 
 def user_allowed(exam, user_id):
     exam_users = User.objects.filter(Q(exam=exam) | Q(exam__in=exam.common_exams.all()))

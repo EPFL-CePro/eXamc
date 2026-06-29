@@ -19,6 +19,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import path, include
 
 from examc_app import views
@@ -40,7 +41,9 @@ urlpatterns = ([
     path('examSelect', views.ExamSelectView.as_view(), name="examSelect"),
     path('select_exam/<int:pk>', views.select_exam, name="select_exam"),
     path('getCommonExams/<int:pk>', staff_member_required(views.getCommonExams), name="getCommonExams"),
-    path('documentation',views.documentation_view, name="documentation"),
+    path('documentation', lambda request: redirect('documentation'), name="documentation_legacy"),
+    path('documentation/', views.documentation_view, name="documentation"),
+    path('documentation/<path:path>', views.documentation_view, name="documentation_file"),
     path('oidc/', include('mozilla_django_oidc.urls')),
     #Signed files url
     path("protected/", views.serve_signed_file, name="serve_signed_file"),
