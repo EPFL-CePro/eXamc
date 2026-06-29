@@ -44,7 +44,7 @@
                 </span>
               {% else %}
                 <a class="btn btn-light"
-                  hx-post="{% url 'delete_grading_scheme_checkbox' exam_selected.pk form.hidden_fields.0.value %}"
+                  hx-post="{% url 'delete_grading_scheme_checkbox' exam_selected.pk form.instance.pk %}"
                   hx-target="#chk-panel-{{ grading_scheme.id }}"
                   hx-swap="innerHTML"><i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i></a>
               {% endif %}
