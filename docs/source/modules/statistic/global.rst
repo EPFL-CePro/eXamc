@@ -1,10 +1,21 @@
 Global statistics
 =======================
 
-The global statistics displayed the grade distribution plot.
+The **Global statistics** page displays grade distributions and summary values for the selected exam.
+
+For a single exam, the page shows the global distribution by scale, including average, median and standard deviation.
+
+For an overall/common exam, additional tabs can compare:
+
+- common results;
+- results by exam;
+- results by section;
+- common versus individual parts;
+- common versus individual correlation, when correlation data is available.
 
 .. image:: images/global_stats.png
    :width: 800
 
-The scale is used to calculate the average, the median and student deviation. Multiple scale can be displayed.
+Multiple scales can be displayed when several scales are configured.
 
+.. screenshot TODO: Refresh so overall/common exam tabs and current chart styling are visible.

@@ -1,27 +1,49 @@
 AMC application
 ===============
 
-First, you have to check if in the Project tab everything's ok. Check if the to infos bar are green.
+Project
+-------
+
+Open the **Project** tab first. This tab is used to prepare the AMC project before scans are imported.
+
+You can:
+
+- edit AMC source files;
+- set the number of copies;
+- run **Update documents**;
+- open the file to print and the catalog;
+- run **Layout detection**.
+
+The project is ready when the update documents message and the layout detection message are successful.
+
+.. screenshot TODO: Refresh so the current Project tab shows source editing, number of copies, update documents, PDFs and layout detection statuses.
 
 .. image:: images/project.png
    :width: 600
 
-If it doesn't, click Update Documents and Layout Detection.
-
 Import the scans
 ----------------
+
+Open the **Data capture** tab after the exam. It can import scans from a local ``.zip`` file or from eXamc Review.
+
+When importing from Review, you can import all marked scans or select specific pages. This is useful when open questions were corrected in Review and the marked pages must be sent back to AMC for marking.
+
+.. screenshot TODO: Refresh so the Data capture tab includes import-from-Review, diagnosis, missing/unrecognized/overwritten warnings.
 
 .. image:: images/AMCData_capture.png
    :width: 600
 
 
-#. Go to the "Data capture" tab
-#. Click on the "Automatic" button
-#. Upload or choose to import from app your scans
+#. Go to the **Data capture** tab.
+#. Click **Automatic**.
+#. Choose a local ``.zip`` file or import scans from Review.
+
+.. screenshot TODO: Refresh so the Automatic Data Capture modal shows local zip import and Review import options.
 
 .. image:: images/automatic_data_capture.png
    :width: 400
 
+The diagnosis table lists captured copy/page data, MSE, sensitivity and manual checks. Warning banners report missing pages, unrecognized scans and overwritten pages.
 
 Check the boxes with the "sensitivity" setting
 ----------------------------------------------------
@@ -32,6 +54,8 @@ This step allows you to check the boxes (a trace in a box, a cross incorrectly e
 #. Click on the "Manual" button.
 #. Click on the "Sensibility" column twice to sort the copies to check.
 #. Check all those with a value greater than 0. The software counts as checked all those with a red square. To deselect a box, click on it.
+
+.. screenshot TODO: Refresh if the Manual Data Capture controls or filters changed.
 
 .. image:: images/AMC_correct_manual.png
    :width: 600
@@ -69,9 +93,13 @@ From "Data capture" tab
 Calculate the results
 ----------------------
 
+Open the **Marking** tab to compute marks and associate answer sheets with students.
+
 #. Go back to the "Marking" tab.
 #. Check the "Update marking scale" box.
 #. Click on the "Mark" button.
+
+.. screenshot TODO: Refresh so Marking shows update marking scale, marking details and student association controls.
 
 .. image:: images/AMCMarking.png
    :width: 600
@@ -79,19 +107,25 @@ Calculate the results
 Associate the students list
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. If you modified the name of student list CSV file, you can select the other CSV list by clicking on "set file" button
-#. Select the primary key you want to sort by
-#. Click on the "Automatic" button.
+#. If the student CSV file must be replaced, click **Set file**.
+#. Select the primary key from the student list.
+#. Click **Automatic** to associate papers and students.
+#. Use **Manual** to fix missing or incorrect associations.
 
 Export the results
 -------------------
 
-#. Click on the "report" tab
-#. Click on generate results
-#. To export the annotated pdfs:
+Open the **Results** tab after marking and student association are complete.
 
-* Select "One file per student".
-* Click on "Annotate" button.
+#. Check the warning checklist before generating results.
+#. Click **Generate Results** to populate the Results and Statistics modules.
+#. Choose whether annotated papers are generated as one file per student or one file for all students.
+#. When grading schemes are used, enable **Add grading scheme report with annotations** if the grading scheme report must be appended.
+#. Click **Annotate**.
+
+When annotated papers are available, they can be downloaded or sent by email.
+
+.. screenshot TODO: Refresh so Results shows Generate Results, annotated papers, email sending and grading scheme report option.
 
 
 .. image:: images/AMCResults.png

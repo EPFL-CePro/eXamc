@@ -1,13 +1,14 @@
 Export marked files
 ===================
-The Export page allows you to export marked scans with or without comments. The scans are the corrected ones
-that you have made in the Reviews section.
+The **Export marked scans** page exports the corrected scans produced in Review.
 
-#. Choose between PDFs or JPGs format
-#. Choose if the comments must be added
-#. Click on export button
+#. Choose the export file type.
+#. Choose whether comments must be included.
+#. Click **Export**.
 
+The export is useful before replacing scans or deleting old Review data.
 
+.. screenshot TODO: Refresh if export type or comments options changed.
 
 .. image:: images/export.png
    :width: 600

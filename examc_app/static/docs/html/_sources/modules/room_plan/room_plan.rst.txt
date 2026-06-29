@@ -1,49 +1,55 @@
 Seating map
 =============
 
-The seating map is a visual representation of the room layout. It shows the position of each student in the room.
+The **Seating map** tool generates room plans for exams. It can preview or download a seating map based on the selected rooms and numbering options.
 
-This application (This server is accessible only by VPN) is used to create your seating plan based on the room and the number of students. There are several options that can be applied.
+This web app is under development. Contact lucile.pinard@epfl.ch in case of issue.
 
-This web app is under development, please contact lucile.pinard@epfl.ch for any question
+.. screenshot TODO: Add or refresh a Default seating map screenshot showing room selection, options, Preview Seat Map and Download Seat Map.
 
 Options:
 ----------
 Numbering option:
 ^^^^^^^^^^^^^^^^^
-There are two options that can be used, continuous or special. Continuous is the normal way to fill the room. The special option is used to create a room with special numbers (like A12, 24, E, ...). It will fill a room with the numbers that are in the CSV file. The CSV file must be created with one number per line.
+The default page supports continuous numbering and special numbering. Continuous numbering fills the room normally. Special numbering uses a CSV file containing one number per line, for example ``A12``, ``24`` or ``E``.
 
 Skipping option:
 ^^^^^^^^^^^^^^^^
-The skip option is used to skip some numbers. A CSV file is uploaded with one number per line, and the program will skip these numbers without leaving space in the room plan. With the same file, it is possible to create a room plan with the special numbers.
+The skip option skips numbers listed in a CSV file. The program skips those numbers without leaving empty seats in the room plan.
 
 To use the "skipping option", please check the "fill all seat" button and put the number one in the "first seat number".
 
 Fill all seats:
 ^^^^^^^^^^^^^^^
-The Fill All Seats option will fill all the seats in the selected rooms. It starts from the first written seat number.
+The **Fill all seats** option fills every seat in the selected rooms. It starts from the first seat number.
 
 Special file:
 ^^^^^^^^^^^^^
-The special file entry is activated when the special or skip options are selected. A CSV file containing the extra numbers.
+The special file field is displayed when special numbering or skipping is selected. Upload a CSV file with one value per line.
 
 To use "special file" option, please check the "fill all seat" button and put the number one in the "first seat number".
 
 Shape to draw:
 ^^^^^^^^^^^^^^^
-There are two types of shape that can be used to number the seating plan, circle and square. These are two different shapes of numbering the plan.
+Two shapes can be used to draw seat labels: circle and square.
 
 Procedure:
 ------------
-* Select rooms
-* Select the required options
-* Upload CSV file if special file entry appears
-* Check the fill all seats
-* Enter first seat number
-* Preview the file
-* Download file
+* Select rooms.
+* Select the required options.
+* Upload a CSV file if the special file field appears.
+* Enable **Fill all seats** when needed.
+* Enter the first seat number.
+* Click **Preview Seat Map** to check the result.
+* Click **Download Seat Map** to download the file.
 
 .. note::
 
    Info bubbles are available directly on the page
 
+For the interactive special plan, use:
+
+.. toctree::
+   :maxdepth: 1
+
+   room_plan_special
