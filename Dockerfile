@@ -61,6 +61,9 @@ COPY --from=builder /install /usr/local
 # Copie de ton code
 COPY . /app
 
+# Build bundled Sphinx documentation from tracked sources before collectstatic.
+RUN sphinx-build -M html docs/source examc_app/static/docs
+
 #Patch du runsslserver .
 # Active-le en build si tu le veux :  --build-arg APPLY_SSL_PATCH=1
 ARG APPLY_SSL_PATCH=0
