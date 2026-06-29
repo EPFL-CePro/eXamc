@@ -488,7 +488,8 @@ class Course(models.Model):
 
 class ReviewLock(models.Model):
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='reviewLocks')
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='reviewLocks')
+    copy_no = models.CharField(max_length=10, default='0')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='reviewLocks', null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewLocks')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -496,8 +497,8 @@ class ReviewLock(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['pages_group', 'student'],
-                name='uniq_review_lock_pages_group_student',
+                fields=['pages_group', 'copy_no'],
+                name='uniq_review_lock_pages_group_copy',
             ),
         ]
         indexes = [

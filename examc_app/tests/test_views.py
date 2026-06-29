@@ -2,10 +2,10 @@ import logging
 
 from django.test import TestCase, Client
 from django.urls import reverse
-from django_tequila.django_backend import User
+from django.contrib.auth.models import User
 
 from examc_app.forms import UploadScansForm, ManagePagesGroupsForm, ManageReviewersForm, ExportMarkedFilesForm
-from examc_app.models import Exam, PagesGroup
+from examc_app.models import Exam, PagesGroup, ReviewLock
 
 
 class ViewsTestCase(TestCase):
@@ -98,6 +98,35 @@ class TestReviewGroupView(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse('reviewGroup', kwargs={'pk': self.pages_group.pk, 'currpage': 1}))
         self.assertEqual(response.status_code, 200)
+
+
+class TestReviewLockView(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_superuser(
+            username='testadmin',
+            email='testadmin@test.ch',
+            password='testpassword',
+        )
+        self.exam = Exam.objects.create(name='Test Exam')
+        self.pages_group = PagesGroup.objects.create(group_name='Test Group', exam=self.exam)
+
+    def test_lock_can_be_created_without_student_record(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse('review_student_pages_group_is_locked', kwargs={'exam_pk': self.exam.pk}),
+            {
+                'pages_group_id': self.pages_group.pk,
+                'copy_no': '0001',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b'')
+
+        lock = ReviewLock.objects.get(pages_group=self.pages_group)
+        self.assertEqual(lock.copy_no, '1')
+        self.assertIsNone(lock.student)
 
 
 class TestReviewSettingsView(TestCase):

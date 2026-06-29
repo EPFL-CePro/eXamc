@@ -888,7 +888,13 @@ def review_student_pages_group_is_locked(request,exam_pk):
         return HttpResponse(status=400)
 
     pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
-    student = get_object_or_404(Student, copie_no=copy_no_int, exam=pages_group.exam)
+    lock_copy_no = str(copy_no_int)
+    student_copy_candidates = list(dict.fromkeys((
+        lock_copy_no,
+        str(copy_no).strip(),
+        str(copy_no_int).zfill(4),
+    )))
+    student = Student.objects.filter(copie_no__in=student_copy_candidates, exam=pages_group.exam).first()
 
     cleanup_expired_review_locks()
 
@@ -896,7 +902,7 @@ def review_student_pages_group_is_locked(request,exam_pk):
         lock = (
             ReviewLock.objects
             .select_related('user')
-            .filter(pages_group=pages_group, student=student)
+            .filter(pages_group=pages_group, copy_no=lock_copy_no)
             .first()
         )
 
@@ -910,13 +916,14 @@ def review_student_pages_group_is_locked(request,exam_pk):
                 ReviewLock.objects.create(
                     user=request.user,
                     student=student,
+                    copy_no=lock_copy_no,
                     pages_group=pages_group,
                 )
             except IntegrityError:
                 existing_lock = (
                     ReviewLock.objects
                     .select_related('user')
-                    .get(pages_group=pages_group, student=student)
+                    .get(pages_group=pages_group, copy_no=lock_copy_no)
                 )
                 if existing_lock.user_id != request.user.id:
                     return HttpResponse(existing_lock.user.username)
@@ -925,7 +932,7 @@ def review_student_pages_group_is_locked(request,exam_pk):
     # Keep only the current lock for this user.
     ReviewLock.objects.filter(user=request.user).exclude(
         pages_group=pages_group,
-        student=student,
+        copy_no=lock_copy_no,
     ).delete()
 
     return HttpResponse('')
