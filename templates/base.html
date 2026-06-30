@@ -509,7 +509,7 @@ function processResult(resultElement, result) {
         }, 1000);
     }else if(result.startsWith('marked_') && result.endsWith(".zip")){        
         var link = document.createElement('a');
-        link.href = "/download_marked_files/"+result;
+        link.href = "/download_marked_files/" + encodeURIComponent(result) + "/{{ exam_selected.pk }}";
         link.download = 'Click to download marked files';
         link.innerText = 'Click to download marked files';
         progressBarElement = document.getElementById('progress-bar-message');

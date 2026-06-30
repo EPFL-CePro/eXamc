@@ -466,8 +466,6 @@ def generate_marked_files(request, exam_pk, task_id=None):
     """
           Export all the marked files.
 
-          This function is used to export all the marked files and will delete old folders and zips folder.
-
           Args:
             request: TThe HTTP request object.
             pk: The primary key of the exam.
@@ -480,18 +478,6 @@ def generate_marked_files(request, exam_pk, task_id=None):
     if user_allowed(exam, request.user.id):
 
         if request.method == 'POST':
-
-            # delete old tmp folders and zips
-            for filename in os.listdir(str(settings.EXPORT_TMP_ROOT)):
-                file_path = os.path.join(str(settings.EXPORT_TMP_ROOT), filename)
-                try:
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path)
-                    elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path)
-                except Exception as e:
-                    print('Failed to delete %s. Reason: %s' % (file_path, e))
-
             form = ExportMarkedFilesForm(request.POST, exam=exam)
 
             if form.is_valid():

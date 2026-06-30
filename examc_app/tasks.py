@@ -6,6 +6,7 @@ import pathlib
 import re
 import shutil
 import time
+import uuid
 import zipfile
 from contextlib import closing
 from datetime import datetime, timedelta
@@ -336,7 +337,8 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
         exam = Exam.objects.get(pk=exam_pk)
         scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
         marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
-        export_subdir = 'marked_'+str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
+        task_token = str(self.request.id or uuid.uuid4()).replace("-", "")
+        export_subdir = 'marked_'+str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f') + "_" + task_token[:12]
         export_subdir = export_subdir.replace(" ","_")
         export_tmp_dir = (str(settings.EXPORT_TMP_ROOT) + "/" + export_subdir)
 
