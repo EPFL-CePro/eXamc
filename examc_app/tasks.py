@@ -371,9 +371,10 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
 
                 # check if a marked file exist, if yes copy it, or copy original scans
 
-                marked_file_path = pathlib.Path(marked_dir + "/" + dir + "/marked_" + filename.replace('.jpeg', '.png'))
+                scan_filename = pathlib.Path(filename)
+                marked_file_path = pathlib.Path(marked_dir) / dir / f"marked_{scan_filename.stem}.png"
                 if os.path.exists(marked_file_path):
-                    shutil.copyfile(marked_file_path, copy_export_subdir + "/" + filename.replace('.jpeg', '.png'))
+                    shutil.copyfile(marked_file_path, copy_export_subdir + "/" + scan_filename.with_suffix(".png").name)
                 else:
                     shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
