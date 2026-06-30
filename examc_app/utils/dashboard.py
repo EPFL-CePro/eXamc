@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.conf import settings
 from django.urls import reverse
 
@@ -98,29 +100,84 @@ def _get_exam_capabilities(user, exam_users):
 
 
 def _get_review_progress(exam):
-    markers = PageMarkers.objects.filter(exam=exam).exclude(copie_no="CORR-BOX")
-    total = markers.count()
-    if not total:
+    total_copies = _get_exam_review_copy_count(exam)
+    if not total_copies:
         return None
 
-    graded = markers.filter(correctorBoxMarked=True).count()
+    pages_groups_progress = [
+        progress
+        for progress in (
+            _get_pages_group_progress(pages_group, total_copies=total_copies)
+            for pages_group in exam.pagesGroup.all()
+        )
+        if progress["percent"] is not None
+    ]
+    if not pages_groups_progress:
+        return None
+
+    average_graded = sum(progress["graded"] for progress in pages_groups_progress) / len(pages_groups_progress)
     return {
-        "graded": graded,
-        "total": total,
-        "percent": round(100 / total * graded),
+        "graded": _format_progress_count(average_graded),
+        "total": total_copies,
+        "percent": round(100 / total_copies * average_graded),
     }
 
 
-def _get_pages_group_progress(pages_group, user_id=None):
+def _format_progress_count(count):
+    rounded_count = round(count, 1)
+    if rounded_count == int(rounded_count):
+        return int(rounded_count)
+    return rounded_count
+
+
+def _get_exam_review_scans_path(exam):
+    if not exam.year_id or not exam.semester_id or not exam.date:
+        return None
+
+    scans_path = (
+        Path(settings.SCANS_ROOT)
+        / str(exam.year.code)
+        / str(exam.semester.code)
+        / f"{exam.code}_{exam.date:%Y%m%d}"
+    )
+    if not scans_path.is_dir():
+        return None
+
+    return scans_path
+
+
+def _get_exam_review_copy_dirs(exam):
+    scans_path = _get_exam_review_scans_path(exam)
+    if not scans_path:
+        return []
+
+    return [
+        scan_path
+        for scan_path in scans_path.iterdir()
+        if scan_path.is_dir() and scan_path.name != "0000"
+    ]
+
+
+def _get_exam_review_copy_count(exam):
+    return len(_get_exam_review_copy_dirs(exam))
+
+
+def _exam_has_review_scan_files(exam):
+    for copy_path in _get_exam_review_copy_dirs(exam):
+        if any(scan_path.is_file() for scan_path in copy_path.iterdir()):
+            return True
+    return False
+
+
+def _get_pages_group_progress(pages_group, user_id=None, total_copies=None):
+    total = total_copies if total_copies is not None else _get_exam_review_copy_count(pages_group.exam)
     markers = PageMarkers.objects.filter(pages_group=pages_group).exclude(copie_no="CORR-BOX")
     if pages_group.use_grading_scheme:
-        total = markers.values("copie_no").distinct().count()
         graded = PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=pages_group)
         if user_id:
             graded = graded.filter(user_id=user_id)
         graded_count = graded.values("copy_nr").distinct().count()
     else:
-        total = markers.count()
         graded = markers.filter(correctorBoxMarked=True)
         if user_id:
             graded = graded.filter(pageMarkers_users__user_id=user_id).distinct()
@@ -232,7 +289,7 @@ def _add_manage_todos(todos, exam):
                     reverse("reviewSettingsView", kwargs={"exam_pk": exam.pk, "curr_tab": "reviewers"}),
                     "fa-user-plus",
                 )
-            if not PageMarkers.objects.filter(exam=exam).exclude(copie_no="CORR-BOX").exists():
+            if not _exam_has_review_scan_files(exam):
                 _add_todo(
                     todos,
                     f"{exam.code}: upload scans",
