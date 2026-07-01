@@ -42,6 +42,8 @@ urlpatterns = [
 
     # REVIEW SETTINGS
     path('upload_scans/<int:exam_pk>', views.upload_scans, name="upload_scans"),
+    path('unrecognized_review_scans_table/<int:exam_pk>', views.unrecognized_review_scans_table, name="unrecognized_review_scans_table"),
+    path('assign_unrecognized_review_scan/<int:exam_pk>', views.assign_unrecognized_review_scan, name="assign_unrecognized_review_scan"),
     path('reviewSettings/<int:exam_pk>/<str:curr_tab>', views.ReviewSettingsView.as_view(), name="reviewSettingsView"),
     path('add_new_pages_group/<int:exam_pk>', views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help/<int:exam_pk>', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),

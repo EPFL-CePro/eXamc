@@ -367,7 +367,7 @@ def get_mean(amc_data_path):
     query_str = ("SELECT AVG(mark) as mean FROM scoring_mark")
 
     response = db.execute_query(query_str)
-    row = response.fetchone()
+    row = response.fetchone() if response else None
     mean = 0
     if row and row['mean'] is not None:
         mean = round(row['mean'], 4)
@@ -419,7 +419,7 @@ def get_count_missing_associations(amc_data_path):
                     " WHERE manual IS NOT NULL OR auto IS NOT NULL)")
 
     response = db.execute_query(query_str)
-    row = response.fetchone()
+    row = response.fetchone() if response else None
     count = 0
     if row and row['count'] is not None:
         count = row['count']

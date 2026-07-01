@@ -358,6 +358,52 @@ class PageMarkers(models.Model):
 
         return users_list
 
+
+class UnrecognizedReviewScan(models.Model):
+    ASSIGNMENT_MODE_NORMAL = "normal"
+    ASSIGNMENT_MODE_EXTRA = "extra"
+    ASSIGNMENT_MODE_CHOICES = (
+        (ASSIGNMENT_MODE_NORMAL, "Normal page"),
+        (ASSIGNMENT_MODE_EXTRA, "Extra page"),
+    )
+
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="unrecognized_review_scans")
+    relative_path = models.CharField(max_length=500)
+    filename = models.CharField(max_length=255)
+    original_filename = models.CharField(max_length=255, blank=True)
+    upload_order = models.PositiveIntegerField()
+
+    previous_copy_no = models.CharField(max_length=10, blank=True)
+    previous_page_no = models.CharField(max_length=10, blank=True)
+    previous_relative_path = models.CharField(max_length=500, blank=True)
+
+    next_copy_no = models.CharField(max_length=10, blank=True)
+    next_page_no = models.CharField(max_length=10, blank=True)
+    next_relative_path = models.CharField(max_length=500, blank=True)
+
+    assigned_copy_no = models.CharField(max_length=10, blank=True)
+    assigned_page_no = models.CharField(max_length=10, blank=True)
+    assigned_mode = models.CharField(max_length=10, choices=ASSIGNMENT_MODE_CHOICES, blank=True)
+    assigned_relative_path = models.CharField(max_length=500, blank=True)
+
+    resolved = models.BooleanField(default=False)
+    resolved_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resolved_unrecognized_review_scans",
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["exam_id", "upload_order", "id"]
+
+    def __str__(self):
+        return f"{self.exam.code} - {self.filename}"
+
+
 class PageMarkersUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_pageMarkers')
     pageMarkers = models.ForeignKey(PageMarkers, on_delete=models.CASCADE,related_name='pageMarkers_users')

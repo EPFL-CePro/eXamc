@@ -10,7 +10,6 @@ import time
 from decimal import Decimal
 from fileinput import filename
 from functools import lru_cache
-from os.path import isdir
 
 import cv2
 from PIL import Image, ImageStat, ImageEnhance
@@ -24,33 +23,248 @@ from examc_app.models import *
 import pyzbar.pyzbar as pyzbar
 from datetime import datetime
 
+from django.db import transaction
+from django.utils import timezone
+
 from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries import get_questions, get_question_start_page_by_student, get_question_number
 from examc_app.utils.amc_functions import get_amc_project_path
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+UNRECOGNIZED_REVIEW_SCAN_DIR = "unrecognized"
+
+
+def get_exam_scans_subdir(exam):
+    return f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
+
+
+def get_exam_scans_dir(exam):
+    return pathlib.Path(settings.SCANS_ROOT) / get_exam_scans_subdir(exam)
+
+
+def get_scan_relative_path(path):
+    return pathlib.Path(path).relative_to(pathlib.Path(settings.SCANS_ROOT)).as_posix()
+
+
+def is_review_copy_dir_name(name):
+    return name.isdigit() and name != "0000"
+
+
+def iter_review_copy_dirs(scans_dir):
+    scans_dir = pathlib.Path(scans_dir)
+    if not scans_dir.exists():
+        return
+
+    for entry in sorted(os.scandir(scans_dir), key=lambda e: e.name):
+        if entry.is_dir() and is_review_copy_dir_name(entry.name):
+            yield entry
+
+
+def iter_review_scan_files(scans_dir):
+    for dir_entry in iter_review_copy_dirs(scans_dir):
+        for file_entry in sorted(os.scandir(dir_entry.path), key=lambda e: e.name):
+            if file_entry.is_file() and pathlib.Path(file_entry.name).suffix.lower() in IMAGE_EXTENSIONS:
+                yield pathlib.Path(file_entry.path)
+
+
+def get_expected_review_qr_data(decoded_objects):
+    for obj in decoded_objects:
+        if str(obj.type) != "QRCODE":
+            continue
+        if "CePROExamsQRC" not in str(obj.data) and "eXamcQRC" not in str(obj.data):
+            continue
+        try:
+            data = obj.data.decode("utf-8").split(",")
+        except UnicodeDecodeError:
+            continue
+        if len(data) >= 3 and data[1] and data[2]:
+            return data[1], data[2]
+    return None
+
+
+def get_unrecognized_scan_path(unrecognized_dir, upload_order, suffix):
+    suffix = suffix or ".jpg"
+    candidate = pathlib.Path(unrecognized_dir) / f"unrecognized_{upload_order:06d}{suffix}"
+    index = 1
+    while candidate.exists():
+        candidate = pathlib.Path(unrecognized_dir) / f"unrecognized_{upload_order:06d}.{index}{suffix}"
+        index += 1
+    return candidate
+
+
+def normalize_review_copy_no(copy_no):
+    try:
+        copy_no_int = int(str(copy_no).strip())
+    except (TypeError, ValueError):
+        raise ValueError("Copy number must be a positive integer.")
+    if copy_no_int <= 0:
+        raise ValueError("Copy number must be a positive integer.")
+    return str(copy_no_int).zfill(4)
+
+
+def normalize_review_page_no(page_no, width=2):
+    try:
+        page_no_int = int(str(page_no).strip())
+    except (TypeError, ValueError):
+        raise ValueError("Page number must be a positive integer.")
+    if page_no_int <= 0:
+        raise ValueError("Page number must be a positive integer.")
+    return str(page_no_int).zfill(width), page_no_int
+
+
+def parse_review_scan_filename(filename):
+    path = pathlib.Path(filename)
+    if path.suffix.lower() not in IMAGE_EXTENSIONS:
+        return None
+    try:
+        _prefix, copy_no, page_token = path.stem.rsplit("_", 2)
+    except ValueError:
+        return None
+    if not copy_no.isdigit():
+        return None
+
+    base_page_no, extra_suffix = page_token, None
+    if "." in page_token:
+        base_page_no, extra_suffix = page_token.split(".", 1)
+    if not base_page_no.isdigit():
+        return None
+
+    extra_suffix_int = None
+    if extra_suffix:
+        if not extra_suffix.isdigit():
+            return None
+        extra_suffix_int = int(extra_suffix)
+
+    return {
+        "copy_no": copy_no,
+        "base_page_no": base_page_no,
+        "base_page_int": int(base_page_no),
+        "extra_suffix": extra_suffix_int,
+        "path": path,
+    }
+
+
+def get_copy_scan_page_rows(copy_dir, copy_no):
+    rows = []
+    if not copy_dir.exists():
+        return rows
+    for file_entry in sorted(os.scandir(copy_dir), key=lambda e: e.name):
+        if not file_entry.is_file():
+            continue
+        parsed = parse_review_scan_filename(file_entry.name)
+        if parsed and parsed["copy_no"] == copy_no:
+            parsed["path"] = pathlib.Path(file_entry.path)
+            rows.append(parsed)
+    return rows
+
+
+def get_page_number_width(page_rows):
+    page_widths = [len(row["base_page_no"]) for row in page_rows if row["base_page_no"]]
+    return max([2] + page_widths)
+
+
+def assign_unrecognized_review_scan_file(unrecognized_scan, copy_no, page_no, assignment_mode, resolved_by=None):
+    if assignment_mode not in {
+        UnrecognizedReviewScan.ASSIGNMENT_MODE_NORMAL,
+        UnrecognizedReviewScan.ASSIGNMENT_MODE_EXTRA,
+    }:
+        raise ValueError("Assignment mode must be normal or extra.")
+
+    target_copy_no = normalize_review_copy_no(copy_no)
+    source_root = pathlib.Path(settings.SCANS_ROOT).resolve()
+    source_path = (source_root / unrecognized_scan.relative_path).resolve()
+    try:
+        source_path.relative_to(source_root)
+    except ValueError:
+        raise ValueError("Unrecognized scan path is outside the scans directory.")
+    if not source_path.exists():
+        raise ValueError("Unrecognized scan file does not exist.")
+
+    exam_scans_dir = get_exam_scans_dir(unrecognized_scan.exam)
+    copy_dir = exam_scans_dir / target_copy_no
+    if not copy_dir.exists():
+        raise ValueError(f"Copy {target_copy_no} does not exist.")
+
+    page_rows = get_copy_scan_page_rows(copy_dir, target_copy_no)
+    page_width = get_page_number_width(page_rows)
+    target_page_no, target_page_int = normalize_review_page_no(page_no, page_width)
+    source_suffix = source_path.suffix or ".jpg"
+
+    existing_base_rows = [
+        row for row in page_rows
+        if row["base_page_int"] == target_page_int and row["extra_suffix"] is None
+    ]
+
+    if assignment_mode == UnrecognizedReviewScan.ASSIGNMENT_MODE_NORMAL:
+        if existing_base_rows:
+            raise ValueError(f"Copy {target_copy_no} page {target_page_no} already exists.")
+        destination = copy_dir / f"copy_{target_copy_no}_{target_page_no}{source_suffix}"
+    else:
+        if not existing_base_rows:
+            raise ValueError(f"Copy {target_copy_no} page {target_page_no} does not exist for extra-page assignment.")
+        target_page_no = existing_base_rows[0]["base_page_no"]
+        used_suffixes = {
+            row["extra_suffix"]
+            for row in page_rows
+            if row["base_page_int"] == target_page_int and row["extra_suffix"] is not None
+        }
+        extra_index = 1
+        while extra_index in used_suffixes:
+            extra_index += 1
+        destination = copy_dir / f"copy_{target_copy_no}_{target_page_no}.{extra_index}{source_suffix}"
+
+    if destination.exists():
+        raise ValueError(f"Destination file already exists: {destination.name}")
+
+    with transaction.atomic():
+        fresh_scan = UnrecognizedReviewScan.objects.select_for_update().get(pk=unrecognized_scan.pk)
+        if fresh_scan.resolved:
+            raise ValueError("This unrecognized scan has already been assigned.")
+        source_parent = source_path.parent
+        os.rename(source_path, destination)
+        fresh_scan.assigned_copy_no = target_copy_no
+        fresh_scan.assigned_page_no = target_page_no
+        fresh_scan.assigned_mode = assignment_mode
+        fresh_scan.assigned_relative_path = get_scan_relative_path(destination)
+        fresh_scan.resolved = True
+        fresh_scan.resolved_by = resolved_by
+        fresh_scan.resolved_at = timezone.now()
+        fresh_scan.save(update_fields=[
+            "assigned_copy_no",
+            "assigned_page_no",
+            "assigned_mode",
+            "assigned_relative_path",
+            "resolved",
+            "resolved_by",
+            "resolved_at",
+        ])
+    if source_parent.name == UNRECOGNIZED_REVIEW_SCAN_DIR:
+        try:
+            source_parent.rmdir()
+        except OSError:
+            pass
+    return fresh_scan
 
 
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
 def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,process_number):
 
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    scans_dir = get_exam_scans_dir(exam)
+    os.makedirs(scans_dir, exist_ok=True)
+    unrecognized_dir = scans_dir / UNRECOGNIZED_REVIEW_SCAN_DIR
 
     print("* Start splitting by copy")
 
-    copy_nr = 0
-    page_nr = 0
     pages_by_copy = []
-    extra_i = 0
     pages_count = 0
     last_copy_nr = 0
-    last_page_nr = 0
-    copy_count = 0
+    last_recognized_scan = None
+    pending_unrecognized_ids = []
     scans_files = sorted(os.listdir(tmp_extract_path))
 
 
-    for filename in scans_files:
+    for upload_order, filename in enumerate(scans_files, start=1):
         print(' -- '+filename)
 
         process_number += 1
@@ -63,49 +277,66 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
             # Read image
             im = cv2.imread(f)
             decodedObjects = pyzbar.decode(im)
-            if len(decodedObjects) > 0:
-                for obj in decodedObjects:
-                    if str(obj.type) == 'QRCODE' and ('CePROExamsQRC' in str(obj.data) or 'eXamcQRC' in str(obj.data)):
-                        data = obj.data.decode("utf-8").split(',')
-                        copy_nr = data[1]
-                        page_nr = data[2]
-                        extra_i = 0
-            else:
-                extra_i += 1
+            qr_data = get_expected_review_qr_data(decodedObjects)
 
+            if not qr_data:
+                os.makedirs(unrecognized_dir, exist_ok=True)
+                destination = get_unrecognized_scan_path(unrecognized_dir, upload_order, pathlib.Path(filename).suffix)
+                os.rename(f, destination)
 
+                previous = last_recognized_scan or {}
+                unrecognized_scan = UnrecognizedReviewScan.objects.create(
+                    exam=exam,
+                    relative_path=get_scan_relative_path(destination),
+                    filename=destination.name,
+                    original_filename=filename,
+                    upload_order=upload_order,
+                    previous_copy_no=previous.get("copy_no", ""),
+                    previous_page_no=previous.get("page_no", ""),
+                    previous_relative_path=previous.get("relative_path", ""),
+                )
+                pending_unrecognized_ids.append(unrecognized_scan.pk)
+                continue
+
+            copy_nr, page_nr = qr_data
             copy_nr_dir = str(copy_nr).zfill(4)
-            subdir = os.path.join(scans_dir, copy_nr_dir)
-            if not os.path.exists(subdir):
-                os.mkdir(subdir)
+            page_nr_normalized = str(page_nr).zfill(2)
 
-            page_nr_w_extra = str(page_nr)
-            page_nr_w_extra = page_nr_w_extra.zfill(2)
-            if extra_i > 0:
-                page_nr_w_extra += "." + str(extra_i)
-
-            os.rename(f, subdir + "/copy_" + str(copy_nr).zfill(4) + "_" + str(page_nr_w_extra) + pathlib.Path(
-                filename).suffix)
-
-            pages_count += 1
             if last_copy_nr != 0 and last_copy_nr != copy_nr:
                 pages_by_copy.append([last_copy_nr, pages_count])
                 pages_count = 0
-                copy_count += 1
 
-            if last_page_nr != page_nr:
-                extra_i = 0
+            subdir = scans_dir / copy_nr_dir
+            os.makedirs(subdir, exist_ok=True)
 
-            last_page_nr = page_nr
+            destination = subdir / f"copy_{copy_nr_dir}_{page_nr_normalized}{pathlib.Path(filename).suffix}"
+            os.rename(f, destination)
+
+            current_recognized_scan = {
+                "copy_no": copy_nr_dir,
+                "page_no": page_nr_normalized,
+                "relative_path": get_scan_relative_path(destination),
+            }
+            if pending_unrecognized_ids:
+                UnrecognizedReviewScan.objects.filter(pk__in=pending_unrecognized_ids).update(
+                    next_copy_no=current_recognized_scan["copy_no"],
+                    next_page_no=current_recognized_scan["page_no"],
+                    next_relative_path=current_recognized_scan["relative_path"],
+                )
+                pending_unrecognized_ids = []
+
+            pages_count += 1
+            last_recognized_scan = current_recognized_scan
             last_copy_nr = copy_nr
 
-    pages_by_copy.append([last_copy_nr, pages_count])
+    if last_copy_nr != 0:
+        pages_by_copy.append([last_copy_nr, pages_count])
     json_pages_by_copy = json.dumps(pages_by_copy)
 
     exam.pages_by_copy = json_pages_by_copy
     exam.save()
 
-    copy_count += 1
+    copy_count = len(pages_by_copy)
     return [copy_count,process_number]
 
 
@@ -117,6 +348,7 @@ def import_scans(exam, path,delete_old,progress_recorder,process_count,process_n
         process_count) + ' - Deleting old scans...')
     process_number += 1
     if delete_old:
+        UnrecognizedReviewScan.objects.filter(exam=exam).delete()
         delete_old_scans(exam)
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Deleting old annotations...')
@@ -194,6 +426,8 @@ def get_scans_pathes_by_exam(exam):
     scans_pathes = []
     if os.path.exists(scans_dir):
         for dir in sorted(os.listdir(scans_dir)):
+            if not is_review_copy_dir_name(dir):
+                continue
             # files = []
             # for filename in sorted(os.listdir(scans_dir + "/" + dir)):
             #     if not filename.endswith("full.jpg"):
@@ -238,6 +472,8 @@ def get_scans_pathes_by_group(pagesGroup):
 
     if os.path.exists(scans_dir):
         for dir in sorted(os.listdir(scans_dir)):
+            if not is_review_copy_dir_name(dir):
+                continue
             for filename in sorted(os.listdir(scans_dir + "/" + dir)):
                 if not filename.endswith("full.jpg"):
                     split_filename = filename.split('_')
@@ -376,7 +612,7 @@ def get_copies_pages_by_group(pagesGroup):
     if scans_dir.exists():
         # Iterate dirs and files with scandir (faster than listdir + isdir)
         for d_entry in sorted(os.scandir(scans_dir), key=lambda e: e.name):
-            if not d_entry.is_dir():
+            if not d_entry.is_dir() or not is_review_copy_dir_name(d_entry.name):
                 continue
 
             dir_path = pathlib.Path(d_entry.path)
@@ -557,8 +793,7 @@ def updateCorrectorBoxMarked(pageMarkers):
 
 def get_exam_copies_from_to(exam):
     scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
-    copies_folders = list(filter(lambda x: isdir(f"{scans_dir}\\{x}"), os.listdir(scans_dir)))
-    copies_folders.sort()
+    copies_folders = [entry.name for entry in iter_review_copy_dirs(scans_dir)]
     copies = [copy.lstrip('0') for copy in copies_folders]
     return copies
 
@@ -568,8 +803,7 @@ def get_scans_list(exam):
     scans_dir_path = scans_dir_path.replace(' ', '_')
     result = []
     if os.path.exists(scans_dir_path):
-        list_dir_copies = sorted(os.listdir(scans_dir_path))
-        for entry in list_dir_copies:
+        for entry in [entry.name for entry in iter_review_copy_dirs(scans_dir_path)]:
             entry_path = os.path.join(scans_dir_path, entry)
             copy = {'copy': entry,
                       'pages': []}

@@ -517,7 +517,11 @@ function processResult(resultElement, result) {
         progressBarElement.appendChild(link);    
     }else if(result === "upload_scans_ok"){
         $('#celeryProgressBarModal').modal('hide');
-        call_amc_automatic_datacapture_process();
+        if (typeof window.onUploadScansComplete === "function") {
+            window.onUploadScansComplete();
+        } else if (typeof call_amc_automatic_datacapture_process === "function") {
+            call_amc_automatic_datacapture_process();
+        }
     }
     
 }

@@ -670,8 +670,9 @@ def _is_valid_amc_options_xml(options_xml_path):
             first_line = options_file.readline().strip()
             second_line = options_file.readline().strip()
         return (
-            first_line == '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            and second_line == "<project>"
+            (first_line == '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            and second_line == "<project>")
+            or second_line == "<projetAMC>"
         )
     except OSError:
         return False

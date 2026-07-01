@@ -27,7 +27,14 @@ from examc_app.utils.marker_rendering import (
     render_key,
     render_marked_scan,
 )
-from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
+from examc_app.utils.review_functions import (
+    create_students_from_amc,
+    generate_marked_pdfs,
+    get_scans_list,
+    iter_review_copy_dirs,
+    iter_review_scan_files,
+)
+from examc_app.utils.review_upload_state import clear_pending_amc_import
 
 
 AMC_ANNOTATE_JOBS_SESSION_KEY = "amc_annotate_jobs"
@@ -132,6 +139,19 @@ def _is_amc_import_job_owned(request, exam_pk, job_id):
     request.session.modified = True
     meta = jobs.get(str(job_id))
     return bool(meta and int(meta.get("exam_pk")) == int(exam_pk))
+
+
+def _get_running_amc_import_job_id(request, exam_pk):
+    jobs = _prune_amc_annotate_jobs(request.session.get(AMC_IMPORT_JOBS_SESSION_KEY, {}))
+    request.session[AMC_IMPORT_JOBS_SESSION_KEY] = jobs
+    request.session.modified = True
+
+    for job_id, meta in jobs.items():
+        if int(meta.get("exam_pk")) != int(exam_pk):
+            continue
+        if AsyncResult(job_id).state in ("PENDING", "RECEIVED", "STARTED", "PROGRESS", "RETRY"):
+            return job_id
+    return None
 
 
 #@login_required
@@ -466,6 +486,14 @@ def import_scans_from_review_pages(request, exam_pk):
         getattr(request.user, "pk", None),
         len(scans_list),
     )
+    running_job_id = _get_running_amc_import_job_id(request, exam.pk)
+    if running_job_id:
+        return JsonResponse({
+            "job_id": running_job_id,
+            "status_url": reverse("amc_import_from_review_status", args=[exam.pk, running_job_id]),
+            "existing": True,
+        }, status=202)
+
     job = amc_import_from_review_task.delay(exam.pk, scans_list)
     _track_amc_import_job(request, exam.pk, job.id)
     return JsonResponse({
@@ -561,8 +589,26 @@ def import_scans_from_review(request, exam_pk):
         getattr(request.user, "pk", None),
     )
 
+    unresolved_count = UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).count()
+    if unresolved_count:
+        return JsonResponse({
+            "status": "blocked",
+            "error": f"Assign all unrecognized scans before AMC import starts ({unresolved_count} remaining).",
+            "unresolved_count": unresolved_count,
+        }, status=409)
+
+    running_job_id = _get_running_amc_import_job_id(request, exam.pk)
+    if running_job_id:
+        clear_pending_amc_import(request, exam.pk)
+        return JsonResponse({
+            "job_id": running_job_id,
+            "status_url": reverse("amc_import_from_review_status", args=[exam.pk, running_job_id]),
+            "existing": True,
+        }, status=202)
+
     job = amc_import_from_review_task.delay(exam.pk)
     _track_amc_import_job(request, exam.pk, job.id)
+    clear_pending_amc_import(request, exam.pk)
     return JsonResponse({
         "job_id": job.id,
         "status_url": reverse("amc_import_from_review_status", args=[exam.pk, job.id]),
@@ -662,9 +708,9 @@ def stream_import_scans_from_review(request, exam):
     if not os.path.exists(export_tmp_dir):
         os.makedirs(export_tmp_dir, exist_ok=True)
 
-    # list files from scans dir
-    dir_list = [x for x in os.listdir(scans_dir) if x != '0000']
-    for dir in sorted(dir_list):
+    # list files from normal copy scan dirs
+    for dir_entry in iter_review_copy_dirs(scans_dir):
+        dir = dir_entry.name
 
         copy_export_subdir = export_tmp_dir + "/" + dir
 
@@ -683,7 +729,7 @@ def stream_import_scans_from_review(request, exam):
 
 
     tmp_file_list = open(file_list_path, "w")
-    files = sorted(glob.glob(scans_dir + '/**/*.*', recursive=True))
+    files = [str(path) for path in iter_review_scan_files(scans_dir)]
     file_list_count = 0
     marked_file_count = 0
     for file in files:

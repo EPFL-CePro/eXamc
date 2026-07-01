@@ -1,0 +1,90 @@
+{% if unrecognized_review_scans %}
+<hr>
+<h5 style="margin-top:20px;">Unrecognized scans ({{ unrecognized_review_scans|length }})</h5>
+<div class="table-responsive">
+    <table class="table table-sm table-bordered table-hover" style="background:#fff;">
+        <thead class="thead-light">
+            <tr>
+                <th style="width:22%;">Previous recognized</th>
+                <th style="width:22%;">Unrecognized</th>
+                <th style="width:22%;">Next recognized</th>
+                <th>Suggested placement</th>
+                <th style="width:22%;">Assign</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for scan in unrecognized_review_scans %}
+            <tr class="js-unrecognized-scan-row">
+                <td>
+                    {% if scan.previous_url %}
+                    <button type="button" class="btn btn-link p-0 js-unrecognized-scan-preview"
+                            data-toggle="modal" data-target="#unrecognizedScanPreviewModal"
+                            data-img-url="{{ scan.previous_url }}"
+                            data-title="{{ scan.previous_label }}">
+                        <img src="{{ scan.previous_url }}" alt="{{ scan.previous_label }}" class="img-thumbnail" style="max-width:140px;max-height:180px;">
+                    </button>
+                    <div><small>{{ scan.previous_label }}</small></div>
+                    {% else %}
+                    <span class="text-muted">None</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button type="button" class="btn btn-link p-0 js-unrecognized-scan-preview"
+                            data-toggle="modal" data-target="#unrecognizedScanPreviewModal"
+                            data-img-url="{{ scan.scan_url }}"
+                            data-title="{{ scan.filename }}">
+                        <img src="{{ scan.scan_url }}" alt="{{ scan.filename }}" class="img-thumbnail" style="max-width:140px;max-height:180px;">
+                    </button>
+                    <div><small>{{ scan.filename }}</small></div>
+                    {% if scan.original_filename %}
+                    <div><small class="text-muted">{{ scan.original_filename }}</small></div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if scan.next_url %}
+                    <button type="button" class="btn btn-link p-0 js-unrecognized-scan-preview"
+                            data-toggle="modal" data-target="#unrecognizedScanPreviewModal"
+                            data-img-url="{{ scan.next_url }}"
+                            data-title="{{ scan.next_label }}">
+                        <img src="{{ scan.next_url }}" alt="{{ scan.next_label }}" class="img-thumbnail" style="max-width:140px;max-height:180px;">
+                    </button>
+                    <div><small>{{ scan.next_label }}</small></div>
+                    {% else %}
+                    <span class="text-muted">None</span>
+                    {% endif %}
+                </td>
+                <td>{{ scan.suggestion }}</td>
+                <td>
+                    <form method="post" action="{% url 'assign_unrecognized_review_scan' exam_pk=exam_selected.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="scan_id" value="{{ scan.id }}">
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label class="small mb-1" for="copy_no_{{ scan.id }}">Copy</label>
+                                <input id="copy_no_{{ scan.id }}" name="copy_no" type="number" min="1"
+                                       class="form-control form-control-sm" value="{{ scan.assignment_copy_no }}" required>
+                            </div>
+                            <div class="form-group col-6">
+                                <label class="small mb-1" for="page_no_{{ scan.id }}">Page</label>
+                                <input id="page_no_{{ scan.id }}" name="page_no" type="number" min="1"
+                                       class="form-control form-control-sm" value="{{ scan.assignment_page_no }}" required>
+                            </div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="small mb-1" for="assignment_mode_{{ scan.id }}">Mode</label>
+                            <select id="assignment_mode_{{ scan.id }}" name="assignment_mode" class="form-control form-control-sm">
+                                <option value="normal" {% if scan.assignment_mode == "normal" %}selected{% endif %}>Normal page</option>
+                                <option value="extra" {% if scan.assignment_mode == "extra" %}selected{% endif %}>Extra page</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-dark btn-sm">
+                            <i class="fa-solid fa-check" style="margin-right:5px;"></i>Assign
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}

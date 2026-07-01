@@ -7,6 +7,13 @@
 {% block content %}
 
 <h4><i class="fas fa-cloud-upload-alt fa-l" style="margin-right:5px;"></i>Upload scans</h4>
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags|default:'info' }}{% endif %}" role="alert">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
 <div id="uploadScansDiv" style="padding:10px;width:100%;color:#000;">
     {% if not amc_ok %}
     <div class="alert alert-warning" role="alert" style="padding:20px;">
@@ -50,50 +57,243 @@
     </form>
     <h6>{{ message }}</h6>
     {% endif %}
+
+    <div id="pendingAmcImportNotice" class="alert alert-info" role="alert" style="display:none;"></div>
+    <div id="unrecognizedReviewScansTable"
+         data-refresh-url="{% url 'unrecognized_review_scans_table' exam_pk=exam_selected.pk %}">
+        {% include "review/import/_unrecognized_review_scans_table.html" %}
+    </div>
+</div>
+
+<div class="modal fade" id="unrecognizedScanPreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="unrecognizedScanPreviewTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="unrecognizedScanPreviewImage" src="" alt="" style="max-width:100%;max-height:80vh;">
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
+var queryParams = new URLSearchParams(window.location.search);
+var forceAutoAmcImport = queryParams.get("start_amc_import") === "1";
+
+var pendingAutoAmcImport = {{ pending_amc_import|yesno:"true,false" }} || forceAutoAmcImport;
+var uploadTaskActive = {{ upload_task_active|yesno:"true,false" }};
+var autoAmcImportStarted = false;
+var amcImportPollTimer = null;
+
 $("#exams_zip_file").on("change", function () {
         var fileName = $(this).val().split("\\").pop();
         $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
     });
 
+function bindUnrecognizedScanPreviewHandlers(context) {
+    $(context).find(".js-unrecognized-scan-preview").off("click").on("click", function () {
+        var imgUrl = $(this).attr("data-img-url");
+        var title = $(this).attr("data-title");
+        $("#unrecognizedScanPreviewImage").attr("src", imgUrl).attr("alt", title);
+        $("#unrecognizedScanPreviewTitle").text(title);
+    });
+}
+
+function refreshUnrecognizedReviewScansTable() {
+    var tableContainer = $("#unrecognizedReviewScansTable");
+    if (!tableContainer.length) {
+        return $.Deferred().resolve().promise();
+    }
+    return $.get(tableContainer.data("refresh-url"), function (html) {
+        tableContainer.html(html);
+        bindUnrecognizedScanPreviewHandlers(tableContainer);
+        updatePendingAmcImportNotice();
+    });
+}
+
+function getUnresolvedUnrecognizedScanCount() {
+    return $("#unrecognizedReviewScansTable .js-unrecognized-scan-row").length;
+}
+
+function updatePendingAmcImportNotice() {
+    var notice = $("#pendingAmcImportNotice");
+    if (!notice.length) {
+        return;
+    }
+
+    if (!pendingAutoAmcImport) {
+        notice.hide();
+        return;
+    }
+
+    if (uploadTaskActive) {
+        notice.text("Upload is still running. AMC import will start after upload and assignments are complete.");
+        notice.show();
+        return;
+    }
+
+    var unresolvedCount = getUnresolvedUnrecognizedScanCount();
+    if (unresolvedCount > 0) {
+        notice.text("Assign " + unresolvedCount + " unrecognized scan(s) before AMC import starts.");
+        notice.show();
+        return;
+    }
+
+    notice.text("All unrecognized scans are assigned. AMC import is starting.");
+    notice.show();
+}
+
+function maybeStartPendingAmcImport() {
+    updatePendingAmcImportNotice();
+    if (!pendingAutoAmcImport || uploadTaskActive || autoAmcImportStarted || getUnresolvedUnrecognizedScanCount() > 0) {
+        return;
+    }
+
+    autoAmcImportStarted = true;
+    pendingAutoAmcImport = false;
+    updatePendingAmcImportNotice();
+    call_amc_automatic_datacapture_process();
+}
+
+$(function () {
+    bindUnrecognizedScanPreviewHandlers(document);
+    updatePendingAmcImportNotice();
+    maybeStartPendingAmcImport();
+
+    if (forceAutoAmcImport && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
+
+window.onUploadScansComplete = function () {
+    uploadTaskActive = false;
+    refreshUnrecognizedReviewScansTable().always(function () {
+        maybeStartPendingAmcImport();
+    });
+};
+
+function appendProcessOutput(text) {
+    if (text === undefined || text === null) {
+        return;
+    }
+    var body = $('#amc_process_modal_body');
+    body.append(document.createTextNode(String(text)));
+    body.scrollTop(body.prop("scrollHeight"));
+}
+
+function setProcessOutput(text) {
+    var body = $('#amc_process_modal_body');
+    body.text(text || '');
+    body.scrollTop(body.prop("scrollHeight"));
+}
+
+function showProcessError(xhr, textStatus, errorThrown) {
+    var response = (xhr && xhr.responseJSON) ? xhr.responseJSON : {};
+    if (response.output) {
+        setProcessOutput(response.output);
+    } else {
+        setProcessOutput('');
+    }
+
+    appendProcessOutput('Error occurred');
+    if (xhr && xhr.status) {
+        appendProcessOutput(' (' + xhr.status + ')');
+    }
+    appendProcessOutput('\n');
+
+    if (response.error) {
+        appendProcessOutput(response.error + '\n');
+    } else if (xhr && xhr.responseText) {
+        appendProcessOutput(xhr.responseText + '\n');
+    } else {
+        if (textStatus) {
+            appendProcessOutput('jQuery status: ' + textStatus + '\n');
+        }
+        if (errorThrown) {
+            appendProcessOutput('Error: ' + errorThrown + '\n');
+        }
+    }
+}
+
+function pollAmcImportJob(statusUrl, doneCallback) {
+    if (amcImportPollTimer) {
+        clearTimeout(amcImportPollTimer);
+        amcImportPollTimer = null;
+    }
+
+    function poll() {
+        $.ajax({
+            url: statusUrl,
+            type: "GET",
+            dataType: "json",
+            success: function(resp) {
+                setProcessOutput(resp.output || 'Processing ...\n');
+                if (resp.status === "running" || resp.status === "queued") {
+                    amcImportPollTimer = setTimeout(poll, 2000);
+                    return;
+                }
+
+                amcImportPollTimer = null;
+                if (resp.status === "done") {
+                    doneCallback();
+                } else {
+                    appendProcessOutput('Error occurred\n' + (resp.error || 'Unknown error') + '\n');
+                }
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                amcImportPollTimer = null;
+                showProcessError(xhr, textStatus, errorThrown);
+            }
+        });
+    }
+
+    poll();
+}
+
 function call_amc_automatic_datacapture_process(){
-    amc_process_modal_title = document.getElementById('amc_process_modal_title');
+    var amc_process_modal_title = document.getElementById('amc_process_modal_title');
     amc_process_modal_title.innerHTML = "Automatic data capture processing";
-    amc_process_modal_body = $('#amc_process_modal_body');
-    amc_process_modal_body.text('');
+    setProcessOutput('');
     $('#amc_process_modal').modal('show');    
-    $.ajax({
+    return $.ajax({
         url: "{% url 'import_scans_from_review' exam_selected.pk %}",
         type: "POST",
+        dataType: "json",
         data : {
            'csrfmiddlewaretoken' : '{{ csrf_token }}',
         },
-        xhrFields: {
-            // This triggers each time progress is made on the request
-            onprogress: function(event) {
-                amc_process_modal_body.html('');
-                var response = event.currentTarget.responseText;
-                amc_process_modal_body.html(response.replace('\n','<br/>'));
-                amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+        success: function(resp) {
+            if (resp.existing) {
+                setProcessOutput('AMC import job already running ...\n');
+            } else {
+                setProcessOutput('AMC import job started ...\n');
             }
+            pollAmcImportJob(resp.status_url, function () {
+                appendProcessOutput('** AUTOMATIC DATACAPTURE COMPLETED! **');
+                call_amc_mark_process();
+            });
         },
-        success: function() {
-            amc_process_modal_body.append('** AUTOMATIC DATACAPTURE COMPLETED! **');
-            call_amc_mark_process();
-        },
-        error: function() {
-            amc_process_modal_body.html('<p>Error occurred</p>');
+        error: function(xhr, textStatus, errorThrown) {
+            if (xhr && xhr.status === 409) {
+                pendingAutoAmcImport = true;
+                autoAmcImportStarted = false;
+            }
+            showProcessError(xhr, textStatus, errorThrown);
+            updatePendingAmcImportNotice();
         }
     });
  
 }
 
 function call_amc_mark_process(){
-    amc_process_modal_body = $('#amc_process_modal_body');
-    amc_process_modal_body.append('<br/><br/>** START MARKING ... **');
-    data_capture_response_html = amc_process_modal_body.html()
+    var dataCaptureResponseText = $('#amc_process_modal_body').text();
+    var markPrefixText = dataCaptureResponseText + '\n\n** START MARKING ... **\n';
+    setProcessOutput(markPrefixText);
     $.ajax({
         url: "{% url 'call_amc_mark' exam_selected.pk %}",
         type: "POST",
@@ -104,18 +304,15 @@ function call_amc_mark_process(){
         xhrFields: {
             // This triggers each time progress is made on the request
             onprogress: function(event) {
-                amc_process_modal_body.html('');
-                var response = event.currentTarget.responseText.replace('\n','<br/>');
-                var resp_body = data_capture_response_html + response;
-                amc_process_modal_body.html(resp_body);
-                amc_process_modal_body.scrollTop(amc_process_modal_body.prop("scrollHeight"));
+                var response = event.currentTarget.responseText || '';
+                setProcessOutput(markPrefixText + response);
             }
         },
         success: function() {
-            amc_process_modal_body.append('<br/>** MARKING COMPLETED! **');
+            appendProcessOutput('\n** MARKING COMPLETED! **');
         },
-        error: function() {
-            amc_process_modal_body.html('<p>Error occurred</p>');
+        error: function(xhr, textStatus, errorThrown) {
+            showProcessError(xhr, textStatus, errorThrown);
         }
     });
 
@@ -123,4 +320,3 @@ function call_amc_mark_process(){
 </script>
 </body>
 {% endblock %}
-
