@@ -855,11 +855,33 @@ def amc_annotate_status(request, exam_pk, job_id):
     if res.state in ("PENDING", "STARTED", "RETRY"):
         return JsonResponse({"status": "running", "state": res.state})
 
+    if res.state == "PROGRESS":
+        meta = res.info if isinstance(res.info, dict) else {}
+        return JsonResponse({
+            "status": "running",
+            "state": res.state,
+            "progress": meta.get("progress", ""),
+            "done": meta.get("done"),
+            "total": meta.get("total"),
+        })
+
     if res.state == "FAILURE":
-        return JsonResponse({"status": "error", "state": res.state, "error": str(res.result)}, status=500)
+        meta = res.info if isinstance(res.info, dict) else {}
+        return JsonResponse({
+            "status": "error",
+            "state": res.state,
+            "error": meta.get("exc_message", str(res.result)),
+            "progress": meta.get("progress", ""),
+        }, status=500)
 
     # SUCCESS
-    return JsonResponse({"status": "done", "state": res.state, "result": res.result})
+    result = res.result if isinstance(res.result, dict) else {"output": res.result}
+    return JsonResponse({
+        "status": "done",
+        "state": res.state,
+        "result": result.get("output", ""),
+        "progress": result.get("progress", ""),
+    })
 
 #@login_required
 @exam_permission_required(['manage'])
