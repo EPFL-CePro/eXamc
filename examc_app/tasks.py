@@ -631,7 +631,10 @@ def amc_import_from_review_task(self, exam_pk, scans_list=None):
 
 @shared_task(bind=True)
 def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_report: bool):
+    last_progress = {"progress": ""}
+
     def set_progress(progress, done=None, total=None, message=""):
+        last_progress["progress"] = progress
         logger.info(
             "AMC annotate task progress exam=%s progress=%s done=%s total=%s message=%s",
             exam_pk,
@@ -681,7 +684,7 @@ def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_
             logger.info("AMC annotate task completed exam=%s", exam_pk)
         return {
             "output": result,
-            "progress": "Done",
+            "progress": last_progress["progress"],
         }
     except Exception as exception:
         logger.exception("AMC annotate task failed exam=%s", exam_pk)

@@ -1062,6 +1062,124 @@ def check_students_csv_file(file):
 
     return "ok"
 
+
+def get_annotated_pdfs_dir(exam):
+    return Path(get_amc_project_path(exam, False)) / "cr" / "corrections" / "pdf"
+
+
+def get_annotated_zip_path(exam):
+    corrections_path = Path(get_amc_project_path(exam, False)) / "cr" / "corrections"
+    zip_filename = f"annotated_pdfs_{exam.code}_{exam.year.code}_{exam.semester.code}.zip"
+    return corrections_path / zip_filename
+
+
+def cleanup_previous_annotated_outputs(exam):
+    annotated_pdfs_dir = get_annotated_pdfs_dir(exam)
+    annotated_pdfs_dir.mkdir(parents=True, exist_ok=True)
+
+    deleted_pdfs = 0
+    for pdf_path in annotated_pdfs_dir.glob("*.pdf"):
+        if not pdf_path.is_file():
+            continue
+        pdf_path.unlink()
+        deleted_pdfs += 1
+
+    annotated_zip_path = get_annotated_zip_path(exam)
+    zip_deleted = False
+    if annotated_zip_path.exists():
+        annotated_zip_path.unlink()
+        zip_deleted = True
+
+    logger.info(
+        "AMC previous annotated outputs cleaned exam=%s deleted_pdfs=%s zip_deleted=%s zip=%s",
+        exam.pk,
+        deleted_pdfs,
+        zip_deleted,
+        annotated_zip_path,
+    )
+    return deleted_pdfs, zip_deleted
+
+
+def get_annotated_pdf_mtimes(annotated_pdfs_dir):
+    annotated_pdfs_dir = Path(annotated_pdfs_dir)
+    if not annotated_pdfs_dir.exists():
+        return {}
+
+    mtimes = {}
+    for pdf_path in annotated_pdfs_dir.glob("*.pdf"):
+        if not pdf_path.is_file():
+            continue
+        try:
+            mtimes[pdf_path] = pdf_path.stat().st_mtime_ns
+        except OSError:
+            continue
+    return mtimes
+
+
+def count_updated_annotated_pdfs(annotated_pdfs_dir, initial_mtimes):
+    annotated_pdfs_dir = Path(annotated_pdfs_dir)
+    if not annotated_pdfs_dir.exists():
+        return 0
+
+    count = 0
+    for pdf_path in annotated_pdfs_dir.glob("*.pdf"):
+        if not pdf_path.is_file():
+            continue
+        try:
+            if initial_mtimes.get(pdf_path) != pdf_path.stat().st_mtime_ns:
+                count += 1
+        except OSError:
+            continue
+    return count
+
+
+def run_amc_annotate_command(command, exam, single_file, progress_callback=None):
+    annotated_pdfs_dir = get_annotated_pdfs_dir(exam)
+    total = 1 if single_file else Student.objects.filter(exam=exam).count()
+    initial_mtimes = get_annotated_pdf_mtimes(annotated_pdfs_dir)
+    last_done = -1
+    last_update_at = 0
+
+    if progress_callback:
+        progress_callback(
+            done=0,
+            total=total,
+            message=f"Generating AMC annotations: 0/{total} files generated",
+        )
+
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    while True:
+        try:
+            stdout, stderr = process.communicate(timeout=2)
+            break
+        except subprocess.TimeoutExpired:
+            done = count_updated_annotated_pdfs(annotated_pdfs_dir, initial_mtimes)
+            if total:
+                done = min(done, total)
+
+            now = time.time()
+            if progress_callback and (done != last_done or now - last_update_at >= 10):
+                progress_callback(
+                    done=done,
+                    total=total,
+                    message=f"Generating AMC annotations: {done}/{total} files generated",
+                )
+                last_done = done
+                last_update_at = now
+
+    done = count_updated_annotated_pdfs(annotated_pdfs_dir, initial_mtimes)
+    if total:
+        done = min(done, total)
+    if progress_callback:
+        progress_callback(
+            done=done,
+            total=total,
+            message=f"Generating AMC annotations: {done}/{total} files generated",
+        )
+
+    return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+
+
 def amc_annotate(exam, single_file, add_grading_scheme_report, progress_callback=None):
     project_path = get_amc_project_path(exam, False)
     assoc_primary_key = get_amc_option_by_key(exam,'liste_key')
@@ -1096,9 +1214,15 @@ def amc_annotate(exam, single_file, add_grading_scheme_report, progress_callback
         command,
     )
     if progress_callback:
-        progress_callback(message="Running AMC annotate...")
+        progress_callback(message="Cleaning previous annotated outputs...")
+    cleanup_previous_annotated_outputs(exam)
 
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = run_amc_annotate_command(
+        command,
+        exam,
+        single_file,
+        progress_callback=progress_callback,
+    )
     logger.info(
         "AMC annotate command completed exam=%s returncode=%s stdout_len=%s stderr_len=%s",
         exam.pk,
@@ -1280,7 +1404,11 @@ def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=No
 
         total = len(students)
         if progress_callback:
-            progress_callback(done=0, total=total, message=f"0/{total} grading reports added")
+            progress_callback(
+                done=0,
+                total=total,
+                message=f"Adding grading scheme reports: 0/{total} reports added",
+            )
 
         pdf_parts = [annotated_pdf_path.read_bytes()]
         for index, student in enumerate(students, start=1):
@@ -1298,7 +1426,7 @@ def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=No
                 progress_callback(
                     done=index,
                     total=total,
-                    message=f"{index}/{total} grading reports added",
+                    message=f"Adding grading scheme reports: {index}/{total} reports added",
                 )
         annotated_pdf_path.write_bytes(concat_pdfs(*pdf_parts))
         logger.info(
@@ -1314,7 +1442,11 @@ def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=No
 
     total = len(report_rows)
     if progress_callback:
-        progress_callback(done=0, total=total, message=f"0/{total} files generated")
+        progress_callback(
+            done=0,
+            total=total,
+            message=f"Adding grading scheme reports: 0/{total} files generated",
+        )
 
     for index, row in enumerate(report_rows, start=1):
         student = find_student_for_amc_report(exam, row)
@@ -1339,7 +1471,11 @@ def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=No
             annotated_pdf_path,
         )
         if progress_callback:
-            progress_callback(done=index, total=total, message=f"{index}/{total} files generated")
+            progress_callback(
+                done=index,
+                total=total,
+                message=f"Adding grading scheme reports: {index}/{total} files generated",
+            )
 
     logger.info("AMC grading scheme report append completed exam=%s total=%s", exam_pk, total)
 
@@ -1357,12 +1493,12 @@ def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     return out.getvalue()
 
 def create_annotated_zip(exam):
-    corrections_path = get_amc_project_path(exam,False)+'/cr/corrections/'
-    zip_filename = "annotated_pdfs_"+exam.code+"_"+exam.year.code+"_"+str(exam.semester.code)
+    corrections_path = Path(get_amc_project_path(exam, False)) / "cr" / "corrections"
+    zip_path = get_annotated_zip_path(exam)
     # Creating the ZIP file
-    archived = shutil.make_archive(corrections_path+zip_filename, 'zip', corrections_path+'pdf')
+    archived = shutil.make_archive(str(zip_path.with_suffix("")), 'zip', str(corrections_path / "pdf"))
 
-    if os.path.exists(corrections_path+zip_filename+".zip"):
+    if zip_path.exists():
         return archived
     else:
         return False
@@ -1735,10 +1871,24 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
         if not pages_group_grading_schemes.exists():
             continue
 
-        grading_scheme_id = (
+        valid_checked_boxes = (
             pages_group_grading_schemes
+            .filter(gradingSchemeCheckBox__isnull=False)
             .select_related("gradingSchemeCheckBox__questionGradingScheme")
-            .first()
+        )
+        first_checked_box = valid_checked_boxes.first()
+        if not first_checked_box:
+            logger.warning(
+                "Skipping grading report section without valid checked boxes exam=%s student=%s pages_group=%s copy_nr=%s",
+                exam_pk,
+                student_pk,
+                pages_group.pk,
+                copy_nr,
+            )
+            continue
+
+        grading_scheme_id = (
+            first_checked_box
             .gradingSchemeCheckBox
             .questionGradingScheme
             .id
