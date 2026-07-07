@@ -27,7 +27,7 @@ from django.contrib.admin.utils import unquote
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.template.loader import get_template
 from django.utils.html import strip_tags
 from reportlab.lib import colors
@@ -1027,6 +1027,7 @@ def amc_automatic_association(exam,assoc_primary_key):
     if result.stderr:
         return "ERR:" + result.stderr
     else:
+        sync_student_amc_ids_from_association(exam)
         return result.stdout
 
 def check_students_csv_file(file):
@@ -1349,23 +1350,154 @@ def resolve_annotated_pdf_path(annotated_pdfs_dir, filename):
     return annotated_pdf_path
 
 
-def find_student_for_amc_report(exam, report_row):
-    copy_candidates = []
-    for value in (report_row.get("student"), report_row.get("copy")):
-        if value is None or value == "":
-            continue
-        value = str(value)
-        copy_candidates.extend([
-            value,
-            value.zfill(4),
-            value.lstrip("0") or "0",
-        ])
+def copy_number_candidates(copy_nr):
+    if copy_nr is None or copy_nr == "":
+        return []
+
+    value = str(copy_nr).strip()
+    return list(dict.fromkeys([
+        value,
+        value.zfill(4),
+        value.zfill(2),
+        value.lstrip("0") or "0",
+    ]))
+
+
+def report_row_amc_copy_nr(report_row):
+    return report_row.get("amc_copy") or report_row.get("student")
+
+
+def find_student_for_association_value(exam, assoc_primary_key, associated_student):
+    if associated_student is None or str(associated_student).strip() == "":
+        return None
+
+    associated_student = str(associated_student).strip()
+    if assoc_primary_key == "ID":
+        return (
+            Student.objects
+            .filter(
+                Q(copie_no__in=copy_number_candidates(associated_student))
+                | Q(amc_id__in=copy_number_candidates(associated_student)),
+                exam=exam,
+            )
+            .first()
+        )
+    if assoc_primary_key == "SCIPER":
+        return Student.objects.filter(exam=exam, sciper=associated_student).first()
+    if assoc_primary_key == "NAME":
+        return Student.objects.filter(exam=exam, name=associated_student).first()
 
     return (
+        Student.objects
+        .filter(exam=exam)
+        .filter(
+            Q(copie_no=associated_student)
+            | Q(amc_id=associated_student)
+            | Q(sciper=associated_student)
+            | Q(name=associated_student)
+        )
+        .first()
+    )
+
+
+def sync_student_amc_ids_from_association(exam):
+    project_path = get_amc_project_path(exam, False)
+    if not project_path:
+        return 0
+
+    amc_data_path = project_path + "/data/"
+    assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
+    associations = select_student_association_data(amc_data_path)
+
+    Student.objects.filter(exam=exam).update(amc_id="0")
+    updated_count = 0
+    for association in associations:
+        amc_copy_nr = association.get("amc_copy")
+        associated_student = association.get("associated_student")
+        if amc_copy_nr is None or associated_student is None:
+            continue
+
+        student = find_student_for_association_value(exam, assoc_primary_key, associated_student)
+        if not student:
+            logger.warning(
+                "No student found while syncing AMC id exam=%s assoc_key=%s associated_student=%s amc_copy=%s",
+                exam.pk,
+                assoc_primary_key,
+                associated_student,
+                amc_copy_nr,
+            )
+            continue
+
+        student.amc_id = str(amc_copy_nr)
+        student.save(update_fields=["amc_id"])
+        updated_count += 1
+
+    logger.info(
+        "Student AMC ids synced from association exam=%s assoc_key=%s updated=%s associations=%s",
+        exam.pk,
+        assoc_primary_key,
+        updated_count,
+        len(associations),
+    )
+    return updated_count
+
+
+def empty_student_amc_id(value):
+    return value is None or str(value).strip() in ("", "0", "None")
+
+
+def student_amc_copy_nr(student):
+    if not empty_student_amc_id(student.amc_id):
+        return student.amc_id
+    return student.copie_no
+
+
+def update_student_amc_id_if_missing(student, amc_copy_nr):
+    if empty_student_amc_id(student.amc_id) and amc_copy_nr not in (None, "", "0"):
+        student.amc_id = str(amc_copy_nr)
+        student.save(update_fields=["amc_id"])
+        logger.info(
+            "Backfilled student AMC id student_pk=%s copy=%s amc_id=%s",
+            student.pk,
+            student.copie_no,
+            student.amc_id,
+        )
+
+
+def find_student_for_amc_report(exam, report_row):
+    assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
+    amc_copy_nr = report_row_amc_copy_nr(report_row)
+    amc_copy_candidates = copy_number_candidates(amc_copy_nr)
+    if amc_copy_candidates:
+        student = (
+            Student.objects
+            .filter(exam=exam, amc_id__in=amc_copy_candidates)
+            .first()
+        )
+        if student:
+            return student
+
+    associated_student = report_row.get("associated_student")
+    if associated_student:
+        student = find_student_for_association_value(exam, assoc_primary_key, associated_student)
+        if student:
+            update_student_amc_id_if_missing(student, amc_copy_nr)
+            return student
+
+    copy_candidates = []
+    for value in (amc_copy_nr, report_row.get("copy")):
+        if value is None or value == "":
+            continue
+        copy_candidates.extend(copy_number_candidates(value))
+
+    student = (
         Student.objects
         .filter(exam=exam, copie_no__in=list(dict.fromkeys(copy_candidates)))
         .first()
     )
+    if student:
+        update_student_amc_id_if_missing(student, amc_copy_nr)
+    return student
 
 
 def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=None):
@@ -1393,16 +1525,19 @@ def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=No
             raise FileNotFoundError(f"Missing annotated PDF: {annotated_pdf_path}")
 
         if report_rows:
-            students = []
+            student_reports = []
             for row in sorted(report_rows, key=lambda r: (int(r.get("student") or 0), int(r.get("copy") or 0))):
                 student = find_student_for_amc_report(exam, row)
                 if not student:
                     raise RuntimeError(f"No eXamc student found for AMC report row {row}.")
-                students.append(student)
+                student_reports.append((student, report_row_amc_copy_nr(row)))
         else:
-            students = Student.objects.filter(exam=exam).order_by("copie_no", "pk")
+            student_reports = [
+                (student, student_amc_copy_nr(student))
+                for student in Student.objects.filter(exam=exam).order_by("copie_no", "pk")
+            ]
 
-        total = len(students)
+        total = len(student_reports)
         if progress_callback:
             progress_callback(
                 done=0,
@@ -1411,17 +1546,24 @@ def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=No
             )
 
         pdf_parts = [annotated_pdf_path.read_bytes()]
-        for index, student in enumerate(students, start=1):
+        for index, (student, amc_copy_nr) in enumerate(student_reports, start=1):
             logger.info(
-                "AMC grading scheme report generated exam=%s mode=single student_pk=%s copy=%s index=%s total=%s target=%s",
+                "AMC grading scheme report generated exam=%s mode=single student_pk=%s student_copy=%s amc_copy=%s index=%s total=%s target=%s",
                 exam_pk,
                 student.pk,
                 student.copie_no,
+                amc_copy_nr,
                 index,
                 total,
                 annotated_pdf_path,
             )
-            pdf_parts.append(build_grading_report_pdf_bytes(exam_pk, student.id))
+            pdf_parts.append(
+                build_grading_report_pdf_bytes(
+                    exam_pk,
+                    student.id,
+                    amc_copy_nr=amc_copy_nr,
+                )
+            )
             if progress_callback:
                 progress_callback(
                     done=index,
@@ -1458,14 +1600,19 @@ def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=No
             raise FileNotFoundError(f"Missing annotated PDF: {annotated_pdf_path}")
 
         annotated_pdf_bytes = annotated_pdf_path.read_bytes()
-        grading_scheme_report_bytes = build_grading_report_pdf_bytes(exam_pk, student.id)
+        grading_scheme_report_bytes = build_grading_report_pdf_bytes(
+            exam_pk,
+            student.id,
+            amc_copy_nr=report_row_amc_copy_nr(row),
+        )
         merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
         annotated_pdf_path.write_bytes(merged)
         logger.info(
-            "AMC grading scheme report appended exam=%s student_pk=%s copy=%s index=%s total=%s target=%s",
+            "AMC grading scheme report appended exam=%s student_pk=%s student_copy=%s amc_copy=%s index=%s total=%s target=%s",
             exam_pk,
             student.pk,
             student.copie_no,
+            report_row_amc_copy_nr(row),
             index,
             total,
             annotated_pdf_path,
@@ -1630,6 +1777,7 @@ def set_amc_manual_association(exam,copy_nr,student_id):
     if project_path:
         amc_data_path = project_path + "/data/"
         result = update_association(amc_data_path, copy_nr, student_id)
+        sync_student_amc_ids_from_association(exam)
 
     return result
 
@@ -1771,7 +1919,7 @@ def build_long_table(rows, col_widths, repeat_rows=1):
         return LongTable(rows, colWidths=col_widths, repeatRows=repeat_rows, splitByRow=1)
 
 
-def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
+def build_grading_report_pdf_bytes(exam_pk, student_pk, amc_copy_nr=None, review_copy_nr=None) -> bytes:
     """
     Generate grading report and return the content in bytes.
     """
@@ -1783,7 +1931,11 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
 
     amc_data_path += "/data/"
     student = Student.objects.get(pk=student_pk)
-    copy_nr = student.copie_no.zfill(4)
+    review_copy_nr = str(review_copy_nr if review_copy_nr is not None else student.copie_no)
+    amc_copy_nr = str(amc_copy_nr if amc_copy_nr is not None else student_amc_copy_nr(student))
+    copy_candidates = list(dict.fromkeys(
+        copy_number_candidates(review_copy_nr) + copy_number_candidates(amc_copy_nr)
+    ))
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -1865,7 +2017,7 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
     for pages_group in pages_groups:
         pages_group_grading_schemes = PagesGroupGradingSchemeCheckedBox.objects.filter(
             pages_group=pages_group,
-            copy_nr=copy_nr,
+            copy_nr__in=copy_candidates,
         )
 
         if not pages_group_grading_schemes.exists():
@@ -1876,16 +2028,21 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
             .filter(gradingSchemeCheckBox__isnull=False)
             .select_related("gradingSchemeCheckBox__questionGradingScheme")
         )
-        first_checked_box = valid_checked_boxes.first()
+        first_checked_box = None
+        for candidate in copy_candidates:
+            first_checked_box = valid_checked_boxes.filter(copy_nr=candidate).first()
+            if first_checked_box:
+                break
         if not first_checked_box:
             logger.warning(
                 "Skipping grading report section without valid checked boxes exam=%s student=%s pages_group=%s copy_nr=%s",
                 exam_pk,
                 student_pk,
                 pages_group.pk,
-                copy_nr,
+                amc_copy_nr,
             )
             continue
+        grading_copy_nr = first_checked_box.copy_nr
 
         grading_scheme_id = (
             first_checked_box
@@ -1920,7 +2077,7 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
             pg_checked_box_item = PagesGroupGradingSchemeCheckedBox.objects.filter(
                 pages_group=pages_group,
                 gradingSchemeCheckBox_id=grading_scheme_checkbox.id,
-                copy_nr=copy_nr,
+                copy_nr=grading_copy_nr,
             ).first()
             pg_checked_box = pg_checked_box_item is not None
 
@@ -1959,7 +2116,7 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
             report_paragraph(points, total_center_style),
         ])
 
-        question_num = get_question_number(amc_data_path, student.copie_no, pages_group.group_name)
+        question_num = get_question_number(amc_data_path, amc_copy_nr, pages_group.group_name)
         story.append(Paragraph(f"Question {question_num}:", question_style))
 
         col_widths = [
@@ -1985,7 +2142,7 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
 
         student_note_obj = PagesGroupStudentReportNote.objects.filter(
             pages_group=pages_group,
-            copy_nr=copy_nr,
+            copy_nr=grading_copy_nr,
         ).first()
         student_note = student_note_obj.content if student_note_obj else ""
         if clean_report_text(student_note):
