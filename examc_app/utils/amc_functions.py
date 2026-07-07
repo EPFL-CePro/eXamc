@@ -1062,7 +1062,7 @@ def check_students_csv_file(file):
 
     return "ok"
 
-def amc_annotate(exam,single_file,add_grading_scheme_report):
+def amc_annotate(exam, single_file, add_grading_scheme_report, progress_callback=None):
     project_path = get_amc_project_path(exam, False)
     assoc_primary_key = get_amc_option_by_key(exam,'liste_key')
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
@@ -1086,19 +1086,61 @@ def amc_annotate(exam,single_file,add_grading_scheme_report):
         "--compose", "0",
     ]
     if single_file:
-        command.append("--single-output")
+        command.extend(["--single-output", "annotated_papers.pdf"])
+
+    logger.info(
+        "AMC annotate command started exam=%s single_file=%s add_grading_scheme_report=%s command=%s",
+        exam.pk,
+        single_file,
+        add_grading_scheme_report,
+        command,
+    )
+    if progress_callback:
+        progress_callback(message="Running AMC annotate...")
 
     result = subprocess.run(command, capture_output=True, text=True)
+    logger.info(
+        "AMC annotate command completed exam=%s returncode=%s stdout_len=%s stderr_len=%s",
+        exam.pk,
+        result.returncode,
+        len(result.stdout or ""),
+        len(result.stderr or ""),
+    )
     if result.stderr:
+        logger.error("AMC annotate command stderr exam=%s stderr=%s", exam.pk, result.stderr)
         return "ERR:" + result.stderr
     else:
 
         student_report_data = get_student_report_data(project_path+"/data/")
+        report_type = 2 if single_file else 1
+        generated_rows = [
+            row for row in student_report_data
+            if int(row.get("type") or 0) == report_type
+        ]
+        generated_count = 1 if single_file else len(generated_rows)
+        logger.info(
+            "AMC annotate reports registered exam=%s report_type=%s report_rows=%s generated_count=%s",
+            exam.pk,
+            report_type,
+            len(generated_rows),
+            generated_count,
+        )
+        if progress_callback and not add_grading_scheme_report:
+            progress_callback(
+                done=generated_count,
+                total=generated_count,
+                message=f"{generated_count}/{generated_count} files generated",
+            )
+
         for st_rep in student_report_data:
             add_extra_to_annotated_pdf(st_rep['student'], st_rep['file'], project_path)
 
         if add_grading_scheme_report:
-            add_grading_schemes_reports(exam.id)
+            add_grading_schemes_reports(
+                exam.id,
+                single_file=single_file,
+                progress_callback=progress_callback,
+            )
 
         return result.stdout
 
@@ -1176,27 +1218,130 @@ def check_annotated_papers_available(exam):
     else:
         return False
 
-def add_grading_schemes_reports(exam_pk):
+def resolve_annotated_pdf_path(annotated_pdfs_dir, filename):
+    annotated_pdf_path = Path(filename or "")
+    if not annotated_pdf_path.is_absolute():
+        annotated_pdf_path = Path(annotated_pdfs_dir) / annotated_pdf_path
+    return annotated_pdf_path
+
+
+def find_student_for_amc_report(exam, report_row):
+    copy_candidates = []
+    for value in (report_row.get("student"), report_row.get("copy")):
+        if value is None or value == "":
+            continue
+        value = str(value)
+        copy_candidates.extend([
+            value,
+            value.zfill(4),
+            value.lstrip("0") or "0",
+        ])
+
+    return (
+        Student.objects
+        .filter(exam=exam, copie_no__in=list(dict.fromkeys(copy_candidates)))
+        .first()
+    )
+
+
+def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=None):
     exam = Exam.objects.get(pk=exam_pk)
-    students = Student.objects.filter(exam=exam_pk)
 
     project_path = Path(get_amc_project_path(exam, False))
+    amc_data_path = str(project_path / "data") + "/"
     annotated_pdfs_dir = project_path / "cr" / "corrections" / "pdf"
-
-    for student in students:
-        annotated_pdf_path = annotated_pdfs_dir / (
-            f"{student.copie_no.zfill(4)}_{student.sciper}_{safe_filename_part(student.name)}.pdf"
-        )
-
-        # Optional: fail with a clearer message
+    report_type = 2 if single_file else 1
+    report_rows = [
+        row for row in get_student_report_data(amc_data_path)
+        if int(row.get("type") or 0) == report_type
+    ]
+    logger.info(
+        "AMC grading scheme report append started exam=%s single_file=%s report_type=%s report_rows=%s",
+        exam_pk,
+        single_file,
+        report_type,
+        len(report_rows),
+    )
+    if single_file:
+        filename = next((row.get("file") for row in report_rows if row.get("file")), "annotated_papers.pdf")
+        annotated_pdf_path = resolve_annotated_pdf_path(annotated_pdfs_dir, filename)
         if not annotated_pdf_path.exists():
-            print(f"Missing annotated PDF: {annotated_pdf_path}")
-        else:
-            annotated_pdf_bytes = annotated_pdf_path.read_bytes()
-            grading_scheme_report_bytes = build_grading_report_pdf_bytes(exam_pk, student.id)
-            merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
+            raise FileNotFoundError(f"Missing annotated PDF: {annotated_pdf_path}")
 
-            annotated_pdf_path.write_bytes(merged)
+        if report_rows:
+            students = []
+            for row in sorted(report_rows, key=lambda r: (int(r.get("student") or 0), int(r.get("copy") or 0))):
+                student = find_student_for_amc_report(exam, row)
+                if not student:
+                    raise RuntimeError(f"No eXamc student found for AMC report row {row}.")
+                students.append(student)
+        else:
+            students = Student.objects.filter(exam=exam).order_by("copie_no", "pk")
+
+        total = len(students)
+        if progress_callback:
+            progress_callback(done=0, total=total, message=f"0/{total} grading reports added")
+
+        pdf_parts = [annotated_pdf_path.read_bytes()]
+        for index, student in enumerate(students, start=1):
+            logger.info(
+                "AMC grading scheme report generated exam=%s mode=single student_pk=%s copy=%s index=%s total=%s target=%s",
+                exam_pk,
+                student.pk,
+                student.copie_no,
+                index,
+                total,
+                annotated_pdf_path,
+            )
+            pdf_parts.append(build_grading_report_pdf_bytes(exam_pk, student.id))
+            if progress_callback:
+                progress_callback(
+                    done=index,
+                    total=total,
+                    message=f"{index}/{total} grading reports added",
+                )
+        annotated_pdf_path.write_bytes(concat_pdfs(*pdf_parts))
+        logger.info(
+            "AMC grading scheme report append completed exam=%s mode=single target=%s total=%s",
+            exam_pk,
+            annotated_pdf_path,
+            total,
+        )
+        return
+
+    if not report_rows:
+        raise RuntimeError(f"No AMC annotated PDF report rows found for type {report_type}.")
+
+    total = len(report_rows)
+    if progress_callback:
+        progress_callback(done=0, total=total, message=f"0/{total} files generated")
+
+    for index, row in enumerate(report_rows, start=1):
+        student = find_student_for_amc_report(exam, row)
+        if not student:
+            raise RuntimeError(f"No eXamc student found for AMC report row {row}.")
+
+        annotated_pdf_path = resolve_annotated_pdf_path(annotated_pdfs_dir, row.get("file"))
+        if not annotated_pdf_path.exists():
+            raise FileNotFoundError(f"Missing annotated PDF: {annotated_pdf_path}")
+
+        annotated_pdf_bytes = annotated_pdf_path.read_bytes()
+        grading_scheme_report_bytes = build_grading_report_pdf_bytes(exam_pk, student.id)
+        merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
+        annotated_pdf_path.write_bytes(merged)
+        logger.info(
+            "AMC grading scheme report appended exam=%s student_pk=%s copy=%s index=%s total=%s target=%s",
+            exam_pk,
+            student.pk,
+            student.copie_no,
+            index,
+            total,
+            annotated_pdf_path,
+        )
+        if progress_callback:
+            progress_callback(done=index, total=total, message=f"{index}/{total} files generated")
+
+    logger.info("AMC grading scheme report append completed exam=%s total=%s", exam_pk, total)
 
 def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     writer = PdfWriter()
@@ -1483,6 +1628,13 @@ def report_paragraph(value, style):
     return Paragraph(html.escape(text).replace("\n", "<br/>"), style)
 
 
+def build_long_table(rows, col_widths, repeat_rows=1):
+    try:
+        return LongTable(rows, colWidths=col_widths, repeatRows=repeat_rows, splitByRow=1, splitInRow=1)
+    except TypeError:
+        return LongTable(rows, colWidths=col_widths, repeatRows=repeat_rows, splitByRow=1)
+
+
 def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
     """
     Generate grading report and return the content in bytes.
@@ -1666,7 +1818,7 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
             table_width * 0.13,
             table_width * 0.15,
         ]
-        table = LongTable(table_rows, colWidths=col_widths, repeatRows=1, splitByRow=1, splitInRow=1)
+        table = build_long_table(table_rows, col_widths)
         table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
