@@ -13,6 +13,7 @@ import xml.etree.ElementTree as xmlET
 import zipfile
 from datetime import datetime
 from decimal import Decimal
+import html
 from pathlib import Path
 
 import chardet
@@ -28,11 +29,13 @@ from django.core.mail import EmailMessage
 from django.core.validators import validate_email
 from django.db.models import Sum
 from django.template.loader import get_template
+from django.utils.html import strip_tags
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
-from reportlab.platypus import Table, TableStyle
+from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from setuptools import glob
 
 from examc_app.decorators import exam_permission_required
@@ -1457,196 +1460,245 @@ def wrap_canvas_text_lines(c, text, max_width, font_name="Helvetica", font_size=
 
 
 
+def clean_report_text(value) -> str:
+    """Return plain text suitable for ReportLab paragraphs."""
+    if not value:
+        return ""
+
+    text = str(value)
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)</p\s*>", "\n", text)
+    text = re.sub(r"(?i)</li\s*>", "\n", text)
+    text = strip_tags(text)
+    text = html.unescape(text)
+    lines = [" ".join(line.split()) for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    return "\n".join(line for line in lines if line).strip()
+
+
+def report_paragraph(value, style):
+    """Build a paragraph that preserves explicit line breaks."""
+    text = clean_report_text(value)
+    if not text:
+        return Paragraph("&nbsp;", style)
+    return Paragraph(html.escape(text).replace("\n", "<br/>"), style)
+
+
 def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
     """
-    Generate grading report and return the content in bytes
+    Generate grading report and return the content in bytes.
     """
     exam = Exam.objects.get(pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, False)
 
-    if amc_data_path:
-        amc_data_path += "/data/"
+    if not amc_data_path:
+        return None
 
-        student = Student.objects.get(pk=student_pk)
+    amc_data_path += "/data/"
+    student = Student.objects.get(pk=student_pk)
+    copy_nr = student.copie_no.zfill(4)
 
-        buffer = io.BytesIO()
-        c = canvas.Canvas(buffer, pagesize=A4)
-        width, height = A4
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=2 * cm,
+        rightMargin=2 * cm,
+        topMargin=3.2 * cm,
+        bottomMargin=2.2 * cm,
+    )
+    width, height = A4
+    table_width = width - doc.leftMargin - doc.rightMargin
 
-        def draw_header():
-            c.setFont("Helvetica-Bold", 18)
-            c.drawString(2 * cm, height - 2 * cm, "Grading Report")
-            c.setLineWidth(1)
-            c.line(2 * cm, height - 2.4 * cm, width - 2 * cm, height - 2.4 * cm)
+    styles = getSampleStyleSheet()
+    question_style = ParagraphStyle(
+        "GradingReportQuestion",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        leading=15,
+        spaceBefore=8,
+        spaceAfter=6,
+    )
+    body_style = ParagraphStyle(
+        "GradingReportBody",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=8,
+        leading=10,
+        splitLongWords=1,
+    )
+    body_center_style = ParagraphStyle(
+        "GradingReportBodyCenter",
+        parent=body_style,
+        alignment=1,
+    )
+    header_style = ParagraphStyle(
+        "GradingReportHeader",
+        parent=body_center_style,
+        fontName="Helvetica-Bold",
+    )
+    total_label_style = ParagraphStyle(
+        "GradingReportTotalLabel",
+        parent=body_style,
+        fontName="Helvetica-Bold",
+    )
+    total_center_style = ParagraphStyle(
+        "GradingReportTotalCenter",
+        parent=body_center_style,
+        fontName="Helvetica-Bold",
+    )
+    note_title_style = ParagraphStyle(
+        "GradingReportNoteTitle",
+        parent=body_style,
+        fontName="Helvetica-Bold",
+        spaceBefore=6,
+        spaceAfter=2,
+    )
+    note_style = ParagraphStyle(
+        "GradingReportNote",
+        parent=body_style,
+        leftIndent=0.2 * cm,
+        spaceAfter=8,
+    )
 
-        def draw_footer(page_num, total_pages_placeholder="X"):
-            c.setFont("Helvetica", 10)
-            c.drawCentredString(width / 2, 1.2 * cm, f"{page_num}/{total_pages_placeholder}")
+    def draw_header_footer(canvas_obj, doc_obj):
+        canvas_obj.saveState()
+        canvas_obj.setFont("Helvetica-Bold", 18)
+        canvas_obj.drawString(doc.leftMargin, height - 2 * cm, "Grading Report")
+        canvas_obj.setLineWidth(1)
+        canvas_obj.line(doc.leftMargin, height - 2.4 * cm, width - doc.rightMargin, height - 2.4 * cm)
+        canvas_obj.setFont("Helvetica", 10)
+        canvas_obj.drawCentredString(width / 2, 1.2 * cm, str(doc_obj.page))
+        canvas_obj.restoreState()
 
-        top_margin = 4 * cm
-        bottom_margin = 3 * cm
-        y = height - top_margin
-        page_num = 1
+    story = []
 
-        draw_header()
+    pages_groups = PagesGroup.objects.filter(exam__pk=exam_pk, use_grading_scheme=True)
+    for pages_group in pages_groups:
+        pages_group_grading_schemes = PagesGroupGradingSchemeCheckedBox.objects.filter(
+            pages_group=pages_group,
+            copy_nr=copy_nr,
+        )
 
-        pages_groups = PagesGroup.objects.filter(exam__pk=exam_pk, use_grading_scheme=True)
-        copy_nr = student.copie_no.zfill(4)
+        if not pages_group_grading_schemes.exists():
+            continue
 
-        for pages_group in pages_groups:
-            pages_group_grading_schemes = PagesGroupGradingSchemeCheckedBox.objects.filter(
+        grading_scheme_id = (
+            pages_group_grading_schemes
+            .select_related("gradingSchemeCheckBox__questionGradingScheme")
+            .first()
+            .gradingSchemeCheckBox
+            .questionGradingScheme
+            .id
+        )
+
+        all_grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(
+            questionGradingScheme_id=grading_scheme_id,
+        ).order_by("position", "pk")
+
+        max_points = all_grading_scheme_checkboxes.aggregate(points__sum=Sum("points"))["points__sum"] or Decimal("0.00")
+        grading_scheme_checkboxes = list(
+            all_grading_scheme_checkboxes
+            .exclude(name__in=("ZERO", "ADJ"))
+            .order_by("position", "pk")
+        )
+        adjustment_checkbox = all_grading_scheme_checkboxes.filter(name="ADJ").first()
+        if adjustment_checkbox:
+            grading_scheme_checkboxes.append(adjustment_checkbox)
+
+        table_rows = [[
+            Paragraph("Title", header_style),
+            Paragraph("Text", header_style),
+            Paragraph("Points", header_style),
+            Paragraph("Validated", header_style),
+        ]]
+        points = Decimal("0.00")
+
+        for grading_scheme_checkbox in grading_scheme_checkboxes:
+            pg_checked_box_item = PagesGroupGradingSchemeCheckedBox.objects.filter(
                 pages_group=pages_group,
-                copy_nr=copy_nr
-            )
-
-            if not pages_group_grading_schemes.exists():
-                continue
-
-            grading_scheme_id = pages_group_grading_schemes.first().gradingSchemeCheckBox.questionGradingScheme.id
-
-            grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(
-                questionGradingScheme_id=grading_scheme_id
-            )
-
-            max_points = grading_scheme_checkboxes.aggregate(points__sum=Sum('points'))['points__sum'] or Decimal("0.00")
-
-            table_rows = [["Description", "Points", "Validated"]]
-            points = Decimal("0.00")
-
-            for grading_scheme_checkbox in grading_scheme_checkboxes:
-                add_row = True
-                row_points = 0
-                pg_checked_box_qs = PagesGroupGradingSchemeCheckedBox.objects.filter(
-                    gradingSchemeCheckBox_id=grading_scheme_checkbox.id,
-                    copy_nr=copy_nr
-                )
-                pg_checked_box_item = None
-                if pg_checked_box_qs.exists():
-                    pg_checked_box = True
-                    pg_checked_box_item = pg_checked_box_qs.all().first()
-                else:
-                    pg_checked_box = False
-
-                if grading_scheme_checkbox.name == 'ZERO' or (grading_scheme_checkbox.name == 'ADJ' and (not pg_checked_box_item or pg_checked_box_item.adjustment == 0)):
-                    add_row = False
-
-                if add_row:
-                    if pg_checked_box:
-                        if grading_scheme_checkbox.name == 'ADJ':
-                            row_points += pg_checked_box_item.adjustment
-                            max_points += row_points
-                        else:
-                            row_points = grading_scheme_checkbox.points
-                        points += row_points
-                    else:
-                        row_points = grading_scheme_checkbox.points
-
-                if add_row:
-                    description = 'Adjustment' if grading_scheme_checkbox.name == 'ADJ' else grading_scheme_checkbox.name
-
-                    table_rows.append([description, str(row_points), "✔" if pg_checked_box else "✘" ])
-
-            table_rows.append(["Total", max_points, points])
-
-            question_num = get_question_number(amc_data_path,student.copie_no,pages_group.group_name)
-            q_title = "Question "+str(question_num) + ":"
-
-            data = table_rows
-
-            # ====== PAGE BREAK CHECK ======
-            estimated_min_height = 2 * cm
-            if y < bottom_margin + estimated_min_height:
-                draw_footer(page_num)
-                c.showPage()
-                page_num += 1
-                draw_header()
-                y = height - top_margin
-
-            # Draw title
-            c.setFont("Helvetica-Bold", 12)
-            c.drawString(2 * cm, y, q_title)
-            y -= 0.8 * cm
-
-            # Compute column widths: table matches header line width
-            table_width = width - 4 * cm  # same width as header line
-            desc_w = 12 * cm  # keep fixed
-            remaining = table_width - desc_w
-            points_w = remaining / 2
-            validated_w = remaining / 2
-            col_widths = [desc_w, points_w, validated_w]
-
-            # Measure table height
-            table = Table(data, colWidths=[12 * cm, 3 * cm, 3 * cm])
-            w, table_height = table.wrap(0, 0)
-
-            if y - table_height < bottom_margin:
-                draw_footer(page_num)
-                c.showPage()
-                page_num += 1
-                draw_header()
-                y = height - top_margin
-
-                c.setFont("Helvetica-Bold", 12)
-                c.drawString(2 * cm, y, q_title)
-                y -= 0.8 * cm
-
-            # Draw the actual table
-            used_height = draw_table(
-                c,
-                data,
-                x=2 * cm,
-                y=y,
-                col_widths=col_widths
-            )
-            y -= (used_height + 0.6 * cm)
-
-            student_note_obj = PagesGroupStudentReportNote.objects.filter(
-                pages_group=pages_group,
+                gradingSchemeCheckBox_id=grading_scheme_checkbox.id,
                 copy_nr=copy_nr,
             ).first()
-            student_note = student_note_obj.content.strip() if student_note_obj else ""
-            if student_note:
-                note_title = "Comment:"
-                note_lines = wrap_canvas_text_lines(
-                    c,
-                    student_note,
-                    max_width=width - 4.4 * cm,
-                    font_name="Helvetica",
-                    font_size=10,
+            pg_checked_box = pg_checked_box_item is not None
+
+            add_row = not (
+                grading_scheme_checkbox.name == "ZERO"
+                or (
+                    grading_scheme_checkbox.name == "ADJ"
+                    and (not pg_checked_box_item or pg_checked_box_item.adjustment == 0)
                 )
+            )
+            if not add_row:
+                continue
 
-                title_height = 0.6 * cm
-                line_height = 0.45 * cm
-                note_height = title_height + (max(1, len(note_lines)) * line_height) + 0.4 * cm
+            if pg_checked_box:
+                if grading_scheme_checkbox.name == "ADJ":
+                    row_points = pg_checked_box_item.adjustment
+                    max_points += row_points
+                else:
+                    row_points = grading_scheme_checkbox.points
+                points += row_points
+            else:
+                row_points = grading_scheme_checkbox.points
 
-                if y - note_height < bottom_margin:
-                    draw_footer(page_num)
-                    c.showPage()
-                    page_num += 1
-                    draw_header()
-                    y = height - top_margin
+            title = "Adjustment" if grading_scheme_checkbox.name == "ADJ" else grading_scheme_checkbox.name
+            table_rows.append([
+                report_paragraph(title, body_style),
+                report_paragraph(grading_scheme_checkbox.description, body_style),
+                report_paragraph(row_points, body_center_style),
+                report_paragraph("Yes" if pg_checked_box else "No", body_center_style),
+            ])
 
-                c.setFont("Helvetica-Bold", 10)
-                c.drawString(2 * cm, y, note_title)
-                y -= title_height
+        table_rows.append([
+            Paragraph("Total", total_label_style),
+            Paragraph("&nbsp;", total_label_style),
+            report_paragraph(max_points, total_center_style),
+            report_paragraph(points, total_center_style),
+        ])
 
-                c.setFont("Helvetica", 10)
-                for line in note_lines:
-                    c.drawString(2.2 * cm, y, line)
-                    y -= line_height
+        question_num = get_question_number(amc_data_path, student.copie_no, pages_group.group_name)
+        story.append(Paragraph(f"Question {question_num}:", question_style))
 
-            y -= 0.9 * cm
+        col_widths = [
+            table_width * 0.22,
+            table_width * 0.50,
+            table_width * 0.13,
+            table_width * 0.15,
+        ]
+        table = LongTable(table_rows, colWidths=col_widths, repeatRows=1, splitByRow=1, splitInRow=1)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ALIGN", (2, 0), (3, -1), "CENTER"),
+            ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(table)
 
-        # End PDF
-        draw_footer(page_num)
-        c.showPage()
-        c.save()
+        student_note_obj = PagesGroupStudentReportNote.objects.filter(
+            pages_group=pages_group,
+            copy_nr=copy_nr,
+        ).first()
+        student_note = student_note_obj.content if student_note_obj else ""
+        if clean_report_text(student_note):
+            story.append(Paragraph("Comment:", note_title_style))
+            story.append(report_paragraph(student_note, note_style))
 
-        pdf_bytes = buffer.getvalue()
-        buffer.close()
-        return pdf_bytes
-    else:
-        return None
+        story.append(Spacer(1, 0.5 * cm))
+
+    if not story:
+        story.append(Paragraph("No grading scheme report data.", body_style))
+
+    doc.build(story, onFirstPage=draw_header_footer, onLaterPages=draw_header_footer)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
 
 def draw_table(c, data, x, y, col_widths):
     """
