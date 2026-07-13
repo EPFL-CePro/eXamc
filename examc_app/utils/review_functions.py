@@ -141,8 +141,19 @@ def import_scans(exam, path,delete_old,progress_recorder,process_count,process_n
     return result
 
 def create_students_from_amc(exam):
-    students_csv_file_path = get_amc_project_path(exam,False)+"/students.csv"
-    if os.path.exists(students_csv_file_path):
+    amc_project_path = get_amc_project_path(exam, False)
+    if not amc_project_path:
+        return
+
+    amc_root = pathlib.Path(settings.AMC_PROJECTS_ROOT).resolve()
+    students_csv_file_path = (pathlib.Path(amc_project_path) / "students.csv").resolve()
+
+    try:
+        students_csv_file_path.relative_to(amc_root)
+    except ValueError:
+        return
+
+    if students_csv_file_path.is_file():
         line_nr = 0
         headers = None
         with open(students_csv_file_path, newline='', encoding="utf-8") as csv_file:

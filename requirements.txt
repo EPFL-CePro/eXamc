@@ -16,7 +16,7 @@ certifi==2025.7.14
 cffi==2.0.0
 chardet==5.2.0
 charset-normalizer==3.4.2
-click==8.2.1
+click==8.3.3
 click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
@@ -29,7 +29,7 @@ decorator==5.2.1
 defusedxml==0.7.1
 Deprecated==1.2.18
 diff-match-patch==20241021
-Django==5.2.15
+Django==5.2.16
 django-celery-beat==2.8.1
 django-constance==4.3.3
 django-crispy-forms==2.4
@@ -70,7 +70,7 @@ lxml==6.1.0
 MarkupSafe==3.0.2
 matplotlib==3.10.3
 matplotlib-inline==0.1.7
-mistune==3.2.1
+mistune==3.3.0
 mozilla-django-oidc==4.0.1
 mysqlclient==2.2.7
 narwhals==2.8.0
@@ -88,7 +88,7 @@ parso==0.8.4
 pexpect==4.9.0
 pickleshare==0.7.5
 pikepdf==9.10.2
-pillow==12.2.0
+pillow==12.3.0
 pipreqs==0.5.0
 platformdirs==4.3.8
 plotly==6.3.1
@@ -100,7 +100,7 @@ pycparser==2.22
 Pygments==2.20.0
 pypandoc==1.15
 pyparsing==3.2.3
-PyPDF2==3.0.1
+pypdf==6.14.2
 python-crontab==3.3.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
@@ -120,7 +120,7 @@ setuptools==80.9.0
 shapely==2.1.1
 six==1.17.0
 snowballstemmer==3.0.1
-soupsieve==2.7
+soupsieve==2.8.4
 Sphinx==8.2.3
 sphinx-basic-ng==1.0.0b2
 sphinxcontrib-applehelp==2.0.0
