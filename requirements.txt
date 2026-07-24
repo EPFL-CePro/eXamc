@@ -95,7 +95,7 @@ plotly==6.3.1
 prompt_toolkit==3.0.51
 ptyprocess==0.7.0
 pure_eval==0.2.3
-pyasn1==0.6.3
+pyasn1==0.6.4
 pycparser==2.22
 Pygments==2.20.0
 pypandoc==1.15
