@@ -116,7 +116,7 @@ requests==2.33.0
 roman-numerals-py==3.1.0
 rpds-py==0.26.0
 scipy==1.16.0
-setuptools==80.9.0
+setuptools==83.0.0
 shapely==2.1.1
 six==1.17.0
 snowballstemmer==3.0.1
