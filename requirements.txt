@@ -133,7 +133,7 @@ sqlparse==0.6.0
 stack-data==0.6.3
 tablib==3.10.0
 tinycss2==1.4.0
-tornado==6.5.7
+tornado==6.5.8
 traitlets==5.14.3
 types-docutils==0.22.2.20250924
 typing_extensions==4.14.1
