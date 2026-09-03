@@ -1,20 +1,15 @@
-import os
 import logging
-from datetime import datetime
 from pathlib import Path
 
 import pytz
-import requests
-from celery import shared_task
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.sessions.models import Session
 from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
-from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, HttpResponse, FileResponse
+from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -26,7 +21,6 @@ from examc_app.middleware.impersonation import (
     IMPERSONATOR_SESSION_KEY,
     clear_impersonation_session,
 )
-from examc_app.models import ReviewLock
 from examc_app.signing import verify_and_get_path
 from examc_app.utils.dashboard import get_dashboard_context
 from examc_app.utils.results_statistics_functions import update_common_exams
