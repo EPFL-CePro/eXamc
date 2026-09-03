@@ -7,6 +7,7 @@ dependencies = [
     "celery==5.5.3",
     "celery-progress==0.5",
     "celery-types==0.23.0",
+    "crispy-bootstrap4==2025.6",
     "chardet==5.2.0",
     "django==5.2.17",
     "django-celery-beat==2.8.1",
@@ -20,7 +21,6 @@ dependencies = [
     "django-summernote==0.8.20.0",
     "django-tables2==2.7.5",
     "fpdf2==2.8.3",
-    "furo==2025.12.19",
     "img2pdf==0.6.1",
     "ldap3==2.9.1",
     "mozilla-django-oidc==4.0.1",
@@ -44,13 +44,22 @@ dependencies = [
     "scipy==1.16.0",
     "setuptools==83.0.0",
     "shapely==2.1.1",
-    "sphinx==8.2.3",
     "xmltodict==0.14.2",
 ]
 
 [dependency-groups]
+test = [
+    "bandit==1.9.4",
+    "pip-audit==2.10.1"
+]
+
 dev = [
-  "deptry==0.25.1"
+    "deptry==0.25.1"
+]
+
+docs = [
+    "furo==2025.12.19",
+    "sphinx==8.2.3",
 ]
 
 [tool.setuptools.packages.find]

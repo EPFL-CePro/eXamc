@@ -149,7 +149,7 @@ Expected Compose mounts:
 
 - Start Gunicorn from **entrypoint** or Compose `command`, e.g.:
   ```bash
-  gunicorn examc.wsgi:application -c /app/deploy/gunicorn.conf.py
+  gunicorn examc.wsgi:application -c /app/gunicorn.conf.py
   ```
 - Suggested tuning (adjust to CPU/RAM):
   - workers = `2*CPU + 1` (or start with `4–8`), class `sync` or `gthread`

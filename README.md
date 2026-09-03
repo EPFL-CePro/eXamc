@@ -78,8 +78,6 @@ Dockerized environment for **eXamc** featuring:
 │  ├─ test.yml
 │  └─ prod.yml
 ├─ deploy/
-│  ├─ entrypoint.sh
-│  ├─ gunicorn.conf.py
 │  └─ nginx/
 │     ├─ nginx.dev.conf
 │     └─ nginx.ssl.conf            # used in test/prod
