@@ -8,7 +8,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
     volumes:
-      - ../:/app
+      - ../app/:/app:z
       - static_volume:/static
       - media_volume:/media
       - /srv/examc/private_media:/private_media   # host -> container (rw)
@@ -16,7 +16,6 @@ services:
 #    depends_on:
 #      mysql:
 #        condition: service_healthy
-    # healthcheck:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
       interval: 30s
@@ -51,7 +50,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
     volumes:
-      - ../:/app
+      - ../app/:/app
       - static_volume:/static
       - media_volume:/media
       - /srv/examc/private_media:/private_media
@@ -66,7 +65,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
     volumes:
-      - ../:/app
+      - ../app/:/app
       - static_volume:/static
       - media_volume:/media
       - /srv/examc/private_media:/private_media
