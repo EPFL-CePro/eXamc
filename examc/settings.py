@@ -293,9 +293,16 @@ EMAIL_BACKEND = 'examc_app.email_backend.py'
 # Pandoc filters
 PANDOC_UTILS_DIR = BASE_DIR / 'examc_app/utils/pandoc'
 
-# Rooms plans pathes
-ROOMS_PLANS_ROOT = PRIVATE_MEDIA_ROOT / 'rooms_plans'
+# Rooms plans paths and URLs
 ROOMS_PLANS_URL = '/rooms_plans/'
+
+ROOMS_PLANS_ROOT = PRIVATE_MEDIA_ROOT / 'rooms_plans'
+ROOMS_PLANS_CSV_DIR = ROOMS_PLANS_ROOT / 'csv'
+ROOMS_PLANS_JPG_DIR = ROOMS_PLANS_ROOT / 'map'
+
+# Rooms plans paths - make sure the directories exists
+for rooms_dir in [ROOMS_PLANS_JPG_DIR, ROOMS_PLANS_CSV_DIR]:
+    Path(rooms_dir).mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     'version': 1,
