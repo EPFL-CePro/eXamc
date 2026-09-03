@@ -73,6 +73,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+examc_app/static/docs/doctrees/
 
 # PyBuilder
 target/
