@@ -1,7 +1,9 @@
 [project]
 name = "examc"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = "==3.12.*"
+
+# TODO : add the 5 DEP001 dependencies, or remove the files using the non declared dependencies
 dependencies = [
     "asgiref==3.9.1",
     "celery==5.5.3",
@@ -22,27 +24,26 @@ dependencies = [
     "django-tables2==2.7.5",
     "fpdf2==2.8.3",
     "img2pdf==0.6.1",
-    "ldap3==2.9.1",
+    "ldap3==2.9.1",  # TODO : replace with more up-to-date python-ldap
     "mozilla-django-oidc==4.0.1",
-    "mysqlclient==2.2.7",
+    "mysqlclient==2.2.8",
     "num2words==0.5.14",
-    "numpy==2.2.6",
-    "opencv-python==4.12.0.88",
+    "numpy==2.5.2",
+    "opencv-python==5.0.0.93",
     "openpyxl==3.1.5",
-    "pandas==2.3.1",
+    "pandas==3.0.5",
     "pandocfilters==1.5.1",
     "pillow==12.3.0",
     "pypandoc==1.15",
     "pypdf==6.15.0",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.2",
-    "python3-ldap==0.9.8.4",
+    "python3-ldap==0.9.8.4", # TODO : replace with more up-to-date python-ldap
     "pytz==2025.2",
     "pyzbar==0.1.9",
     "redis==7.0.1",
     "reportlab==4.4.7",
-    "scipy==1.16.0",
-    "setuptools==83.0.0",
+    "scipy==1.18.1",
     "shapely==2.1.1",
     "xmltodict==0.14.2",
 ]
@@ -61,6 +62,10 @@ docs = [
     "furo==2025.12.19",
     "sphinx==8.2.3",
 ]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["examc*"]
@@ -81,6 +86,7 @@ DEP002 = [
     "django-celery-beat",
     "django-crispy-forms",
     "django-extensions",
+    "django-sslserver", # TODO remove, very old dependency
     "mysqlclient",
     "redis",
 
