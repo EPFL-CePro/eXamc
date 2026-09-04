@@ -2,40 +2,22 @@
     This file contains all views used for the review module
 """
 
-import json
-import logging
 import math
-import os
-import sys
-import zipfile
 from datetime import timedelta
-from decimal import Decimal
-from functools import wraps, partial
 
-from cv2.detail import strip
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group
 from django.db import IntegrityError, transaction
-from django.db.models import Sum
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
-from shapely.geometry import Polygon
 
-from examc_app.decorators import exam_permission_required
 from examc_app.forms import *
 from examc_app.mixins import ExamPermissionAndRedirectMixin
-from examc_app.models import *
-from examc_app.signing import verify_and_get_path
 from examc_app.tasks import import_exam_scans, generate_marked_files_zip
 from examc_app.utils.amc_functions import *
-from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import *
 from examc_app.utils.review_settings_guards import (

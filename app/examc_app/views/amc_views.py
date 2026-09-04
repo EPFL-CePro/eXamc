@@ -1,24 +1,15 @@
-import json
-import logging
-import os
 import pathlib
-from urllib import request
-from pathlib import Path
 
 from asgiref.sync import async_to_sync, sync_to_async
 from celery.result import AsyncResult
-from django.conf import settings
-from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.utils import timezone
 from django.views.decorators.http import require_POST, require_GET
 
-from examc_app.decorators import exam_permission_required
 from examc_app.models import *
-from examc_app.tasks import import_csv_data, generate_marked_files_zip, amc_annotate_task, amc_import_from_review_task
+from examc_app.tasks import import_csv_data, amc_annotate_task, amc_import_from_review_task
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import (
@@ -27,8 +18,7 @@ from examc_app.utils.marker_rendering import (
     render_key,
     render_marked_scan,
 )
-from examc_app.utils.review_functions import generate_marked_pdfs, create_students_from_amc, get_scans_list
-
+from examc_app.utils.review_functions import create_students_from_amc, get_scans_list
 
 AMC_ANNOTATE_JOBS_SESSION_KEY = "amc_annotate_jobs"
 AMC_IMPORT_JOBS_SESSION_KEY = "amc_import_jobs"
