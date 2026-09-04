@@ -39,7 +39,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-from setuptools import glob
+from glob import glob
 
 from examc_app.decorators import exam_permission_required
 from examc_app.models import (
@@ -335,7 +335,7 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
                 file_list_path = tmp_dir_path + "/list-file"
                 tmp_file_list = open(file_list_path, "a+")
 
-                files = glob.glob(tmp_extract_path + '/**/*.*', recursive=True)
+                files = glob(tmp_extract_path + '/**/*.*', recursive=True)
                 for file in files:
                     tmp_file_list.write(file + "\n")
 
@@ -475,7 +475,7 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
             file_list_path = tmp_dir_path+"/list-file"
             tmp_file_list = open(file_list_path, "a+")
 
-            files = glob.glob(tmp_extract_path+'/**/*.*', recursive=True)
+            files = glob(tmp_extract_path+'/**/*.*', recursive=True)
             for file in files:
                 tmp_file_list.write(file + "\n")
 
