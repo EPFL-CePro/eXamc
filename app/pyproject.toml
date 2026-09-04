@@ -19,7 +19,7 @@ dependencies = [
     "django-import-export==4.3.9",
     "django-maintenance-mode==0.22.0",
     "django-simple-history==3.10.1",
-    "django-sslserver==0.22",
+    "django-sslserver==0.22",  # TODO remove, very old dependency
     "django-summernote==0.8.20.0",
     "django-tables2==2.7.5",
     "fpdf2==2.8.3",
@@ -46,6 +46,7 @@ dependencies = [
     "scipy==1.18.1",
     "shapely==2.1.1",
     "xmltodict==0.14.2",
+    "unidecode>=1.4.0",
 ]
 
 [dependency-groups]
@@ -86,7 +87,7 @@ DEP002 = [
     "django-celery-beat",
     "django-crispy-forms",
     "django-extensions",
-    "django-sslserver", # TODO remove, very old dependency
+    "django-sslserver",
     "mysqlclient",
     "redis",
 
