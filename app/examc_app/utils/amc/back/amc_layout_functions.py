@@ -3,10 +3,7 @@ from _sha2 import sha256
 from dataclasses import dataclass, field
 from pathlib import Path
 
-try:
-    from pypdf import PdfReader
-except ImportError:
-    from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from django.db import transaction
 
 from examc_app.models import (

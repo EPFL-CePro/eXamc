@@ -20,11 +20,11 @@ import chardet
 import img2pdf
 import pandas as pd
 import xmltodict
+
 from PIL import Image
-try:
-    from pypdf import PdfReader, PdfWriter
-except ImportError:
-    from PyPDF2 import PdfReader, PdfWriter
+
+from pypdf import PdfReader, PdfWriter
+
 from django.conf import settings
 from django.contrib.admin.utils import unquote
 from django.core.exceptions import ValidationError
