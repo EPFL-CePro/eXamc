@@ -81,9 +81,7 @@ services:
     depends_on:
       redis:
         condition: service_started
-    command: >
-      bash -lc 'exec celery -A examc worker --loglevel=INFO
-      --pidfile=/tmp/celery.pid'
+    command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/celery.pid && kill -0 $(cat /tmp/celery.pid)"]
       interval: 30s
@@ -109,9 +107,9 @@ services:
       redis:
         condition: service_started
     command: >
-      bash -lc 'exec celery -A examc beat --loglevel=INFO
-      --scheduler django_celery_beat.schedulers:DatabaseScheduler
-      --pidfile=/tmp/celerybeat.pid'
+      celery -A examc beat --loglevel=INFO
+        --scheduler django_celery_beat.schedulers:DatabaseScheduler
+        --pidfile=/tmp/celerybeat.pid
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/celerybeat.pid && kill -0 $(cat /tmp/celerybeat.pid)"]
       interval: 30s

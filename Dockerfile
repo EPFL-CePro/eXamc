@@ -3,83 +3,124 @@
 # =========================
 FROM python:3.12-slim-bookworm AS builder
 
-ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 DEBIAN_FONTEND=noninteractive
-WORKDIR /app
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Déps de build pour mysqlclient (lié à libmariadb), et pkg-config
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential pkg-config libmariadb-dev-compat libmariadb-dev \
- && rm -rf /var/lib/apt/lists/*
-
-# Installe les deps Python dans un prefix isolé (/install) pour les copier ensuite
-COPY requirements.txt /app/
-RUN python -m pip install --upgrade pip \
- && pip install --prefix=/install -r requirements.txt \
- && pip install --prefix=/install gunicorn
-# ↑ garde gunicorn si pas déjà dans requirements.txt
-
-# =========================
-# Stage 2 — RUNTIME (léger)
-# =========================
-FROM python:3.12-slim-bookworm
-
-# Réglages Python “prod”
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_CACHE=1 \
+    PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-# Déps runtime uniquement (PAS de toolchain) :
-# - libmariadb3 : client C MariaDB (mysqlclient s’y lie)
-# - libzbar0    : tu l’avais dans ton Dockerfile (ex. lecture code-barres)
-# - tzdata/ca-certificates : TLS & timezone corrects
+# Build dependencies for mysqlclient (linked against libmariadb), and pkg-config
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libmariadb3 libzbar0 tzdata ca-certificates curl gnupg \
-    libgl1 libglib2.0-0 libsm6 libxext6 \
-    fonts-dejavu-core fonts-liberation fonts-noto-core \
+    build-essential \
+    pkg-config \
+    libmariadb-dev-compat \
+    libmariadb-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# --- Auto Multiple Choice (AMC) depuis OBS (Debian) ---
-# Détermine le bon chemin OBS selon la version Debian (bookworm=bullseye=etc.)
-# Par défaut : Debian 12 (bookworm). Adapte automatiquement si testing/11.
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends \
-      auto-multiple-choice \
-      texlive-xetex texlive-latex-recommended texlive-latex-extra \
-      texlive-fonts-recommended texlive-fonts-extra lmodern \
-      texlive-lang-european fonts-noto-core \
-      latexmk ghostscript poppler-utils \
- && test -x /usr/bin/auto-multiple-choice \
- && rm -rf /var/lib/apt/lists/*
+# Copy project metadata and lockfile first to maximize Docker layer caching
+COPY app/pyproject.toml app/uv.lock ./
 
+# Install both production and docs generation dependencies into the virtual environment.
+# --frozen ensures that uv.lock is used exactly as-is.
+# --no-install-project skips installing the project itself at this stage.
+RUN uv sync --frozen \
+    --no-dev --group docs \
+    --no-install-project
 
-# Copie des libs Python construites au stage "builder"
-COPY --from=builder /install /usr/local
-
-# Copie de ton code
-COPY . /app
+# Copy the application source
+COPY app/ .
 
 # Build bundled Sphinx documentation from tracked sources before collectstatic.
 RUN sphinx-build -M html docs/source examc_app/static/docs
 
-#Patch du runsslserver .
-# Active-le en build si tu le veux :  --build-arg APPLY_SSL_PATCH=1
+
+# Removes the unnecessary dependencies
+RUN uv sync --frozen \
+    --no-dev \
+    --no-install-project
+
+
+# =========================
+# Stage 2 — RUNTIME
+# =========================
+FROM python:3.12-slim-bookworm
+
+# Python production settings
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# Runtime dependencies only (NO compiler/toolchain):
+# - libmariadb3: MariaDB client library written in C, used by mysqlclient
+# - libzbar0: barcode scanning support
+# - tzdata/ca-certificates: correct timezone and TLS support
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libmariadb3 \
+    libzbar0 \
+    tzdata \
+    ca-certificates \
+    curl \
+    gnupg \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    fonts-dejavu-core \
+    fonts-liberation \
+    fonts-noto-core \
+ && rm -rf /var/lib/apt/lists/*
+
+
+# --- Auto Multiple Choice (AMC) from OBS (Debian) ---
+# Install the required Debian packages for Auto Multiple Choice.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      auto-multiple-choice \
+      texlive-xetex \
+      texlive-latex-recommended \
+      texlive-latex-extra \
+      texlive-fonts-recommended \
+      texlive-fonts-extra \
+      lmodern \
+      texlive-lang-european \
+      fonts-noto-core \
+      latexmk \
+      ghostscript \
+      poppler-utils \
+ && test -x /usr/bin/auto-multiple-choice \
+ && rm -rf /var/lib/apt/lists/*
+
+
+# Copy the Python virtual environment built in the builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy the application source
+COPY ./app/ /app/
+
+# Patch runsslserver.
+# Enable it at build time with: --build-arg APPLY_SSL_PATCH=1
 ARG APPLY_SSL_PATCH=0
 RUN if [ "$APPLY_SSL_PATCH" = "1" ]; then \
-      target="/usr/local/lib/python3.12/site-packages/sslserver/management/commands/runsslserver.py"; \
+      target="/opt/venv/lib/python3.12/site-packages/sslserver/management/commands/runsslserver.py"; \
       if [ -f "$target" ] && [ -f "/app/docker/sslserver/management/commands/runsslserver.py" ]; then \
         cp /app/docker/sslserver/management/commands/runsslserver.py "$target"; \
       fi; \
     fi
 
-# User non-root
+
+# Create a non-root application user
 RUN groupadd -g 1000 app && useradd -m -u 1000 -g 1000 app
-USER root
 
-# Gunicorn conf
-ENV GUNICORN_CMD_ARGS="--config deploy/gunicorn.conf.py"
+# Gunicorn configuration
+ENV GUNICORN_CMD_ARGS="--config gunicorn.conf.py"
 
-# Entrypoint : migrations, collectstatic, puis exécute la CMD
-ENTRYPOINT ["./deploy/entrypoint.sh"]
+# Entrypoint: run migrations, collect static files, then execute CMD
+ENTRYPOINT ["/app/entrypoint.sh"]

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -Eeuo pipefail
 trap 'echo "Entrypoint failed at line $LINENO" >&2' ERR
 
@@ -53,9 +54,9 @@ if [ "$(id -u)" -eq 0 ]; then
   mkdir -p /static /media /private_media
   chown -R app:app /static /media /private_media /app || true
   # Run migrations/collectstatic as 'app'
-  runuser -u app -- bash -lc "python manage.py migrate --noinput"
+  runuser -u app -- python manage.py migrate --noinput
   if [ "${COLLECTSTATIC:-1}" = "1" ]; then
-    runuser -u app -- bash -lc "python manage.py collectstatic --noinput"
+    runuser -u app -- python manage.py collectstatic --noinput
   fi
   # Hand over to app user
   exec runuser -u app -- "$@"
