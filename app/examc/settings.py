@@ -11,9 +11,8 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-from datetime import datetime
-from pathlib import Path
 import os
+from pathlib import Path
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -31,9 +30,12 @@ def env_int(key, default="0"):
 def env_list(key, default=""):
     return [value.strip() for value in env(key, default).split(",") if value.strip()]
 
-# Optional: load .env only for local dev (outside Docker)
+# load .env only for test and dev environments (outside Docker)
 if os.getenv("DJANGO_DOTENV", "0") == "1" or not os.getenv("SECRET_KEY"):
-    load_dotenv(BASE_DIR / ".env.dev", override=False)  # allows manage.py runserver or migrate, ... locally without Compose
+    # allows manage.py runserver or migrate, ... locally without Compose
+    load_dotenv(BASE_DIR / ".env.dev", override=False)
+elif os.getenv("TESTING_MODE_ENABLED", "0") == "1" or not os.getenv("TESTING_MODE_ENABLED"):
+    load_dotenv(BASE_DIR / ".env.test", override=True)
 else:
     # Otherwise (prod/test) set port forwarding
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -55,7 +57,10 @@ APP_OWNER = "EPFL - CePro"
 
 # BASIC SECURITY
 SECRET_KEY = env("SECRET_KEY")
-DEBUG = os.getenv("DEBUG", "1" if os.path.exists(BASE_DIR / ".env.dev") else "0") in ("1","true","yes","on")
+DEBUG = os.getenv(
+    "DEBUG",
+    "1" if os.path.exists(BASE_DIR / ".env.dev") or os.getenv("TESTING_MODE_ENABLED") else "0"
+) in ("1","true","yes","on")
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", "*").split(",")
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS", "")
@@ -153,13 +158,16 @@ DATABASES = {
         "NAME": env("MYSQL_DATABASE", "examc"),
         "USER": env("MYSQL_USER", "appuser"),
         "PASSWORD": env("MYSQL_PASSWORD", ""),
-        "HOST": env("DB_HOST", "db"),    # en local hors Docker: 127.0.0.1
+        "HOST": env("DB_HOST", "mysql"),
         "PORT": env("DB_PORT", "3306"),
         "OPTIONS": {
             "autocommit": True,
             "charset": "utf8mb4",
         },
         "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", "60"),
+        "TEST": {
+            "NAME": "examc-test"
+        }
     }
 }
 
