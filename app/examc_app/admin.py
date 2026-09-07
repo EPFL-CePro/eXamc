@@ -1,7 +1,5 @@
-import logging
-
 from django import forms
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.db import transaction
 from django.shortcuts import render
 from django.urls import path, reverse

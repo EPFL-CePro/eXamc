@@ -1,25 +1,22 @@
 import csv
-import imghdr
-import pathlib
 import os
+import pathlib
 import shutil
 import time
 from functools import lru_cache
 from os.path import isdir
 
 import cv2
+import pyzbar.pyzbar as pyzbar
 from PIL import Image, ImageStat
 from django.conf import settings
 from django.db.models import Sum
 from fpdf import FPDF
 
 from examc_app.models import *
-import pyzbar.pyzbar as pyzbar
-
 from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries import get_question_start_page_by_student
 from examc_app.utils.amc_functions import get_amc_project_path
-
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
@@ -51,7 +48,13 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
 
         f = os.path.join(tmp_extract_path, filename)
         # checking if it is a jpeg file
-        if imghdr.what(f) == 'jpeg':
+        try:
+            with Image.open(f) as img:
+                is_jpeg = img.format == "JPEG"
+        except (OSError, Image.UnidentifiedImageError):
+            is_jpeg = False
+
+        if is_jpeg:
             # Read image
             im = cv2.imread(f)
             decodedObjects = pyzbar.decode(im)
