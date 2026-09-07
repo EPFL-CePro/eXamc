@@ -65,9 +65,14 @@ class ManageReviewersForm(forms.ModelForm):
         fields = ['user', 'pages_groups', 'review_blocked']
 
     def __init__(self, *args, **kwargs):
-        super(ManageReviewersForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+
         # filter many to many pagesgroup to get only for curr exam
-        self.pages_groups_choices = PagesGroup.objects.filter(exam=kwargs.pop('instance').exam)
+        # TODO fix this, as tests.test_forms.test_manage_exam_reviewers_form_invalid_data fails due to this
+        self.pages_groups_choices = PagesGroup.objects.filter(
+            exam=kwargs.pop('instance').exam
+        )
+
         self.fields['pages_groups'].queryset = self.pages_groups_choices
         self.fields['user'].widget.attrs['class'] = 'form-control'
         self.fields['user'].widget.attrs['style'] = 'width:300px'
@@ -101,7 +106,6 @@ class LoginForm(forms.Form):
     password = forms.CharField(max_length=65, widget=forms.PasswordInput)
 
 class ExportResultsForm(forms.Form):
-
     exportIsaCsv = forms.BooleanField(label='export ISA .csv', label_suffix=' ',initial=False, required=False, widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
     exportExamScalePdf = forms.BooleanField(label='export Exam scale pdf', label_suffix=' ',initial=False, required=False,widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
     exportStudentsDataCsv = forms.BooleanField(label='export Students data .csv', label_suffix=' ',initial=False, required=False,widget=forms.CheckboxInput(attrs={'class': "form-check-input"}))
