@@ -1,9 +1,8 @@
 [project]
 name = "examc"
-version = "0.1.0"
+version = "1.1.0"
 requires-python = "==3.12.*"
 
-# TODO : add the 5 DEP001 dependencies, or remove the files using the non declared dependencies
 dependencies = [
     "asgiref==3.9.1",
     "celery==5.5.3",
