@@ -1,6 +1,5 @@
 import csv
 import glob
-import json
 import os
 import pathlib
 import re
@@ -10,20 +9,16 @@ import uuid
 import zipfile
 from contextlib import closing
 from datetime import datetime, timedelta
-from time import sleep
 
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
+from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.db.models import Sum
-from django.http import FileResponse
 from django.utils import timezone
-from fpdf import FPDF
 
-from django.conf import settings
 from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, PageMarkers
 from examc_app.utils.amc_functions import (
-    amc_automatic_data_capture,
     amc_automatic_datacapture_subprocess,
     amc_annotate,
     get_amc_project_path,
@@ -36,10 +31,9 @@ from examc_app.utils.marker_rendering import (
     render_key,
     render_marked_scan,
 )
-from examc_app.utils.results_statistics_functions import update_common_exams, delete_exam_data
+from examc_app.utils.results_statistics_functions import delete_exam_data
 from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
 from examc_app.utils.zip_security import safe_extract_zip
-
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
