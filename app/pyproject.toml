@@ -45,13 +45,15 @@ dependencies = [
     "scipy==1.18.1",
     "shapely==2.1.1",
     "xmltodict==0.14.2",
-    "unidecode>=1.4.0",
+    "unidecode>=1.4.0"
 ]
 
 [dependency-groups]
 test = [
     "bandit==1.9.4",
-    "pip-audit==2.10.1"
+    "pip-audit==2.10.1",
+    "pytest==9.1.1",
+    "pytest-django==4.14.0"
 ]
 
 dev = [
@@ -60,7 +62,7 @@ dev = [
 
 docs = [
     "furo==2025.12.19",
-    "sphinx==8.2.3",
+    "sphinx==8.2.3"
 ]
 
 [build-system]
@@ -70,7 +72,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["examc*"]
 exclude = [
-    "templates*",
+    "templates*"
 ]
 
 [tool.deptry.per_rule_ignores]
