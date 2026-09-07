@@ -6,7 +6,6 @@ from django.contrib.auth.models import User, Group
 from django.db import models
 from django.db.models import Count
 from django.utils import timezone
-# from simple_history import register
 from simple_history.models import HistoricalRecords
 
 logger = logging.getLogger(__name__)
@@ -28,28 +27,31 @@ class Semester(models.Model):
     code = models.IntegerField(blank=False)
     name = models.CharField(max_length=100,blank=False)
 
+    def __str__(self):
+        return str(self.code)
+
 class Exam(models.Model):
     """
     Stores exam data, related to :model:`auth.User` and :model:`examc_app.Exam`
     """
     code = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
-    semester = models.ForeignKey(Semester, on_delete=models.RESTRICT,related_name='exams',)
-    year = models.ForeignKey(AcademicYear, on_delete=models.RESTRICT,related_name='exams')
+    semester = models.ForeignKey(Semester, on_delete=models.RESTRICT, related_name='exams',)
+    year = models.ForeignKey(AcademicYear, on_delete=models.RESTRICT, related_name='exams')
     date = models.DateField(default=timezone.now, blank=True,null=True)
     #users = models.ManyToManyField(User, blank=True)
     present_students = models.IntegerField(default=0)
     common_exams = models.ManyToManyField("self", blank=True)
     overall = models.BooleanField(default=0)
-    indiv_formula = models.CharField(max_length=100, blank=True,null=True)
-    pages_by_copy = models.CharField(max_length=10000, blank=True,null=True)
+    indiv_formula = models.CharField(max_length=100, blank=True, null=True)
+    pages_by_copy = models.CharField(max_length=10000, blank=True, null=True)
     first_page_text = models.TextField(default='', null=True, blank=True)
     review_option = models.BooleanField(default=0)
     amc_option = models.BooleanField(default=0)
     res_and_stats_option = models.BooleanField(default=0)
     prep_option = models.BooleanField(default=0)
     history = HistoricalRecords()
-    pdf_catalog_name = models.CharField(max_length=200, blank=True,null=True)
+    pdf_catalog_name = models.CharField(max_length=200, blank=True, null=True)
 
     class Meta:
         unique_together = ('code', 'date')
