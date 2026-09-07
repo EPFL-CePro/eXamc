@@ -92,6 +92,18 @@ jobs:
           docker compose -f compose/test.yml exec app python run_tests.py
 
       - name: Push production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: production
+          load: true
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.BASE_IMAGE_NAME }}:latest
+            ${{ env.BASE_IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Docker cleanup
         if: always()
