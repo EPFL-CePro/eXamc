@@ -1,28 +1,12 @@
+name: examc-dev
+
 services:
-  web:
-    user: "0"
-    environment:
-      DEBUG: "1"
-      COLLECTSTATIC: "0"            # in dev, OK
-      PRIVATE_MEDIA_ROOT: /private_media
-      DB_HOST: mysql
-      DB_PORT: 3306
+  mysql:
+    profiles: [ "mysql-dockerized" ]
+    ports:
+      - ${DB_PORT:-3307}:3306 # used for local client
     volumes:
-      - ../app/:/app:z
-      - static_volume:/static
-      - media_volume:/media
-      - /srv/examc/private_media:/private_media   # host -> container (rw)
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
-#    depends_on:
-#      mysql:
-#        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-    restart: unless-stopped
+      - ../deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
 
   nginx:
     volumes:
@@ -33,42 +17,39 @@ services:
     ports:
       - "8000:80"
 
-  mysql:
-    restart: unless-stopped
-    ports:
-      - "3307:3306"   # utile si client local
+  web:
+    build:
+      target: test
+    user: "0"
+    environment:
+      DEBUG: "1"
+      COLLECTSTATIC: "0" # in dev, OK
+      PRIVATE_MEDIA_ROOT: /private_media
+      DB_HOST: mysql
+      DB_PORT: 3306
     volumes:
-      - ../deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
-
-  redis:
+      - ../app/:/app:z
+      - static_volume:/static
+      - media_volume:/media
+      - /srv/examc/private_media:/private_media   # host -> container (rw)
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     restart: unless-stopped
 
   celery:
-    user: "0"
-    environment:
-      PRIVATE_MEDIA_ROOT: /private_media
-      DB_HOST: mysql
-      DB_PORT: 3306
-    volumes:
-      - ../app/:/app
-      - static_volume:/static
-      - media_volume:/media
-      - /srv/examc/private_media:/private_media
-#    depends_on:
-#      mysql:
-#        condition: service_healthy
+    extends:
+      service: web
+    command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
 
   celery_beat:
-    user: "0"
-    environment:
-      PRIVATE_MEDIA_ROOT: /private_media
-      DB_HOST: mysql
-      DB_PORT: 3306
-    volumes:
-      - ../app/:/app
-      - static_volume:/static
-      - media_volume:/media
-      - /srv/examc/private_media:/private_media
-#    depends_on:
-#      mysql:
-#        condition: service_healthy
+    extends:
+      service: web
+      command: >
+        celery -A examc beat --loglevel=INFO
+          --scheduler django_celery_beat.schedulers:DatabaseScheduler
+          --pidfile=/tmp/celerybeat.pid

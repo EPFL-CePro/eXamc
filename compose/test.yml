@@ -1,49 +1,54 @@
-# examc/compose/test.yml
-services:
-  web:
-    user: "1000:2770"
-    restart: unless-stopped
-    volumes:
-      - static_volume:/static       # collectstatic writes hashed assets here
-      - media_volume:/media:ro
-      - /srv/examc/private_media:/private_media:rw
-    # healthcheck
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -H 'Host: examc-test.epfl.ch' http://127.0.0.1:8000/healthz/ || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-  nginx:
-    restart: unless-stopped
-    volumes:
-      - /srv/examc/certs/:/etc/nginx/certs:ro  # certs
-      - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
-      - static_volume:/static:ro    # nginx static
-      - media_volume:/media:ro
-      - /srv/examc/private_media:/private_media:ro
-      - client_temp:/var/cache/nginx/client_temp
-    ports:
-      - "127.0.0.1:8080:80"
-      #- "8443:443"
+name: examc-test
 
+services:
   mysql:
-    profiles: ["mysql-dockerized"]
+    extends:
+      service: mysql
+      file: base.yml
+    env_file:
+      - ../.env.test
+    ports:
+      - ${DB_PORT:-3308}:3306
 
   redis:
-    restart: unless-stopped
+    extends:
+      service: redis
+      file: base.yml
 
-  celery:
-    restart: unless-stopped
-    environment:
-      CELERY_LOGLEVEL: "INFO"
-      CELERY_CONCURRENCY: "4"
+  nginx:
+    extends:
+      service: nginx
+      file: base.yml
     volumes:
-      - /srv/examc/private_media:/private_media:rw
+      - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
+      # TODO provide an example private_media dir to be integrated in CI/CD
+      # - /srv/examc/private_media:/private_media:rod
 
-  celery_beat:
-    restart: unless-stopped
+  web:
+    extends:
+      service: web
+      file: base.yml
+    restart: no
+    command: ["pytest"]
+    build:
+      target: test
+    env_file:
+      - ../.env.test
     environment:
-      CELERY_LOGLEVEL: "INFO"
+      TESTING_MODE_ENABLED: "1"
+      DJANGO_SETTINGS_MODULE: "examc.settings"
+    depends_on:
+      redis:
+        condition: service_started
+      mysql:
+        condition: service_healthy
     volumes:
-      - /srv/examc/private_media:/private_media:rw
+      - media_volume:/media:ro
+      - ../app:/app
+
+volumes:
+  mysql_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  client_temp:

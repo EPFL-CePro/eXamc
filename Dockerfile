@@ -3,7 +3,6 @@
 # =========================
 FROM python:3.12-slim-bookworm AS builder
 
-# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
@@ -14,7 +13,6 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
 
 WORKDIR /app
 
-# Build dependencies for mysqlclient (linked against libmariadb), and pkg-config
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     pkg-config \
@@ -22,37 +20,39 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmariadb-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# Copy project metadata and lockfile first to maximize Docker layer caching
 COPY app/pyproject.toml app/uv.lock ./
 
-# Install both production and docs generation dependencies into the virtual environment.
-# --frozen ensures that uv.lock is used exactly as-is.
-# --no-install-project skips installing the project itself at this stage.
 RUN uv sync --frozen \
     --no-dev --group docs \
     --no-install-project
 
-# Copy the application source
 COPY app/ .
 
-# Build bundled Sphinx documentation from tracked sources before collectstatic.
 RUN sphinx-build -M html docs/source examc_app/static/docs
 
-
-# Removes the unnecessary dependencies
 RUN uv sync --frozen \
     --no-dev \
     --no-install-project
 
 
 # =========================
-# Stage 2 — RUNTIME
+# TEST BUILDER
 # =========================
-FROM python:3.12-slim-bookworm
+FROM builder AS test-builder
 
-# Python production settings
+RUN uv sync --frozen \
+    --group test \
+    --no-install-project
+
+
+# =========================
+# PRODUCTION
+# =========================
+FROM python:3.12-slim-bookworm AS production
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
     PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
@@ -98,11 +98,7 @@ RUN set -eux; \
  && test -x /usr/bin/auto-multiple-choice \
  && rm -rf /var/lib/apt/lists/*
 
-
-# Copy the Python virtual environment built in the builder stage
 COPY --from=builder /opt/venv /opt/venv
-
-# Copy the application source
 COPY ./app/ /app/
 
 # Patch runsslserver.
@@ -116,11 +112,12 @@ RUN if [ "$APPLY_SSL_PATCH" = "1" ]; then \
     fi
 
 
-# Create a non-root application user
-RUN groupadd -g 1000 app && useradd -m -u 1000 -g 1000 app
+# =========================
+# TEST
+# =========================
+FROM production AS test
 
-# Gunicorn configuration
-ENV GUNICORN_CMD_ARGS="--config gunicorn.conf.py"
+COPY --from=builder /bin/uv /bin/uvx /bin/
+COPY --from=test-builder /opt/venv /opt/venv
 
-# Entrypoint: run migrations, collect static files, then execute CMD
-ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["uv", "run", "pytest"]
