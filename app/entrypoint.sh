@@ -9,6 +9,7 @@ echo "[entrypoint] DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-(set via set
 echo "[entrypoint] running as uid=$(id -u) gid=$(id -g)"
 echo "[entrypoint] DB_HOST=${DB_HOST:-unset} DB_PORT=${DB_PORT:-unset}"
 echo "[entrypoint] STATIC_ROOT=${STATIC_ROOT:-/static} MEDIA_ROOT=${MEDIA_ROOT:-/media} PRIVATE_MEDIA_ROOT=${PRIVATE_MEDIA_ROOT:-/private_media}"
+echo "[entrypoint] PYTHON_VERSION=$(python --version)"
 echo "[entrypoint] CMD to exec: $*"
 
 # ---- Default command if none passed ----
