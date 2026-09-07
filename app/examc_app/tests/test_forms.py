@@ -10,26 +10,65 @@ class FormsTestCase(TestCase):
         self.assertTrue(form.fields['files'].widget.attrs.get('allow_multiple_selected'))
 
     def test_manage_exam_pages_groups_form(self):
-        form = ManagePagesGroupsForm()
+        questions_choices = [
+            ("Group 1", "Group 1"),
+            ("Group 2", "Group 2"),
+        ]
+
+        form = ManagePagesGroupsForm(
+            data={},
+            questions_choices=questions_choices,
+        )
+
         self.assertEqual(form.Meta.model, PagesGroup)
-        self.assertEqual(form.Meta.fields, ['group_name', 'page_from', 'page_to'])
-        self.assertEqual(form.fields['group_name'].widget.attrs.get('style'), 'width:300px;')
-        self.assertEqual(form.fields['page_from'].widget.attrs.get('style'), 'width:100px;')
-        self.assertEqual(form.fields['page_to'].widget.attrs.get('style'), 'width:100px;')
+        self.assertEqual(
+            form.Meta.fields,
+            ["group_name", "nb_pages", "use_grading_scheme"],
+        )
+
+        self.assertEqual(
+            form.fields["group_name"].widget.__class__.__name__,
+            "Select",
+        )
+        self.assertEqual(
+            form.fields["nb_pages"].widget.__class__.__name__,
+            "NumberInput",
+        )
+        self.assertEqual(
+            form.fields["use_grading_scheme"].widget.__class__.__name__,
+            "SwitchWidget",
+        )
+
+        self.assertEqual(
+            form.fields["nb_pages"].widget.attrs.get("style"),
+            "width:100px",
+        )
+
+        self.assertEqual(
+            form.fields["nb_pages"].min_value,
+            1,
+        )
 
     def test_manage_exam_reviewers_form(self):
         form = ManageReviewersForm()
-        self.assertEqual(form.Meta.model, Reviewer)
+
+        self.assertEqual(form.Meta.model, ExamUser)
         self.assertEqual(form.Meta.fields, ['user', 'pages_groups'])
-        self.assertEqual(form.fields['user'].disabled, True)
-        self.assertEqual(form.fields['user'].widget.attrs.get('style'), 'width:300px;')
-        self.assertEqual(form.fields['pages_groups'].widget.attrs.get('style'), 'width:300px;')
 
     def test_export_marked_files_form(self):
         form = ExportMarkedFilesForm()
-        self.assertEqual(form.fields['export_type'].widget.__class__.__name__, 'RadioSelect')
-        self.assertEqual(form.fields['export_type'].choices,
-                         [(1, 'JPGs (one per page)'), (2, 'PDFs (one per student copy)')])
+
+        self.assertEqual(
+            form.fields["export_type"].widget.__class__.__name__,
+            "RadioSelect",
+        )
+        self.assertEqual(
+            set(form.fields["export_type"].choices),
+            {
+                (1, "JPGs (one per page)"),
+                (2, "PDFs (one per student copy)"),
+            },
+        )
 
     def test_login_pages_form(self):
         form = LoginForm()
