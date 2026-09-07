@@ -10,7 +10,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 permissions:
   contents: read
@@ -21,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set image name
+        # Required to set an image name in lower-case only
+        run: |
+          echo "BASE_IMAGE_NAME=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -41,7 +45,7 @@ jobs:
         id: image_check
         run: |
           TAG="${{ steps.version.outputs.version }}"
-          IMAGE="ghcr.io/${{ github.repository }}:$TAG"
+          IMAGE="${{ env.BASE_IMAGE_NAME }}:$TAG"
           
           if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
             echo "Image $IMAGE already exists - stopping workflow"
@@ -58,7 +62,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            ${{ env.BASE_IMAGE_NAME }}:latest
+            ${{ env.BASE_IMAGE_NAME }}:${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
