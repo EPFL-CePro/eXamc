@@ -6,8 +6,8 @@ on:
     branches:
       - a-zurcher
     # TODO: replace by on push tags when ready
-    #tags:
-    #  - "v**"
+    # tags:
+    #   - "v**"
 
 env:
   REGISTRY: ghcr.io
@@ -21,19 +21,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
       - name: Set image name
         # Required to set an image name in lower-case only
         run: |
           echo "BASE_IMAGE_NAME=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
       - name: Extract version from pyproject.toml
         id: version
         run: |
           VERSION=$(python -c "import tomllib; print(tomllib.load(open('app/pyproject.toml', 'rb'))['project']['version'])")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Log in to the Container registry
         uses: docker/login-action@v4
@@ -42,12 +42,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check if container image already exists with current tag
-        id: image_check
+      - name: Check if container image already exists
         run: |
           TAG="${{ steps.version.outputs.version }}"
           IMAGE="${{ env.BASE_IMAGE_NAME }}:$TAG"
-          
+
           if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
             echo "Image $IMAGE already exists - stopping workflow"
             exit 1
@@ -56,13 +55,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build production image # done before building the test image, as it's used as a base for it
+      # Build production target once and load into the local Docker daemon.
+      - name: Build production image
         uses: docker/build-push-action@v6
         with:
           context: .
           target: production
           load: true
-          push: false # will be pushed later if tests all run
+          push: false
           platforms: linux/amd64
           tags: |
             ${{ env.BASE_IMAGE_NAME }}:latest
@@ -70,8 +70,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Build the test target locally, as it uses production as a base, building image is not done in parallel
       - name: Build test image
-        # Done before building the test image, as test is based on production
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -85,26 +85,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-
       - name: Run tests
-        run: docker compose -f compose/test.yml up web --wait
+        run: docker compose -f compose/test.yml run web
 
+      # Push exactly the images that were tested.
       - name: Push production image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          target: production
-          load: true
-          push: true
-          platforms: linux/amd64
-          tags: |
-            ${{ env.BASE_IMAGE_NAME }}:latest
-            ${{ env.BASE_IMAGE_NAME }}:${{ steps.version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        if: success()
+        run: |
+          docker push "${{ env.BASE_IMAGE_NAME }}:latest"
+          docker push "${{ env.BASE_IMAGE_NAME }}:${{ steps.version.outputs.version }}"
 
       - name: Docker cleanup
         if: always()
-        run: |
-          docker compose -f compose/test.yml kill || true
-          docker compose -f compose/test.yml down -v
+        run: docker compose -f compose/test.yml down -v --remove-orphans || true
