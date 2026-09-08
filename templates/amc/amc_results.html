@@ -195,8 +195,7 @@
             clearInterval(timer);
             setAjaxInfoModalLocked(false);
             if (resp.status === "done") {
-              // you currently return "result" not "download_url" -> this would be undefined
-              info_modal_msg.innerHTML = `Done!`;
+              info_modal_msg.innerHTML = resp.progress ? `Done! ${resp.progress}` : `Done!`;
             } else {
               info_modal_msg.innerHTML = `Annotation failed: ${resp.error || "unknown error"}`;
             }

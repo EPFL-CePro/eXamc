@@ -131,7 +131,7 @@ def update_common_exams_questions(overall_exam_pk):
         Question.objects
         .filter(exam__in=child_exams, code__in=Subquery(common_codes))
         .order_by('code', 'id')
-        .select_related('section', 'question_type')
+        .select_related('question_type')
     )
 
     # Deduplicate by code (MySQL doesn't support DISTINCT ON)
@@ -145,7 +145,6 @@ def update_common_exams_questions(overall_exam_pk):
         removed = q.code in removed_questions_codes
         new_questions.append(Question(
             code=q.code,
-            section=q.section,
             question_type=q.question_type,
             max_points=q.max_points,
             nb_answers=q.nb_answers,

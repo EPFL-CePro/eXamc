@@ -456,6 +456,25 @@ def update_association(amc_data_path, copy_nr, student_id):
 
     return response
 
+
+def select_student_association_data(amc_data_path):
+    db = AMC_DB(amc_data_path + "association.sqlite")
+    query_str = (
+        "SELECT "
+        "student AS amc_copy, "
+        "COALESCE(NULLIF(manual, ''), NULLIF(auto, '')) AS associated_student "
+        "FROM association_association"
+    )
+
+    response = db.execute_query(query_str)
+    colname_assoc = [d[0] for d in response.description]
+    assoc_details = [dict(zip(colname_assoc, r)) for r in response.fetchall()]
+
+    db.close()
+
+    return assoc_details
+
+
 def select_students_report(amc_data_path):
     db = AMC_DB(amc_data_path + "report.sqlite")
     db.cur.execute("ATTACH DATABASE '" + amc_data_path + "association.sqlite' as association")
@@ -488,9 +507,23 @@ def get_annotated_pdf_path(amc_data_path,student_id):
 
 def get_student_report_data(amc_data_path):
     db = AMC_DB(amc_data_path + "report.sqlite")
-    query_str = ("SELECT * FROM report_student")
+    try:
+        db.cur.execute("ATTACH DATABASE '" + amc_data_path + "association.sqlite' as association")
+        query_str = (
+            "SELECT rs.*, "
+            "aa.student AS amc_copy, "
+            "COALESCE(NULLIF(aa.manual, ''), NULLIF(aa.auto, '')) AS associated_student "
+            "FROM report_student rs "
+            "LEFT JOIN association.association_association aa ON aa.student = rs.student"
+        )
+        response = db.execute_query(query_str)
+    except sqlite3.Error:
+        response = None
 
-    response = db.execute_query(query_str)
+    if not response:
+        query_str = "SELECT rs.*, rs.student AS amc_copy, NULL AS associated_student FROM report_student rs"
+        response = db.execute_query(query_str)
+
     colname_rep = [d[0] for d in response.description]
     rep_details = [dict(zip(colname_rep, r)) for r in response.fetchall()]
 

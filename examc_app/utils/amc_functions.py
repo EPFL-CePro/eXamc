@@ -13,6 +13,7 @@ import xml.etree.ElementTree as xmlET
 import zipfile
 from datetime import datetime
 from decimal import Decimal
+import html
 from pathlib import Path
 
 import chardet
@@ -20,19 +21,24 @@ import img2pdf
 import pandas as pd
 import xmltodict
 from PIL import Image
-from PyPDF2 import PdfReader, PdfWriter
+try:
+    from pypdf import PdfReader, PdfWriter
+except ImportError:
+    from PyPDF2 import PdfReader, PdfWriter
 from django.conf import settings
 from django.contrib.admin.utils import unquote
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.template.loader import get_template
+from django.utils.html import strip_tags
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
-from reportlab.platypus import Table, TableStyle
+from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from setuptools import glob
 
 from examc_app.decorators import exam_permission_required
@@ -1025,6 +1031,7 @@ def amc_automatic_association(exam,assoc_primary_key):
     if result.stderr:
         return "ERR:" + result.stderr
     else:
+        sync_student_amc_ids_from_association(exam)
         return result.stdout
 
 def check_students_csv_file(file):
@@ -1060,7 +1067,125 @@ def check_students_csv_file(file):
 
     return "ok"
 
-def amc_annotate(exam,single_file,add_grading_scheme_report):
+
+def get_annotated_pdfs_dir(exam):
+    return Path(get_amc_project_path(exam, False)) / "cr" / "corrections" / "pdf"
+
+
+def get_annotated_zip_path(exam):
+    corrections_path = Path(get_amc_project_path(exam, False)) / "cr" / "corrections"
+    zip_filename = f"annotated_pdfs_{exam.code}_{exam.year.code}_{exam.semester.code}.zip"
+    return corrections_path / zip_filename
+
+
+def cleanup_previous_annotated_outputs(exam):
+    annotated_pdfs_dir = get_annotated_pdfs_dir(exam)
+    annotated_pdfs_dir.mkdir(parents=True, exist_ok=True)
+
+    deleted_pdfs = 0
+    for pdf_path in annotated_pdfs_dir.glob("*.pdf"):
+        if not pdf_path.is_file():
+            continue
+        pdf_path.unlink()
+        deleted_pdfs += 1
+
+    annotated_zip_path = get_annotated_zip_path(exam)
+    zip_deleted = False
+    if annotated_zip_path.exists():
+        annotated_zip_path.unlink()
+        zip_deleted = True
+
+    logger.info(
+        "AMC previous annotated outputs cleaned exam=%s deleted_pdfs=%s zip_deleted=%s zip=%s",
+        exam.pk,
+        deleted_pdfs,
+        zip_deleted,
+        annotated_zip_path,
+    )
+    return deleted_pdfs, zip_deleted
+
+
+def get_annotated_pdf_mtimes(annotated_pdfs_dir):
+    annotated_pdfs_dir = Path(annotated_pdfs_dir)
+    if not annotated_pdfs_dir.exists():
+        return {}
+
+    mtimes = {}
+    for pdf_path in annotated_pdfs_dir.glob("*.pdf"):
+        if not pdf_path.is_file():
+            continue
+        try:
+            mtimes[pdf_path] = pdf_path.stat().st_mtime_ns
+        except OSError:
+            continue
+    return mtimes
+
+
+def count_updated_annotated_pdfs(annotated_pdfs_dir, initial_mtimes):
+    annotated_pdfs_dir = Path(annotated_pdfs_dir)
+    if not annotated_pdfs_dir.exists():
+        return 0
+
+    count = 0
+    for pdf_path in annotated_pdfs_dir.glob("*.pdf"):
+        if not pdf_path.is_file():
+            continue
+        try:
+            if initial_mtimes.get(pdf_path) != pdf_path.stat().st_mtime_ns:
+                count += 1
+        except OSError:
+            continue
+    return count
+
+
+def run_amc_annotate_command(command, exam, single_file, progress_callback=None):
+    annotated_pdfs_dir = get_annotated_pdfs_dir(exam)
+    total = 1 if single_file else Student.objects.filter(exam=exam).count()
+    initial_mtimes = get_annotated_pdf_mtimes(annotated_pdfs_dir)
+    last_done = -1
+    last_update_at = 0
+
+    if progress_callback:
+        progress_callback(
+            done=0,
+            total=total,
+            message=f"Generating AMC annotations: 0/{total} files generated",
+        )
+
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    while True:
+        try:
+            stdout, stderr = process.communicate(timeout=2)
+            break
+        except subprocess.TimeoutExpired:
+            done = count_updated_annotated_pdfs(annotated_pdfs_dir, initial_mtimes)
+            if total:
+                done = min(done, total)
+
+            now = time.time()
+            if progress_callback and (done != last_done or now - last_update_at >= 10):
+                progress_callback(
+                    done=done,
+                    total=total,
+                    message=f"Generating AMC annotations: {done}/{total} files generated",
+                )
+                last_done = done
+                last_update_at = now
+
+    done = count_updated_annotated_pdfs(annotated_pdfs_dir, initial_mtimes)
+    if total:
+        done = min(done, total)
+    if progress_callback:
+        progress_callback(
+            done=done,
+            total=total,
+            message=f"Generating AMC annotations: {done}/{total} files generated",
+        )
+
+    return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+
+
+def amc_annotate(exam, single_file, add_grading_scheme_report, progress_callback=None):
     project_path = get_amc_project_path(exam, False)
     assoc_primary_key = get_amc_option_by_key(exam,'liste_key')
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
@@ -1084,19 +1209,67 @@ def amc_annotate(exam,single_file,add_grading_scheme_report):
         "--compose", "0",
     ]
     if single_file:
-        command.append("--single-output")
+        command.extend(["--single-output", "annotated_papers.pdf"])
 
-    result = subprocess.run(command, capture_output=True, text=True)
+    logger.info(
+        "AMC annotate command started exam=%s single_file=%s add_grading_scheme_report=%s command=%s",
+        exam.pk,
+        single_file,
+        add_grading_scheme_report,
+        command,
+    )
+    if progress_callback:
+        progress_callback(message="Cleaning previous annotated outputs...")
+    cleanup_previous_annotated_outputs(exam)
+
+    result = run_amc_annotate_command(
+        command,
+        exam,
+        single_file,
+        progress_callback=progress_callback,
+    )
+    logger.info(
+        "AMC annotate command completed exam=%s returncode=%s stdout_len=%s stderr_len=%s",
+        exam.pk,
+        result.returncode,
+        len(result.stdout or ""),
+        len(result.stderr or ""),
+    )
     if result.stderr:
+        logger.error("AMC annotate command stderr exam=%s stderr=%s", exam.pk, result.stderr)
         return "ERR:" + result.stderr
     else:
 
         student_report_data = get_student_report_data(project_path+"/data/")
+        report_type = 2 if single_file else 1
+        generated_rows = [
+            row for row in student_report_data
+            if int(row.get("type") or 0) == report_type
+        ]
+        generated_count = 1 if single_file else len(generated_rows)
+        logger.info(
+            "AMC annotate reports registered exam=%s report_type=%s report_rows=%s generated_count=%s",
+            exam.pk,
+            report_type,
+            len(generated_rows),
+            generated_count,
+        )
+        if progress_callback and not add_grading_scheme_report:
+            progress_callback(
+                done=generated_count,
+                total=generated_count,
+                message=f"{generated_count}/{generated_count} files generated",
+            )
+
         for st_rep in student_report_data:
             add_extra_to_annotated_pdf(st_rep['student'], st_rep['file'], project_path)
 
         if add_grading_scheme_report:
-            add_grading_schemes_reports(exam.id)
+            add_grading_schemes_reports(
+                exam.id,
+                single_file=single_file,
+                progress_callback=progress_callback,
+            )
 
         return result.stdout
 
@@ -1174,27 +1347,288 @@ def check_annotated_papers_available(exam):
     else:
         return False
 
-def add_grading_schemes_reports(exam_pk):
-    exam = Exam.objects.get(pk=exam_pk)
-    students = Student.objects.filter(exam=exam_pk)
+def resolve_annotated_pdf_path(annotated_pdfs_dir, filename):
+    annotated_pdf_path = Path(filename or "")
+    if not annotated_pdf_path.is_absolute():
+        annotated_pdf_path = Path(annotated_pdfs_dir) / annotated_pdf_path
+    return annotated_pdf_path
 
-    project_path = Path(get_amc_project_path(exam, False))
-    annotated_pdfs_dir = project_path / "cr" / "corrections" / "pdf"
 
-    for student in students:
-        annotated_pdf_path = annotated_pdfs_dir / (
-            f"{student.copie_no.zfill(4)}_{student.sciper}_{safe_filename_part(student.name)}.pdf"
+def copy_number_candidates(copy_nr):
+    if copy_nr is None or copy_nr == "":
+        return []
+
+    value = str(copy_nr).strip()
+    return list(dict.fromkeys([
+        value,
+        value.zfill(4),
+        value.zfill(2),
+        value.lstrip("0") or "0",
+    ]))
+
+
+def report_row_amc_copy_nr(report_row):
+    return report_row.get("amc_copy") or report_row.get("student")
+
+
+def find_student_for_association_value(exam, assoc_primary_key, associated_student):
+    if associated_student is None or str(associated_student).strip() == "":
+        return None
+
+    associated_student = str(associated_student).strip()
+    if assoc_primary_key == "ID":
+        return (
+            Student.objects
+            .filter(
+                Q(copie_no__in=copy_number_candidates(associated_student))
+                | Q(amc_id__in=copy_number_candidates(associated_student)),
+                exam=exam,
+            )
+            .first()
+        )
+    if assoc_primary_key == "SCIPER":
+        return Student.objects.filter(exam=exam, sciper=associated_student).first()
+    if assoc_primary_key == "NAME":
+        return Student.objects.filter(exam=exam, name=associated_student).first()
+
+    return (
+        Student.objects
+        .filter(exam=exam)
+        .filter(
+            Q(copie_no=associated_student)
+            | Q(amc_id=associated_student)
+            | Q(sciper=associated_student)
+            | Q(name=associated_student)
+        )
+        .first()
+    )
+
+
+def sync_student_amc_ids_from_association(exam):
+    project_path = get_amc_project_path(exam, False)
+    if not project_path:
+        return 0
+
+    amc_data_path = project_path + "/data/"
+    assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
+    associations = select_student_association_data(amc_data_path)
+
+    Student.objects.filter(exam=exam).update(amc_id="0")
+    updated_count = 0
+    for association in associations:
+        amc_copy_nr = association.get("amc_copy")
+        associated_student = association.get("associated_student")
+        if amc_copy_nr is None or associated_student is None:
+            continue
+
+        student = find_student_for_association_value(exam, assoc_primary_key, associated_student)
+        if not student:
+            logger.warning(
+                "No student found while syncing AMC id exam=%s assoc_key=%s associated_student=%s amc_copy=%s",
+                exam.pk,
+                assoc_primary_key,
+                associated_student,
+                amc_copy_nr,
+            )
+            continue
+
+        student.amc_id = str(amc_copy_nr)
+        student.save(update_fields=["amc_id"])
+        updated_count += 1
+
+    logger.info(
+        "Student AMC ids synced from association exam=%s assoc_key=%s updated=%s associations=%s",
+        exam.pk,
+        assoc_primary_key,
+        updated_count,
+        len(associations),
+    )
+    return updated_count
+
+
+def empty_student_amc_id(value):
+    return value is None or str(value).strip() in ("", "0", "None")
+
+
+def student_amc_copy_nr(student):
+    if not empty_student_amc_id(student.amc_id):
+        return student.amc_id
+    return student.copie_no
+
+
+def update_student_amc_id_if_missing(student, amc_copy_nr):
+    if empty_student_amc_id(student.amc_id) and amc_copy_nr not in (None, "", "0"):
+        student.amc_id = str(amc_copy_nr)
+        student.save(update_fields=["amc_id"])
+        logger.info(
+            "Backfilled student AMC id student_pk=%s copy=%s amc_id=%s",
+            student.pk,
+            student.copie_no,
+            student.amc_id,
         )
 
-        # Optional: fail with a clearer message
-        if not annotated_pdf_path.exists():
-            print(f"Missing annotated PDF: {annotated_pdf_path}")
-        else:
-            annotated_pdf_bytes = annotated_pdf_path.read_bytes()
-            grading_scheme_report_bytes = build_grading_report_pdf_bytes(exam_pk, student.id)
-            merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
 
-            annotated_pdf_path.write_bytes(merged)
+def find_student_for_amc_report(exam, report_row):
+    assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
+    amc_copy_nr = report_row_amc_copy_nr(report_row)
+    amc_copy_candidates = copy_number_candidates(amc_copy_nr)
+    if amc_copy_candidates:
+        student = (
+            Student.objects
+            .filter(exam=exam, amc_id__in=amc_copy_candidates)
+            .first()
+        )
+        if student:
+            return student
+
+    associated_student = report_row.get("associated_student")
+    if associated_student:
+        student = find_student_for_association_value(exam, assoc_primary_key, associated_student)
+        if student:
+            update_student_amc_id_if_missing(student, amc_copy_nr)
+            return student
+
+    copy_candidates = []
+    for value in (amc_copy_nr, report_row.get("copy")):
+        if value is None or value == "":
+            continue
+        copy_candidates.extend(copy_number_candidates(value))
+
+    student = (
+        Student.objects
+        .filter(exam=exam, copie_no__in=list(dict.fromkeys(copy_candidates)))
+        .first()
+    )
+    if student:
+        update_student_amc_id_if_missing(student, amc_copy_nr)
+    return student
+
+
+def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=None):
+    exam = Exam.objects.get(pk=exam_pk)
+
+    project_path = Path(get_amc_project_path(exam, False))
+    amc_data_path = str(project_path / "data") + "/"
+    annotated_pdfs_dir = project_path / "cr" / "corrections" / "pdf"
+    report_type = 2 if single_file else 1
+    report_rows = [
+        row for row in get_student_report_data(amc_data_path)
+        if int(row.get("type") or 0) == report_type
+    ]
+    logger.info(
+        "AMC grading scheme report append started exam=%s single_file=%s report_type=%s report_rows=%s",
+        exam_pk,
+        single_file,
+        report_type,
+        len(report_rows),
+    )
+    if single_file:
+        filename = next((row.get("file") for row in report_rows if row.get("file")), "annotated_papers.pdf")
+        annotated_pdf_path = resolve_annotated_pdf_path(annotated_pdfs_dir, filename)
+        if not annotated_pdf_path.exists():
+            raise FileNotFoundError(f"Missing annotated PDF: {annotated_pdf_path}")
+
+        if report_rows:
+            student_reports = []
+            for row in sorted(report_rows, key=lambda r: (int(r.get("student") or 0), int(r.get("copy") or 0))):
+                student = find_student_for_amc_report(exam, row)
+                if not student:
+                    raise RuntimeError(f"No eXamc student found for AMC report row {row}.")
+                student_reports.append((student, report_row_amc_copy_nr(row)))
+        else:
+            student_reports = [
+                (student, student_amc_copy_nr(student))
+                for student in Student.objects.filter(exam=exam).order_by("copie_no", "pk")
+            ]
+
+        total = len(student_reports)
+        if progress_callback:
+            progress_callback(
+                done=0,
+                total=total,
+                message=f"Adding grading scheme reports: 0/{total} reports added",
+            )
+
+        pdf_parts = [annotated_pdf_path.read_bytes()]
+        for index, (student, amc_copy_nr) in enumerate(student_reports, start=1):
+            logger.info(
+                "AMC grading scheme report generated exam=%s mode=single student_pk=%s student_copy=%s amc_copy=%s index=%s total=%s target=%s",
+                exam_pk,
+                student.pk,
+                student.copie_no,
+                amc_copy_nr,
+                index,
+                total,
+                annotated_pdf_path,
+            )
+            pdf_parts.append(
+                build_grading_report_pdf_bytes(
+                    exam_pk,
+                    student.id,
+                    amc_copy_nr=amc_copy_nr,
+                )
+            )
+            if progress_callback:
+                progress_callback(
+                    done=index,
+                    total=total,
+                    message=f"Adding grading scheme reports: {index}/{total} reports added",
+                )
+        annotated_pdf_path.write_bytes(concat_pdfs(*pdf_parts))
+        logger.info(
+            "AMC grading scheme report append completed exam=%s mode=single target=%s total=%s",
+            exam_pk,
+            annotated_pdf_path,
+            total,
+        )
+        return
+
+    if not report_rows:
+        raise RuntimeError(f"No AMC annotated PDF report rows found for type {report_type}.")
+
+    total = len(report_rows)
+    if progress_callback:
+        progress_callback(
+            done=0,
+            total=total,
+            message=f"Adding grading scheme reports: 0/{total} files generated",
+        )
+
+    for index, row in enumerate(report_rows, start=1):
+        student = find_student_for_amc_report(exam, row)
+        if not student:
+            raise RuntimeError(f"No eXamc student found for AMC report row {row}.")
+
+        annotated_pdf_path = resolve_annotated_pdf_path(annotated_pdfs_dir, row.get("file"))
+        if not annotated_pdf_path.exists():
+            raise FileNotFoundError(f"Missing annotated PDF: {annotated_pdf_path}")
+
+        annotated_pdf_bytes = annotated_pdf_path.read_bytes()
+        grading_scheme_report_bytes = build_grading_report_pdf_bytes(
+            exam_pk,
+            student.id,
+            amc_copy_nr=report_row_amc_copy_nr(row),
+        )
+        merged = concat_pdfs(annotated_pdf_bytes, grading_scheme_report_bytes)
+        annotated_pdf_path.write_bytes(merged)
+        logger.info(
+            "AMC grading scheme report appended exam=%s student_pk=%s student_copy=%s amc_copy=%s index=%s total=%s target=%s",
+            exam_pk,
+            student.pk,
+            student.copie_no,
+            report_row_amc_copy_nr(row),
+            index,
+            total,
+            annotated_pdf_path,
+        )
+        if progress_callback:
+            progress_callback(
+                done=index,
+                total=total,
+                message=f"Adding grading scheme reports: {index}/{total} files generated",
+            )
+
+    logger.info("AMC grading scheme report append completed exam=%s total=%s", exam_pk, total)
 
 def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     writer = PdfWriter()
@@ -1210,12 +1644,12 @@ def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     return out.getvalue()
 
 def create_annotated_zip(exam):
-    corrections_path = get_amc_project_path(exam,False)+'/cr/corrections/'
-    zip_filename = "annotated_pdfs_"+exam.code+"_"+exam.year.code+"_"+str(exam.semester.code)
+    corrections_path = Path(get_amc_project_path(exam, False)) / "cr" / "corrections"
+    zip_path = get_annotated_zip_path(exam)
     # Creating the ZIP file
-    archived = shutil.make_archive(corrections_path+zip_filename, 'zip', corrections_path+'pdf')
+    archived = shutil.make_archive(str(zip_path.with_suffix("")), 'zip', str(corrections_path / "pdf"))
 
-    if os.path.exists(corrections_path+zip_filename+".zip"):
+    if zip_path.exists():
         return archived
     else:
         return False
@@ -1347,6 +1781,7 @@ def set_amc_manual_association(exam,copy_nr,student_id):
     if project_path:
         amc_data_path = project_path + "/data/"
         result = update_association(amc_data_path, copy_nr, student_id)
+        sync_student_amc_ids_from_association(exam)
 
     return result
 
@@ -1458,196 +1893,275 @@ def wrap_canvas_text_lines(c, text, max_width, font_name="Helvetica", font_size=
 
 
 
-def build_grading_report_pdf_bytes(exam_pk, student_pk) -> bytes:
+def clean_report_text(value) -> str:
+    """Return plain text suitable for ReportLab paragraphs."""
+    if not value:
+        return ""
+
+    text = str(value)
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)</p\s*>", "\n", text)
+    text = re.sub(r"(?i)</li\s*>", "\n", text)
+    text = strip_tags(text)
+    text = html.unescape(text)
+    lines = [" ".join(line.split()) for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    return "\n".join(line for line in lines if line).strip()
+
+
+def report_paragraph(value, style):
+    """Build a paragraph that preserves explicit line breaks."""
+    text = clean_report_text(value)
+    if not text:
+        return Paragraph("&nbsp;", style)
+    return Paragraph(html.escape(text).replace("\n", "<br/>"), style)
+
+
+def build_long_table(rows, col_widths, repeat_rows=1):
+    try:
+        return LongTable(rows, colWidths=col_widths, repeatRows=repeat_rows, splitByRow=1, splitInRow=1)
+    except TypeError:
+        return LongTable(rows, colWidths=col_widths, repeatRows=repeat_rows, splitByRow=1)
+
+
+def build_grading_report_pdf_bytes(exam_pk, student_pk, amc_copy_nr=None, review_copy_nr=None) -> bytes:
     """
-    Generate grading report and return the content in bytes
+    Generate grading report and return the content in bytes.
     """
     exam = Exam.objects.get(pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, False)
 
-    if amc_data_path:
-        amc_data_path += "/data/"
+    if not amc_data_path:
+        return None
 
-        student = Student.objects.get(pk=student_pk)
+    amc_data_path += "/data/"
+    student = Student.objects.get(pk=student_pk)
+    review_copy_nr = str(review_copy_nr if review_copy_nr is not None else student.copie_no)
+    amc_copy_nr = str(amc_copy_nr if amc_copy_nr is not None else student_amc_copy_nr(student))
+    copy_candidates = list(dict.fromkeys(
+        copy_number_candidates(review_copy_nr) + copy_number_candidates(amc_copy_nr)
+    ))
 
-        buffer = io.BytesIO()
-        c = canvas.Canvas(buffer, pagesize=A4)
-        width, height = A4
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=2 * cm,
+        rightMargin=2 * cm,
+        topMargin=3.2 * cm,
+        bottomMargin=2.2 * cm,
+    )
+    width, height = A4
+    table_width = width - doc.leftMargin - doc.rightMargin
 
-        def draw_header():
-            c.setFont("Helvetica-Bold", 18)
-            c.drawString(2 * cm, height - 2 * cm, "Grading Report")
-            c.setLineWidth(1)
-            c.line(2 * cm, height - 2.4 * cm, width - 2 * cm, height - 2.4 * cm)
+    styles = getSampleStyleSheet()
+    question_style = ParagraphStyle(
+        "GradingReportQuestion",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        leading=15,
+        spaceBefore=8,
+        spaceAfter=6,
+    )
+    body_style = ParagraphStyle(
+        "GradingReportBody",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=8,
+        leading=10,
+        splitLongWords=1,
+    )
+    body_center_style = ParagraphStyle(
+        "GradingReportBodyCenter",
+        parent=body_style,
+        alignment=1,
+    )
+    header_style = ParagraphStyle(
+        "GradingReportHeader",
+        parent=body_center_style,
+        fontName="Helvetica-Bold",
+    )
+    total_label_style = ParagraphStyle(
+        "GradingReportTotalLabel",
+        parent=body_style,
+        fontName="Helvetica-Bold",
+    )
+    total_center_style = ParagraphStyle(
+        "GradingReportTotalCenter",
+        parent=body_center_style,
+        fontName="Helvetica-Bold",
+    )
+    note_title_style = ParagraphStyle(
+        "GradingReportNoteTitle",
+        parent=body_style,
+        fontName="Helvetica-Bold",
+        spaceBefore=6,
+        spaceAfter=2,
+    )
+    note_style = ParagraphStyle(
+        "GradingReportNote",
+        parent=body_style,
+        leftIndent=0.2 * cm,
+        spaceAfter=8,
+    )
 
-        def draw_footer(page_num, total_pages_placeholder="X"):
-            c.setFont("Helvetica", 10)
-            c.drawCentredString(width / 2, 1.2 * cm, f"{page_num}/{total_pages_placeholder}")
+    def draw_header_footer(canvas_obj, doc_obj):
+        canvas_obj.saveState()
+        canvas_obj.setFont("Helvetica-Bold", 18)
+        canvas_obj.drawString(doc.leftMargin, height - 2 * cm, "Grading Report")
+        canvas_obj.setLineWidth(1)
+        canvas_obj.line(doc.leftMargin, height - 2.4 * cm, width - doc.rightMargin, height - 2.4 * cm)
+        canvas_obj.setFont("Helvetica", 10)
+        canvas_obj.drawCentredString(width / 2, 1.2 * cm, str(doc_obj.page))
+        canvas_obj.restoreState()
 
-        top_margin = 4 * cm
-        bottom_margin = 3 * cm
-        y = height - top_margin
-        page_num = 1
+    story = []
 
-        draw_header()
+    pages_groups = PagesGroup.objects.filter(exam__pk=exam_pk, use_grading_scheme=True)
+    for pages_group in pages_groups:
+        pages_group_grading_schemes = PagesGroupGradingSchemeCheckedBox.objects.filter(
+            pages_group=pages_group,
+            copy_nr__in=copy_candidates,
+        )
 
-        pages_groups = PagesGroup.objects.filter(exam__pk=exam_pk, use_grading_scheme=True)
-        copy_nr = student.copie_no.zfill(4)
+        if not pages_group_grading_schemes.exists():
+            continue
 
-        for pages_group in pages_groups:
-            pages_group_grading_schemes = PagesGroupGradingSchemeCheckedBox.objects.filter(
-                pages_group=pages_group,
-                copy_nr=copy_nr
+        valid_checked_boxes = (
+            pages_group_grading_schemes
+            .filter(gradingSchemeCheckBox__isnull=False)
+            .select_related("gradingSchemeCheckBox__questionGradingScheme")
+        )
+        first_checked_box = None
+        for candidate in copy_candidates:
+            first_checked_box = valid_checked_boxes.filter(copy_nr=candidate).first()
+            if first_checked_box:
+                break
+        if not first_checked_box:
+            logger.warning(
+                "Skipping grading report section without valid checked boxes exam=%s student=%s pages_group=%s copy_nr=%s",
+                exam_pk,
+                student_pk,
+                pages_group.pk,
+                amc_copy_nr,
             )
+            continue
+        grading_copy_nr = first_checked_box.copy_nr
 
-            if not pages_group_grading_schemes.exists():
+        grading_scheme_id = (
+            first_checked_box
+            .gradingSchemeCheckBox
+            .questionGradingScheme
+            .id
+        )
+
+        all_grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(
+            questionGradingScheme_id=grading_scheme_id,
+        ).order_by("position", "pk")
+
+        max_points = all_grading_scheme_checkboxes.aggregate(points__sum=Sum("points"))["points__sum"] or Decimal("0.00")
+        grading_scheme_checkboxes = list(
+            all_grading_scheme_checkboxes
+            .exclude(name__in=("ZERO", "ADJ"))
+            .order_by("position", "pk")
+        )
+        adjustment_checkbox = all_grading_scheme_checkboxes.filter(name="ADJ").first()
+        if adjustment_checkbox:
+            grading_scheme_checkboxes.append(adjustment_checkbox)
+
+        table_rows = [[
+            Paragraph("Title", header_style),
+            Paragraph("Text", header_style),
+            Paragraph("Points", header_style),
+            Paragraph("Validated", header_style),
+        ]]
+        points = Decimal("0.00")
+
+        for grading_scheme_checkbox in grading_scheme_checkboxes:
+            pg_checked_box_item = PagesGroupGradingSchemeCheckedBox.objects.filter(
+                pages_group=pages_group,
+                gradingSchemeCheckBox_id=grading_scheme_checkbox.id,
+                copy_nr=grading_copy_nr,
+            ).first()
+            pg_checked_box = pg_checked_box_item is not None
+
+            add_row = not (
+                grading_scheme_checkbox.name == "ZERO"
+                or (
+                    grading_scheme_checkbox.name == "ADJ"
+                    and (not pg_checked_box_item or pg_checked_box_item.adjustment == 0)
+                )
+            )
+            if not add_row:
                 continue
 
-            grading_scheme_id = pages_group_grading_schemes.first().gradingSchemeCheckBox.questionGradingScheme.id
-
-            grading_scheme_checkboxes = QuestionGradingSchemeCheckBox.objects.filter(
-                questionGradingScheme_id=grading_scheme_id
-            )
-
-            max_points = grading_scheme_checkboxes.aggregate(points__sum=Sum('points'))['points__sum'] or Decimal("0.00")
-
-            table_rows = [["Description", "Points", "Validated"]]
-            points = Decimal("0.00")
-
-            for grading_scheme_checkbox in grading_scheme_checkboxes:
-                add_row = True
-                row_points = 0
-                pg_checked_box_qs = PagesGroupGradingSchemeCheckedBox.objects.filter(
-                    gradingSchemeCheckBox_id=grading_scheme_checkbox.id,
-                    copy_nr=copy_nr
-                )
-                pg_checked_box_item = None
-                if pg_checked_box_qs.exists():
-                    pg_checked_box = True
-                    pg_checked_box_item = pg_checked_box_qs.all().first()
+            if pg_checked_box:
+                if grading_scheme_checkbox.name == "ADJ":
+                    row_points = pg_checked_box_item.adjustment
+                    max_points += row_points
                 else:
-                    pg_checked_box = False
+                    row_points = grading_scheme_checkbox.points
+                points += row_points
+            else:
+                row_points = grading_scheme_checkbox.points
 
-                if grading_scheme_checkbox.name == 'ZERO' or (grading_scheme_checkbox.name == 'ADJ' and (not pg_checked_box_item or pg_checked_box_item.adjustment == 0)):
-                    add_row = False
+            title = "Adjustment" if grading_scheme_checkbox.name == "ADJ" else grading_scheme_checkbox.name
+            table_rows.append([
+                report_paragraph(title, body_style),
+                report_paragraph(grading_scheme_checkbox.description, body_style),
+                report_paragraph(row_points, body_center_style),
+                report_paragraph("Yes" if pg_checked_box else "No", body_center_style),
+            ])
 
-                if add_row:
-                    if pg_checked_box:
-                        if grading_scheme_checkbox.name == 'ADJ':
-                            row_points += pg_checked_box_item.adjustment
-                            max_points += row_points
-                        else:
-                            row_points = grading_scheme_checkbox.points
-                        points += row_points
-                    else:
-                        row_points = grading_scheme_checkbox.points
+        table_rows.append([
+            Paragraph("Total", total_label_style),
+            Paragraph("&nbsp;", total_label_style),
+            report_paragraph(max_points, total_center_style),
+            report_paragraph(points, total_center_style),
+        ])
 
-                if add_row:
-                    description = 'Adjustment' if grading_scheme_checkbox.name == 'ADJ' else grading_scheme_checkbox.name
+        question_num = get_question_number(amc_data_path, amc_copy_nr, pages_group.group_name)
+        story.append(Paragraph(f"Question {question_num}:", question_style))
 
-                    table_rows.append([description, str(row_points), "✔" if pg_checked_box else "✘" ])
+        col_widths = [
+            table_width * 0.22,
+            table_width * 0.50,
+            table_width * 0.13,
+            table_width * 0.15,
+        ]
+        table = build_long_table(table_rows, col_widths)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ALIGN", (2, 0), (3, -1), "CENTER"),
+            ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(table)
 
-            table_rows.append(["Total", max_points, points])
+        student_note_obj = PagesGroupStudentReportNote.objects.filter(
+            pages_group=pages_group,
+            copy_nr=grading_copy_nr,
+        ).first()
+        student_note = student_note_obj.content if student_note_obj else ""
+        if clean_report_text(student_note):
+            story.append(Paragraph("Comment:", note_title_style))
+            story.append(report_paragraph(student_note, note_style))
 
-            question_num = get_question_number(amc_data_path,student.copie_no,pages_group.group_name)
-            q_title = "Question "+str(question_num) + ":"
+        story.append(Spacer(1, 0.5 * cm))
 
-            data = table_rows
+    if not story:
+        story.append(Paragraph("No grading scheme report data.", body_style))
 
-            # ====== PAGE BREAK CHECK ======
-            estimated_min_height = 2 * cm
-            if y < bottom_margin + estimated_min_height:
-                draw_footer(page_num)
-                c.showPage()
-                page_num += 1
-                draw_header()
-                y = height - top_margin
-
-            # Draw title
-            c.setFont("Helvetica-Bold", 12)
-            c.drawString(2 * cm, y, q_title)
-            y -= 0.8 * cm
-
-            # Compute column widths: table matches header line width
-            table_width = width - 4 * cm  # same width as header line
-            desc_w = 12 * cm  # keep fixed
-            remaining = table_width - desc_w
-            points_w = remaining / 2
-            validated_w = remaining / 2
-            col_widths = [desc_w, points_w, validated_w]
-
-            # Measure table height
-            table = Table(data, colWidths=[12 * cm, 3 * cm, 3 * cm])
-            w, table_height = table.wrap(0, 0)
-
-            if y - table_height < bottom_margin:
-                draw_footer(page_num)
-                c.showPage()
-                page_num += 1
-                draw_header()
-                y = height - top_margin
-
-                c.setFont("Helvetica-Bold", 12)
-                c.drawString(2 * cm, y, q_title)
-                y -= 0.8 * cm
-
-            # Draw the actual table
-            used_height = draw_table(
-                c,
-                data,
-                x=2 * cm,
-                y=y,
-                col_widths=col_widths
-            )
-            y -= (used_height + 0.6 * cm)
-
-            student_note_obj = PagesGroupStudentReportNote.objects.filter(
-                pages_group=pages_group,
-                copy_nr=copy_nr,
-            ).first()
-            student_note = student_note_obj.content.strip() if student_note_obj else ""
-            if student_note:
-                note_title = "Comment:"
-                note_lines = wrap_canvas_text_lines(
-                    c,
-                    student_note,
-                    max_width=width - 4.4 * cm,
-                    font_name="Helvetica",
-                    font_size=10,
-                )
-
-                title_height = 0.6 * cm
-                line_height = 0.45 * cm
-                note_height = title_height + (max(1, len(note_lines)) * line_height) + 0.4 * cm
-
-                if y - note_height < bottom_margin:
-                    draw_footer(page_num)
-                    c.showPage()
-                    page_num += 1
-                    draw_header()
-                    y = height - top_margin
-
-                c.setFont("Helvetica-Bold", 10)
-                c.drawString(2 * cm, y, note_title)
-                y -= title_height
-
-                c.setFont("Helvetica", 10)
-                for line in note_lines:
-                    c.drawString(2.2 * cm, y, line)
-                    y -= line_height
-
-            y -= 0.9 * cm
-
-        # End PDF
-        draw_footer(page_num)
-        c.showPage()
-        c.save()
-
-        pdf_bytes = buffer.getvalue()
-        buffer.close()
-        return pdf_bytes
-    else:
-        return None
+    doc.build(story, onFirstPage=draw_header_footer, onLaterPages=draw_header_footer)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
 
 def draw_table(c, data, x, y, col_widths):
     """
