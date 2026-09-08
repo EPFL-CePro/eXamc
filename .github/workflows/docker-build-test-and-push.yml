@@ -87,9 +87,7 @@ jobs:
 
 
       - name: Run tests
-        run: |
-          docker compose -f compose/test.yml up -d --wait
-          docker compose -f compose/test.yml exec app python run_tests.py
+        run: docker compose -f compose/test.yml up web --wait
 
       - name: Push production image
         uses: docker/build-push-action@v6
