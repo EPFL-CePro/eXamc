@@ -9,17 +9,28 @@ from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
 from django.conf import settings
+from docutils import DataError
+
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, SummernoteForm
 from examc_app.models import *
+from examc_app.services.oasis import get_courses, get_teacher_names_by_course
 from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
 
 logger = logging.getLogger(__name__)
 
 @login_required
 def create_exam_project(request):
+    year = AcademicYear.objects.order_by("-code").first()
+
+    if year is None:
+        raise DataError("No academic year configured.")
+
+    teacher_names_by_course = get_teacher_names_by_course(year.code)
+    courses = get_courses(year.code)
 
     if request.method == 'POST':
-        form = CreateExamProjectForm(request.POST)
+        form = CreateExamProjectForm(request.POST, courses=courses, academic_year=year,
+                                     teacher_names_by_course=teacher_names_by_course)
         if form.is_valid():
             course_id = form.cleaned_data['course']
             date = form.cleaned_data['date']
@@ -80,7 +91,8 @@ def create_exam_project(request):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = CreateExamProjectForm(request.POST)
+        form = CreateExamProjectForm(courses=courses, academic_year=year,
+                                     teacher_names_by_course=teacher_names_by_course)
 
         return render(request, 'exam/create_exam_project.html', {"user_allowed": True,
                                                                "form": form,

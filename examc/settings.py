@@ -51,8 +51,6 @@ APP_NAME = "eXamc"
 APP_LICENSE = "Business Source License (non-commercial)"
 APP_OWNER = "EPFL - CePro"
 
-
-
 # BASIC SECURITY
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "1" if os.path.exists(BASE_DIR / ".env.dev") else "0") in ("1","true","yes","on")
@@ -261,6 +259,10 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 OIDC_SUPERUSER_GROUPS = [group for group in env("OIDC_SUPERUSER_GROUPS", "CePro_admin_IT_AppGrpU").split(",") if group]
 OIDC_STAFF_GROUPS = [group for group in env("OIDC_STAFF_GROUPS", "CePro_admin_IT_AppGrpU").split(",") if group]
+
+# OASIS
+OASIS_BASE_URL = env("OASIS_BASE_URL", "").rstrip("/")
+OASIS_BEARER = env("OASIS_BEARER", "")
 
 EXAM_PERMISSION_GROUP_NAMES = {
     "manage": env_list("EXAM_PERMISSION_MANAGE_GROUP_NAMES", "Teacher,Assistant,Coordinator"),
