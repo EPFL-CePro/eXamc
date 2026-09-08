@@ -1,20 +1,36 @@
 {% if unrecognized_review_scans %}
 <hr>
 <h5 style="margin-top:20px;">Unrecognized scans ({{ unrecognized_review_scans|length }})</h5>
+<form id="deleteSelectedUnrecognizedScansForm" method="post" class="mb-2 js-delete-selected-scans"
+      action="{% url 'delete_unrecognized_review_scans' exam_pk=exam_selected.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-danger btn-sm js-delete-selected-scans-button" disabled>
+        <i class="fa-solid fa-trash" style="margin-right:5px;"></i>Delete selected scans
+        (<span class="js-selected-scan-count" aria-live="polite">0</span>)
+    </button>
+</form>
 <div class="table-responsive">
     <table class="table table-sm table-bordered table-hover" style="background:#fff;">
         <thead class="thead-light">
             <tr>
+                <th class="text-center">
+                    <input type="checkbox" class="js-select-all-unrecognized-scans" aria-label="Select all unrecognized scans"
+                           title="Select all unrecognized scans">
+                </th>
                 <th style="width:22%;">Previous recognized</th>
                 <th style="width:22%;">Unrecognized</th>
                 <th style="width:22%;">Next recognized</th>
                 <th>Suggested placement</th>
-                <th style="width:22%;">Assign</th>
+                <th style="width:22%;">Actions</th>
             </tr>
         </thead>
         <tbody>
         {% for scan in unrecognized_review_scans %}
             <tr class="js-unrecognized-scan-row">
+                <td class="text-center">
+                    <input type="checkbox" class="js-select-unrecognized-scan" name="scan_ids" value="{{ scan.id }}"
+                           form="deleteSelectedUnrecognizedScansForm" aria-label="Select {{ scan.filename }}">
+                </td>
                 <td>
                     {% if scan.previous_url %}
                     <button type="button" class="btn btn-link p-0 js-unrecognized-scan-preview"
@@ -79,6 +95,15 @@
                         </div>
                         <button type="submit" class="btn btn-dark btn-sm">
                             <i class="fa-solid fa-check" style="margin-right:5px;"></i>Assign
+                        </button>
+                    </form>
+                    <form method="post" class="mt-2 js-delete-unrecognized-scan"
+                          action="{% url 'delete_unrecognized_review_scan' exam_pk=exam_selected.pk %}"
+                          data-filename="{{ scan.filename }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="scan_id" value="{{ scan.id }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="fa-solid fa-trash" style="margin-right:5px;"></i>Delete scan
                         </button>
                     </form>
                 </td>

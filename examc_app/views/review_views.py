@@ -205,7 +205,7 @@ def _get_unrecognized_review_block_response(request, exam):
         return None
 
     message = (
-        f"Assign all unrecognized scans before continuing review "
+        f"Assign or delete all unrecognized scans before continuing review "
         f"({unresolved_count} remaining)."
     )
     if (
@@ -901,6 +901,63 @@ def assign_unrecognized_review_scan(request, exam_pk):
         f"Assigned {assigned_scan.filename} to copy {assigned_scan.assigned_copy_no}, page {page_label}.",
     )
 
+    return _redirect_after_unrecognized_review_scan_resolution(exam)
+
+
+@exam_permission_required(['manage'])
+@require_POST
+def delete_unrecognized_review_scan(request, exam_pk):
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    unrecognized_scan = get_object_or_404(
+        UnrecognizedReviewScan,
+        pk=request.POST.get("scan_id"),
+        exam=exam,
+        resolved=False,
+    )
+
+    try:
+        deleted_scan = delete_unrecognized_review_scan_file(unrecognized_scan, resolved_by=request.user)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
+    except OSError:
+        logger.exception("Unable to delete unrecognized review scan pk=%s", unrecognized_scan.pk)
+        messages.error(request, "Unable to delete this scan file. Please try again.")
+        return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
+
+    messages.success(request, f"Deleted {deleted_scan.filename}.")
+    return _redirect_after_unrecognized_review_scan_resolution(exam)
+
+
+@exam_permission_required(['manage'])
+@require_POST
+def delete_unrecognized_review_scans(request, exam_pk):
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    form = DeleteUnrecognizedReviewScansForm(request.POST, exam=exam)
+    if not form.is_valid():
+        messages.error(request, "Select valid unresolved scans for this exam, then try again.")
+        return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
+
+    deleted_count = 0
+    # Each file has its own transaction: a later failure must not undo the audit
+    # records for files that have already been removed from disk.
+    for scan in form.cleaned_data["scan_ids"]:
+        try:
+            delete_unrecognized_review_scan_file(scan, resolved_by=request.user)
+        except (ValueError, UnrecognizedReviewScan.DoesNotExist):
+            messages.error(request, f"Could not delete {scan.filename}. Refresh the list and try again.")
+        except OSError:
+            logger.exception("Unable to delete unrecognized review scan pk=%s", scan.pk)
+            messages.error(request, f"Unable to delete {scan.filename}. Please try again.")
+        else:
+            deleted_count += 1
+
+    if deleted_count:
+        messages.success(request, f"Deleted {deleted_count} selected scan(s).")
+    return _redirect_after_unrecognized_review_scan_resolution(exam)
+
+
+def _redirect_after_unrecognized_review_scan_resolution(exam):
     redirect_url = reverse("upload_scans", kwargs={"exam_pk": exam.pk})
 
     if not UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).exists():

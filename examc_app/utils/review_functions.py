@@ -220,7 +220,7 @@ def assign_unrecognized_review_scan_file(unrecognized_scan, copy_no, page_no, as
     with transaction.atomic():
         fresh_scan = UnrecognizedReviewScan.objects.select_for_update().get(pk=unrecognized_scan.pk)
         if fresh_scan.resolved:
-            raise ValueError("This unrecognized scan has already been assigned.")
+            raise ValueError("This unrecognized scan has already been assigned or deleted.")
         source_parent = source_path.parent
         os.rename(source_path, destination)
         fresh_scan.assigned_copy_no = target_copy_no
@@ -244,6 +244,40 @@ def assign_unrecognized_review_scan_file(unrecognized_scan, copy_no, page_no, as
             source_parent.rmdir()
         except OSError:
             pass
+    return fresh_scan
+
+
+def delete_unrecognized_review_scan_file(unrecognized_scan, resolved_by=None):
+    """Delete an unresolved scan file, keeping its resolution record."""
+    with transaction.atomic():
+        fresh_scan = UnrecognizedReviewScan.objects.select_for_update().get(pk=unrecognized_scan.pk)
+        if fresh_scan.resolved:
+            raise ValueError("This unrecognized scan has already been assigned or deleted.")
+
+        scans_root = pathlib.Path(settings.SCANS_ROOT).resolve()
+        unrecognized_dir = (
+            get_exam_scans_dir(fresh_scan.exam) / UNRECOGNIZED_REVIEW_SCAN_DIR
+        ).resolve()
+        source_path = scans_root / fresh_scan.relative_path
+        try:
+            unrecognized_dir.relative_to(scans_root)
+        except ValueError:
+            raise ValueError("Unrecognized scan directory is outside the scans directory.")
+        if source_path.is_symlink() or source_path.resolve().parent != unrecognized_dir:
+            raise ValueError("Unrecognized scan path is outside this exam's unrecognized directory.")
+
+        fresh_scan.resolved = True
+        fresh_scan.resolved_by = resolved_by
+        fresh_scan.resolved_at = timezone.now()
+        fresh_scan.deleted_at = fresh_scan.resolved_at
+        fresh_scan.save(update_fields=["resolved", "resolved_by", "resolved_at", "deleted_at"])
+        # A missing file can still be resolved; other filesystem errors roll back the record.
+        source_path.unlink(missing_ok=True)
+
+    try:
+        unrecognized_dir.rmdir()
+    except OSError:
+        pass
     return fresh_scan
 
 

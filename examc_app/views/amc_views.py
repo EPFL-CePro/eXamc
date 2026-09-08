@@ -593,7 +593,7 @@ def import_scans_from_review(request, exam_pk):
     if unresolved_count:
         return JsonResponse({
             "status": "blocked",
-            "error": f"Assign all unrecognized scans before AMC import starts ({unresolved_count} remaining).",
+            "error": f"Assign or delete all unrecognized scans before AMC import starts ({unresolved_count} remaining).",
             "unresolved_count": unresolved_count,
         }, status=409)
 

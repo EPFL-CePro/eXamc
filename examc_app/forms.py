@@ -11,7 +11,7 @@ from django.utils.safestring import mark_safe
 from django_summernote.widgets import SummernoteWidget
 
 from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser, QuestionGradingScheme, \
-    QuestionGradingSchemeCheckBox
+    QuestionGradingSchemeCheckBox, UnrecognizedReviewScan
 from .utils.global_functions import get_course_teachers_string
 
 class SwitchWidget(forms.CheckboxInput):
@@ -33,6 +33,20 @@ class SwitchWidget(forms.CheckboxInput):
 
 class UploadScansForm(forms.Form):
     files = forms.FileField(widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
+
+
+class DeleteUnrecognizedReviewScansForm(forms.Form):
+    scan_ids = forms.ModelMultipleChoiceField(
+        queryset=UnrecognizedReviewScan.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    def __init__(self, *args, exam, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["scan_ids"].queryset = UnrecognizedReviewScan.objects.filter(
+            exam=exam, resolved=False,
+        ).order_by("pk")
+
 
 class ManagePagesGroupsForm(forms.ModelForm):
     class Meta:
@@ -356,4 +370,3 @@ class GradingSchemeCheckBoxForm(forms.ModelForm):
 
 
 GradingSchemeCheckboxFormSet=modelformset_factory(QuestionGradingSchemeCheckBox, form=GradingSchemeCheckBoxForm, extra=0)
-

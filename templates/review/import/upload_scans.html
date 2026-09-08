@@ -110,10 +110,28 @@ function refreshUnrecognizedReviewScansTable() {
         return $.Deferred().resolve().promise();
     }
     return $.get(tableContainer.data("refresh-url"), function (html) {
+        var selectedIds = new Set(tableContainer.find(".js-select-unrecognized-scan:checked").map(function () {
+            return this.value;
+        }).get());
         tableContainer.html(html);
+        tableContainer.find(".js-select-unrecognized-scan").each(function () {
+            this.checked = selectedIds.has(this.value);
+        });
         bindUnrecognizedScanPreviewHandlers(tableContainer);
+        updateUnrecognizedScanSelection();
         updatePendingAmcImportNotice();
     });
+}
+
+function updateUnrecognizedScanSelection() {
+    var container = $("#unrecognizedReviewScansTable");
+    var checkboxes = container.find(".js-select-unrecognized-scan");
+    var selectedCount = checkboxes.filter(":checked").length;
+    container.find(".js-selected-scan-count").text(selectedCount);
+    container.find(".js-delete-selected-scans-button").prop("disabled", selectedCount === 0);
+    container.find(".js-select-all-unrecognized-scans")
+        .prop("checked", checkboxes.length > 0 && selectedCount === checkboxes.length)
+        .prop("indeterminate", selectedCount > 0 && selectedCount < checkboxes.length);
 }
 
 function getUnresolvedUnrecognizedScanCount() {
@@ -132,19 +150,19 @@ function updatePendingAmcImportNotice() {
     }
 
     if (uploadTaskActive) {
-        notice.text("Upload is still running. AMC import will start after upload and assignments are complete.");
+        notice.text("Upload is still running. AMC import will start after upload and all unrecognized scans are assigned or deleted.");
         notice.show();
         return;
     }
 
     var unresolvedCount = getUnresolvedUnrecognizedScanCount();
     if (unresolvedCount > 0) {
-        notice.text("Assign " + unresolvedCount + " unrecognized scan(s) before AMC import starts.");
+        notice.text("Assign or delete " + unresolvedCount + " unrecognized scan(s) before AMC import starts.");
         notice.show();
         return;
     }
 
-    notice.text("All unrecognized scans are assigned. AMC import is starting.");
+    notice.text("All unrecognized scans are assigned or deleted. AMC import is starting.");
     notice.show();
 }
 
@@ -161,7 +179,24 @@ function maybeStartPendingAmcImport() {
 }
 
 $(function () {
+    $("#unrecognizedReviewScansTable").on("change", ".js-select-all-unrecognized-scans", function () {
+        $("#unrecognizedReviewScansTable .js-select-unrecognized-scan").prop("checked", this.checked);
+        updateUnrecognizedScanSelection();
+    }).on("change", ".js-select-unrecognized-scan", updateUnrecognizedScanSelection)
+      .on("submit", ".js-delete-selected-scans", function (event) {
+        var count = $("#unrecognizedReviewScansTable .js-select-unrecognized-scan:checked").length;
+        if (!count || !window.confirm('Permanently delete ' + count + ' selected scan(s)? This cannot be undone.')) {
+            event.preventDefault();
+        }
+    });
+    $("#unrecognizedReviewScansTable").on("submit", ".js-delete-unrecognized-scan", function (event) {
+        var filename = $(this).attr("data-filename");
+        if (!window.confirm('Permanently delete scan "' + filename + '"? This cannot be undone.')) {
+            event.preventDefault();
+        }
+    });
     bindUnrecognizedScanPreviewHandlers(document);
+    updateUnrecognizedScanSelection();
     updatePendingAmcImportNotice();
     maybeStartPendingAmcImport();
 
