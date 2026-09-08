@@ -22,7 +22,7 @@ services:
     volumes:
       - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
       # TODO provide an example private_media dir to be integrated in CI/CD
-      # - /srv/examc/private_media:/private_media:rod
+      # - ../data/private_media:/private_media:ro
 
   web:
     extends:
@@ -43,7 +43,7 @@ services:
       mysql:
         condition: service_healthy
     volumes:
-      - media_volume:/media:ro
+      - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every web service
       - ../app:/app
 
 volumes:

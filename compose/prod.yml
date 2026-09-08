@@ -1,42 +1,56 @@
 services:
+  mysql:
+    extends:
+      service: mysql
+      file: base.yml
+
+  redis:
+    extends:
+      service: redis
+      file: base.yml
+
   nginx:
+    extends:
+      service: nginx
+      file: base.yml
     volumes:
-      - /srv/examc/certs/:/etc/nginx/certs:ro  # certs
       - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
-      - /srv/examc/private_media:/private_media:ro
-      - client_temp:/var/cache/nginx/client_temp
+      - ../data/certs/:/etc/nginx/certs:ro  # certs
+      - ../data/private_media:/private_media:ro
+      - client_temp:/var/cache/nginx/client_temp # see ../deploy/nginx/nginx.ssl.prod.conf:8 for usage
     ports:
       - "127.0.0.1:8080:80"
       #- "8443:443"
 
   web:
+    extends:
+      service: web
+      file: base.yml
     user: "1000:2770"
-    environment:
-      WEB_CONCURRENCY: "6"
-      GUNICORN_THREADS: "4"
-      GUNICORN_WORKER_CLASS: "gthread"
     volumes:
-      - media_volume:/media:ro # TODO figure out if ro should be put or not here
-      - /srv/examc/private_media:/private_media:rw
+      - ../data/private_media:/private_media
+      - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every web service
     depends_on:
       mysql:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -H 'Host: examc.epfl.ch' http://127.0.0.1:8000/healthz/ || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   celery:
-    environment:
-      CELERY_LOGLEVEL: "INFO"
-      CELERY_CONCURRENCY: "4"
+    extends:
+      service: celery
+      file: base.yml
     volumes:
-      - /srv/examc/private_media:/private_media:rw
+      - ../data/private_media:/private_media
 
   celery_beat:
-    environment:
-      CELERY_LOGLEVEL: "INFO"
+    extends:
+      service: celery_beat
+      file: base.yml
     volumes:
-      - /srv/examc/private_media:/private_media:rw
+      - ../data/private_media:/private_media
+
+volumes:
+  mysql_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  client_temp:

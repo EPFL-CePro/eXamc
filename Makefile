@@ -25,8 +25,8 @@ ENV ?= dev
 PROJECT ?= examc
 export ENV_FILE := .env.${ENV}
 
-# Compose files per env (dev = base + dev.yml ; test/prod add other overrides)
-COMPOSE_FILES := -f compose/base.yml -f compose/$(ENV).yml
+# Compose files per env (dev = dev.yml ; test/prod add other overrides)
+COMPOSE_FILES := -f compose/$(ENV).yml
 export COMPOSE_PROJECT_NAME := $(PROJECT)
 
 # Enable mysql-dockerized profile **only** for dev

@@ -80,13 +80,14 @@ Dockerized environment for **eXamc** featuring:
 ├─ deploy/
 │  └─ nginx/
 │     ├─ nginx.dev.conf
-│     └─ nginx.ssl.conf            # used in test/prod
-├─ examc/                          # settings/urls/wsgi/asgi
-├─ examc_app/                      # Django app(s)
+│     └─ nginx.ssl.conf             # used in test/prod
+├─ examc/                           # settings/urls/wsgi/asgi
+├─ examc_app/                       # Django app(s)
 ├─ Dockerfile
 ├─ Makefile
 ├─ requirements.txt
-├─ .env.example                    # sample env (no secrets)
+├─ .env.example                     # sample env (no secrets)
+├─ .env.test                        # test env (no secrets)
 └─ README.md
 ```
 

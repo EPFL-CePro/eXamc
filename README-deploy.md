@@ -170,7 +170,7 @@ Expected Compose mounts:
 
 3. **Migrations** (manual/CI)
    ```bash
-   docker compose -f compose/base.yml -f compose/prod.yml --env-file .env.prod      exec web python manage.py migrate --noinput
+   docker compose -f compose/prod.yml --env-file .env.prod      exec web python manage.py migrate --noinput
    docker compose ... exec web python manage.py collectstatic --noinput
    ```
 

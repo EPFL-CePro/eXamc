@@ -4,8 +4,6 @@ services:
   mysql:
     image: mysql:8.4
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    env_file:
-      - ../${ENV_FILE:-.env.dev}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -33,9 +31,9 @@ services:
       web:
         condition: service_started
     volumes:
-      - static_volume:/static:ro
       - media_volume:/media:ro
-      # conf & private_media montés en dev.yml
+      - static_volume:/static:ro
+      # configuration and private_media are mounted in dev.yml
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
@@ -46,12 +44,16 @@ services:
   web:
     build:
       context: ..
-    env_file:
-      - ../${ENV_FILE:-.env.dev}
     environment:
       # Attente DB (entrypoint sait gérer ces vars)
       WAIT_FOR_DB: "1"
       WAIT_FOR_DB_TIMEOUT: "600"
+
+      # Gunicorn
+      WEB_CONCURRENCY: "6"
+      GUNICORN_THREADS: "4"
+      GUNICORN_WORKER_CLASS: "gthread"
+
       # Toujours définir explicitement l’hôte/port DB vus par les conteneurs
       # DB_HOST: ${DB_HOST}
       # DB_PORT: ${DB_PORT}
@@ -59,15 +61,24 @@ services:
       redis:
         condition: service_started
     volumes:
-      - static_volume:/static # collectstatic writes hashed assets here
       - media_volume:/media
+      - static_volume:/static # collectstatic writes hashed assets here
       # /app is only mounted in dev.yml
       # /private_media is mounted in dev.yml and prod.yml
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     restart: unless-stopped
 
   celery:
     extends:
       service: web
+    environment:
+      CELERY_LOGLEVEL: "INFO"
+      CELERY_CONCURRENCY: "4"
     command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/celery.pid && kill -0 $(cat /tmp/celery.pid)"]
@@ -79,6 +90,8 @@ services:
   celery_beat:
     extends:
       service: web
+    environment:
+      CELERY_LOGLEVEL: "INFO"
     command: >
       celery -A examc beat --loglevel=INFO
         --scheduler django_celery_beat.schedulers:DatabaseScheduler

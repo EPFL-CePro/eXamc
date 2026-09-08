@@ -2,22 +2,36 @@ name: examc-dev
 
 services:
   mysql:
-    profiles: [ "mysql-dockerized" ]
+    extends:
+      service: mysql
+      file: base.yml
+    profiles: [ "mysql-dockerized" ] # used to run MySQL outside Docker
     ports:
       - ${DB_PORT:-3307}:3306 # used for local client
+    env_file:
+      - ../.env.dev
     volumes:
       - ../deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
 
+  redis:
+    extends:
+      service: redis
+      file: base.yml
+
   nginx:
+    extends:
+      service: nginx
+      file: base.yml
     volumes:
       - ../deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-      - static_volume:/static:ro
-      - media_volume:/media:ro
-      - /srv/examc/private_media:/private_media:ro
+      - ../data/private_media:/private_media:ro
     ports:
       - "8000:80"
 
   web:
+    extends:
+      service: web
+      file: base.yml
     build:
       target: test
     user: "0"
@@ -29,27 +43,29 @@ services:
       DB_PORT: 3306
     volumes:
       - ../app/:/app:z
-      - static_volume:/static
-      - media_volume:/media
-      - /srv/examc/private_media:/private_media   # host -> container (rw)
+      - ../data/private_media:/private_media
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-    restart: unless-stopped
+    env_file:
+      - ../.env.dev
 
   celery:
     extends:
-      service: web
-    command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
+      service: celery
+      file: base.yml
+    volumes:
+      - ../data/private_media:/private_media
 
   celery_beat:
     extends:
-      service: web
-      command: >
-        celery -A examc beat --loglevel=INFO
-          --scheduler django_celery_beat.schedulers:DatabaseScheduler
-          --pidfile=/tmp/celerybeat.pid
+      service: celery_beat
+      file: base.yml
+    volumes:
+      - ../data/private_media:/private_media
+
+
+volumes:
+  mysql_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  client_temp:
