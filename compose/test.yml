@@ -28,10 +28,8 @@ services:
     extends:
       service: web
       file: base.yml
-    restart: no
+    image: "${TEST_IMAGE:-examc-test-web}:${IMAGE_TAG:-latest}"
     command: ["pytest"]
-    build:
-      target: test
     env_file:
       - ../.env.test
     environment:
@@ -45,6 +43,7 @@ services:
     volumes:
       - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every web service
       - ../app:/app
+    restart: no
 
 volumes:
   mysql_data:
