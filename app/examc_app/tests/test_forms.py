@@ -53,7 +53,7 @@ class FormsTestCase(TestCase):
         form = ManageReviewersForm()
 
         self.assertEqual(form.Meta.model, ExamUser)
-        self.assertEqual(form.Meta.fields, ['user', 'pages_groups'])
+        self.assertEqual(form.Meta.fields, ['user', 'pages_groups', 'review_blocked'])
 
     def test_export_marked_files_form(self):
         form = ExportMarkedFilesForm()
