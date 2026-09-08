@@ -68,12 +68,13 @@ class ManageReviewersForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         # filter many to many pagesgroup to get only for curr exam
-        # TODO fix this, as tests.test_forms.test_manage_exam_reviewers_form_invalid_data fails due to this
-        self.pages_groups_choices = PagesGroup.objects.filter(
-            exam=kwargs.pop('instance').exam
-        )
+        if self.instance.pk:
+            self.fields['pages_groups'].queryset = PagesGroup.objects.filter(
+                exam_id=self.instance.exam_id
+            )
+        else:
+            self.fields['pages_groups'].queryset = PagesGroup.objects.none()
 
-        self.fields['pages_groups'].queryset = self.pages_groups_choices
         self.fields['user'].widget.attrs['class'] = 'form-control'
         self.fields['user'].widget.attrs['style'] = 'width:300px'
         self.fields['user'].disabled = True
