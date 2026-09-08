@@ -470,7 +470,6 @@ static/          # si collectstatic génère ici (sinon adapte)
 .DS_Store
 
 # certs
-certs/
 *.crt
 *.key
 *.pem
