@@ -37,7 +37,6 @@ dependencies = [
     "pypdf==6.15.0",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.2",
-    "python3-ldap==0.9.8.4", # TODO : replace with more up-to-date python-ldap
     "pytz==2025.2",
     "pyzbar==0.1.9",
     "redis==7.0.1",
