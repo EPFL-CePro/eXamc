@@ -21,6 +21,7 @@ dependencies = [
     "django-sslserver==0.22",  # TODO remove, very old dependency
     "django-summernote==0.8.20.0",
     "django-tables2==2.7.5",
+    "docutils==0.21.2",
     "fpdf2==2.8.3",
     "img2pdf==0.6.1",
     "ldap3==2.9.1",  # TODO : replace with more up-to-date python-ldap
@@ -34,7 +35,7 @@ dependencies = [
     "pandocfilters==1.5.1",
     "pillow==12.3.0",
     "pypandoc==1.15",
-    "pypdf==6.15.0",
+    "pypdf==6.16.2",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.2",
     "pytz==2025.2",

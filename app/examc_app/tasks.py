@@ -1,5 +1,4 @@
 import csv
-import glob
 import os
 import pathlib
 import re
@@ -12,8 +11,8 @@ from datetime import datetime, timedelta
 
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
-from django.conf import settings
 from django.contrib.sessions.models import Session
+from django.conf import settings
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -32,7 +31,13 @@ from examc_app.utils.marker_rendering import (
     render_marked_scan,
 )
 from examc_app.utils.results_statistics_functions import delete_exam_data
-from examc_app.utils.review_functions import import_scans, zipdir, generate_marked_pdfs
+from examc_app.utils.review_functions import (
+    generate_marked_pdfs,
+    import_scans,
+    iter_review_copy_dirs,
+    iter_review_scan_files,
+    zipdir,
+)
 from examc_app.utils.zip_security import safe_extract_zip
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
@@ -350,9 +355,9 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
             )
         )
 
-        # list files from scans dir
-        dir_list = [x for x in os.listdir(scans_dir) if x != '0000']
-        for dir in sorted(dir_list):
+        # list files from normal copy scan dirs
+        for dir_entry in iter_review_copy_dirs(scans_dir):
+            dir = dir_entry.name
 
             copy_export_subdir = export_tmp_dir + "/" + dir
 
@@ -560,7 +565,7 @@ def _write_review_import_file_list(exam, scans_list=None):
             + "_"
             + exam.date.strftime("%Y%m%d")
         )
-        scans_list = sorted(glob.glob(scans_dir + "/**/*.*", recursive=True))
+        scans_list = [str(path) for path in iter_review_scan_files(scans_dir)]
 
     count = 0
     marked_count = 0
