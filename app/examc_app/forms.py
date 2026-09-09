@@ -158,29 +158,46 @@ class CreateExamProjectForm(forms.Form):
     #                   choices=[('fr','FR'),('en','EN')],
     #                   required=True)
 
-    def __init__(self, *args, **kwargs):
-        super(CreateExamProjectForm, self).__init__(*args, **kwargs)
+    def __init__(self, *args, courses, academic_year, teacher_names_by_course, **kwargs):
+        #super(CreateExamProjectForm, self).__init__(*args, **kwargs)
 
-        COURSES_CHOICES = [(course.pk, course.code + " - " + course.name + " (" + get_course_teachers_string(course.teachers) + ")") for course in Course.objects.all().order_by("code")]
-        SEMESTER_CHOICES = [(semester.pk, semester.code) for semester in Semester.objects.all()]
-        YEAR_CHOICES = [(year.pk, year.code) for year in AcademicYear.objects.all().order_by("-code")]
+        super().__init__(*args, **kwargs)
+        self.year = academic_year
 
-        # Load choices here so db calls are not made during migrations.
-        self.fields['course'].choices = COURSES_CHOICES
-        self.fields['semester'].choices = SEMESTER_CHOICES
-        self.fields['year'].choices = YEAR_CHOICES
+        choices = []
+
+        for course in courses:
+            code = course["coursCode"]
+            label = f'{code} - {course["coursNomFr"]}'
+
+            teacher_names = teacher_names_by_course.get(code, [])
+            if teacher_names:
+                label += f" ({', '.join(teacher_names)})"
+
+            choices.append((code, label))
+
+        self.fields["course"].choices = choices
+
+        self.fields["semester"].choices = [
+            (semester.pk, semester.code)
+            for semester in Semester.objects.all()
+        ]
 
     def clean(self):
-        cd = self.cleaned_data
-        semester = Semester.objects.get(pk=cd.get("semester"))
-        year = AcademicYear.objects.get(pk=cd.get("year"))
-        course = Course.objects.get(pk=cd.get("course"))
-        exam = Exam.objects.filter(code=course.code,year=year, semester=semester).first()
-        if exam:
-            if exam.date == cd.get("date"):
-                raise ValidationError("Exam for this year, semester and date already exists !")
+        cleaned_data = super().clean()
 
-        return cd
+        course_code = cleaned_data.get("course")
+        date = cleaned_data.get("date")
+
+        if not course_code or not date:
+            return cleaned_data
+
+        if Exam.objects.filter(code=course_code, date=date).exists():
+            raise ValidationError(
+                "An exam for this course and date already exists."
+            )
+
+        return cleaned_data
 
 class CreateQuestionForm(forms.Form):
 
