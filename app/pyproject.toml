@@ -45,7 +45,7 @@ dependencies = [
     "scipy==1.18.1",
     "shapely==2.1.1",
     "xmltodict==0.14.2",
-    "unidecode>=1.4.0"
+    "unidecode==1.4.0"
 ]
 
 [dependency-groups]

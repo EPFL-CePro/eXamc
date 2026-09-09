@@ -711,7 +711,7 @@ requires-dist = [
     { name = "reportlab", specifier = "==4.4.7" },
     { name = "scipy", specifier = "==1.18.1" },
     { name = "shapely", specifier = "==2.1.1" },
-    { name = "unidecode", specifier = ">=1.4.0" },
+    { name = "unidecode", specifier = "==1.4.0" },
     { name = "xmltodict", specifier = "==0.14.2" },
 ]
 
