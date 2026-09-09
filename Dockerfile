@@ -12,14 +12,8 @@ ENV UV_COMPILE_BYTECODE=1 \
 WORKDIR /app
 
 # Build-time dependencies
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        pkg-config \
-        libmariadb-dev-compat \
-        libmariadb-dev; \
-    rm -rf /var/lib/apt/lists/*
+COPY docker/scripts/install-build-deps.sh /opt/install-build-deps.sh
+RUN /opt/install-build-deps.sh
 
 COPY app/pyproject.toml app/uv.lock ./
 
@@ -123,6 +117,10 @@ ENV PATH="/opt/venv-prod/bin:$PATH"
 FROM runtime-base AS tooling
 
 ENV PATH="/opt/venv-tooling/bin:$PATH"
+
+# Reinstall the build deps to be able to build depencies
+COPY docker/scripts/install-build-deps.sh /opt/install-build-deps.sh
+RUN /opt/install-build-deps.sh
 
 COPY --from=builder /bin/uv /bin/uvx /bin/
 COPY --from=builder /opt/venv-tooling /opt/venv-tooling
