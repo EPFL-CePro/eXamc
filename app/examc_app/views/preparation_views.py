@@ -1,20 +1,16 @@
-import logging
-import shutil
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
-#
+
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
-
-from django.conf import settings
 from docutils import DataError
 
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, SummernoteForm
 from examc_app.models import *
 from examc_app.services.oasis import get_courses, get_teacher_names_by_course
-from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, convert_html_to_latex, exam_generate_preview
+from examc_app.utils.global_functions import add_course_teachers_ldap, convert_html_to_latex, exam_generate_preview
 
 logger = logging.getLogger(__name__)
 
