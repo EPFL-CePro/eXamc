@@ -450,9 +450,7 @@ examc/wsgi.py
 # Dumps et seeds (lourds/sensibles)
 # ignorer tout ce qui est dans deploy/db
 deploy/db/*
-
-# garder un fichier “marqueur” pour que le dossier existe dans le repo
-!deploy/db/.gitkeep
+!deploy/db/init-test-user.sql
 
 # Artefacts courants
 __pycache__/
