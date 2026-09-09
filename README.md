@@ -61,23 +61,47 @@ Dockerized environment for **eXamc** featuring:
 
 ```
 .
-├─ compose/
-│  ├─ base.yml
-│  ├─ dev.yml
-│  ├─ test.yml
-│  └─ prod.yml
-├─ deploy/
-│  └─ nginx/
+├─ ansible/                         # Deployment configuration and automation
+├─ app/                             # Django application and Python project
+│  ├─ docs/                         # Sphinx documentation
+│  ├─ examc/                        # Django project: settings/urls/wsgi/asgi/celery
+│  ├─ examc_app/                    # Main Django application
+│  ├─ templates/                    # Django templates
+│  ├─ entrypoint.sh
+│  ├─ gunicorn.conf.py
+│  ├─ pyproject.toml                # Main project configuration
+│  └─ uv.lock
+├─ compose/                         # Docker Compose configurations
+│  ├─ base.yml                      # Shared service definitions (not used directly)
+│  ├─ dev.yml                       # Development environment
+│  ├─ test.yml                      # Test/CI environment
+│  └─ prod.yml                      # Production environment (also used for staging server)
+├─ data/                            # Local persistent data
+│  ├─ certs/
+│  └─ private_media/
+├─ deploy/                          # Deployment-related configuration
+│  ├─ db/
+│  │  └─ init-test-user.sql
+│  └─ nginx/                        # Nginx configurations
 │     ├─ nginx.dev.conf
-│     └─ nginx.ssl.conf             # used in test/prod
-├─ examc/                           # settings/urls/wsgi/asgi
-├─ examc_app/                       # Django app(s)
+│     ├─ nginx.ssl.prod.conf
+│     └─ nginx.ssl.test.conf
+├─ docker/                          # Docker-specific scripts and patches
+├─ scripts/                         # Development and security scripts
+│  ├─ check_forbidden_calls.py
+│  ├─ check_require_post.py
+│  └─ security_check.sh
+├─ Security/                        # Security-related documentation
+│  └─ local_security_checks.md
 ├─ Dockerfile
 ├─ Makefile
-├─ requirements.txt
-├─ .env.example                     # sample env (no secrets)
-├─ .env.test                        # test env (no secrets)
-└─ README.md
+├─ CHANGELOG.md
+├─ CODE_OF_CONDUCT.md
+├─ LICENSE
+├─ README.md
+├─ README-deploy.md
+├─ SECURITY.md
+└─ VERSION
 ```
 
 
