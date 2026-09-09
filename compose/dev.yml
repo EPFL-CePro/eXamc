@@ -33,7 +33,7 @@ services:
       service: web
       file: base.yml
     build:
-      target: test
+      target: tooling
     user: "0"
     environment:
       DEBUG: "1"

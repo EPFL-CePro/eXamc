@@ -17,7 +17,7 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push-image:
+  docker-build-test-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -70,12 +70,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Build the test target locally, as it uses production as a base, building image is not done in parallel
+      # Build the tooling target locally for testing
+      # As it uses production as a base, building image is not done in parallel
       - name: Build test image
         uses: docker/build-push-action@v7
         with:
           context: .
-          target: test
+          target: tooling
           load: true
           push: false
           platforms: linux/amd64
@@ -88,7 +89,7 @@ jobs:
       - name: Run tests
         run: docker compose -f compose/test.yml run web
 
-      # Push exactly the images that were tested.
+      # Push the production image that was tested.
       - name: Push production image
         if: success()
         run: |

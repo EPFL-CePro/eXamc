@@ -44,11 +44,12 @@ RUN uv sync --frozen \
     --no-install-project
 
 
-# --- Test environment ---
-ENV UV_PROJECT_ENVIRONMENT=/opt/venv-test
+# --- Dev + test environment ---
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv-tooling
 
 RUN uv sync --frozen \
     --group test \
+    --group dev \
     --no-install-project
 
 
@@ -107,24 +108,23 @@ COPY --from=builder /app /app
 
 ENV PATH="/opt/venv-prod/bin:$PATH"
 
-ARG APPLY_SSL_PATCH=0
-
-RUN if [ "$APPLY_SSL_PATCH" = "1" ]; then \
-      target="/opt/venv/lib/python3.12/site-packages/sslserver/management/commands/runsslserver.py"; \
-      if [ -f "$target" ] && [ -f "/app/docker/sslserver/management/commands/runsslserver.py" ]; then \
-        cp /app/docker/sslserver/management/commands/runsslserver.py "$target"; \
-      fi; \
-    fi
+# ARG APPLY_SSL_PATCH=0
+# RUN if [ "$APPLY_SSL_PATCH" = "1" ]; then \
+#       target="/opt/venv/lib/python3.12/site-packages/sslserver/management/commands/runsslserver.py"; \
+#       if [ -f "$target" ] && [ -f "/app/docker/sslserver/management/commands/runsslserver.py" ]; then \
+#         cp /app/docker/sslserver/management/commands/runsslserver.py "$target"; \
+#       fi; \
+#     fi
 
 
 # =========================
-# TEST IMAGE
+# TOOLING IMAGE (with dev and test dependencies installed)
 # =========================
-FROM runtime-base AS test
+FROM runtime-base AS tooling
 
-ENV PATH="/opt/venv-test/bin:$PATH"
+ENV PATH="/opt/venv-tooling/bin:$PATH"
 
-COPY --from=builder /opt/venv-test /opt/venv-test
+COPY --from=builder /bin/uv /bin/uvx /bin/
+COPY --from=builder /opt/venv-tooling /opt/venv-tooling
 COPY --from=builder /app /app
 
-CMD ["/opt/venv-test/bin/pytest"]
