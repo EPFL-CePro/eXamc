@@ -80,7 +80,6 @@ class UnrecognizedReviewScansTestCase(TestCase):
         for filename in ("page_001.jpg", "page_002.jpg", "page_003.jpg"):
             self.write_upload_file(filename)
         with (
-            patch("examc_app.utils.review_functions.imghdr.what", return_value="jpeg"),
             patch("examc_app.utils.review_functions.cv2.imread", return_value=object()),
             patch("examc_app.utils.review_functions.pyzbar.decode", side_effect=decode_results),
         ):
