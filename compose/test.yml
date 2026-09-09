@@ -9,6 +9,9 @@ services:
       - ../.env.test
     ports:
       - ${DB_PORT:-3308}:3306
+    volumes:
+      # This lets test user create DB for testing
+      - ../deploy/db/init-test-user.sql:/docker-entrypoint-initdb.d/test-user.sql:ro
 
   redis:
     extends:

@@ -1,0 +1,2 @@
+GRANT ALL PRIVILEGES ON *.* TO 'examc-test'@'%';
+FLUSH PRIVILEGES;
