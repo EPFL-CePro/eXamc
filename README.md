@@ -44,18 +44,7 @@ Dockerized environment for **eXamc** featuring:
 
 ## Table of Contents
 
-- [Prerequisites](#prerequisites)  
-- [Layout](#layout)  
-- [Environment files](#environment-files)  
-- [Entra ID (OIDC) parameters](#entra-id-oidc-parameters)  
-- [Run in DEV](#run-in-dev)  
-- [Makefile commands](#makefile-commands)  
-- [DB seed / import / export (optional)](#db-seed--import--export-optional)  
-- [MySQL Workbench access](#mysql-workbench-access)  
-- [Private media](#private-media)  
-- [Migrations & updates](#migrations--updates)  
-- [TEST / PROD overview](#test--prod-overview)  
-- [Troubleshooting](#troubleshooting)
+[TOC]
 
 ---
 
@@ -203,6 +192,46 @@ make ps                 # all services "healthy"
 xdg-open http://127.0.0.1:8000  # (use open/start on macOS/Windows)
 ```
 
+## Updating dependencies
+
+This project uses [`uv`](https://docs.astral.sh/uv/) to manage dependencies. `uv` is installed in the `tooling` target of the Dockerfile (used by test and dev environments), and can be called like this :
+
+```bash
+docker compose -f compose/test.yml run web uv add dependency_name
+docker compose -f compose/dev.yml run web uv update
+````
+
+This updates both `app/pyproject.toml` and `app/uv.lock`.
+
+Dependencies are split into groups to keep the production image lean:
+
+```toml
+[dependency-groups]
+test = [
+    # dependencies for tests
+]
+
+dev = [
+    # dependencies for development
+]
+
+docs = [
+    # dependencies for building the documentation
+]
+```
+
+The Dockerfile uses these groups to build separate environments:
+
+* **Production**: installs only production dependencies.
+* **Docs**: installs the `docs` group to build the Sphinx documentation. The generated documentation is then included in the production image.
+* **Tooling**: installs both the `dev` and `test` groups for development and testing.
+
+The tooling image can be built like this if needed:
+
+```bash
+docker compose -f compose/test.yml build --target tooling web
+```
+
 ---
 
 ## Makefile commands
@@ -298,6 +327,12 @@ Dev connection:
 - Security: `SECURE_SSL_REDIRECT=1`, cookie `*_SECURE=1`, **HSTS** enabled
 - **Gunicorn** in front (never `runserver`)
 - Controlled migrations, centralized logging, backups, monitoring
+
+Tests can be run with :
+
+```bash
+docker compose -f compose/test.yml run --rm --remove-orphans web
+```
 
 ---
 
