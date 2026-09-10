@@ -11,7 +11,7 @@ echo "[security] scanning for forbidden high-risk calls..."
 python3 -W ignore::SyntaxWarning scripts/check_forbidden_calls.py
 
 echo "[security] running Bandit (blocking only on HIGH/HIGH)..."
-python3 -m bandit -q -r examc_app -x examc_app/migrations,examc_app/tests -lll -iii
+python3 -m bandit -q -r app/examc_app -x app/examc_app/migrations,app/examc_app/tests -lll -iii
 
 echo "[security] running dependency audit..."
 AUDIT_REQUIREMENTS="$(mktemp)"

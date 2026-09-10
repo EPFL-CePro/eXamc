@@ -48,7 +48,7 @@ def scan_file(path: Path):
 
 def main() -> int:
     repo_root = Path(__file__).resolve().parents[1]
-    app_root = repo_root / "examc_app"
+    app_root = repo_root / "app" / "examc_app"
     all_findings = []
 
     for py_file in iter_python_files(app_root):
