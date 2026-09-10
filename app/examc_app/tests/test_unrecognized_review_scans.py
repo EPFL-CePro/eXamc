@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from PIL import Image
 from django.contrib.auth.models import Group, User
 from django.contrib.messages import get_messages
 from django.test import Client, TestCase, override_settings
@@ -53,7 +54,8 @@ class UnrecognizedReviewScansTestCase(TestCase):
 
     def write_upload_file(self, filename):
         path = Path(self.extract_root.name) / filename
-        path.write_bytes(b"scan")
+        # The splitter checks the image format before decoding QR codes.
+        Image.new("RGB", (10, 10), "white").save(path, format="JPEG")
         return path
 
     def create_unrecognized_scan(self, filename="unrecognized_000001.jpg"):
