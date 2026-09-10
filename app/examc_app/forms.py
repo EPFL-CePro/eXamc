@@ -149,10 +149,10 @@ class ExportResultsForm(forms.Form):
 
 
 class CreateExamProjectForm(forms.Form):
-    course = forms.ChoiceField(label='Course',choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}),required=True)
-    semester = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}), choices=[], required=True)
-    year = forms.ChoiceField(label='Year', choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}),required=True)
-    date = forms.DateField(label='Date',widget=forms.DateInput(format=('%d-%m-%Y'), attrs={'id':'dateAndTime','type': 'date','class':'form-control'}),required=True)
+    course = forms.ChoiceField(label='Course',choices=[], widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}), required=True)
+    semester = forms.ChoiceField(label='Semester', choices=[], widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}), required=True)
+    year = forms.ChoiceField(label='Year', choices=[], widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}), required=True)
+    date = forms.DateField(label='Date', widget=forms.DateInput(format='%d-%m-%Y', attrs={'id': 'dateAndTime', 'type': 'date', 'class': 'form-control'}), required=True)
     # durationText = forms.CharField(label='DurationTxt', widget=forms.TextInput(attrs={'class':'form-control'}),required=True)
     # language = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
     #                   choices=[('fr','FR'),('en','EN')],
@@ -162,9 +162,11 @@ class CreateExamProjectForm(forms.Form):
         #super(CreateExamProjectForm, self).__init__(*args, **kwargs)
 
         super().__init__(*args, **kwargs)
-        self.year = academic_year
 
-        choices = []
+        self.year = academic_year
+        self.errors_list = []
+
+        courses_choices = []
 
         for course in courses:
             code = course["coursCode"]
@@ -174,14 +176,24 @@ class CreateExamProjectForm(forms.Form):
             if teacher_names:
                 label += f" ({', '.join(teacher_names)})"
 
-            choices.append((code, label))
+            courses_choices.append((code, label))
 
-        self.fields["course"].choices = choices
 
+        # populate the course field + error mgmt
+        self.fields["course"].choices = courses_choices
+
+        if len(courses_choices) == 0:
+            self.errors_list.append("No courses are available. Please create a course first.")
+
+
+        # populate the semester field + error mgmt
         self.fields["semester"].choices = [
             (semester.pk, semester.code)
             for semester in Semester.objects.all()
         ]
+
+        if len(self.fields["semester"].choices) == 0:
+            self.errors_list.append("No semesters are available. Please create a semester first.")
 
     def clean(self):
         cleaned_data = super().clean()

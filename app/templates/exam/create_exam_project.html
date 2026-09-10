@@ -4,12 +4,23 @@
 {% block extra_head %}
     {{ form.media }}
 {% endblock %}
-{% block title %}AMC - Create project (auto-multiple-choice){% endblock %}
+{% block title %}AMC - Create a project (auto-multiple-choice){% endblock %}
 {% block content %}
 {% if user_allowed %}
-    <h4>AMC (auto-multiple-choice) - Create project</h4>
+    <h4>AMC (auto-multiple-choice) - Create a project</h4>
     <form action="{% url 'create_exam_project' %}" method="post" style="padding:20px;">
         {% csrf_token %}
+
+         {% if form.errors_list %}
+            <div class="alert alert-danger" role="alert">
+                <ul class="mb-0">
+                    {% for error in form.errors_list %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
         {% if form.non_field_errors %}
         <div class="alert alert-danger" role="alert">
             {{ form.non_field_errors }}
@@ -35,7 +46,7 @@
 {#            <h6>Language</h6>#}
 {#            {{ form.language }}#}
 {#        </div>#}
-        <button type="submit" class="btn btn-dark btn-sm">create</button>
+        <button type="submit" class="btn btn-dark btn-sm" {% if form.errors_list %}disabled{% endif %}>Create</button>
       </form>
 <script>
 </script>
