@@ -17,6 +17,10 @@ echo "[security] running dependency audit..."
 AUDIT_REQUIREMENTS="$(mktemp)"
 trap 'rm -f "$AUDIT_REQUIREMENTS"' EXIT
 uv --directory app export --format requirements.txt --no-dev --no-hashes -o "$AUDIT_REQUIREMENTS" >/dev/null
-(cd app && python3 -m pip_audit -r "$AUDIT_REQUIREMENTS" --skip-editable)
+# Drop the local editable install line (-e .): it's the app itself, not a
+# PyPI dependency, and pip-audit can't resolve it without cwd=app anyway.
+grep -v '^-e \.' "$AUDIT_REQUIREMENTS" > "$AUDIT_REQUIREMENTS.filtered"
+mv "$AUDIT_REQUIREMENTS.filtered" "$AUDIT_REQUIREMENTS"
+python3 -m pip_audit -r "$AUDIT_REQUIREMENTS"
 
 echo "[security] all checks passed."
