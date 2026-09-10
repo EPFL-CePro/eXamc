@@ -54,6 +54,8 @@ services:
       file: base.yml
     volumes:
       - ../data/private_media:/private_media
+    env_file:
+      - ../.env.dev
 
   celery_beat:
     extends:
@@ -61,6 +63,8 @@ services:
       file: base.yml
     volumes:
       - ../data/private_media:/private_media
+    env_file:
+      - ../.env.dev
 
 
 volumes:
