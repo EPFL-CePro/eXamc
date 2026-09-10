@@ -14,6 +14,9 @@ echo "[security] running Bandit (blocking only on HIGH/HIGH)..."
 python3 -m bandit -q -r examc_app -x examc_app/migrations,examc_app/tests -lll -iii
 
 echo "[security] running dependency audit..."
-python3 -m pip_audit -r requirements.txt
+AUDIT_REQUIREMENTS="$(mktemp)"
+trap 'rm -f "$AUDIT_REQUIREMENTS"' EXIT
+uv --directory app export --format requirements.txt --no-dev --no-hashes -o "$AUDIT_REQUIREMENTS" >/dev/null
+(cd app && python3 -m pip_audit -r "$AUDIT_REQUIREMENTS" --skip-editable)
 
 echo "[security] all checks passed."
