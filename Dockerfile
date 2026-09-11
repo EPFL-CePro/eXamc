@@ -97,18 +97,12 @@ COPY --exclude=app/docs ./app /app
 # =========================
 FROM runtime-base AS production
 
+WORKDIR /app
+
 COPY --from=builder /opt/venv-prod /opt/venv-prod
 COPY --from=builder /app /app
 
 ENV PATH="/opt/venv-prod/bin:$PATH"
-
-# ARG APPLY_SSL_PATCH=0
-# RUN if [ "$APPLY_SSL_PATCH" = "1" ]; then \
-#       target="/opt/venv/lib/python3.12/site-packages/sslserver/management/commands/runsslserver.py"; \
-#       if [ -f "$target" ] && [ -f "/app/docker/sslserver/management/commands/runsslserver.py" ]; then \
-#         cp /app/docker/sslserver/management/commands/runsslserver.py "$target"; \
-#       fi; \
-#     fi
 
 
 # =========================
@@ -116,13 +110,19 @@ ENV PATH="/opt/venv-prod/bin:$PATH"
 # =========================
 FROM runtime-base AS tooling
 
+ARG UID=1000
+ARG GID=1000
+
 ENV PATH="/opt/venv-tooling/bin:$PATH"
+
+RUN groupadd --gid ${GID} dev \
+    && useradd --uid ${UID} --gid ${GID} --no-create-home --shell /bin/bash dev
 
 # Reinstall the build deps to be able to build depencies
 COPY docker/scripts/install-build-deps.sh /opt/install-build-deps.sh
 RUN /opt/install-build-deps.sh
 
 COPY --from=builder /bin/uv /bin/uvx /bin/
-COPY --from=builder /opt/venv-tooling /opt/venv-tooling
-COPY --from=builder /app /app
+COPY --from=builder --chown=$UID:$GID /opt/venv-tooling /opt/venv-tooling
+COPY --from=builder --chown=$UID:$GID /app /app
 

@@ -34,13 +34,14 @@ services:
       file: base.yml
     build:
       target: tooling
-    user: "0"
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       DEBUG: "1"
       COLLECTSTATIC: "0" # in dev, OK
       PRIVATE_MEDIA_ROOT: /private_media
-      DB_HOST: mysql
-      DB_PORT: 3306
     volumes:
       - ../app/:/app:z
       - ../data/private_media:/private_media
