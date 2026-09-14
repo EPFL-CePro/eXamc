@@ -265,7 +265,7 @@ class PagesGroup(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='pagesGroup')
     group_name = models.CharField(max_length=50, default='0')
     nb_pages = models.IntegerField(default=0)
-    grading_help = models.TextField(default='')
+    grading_help = models.TextField(default='', blank=True)
     use_grading_scheme = models.BooleanField(default=False)
     history = HistoricalRecords()
 
