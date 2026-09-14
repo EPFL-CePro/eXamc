@@ -19,13 +19,13 @@ User.__str__ = lambda user_instance: user_instance.first_name + " " + user_insta
 
 class AcademicYear(models.Model):
     """ Stores academic year data """
-    code = models.CharField(max_length=9,blank=False)
-    name = models.CharField(max_length=100,blank=False)
+    code = models.CharField(max_length=9, blank=False)
+    name = models.CharField(max_length=100, blank=False)
 
 class Semester(models.Model):
     """ Stores academic year data """
     code = models.IntegerField(blank=False)
-    name = models.CharField(max_length=100,blank=False)
+    name = models.CharField(max_length=100, blank=False)
 
     def __str__(self):
         return str(self.code)
@@ -38,7 +38,7 @@ class Exam(models.Model):
     name = models.CharField(max_length=100)
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT, related_name='exams',)
     year = models.ForeignKey(AcademicYear, on_delete=models.RESTRICT, related_name='exams')
-    date = models.DateField(default=timezone.now, blank=True,null=True)
+    date = models.DateField(default=timezone.now, blank=True, null=True)
     #users = models.ManyToManyField(User, blank=True)
     present_students = models.IntegerField(default=0)
     common_exams = models.ManyToManyField("self", blank=True)
@@ -124,7 +124,7 @@ class Exam(models.Model):
 
     def get_common_exams_without_common(self):
         """ Return all common exams without the common (000-) """
-        exam_list = Exam.objects.filter(common_exams=self,overall=False)
+        exam_list = Exam.objects.filter(common_exams=self, overall=False)
         for exam in exam_list.all():
             print( exam)
         return exam_list
@@ -147,9 +147,10 @@ class Exam(models.Model):
             code = code_split[1]
             semester = self.semester
             year = self.year
-            exam = Exam.objects.filter(code__startswith=code,semester=semester, year=year).exclude(code=self.code).first()
+            exam = Exam.objects.filter(code__startswith=code, semester=semester, year=year).exclude(code=self.code).first()
 
         available_exams = []
+
         if exam.questions.all():
             exam_code_search_start = exam.code.split('(')[0]
             code_split_end = exam.code.split(')')
@@ -167,17 +168,17 @@ class Exam(models.Model):
 
 class ExamSection(models.Model):
     """ Stores section data for an exam, related to :model:`examc_app.Exam` """
-    section_number = models.IntegerField(blank=False,null=True)
-    title = models.CharField(max_length=200,blank=False, null=True, default='')
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE,related_name='sections',blank=False)
+    section_number = models.IntegerField(blank=False, null=True)
+    title = models.CharField(max_length=200, blank=False, null=True, default='')
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='sections', blank=False)
     header_text = models.TextField(default='')
     history = HistoricalRecords()
 
 class QuestionType(models.Model):
     """ Stores question type data for questions """
-    code = models.CharField(max_length=10,blank=False)
-    name = models.CharField(max_length=100,blank=False)
-    template = models.CharField(max_length=100,blank=True)
+    code = models.CharField(max_length=10, blank=False)
+    name = models.CharField(max_length=100, blank=False)
+    template = models.CharField(max_length=100, blank=True)
     formula = models.TextField(default='')
     history = HistoricalRecords()
 
@@ -185,21 +186,21 @@ class Question(models.Model):
     """ Stores question data for an exam, related to :model:`examc_app.Exam` """
     code = models.CharField(max_length=50)
     common = models.BooleanField(default=0)
-    question_type = models.ForeignKey(QuestionType, on_delete=models.CASCADE,related_name='questions',blank=False,null=True)
+    question_type = models.ForeignKey(QuestionType, on_delete=models.CASCADE, related_name='questions', blank=False, null=True)
     max_points = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     nb_answers = models.IntegerField(default=2)
-    correct_answer = models.CharField(max_length=15,null=True)
+    correct_answer = models.CharField(max_length=15, null=True)
     discriminatory_factor = models.IntegerField(default=0)
     upper_correct = models.IntegerField(default=0)
     lower_correct = models.IntegerField(default=0)
     di_calculation = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     tot_answers = models.IntegerField(default=0)
-    remark = models.CharField(max_length=1000, blank=True,null=True)
+    remark = models.CharField(max_length=1000, blank=True, null=True)
     upper_avg = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     lower_avg = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='questions')
-    question_text = models.TextField(blank=True,null=True,default='')
-    formula = models.TextField(blank=True,null=True,default='')
+    question_text = models.TextField(blank=True, null=True, default='')
+    formula = models.TextField(blank=True, null=True, default='')
     removed_from_common = models.BooleanField(default=False)
     history = HistoricalRecords()
 
@@ -236,10 +237,10 @@ class Question(models.Model):
 
 class QuestionAnswer(models.Model):
     """ Stores question answer data for questions """
-    code = models.CharField(max_length=10,blank=False)
-    question = models.ForeignKey(Question, on_delete=models.CASCADE,related_name='answers',blank=False,null=True)
-    answer_text = models.TextField(default='',blank=True,null=True)
-    formula = models.TextField(default='', blank=True,null=True)
+    code = models.CharField(max_length=10, blank=False)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers', blank=False, null=True)
+    answer_text = models.TextField(default='', blank=True, null=True)
+    formula = models.TextField(default='', blank=True, null=True)
     is_correct = models.BooleanField(default=0)
     history = HistoricalRecords()
 
@@ -251,9 +252,9 @@ class ScoringStrategy(models.Model):
     wrong_choice_points = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     no_answer_points = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     formula = models.TextField(default='')
-    exam = models.OneToOneField(Exam, on_delete=models.CASCADE,related_name='scoring_strategy')
-    question = models.OneToOneField(Question, on_delete=models.CASCADE,related_name='scoring_strategy')
-    answer = models.OneToOneField(QuestionAnswer, on_delete=models.CASCADE,related_name='scoring_strategy')
+    exam = models.OneToOneField(Exam, on_delete=models.CASCADE, related_name='scoring_strategy')
+    question = models.OneToOneField(Question, on_delete=models.CASCADE, related_name='scoring_strategy')
+    answer = models.OneToOneField(QuestionAnswer, on_delete=models.CASCADE, related_name='scoring_strategy')
     history = HistoricalRecords()
 
 
@@ -273,9 +274,9 @@ class PagesGroup(models.Model):
         return self.group_name + " ( pages " + str(self.nb_pages) + " )"
 
 class ExamUser(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_exams')
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE,related_name='exam_users')
-    group = models.ForeignKey(Group, on_delete=models.CASCADE,related_name='user_groups', null=True,default=None)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_exams')
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam_users')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='user_groups', null=True, default=None)
     pages_groups = models.ManyToManyField(PagesGroup, blank=True)
     review_blocked = models.BooleanField(default=False)
     history = HistoricalRecords()
@@ -336,7 +337,7 @@ class PagesGroupStudentReportNote(models.Model):
 
 class PageMarkers(models.Model):
     """ Stores markers data for a scan page, related to :model:`examc_app.Exam`, :model:`examc_app.PagesGroup`, :model:`examc_app.PagesGroupComment` """
-    copie_no = models.CharField(max_length=10, default='',blank=True)
+    copie_no = models.CharField(max_length=10, default='', blank=True)
     page_no = models.CharField(max_length=10, default='')
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='pageMarkers', blank=True,
                                     null=True)
@@ -408,8 +409,8 @@ class UnrecognizedReviewScan(models.Model):
 
 
 class PageMarkersUser(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_pageMarkers')
-    pageMarkers = models.ForeignKey(PageMarkers, on_delete=models.CASCADE,related_name='pageMarkers_users')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_pageMarkers')
+    pageMarkers = models.ForeignKey(PageMarkers, on_delete=models.CASCADE, related_name='pageMarkers_users')
     created = models.DateTimeField(auto_now_add=True, blank=True)
     modified = models.DateTimeField(blank=True, null=True)
 
@@ -612,7 +613,7 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
 #       corner INTEGER
 #       x REAL
 #       y REAL
-#       PRIMARY KEY (student,page,corner)
+#       PRIMARY KEY (student, page, corner)
 #     Again, emulate with unique_together.
 #     """
 #     student = models.IntegerField()
@@ -673,7 +674,7 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
 #       xmax REAL
 #       ymin REAL
 #       ymax REAL
-#       PRIMARY KEY (student,page,numberid,digitid)
+#       PRIMARY KEY (student, page, numberid, digitid)
 #     """
 #     student = models.IntegerField()
 #     page = models.IntegerField()
@@ -699,7 +700,7 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
 #       width REAL
 #       height REAL
 #       markdiameter REAL
-#       PRIMARY KEY (student,page)
+#       PRIMARY KEY (student, page)
 #     We emulate the primary key using unique_together below.
 #     """
 #     student = models.IntegerField()
@@ -722,7 +723,7 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
 #     We'll use question as the primary key.
 #     """
 #     question = models.IntegerField(primary_key=True)
-#     name = models.CharField(max_length=255, blank=True,null=True)
+#     name = models.CharField(max_length=255, blank=True, null=True)
 #
 #
 # class LayoutAssociation(models.Model):
@@ -736,7 +737,7 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
 #     """
 #     student = models.IntegerField(primary_key=True)
 #     association_id = models.TextField(db_column='id', null=True, blank=True)
-#     filename = models.CharField(max_length=255, blank=True,null=True)
+#     filename = models.CharField(max_length=255, blank=True, null=True)
 #
 #
 # class LayoutChar(models.Model):
@@ -749,7 +750,7 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
 #     """
 #     question = models.IntegerField()
 #     answer = models.IntegerField()
-#     char = models.CharField(max_length=255, blank=True,null=True)
+#     char = models.CharField(max_length=255, blank=True, null=True)
 #
 #     class Meta:
 #         unique_together = (('question', 'answer'),)
@@ -766,12 +767,12 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
 #       xmax REAL
 #       ymin REAL
 #       ymax REAL
-#       Index: layout_index_zone ON (student,page)
+#       Index: layout_index_zone ON (student, page)
 #     There is no PRIMARY KEY definition. By default, Django adds its own 'id'.
 #     """
 #     student = models.IntegerField()
 #     page = models.IntegerField()
-#     zone = models.CharField(max_length=255, blank=True,null=True)
+#     zone = models.CharField(max_length=255, blank=True, null=True)
 #     flags = models.IntegerField(default=0)
 #     xmin = models.FloatField(null=True, blank=True)
 #     xmax = models.FloatField(null=True, blank=True)
