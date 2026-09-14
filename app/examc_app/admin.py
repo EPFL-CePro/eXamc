@@ -60,6 +60,7 @@ class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 
     actions = [delete_selected_per_exam]
 
+    # noinspection PyMethodMayBeStatic
     def show_commons(self, obj):
             return_str = ''
             commons = obj.common_exams.all()
@@ -70,10 +71,9 @@ class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
                     return_str += common.code
             return return_str
 
+    # noinspection PyMethodMayBeStatic
     def getCommonExams(self, request, obj):
         return obj.getCommonExams
-
-        pass
 
     def get_common_exams_button(self, obj):
         html_str = format_html('<a href="{0}">Get common exams</a>',reverse('getCommonExams', kwargs={'pk':obj.pk}))
@@ -83,6 +83,7 @@ class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     get_common_exams_button.short_description = 'Action'
     get_common_exams_button.allow_tags = True
 
+    # noinspection PyMethodMayBeStatic
     def import_exams_csv_data(self, request):
         if request.method == 'POST':
             form = CsvImportForm(request.POST, request.FILES)
@@ -105,6 +106,8 @@ class ExamAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 @admin.register(Course)
 class CourseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display = ["code", "name", "semester", "year","teachers"]
+
+    # noinspection PyMethodMayBeStatic
     def import_courses_json_data(self, request):
         if request.method == 'POST':
             form = JsonImportForm(request.POST, request.FILES)
