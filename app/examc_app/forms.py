@@ -1,18 +1,15 @@
-from email.policy import default
-
-from django import forms
 import os
 
+from django import forms
 from django.conf import settings
-from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.core.exceptions import ValidationError
-from django.forms import modelformset_factory, ModelForm, formset_factory
+from django.forms import modelformset_factory
 from django.utils.safestring import mark_safe
 from django_summernote.widgets import SummernoteWidget
 
-from .models import PagesGroup, Exam, AcademicYear, Semester, Course, QuestionType, ExamUser, QuestionGradingScheme, \
+from .models import PagesGroup, Exam, Semester, QuestionType, ExamUser, QuestionGradingScheme, \
     QuestionGradingSchemeCheckBox, UnrecognizedReviewScan
-from .utils.global_functions import get_course_teachers_string
+
 
 class SwitchWidget(forms.CheckboxInput):
     def render(self, name, value, attrs=None, renderer=None):
@@ -178,6 +175,8 @@ class CreateExamProjectForm(forms.Form):
 
             courses_choices.append((code, label))
 
+        # populate the year field
+        self.fields["year"].choices = [(self.year.pk, self.year.code)]
 
         # populate the course field + error mgmt
         self.fields["course"].choices = courses_choices
