@@ -155,8 +155,8 @@ def get_course_teachers(academic_year, course_code):
     return list(teachers_by_sciper.values())
 
 
-def get_teacher_names_by_course(academic_year):
-    """Return teacher names grouped by course, deduplicated by SCIPER."""
+def get_teachers_by_course(academic_year):
+    """Return teachers (sciper + full name) grouped by course, deduplicated by SCIPER."""
     _validate_year(academic_year)
 
     rows = _get_list(
@@ -185,6 +185,9 @@ def get_teacher_names_by_course(academic_year):
         grouped.setdefault(course_code, {})[sciper] = full_name
 
     return {
-        code: sorted(teachers.values(), key=str.casefold)
+        code: sorted(
+            ({"sciper": sciper, "name": name} for sciper, name in teachers.items()),
+            key=lambda t: t["name"].casefold(),
+        )
         for code, teachers in grouped.items()
     }

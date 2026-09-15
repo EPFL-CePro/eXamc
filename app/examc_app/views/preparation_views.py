@@ -9,7 +9,7 @@ from docutils import DataError
 
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, SummernoteForm
 from examc_app.models import *
-from examc_app.services.oasis import get_courses, get_teacher_names_by_course
+from examc_app.services.oasis import get_courses, get_teachers_by_course
 from examc_app.utils.global_functions import add_course_teachers_ldap, convert_html_to_latex, exam_generate_preview
 
 logger = logging.getLogger(__name__)
@@ -21,35 +21,36 @@ def create_exam_project(request):
     if year is None:
         raise DataError("No academic year configured.")
 
-    teacher_names_by_course = get_teacher_names_by_course(year.code)
+    teachers_by_course = get_teachers_by_course(year.code)
     courses = get_courses(year.code)
 
     if request.method == 'POST':
-        form = CreateExamProjectForm(request.POST, courses=courses, academic_year=year,
-                                     teacher_names_by_course=teacher_names_by_course)
+        form = CreateExamProjectForm(request.POST, courses=courses,
+                                     teachers_by_course=teachers_by_course)
         if form.is_valid():
-            course_id = form.cleaned_data['course']
+            course_code = form.cleaned_data['course']
+            course_name = form.courses_by_code[course_code]["coursNomFr"]
+            course_teachers = form.teachers_by_course.get(course_code, [])
+            scipers = [t["sciper"] for t in course_teachers]
+
             date = form.cleaned_data['date']
-            year_id = form.cleaned_data['year']
             semester_id = form.cleaned_data['semester']
             # date_text = date.strftime('%d.%m.%Y')
             # duration_text = form.cleaned_data['durationText']
             # language = form.cleaned_data['language']
 
             semester = Semester.objects.get(pk=semester_id)
-            year = AcademicYear.objects.get(pk=year_id)
-            course = Course.objects.get(pk=course_id)
             # exam_text = course.code+" - "+course.name
             # teachers_text = get_course_teachers_string(course.teachers)
-            teachers = add_course_teachers_ldap(course.teachers)
+            teachers = add_course_teachers_ldap(scipers)
 
             # user = request.user
             # if not user in teachers:
             #     teachers.append(user)
 
             exam = Exam()
-            exam.code = course.code
-            exam.name = course.name
+            exam.code = course_code
+            exam.name = course_name
             exam.semester = semester
             exam.year = year
             exam.date = date
@@ -87,8 +88,7 @@ def create_exam_project(request):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = CreateExamProjectForm(courses=courses, academic_year=year,
-                                     teacher_names_by_course=teacher_names_by_course)
+        form = CreateExamProjectForm(courses=courses, teachers_by_course=teachers_by_course)
 
         return render(request, 'exam/create_exam_project.html', {"user_allowed": True,
                                                                "form": form,

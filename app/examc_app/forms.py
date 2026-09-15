@@ -151,18 +151,18 @@ class ExportResultsForm(forms.Form):
 class CreateExamProjectForm(forms.Form):
     course = forms.ChoiceField(label='Course',choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}),required=True)
     semester = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}), choices=[], required=True)
-    year = forms.ChoiceField(label='Year', choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}),required=True)
+    #year = forms.ChoiceField(label='Year', choices=[],widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}),required=True)
     date = forms.DateField(label='Date',widget=forms.DateInput(format=('%d-%m-%Y'), attrs={'id':'dateAndTime','type': 'date','class':'form-control'}),required=True)
     # durationText = forms.CharField(label='DurationTxt', widget=forms.TextInput(attrs={'class':'form-control'}),required=True)
     # language = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
     #                   choices=[('fr','FR'),('en','EN')],
     #                   required=True)
 
-    def __init__(self, *args, courses, academic_year, teacher_names_by_course, **kwargs):
-        #super(CreateExamProjectForm, self).__init__(*args, **kwargs)
-
+    def __init__(self, *args, courses, teachers_by_course, **kwargs):
         super().__init__(*args, **kwargs)
-        self.year = academic_year
+
+        self.courses_by_code = {course["coursCode"]: course for course in courses}
+        self.teachers_by_course = teachers_by_course
 
         choices = []
 
@@ -170,9 +170,9 @@ class CreateExamProjectForm(forms.Form):
             code = course["coursCode"]
             label = f'{code} - {course["coursNomFr"]}'
 
-            teacher_names = teacher_names_by_course.get(code, [])
-            if teacher_names:
-                label += f" ({', '.join(teacher_names)})"
+            course_teachers = teachers_by_course.get(code, [])
+            if course_teachers:
+                label += f" ({', '.join(t['name'] for t in course_teachers)})"
 
             choices.append((code, label))
 

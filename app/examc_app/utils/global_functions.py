@@ -37,29 +37,26 @@ def get_course_teachers_string(teachers):
             teachers_str += t.split(';')[2]
     return teachers_str
 
-def add_course_teachers_ldap(teachers):
-    teachers_split = teachers.split('|')
+def add_course_teachers_ldap(scipers):
     teachers_list = []
-    for teacher_str in teachers_split:
-        if teacher_str:
-            email = teacher_str.split(';')[1]
-            users = User.objects.filter(email=email).all()
-            if users:
-                user = users.first()
-            else:
-                sciper = teacher_str.split(';')[0]
-                user_entry = ldap_search_by_sciper(sciper)
+    for sciper in scipers:
+        if not sciper:
+            continue
 
-                user = User()
+        user_entry = ldap_search_by_sciper(sciper)
+        email = user_entry['mail'][0]
 
-                user.username = user_entry['uniqueidentifier'][0]
-                user.first_name = user_entry['givenName'][0]
-                user.last_name = user_entry['sn'][0]
-                user.email = user_entry['mail'][0]
-                user.is_active = True
-                user.save()
+        user = User.objects.filter(email=email).first()
+        if user is None:
+            user = User.objects.create(
+                username=user_entry['uniqueidentifier'][0],
+                first_name=user_entry['givenName'][0],
+                last_name=user_entry['sn'][0],
+                email=email,
+                is_active=True,
+            )
 
-            teachers_list.append(user)
+        teachers_list.append(user)
     return teachers_list
 
 
