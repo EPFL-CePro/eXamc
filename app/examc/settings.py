@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'maintenance_mode',
     'mozilla_django_oidc',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -148,6 +149,13 @@ TEMPLATES = [
         },
     },
 ]
+
+
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
+    ]
+}
 
 
 DATABASES = {

@@ -1,12 +1,16 @@
-from django.contrib.auth.decorators import login_required
-from django.urls import path, include, re_path
+from django.urls import path, include
 
-from examc_app import views, tasks
+from examc_app import views
+from examc_app.api import router
 
 from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 from examc_app.views.rooms_plans_special_views import GenerateRoomPlanSpecialView
 
 urlpatterns = [
+    # DRF
+    path("api/auth/", include("rest_framework.urls")),
+    #path("api/", include(router.examc_router.urls)),
+
     # IMPERSONATION
     path('impersonate/', views.impersonate_user_select, name="impersonate_select"),
     path('impersonate/<int:user_pk>/start/', views.impersonate_start, name="impersonate_start"),
@@ -159,6 +163,4 @@ urlpatterns = [
     path('test/',views.test,name="test"),
     # path('subprocess_test/',views.subprocess_test,name="subprocess_test"),
     #
-
-
 ]
