@@ -89,7 +89,7 @@ def create_exam_project(request):
 
             return redirect("examInfo", exam_pk=exam.pk)
 
-    # if a GET (or any other method) we'll create a blank form
+    # if a GET (or any other method), we'll create a blank form
     return render(
         request,
         "exam/create_exam_project.html",
@@ -102,8 +102,8 @@ def create_exam_project(request):
     )
 
 @login_required
-def exam_preparation_view(request,pk):
-    exam = Exam.objects.get(pk=pk)
+def exam_preparation_view(request, exam_pk: int):
+    exam = Exam.objects.get(pk=exam_pk)
 
     first_page_text_form = SummernoteForm()
     first_page_text_form.initial['ckeditor_txt'] = exam.first_page_text
@@ -111,32 +111,40 @@ def exam_preparation_view(request,pk):
     section_txt_frm_list = {}
     question_txt_frm_list = {}
     answer_txt_frm_list = {}
+
     for section in exam.sections.all() :
         frm = SummernoteForm(auto_id="%s_section_"+str(section.id))
         frm.initial['ckeditor_txt'] = section.header_text
         section_txt_frm_list[section.id] = frm
 
-        for question in section.questions.all() :
-            frm_q = SummernoteForm(auto_id="%s_question_"+str(question.id))
+        # TODO: fix this, as questions are no longer in ExamSession model
+        for question in exam.questions.all():
+        # for question in section.questions.all() :
+            frm_q = SummernoteForm(auto_id="%s_question_" + str(question.id))
             frm_q.initial['ckeditor_txt'] = question.question_text
             question_txt_frm_list[question.id] = frm_q
             
             if question.question_type.code in ["SCQ","MCQ"]:
                 for answer in question.answers.all() :
-                    frm_a = SummernoteForm(auto_id="%s_answer_"+str(answer.id))
+                    frm_a = SummernoteForm(auto_id="%s_answer_" + str(answer.id))
                     frm_a.initial['ckeditor_txt'] = answer.answer_text
                     answer_txt_frm_list[answer.id] = frm_a
 
 
 
-    return render(request, 'exam/exam_preparation.html',
-            {"user_allowed": True,
-                    "exam":exam,
-                    "fp_txt_form":first_page_text_form,
-                    "sh_txt_frm_list":section_txt_frm_list,
-                    "qu_txt_frm_list":question_txt_frm_list,
-                    "an_txt_frm_list":answer_txt_frm_list,
-                    "nav_url": "exam_preparation"})
+    return render(
+        request,
+        'exam/exam_preparation.html',
+        {
+            "user_allowed": True,
+            "exam":exam,
+            "fp_txt_form":first_page_text_form,
+            "sh_txt_frm_list":section_txt_frm_list,
+            "qu_txt_frm_list":question_txt_frm_list,
+            "an_txt_frm_list":answer_txt_frm_list,
+            "nav_url": "exam_preparation"
+        }
+    )
 
 @login_required
 @require_POST
@@ -145,6 +153,7 @@ def exam_add_section(request,exam_pk):
     section_num = 1
     if exam.sections.all():
         section_num += len(exam.sections.all())
+
     section = ExamSection()
     section.title = "Section "+str(section_num)
     section.section_number = section_num
@@ -154,7 +163,7 @@ def exam_add_section(request,exam_pk):
     return exam_preparation_view
 
 @login_required
-def exam_add_section_question(request):
+def exam_add_section_question(request, exam_pk: int):
     if request.method == 'POST':
         form = CreateQuestionForm(request.POST)
         if form.is_valid():
@@ -178,7 +187,11 @@ def exam_add_section_question(request):
             # create question
             question = Question()
             question.exam = exam
+
+            # TODO check if OK if commented out, as section was removed from question
+            #  since commit 8c696a267f8e20abe4274d5fe26107fe85aac348
             question.section = section
+
             question.code = question_type.code+"-"+last_number
             question.question_type = question_type
             question.save()
@@ -217,11 +230,17 @@ def exam_add_section_question(request):
         else:
             logger.info("INVALID")
             logger.info(form.errors)
-            return render(request, 'exam/create_exam_project.html', {"user_allowed": True,
-                                                                     "form": form,
-                                                                     "nav_url": "create_exam_project"})
+            return render(
+                request,
+                'exam/create_exam_project.html',
+                {
+                    "user_allowed": True,
+                    "form": form,
+                    "nav_url": "create_exam_project"
+                }
+            )
 
-    # if a GET (or any other method) we'll create a blank form
+    # if a GET (or any other method), we'll create a blank form
     elif request.method == 'GET':
         form = CreateQuestionForm(section_pk=request.GET.get('section_pk'))
 
@@ -231,7 +250,7 @@ def exam_add_section_question(request):
 
 @login_required
 @require_POST
-def exam_update_section(request):
+def exam_update_section(request, exam_pk: int):
     section = ExamSection.objects.get(pk=request.POST.get('section_pk'))
 
     section.header_text = request.POST.get('header_text')
@@ -242,7 +261,7 @@ def exam_update_section(request):
 
 @login_required
 @require_POST
-def get_header_section_txt(request):
+def get_header_section_txt(request, exam_pk: int):
     """
       Get the section header text.
 
@@ -251,6 +270,7 @@ def get_header_section_txt(request):
 
       Args:
           request: The HTTP request object containing the primary key 'section_pk' of the section.
+          exam_pk: The primary key of the exam. TODO, see why it's included in urls.py but not used here
 
       Returns:
           HttpResponse: An HTTP response containing the text for the section.
@@ -263,7 +283,7 @@ def get_header_section_txt(request):
 
 @login_required
 @require_POST
-def exam_update_question(request):
+def exam_update_question(request, exam_pk: int):
     question = Question.objects.get(pk=request.POST.get('question_pk'))
 
     question.question_text = request.POST.get('question_text')
@@ -281,8 +301,8 @@ def exam_update_question(request):
 
 @login_required
 @require_POST
-def exam_update_answers(request):
-
+def exam_update_answers(request, exam_pk: int):
+    # TODO add error mgmt
     answers = json.loads(request.POST.get('answers'))
     for a in answers:
         answer = QuestionAnswer.objects.get(pk=a['answer_pk'])
@@ -295,7 +315,7 @@ def exam_update_answers(request):
 
 @login_required
 @require_POST
-def exam_add_answer(request):
+def exam_add_answer(request, exam_pk: int):
     if request.method == 'POST':
         question = Question.objects.get(pk=request.POST.get('question_pk'))
         nb_answers = question.answers.all().count()
@@ -311,7 +331,7 @@ def exam_add_answer(request):
 
 @login_required
 @require_POST
-def exam_remove_answer(request):
+def exam_remove_answer(request, exam_pk: int):
     answer = QuestionAnswer.objects.get(pk=request.POST.get('answer_pk'))
     exam = answer.question.exam
     answer.delete()
@@ -319,21 +339,21 @@ def exam_remove_answer(request):
     answers = QuestionAnswer.objects.filter(question__pk=answer.question.pk).order_by('code')
     i = 1
     for a in answers.all():
-        a.code = chr(ord('@') + (i))
+        a.code = chr(ord('@') + i)
         a.save()
         i+=1
     return HttpResponse('ok')
 
 @login_required
 @require_POST
-def exam_remove_question(request):
+def exam_remove_question(request, exam_pk: int):
     question = Question.objects.get(pk=request.POST.get('question_pk'))
     question.delete()
     return HttpResponse('ok')
 
 @login_required
 @require_POST
-def exam_remove_section(request):
+def exam_remove_section(request, exam_pk: int):
     section = ExamSection.objects.get(pk=request.POST.get('section_pk'))
     section.delete()
     # redo numbering
@@ -349,7 +369,7 @@ def exam_remove_section(request):
 
 @login_required
 @require_POST
-def exam_update_first_page(request):
+def exam_update_first_page(request, exam_pk: int):
     exam = Exam.objects.get(pk=request.POST.get('exam_pk'))
     exam.first_page_text = request.POST.get('first_page_text')
 
@@ -360,7 +380,7 @@ def exam_update_first_page(request):
     return HttpResponse('ok')
 
 @login_required
-def exam_preview_pdf(request,exam_pk):
+def exam_preview_pdf(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     result = exam_generate_preview(exam)
     return HttpResponse(result)
