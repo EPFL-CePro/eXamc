@@ -113,14 +113,19 @@ FROM runtime-base AS tooling
 ARG UID=1000
 ARG GID=1000
 
-ENV PATH="/opt/venv-tooling/bin:$PATH"
+ENV PATH="/opt/venv-tooling/bin:$PATH" \
+    UV_CACHE_DIR=/opt/uv-cache/
+
 
 RUN groupadd --gid ${GID} dev \
-    && useradd --uid ${UID} --gid ${GID} --no-create-home --shell /bin/bash dev
+    && useradd --uid ${UID} --gid ${GID} --shell /bin/bash dev
 
 # Reinstall the build deps to be able to build depencies
 COPY docker/scripts/install-build-deps.sh /opt/install-build-deps.sh
 RUN /opt/install-build-deps.sh
+
+# Setup UV cache dir for rootless access
+RUN mkdir -p /opt/uv-cache/ && chown -R $UID /opt/uv-cache/ && chgrp -R $GID /opt/uv-cache/
 
 COPY --from=builder /bin/uv /bin/uvx /bin/
 COPY --from=builder --chown=$UID:$GID /opt/venv-tooling /opt/venv-tooling
