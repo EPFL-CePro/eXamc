@@ -2,50 +2,30 @@ import re
 from datetime import datetime
 
 from dateutil.utils import today
-from django.conf import settings
-from django.db.models import Sum, Q
+from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http.request import HttpRequest
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView
-from django_tables2 import SingleTableView, LazyPaginator
 
 from examc_app.decorators import exam_permission_required
 from examc_app.mixins import ExamPermissionAndRedirectMixin
 from examc_app.models import *
-from examc_app.tables import ExamSelectTable
-from examc_app.utils.epflldap import ldap_search
-from examc_app.utils.global_functions import get_course_teachers_string, add_course_teachers_ldap, user_allowed, \
-    convert_html_to_latex, exam_generate_preview, update_folders_paths
-from examc_app.utils.results_statistics_functions import update_common_exams, update_common_exams_questions, \
-    update_common_exams_scales, update_common_exams_users
 from examc_app.tasks import generate_statistics
+from examc_app.utils.epflldap import ldap_search
+from examc_app.utils.global_functions import user_allowed, \
+    update_folders_paths
+from examc_app.utils.results_statistics_functions import update_common_exams_questions, \
+    update_common_exams_scales, update_common_exams_users
 
-
-#@method_decorator(login_required(login_url='/'), name='dispatch')
-class ExamSelectView(SingleTableView):
-    model = Exam
-    template_name = 'exam/exam_select.html'
-    table_class = ExamSelectTable
-    #table_pagination = False
-
-    def get_queryset(self):
-        qs = Exam.objects.filter(overall=False).all()
-        if not self.request.user.is_superuser:
-            qs = qs.filter(Q(exam_users__user_id=self.request.user.id) )#| Q(reviewers__user=self.request.user))
-        return qs
-
-#@method_decorator(login_required(login_url='/'), name='dispatch')
-class ExamInfoView(ExamPermissionAndRedirectMixin,DetailView):
+class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
     model = Exam
     template_name = 'exam/exam_info.html'
     perm_codenames = ['manage']
     pk_url_kwarg = 'exam_pk'
     redirect_enabled = True
-
-    #slug_url_kwarg = 'task_id'
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -56,8 +36,7 @@ class ExamInfoView(ExamPermissionAndRedirectMixin,DetailView):
         if not exam_user and exam.common_exams:
             for comex in exam.common_exams.all():
                 exam_user = ExamUser.objects.filter(exam=comex,user=self.request.user).first()
-                if exam_user:
-                    break
+                if exam_user: break
 
         # redirect to review if reviewer
         if exam_user and not self.request.user.is_superuser and exam_user.group.pk == 3:
@@ -100,18 +79,18 @@ class ExamInfoView(ExamPermissionAndRedirectMixin,DetailView):
             context['user_allowed'] = False
             return context
 
-#@login_required
 @exam_permission_required(['manage'])
 @require_POST
-def ldap_search_exam_user_by_email(request,exam_pk):
+def ldap_search_exam_user_by_email(request, exam_pk: int):
     """
     Search in LDAP by email.
 
-    This function is used to search a new reviewer in the ldap database. The email of the reviewer will
+    This function is used to search for a new reviewer in the ldap database. The email of the reviewer will
     give the complete name of the user and his email.
 
     Args:
         request: The HTTP request object containing the email address ('email') and the exam ID ('pk').
+        exam_pk: The primary key of the exam.
 
     Returns:
         HttpResponse: A response string containing user information or an indication of existence.
@@ -140,17 +119,16 @@ def ldap_search_exam_user_by_email(request,exam_pk):
 #@login_required
 @exam_permission_required(['manage'])
 @require_POST
-def update_exam_users(request,exam_pk):
+def update_exam_users(request: HttpRequest, exam_pk: int):
     """
-           Add new users to exam.
+    Add new users to an exam.
 
-           This function is used to add a new users to exam
+    This function is used to add new users to an exam
 
-           :param request: The HTTP request object.
-
-               Args:
-                    request: The HTTP request object.
-           """
+    Args:
+        request: The HTTP request object.
+        exam_pk: The primary key of the exam.
+    """
     exam = Exam.objects.get(pk=exam_pk)
     users_list = request.POST.getlist('users_list[]')
 
@@ -185,17 +163,16 @@ def update_exam_users(request,exam_pk):
 #@login_required
 @exam_permission_required(['manage'])
 @require_POST
-def update_exam_info(request,exam_pk):
+def update_exam_info(request, exam_pk: int):
     """
-           Update exam info.
+    Update exam info.
 
-           This function is used to update exam info
+    This function is used to update exam info
 
-           :param request: The HTTP request object.
-
-               Args:
-                    request: The HTTP request object.
-           """
+    Args:
+        request: The HTTP request object.
+        exam_pk: The primary key of the exam to be updated.
+    """
 
     exam = Exam.objects.get(pk=exam_pk)
 
@@ -218,7 +195,7 @@ def update_exam_info(request,exam_pk):
 
     return redirect('examInfo', exam_pk=exam.pk)
 
-#@method_decorator(login_required, name='dispatch')
+
 class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
     template_name = 'exam/scale_create.html'
     model = Scale
@@ -234,7 +211,7 @@ class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
         exam.save()
 
         for comex in exam.common_exams.all():
-            scale_comex, created = Scale.objects.get_or_create(exam=comex,name = scale.name,total_points=scale.total_points)
+            scale_comex, created = Scale.objects.get_or_create(exam=comex,name = scale.name, total_points=scale.total_points)
             if created:
                 scale_comex.total_points = scale.total_points
                 scale_comex.points_to_add = scale.points_to_add
@@ -342,6 +319,8 @@ def update_exam_options(request,exam_pk):
 
         exam.save()
         return HttpResponse('ok')
+
+    return None
 
 
 # QUESTIONS MANAGEMENT
