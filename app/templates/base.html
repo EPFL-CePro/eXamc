@@ -1,6 +1,7 @@
 <!-- templates/base.html -->
 {% load static %}
 {% load custom_tags %}
+{% load django_vite %}
 
 <!DOCTYPE html>
 <html lang="en-US">
@@ -8,6 +9,9 @@
     <meta charset="utf-8">
 
     <title>eXamc</title>
+
+    <!-- Vite - used for hot reloading when DEBUG is set to true. Requires Vite dev server to run. -->
+    {% vite_hmr_client %}
 
     <!-- JS jquery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"
@@ -281,8 +285,7 @@
                                     <span class="menu-collapsed" style="margin-right:5px;">AMC</span>
                                 </a>
                                 <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
-                                    <li><a class="bg-secondary dropdown-item"
-                                           href="{% url 'amc_view' exam_pk=exam_selected.pk curr_tab=curr_tab %}" style="padding-top:15px;">
+                                    <li><a class="bg-secondary dropdown-item" href="{% url 'amc_view' exam_pk=exam_selected.pk %}" style="padding-top:15px;">
                                         <img src="{% static 'img/amc_icons/amc.ico' %}"
                                              style="margin-right:5px;" alt="AMC icon"/>AMC</a>
                                     </li>
