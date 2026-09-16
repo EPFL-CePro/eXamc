@@ -42,6 +42,10 @@ else:
     USE_X_FORWARDED_HOST = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
+
+# Enables Vite's dev mode (hot reload)
+VITE_DEV_MODE = os.environ.get("VITE_DEV_MODE", "0").lower() == "1"
+
 # Version and about information
 VERSION_FILE = BASE_DIR / "VERSION"
 try:
@@ -87,6 +91,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
 # Application definition
 
 INSTALLED_APPS = [
+    'django_vite',
     'examc_app.apps.ExamcAppConfig',
     'django.contrib.admindocs',
     'django.contrib.admin',
@@ -153,10 +158,18 @@ TEMPLATES = [
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
+        'rest_framework.authentication.SessionAuthentication',
     ]
 }
 
+
+DJANGO_VITE = {
+  "default": {
+    "dev_mode": VITE_DEV_MODE,
+    "manifest_path": BASE_DIR / "examc_app" / "static" / "vite" / "manifest.json",
+    "static_url_prefix": "vite",
+  }
+}
 
 DATABASES = {
     "default": {
