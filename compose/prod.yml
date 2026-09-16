@@ -22,6 +22,14 @@ services:
       - "127.0.0.1:8080:80"
       #- "8443:443"
 
+  fe-builder:
+    build:
+      context: ../frontend
+      target: artifact
+    volumes:
+      - static_volume:/static
+    restart: "no"
+
   django:
     extends:
       service: django
@@ -31,6 +39,8 @@ services:
       - ../data/private_media:/private_media
       - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every web service
     depends_on:
+      fe-builder:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       redis:

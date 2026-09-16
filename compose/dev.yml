@@ -28,6 +28,13 @@ services:
     ports:
       - "8000:80"
 
+  fe-runner:
+    build:
+      context: ../frontend
+      target: dev
+    volumes:
+      - ../frontend/:/app/frontend:z
+
   django:
     extends:
       service: django
