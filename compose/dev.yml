@@ -11,7 +11,7 @@ services:
     env_file:
       - ../.env.dev
     volumes:
-      - ../deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
+      - ./deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
 
   redis:
     extends:
@@ -23,14 +23,14 @@ services:
       service: nginx
       file: base.yml
     volumes:
-      - ../deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
       - ../data/private_media:/private_media:ro
     ports:
       - "8000:80"
 
-  web:
+  django:
     extends:
-      service: web
+      service: django
       file: base.yml
     build:
       target: tooling
@@ -40,6 +40,7 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
     environment:
       DEBUG: "1"
+      VITE_DEV_MODE: "1"
       COLLECTSTATIC: "0" # in dev, OK
       PRIVATE_MEDIA_ROOT: /private_media
     volumes:

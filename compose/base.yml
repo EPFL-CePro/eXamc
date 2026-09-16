@@ -28,7 +28,7 @@ services:
   nginx:
     image: nginx:1.27
     depends_on:
-      web:
+      django:
         condition: service_started
     volumes:
       - media_volume:/media:ro
@@ -41,7 +41,7 @@ services:
       retries: 3
     restart: unless-stopped
 
-  web:
+  django:
     build:
       context: ..
     environment:
@@ -75,7 +75,7 @@ services:
 
   celery:
     extends:
-      service: web
+      service: django
     environment:
       CELERY_LOGLEVEL: "INFO"
       CELERY_CONCURRENCY: "4"
@@ -89,7 +89,7 @@ services:
 
   celery_beat:
     extends:
-      service: web
+      service: django
     environment:
       CELERY_LOGLEVEL: "INFO"
     command: >
