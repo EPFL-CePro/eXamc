@@ -13,7 +13,6 @@
 #     1. Import the include() function: from django.urls import include, path
 #     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 # """
-from celery_progress.urls import app_name
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -38,7 +37,6 @@ urlpatterns = ([
     path('home',views.home, name='home'),
     path('admin/exam/import_exams_data/', ExamAdmin.import_exams_csv_data),
     path('admin/course/import_courses_data/', CourseAdmin.import_courses_json_data),
-    path('examSelect', views.ExamSelectView.as_view(), name="examSelect"),
     path('select_exam/<int:pk>', views.select_exam, name="select_exam"),
     path('getCommonExams/<int:pk>', staff_member_required(views.getCommonExams), name="getCommonExams"),
     path('documentation', lambda request: redirect('documentation'), name="documentation_legacy"),
