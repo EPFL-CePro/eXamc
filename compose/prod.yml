@@ -37,7 +37,7 @@ services:
     user: "1000:2770"
     volumes:
       - ../data/private_media:/private_media
-      - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every web service
+      - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every django service
     depends_on:
       fe-builder:
         condition: service_completed_successfully

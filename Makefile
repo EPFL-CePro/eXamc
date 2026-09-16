@@ -34,7 +34,7 @@ ifeq ($(ENV),dev)
   export COMPOSE_PROFILES := mysql-dockerized
 endif
 
-# Optionnal Seed file (DB) ('make seed')
+# Optional Seed file (DB) ('make seed')
 SEED_FILE ?= deploy/db/dev-seed.sql.gz
 
 # Export project name for stable names (networks/volumes/containers)
@@ -53,7 +53,7 @@ help:
 	@echo "  make reset           - down -v (supprime volumes) + orphelins"
 	@echo "  make ps              - affiche l'état des services"
 	@echo "  make logs            - logs de tous les services (suivi)"
-	@echo "  make web-shell       - shell dans le conteneur web"
+	@echo "  make django-shell    - shell dans le conteneur django"
 	@echo "  make migrate         - django migrate"
 	@echo "  make makemigrations  - django makemigrations"
 	@echo "  make collectstatic   - django collectstatic"
@@ -63,7 +63,7 @@ help:
 	@echo "  make dbshell         - ouvre un shell MySQL dans le conteneur"
 	@echo "  make dbdump          - export DB -> ./deploy/db/dump-YYYYmmdd.sql.gz"
 	@echo "  make prune           - nettoie images non utilisées"
-	@echo "  make rebuild-web     - rebuild uniquement le service web"
+	@echo "  make rebuild-django  - rebuild uniquement le service django"
 	@echo
 	@echo "Variables : ENV=dev|test|prod  PROJECT=$(PROJECT)  ENV_FILE=$(ENV_FILE)"
 	@echo "Exemples : make up ENV=test    |    make seed SEED_FILE=deploy/db/foo.sql.gz"
@@ -89,21 +89,21 @@ logs:
 	$(DC) logs -f --tail=200
 
 # =========[ Django utilities ]=========
-.PHONY: web-shell migrate makemigrations collectstatic createsuperuser
-web-shell:
-	$(DC) exec web bash -lc 'exec bash'
+.PHONY: django-shell migrate makemigrations collectstatic createsuperuser
+django-shell:
+	$(DC) exec django bash -lc 'exec bash'
 
 migrate:
-	$(DC) exec -T web bash -lc 'python manage.py migrate --noinput'
+	$(DC) exec -T django bash -lc 'python manage.py migrate --noinput'
 
 makemigrations:
-	$(DC) exec -T web bash -lc 'python manage.py makemigrations'
+	$(DC) exec -T django bash -lc 'python manage.py makemigrations'
 
 collectstatic:
-	$(DC) exec -T web bash -lc 'python manage.py collectstatic --noinput'
+	$(DC) exec -T django bash -lc 'python manage.py collectstatic --noinput'
 
 createsuperuser:
-	$(DC) exec web bash -lc 'python manage.py createsuperuser'
+	$(DC) exec django bash -lc 'python manage.py createsuperuser'
 
 # =========[ Quick healthchecks ]=========
 .PHONY: health nginx-reload
@@ -148,23 +148,23 @@ dbimport:
 	@echo "Import terminé."
 
 # =========[ Maintenance ]=========
-.PHONY: prune rebuild-web rebuild-all
+.PHONY: prune rebuild-django rebuild-all
 prune:
 	docker image prune -f
 
-rebuild-web:
-	$(DC) up -d --build web
+rebuild-django:
+	$(DC) up -d --build django
 
 rebuild-all:
 	$(DC) up -d --build
 
 # =========[ usefule shortcuts ]=========
-.PHONY: open web-logs celery-logs beat-logs
+.PHONY: open django-logs celery-logs beat-logs
 open:
 	@python -c 'import webbrowser; webbrowser.open("http://127.0.0.1:8000")'
 
-web-logs:
-	$(DC) logs -f --tail=200 web
+django-logs:
+	$(DC) logs -f --tail=200 django
 
 celery-logs:
 	$(DC) logs -f --tail=200 celery
