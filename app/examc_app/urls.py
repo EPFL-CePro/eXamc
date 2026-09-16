@@ -1,15 +1,14 @@
 from django.urls import path, include
 
 from examc_app import views
-from examc_app.api import router
+from examc_app.api.router import examc_router
 
 from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 from examc_app.views.rooms_plans_special_views import GenerateRoomPlanSpecialView
 
 urlpatterns = [
     # DRF
-    path("api/auth/", include("rest_framework.urls")),
-    #path("api/", include(router.examc_router.urls)),
+    path("api/", include(examc_router.urls)),
 
     # IMPERSONATION
     path('impersonate/', views.impersonate_user_select, name="impersonate_select"),

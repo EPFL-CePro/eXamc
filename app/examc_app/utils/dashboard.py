@@ -1,14 +1,22 @@
 from pathlib import Path
+from typing import Any, List, TypedDict
 
 from django.conf import settings
+from django.contrib.auth.models import User, AnonymousUser
+from django.db.models import QuerySet
 from django.urls import reverse
 
-from examc_app.models import Exam, ExamUser, PageMarkers, PagesGroupGradingSchemeCheckedBox
+from examc_app.models import Exam, ExamUser, PageMarkers, PagesGroupGradingSchemeCheckedBox, PagesGroup
 from examc_app.permissions import exam_group_names_allow
-
 
 DASHBOARD_EXAM_LIMIT = 20
 DASHBOARD_TODO_LIMIT = 8
+
+class DashboardTodo(TypedDict):
+    title: str
+    description: str
+    url: str | None
+    icon: str
 
 
 def _normalize_group_names(group_names):
@@ -23,7 +31,7 @@ def _get_reviewer_group_names():
     return _normalize_group_names(getattr(settings, "EXAM_REVIEWER_GROUP_NAMES", ()))
 
 
-def _get_exam_user_group_names(exam_users):
+def _get_exam_user_group_names(exam_users: List[ExamUser]) -> List[str]:
     return [
         exam_user.group.name
         for exam_user in exam_users
@@ -31,26 +39,26 @@ def _get_exam_user_group_names(exam_users):
     ]
 
 
-def _exam_users_allow(exam_users, permission_codenames):
+def _exam_users_allow(exam_users: List[ExamUser], permission_codenames):
     return exam_group_names_allow(
         _get_exam_user_group_names(exam_users),
         permission_codenames,
     )
 
 
-def _exam_user_allows(exam_user, permission_codenames):
+def _exam_user_allows(exam_user: ExamUser, permission_codenames):
     if not exam_user.group:
         return False
     return exam_group_names_allow([exam_user.group.name], permission_codenames)
 
 
-def _is_reviewer_exam_user(exam_user):
+def _is_reviewer_exam_user(exam_user: ExamUser):
     if not exam_user.group:
         return False
     return exam_user.group.name.strip().casefold() in _get_reviewer_group_names()
 
 
-def _exam_has_reviewer(exam):
+def _exam_has_reviewer(exam: Exam):
     reviewer_group_names = _get_reviewer_group_names()
     exam_group_names = ExamUser.objects.filter(
         exam=exam,
@@ -59,13 +67,14 @@ def _exam_has_reviewer(exam):
     return bool(_normalize_group_names(exam_group_names) & reviewer_group_names)
 
 
-def _get_user_exam_users(exam, user):
+def _get_user_exam_users(exam: Exam, user: User | AnonymousUser) -> list[ExamUser]:
     if user.is_superuser:
         return []
+
     return [exam_user for exam_user in exam.exam_users.all() if exam_user.user_id == user.id]
 
 
-def _get_role_label(user, exam_users):
+def _get_role_label(user: User, exam_users):
     if user.is_superuser:
         return "Superuser"
 
@@ -77,7 +86,7 @@ def _get_role_label(user, exam_users):
     return ", ".join(role_names) if role_names else "User"
 
 
-def _get_dashboard_type(user, exam_users):
+def _get_dashboard_type(user: User, exam_users):
     if user.is_superuser:
         return "Superuser overview"
 
@@ -91,7 +100,7 @@ def _get_dashboard_type(user, exam_users):
     return "Standard access"
 
 
-def _get_exam_capabilities(user, exam_users):
+def _get_exam_capabilities(user: User, exam_users):
     return {
         "manage": user.is_superuser or _exam_users_allow(exam_users, ["manage"]),
         "review": user.is_superuser or _exam_users_allow(exam_users, ["review"]),
@@ -99,7 +108,7 @@ def _get_exam_capabilities(user, exam_users):
     }
 
 
-def _get_review_progress(exam):
+def _get_review_progress(exam: Exam):
     total_copies = _get_exam_review_copy_count(exam)
     if not total_copies:
         return None
@@ -116,6 +125,7 @@ def _get_review_progress(exam):
         return None
 
     average_graded = sum(progress["graded"] for progress in pages_groups_progress) / len(pages_groups_progress)
+
     return {
         "graded": _format_progress_count(average_graded),
         "total": total_copies,
@@ -130,7 +140,7 @@ def _format_progress_count(count):
     return rounded_count
 
 
-def _get_exam_review_scans_path(exam):
+def _get_exam_review_scans_path(exam: Exam):
     if not exam.year_id or not exam.semester_id or not exam.date:
         return None
 
@@ -146,7 +156,7 @@ def _get_exam_review_scans_path(exam):
     return scans_path
 
 
-def _get_exam_review_copy_dirs(exam):
+def _get_exam_review_copy_dirs(exam: Exam):
     scans_path = _get_exam_review_scans_path(exam)
     if not scans_path:
         return []
@@ -158,20 +168,22 @@ def _get_exam_review_copy_dirs(exam):
     ]
 
 
-def _get_exam_review_copy_count(exam):
+def _get_exam_review_copy_count(exam: Exam):
     return len(_get_exam_review_copy_dirs(exam))
 
 
-def _exam_has_review_scan_files(exam):
+def _exam_has_review_scan_files(exam: Exam):
     for copy_path in _get_exam_review_copy_dirs(exam):
         if any(scan_path.is_file() for scan_path in copy_path.iterdir()):
             return True
     return False
 
 
-def _get_pages_group_progress(pages_group, user_id=None, total_copies=None):
-    total = total_copies if total_copies is not None else _get_exam_review_copy_count(pages_group.exam)
+def _get_pages_group_progress(pages_group: PagesGroup, user_id = None):
+    total_copies = _get_exam_review_copy_count(pages_group.exam)
+
     markers = PageMarkers.objects.filter(pages_group=pages_group).exclude(copie_no="CORR-BOX")
+
     if pages_group.use_grading_scheme:
         graded = PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=pages_group)
         if user_id:
@@ -185,15 +197,13 @@ def _get_pages_group_progress(pages_group, user_id=None, total_copies=None):
 
     return {
         "graded": graded_count,
-        "total": total,
-        "percent": round(100 / total * graded_count) if total else None,
+        "total_copies": total_copies,
+        "percent": round(100 / total_copies * graded_count) if total_copies else None,
     }
 
 
-def _get_filter_tags(exam, capabilities):
+def _get_filter_tags(exam: Exam, capabilities):
     filter_tags = []
-    if capabilities["manage"]:
-        filter_tags.append("manage")
     if exam.review_option and capabilities["review"]:
         filter_tags.append("review")
     if exam.res_and_stats_option and capabilities["results"]:
@@ -201,7 +211,7 @@ def _get_filter_tags(exam, capabilities):
     return filter_tags
 
 
-def _build_exam_card(user, exam):
+def build_exam_card(user: User, exam: Exam) -> dict[str, Any]:
     exam_users = _get_user_exam_users(exam, user)
     capabilities = _get_exam_capabilities(user, exam_users)
     module_badges = []
@@ -248,6 +258,7 @@ def _build_exam_card(user, exam):
         })
 
     role = _get_role_label(user, exam_users)
+
     return {
         "exam": exam,
         "role": role,
@@ -259,18 +270,24 @@ def _build_exam_card(user, exam):
     }
 
 
-def _add_todo(todos, title, description, url=None, icon="fa-circle-info"):
-    if len(todos) >= DASHBOARD_TODO_LIMIT:
-        return
-    todos.append({
-        "title": title,
-        "description": description,
-        "url": url,
-        "icon": icon,
-    })
+def _add_todo(
+        todos: List[DashboardTodo],
+        title: str,
+        description: str,
+        url: str | None = None,
+        icon: str = "fa-circle-info"
+):
+    if len(todos) >= DASHBOARD_TODO_LIMIT: return
+
+    todos.append(DashboardTodo(
+        title=title,
+        description=description,
+        url=url,
+        icon=icon,
+    ))
 
 
-def _add_manage_todos(todos, exam):
+def _add_manage_todos(todos: List[DashboardTodo], exam: Exam):
     if exam.review_option:
         if not exam.pagesGroup.exists():
             _add_todo(
@@ -325,7 +342,7 @@ def _add_manage_todos(todos, exam):
             )
 
 
-def _add_review_todos(todos, user, exam, exam_users):
+def _add_review_todos(todos: List[DashboardTodo], user: User, exam: Exam, exam_users: List[ExamUser]):
     if not exam.review_option:
         return
 
@@ -358,7 +375,10 @@ def _add_review_todos(todos, user, exam, exam_users):
 
         for pages_group in pages_groups:
             progress = _get_pages_group_progress(pages_group, user.id)
-            if progress["total"] and progress["graded"] < progress["total"]:
+            graded = progress["graded"]
+            total_copies = progress["total_copies"]
+
+            if total_copies and graded and graded < total_copies:
                 _add_todo(
                     todos,
                     f"{exam.code}: continue {pages_group.group_name}",
@@ -376,28 +396,7 @@ def _add_review_todos(todos, user, exam, exam_users):
                 )
 
 
-def _get_dashboard_exam_filters(exam_cards):
-    filter_defs = [
-        ("all", "All"),
-        ("manage", "Manage"),
-        ("review", "Review"),
-        ("results", "Results"),
-    ]
-    filters = []
-    for key, label in filter_defs:
-        if key == "all":
-            count = len(exam_cards)
-        else:
-            count = sum(1 for card in exam_cards if key in card["filter_tags"])
-        filters.append({
-            "key": key,
-            "label": label,
-            "count": count,
-        })
-    return filters
-
-
-def get_dashboard_context(user):
+def get_dashboard_context(user): #-> dict[str, Any]:
     if user.is_superuser:
         exams = Exam.objects.filter(overall=False)
     else:
@@ -412,10 +411,9 @@ def get_dashboard_context(user):
     ).order_by("-date", "code")
 
     all_exam_users = list(ExamUser.objects.filter(user=user).select_related("group"))
-    visible_exams = list(exams[:DASHBOARD_EXAM_LIMIT])
     todos = []
 
-    for exam in visible_exams:
+    for exam in exams:
         exam_users = _get_user_exam_users(exam, user)
         capabilities = _get_exam_capabilities(user, exam_users)
         if capabilities["manage"]:
@@ -423,14 +421,7 @@ def get_dashboard_context(user):
         if capabilities["review"]:
             _add_review_todos(todos, user, exam, exam_users)
 
-    exam_cards = [_build_exam_card(user, exam) for exam in visible_exams]
     shortcuts = [
-        {
-            "label": "Open exam",
-            "description": "Browse all exams available to you.",
-            "url": reverse("examSelect"),
-            "icon": "fa-folder-open",
-        },
         {
             "label": "Room plan",
             "description": "Generate and export exam room plans.",
@@ -450,6 +441,7 @@ def get_dashboard_context(user):
             "icon": "fa-circle-question",
         },
     ]
+
     if user.is_superuser:
         shortcuts.append({
             "label": "Create exam",
@@ -465,12 +457,24 @@ def get_dashboard_context(user):
         })
 
     return {
+        "has_exams": exams.exists(),
         "dashboard_type": _get_dashboard_type(user, all_exam_users),
-        "dashboard_exam_count": exams.count(),
-        "dashboard_exam_limit": DASHBOARD_EXAM_LIMIT,
-        "dashboard_visible_exam_count": len(exam_cards),
-        "dashboard_exam_filters": _get_dashboard_exam_filters(exam_cards),
-        "dashboard_exams": exam_cards,
         "dashboard_todos": todos,
         "dashboard_shortcuts": shortcuts,
     }
+
+
+
+def get_dashboard_exam_queryset(user: User | AnonymousUser) -> QuerySet[Exam, Exam]:
+    if user.is_superuser:
+        exams = Exam.objects.filter(overall=False)
+    else:
+        exams = Exam.objects.filter(overall=False, exam_users__user=user).distinct()
+
+    return exams.select_related("year", "semester").prefetch_related(
+        "exam_users__group",
+        "exam_users__user",
+        "pagesGroup",
+        "scales",
+        "scaleStatistics",
+    ).order_by("-date", "code")
