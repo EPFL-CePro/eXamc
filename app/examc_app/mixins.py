@@ -1,8 +1,5 @@
-# examc_app/mixins.py
 from django.contrib.auth.mixins import AccessMixin
 from django.shortcuts import get_object_or_404, redirect
-from django.core.exceptions import PermissionDenied
-from django.http import Http404
 from django.template.response import TemplateResponse
 from django.urls import reverse
 
