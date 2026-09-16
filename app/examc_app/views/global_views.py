@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any
 
 import pytz
 from django.conf import settings
@@ -53,24 +54,44 @@ def getCommonExams(request, pk):
 
     return HttpResponseRedirect("../admin/examc_app/exam/")
 
+
 def home(request):
-    user_info = request.user.__dict__
-    user_info.update(request.user.__dict__)
+    user = request.user
+
+    if not isinstance(user, User):
+        return HttpResponseRedirect(reverse("login_form"))
+
+    user_info = user.__dict__
+    user_info.update(user.__dict__)
     last_connection_users = []
-    if request.user.is_superuser:
+
+    if user.is_anonymous:
+        return HttpResponseRedirect(reverse("login_form"))
+
+    if user.is_superuser:
         for u in User.objects.all().order_by('-last_login'):
             if u.last_login:
                 datetime_zone = u.last_login.astimezone(pytz.timezone(settings.TIME_ZONE))
-                last_connection_users.append({"username":u.get_username(),"last_login" : datetime_zone.strftime('%Y-%m-%d %H:%M:%S')})
-    context = {
-        'user': request.user,
+                last_connection_users.append(
+                    {
+                        "username": u.get_username(),
+                        "last_login": datetime_zone.strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                )
+
+    context: dict[str, Any] = {
+        'user': user,
         'user_info': user_info,
         'last_connection_users': last_connection_users,
     }
-    if request.user.is_authenticated:
-        context.update(get_dashboard_context(request.user))
+
+    if user.is_authenticated:
+        context.update(get_dashboard_context(user))
+    else:
+        context['has_exams'] = False
 
     return render(request, 'home.html', context)
+
 
 
 def select_exam(request, pk, nav_url=None):
@@ -168,6 +189,7 @@ def log_in(request):
 
     return render(request, 'login_form.html', {'form': form})
 
+
 # @login_required
 # def logout(request):
 #     response = requests.get("https://tequila.epfl.ch/logout")
@@ -197,6 +219,7 @@ def documentation_view(request, path="index.html"):
 
     return FileResponse(open(full_path, "rb"), as_attachment=False)
 
+
 def user_allowed(exam, user_id):
     exam_users = User.objects.filter(Q(exam=exam) | Q(exam__in=exam.common_exams.all()))
     user = User.objects.get(pk=user_id)
@@ -204,6 +227,7 @@ def user_allowed(exam, user_id):
         return True
     else:
         return False
+
 
 @require_GET
 def serve_signed_file(request, file_hint=None):
@@ -237,11 +261,13 @@ def serve_signed_file(request, file_hint=None):
 
     return FileResponse(open(full_path, "rb"), as_attachment=False)
 
+
 def force_oidc_logout(request):
     if request.user.is_authenticated:
         logout(request)
     return render(request, 'oidc_auto_logout.html')
 
+
 def test(request):
     #detect_layout()
-    return render(request,'index.html')
+    return render(request, 'index.html')
