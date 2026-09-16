@@ -99,10 +99,10 @@ FROM runtime-base AS production
 
 WORKDIR /app
 
+ENV PATH="/opt/venv-prod/bin:$PATH"
+
 COPY --from=builder /opt/venv-prod /opt/venv-prod
 COPY --from=builder /app /app
-
-ENV PATH="/opt/venv-prod/bin:$PATH"
 
 
 # =========================
@@ -113,9 +113,11 @@ FROM runtime-base AS tooling
 ARG UID=1000
 ARG GID=1000
 
-ENV PATH="/opt/venv-tooling/bin:$PATH" \
-    UV_CACHE_DIR=/opt/uv-cache/
+WORKDIR /app
 
+ENV PATH="/opt/venv-tooling/bin:$PATH" \
+    UV_PROJECT_ENVIRONMENT=/opt/venv-tooling/ \
+    UV_CACHE_DIR=/opt/uv-cache/
 
 RUN groupadd --gid ${GID} dev \
     && useradd --uid ${UID} --gid ${GID} --shell /bin/bash dev
