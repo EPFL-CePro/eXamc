@@ -12,7 +12,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 WORKDIR /app
 
 # Build-time dependencies
-COPY docker/scripts/install-build-deps.sh /opt/install-build-deps.sh
+COPY ./install-build-deps.sh /opt/install-build-deps.sh
 RUN /opt/install-build-deps.sh
 
 COPY app/pyproject.toml app/uv.lock ./
@@ -121,7 +121,7 @@ RUN groupadd --gid ${GID} dev \
     && useradd --uid ${UID} --gid ${GID} --shell /bin/bash dev
 
 # Reinstall the build deps to be able to build depencies
-COPY docker/scripts/install-build-deps.sh /opt/install-build-deps.sh
+COPY ./install-build-deps.sh /opt/install-build-deps.sh
 RUN /opt/install-build-deps.sh
 
 # Setup UV cache dir for rootless access

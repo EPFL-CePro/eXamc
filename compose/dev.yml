@@ -51,7 +51,7 @@ services:
       COLLECTSTATIC: "0" # in dev, OK
       PRIVATE_MEDIA_ROOT: /private_media
     volumes:
-      - ../app/:/app:z
+      - ../django/app/:/app:z
       - ../data/private_media:/private_media
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
     env_file:

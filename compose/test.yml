@@ -45,7 +45,7 @@ services:
         condition: service_healthy
     volumes:
       - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every web service
-      - ../app:/app
+      - ../django/app:/app
     restart: no
 
 volumes:
