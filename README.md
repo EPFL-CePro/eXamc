@@ -263,8 +263,10 @@ docker compose -f compose/test.yml build --target tooling django
 ## Makefile commands
 
 ```bash
-make up             # build + start
-make down           # stop
+make up             # build & starts everything
+make build          # (re)builds & starts services
+make tests          # starts tests (using compose/dev.yaml) config
+make down           # stop everything
 make reset          # stop + remove volumes (DB data!)
 make ps             # status
 make logs           # tail logs for all services

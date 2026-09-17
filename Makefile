@@ -47,23 +47,30 @@ DC := docker compose $(COMPOSE_FILES)
 .PHONY: help
 help:
 	@echo "Targets principaux :"
-	@echo "  make up              - build & démarre tout (selon ENV=$(ENV))"
-	@echo "  make build           - (re)build & up des services"
-	@echo "  make down            - stoppe le stack"
-	@echo "  make reset           - down -v (supprime volumes) + orphelins"
-	@echo "  make ps              - affiche l'état des services"
-	@echo "  make logs            - logs de tous les services (suivi)"
-	@echo "  make django-shell    - shell dans le conteneur django"
-	@echo "  make migrate         - django migrate"
+	@echo "  make up              - build & starts everything (using ENV=$(ENV))"
+	@echo "  make build           - (re)builds & starts services"
+	@echo "  make tests           - starts tests (using compose/dev.yaml) config"
+	@echo "  make down            - stop everything"
+	@echo "  make reset           - stop + remove volumes (DB data!)"
+	@echo "  make ps              - status"
+	@echo "  make logs            - tail logs for all services"
+	@echo ""
+	@echo "  make django-shell    - shell inside django container"
 	@echo "  make makemigrations  - django makemigrations"
+	@echo "  make migrate         - django migrate"
 	@echo "  make collectstatic   - django collectstatic"
 	@echo "  make createsuperuser - django createsuperuser (interactif)"
+	@echo ""
 	@echo "  make health          - vérifie /healthz via Nginx"
+	@echo "  make nginx-reload 	  - test & reload Nginx"
+	@echo ""
 	@echo "  make seed            - importe le seed si DB vide (profil 'seed')"
-	@echo "  make dbshell         - ouvre un shell MySQL dans le conteneur"
-	@echo "  make dbdump          - export DB -> ./deploy/db/dump-YYYYmmdd.sql.gz"
-	@echo "  make prune           - nettoie images non utilisées"
-	@echo "  make rebuild-django  - rebuild uniquement le service django"
+	@echo "  make dbshell         - mysql client (root) inside container"
+	@echo "  make dbdump          - export DB -> deploy/db/dump-YYYYmmdd_HHMMSS.sql.gz"
+	@echo "  make dbimport FILE=deploy/db/foo.sql.gz  - import .sql(.gz)"
+	@echo ""
+	@echo "  make rebuild-django  - rebuild django service only"
+	@echo "  make prune           - prune dangling images"
 	@echo
 	@echo "Variables : ENV=dev|test|prod  PROJECT=$(PROJECT)  ENV_FILE=$(ENV_FILE)"
 	@echo "Exemples : make up ENV=test    |    make seed SEED_FILE=deploy/db/foo.sql.gz"
@@ -75,6 +82,9 @@ up: ensure-env
 
 build: ensure-env
 	$(DC) up -d --build
+
+tests:
+	docker compose -f compose/test.yml run --rm django pytest
 
 down:
 	$(DC) down
