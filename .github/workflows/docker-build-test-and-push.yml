@@ -68,7 +68,7 @@ jobs:
       - name: Build production image
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: django
           target: production
           load: true
           push: false
@@ -79,10 +79,10 @@ jobs:
 
       # Build the tooling target locally.
       # It shares the runtime base and dependencies with the production target and is used to run tests.
-      - name: Build test image
+      - name: Build tooling image
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: django
           target: tooling
           load: true
           push: false
