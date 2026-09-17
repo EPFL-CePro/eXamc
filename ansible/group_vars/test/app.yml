@@ -1,4 +1,5 @@
 repo_url: "git@github.com:EPFL-CePro/eXamc.git"
+repo_version: "staging"
 env_name: "test"
 app_dir: "/opt/examc"
 compose_project_name: "examc"
