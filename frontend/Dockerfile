@@ -20,8 +20,6 @@ RUN pnpm install --frozen-lockfile
 # =========================
 FROM base AS dev
 
-USER node
-
 EXPOSE 5173
 
 CMD ["pnpm", "run", "dev", "--host"]
@@ -33,7 +31,8 @@ CMD ["pnpm", "run", "dev", "--host"]
 FROM base AS build
 
 COPY app/ /app/frontend
-RUN pnpm run build   # <-- no reinstall needed, node_modules already present from base
+
+RUN pnpm run build
 
 
 # =========================
@@ -41,8 +40,17 @@ RUN pnpm run build   # <-- no reinstall needed, node_modules already present fro
 # =========================
 FROM alpine:3 AS artifact
 
-COPY --from=build /app/frontend/dist/vite /vite
+ARG UID=1000
+ARG GID=1000
+
+RUN mkdir -p /static && chown ${UID}:${GID} /static
+
+VOLUME /static
+
+COPY --from=build --chown=${UID}:${GID} /app/frontend/dist/vite /vite
 COPY ./deploy-static.sh /deploy-static.sh
 RUN chmod +x /deploy-static.sh
+
+USER ${UID}:${GID}
 
 ENTRYPOINT ["/deploy-static.sh"]
