@@ -16,11 +16,11 @@
 //   $(".jquery-selector").multiselect()
 // Source: https://github.com/crlcu/multiselect/ (last commit 2022, no npm
 // package — see base.README.md for why this stays vendored).
-import '../lib/legacy/multiselect.min.js'
+import '../legacy/multiselect.min.js'
 
 // jQuery plugin (partial file): loads a form into a modal, submits via
 // AJAX. Usage in templates:
 //   $('#button').modalForm({ formURL: '/path/to/form/' })
 // Source: https://github.com/trco/django-bootstrap-modal-forms — ships as
 // a static file inside that PyPI package, not on npm.
-import '../lib/legacy/jquery.bootstrap.modal.forms.min.js'
+import '../legacy/jquery.bootstrap.modal.forms.min.js'

@@ -69,4 +69,4 @@ declare global {
 }
 window.Chart = Chart
 
-import '../lib/legacy/palette.min.js'
+import '../legacy/palette.min.js'
