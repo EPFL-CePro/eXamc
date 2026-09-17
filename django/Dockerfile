@@ -71,6 +71,7 @@ RUN set -eux; \
         libglib2.0-0 \
         libsm6 \
         libxext6 \
+        mariadb-client \
         fonts-dejavu-core \
         fonts-liberation \
         fonts-noto-core \
