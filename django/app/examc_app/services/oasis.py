@@ -155,7 +155,7 @@ def get_course_teachers(academic_year, course_code):
     return list(teachers_by_sciper.values())
 
 
-def get_teachers_by_course(academic_year):
+def get_teachers_names_by_course(academic_year):
     """Return teachers (sciper + full name) grouped by course, deduplicated by SCIPER."""
     _validate_year(academic_year)
 

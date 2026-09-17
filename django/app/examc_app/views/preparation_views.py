@@ -9,7 +9,7 @@ from docutils import DataError
 
 from examc_app.forms import CreateExamProjectForm, CreateQuestionForm, SummernoteForm
 from examc_app.models import *
-from examc_app.services.oasis import get_courses, get_teacher_names_by_course
+from examc_app.services.oasis import get_courses, get_teachers_names_by_course
 from examc_app.utils.global_functions import add_course_teachers_ldap, convert_html_to_latex, exam_generate_preview
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ def create_exam_project(request):
 
     if year is None: raise DataError("No academic year configured.")
 
-    teacher_names_by_course = get_teacher_names_by_course(year.code)
+    teacher_names_by_course = get_teachers_names_by_course(year.code)
     courses = get_courses(year.code)
 
     form = CreateExamProjectForm(
