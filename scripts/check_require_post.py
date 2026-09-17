@@ -104,8 +104,8 @@ ORPHANED_VIEWS = {
     "old_call_amc_annotate",  # amc_views.py - superseded by call_amc_annotate
 }
 
-URLS_FILE = "app/examc_app/urls.py"
-VIEWS_DIR = "app/examc_app/views"
+URLS_FILE = "django/app/examc_app/urls.py"
+VIEWS_DIR = "django/app/examc_app/views"
 
 
 def _call_target_name(call: ast.Call) -> str | None:
