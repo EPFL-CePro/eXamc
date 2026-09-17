@@ -1,0 +1,7 @@
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+
+# Used packages have to be released for at least 1 week.
+# This is to ensure that the packages are stable and have been tested for a while and protect against supply chain attacks.
+minimumReleaseAge: 10080

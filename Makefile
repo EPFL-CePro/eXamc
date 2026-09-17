@@ -34,7 +34,7 @@ ifeq ($(ENV),dev)
   export COMPOSE_PROFILES := mysql-dockerized
 endif
 
-# Optionnal Seed file (DB) ('make seed')
+# Optional Seed file (DB) ('make seed')
 SEED_FILE ?= deploy/db/dev-seed.sql.gz
 
 # Export project name for stable names (networks/volumes/containers)
@@ -47,23 +47,30 @@ DC := docker compose $(COMPOSE_FILES)
 .PHONY: help
 help:
 	@echo "Targets principaux :"
-	@echo "  make up              - build & démarre tout (selon ENV=$(ENV))"
-	@echo "  make build           - (re)build & up des services"
-	@echo "  make down            - stoppe le stack"
-	@echo "  make reset           - down -v (supprime volumes) + orphelins"
-	@echo "  make ps              - affiche l'état des services"
-	@echo "  make logs            - logs de tous les services (suivi)"
-	@echo "  make web-shell       - shell dans le conteneur web"
-	@echo "  make migrate         - django migrate"
+	@echo "  make up              - build & starts everything (using ENV=$(ENV))"
+	@echo "  make build           - (re)builds & starts services"
+	@echo "  make tests           - starts tests (using compose/dev.yaml) config"
+	@echo "  make down            - stop everything"
+	@echo "  make reset           - stop + remove volumes (DB data!)"
+	@echo "  make ps              - status"
+	@echo "  make logs            - tail logs for all services"
+	@echo ""
+	@echo "  make django-shell    - shell inside django container"
 	@echo "  make makemigrations  - django makemigrations"
+	@echo "  make migrate         - django migrate"
 	@echo "  make collectstatic   - django collectstatic"
 	@echo "  make createsuperuser - django createsuperuser (interactif)"
+	@echo ""
 	@echo "  make health          - vérifie /healthz via Nginx"
+	@echo "  make nginx-reload 	  - test & reload Nginx"
+	@echo ""
 	@echo "  make seed            - importe le seed si DB vide (profil 'seed')"
-	@echo "  make dbshell         - ouvre un shell MySQL dans le conteneur"
-	@echo "  make dbdump          - export DB -> ./deploy/db/dump-YYYYmmdd.sql.gz"
-	@echo "  make prune           - nettoie images non utilisées"
-	@echo "  make rebuild-web     - rebuild uniquement le service web"
+	@echo "  make dbshell         - mysql client (root) inside container"
+	@echo "  make dbdump          - export DB -> deploy/db/dump-YYYYmmdd_HHMMSS.sql.gz"
+	@echo "  make dbimport FILE=deploy/db/foo.sql.gz  - import .sql(.gz)"
+	@echo ""
+	@echo "  make rebuild-django  - rebuild django service only"
+	@echo "  make prune           - prune dangling images"
 	@echo
 	@echo "Variables : ENV=dev|test|prod  PROJECT=$(PROJECT)  ENV_FILE=$(ENV_FILE)"
 	@echo "Exemples : make up ENV=test    |    make seed SEED_FILE=deploy/db/foo.sql.gz"
@@ -75,6 +82,9 @@ up: ensure-env
 
 build: ensure-env
 	$(DC) up -d --build
+
+tests:
+	docker compose -f compose/test.yml run --rm django pytest
 
 down:
 	$(DC) down
@@ -89,21 +99,21 @@ logs:
 	$(DC) logs -f --tail=200
 
 # =========[ Django utilities ]=========
-.PHONY: web-shell migrate makemigrations collectstatic createsuperuser
-web-shell:
-	$(DC) exec web bash -lc 'exec bash'
+.PHONY: django-shell migrate makemigrations collectstatic createsuperuser
+django-shell:
+	$(DC) exec django bash -lc 'exec bash'
 
 migrate:
-	$(DC) exec -T web bash -lc 'python manage.py migrate --noinput'
+	$(DC) exec -T django bash -lc 'python manage.py migrate --noinput'
 
 makemigrations:
-	$(DC) exec -T web bash -lc 'python manage.py makemigrations'
+	$(DC) exec -T django bash -lc 'python manage.py makemigrations'
 
 collectstatic:
-	$(DC) exec -T web bash -lc 'python manage.py collectstatic --noinput'
+	$(DC) exec -T django bash -lc 'python manage.py collectstatic --noinput'
 
 createsuperuser:
-	$(DC) exec web bash -lc 'python manage.py createsuperuser'
+	$(DC) exec django bash -lc 'python manage.py createsuperuser'
 
 # =========[ Quick healthchecks ]=========
 .PHONY: health nginx-reload
@@ -148,23 +158,23 @@ dbimport:
 	@echo "Import terminé."
 
 # =========[ Maintenance ]=========
-.PHONY: prune rebuild-web rebuild-all
+.PHONY: prune rebuild-django rebuild-all
 prune:
 	docker image prune -f
 
-rebuild-web:
-	$(DC) up -d --build web
+rebuild-django:
+	$(DC) up -d --build django
 
 rebuild-all:
 	$(DC) up -d --build
 
 # =========[ usefule shortcuts ]=========
-.PHONY: open web-logs celery-logs beat-logs
+.PHONY: open django-logs celery-logs beat-logs
 open:
 	@python -c 'import webbrowser; webbrowser.open("http://127.0.0.1:8000")'
 
-web-logs:
-	$(DC) logs -f --tail=200 web
+django-logs:
+	$(DC) logs -f --tail=200 django
 
 celery-logs:
 	$(DC) logs -f --tail=200 celery

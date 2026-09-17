@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - staging
-      - a-zurcher # TODO: replace by all "a-zurcher" branch mention by "main" once merged
+      - a-zurcher # TODO: replace all "a-zurcher" branch mentions with "main" once merged
 
 env:
   REGISTRY: ghcr.io
@@ -25,17 +25,17 @@ jobs:
       - name: Set image name
         # Required to set an image name in lower-case only
         run: |
-          echo "BASE_IMAGE_NAME=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+          echo "IMAGE_NAME_DJANGO=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       - name: Set image tag
-        # Release branch (main): use the version in app/pyproject.toml to tag the image
+        # Release branch (a-zurcher/main): use the version in app/pyproject.toml to tag the image
         # Staging branch (staging): use the commit SHA to tag the image
-        run: |  
+        run: |
           if [ "${GITHUB_REF_NAME}" = "a-zurcher" ]; then
             VERSION=$(python -c "import tomllib; print(tomllib.load(open('app/pyproject.toml', 'rb'))['project']['version'])")
-            echo "IMAGE_TAG=$VERSION" >> "$GITHUB_ENV"
+            echo "IMAGE_TAG_DJANGO=$VERSION" >> "$GITHUB_ENV"
           elif [ "${GITHUB_REF_NAME}" = "staging" ]; then
-            echo "IMAGE_TAG=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo "IMAGE_TAG_DJANGO=$GITHUB_SHA" >> "$GITHUB_ENV"
           else
             echo "Unsupported branch: ${GITHUB_REF_NAME}"
             exit 1
@@ -52,8 +52,8 @@ jobs:
         # Skipped on staging branch, as the git commit SHA is used to tag the image
         if: github.ref_name == 'a-zurcher'
         run: |
-          TAG="${{ env.IMAGE_TAG }}"
-          IMAGE="${{ env.BASE_IMAGE_NAME }}:$TAG"
+          TAG="${{ env.IMAGE_TAG_DJANGO }}"
+          IMAGE="${{ env.IMAGE_NAME_DJANGO }}:$TAG"
 
           if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
             echo "Image $IMAGE already exists - stopping workflow"
@@ -68,54 +68,54 @@ jobs:
       - name: Build production image
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: django
           target: production
           load: true
           push: false
           platforms: linux/amd64
-          tags: ${{ env.BASE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          tags: ${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # Build the tooling target locally.
       # It shares the runtime base and dependencies with the production target and is used to run tests.
-      - name: Build test image
+      - name: Build tooling image
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: django
           target: tooling
           load: true
           push: false
           platforms: linux/amd64
-          tags: ${{ env.BASE_IMAGE_NAME }}-test:${{ env.IMAGE_TAG }}
+          tags: ${{ env.IMAGE_NAME_DJANGO }}-test:${{ env.IMAGE_TAG_DJANGO }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Run tests
         env:
-          TEST_IMAGE: ${{ env.BASE_IMAGE_NAME }}-test
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          TEST_IMAGE: ${{ env.IMAGE_NAME_DJANGO }}-test
+          IMAGE_TAG_DJANGO: ${{ env.IMAGE_TAG_DJANGO }}
         run: |
-          docker compose -f compose/test.yml run --rm web
+          docker compose -f compose/test.yml run --rm django
 
       # Push only after tests pass.
       - name: Push staging image
         if: github.ref_name == 'staging' && success()
         run: |
-          docker push "${{ env.BASE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          docker push "${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}"
           docker tag \
-            "${{ env.BASE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
-            "${{ env.BASE_IMAGE_NAME }}:staging"
-          docker push "${{ env.BASE_IMAGE_NAME }}:staging"
+            "${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}" \
+            "${{ env.IMAGE_NAME_DJANGO }}:staging"
+          docker push "${{ env.IMAGE_NAME_DJANGO }}:staging"
 
       - name: Push stable image
         if: github.ref_name == 'a-zurcher' && success()
         run: |
-          docker push "${{ env.BASE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          docker push "${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}"
           docker tag \
-            "${{ env.BASE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
-            "${{ env.BASE_IMAGE_NAME }}:stable"
-          docker push "${{ env.BASE_IMAGE_NAME }}:stable"
+            "${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}" \
+            "${{ env.IMAGE_NAME_DJANGO }}:stable"
+          docker push "${{ env.IMAGE_NAME_DJANGO }}:stable"
 
       - name: Docker cleanup
         if: always()

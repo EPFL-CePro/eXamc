@@ -1,0 +1,62 @@
+/* Review grading Scheme css */
+.review-grading-scheme-split-vert {
+    height: 85vh;
+    width: 500px;
+    display: grid;
+    /*noinspection CssUnresolvedCustomProperty*/
+    grid-template-rows: var(--top, 100px) 6px 1fr;
+}
+
+/* Make the two panes scroll independently */
+.review-grading-scheme-split-vert > .pane {
+    overflow: auto;
+}
+
+/* The draggable bar between the panes */
+.review-grading-scheme-split-vert .divider {
+    background: #d9d9d9;
+    cursor: row-resize;
+    position: relative;
+}
+
+/* a small handle (optional) */
+.review-grading-scheme-split-vert .divider::after {
+    content: "";
+    position: absolute;
+    inset: 0 45%;
+    border-left: 2px solid #bcbcbc;
+    border-right: 2px solid #bcbcbc;
+}
+
+/* nicer dragging feel */
+.dragging {
+    user-select: none;
+    cursor: row-resize;
+}
+
+#commentsModal .modal-header.handle { cursor: move; }
+
+.impersonation-banner {
+    align-items: center;
+    border-radius: 0;
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    margin: 0;
+    min-height: 48px;
+    padding-right: 24px;
+    text-align: right;
+}
+
+.impersonation-stop-form {
+    margin: 0;
+}
+
+@media (max-width: 767.98px) {
+    .impersonation-banner {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-right: 16px;
+        text-align: left;
+    }
+}

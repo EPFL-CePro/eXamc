@@ -11,7 +11,7 @@ services:
     env_file:
       - ../.env.dev
     volumes:
-      - ../deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
+      - ./deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
 
   redis:
     extends:
@@ -23,27 +23,38 @@ services:
       service: nginx
       file: base.yml
     volumes:
-      - ../deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-      - ../data/private_media:/private_media:ro
+      - ./deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ./data/private_media:/private_media:ro
     ports:
       - "8000:80"
 
-  web:
+  fe-runner:
+    build:
+      context: ../frontend
+      target: dev
+    volumes:
+      - ../frontend/app/:/app/frontend:z
+    ports:
+      - "5173:5173"
+
+  django:
     extends:
-      service: web
+      service: django
       file: base.yml
     build:
       target: tooling
-    user: "0"
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       DEBUG: "1"
+      VITE_DEV_MODE: "1"
       COLLECTSTATIC: "0" # in dev, OK
       PRIVATE_MEDIA_ROOT: /private_media
-      DB_HOST: mysql
-      DB_PORT: 3306
     volumes:
-      - ../app/:/app:z
-      - ../data/private_media:/private_media
+      - ../django/app/:/app:z
+      - ./data/private_media:/private_media
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
     env_file:
       - ../.env.dev
@@ -53,7 +64,7 @@ services:
       service: celery
       file: base.yml
     volumes:
-      - ../data/private_media:/private_media
+      - ./data/private_media:/private_media
     env_file:
       - ../.env.dev
 
@@ -62,9 +73,10 @@ services:
       service: celery_beat
       file: base.yml
     volumes:
-      - ../data/private_media:/private_media
+      - ./data/private_media:/private_media
     env_file:
       - ../.env.dev
+
 
 volumes:
   mysql_data:

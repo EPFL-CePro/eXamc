@@ -95,7 +95,7 @@ http {
   server_tokens off;
 
   upstream web_upstream {
-    server web:8000;  # Gunicorn in 'web' service
+    server django:8000;  # Gunicorn in 'django' service
   }
 
   server {
@@ -120,7 +120,7 @@ http {
     }
 
     location / {
-      proxy_pass         http://web_upstream;
+      proxy_pass         http://django_upstream;
       proxy_set_header   Host $host;
       proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header   X-Forwarded-Proto $scheme;
@@ -145,7 +145,7 @@ Expected Compose mounts:
 
 ---
 
-## 3) Gunicorn (web)
+## 3) Gunicorn (django)
 
 - Start Gunicorn from **entrypoint** or Compose `command`, e.g.:
   ```bash
@@ -163,25 +163,25 @@ Expected Compose mounts:
 ## 4) Release cycle (TEST/PROD)
 
 1. **Prepare** artifacts  
-   - Git tag (`vX.Y.Z`), build images (web/celery/celery_beat), push to registry (if used).
+   - Git tag (`vX.Y.Z`), build images (django/celery/celery_beat), push to registry (if used).
 
 2. **Controlled stop** (if needed)  
    - You can deploy hot, but schedule maintenance if intrusive migrations are planned.
 
 3. **Migrations** (manual/CI)
    ```bash
-   docker compose -f compose/prod.yml --env-file .env.prod      exec web python manage.py migrate --noinput
-   docker compose ... exec web python manage.py collectstatic --noinput
+   docker compose -f compose/prod.yml --env-file .env.prod exec django python manage.py migrate --noinput
+   docker compose ... exec django python manage.py collectstatic --noinput
    ```
 
 4. **Reload Gunicorn/Nginx**
    - **Hot reload Gunicorn** (if supported):
      ```bash
-     docker compose ... exec web kill -HUP 1
+     docker compose ... exec django kill -HUP 1
      ```
-     or restart `web` (short hiccup):
+     or restart `django` (short hiccup):
      ```bash
-     docker compose ... up -d --no-deps --build web
+     docker compose ... up -d --no-deps --build django
      ```
    - **Nginx**:
      ```bash

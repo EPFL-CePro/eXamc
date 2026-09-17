@@ -9,6 +9,7 @@ CACHED
 
 # IDEs
 .idea
+.run
 
 # Distribution / packaging
 .Python

@@ -10,8 +10,8 @@ services:
     ports:
       - ${DB_PORT:-3308}:3306
     volumes:
-      # This lets test user create DB for testing
-      - ../deploy/db/init-test-user.sql:/docker-entrypoint-initdb.d/test-user.sql:ro
+      # This lets the test user create a DB for testing
+      - ./deploy/db/init-test-user.sql:/docker-entrypoint-initdb.d/test-user.sql:ro
 
   redis:
     extends:
@@ -23,15 +23,15 @@ services:
       service: nginx
       file: base.yml
     volumes:
-      - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
-      # TODO provide an example private_media dir to be integrated in CI/CD
-      # - ../data/private_media:/private_media:ro
+      - ./deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
+      # TODO: provide an example private_media dir to integrate in CI/CD
+      # - ./data/private_media:/private_media:ro
 
-  web:
+  django:
     extends:
-      service: web
+      service: django
       file: base.yml
-    image: "${TEST_IMAGE:-examc-test-web}:${IMAGE_TAG:-latest}"
+    image: "${TEST_IMAGE:-localhost/examc-test}:${IMAGE_TAG_DJANGO:-latest}"
     command: ["pytest"]
     env_file:
       - ../.env.test
@@ -44,8 +44,9 @@ services:
       mysql:
         condition: service_healthy
     volumes:
-      - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every web service
-      - ../app:/app
+      # TODO: decide whether media_volume should be :ro here or across every django service consistently
+      - media_volume:/media:ro
+      - ../django/app:/app
     restart: no
 
 volumes:
