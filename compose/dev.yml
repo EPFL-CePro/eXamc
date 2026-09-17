@@ -24,7 +24,7 @@ services:
       file: base.yml
     volumes:
       - ./deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-      - ../data/private_media:/private_media:ro
+      - ./data/private_media:/private_media:ro
     ports:
       - "8000:80"
 
@@ -33,7 +33,9 @@ services:
       context: ../frontend
       target: dev
     volumes:
-      - ../frontend/:/app/frontend:z
+      - ../frontend/app/:/app/frontend:z
+    ports:
+      - "5173:5173"
 
   django:
     extends:
@@ -52,7 +54,7 @@ services:
       PRIVATE_MEDIA_ROOT: /private_media
     volumes:
       - ../django/app/:/app:z
-      - ../data/private_media:/private_media
+      - ./data/private_media:/private_media
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
     env_file:
       - ../.env.dev
@@ -62,7 +64,7 @@ services:
       service: celery
       file: base.yml
     volumes:
-      - ../data/private_media:/private_media
+      - ./data/private_media:/private_media
     env_file:
       - ../.env.dev
 
@@ -71,7 +73,7 @@ services:
       service: celery_beat
       file: base.yml
     volumes:
-      - ../data/private_media:/private_media
+      - ./data/private_media:/private_media
     env_file:
       - ../.env.dev
 
