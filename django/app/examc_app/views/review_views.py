@@ -271,19 +271,19 @@ class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMix
 #@method_decorator(login_required(login_url='/'), name='dispatch')
 class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
     """
-        View for managing review group for a specific exam.
+    View for managing review groups for a specific exam.
 
-        This class-based view handles the display and management of review group settings for a particular exam. It allows
-        administrators to configure page groups for the exam.
+    This class-based view handles the display and management of review group settings for a particular exam. It allows
+    administrators to configure page groups for the exam.
 
-        Attributes:
-            model (Exam): The model class associated with the view.
-            template_name : The name of the template used for rendering the view.
+    Attributes:
+        model (Exam): The model class associated with the view.
+        template_name : The name of the template used for rendering the view.
 
-        Methods:
-            get_context_data: Overrides the base class method to provide additional context data for rendering the view.
-            post: Handles POST requests for updating review settings.
-"""
+    Methods:
+        get_context_data: Overrides the base class method to provide additional context data for rendering the view.
+        post: Handles POST requests for updating review settings.
+    """
     model = Exam
     template_name = 'review/reviewGroup.html'
     pk_url_kwarg = 'exam_pk'
