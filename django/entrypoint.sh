@@ -14,7 +14,6 @@ echo "[entrypoint] CMD to exec: $*"
 
 # ---- Default command if none passed ----
 if [ "$#" -eq 0 ] || [ -z "${1:-}" ]; then
-  # Pick your preferred default here (gunicorn recommended in prod)
   set -- gunicorn examc.wsgi:application --config gunicorn.conf.py
   #set -- gunicorn examc.wsgi:application --bind 0.0.0.0:8000 --workers "${GUNICORN_WORKERS:-3}" --timeout "${GUNICORN_TIMEOUT:-120}"
 fi
@@ -53,14 +52,16 @@ fi
 if [ "$(id -u)" -eq 0 ]; then
   id app >/dev/null 2>&1 || useradd -m -u 1000 -s /bin/bash app || true
   mkdir -p /static /media /private_media
-  chown -R app:app /static /media /private_media /app || true
-  # Run migrations/collectstatic as 'app'
-  runuser -u app -- python manage.py migrate --noinput
+  chown -R examc:examc /static /media /private_media /app || true
+
+  # Run migrations/collectstatic as 'examc'
+  runuser -u examc -- python manage.py migrate --noinput
   if [ "${COLLECTSTATIC:-1}" = "1" ]; then
-    runuser -u app -- python manage.py collectstatic --noinput
+    runuser -u examc -- python manage.py collectstatic --noinput
   fi
+
   # Hand over to app user
-  exec runuser -u app -- "$@"
+  exec runuser -u examc -- "$@"
 else
   # Already non-root: run directly
   python manage.py migrate --noinput
