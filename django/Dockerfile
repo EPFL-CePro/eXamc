@@ -97,12 +97,27 @@ COPY --exclude=app/docs ./app /app
 # =========================
 FROM runtime-base AS production
 
+ARG UID=1000
+ARG GID=1000
+
 WORKDIR /app
 
 ENV PATH="/opt/venv-prod/bin:$PATH"
 
-COPY --from=builder /opt/venv-prod /opt/venv-prod
-COPY --from=builder /app /app
+RUN groupadd --gid ${GID} examc \
+    && useradd --uid ${UID} --gid ${GID} --create-home --shell /usr/sbin/nologin examc
+
+VOLUME /static
+
+COPY --from=builder --chown=${UID}:${GID} /opt/venv-prod /opt/venv-prod
+COPY --from=builder --chown=${UID}:${GID} /app /app
+
+COPY entrypoint.sh /opt/entrypoint.sh
+RUN chmod +x /opt/entrypoint.sh && \
+    sed -i 's/\r$//' /opt/entrypoint.sh
+
+# Entrypoint : migrations, collectstatic, then execute CMD
+ENTRYPOINT ["/opt/entrypoint.sh"]
 
 
 # =========================
@@ -132,4 +147,3 @@ RUN mkdir -p /opt/uv-cache/ && chown -R $UID /opt/uv-cache/ && chgrp -R $GID /op
 COPY --from=builder /bin/uv /bin/uvx /bin/
 COPY --from=builder --chown=$UID:$GID /opt/venv-tooling /opt/venv-tooling
 COPY --from=builder --chown=$UID:$GID /app /app
-
