@@ -89,7 +89,7 @@ class DashboardReviewProgressTestCase(TestCase):
         progress = _get_pages_group_progress(pages_group)
 
         self.assertEqual(progress["graded"], 2)
-        self.assertEqual(progress["total"], 4)
+        self.assertEqual(progress["total_copies"], 4)
         self.assertEqual(progress["percent"], 50)
 
     def test_review_progress_averages_question_progress(self):
@@ -145,7 +145,7 @@ class DashboardReviewProgressTestCase(TestCase):
         progress = _get_pages_group_progress(pages_group)
 
         self.assertEqual(progress["graded"], 2)
-        self.assertEqual(progress["total"], 3)
+        self.assertEqual(progress["total_copies"], 3)
         self.assertEqual(progress["percent"], 67)
 
     def test_manage_todos_do_not_report_missing_scans_when_scan_files_exist(self):

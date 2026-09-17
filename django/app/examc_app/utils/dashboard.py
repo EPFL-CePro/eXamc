@@ -9,7 +9,6 @@ from django.urls import reverse
 from examc_app.models import Exam, ExamUser, PageMarkers, PagesGroupGradingSchemeCheckedBox, PagesGroup
 from examc_app.permissions import exam_group_names_allow
 
-DASHBOARD_EXAM_LIMIT = 20
 DASHBOARD_TODO_LIMIT = 8
 
 class DashboardTodo(TypedDict):
@@ -39,7 +38,7 @@ def _get_exam_user_group_names(exam_users: List[ExamUser]) -> List[str]:
     ]
 
 
-def _exam_users_allow(exam_users: List[ExamUser], permission_codenames):
+def _exam_users_allow(exam_users: List[ExamUser], permission_codenames) -> bool:
     return exam_group_names_allow(
         _get_exam_user_group_names(exam_users),
         permission_codenames,
@@ -179,8 +178,17 @@ def _exam_has_review_scan_files(exam: Exam):
     return False
 
 
-def _get_pages_group_progress(pages_group: PagesGroup, user_id = None):
-    total_copies = _get_exam_review_copy_count(pages_group.exam)
+
+class PagesGroupProgress(TypedDict):
+    graded: int
+    total_copies: int | None
+    percent: int | None
+
+
+def _get_pages_group_progress(
+        pages_group: PagesGroup, user_id: int | None = None, total_copies: int | None = None
+):
+    total = total_copies if total_copies is not None else _get_exam_review_copy_count(pages_group.exam)
 
     markers = PageMarkers.objects.filter(pages_group=pages_group).exclude(copie_no="CORR-BOX")
 
@@ -195,11 +203,11 @@ def _get_pages_group_progress(pages_group: PagesGroup, user_id = None):
             graded = graded.filter(pageMarkers_users__user_id=user_id).distinct()
         graded_count = graded.count()
 
-    return {
-        "graded": graded_count,
-        "total_copies": total_copies,
-        "percent": round(100 / total_copies * graded_count) if total_copies else None,
-    }
+    return PagesGroupProgress(
+        graded=graded_count,
+        total_copies=total,
+        percent=round(100 / total * graded_count) if total else None,
+    )
 
 
 def _get_filter_tags(exam: Exam, capabilities):
@@ -382,7 +390,7 @@ def _add_review_todos(todos: List[DashboardTodo], user: User, exam: Exam, exam_u
                 _add_todo(
                     todos,
                     f"{exam.code}: continue {pages_group.group_name}",
-                    f"{progress['graded']} / {progress['total']} pages reviewed.",
+                    f"{progress['graded']} / {progress['total_copies']} pages reviewed.",
                     reverse(
                         "reviewGroup",
                         kwargs={
