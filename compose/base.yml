@@ -59,7 +59,7 @@ services:
       # DB_PORT: ${DB_PORT}
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - media_volume:/media
       - static_volume:/static # collectstatic writes hashed assets here
