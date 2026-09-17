@@ -5,7 +5,7 @@ import { resolve } from 'path';
 export default defineConfig({
   base: '/static/vite',
   build: {
-    outDir: resolve("../examc_app/static/vite"),
+    outDir: resolve(import.meta.dirname, 'dist/vite'),
     manifest: "manifest.json",
     rollupOptions: {
       input: {
