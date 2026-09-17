@@ -4,24 +4,27 @@
 {% block title %}Questions statistics{% endblock %}
 
 {% block extra_head %}
-<script type="text/javascript" charset="utf-8">
-$(document).ready(function() {
-   $('#questions_statistics_mcq_dt').DataTable( {
-       scrollY: '70vh',
-       paging:   false,
-       searching: false,
-       info:false,
-       order:[[1,"asc"]]
-    } );
-   $('#questions_statistics_open_dt').DataTable( {
-       scrollY: '70vh',
-       paging:   false,
-       searching: false,
-       info:false,
-       order:[[1,"asc"]]
-    } );
-} );
-</script>
+    <!-- TODO - replace with proper entrypoint in Vite project -->
+    {% include "legacy/datatables-cdn.html" %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", _=> {
+           $('#questions_statistics_mcq_dt').DataTable( {
+               scrollY: '70vh',
+               paging:   false,
+               searching: false,
+               info:false,
+               order:[[1,"asc"]]
+            } );
+           $('#questions_statistics_open_dt').DataTable( {
+               scrollY: '70vh',
+               paging:   false,
+               searching: false,
+               info:false,
+               order:[[1,"asc"]]
+            } );
+        } );
+    </script>
 {% endblock %}
 
 {% block scripts %} 
