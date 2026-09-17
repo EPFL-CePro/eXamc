@@ -21,8 +21,10 @@ RUN pnpm install --frozen-lockfile
 FROM base AS dev
 
 USER node
+
 EXPOSE 5173
-CMD ["pnpm", "run", "dev"]
+
+CMD ["pnpm", "run", "dev", "--host"]
 
 
 # =========================
