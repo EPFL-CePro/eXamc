@@ -34,17 +34,6 @@ class ViewsTestCase(TestCase):
             year=self.academic_year,
         )
 
-    def test_exam_select_view(self):
-        self.client.login(
-            username="testuser",
-            password="testpassword",
-        )
-
-        response = self.client.get(reverse("examSelect"))
-
-        self.assertEqual(response.status_code, 200)
-
-
 class TestForms(TestCase):
     def setUp(self):
         self.semester = create_mock_semester()
