@@ -3,16 +3,18 @@
 {% block title %}Results{% endblock %}
 
 {% block extra_head %}
-<script type="text/javascript" charset="utf-8">
-$(document).ready(function() {
-   $('#students_dt').DataTable( {
-        "paging":   false,
-       scrollY: '79vh',
-       order:[],
-    } );
+    <!-- TODO - replace with proper entrypoint in Vite project -->
+    {% include "legacy/datatables-cdn.html" %}
 
-} );
-</script>
+    <script>
+        $(document).ready(function() {
+           $('#students_dt').DataTable( {
+                "paging":   false,
+               scrollY: '79vh',
+               order:[],
+            } );
+        } );
+    </script>
 {% endblock %}
 
 {% block scripts %}

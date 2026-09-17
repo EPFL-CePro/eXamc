@@ -1,6 +1,12 @@
-
 {% load static %}
-{%  load custom_tags %}
+
+{% load custom_tags %}
+
+{% block extra_head %}
+    <!-- TODO - replace with proper entrypoint in Vite project -->
+    {% include "legacy/datatables-cdn.html" %}
+{% endblock %}
+
 <div style="padding:20px;width:800px;">
     <h6>Data capture after examination</h6>
     <div class="mb-3" style="text-align: center;padding:10px;">
@@ -15,33 +21,35 @@
     </div>
     <div class="mb-3">
         {% if data_pages %}
-        {%  if missing_pages %}
-        <div class="alert alert-danger" id="data-exist-msg" role="alert" style="text-align:center;">
-            <a type="button" onclick="showErrorDataCaptureDialog('Missing pages')"  class="btn btn-sm">
-                {{ data_capture_message }}<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
-            </a>
-        </div>
+            {% if missing_pages %}
+                <div class="alert alert-danger" id="data-exist-msg" role="alert" style="text-align:center;">
+                    <a type="button" onclick="showErrorDataCaptureDialog('Missing pages')"  class="btn btn-sm">
+                        {{ data_capture_message }}<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
+                    </a>
+                </div>
+            {% else %}
+                <div class="alert alert-success" id="data-exist-msg" role="alert" style="text-align:center;">
+                    {{ data_capture_message }}
+                </div>
+            {% endif %}
         {% else %}
-        <div class="alert alert-success" id="data-exist-msg" role="alert" style="text-align:center;">
-            {{ data_capture_message }}
-        </div>
+            <div class="alert alert-warning" id="data-exist_msg" role="alert" style="text-align:center;">No data</div>
         {% endif %}
-        {% else %}
-        <div class="alert alert-warning" id="data-exist_msg" role="alert" style="text-align:center;">No data</div>
+
+        {% if nb_unrecognized_pages > 0 %}
+            <div class="alert alert-dark" id="data-exist_msg" role="alert" style="text-align:center;">
+                <a type="button"  onclick="showErrorDataCaptureDialog('Unrecognized pages')"  class="btn btn-sm">
+                    {{ nb_unrecognized_pages }} scans where not recognized !<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
+                </a>
+            </div>
         {% endif %}
-        {%  if nb_unrecognized_pages > 0 %}
-        <div class="alert alert-dark" id="data-exist_msg" role="alert" style="text-align:center;">
-            <a type="button"  onclick="showErrorDataCaptureDialog('Unrecognized pages')"  class="btn btn-sm">
-                {{ nb_unrecognized_pages }} scans where not recognized !<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
-            </a>
-        </div>
-        {% endif %}
-        {%  if overwritten_pages %}
-        <div class="alert alert-warning" id="data-exist_msg" role="alert" style="text-align:center;">
-            <a type="button" onclick="showErrorDataCaptureDialog('Overwritten pages')" class="btn btn-sm">
-                Overwritten pages: {{ overwritten_pages|length }}<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
-            </a>
-        </div>
+
+        {% if overwritten_pages %}
+            <div class="alert alert-warning" id="data-exist_msg" role="alert" style="text-align:center;">
+                <a type="button" onclick="showErrorDataCaptureDialog('Overwritten pages')" class="btn btn-sm">
+                    Overwritten pages: {{ overwritten_pages|length }}<i class="fas fa-info-circle fa-lg" style="margin-left:25px;"></i>
+                </a>
+            </div>
         {% endif %}
     </div>
     <hr/>

@@ -1,6 +1,13 @@
 {% extends 'base.html' %}
 {% load django_tables2 %}
 {% block title %}Select Exam {% endblock %}
+
+{% block extra_head %}
+    <!-- TODO - replace with proper entrypoint in Vite project -->
+    {% include "legacy/datatables-cdn.html" %}
+{% endblock %}
+
+
 {% block content %}
 <style>
 .table-striped tbody tr:hover{

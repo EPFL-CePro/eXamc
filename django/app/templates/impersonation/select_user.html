@@ -2,6 +2,11 @@
 
 {% block title %}Impersonate user{% endblock %}
 
+{% block extra_head %}
+    <!-- TODO - replace with proper entrypoint in Vite project -->
+    {% include "legacy/datatables-cdn.html" %}
+{% endblock %}
+
 {% block content %}
 <h4><i class="fa-solid fa-user-secret" style="margin-right:5px;"></i>Impersonate user</h4>
 

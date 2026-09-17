@@ -1,36 +1,40 @@
 {% extends 'base.html' %}
 
 {% block extra_head %}
-<script type="text/javascript" charset="utf-8">
-    $(window).on("load",function(){
-        $('#datatable').DataTable( {
-            "paging":   false
+    <!-- TODO - replace with proper entrypoint in Vite project -->
+    {% include "legacy/datatables-cdn.html" %}
+
+    <script>
+        $(window).on("load",function(){
+            $('#datatable').DataTable( {
+                "paging":   false
+            } );
+
+            $("#excel_file").on("change", function() {
+                const fileName = $(this).val().split("\\").pop();
+                $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+            });
+
+            $('#download_bt').on('click', function() {
+              const stud_table = $('#datatable').DataTable();
+              const students_list = stud_table.rows().data().toArray();
+              download_csv(students_list);
+            });
+
+            function download_csv(students_list){
+                $.ajax({
+                  url : "{% url 'export_csv' %}",
+                  type : "POST",
+                  data : {
+                    'csrfmiddlewaretoken' : "{{  csrf_token  }}"
+                  }
+                });
+              }
         } );
 
-        $("#excel_file").on("change", function() {
-            var fileName = $(this).val().split("\\").pop();
-            $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
-        });
-
-        $('#download_bt').on('click', function() {
-          var stud_table = $('#datatable').DataTable();
-          var students_list = stud_table.rows().data().toArray();
-          download_csv(students_list);
-        });
-
-        function download_csv(students_list){
-            $.ajax({
-              url : "{% url 'export_csv' %}",
-              type : "POST",
-              data : {
-                'csrfmiddlewaretoken' : "{{  csrf_token  }}"
-              }
-            });
-          }
-    } );
-
-</script>
+    </script>
 {% endblock %}
+
 {% block title %}CSV-GENERATOR{% endblock %}
 
 {% block scripts %}
