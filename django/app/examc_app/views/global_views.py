@@ -58,15 +58,9 @@ def getCommonExams(request, pk):
 def home(request):
     user = request.user
 
-    if not isinstance(user, User):
-        return HttpResponseRedirect(reverse("login_form"))
-
     user_info = user.__dict__
     user_info.update(user.__dict__)
     last_connection_users = []
-
-    if user.is_anonymous:
-        return HttpResponseRedirect(reverse("login_form"))
 
     if user.is_superuser:
         for u in User.objects.all().order_by('-last_login'):
