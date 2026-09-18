@@ -51,7 +51,6 @@ services:
       DEBUG: "1"
       VITE_DEV_MODE: "1"
       COLLECTSTATIC: "0" # in dev, OK
-      PRIVATE_MEDIA_ROOT: /private_media
     volumes:
       - ../django/app/:/app:z
       - ./data/private_media:/private_media
@@ -76,7 +75,6 @@ services:
       - ./data/private_media:/private_media
     env_file:
       - ../.env.dev
-
 
 volumes:
   mysql_data:
