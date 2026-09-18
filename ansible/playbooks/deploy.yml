@@ -75,7 +75,7 @@
     - name: Show available profiles
       ansible.builtin.shell: |
         COMPOSE_PROFILES={{ compose_profiles | default('') }} \
-        docker compose -f {{ app_dir }}/compose/{{ env }}.yml \
+        docker compose -f {{ app_dir }}/compose/{{ compose_file }} \
           config --profiles
       args: { chdir: "{{ app_dir }}" }
       register: profiles_out
@@ -89,8 +89,7 @@
       ansible.builtin.shell: |
         COMPOSE_PROFILES={{ compose_profiles | default('') }} \
         COMPOSE_PROJECT_NAME={{ compose_project_name }} \
-        ENV_FILE=.env.{{ env }} \
-        docker compose -f {{ app_dir }}/compose/{{ env }}.yml \
+        docker compose -f {{ app_dir }}/compose/{{ compose_file }} --env-file .env.{{ env }} \
           up -d --build
       args:
         chdir: "{{ app_dir }}"
