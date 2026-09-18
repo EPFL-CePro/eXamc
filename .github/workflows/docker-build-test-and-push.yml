@@ -105,15 +105,16 @@ jobs:
           load: true
           push: false
           platforms: linux/amd64
-          tags: ${{ env.IMAGE_NAME }}-test:${{ env.IMAGE_TAG }}
+          #    "image.name": "ghcr.io/epfl-cepro/examc-django-test:1.2.0"
+          tags: localhost/examc-${{ matrix.name }}-test:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Run tests
         if: steps.check.outputs.skip != 'true' && matrix.run_tests
         env:
-          TEST_IMAGE: ${{ env.IMAGE_NAME }}-test
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          TEST_IMAGE: localhost/examc-${{ matrix.name }}-test
+          IMAGE_TAG: latest
         run: |
           docker compose -f compose/test.yml --env-file .env.test run --rm django
 
