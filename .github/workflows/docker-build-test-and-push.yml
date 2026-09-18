@@ -96,7 +96,7 @@ jobs:
           TEST_IMAGE: ${{ env.IMAGE_NAME_DJANGO }}-test
           IMAGE_TAG_DJANGO: ${{ env.IMAGE_TAG_DJANGO }}
         run: |
-          docker compose -f compose/test.yml run --rm django
+          docker compose -f compose/test.yml --env-file .env.test run --rm django
 
       # Push only after tests pass.
       - name: Push staging image
