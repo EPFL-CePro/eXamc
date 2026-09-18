@@ -27,7 +27,7 @@ jobs:
             target: production
             test_target: tooling
             run_tests: true
-          - name: fe-builder
+          - name: fe-artifacts
             context: ./frontend
             target: artifact
             test_target: ""

@@ -26,7 +26,7 @@ services:
       - "127.0.0.1:8080:80"
       #- "8443:443"
 
-  fe-builder:
+  fe-artifacts:
     build:
       context: ../frontend
       target: artifact
@@ -54,7 +54,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
     depends_on:
-      fe-builder:
+      fe-artifacts:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
