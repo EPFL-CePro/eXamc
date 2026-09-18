@@ -166,7 +166,6 @@ REST_FRAMEWORK = {
 DJANGO_VITE = {
   "default": {
     "dev_mode": VITE_DEV_MODE,
-    "manifest_path": BASE_DIR / "examc_app" / "static" / "vite" / "manifest.json",
     "static_url_prefix": "vite",
   }
 }
