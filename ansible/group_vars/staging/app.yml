@@ -1,6 +1,6 @@
 repo_url: "git@github.com:EPFL-CePro/eXamc.git"
 repo_version: "staging"
-env_name: "test"
+env_name: "prod"
 app_dir: "/opt/examc"
 compose_project_name: "examc"
 compose_profiles: ""
@@ -17,7 +17,7 @@ csrf_trusted_origins: ["https://examc-test.epfl.ch"]
 tz: "Europe/Zurich"
 private_media_root: "/private_media"
 
-db_host: "10.95.16.25"
+db_host: "172.17.0.1"
 db_port: 3306
 
 celery_broker_url: "redis://redis:6379/0"
