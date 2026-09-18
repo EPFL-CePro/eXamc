@@ -32,7 +32,7 @@ jobs:
         # Staging branch (staging): use the commit SHA to tag the image
         run: |
           if [ "${GITHUB_REF_NAME}" = "a-zurcher" ]; then
-            VERSION=$(python -c "import tomllib; print(tomllib.load(open('app/pyproject.toml', 'rb'))['project']['version'])")
+            VERSION=$(python -c "import tomllib; print(tomllib.load(open('django/app/pyproject.toml', 'rb'))['project']['version'])")
             echo "IMAGE_TAG_DJANGO=$VERSION" >> "$GITHUB_ENV"
           elif [ "${GITHUB_REF_NAME}" = "staging" ]; then
             echo "IMAGE_TAG_DJANGO=$GITHUB_SHA" >> "$GITHUB_ENV"
@@ -137,7 +137,7 @@ jobs:
       - name: Set image tag
         run: |
           if [ "${GITHUB_REF_NAME}" = "a-zurcher" ]; then
-            VERSION=$(python -c "import tomllib; print(tomllib.load(open('app/pyproject.toml', 'rb'))['project']['version'])")
+            VERSION=$(python -c "import tomllib; print(tomllib.load(open('django/app/pyproject.toml', 'rb'))['project']['version'])")
             echo "IMAGE_TAG_FE_BUILDER=$VERSION" >> "$GITHUB_ENV"
           elif [ "${GITHUB_REF_NAME}" = "staging" ]; then
             echo "IMAGE_TAG_FE_BUILDER=$GITHUB_SHA" >> "$GITHUB_ENV"
