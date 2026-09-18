@@ -41,7 +41,7 @@ SEED_FILE ?= deploy/db/dev-seed.sql.gz
 export COMPOSE_PROJECT_NAME := $(PROJECT)
 
 # Helper Compose
-DC := docker compose $(COMPOSE_FILES)
+DC := docker compose --env-file .env.${ENV} $(COMPOSE_FILES)
 
 # =========[ Help ]=========
 .PHONY: help
@@ -61,7 +61,7 @@ help:
 	@echo "  make collectstatic   - django collectstatic"
 	@echo "  make createsuperuser - django createsuperuser (interactif)"
 	@echo ""
-	@echo "  make health          - vérifie /healthz via Nginx"
+	@echo "  make health          - check /healthz via Nginx"
 	@echo "  make nginx-reload 	  - test & reload Nginx"
 	@echo ""
 	@echo "  make seed            - importe le seed si DB vide (profil 'seed')"
@@ -84,7 +84,7 @@ build: ensure-env
 	$(DC) up -d --build
 
 tests:
-	docker compose -f compose/test.yml run --rm django pytest
+	$(DC) run --rm django pytest
 
 down:
 	$(DC) down
