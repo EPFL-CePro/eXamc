@@ -15,17 +15,31 @@ permissions:
   packages: write
 
 jobs:
-  examc-build-test-and-push:
+  build-test-and-push:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: django
+            context: ./django
+            target: production
+            test_target: tooling
+            run_tests: true
+          - name: fe-builder
+            context: ./frontend
+            target: artifact
+            test_target: ""
+            run_tests: false
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
       - name: Set image name
-        # Required to set an image name in lower-case only
         run: |
-          echo "IMAGE_NAME_DJANGO=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+          echo "IMAGE_NAME=${REGISTRY}/${GITHUB_REPOSITORY,,}-${{ matrix.name }}" >> "$GITHUB_ENV"
 
       - name: Set image tag
         # Release branch (a-zurcher/main): use the version in app/pyproject.toml to tag the image
@@ -33,9 +47,9 @@ jobs:
         run: |
           if [ "${GITHUB_REF_NAME}" = "a-zurcher" ]; then
             VERSION=$(python -c "import tomllib; print(tomllib.load(open('django/app/pyproject.toml', 'rb'))['project']['version'])")
-            echo "IMAGE_TAG_DJANGO=$VERSION" >> "$GITHUB_ENV"
+            echo "IMAGE_TAG=$VERSION" >> "$GITHUB_ENV"
           elif [ "${GITHUB_REF_NAME}" = "staging" ]; then
-            echo "IMAGE_TAG_DJANGO=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo "IMAGE_TAG=$GITHUB_SHA" >> "$GITHUB_ENV"
           else
             echo "Unsupported branch: ${GITHUB_REF_NAME}"
             exit 1
@@ -51,150 +65,77 @@ jobs:
       - name: Check if stable image already exists
         # Skipped on staging branch, as the git commit SHA is used to tag the image
         if: github.ref_name == 'a-zurcher'
+        id: check
         run: |
-          TAG="${{ env.IMAGE_TAG_DJANGO }}"
-          IMAGE="${{ env.IMAGE_NAME_DJANGO }}:$TAG"
-
+          IMAGE="${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
-            echo "Image $IMAGE already exists - stopping workflow"
-            exit 1
+            echo "::warning::Image $IMAGE already exists — skipping build and push"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Docker Buildx
+        if: steps.check.outputs.skip != 'true'
         uses: docker/setup-buildx-action@v4
 
-      # Build production target once and load it into the local Docker daemon.
-      # This is the image that will be tested and pushed if all tests succeed.
-      - name: Build production image
+      # Build the target image once and load it into the local Docker daemon.
+      # This is the image that will be tested (if applicable) and pushed if all tests succeed.
+      - name: Build image
+        if: steps.check.outputs.skip != 'true'
         uses: docker/build-push-action@v7
         with:
-          context: django
-          target: production
+          context: ${{ matrix.context }}
+          target: ${{ matrix.target }}
           load: true
           push: false
           platforms: linux/amd64
-          tags: ${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Build the tooling target locally.
+      # Build the test target, if this matrix entry has one.
       # It shares the runtime base and dependencies with the production target and is used to run tests.
-      - name: Build tooling image
+      - name: Build test image
+        if: steps.check.outputs.skip != 'true' && matrix.run_tests
         uses: docker/build-push-action@v7
         with:
-          context: django
-          target: tooling
+          context: ${{ matrix.context }}
+          target: ${{ matrix.test_target }}
           load: true
           push: false
           platforms: linux/amd64
-          tags: ${{ env.IMAGE_NAME_DJANGO }}-test:${{ env.IMAGE_TAG_DJANGO }}
+          tags: ${{ env.IMAGE_NAME }}-test:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Run tests
+        if: steps.check.outputs.skip != 'true' && matrix.run_tests
         env:
-          TEST_IMAGE: ${{ env.IMAGE_NAME_DJANGO }}-test
-          IMAGE_TAG_DJANGO: ${{ env.IMAGE_TAG_DJANGO }}
+          TEST_IMAGE: ${{ env.IMAGE_NAME }}-test
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           docker compose -f compose/test.yml --env-file .env.test run --rm django
 
-      # Push only after tests pass.
-      - name: Push eXamc staging image
-        if: github.ref_name == 'staging' && success()
+      # Push only after tests pass (or immediately, for entries with no tests).
+      - name: Push staging image
+        if: steps.check.outputs.skip != 'true' && github.ref_name == 'staging' && success()
         run: |
-          docker push "${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}"
+          docker push "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           docker tag \
-            "${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}" \
-            "${{ env.IMAGE_NAME_DJANGO }}:staging"
-          docker push "${{ env.IMAGE_NAME_DJANGO }}:staging"
+            "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
+            "${{ env.IMAGE_NAME }}:staging"
+          docker push "${{ env.IMAGE_NAME }}:staging"
 
-      - name: Push eXamc stable image
-        if: github.ref_name == 'a-zurcher' && success()
+      - name: Push stable image
+        if: steps.check.outputs.skip != 'true' && github.ref_name == 'a-zurcher' && success()
         run: |
-          docker push "${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}"
+          docker push "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           docker tag \
-            "${{ env.IMAGE_NAME_DJANGO }}:${{ env.IMAGE_TAG_DJANGO }}" \
-            "${{ env.IMAGE_NAME_DJANGO }}:stable"
-          docker push "${{ env.IMAGE_NAME_DJANGO }}:stable"
+            "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
+            "${{ env.IMAGE_NAME }}:stable"
+          docker push "${{ env.IMAGE_NAME }}:stable"
 
       - name: Docker cleanup
-        if: always()
+        if: always() && matrix.run_tests
         run: docker compose -f compose/test.yml down -v --remove-orphans || true
-
-
-
-  fe-builder-build-and-push:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Set image name
-        run: |
-          echo "IMAGE_NAME_FE_BUILDER=${REGISTRY}/${GITHUB_REPOSITORY,,}-fe-builder" >> "$GITHUB_ENV"
-
-      - name: Set image tag
-        run: |
-          if [ "${GITHUB_REF_NAME}" = "a-zurcher" ]; then
-            VERSION=$(python -c "import tomllib; print(tomllib.load(open('django/app/pyproject.toml', 'rb'))['project']['version'])")
-            echo "IMAGE_TAG_FE_BUILDER=$VERSION" >> "$GITHUB_ENV"
-          elif [ "${GITHUB_REF_NAME}" = "staging" ]; then
-            echo "IMAGE_TAG_FE_BUILDER=$GITHUB_SHA" >> "$GITHUB_ENV"
-          else
-            echo "Unsupported branch: ${GITHUB_REF_NAME}"
-            exit 1
-          fi
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check if stable image already exists
-        if: github.ref_name == 'a-zurcher'
-        run: |
-          TAG="${{ env.IMAGE_TAG_FE_BUILDER }}"
-          IMAGE="${{ env.IMAGE_NAME_FE_BUILDER }}:$TAG"
-
-          if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
-            echo "Image $IMAGE already exists - stopping workflow"
-            exit 1
-          fi
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build fe-builder artifact image
-        uses: docker/build-push-action@v7
-        with:
-          context: frontend
-          target: artifact
-          load: true
-          push: false
-          platforms: linux/amd64
-          tags: ${{ env.IMAGE_NAME_FE_BUILDER }}:${{ env.IMAGE_TAG_FE_BUILDER }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # TODO - add tests
-
-      - name: Push fe-builder staging image
-        if: github.ref_name == 'staging' && success()
-        run: |
-          docker push "${{ env.IMAGE_NAME_FE_BUILDER }}:${{ env.IMAGE_TAG_FE_BUILDER }}"
-          docker tag \
-            "${{ env.IMAGE_NAME_FE_BUILDER }}:${{ env.IMAGE_TAG_FE_BUILDER }}" \
-            "${{ env.IMAGE_NAME_FE_BUILDER }}:staging"
-          docker push "${{ env.IMAGE_NAME_FE_BUILDER }}:staging"
-
-      - name: Push fe-builder stable image
-        if: github.ref_name == 'a-zurcher' && success()
-        run: |
-          docker push "${{ env.IMAGE_NAME_FE_BUILDER }}:${{ env.IMAGE_TAG_FE_BUILDER }}"
-          docker tag \
-            "${{ env.IMAGE_NAME_FE_BUILDER }}:${{ env.IMAGE_TAG_FE_BUILDER }}" \
-            "${{ env.IMAGE_NAME_FE_BUILDER }}:stable"
-          docker push "${{ env.IMAGE_NAME_FE_BUILDER }}:stable"

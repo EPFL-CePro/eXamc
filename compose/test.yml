@@ -29,7 +29,7 @@ services:
     extends:
       service: django
       file: base.yml
-    image: "${TEST_IMAGE:-localhost/examc-test}:${IMAGE_TAG_DJANGO:-latest}"
+    image: "${TEST_IMAGE:-localhost/examc-django-test}:${IMAGE_TAG_DJANGO:-latest}"
     command: ["pytest"]
     environment:
       TESTING_MODE_ENABLED: "1"
