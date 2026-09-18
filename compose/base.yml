@@ -49,6 +49,7 @@ services:
   django:
     build:
       context: ../django
+      target: production
     environment:
       # TODO - use secrets instead of env vars for secrets for better security
       # See https://docs.docker.com/compose/how-tos/use-secrets/
