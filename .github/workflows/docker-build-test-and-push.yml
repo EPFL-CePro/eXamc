@@ -15,7 +15,7 @@ permissions:
   packages: write
 
 jobs:
-  docker-build-test-and-push:
+  examc-build-test-and-push:
     runs-on: ubuntu-latest
 
     steps:
