@@ -563,7 +563,7 @@ class QuestionGradingScheme(models.Model):
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='gradingSchemes')
     name = models.CharField(max_length=100)
     max_points = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    description = models.TextField(default='')
+    description = models.TextField(default='', blank=True)
     history = HistoricalRecords()
 
 class QuestionGradingSchemeCheckBox(models.Model):
