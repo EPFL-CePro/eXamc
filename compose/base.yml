@@ -4,6 +4,11 @@ services:
   mysql:
     image: mysql:8.4
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-examc}
+      MYSQL_USER: ${MYSQL_USER:-examc}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -45,18 +50,57 @@ services:
     build:
       context: ../django
     environment:
-      # Attente DB (entrypoint sait gérer ces vars)
+      # TODO - use secrets instead of env vars for secrets for better security
+      # See https://docs.docker.com/compose/how-tos/use-secrets/
+
+      ENV: "${ENV:-prod}"
+
+      # Wait on DB to be ready (managed by entrypoint.sh)
+      # This is used instead of health check to support DB server out of docker
       WAIT_FOR_DB: "1"
       WAIT_FOR_DB_TIMEOUT: "600"
+
+      # Django
+      SECRET_KEY: "${SECRET_KEY:-}"
+      DEBUG: "${DEBUG:-0}"
+      SECURE_SSL_REDIRECT: "${SECURE_SSL_REDIRECT:-1}"
+      SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-1}"
+      CSRF_COOKIE_SECURE: "${CSRF_COOKIE_SECURE:-1}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-http://localhost,http://127.0.0.1,http://localhost:8000,http://127.0.0.1:8000}"
+      TZ: "${TZ:-Europe/Zurich}"
+      PRIVATE_MEDIA_ROOT: "${PRIVATE_MEDIA_ROOT:-/private_media}"
 
       # Gunicorn
       WEB_CONCURRENCY: "6"
       GUNICORN_THREADS: "4"
       GUNICORN_WORKER_CLASS: "gthread"
 
-      # Toujours définir explicitement l’hôte/port DB vus par les conteneurs
-      # DB_HOST: ${DB_HOST}
-      # DB_PORT: ${DB_PORT}
+      # MySQL - always define explicitly DB's host and port seen by the containers
+      DB_HOST: "${DB_HOST:-db}"
+      DB_PORT: "${DB_PORT:-3306}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-examc}"
+      MYSQL_USER: "${MYSQL_USER:-examc}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+
+      # Redis
+      CONSTANCE_REDIS_CONNECTION: "${CONSTANCE_REDIS_CONNECTION:-redis://redis:6479/0}"
+
+      # Mozilla OIDC Entra ID
+      OIDC_RP_CLIENT_ID: "${OIDC_RP_CLIENT_ID}"
+      OIDC_RP_CLIENT_SECRET: "${OIDC_RP_CLIENT_SECRET}"
+      TENANT_ID: "${TENANT_ID}"
+
+      # Oasis API EPFL
+      OASIS_BEARER: "${OASIS_BEARER}"
+      OASIS_BASE_URL: "${OASIS_BASE_URL}"
+
+      # Exam permission groups
+      EXAM_PERMISSION_MANAGE_GROUP_NAMES: "${EXAM_PERMISSION_MANAGE_GROUP_NAMES:-Teacher,Assistant}"
+      EXAM_PERMISSION_REVIEW_GROUP_NAMES: "${EXAM_PERMISSION_REVIEW_GROUP_NAMES:-Teacher,Reviewer,Assistant}"
+      EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES: "${EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES:-Teacher,Assistant,Results,Statistics}"
+      COMMON_EXAM_GROUP_NAMES: "${COMMON_EXAM_GROUP_NAMES:-Teacher,Results,Statistics}"
+      EXAM_REVIEWER_GROUP_NAMES: "${EXAM_REVIEWER_GROUP_NAMES:-Reviewer}"
     depends_on:
       redis:
         condition: service_healthy
@@ -79,6 +123,9 @@ services:
     environment:
       CELERY_LOGLEVEL: "INFO"
       CELERY_CONCURRENCY: "4"
+      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
+      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
+      CELERY_TASK_ALWAYS_EAGER: "${CELERY_TASK_ALWAYS_EAGER:-False}"
     command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/celery.pid && kill -0 $(cat /tmp/celery.pid)"]
@@ -92,6 +139,10 @@ services:
       service: django
     environment:
       CELERY_LOGLEVEL: "INFO"
+      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
+      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
+      CELERY_TASK_ALWAYS_EAGER: "${CELERY_TASK_ALWAYS_EAGER:-False}"
+
     command: >
       celery -A examc beat --loglevel=INFO
         --scheduler django_celery_beat.schedulers:DatabaseScheduler
