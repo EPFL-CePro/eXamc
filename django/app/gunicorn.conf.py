@@ -18,3 +18,5 @@ worker_tmp_dir = "/dev/shm"
 loglevel = os.environ.get("LOG_LEVEL", "info")
 accesslog = "-"
 errorlog  = "-"
+
+forwarded_allow_ips = "*"
