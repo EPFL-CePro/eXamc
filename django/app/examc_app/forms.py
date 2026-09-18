@@ -52,12 +52,27 @@ class ManagePagesGroupsForm(forms.ModelForm):
 
     def __init__(self, questions_choices, *args, **kwargs):
         super(ManagePagesGroupsForm, self).__init__(*args, **kwargs)
-        self.fields['group_name'] = forms.ChoiceField(label='Question', choices=questions_choices, widget=forms.Select(
-            attrs={'class': "selectpicker form-control", 'size': 5}), required=True)
-        self.fields['nb_pages'] = forms.IntegerField(label='Nb pages',
-                                      widget=forms.NumberInput(attrs={'class': "form-control", 'id': "nb_pages", 'style':'width:100px'}),
-                                      required=True, min_value=1)
-        self.fields['use_grading_scheme'] = forms.BooleanField(label='Use grading scheme', widget=SwitchWidget(),required=False)
+
+        self.fields['group_name'] = forms.ChoiceField(
+            label='Question',
+            choices=questions_choices,
+            widget=forms.Select(
+            attrs={'class': "selectpicker form-control", 'size': 5}),
+            required=True
+        )
+
+        self.fields['nb_pages'] = forms.IntegerField(
+            label='Nb pages',
+            widget=forms.NumberInput(attrs={'class': "form-control", 'id': "nb_pages", 'style':'width:100px'}),
+            required=True,
+            min_value=1
+        )
+
+        self.fields['use_grading_scheme'] = forms.BooleanField(
+            label='Use grading scheme',
+            widget=SwitchWidget(),
+            required=False
+        )
 
 PagesGroupsFormSet = modelformset_factory(
     PagesGroup, form=ManagePagesGroupsForm,  extra=0
@@ -97,19 +112,22 @@ ReviewersFormSet = modelformset_factory(ExamUser, form=ManageReviewersForm, extr
 
 
 class ExportMarkedFilesForm(forms.Form):
-    export_type = forms.ChoiceField(widget=forms.RadioSelect,
-                                    choices=[(2, 'PDFs (one per student copy)'),(1, 'JPGs (one per page)')],
-                                    initial=2,
-                                    required=True)
+    export_type = forms.ChoiceField(
+        widget=forms.RadioSelect,
+        choices=[(2, 'PDFs (one per student copy)'),(1, 'JPGs (one per page)')],
+        initial=2,
+        required=True
+    )
 
-    with_comments = forms.ChoiceField(widget=forms.RadioSelect,
-                                      choices=[(1,'Yes'),(2,'No')],
-                                      initial=1,
-                                      required=True)
+    with_comments = forms.ChoiceField(
+        widget=forms.RadioSelect,
+        choices=[(1,'Yes'),(2,'No')],
+        initial=1,
+        required=True
+    )
 
     def __init__(self, *args, **kwargs):
         exam = kwargs.pop('exam', None)
-
         super(ExportMarkedFilesForm, self).__init__(*args, **kwargs)
 
 
@@ -146,10 +164,33 @@ class ExportResultsForm(forms.Form):
 
 
 class CreateExamProjectForm(forms.Form):
-    course = forms.ChoiceField(label='Course',choices=[], widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}), required=True)
-    semester = forms.ChoiceField(label='Semester', choices=[], widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}), required=True)
-    year = forms.ChoiceField(label='Year', choices=[], widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}), required=True)
-    date = forms.DateField(label='Date', widget=forms.DateInput(format='%d-%m-%Y', attrs={'id': 'dateAndTime', 'type': 'date', 'class': 'form-control'}), required=True)
+    course = forms.ChoiceField(
+        label='Course',
+        choices=[],
+        widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}),
+        required=True
+    )
+
+    semester = forms.ChoiceField(
+        label='Semester',
+        choices=[],
+        widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
+        required=True
+    )
+
+    year = forms.ChoiceField(
+        label='Year',
+        choices=[],
+        widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}),
+        required=True
+    )
+
+    date = forms.DateField(
+        label='Date',
+        widget=forms.DateInput(format='%d-%m-%Y', attrs={'id': 'dateAndTime', 'type': 'date', 'class': 'form-control'}),
+        required=True
+    )
+
     # durationText = forms.CharField(label='DurationTxt', widget=forms.TextInput(attrs={'class':'form-control'}),required=True)
     # language = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
     #                   choices=[('fr','FR'),('en','EN')],
@@ -164,7 +205,7 @@ class CreateExamProjectForm(forms.Form):
         self.errors_list = []
 
         self.courses_by_code = {course["coursCode"]: course for course in courses}
-        self.teachers_by_course = teachers_by_course
+        self.teachers_by_course = teacher_names_by_course
 
         courses_choices = []
 

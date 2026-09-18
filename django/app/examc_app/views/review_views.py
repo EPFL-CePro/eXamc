@@ -4,7 +4,7 @@
 
 import math
 from datetime import timedelta
-from functools import wraps, partial
+from functools import wraps
 
 from celery.result import AsyncResult
 from django.contrib import messages
@@ -378,12 +378,12 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
 
             amc_project_path = get_amc_project_path(exam,False)
             if amc_project_path:
-                pagesGroups = PagesGroup.objects.filter(exam=exam)
+                pages_groups = PagesGroup.objects.filter(exam=exam)
                 grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
                 locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
                 questions = get_questions(get_amc_project_path(exam, True)+"/data/")
                 questions_choices = [ (q['name'],q['name']) for q in questions]
-                formsetPagesGroups = PagesGroupsFormSet(queryset=pagesGroups, initial=[
+                formset_pages_groups = PagesGroupsFormSet(queryset=pages_groups, initial=[
                     {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
 
                 summernote_media_form = GradingSchemeCheckBoxForm()  # empty instance, just for .media
@@ -391,7 +391,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                 context['user_allowed'] = True
                 context['nav_url'] = "reviewSettingsView"
                 context['exam_reviewers_formset'] = formsetReviewers
-                context['exam_pages_groups_formset'] = formsetPagesGroups
+                context['exam_pages_groups_formset'] = formset_pages_groups
                 context['curr_tab'] = curr_tab
                 context['summernote_media_form'] = summernote_media_form
                 context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
