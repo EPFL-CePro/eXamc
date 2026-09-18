@@ -90,7 +90,7 @@
         COMPOSE_PROFILES={{ compose_profiles | default('') }} \
         COMPOSE_PROJECT_NAME={{ compose_project_name }} \
         docker compose -f {{ app_dir }}/compose/{{ compose_file }} --env-file .env.{{ env }} \
-          up -d --build
+          up -d --build --force-recreate --remove-orphans
       args:
         chdir: "{{ app_dir }}"
       when: not ansible_check_mode
