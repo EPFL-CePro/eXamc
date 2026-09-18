@@ -166,6 +166,7 @@ REST_FRAMEWORK = {
 DJANGO_VITE = {
   "default": {
     "dev_mode": VITE_DEV_MODE,
+    "manifest_path": "/static/vite/manifest.json",
     "static_url_prefix": "vite",
   }
 }
@@ -221,7 +222,7 @@ if DEBUG:
 else:
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"},
+        "staticfiles": {"BACKEND": "examc.storage.ExcludeVitePathsManifestStorage"},
     }
 
 # Signed files expiration timeout ms

@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/static/vite',
   build: {
     outDir: resolve(import.meta.dirname, 'dist/vite'),
-    manifest: false,
+    manifest: true,
     rollupOptions: {
       input: {
         // Entries used by multiple views
@@ -18,10 +18,6 @@ export default defineConfig({
 
         // Entries used by single views
         "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
-      },
-      output: {
-        entryFileNames: "[name].js",
-        assetFileNames: "[name][extname]",
       },
     },
   },
