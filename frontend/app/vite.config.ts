@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/static/vite',
   build: {
     outDir: resolve(import.meta.dirname, 'dist/vite'),
-    manifest: true,
+    manifest: "manifest.json",
     rollupOptions: {
       input: {
         // Entries used by multiple views
