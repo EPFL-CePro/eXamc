@@ -7,6 +7,10 @@ compose_profiles: "mysql-dockerized"
 compose_file: "prod.yml"
 compose_project_name: "examc"
 
+# Set image tags
+# fe_artifacts_image_tag: "stable"
+# django_image_tag: "stable"
+
 debug: false
 secure_ssl_redirect: true
 session_cookie_secure: true
