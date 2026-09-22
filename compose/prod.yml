@@ -6,7 +6,8 @@ services:
       service: mysql
       file: base.yml
     profiles: [ "mysql-dockerized" ] # used to run MySQL outside Docker
-
+    ports:
+      - ${DB_PORT:-3306}:3306 # used for local client
 
   redis:
     extends:
