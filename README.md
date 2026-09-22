@@ -79,8 +79,7 @@ Dockerized environment for **eXamc** featuring:
 │  ├─ test.yml                      # Test/CI environment
 │  └─ prod.yml                      # Production environment (also used for staging server)
 ├─ data/                            # Local persistent data
-│  ├─ certs/
-│  └─ private_media/
+ │  └─ private_media/                # AMC-related files
 ├─ deploy/                          # Deployment-related configuration
 │  ├─ db/
 │  │  └─ init-test-user.sql

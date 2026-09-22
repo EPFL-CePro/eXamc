@@ -19,7 +19,6 @@ services:
       file: base.yml
     volumes:
       - ./deploy/nginx/nginx.ssl.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./data/certs/:/etc/nginx/certs:ro  # certs
       - ./data/private_media:/private_media:ro
       - client_temp:/var/cache/nginx/client_temp # see ./deploy/nginx/nginx.ssl.prod.conf:8 for usage
     ports:
