@@ -21,7 +21,7 @@ services:
       service: nginx
       file: base.yml
     volumes:
-      - ./deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/nginx.test.conf:/etc/nginx/nginx.conf:ro
       # TODO: provide an example private_media dir to integrate in CI/CD
       # - ./data/private_media:/private_media:ro
 
