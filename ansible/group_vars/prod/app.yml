@@ -1,5 +1,5 @@
-repo_url: "git@github-examc:EPFL-CePro/eXamc.git"
-repo_version: "main"
+repo_url: "https://github.com/EPFL-CePro/eXamc.git"
+repo_version: "staging" # TODO change to main when ready
 
 env_name: "prod"
 app_dir: "/opt/examc"
@@ -24,7 +24,7 @@ csrf_trusted_origins:
 tz: "Europe/Zurich"
 private_media_root: "/private_media"
 
-db_host: "10.95.33.52"
+db_host: "172.17.0.1" # IP of the host server in the Docker network
 db_port: 3306
 
 celery_broker_url: "redis://redis:6379/0"

@@ -1,4 +1,4 @@
-repo_url: "git@github.com:EPFL-CePro/eXamc.git"
+repo_url: "https://github.com/EPFL-CePro/eXamc.git"
 repo_version: "staging"
 
 env_name: "prod"
