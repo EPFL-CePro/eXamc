@@ -79,15 +79,14 @@ Dockerized environment for **eXamc** featuring:
 │  ├─ test.yml                      # Test/CI environment
 │  └─ prod.yml                      # Production environment (also used for staging server)
 ├─ data/                            # Local persistent data
-│  ├─ certs/
-│  └─ private_media/
+ │  └─ private_media/                # AMC-related files
 ├─ deploy/                          # Deployment-related configuration
 │  ├─ db/
 │  │  └─ init-test-user.sql
 │  └─ nginx/                        # Nginx configurations
 │     ├─ nginx.dev.conf
-│     ├─ nginx.ssl.prod.conf
-│     └─ nginx.ssl.test.conf
+│     ├─ nginx.prod.conf
+│     └─ nginx.test.conf
 ├─ docker/                          # Docker-specific scripts and patches
 ├─ scripts/                         # Development and security scripts
 │  ├─ check_forbidden_calls.py
@@ -351,7 +350,7 @@ Dev connection:
 ## TEST / PROD overview
 
 - Overrides: `compose/test.yml`, `compose/prod.yml`
-- **HTTPS** via `nginx.ssl.conf` + certs (ACME/Let’s Encrypt or internal)
+- **HTTPS** is managed on the host machine
 - Security: `SECURE_SSL_REDIRECT=1`, cookie `*_SECURE=1`, **HSTS** enabled
 - **Gunicorn** in front (never `runserver`)
 - Controlled migrations, centralized logging, backups, monitoring

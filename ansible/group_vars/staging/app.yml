@@ -7,11 +7,14 @@ compose_profiles: ""
 compose_file: "prod.yml"
 compose_project_name: "examc"
 
+# Set image tags
+fe_artifacts_image_tag: "staging"
+django_image_tag: "staging"
+
 debug: false
 secure_ssl_redirect: true
 session_cookie_secure: true
 csrf_cookie_secure: true
-use_ssl: true
 
 allowed_hosts:
   - "examc-test.epfl.ch"

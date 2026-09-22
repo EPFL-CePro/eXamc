@@ -6,7 +6,8 @@ services:
       service: mysql
       file: base.yml
     profiles: [ "mysql-dockerized" ] # used to run MySQL outside Docker
-
+    ports:
+      - ${DB_PORT:-3306}:3306 # used for local client
 
   redis:
     extends:
@@ -18,10 +19,9 @@ services:
       service: nginx
       file: base.yml
     volumes:
-      - ./deploy/nginx/nginx.ssl.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./data/certs/:/etc/nginx/certs:ro  # certs
+      - ./deploy/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - ./data/private_media:/private_media:ro
-      - client_temp:/var/cache/nginx/client_temp # see ./deploy/nginx/nginx.ssl.prod.conf:8 for usage
+      - client_temp:/var/cache/nginx/client_temp # see ./deploy/nginx/nginx.prod.conf:8 for usage
     ports:
       - "127.0.0.1:8080:80"
       #- "8443:443"

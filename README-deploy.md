@@ -82,7 +82,7 @@ The playbook will:
 
 ---
 
-## 2) Nginx TLS (nginx.ssl.conf)
+## 2) Nginx (nginx.conf)
 
 Example **vhost** per environment (adapt cert paths):
 

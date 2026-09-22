@@ -35,34 +35,6 @@
         force: true
       when: not ansible_check_mode
 
-    - block:
-        - name: Ensure certs dir exists
-          ansible.builtin.file:
-            path: "{{ app_dir }}/certs"
-            state: directory
-            mode: "0755"
-
-        - name: Install TLS fullchain.pem
-          ansible.builtin.copy:
-            dest: "{{ app_dir }}/certs/fullchain.pem"
-            content: "{{ tls_fullchain_pem }}"
-            owner: root
-            group: root
-            mode: "0644"
-          no_log: true
-          when: tls_fullchain_pem is defined
-
-        - name: Install TLS privkey.pem
-          ansible.builtin.copy:
-            dest: "{{ app_dir }}/certs/privkey.pem"
-            content: "{{ tls_privkey_pem }}"
-            owner: root
-            group: root
-            mode: "0600"
-          no_log: true
-          when: tls_privkey_pem is defined
-      when: use_ssl
-
     - name: Render remote .env
       ansible.builtin.template:
         src: "../templates/.env.j2"
@@ -88,7 +60,6 @@
     - name: Compose up (uses env_file inside compose)
       ansible.builtin.shell: |
         COMPOSE_PROFILES={{ compose_profiles | default('') }} \
-        COMPOSE_PROJECT_NAME={{ compose_project_name }} \
         docker compose -f {{ app_dir }}/compose/{{ compose_file }} --env-file .env.{{ env }} \
           up -d --pull always --force-recreate --remove-orphans
       args:
