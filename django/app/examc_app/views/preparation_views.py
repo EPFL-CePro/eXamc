@@ -26,7 +26,6 @@ def create_exam_project(request):
     form = CreateExamProjectForm(
         request.POST or None,
         courses=courses,
-        academic_year=year,
         teacher_names_by_course=teacher_names_by_course
     )
 
@@ -38,7 +37,6 @@ def create_exam_project(request):
             teacher_scipers = [t["sciper"] for t in course_teachers]
 
             date = form.cleaned_data['date']
-            year_id = form.cleaned_data['year']
             semester_id = form.cleaned_data['semester']
 
             # date_text = date.strftime('%d.%m.%Y')

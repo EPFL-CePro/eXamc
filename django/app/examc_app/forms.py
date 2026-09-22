@@ -178,13 +178,6 @@ class CreateExamProjectForm(forms.Form):
         required=True
     )
 
-    year = forms.ChoiceField(
-        label='Year',
-        choices=[],
-        widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5}),
-        required=True
-    )
-
     date = forms.DateField(
         label='Date',
         widget=forms.DateInput(format='%d-%m-%Y', attrs={'id': 'dateAndTime', 'type': 'date', 'class': 'form-control'}),
@@ -196,12 +189,9 @@ class CreateExamProjectForm(forms.Form):
     #                   choices=[('fr','FR'),('en','EN')],
     #                   required=True)
 
-    def __init__(self, *args, courses, academic_year, teacher_names_by_course, **kwargs):
-        #super(CreateExamProjectForm, self).__init__(*args, **kwargs)
-
+    def __init__(self, *args, courses, teacher_names_by_course, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.year = academic_year
         self.errors_list = []
 
         self.courses_by_code = {course["coursCode"]: course for course in courses}
@@ -213,14 +203,11 @@ class CreateExamProjectForm(forms.Form):
             code = course["coursCode"]
             label = f'{code} - {course["coursNomFr"]}'
 
-            teacher_names = teacher_names_by_course.get(code, [])
-            if teacher_names:
-                label += f" ({', '.join(teacher_names)})"
+            course_teachers = teacher_names_by_course.get(code, [])
+            if course_teachers:
+                label += f" ({', '.join(t['name'] for t in course_teachers)})"
 
             courses_choices.append((code, label))
-
-        # populate the year field
-        self.fields["year"].choices = [(self.year.pk, self.year.code)]
 
         # populate the course field + error mgmt
         self.fields["course"].choices = courses_choices
