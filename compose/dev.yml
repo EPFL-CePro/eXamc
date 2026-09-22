@@ -42,6 +42,7 @@ services:
       service: django
       file: base.yml
     build:
+      context: ../django
       target: tooling
       args:
         UID: ${UID:-1000}
@@ -62,6 +63,9 @@ services:
     extends:
       service: celery
       file: base.yml
+    build:
+      context: ../django
+      target: tooling
     volumes:
       - ./data/private_media:/private_media
     env_file:
@@ -71,6 +75,9 @@ services:
     extends:
       service: celery_beat
       file: base.yml
+    build:
+      context: ../django
+      target: tooling
     volumes:
       - ./data/private_media:/private_media
     env_file:
