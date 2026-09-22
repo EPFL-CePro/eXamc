@@ -27,12 +27,7 @@ services:
       #- "8443:443"
 
   fe-artifacts:
-    build:
-      context: ../frontend
-      target: artifact
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
+    image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - static_volume:/static
@@ -42,11 +37,7 @@ services:
     extends:
       service: django
       file: base.yml
-    build:
-      target: production
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${$DJANGO_IMAGE_TAG:-stable}
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./data/private_media:/private_media
@@ -63,6 +54,7 @@ services:
     extends:
       service: celery
       file: base.yml
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${$DJANGO_IMAGE_TAG:-stable}
     volumes:
       - ./data/private_media:/private_media
     extra_hosts:
@@ -72,6 +64,7 @@ services:
     extends:
       service: celery_beat
       file: base.yml
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${$DJANGO_IMAGE_TAG:-staging} # TODO change tag o stable when ready
     volumes:
       - ./data/private_media:/private_media
     extra_hosts:
