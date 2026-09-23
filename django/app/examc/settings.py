@@ -262,7 +262,7 @@ AMC_PROJECTS_URL = '/amc_projects/'
 AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
 
 # Documentation folder
-DOCUMENTATION_ROOT = BASE_DIR / 'examc_app/static/docs/html/'
+DOCUMENTATION_ROOT = STATIC_ROOT + '/docs/html/'
 DOCUMENTATION_URL = STATIC_URL + 'docs/html/'
 
 # NEW ENTRA ID
