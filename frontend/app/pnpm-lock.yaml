@@ -181,15 +181,9 @@ importers:
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
-      jquery:
-        specifier: ^3.7.1
-        version: 3.7.1
       jquery-comments:
         specifier: ^1.0.1
         version: 1.0.1
-      jquery-ui:
-        specifier: ^1.14.2
-        version: 1.14.2
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1
@@ -1072,14 +1066,8 @@ packages:
   jquery-comments@1.0.1:
     resolution: {integrity: sha512-or35M08LmYgN93a1H/qwY4lpqzp6FEWStzWxp6XtamDA15aih1JuMMfuWpmZMrgMjnB7wrj5jKLmNHFFUUteBw==}
 
-  jquery-ui@1.14.2:
-    resolution: {integrity: sha512-1gSl7PUjyipa2adSr780Ujk16faicrV7PjPPzPtvWk7tTqBnsqp67NNV9jZK2+BIxUPXWSnIUU/LBCgwgGZE+Q==}
-
   jquery@3.7.1:
     resolution: {integrity: sha512-m4avr8yL8kmFN8psrbFFFmB/If14iN5o9nw/NgnnM+kybDJpRsAynV2BsfpTYrTRysYUdADVD7CkUUizgkpLfg==}
-
-  jquery@4.0.0:
-    resolution: {integrity: sha512-TXCHVR3Lb6TZdtw1l3RTLf8RBWVGexdxL6AC8/e0xZKEpBflBsjh9/8LXw+dkNFuOyW9B7iB3O1sP7hS0Kiacg==}
 
   js-beautify@1.14.11:
     resolution: {integrity: sha512-rPogWqAfoYh1Ryqqh2agUpVfbxAhbjuN1SmU86dskQUKouRiggUTCO4+2ym9UPXllc2WAp0J+T5qxn7Um3lCdw==}
@@ -2225,13 +2213,7 @@ snapshots:
     dependencies:
       jquery: 3.7.1
 
-  jquery-ui@1.14.2:
-    dependencies:
-      jquery: 4.0.0
-
   jquery@3.7.1: {}
-
-  jquery@4.0.0: {}
 
   js-beautify@1.14.11:
     dependencies:
