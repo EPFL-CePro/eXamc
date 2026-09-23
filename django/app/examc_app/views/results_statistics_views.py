@@ -1,13 +1,9 @@
-import logging
-import operator
 import shutil
 import zipfile
 from datetime import datetime
 
-from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
-from django.db.models.functions import Cast
-from django.http import HttpResponse, Http404, FileResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, FileResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
@@ -17,16 +13,13 @@ from django.views.decorators.http import require_POST
 from examc import settings
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import ExportResultsForm
-from examc_app.signing import make_token_for
 from examc_app.storage import to_private_name, private_storage
+## testing
+from examc_app.tasks import import_csv_data, generate_statistics
 from examc_app.utils.amc_functions import get_amc_catalog_pdf_path
 from examc_app.utils.generate_statistics_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import *
-from examc_app.views import ExamInfoView
-
-## testing
-from examc_app.tasks import import_csv_data, generate_statistics
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -36,36 +29,32 @@ logger = logging.getLogger(__name__)
 #@login_required
 @exam_permission_required(['manage','see_results'])
 @require_POST
-def update_student_present(request,exam_pk,student_pk,value):
-
+def update_student_present(request, exam_pk: int, student_pk: int, value: int):
     student = get_object_or_404(Student, pk=student_pk, exam_id=exam_pk)
 
-    logger.info(value)
+    updated = False
+    new_present = bool(value)
 
-    if value == 1:
-        student.present = True
-        student.exam.present_students += 1
-    else:
-        student.present = False
-        student.exam.present_students -= 1
+    if new_present != student.present:
+        student.present = new_present
+        student.save()
+        updated = True
 
-    student.save()
-    student.exam.save()
+    task_id = None
 
-    exam = get_object_or_404(Exam, pk=exam_pk)
+    if updated:
+        present_count = Student.objects.filter(exam_id=exam_pk, present=True).count()
+        student.exam.present_students = present_count
+        student.exam.save(update_fields=["present_students"])
 
-    task = generate_statistics.delay(exam_pk)
-    task_id = task.task_id
+        task = generate_statistics.delay(exam_pk)
+        task_id = task.task_id
 
-    return students_results_view(request,exam_pk=exam_pk,task_id=task_id)
-
-    # generate_statistics(student.exam)
-    #
-    # return HttpResponse(1)
+    return students_results_view(request, exam_pk=exam_pk, task_id=task_id)
 
 #@login_required
 @exam_permission_required(['manage'])
-def import_data_4_stats(request,exam_pk,task_id=None):
+def import_data_4_stats(request,exam_pk:int, task_id=None):
     exam = Exam.objects.get(pk=exam_pk)
     exam_selected = exam
 
@@ -80,20 +69,25 @@ def import_data_4_stats(request,exam_pk,task_id=None):
         if len(common_list) > 1:
             common_list.remove(exam)
 
-    return render(request, 'res_and_stats/import_data.html',
-                  {"user_allowed": user_allowed(exam,request.user.id),
-                   "exam":exam,
-                   "exam_selected":exam_selected,
-                   "common_list":common_list,
-                   "nav_url":'import_data_4_stats',
-                   "task_id":task_id})
+    return render(
+        request,
+        'res_and_stats/import_data.html',
+        {
+            "user_allowed": user_allowed(exam, request.user.id),
+            "exam": exam,
+            "exam_selected": exam_selected,
+            "common_list": common_list,
+            "nav_url": 'import_data_4_stats',
+            "task_id": task_id
+        }
+    )
 
 #@login_required
 @exam_permission_required(['manage'])
 @require_POST
 def upload_amc_csv(request, exam_pk):
     csv_file = request.FILES["amc_csv_file"]
-    temp_csv_file_name = "tmp_upload_amc_csv_"+datetime.datetime.now().strftime("%Y%m%d%H%M%S")+".csv"
+    temp_csv_file_name = "tmp_upload_amc_csv_"+datetime.now().strftime("%Y%m%d%H%M%S")+".csv"
     temp_csv_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, temp_csv_file_name)
 
     os.makedirs(os.path.dirname(temp_csv_file_path), exist_ok=True)
@@ -131,10 +125,11 @@ def upload_catalog_pdf(request, exam_pk):
 
 #@login_required
 @exam_permission_required(['manage','see_results'])
-def export_data(request,exam_pk):
+def export_data(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     exam_selected = exam
     common_list = get_common_list(exam)
+
     if exam.is_overall():
         exam_selected = common_list[1]
         common_list.remove(exam)
@@ -144,95 +139,104 @@ def export_data(request,exam_pk):
         if len(common_list) > 1:
             common_list.remove(exam)
 
-    if user_allowed(exam,request.user.id):
+    # check if user can see the results,
+    if not user_allowed(exam, request.user.id):
+        return render(
+            request,
+            'res_and_stats/export_results.html',
+            {
+                "user_allowed": False,
+                "form": None,
+                "exam" : exam,
+                "exam_selected" : exam_selected,
+                "common_list": None,
+                "nav_url": "export_data"
+            }
+        )
 
-        if request.method == 'POST':
-
-            if exam and exam.scaleStatistics:
-
-                # delete old tmp folders and zips
-                for filename in os.listdir(str(settings.EXPORT_TMP_ROOT)):
-                    file_path = os.path.join(str(settings.EXPORT_TMP_ROOT), filename)
-                    try:
-                        if os.path.isfile(file_path) or os.path.islink(file_path):
-                            os.unlink(file_path)
-                        elif os.path.isdir(file_path):
-                            shutil.rmtree(file_path)
-                    except Exception as e:
-                        print('Failed to delete %s. Reason: %s' % (file_path, e))
-
-                form = ExportResultsForm(request.POST,exam=exam)
-                logger.info(form)
-                if form.is_valid():
-
-
-                    scale_pk = form.cleaned_data['scale']
-                    scale = Scale.objects.get(pk=scale_pk)
-
-                    common_exams = []
-                    if exam.overall:
-                        common_exams = form.cleaned_data['common_exams']
-                    else:
-                        common_exams.append(exam.pk)
-
-                    isaCsv = form.cleaned_data['exportIsaCsv']
-                    scalePdf = form.cleaned_data['exportExamScalePdf']
-                    studentDataCsv = form.cleaned_data['exportStudentsDataCsv']
-
-                    # create tmp folder
-                    export_folder_name = "export_"+str(datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
-                    export_path = str(settings.EXPORT_TMP_ROOT)+"/"+export_folder_name
-                    os.makedirs(export_path, exist_ok=True)
-                    logger.info(os.path.dirname(export_path))
-
-                    for exam_id in common_exams:
-                        exam = Exam.objects.get(pk=exam_id)
-                        if isaCsv:
-                            generate_isa_csv(exam,scale,export_path)
-                        if scalePdf:
-                            generate_scale_pdf(exam,scale,export_path)
-                        if studentDataCsv:
-                            generate_students_data_csv(exam,export_path)
-
-                    # zip folder
-                    zipf = zipfile.ZipFile(export_path+".zip", 'w', zipfile.ZIP_DEFLATED)
-                    zipdir(export_path, zipf)
-                    zipf.close()
-
-                    zip_file = open(export_path+".zip", 'rb')
-                    return FileResponse(zip_file)
-
-                    # process the data in form.cleaned_data as required
-                    # ...
-                    # redirect to a new URL:
-                    #return HttpResponseRedirect(request.path_info)
-                else:
-                    logger.info("INVALID")
-                    logger.info(form.errors)
-                    return HttpResponseRedirect(request.path_info)
-
-        # if a GET (or any other method) we'll create a blank form
+    # if not POST, a blank form is created
+    if request.method != 'POST':
+        if exam and exam.scaleStatistics:
+            form = ExportResultsForm(exam=exam)
         else:
-            if exam and exam.scaleStatistics:
-                form = ExportResultsForm(exam=exam)
-            else:
-                form = ExportResultsForm()
+            form = ExportResultsForm()
 
-            return render(request, 'res_and_stats/export_results.html', {"user_allowed":True,
-                                                          "form": form,
-                                                          "exam" : exam,
-                                                         "exam_selected" : exam_selected,
-                                                          "common_list":common_list,
-                                                          "nav_url": "export_data"})
-    else:
-        return render(request, 'res_and_stats/export_results.html', {"user_allowed":False,
-                                                      "form": None,
-                                                      "exam" : exam,
-                                                         "exam_selected" : exam_selected,
-                                                      "common_list":None,
-                                                      "nav_url": "export_data"})
+        return render(
+            request,
+            'res_and_stats/export_results.html',
+            {
+                "user_allowed": True,
+                "form": form,
+                "exam": exam,
+                "exam_selected": exam_selected,
+                "common_list": common_list,
+                "nav_url": "export_data"
+            }
+        )
+
+    if exam and exam.scaleStatistics:
+        # delete old tmp folders and zips
+        for filename in os.listdir(str(settings.EXPORT_TMP_ROOT)):
+            file_path = os.path.join(str(settings.EXPORT_TMP_ROOT), filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print('Failed to delete %s. Reason: %s' % (file_path, e))
+
+        form = ExportResultsForm(request.POST,exam=exam)
+        logger.info(form)
+
+        if form.is_valid():
+            scale_pk = form.cleaned_data['scale']
+            scale = Scale.objects.get(pk=scale_pk)
+
+            common_exams = []
+            if exam.overall:
+                common_exams = form.cleaned_data['common_exams']
+            else:
+                common_exams.append(exam.pk)
+
+            isa_csv = form.cleaned_data['exportIsaCsv']
+            scale_pdf = form.cleaned_data['exportExamScalePdf']
+            student_data_csv = form.cleaned_data['exportStudentsDataCsv']
+
+            # create tmp folder
+            export_folder_name = "export_"+str(datetime.now().strftime("%d%m%y_%H%M%S"))
+            export_path = str(settings.EXPORT_TMP_ROOT)+"/"+export_folder_name
+            os.makedirs(export_path, exist_ok=True)
+            logger.info(os.path.dirname(export_path))
+
+            for exam_id in common_exams:
+                exam = Exam.objects.get(pk=exam_id)
+                if isa_csv:
+                    generate_isa_csv(exam,scale,export_path)
+                if scale_pdf:
+                    generate_scale_pdf(exam,scale,export_path)
+                if student_data_csv:
+                    generate_students_data_csv(exam,export_path)
+
+            # zip folder
+            zipf = zipfile.ZipFile(f"{export_path}.zip", 'w', zipfile.ZIP_DEFLATED)
+            zipdir(export_path, zipf)
+            zipf.close()
+
+            zip_file = open(export_path+".zip", 'rb')
+            return FileResponse(zip_file)
+
+            # process the data in form.cleaned_data as required
+            # ...
+            # redirect to a new URL:
+            #return HttpResponseRedirect(request.path_info)
+        else:
+            logger.info("INVALID")
+            logger.info(form.errors)
+            return HttpResponseRedirect(request.path_info)
 
     return HttpResponse(None)
+
 
 # STATISTICS
 # ------------------------------------------
@@ -291,30 +295,35 @@ def general_statistics_view(request,exam_pk):
 
 #@login_required
 @exam_permission_required(['manage','see_results'])
-def students_results_view(request, exam_pk, task_id=None):
+def students_results_view(request, exam_pk: int, task_id=None):
     exam = Exam.objects.get(pk=exam_pk)
-    currexam = exam
+    curr_exam = exam
 
-    if user_allowed(exam,request.user.id):
+    if user_allowed(exam, request.user.id):
         if exam and exam.scaleStatistics:
             common_list = get_common_list(exam)
 
             if exam.is_overall():
-                currexam = common_list[1]
+                curr_exam = common_list[1]
                 common_list.remove(exam)
             elif common_list:
-                currexam = exam
+                curr_exam = exam
                 exam = common_list[0]
                 if len(common_list) > 1:
                     common_list.remove(exam)
 
-            return render(request, "res_and_stats/students_results.html",
-                          {"user_allowed":True,
-                           "exam" : exam,
-                           "common_list": common_list,
-                           "exam_selected" : currexam,
-                           "nav_url": "studentsResults",
-                           "task_id":task_id})
+            return render(
+                request,
+                "res_and_stats/students_results.html",
+                {
+                    "user_allowed":True,
+                    "exam" : exam,
+                    "common_list": common_list,
+                    "exam_selected" : curr_exam,
+                    "nav_url": "studentsResults",
+                    "task_id":task_id
+                }
+            )
         else:
             return render(request, "res_and_stats/students_results.html", {"user_allowed":True, "scales": None, "students": None,"nav_url": "studentsResults"})
     else:
