@@ -1,20 +1,14 @@
 from typing import Any
 
-from rest_framework import serializers
-
 from examc_app.models import Exam
-
-
-class ExamSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = Exam
-        fields = ["code", "name", "date"]
-
 
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 from rest_framework import serializers
 
+from examc_app.utils.dashboard import build_exam_card
+
+_NOT_BUILT = object()
 
 class ExamDataTableRowSerializer(serializers.Serializer):
     exam = serializers.SerializerMethodField()
@@ -25,19 +19,13 @@ class ExamDataTableRowSerializer(serializers.Serializer):
     actions = serializers.SerializerMethodField()
     DT_RowAttr = serializers.SerializerMethodField()
 
-    def __init__(self, *args, user=None, build_card=None, **kwargs):
-        self.user = user
-        self.build_card = build_card
-        super().__init__(*args, **kwargs)
+    def _card(self, exam: Exam) -> dict[str, Any] | None:
+        card = getattr(exam, "_card_cache", _NOT_BUILT)
+        if card is _NOT_BUILT:
+            card = build_exam_card(self.context["request"].user, exam)
+            exam._card_cache = card
+        return card
 
-    def _card(self, exam) -> dict[str, Any] | None:
-        cache: dict[str, Any] | None = getattr(exam, "_card_cache", None)
-
-        if cache is None:
-            cache = self.build_card(self.user, exam)
-            exam._card_cache = cache
-
-        return cache
 
     # noinspection PyMethodMayBeStatic
     def get_exam(self, exam):
