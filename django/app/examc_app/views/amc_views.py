@@ -815,13 +815,13 @@ def call_amc_automatic_association(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
     assoc_primary_key = request.POST['assoc_primary_key']
 
-    result = amc_automatic_association(exam,assoc_primary_key)
+    result = amc_automatic_association(exam, assoc_primary_key)
 
     if not 'ERR:' in result:
         url = reverse('amc_view', kwargs={'exam_pk': exam.pk})
         return JsonResponse({'ok': True, 'redirect': url})
     else:
-        return HttpResponse(result)
+        return JsonResponse({'error': result})
 
 #@login_required
 @exam_permission_required(['manage'])
