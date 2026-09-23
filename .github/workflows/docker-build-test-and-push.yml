@@ -25,7 +25,7 @@ jobs:
           - name: django
             context: ./django
             target: production
-            test_target: tooling
+            test_target: test
             run_tests: true
           - name: fe-artifacts
             context: ./frontend

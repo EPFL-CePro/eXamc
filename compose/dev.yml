@@ -26,7 +26,7 @@ services:
       - ./deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
       - ./data/private_media:/private_media:ro
     ports:
-      - "8000:80"
+      - "127.0.0.1:8000:80"
 
   fe-runner:
     build:
@@ -35,7 +35,7 @@ services:
     volumes:
       - ../frontend/app/:/app/frontend:z
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
 
   django:
     extends:
@@ -43,7 +43,7 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: tooling
+      target: dev
       args:
         UID: ${UID:-1000}
         GID: ${GID:-1000}
@@ -59,13 +59,22 @@ services:
     env_file:
       - ../.env.dev
 
+  docs:
+    extends:
+      service: django
+    environment:
+      WEB_CONCURRENCY: "1"
+    entrypoint: ["python", "/opt/sphinx-autobuild.py"]
+    ports:
+      - "127.0.0.1:9000:9000"
+
   celery:
     extends:
       service: celery
       file: base.yml
     build:
       context: ../django
-      target: tooling
+      target: dev
     volumes:
       - ./data/private_media:/private_media
     env_file:
@@ -77,7 +86,7 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: tooling
+      target: dev
     volumes:
       - ./data/private_media:/private_media
     env_file:

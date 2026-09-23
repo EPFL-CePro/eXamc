@@ -38,15 +38,6 @@ RUN uv sync --frozen \
     --no-install-project
 
 
-# --- Dev + test environment ---
-ENV UV_PROJECT_ENVIRONMENT=/opt/venv-tooling
-
-RUN uv sync --frozen \
-    --group test \
-    --group dev \
-    --no-install-project
-
-
 # =========================
 # RUNTIME BASE, with dependencies shared by prod and test targets
 # =========================
@@ -122,7 +113,7 @@ ENTRYPOINT ["/opt/entrypoint.sh"]
 
 
 # =========================
-# TOOLING IMAGE (with dev and test dependencies installed)
+# TOOLING IMAGE (base image shared by dev and test environments)
 # =========================
 FROM runtime-base AS tooling
 
@@ -135,8 +126,8 @@ ENV PATH="/opt/venv-tooling/bin:$PATH" \
     UV_PROJECT_ENVIRONMENT=/opt/venv-tooling/ \
     UV_CACHE_DIR=/opt/uv-cache/
 
-RUN groupadd --gid ${GID} dev \
-    && useradd --uid ${UID} --gid ${GID} --shell /bin/bash dev
+RUN groupadd --gid ${GID} tooling \
+    && useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash tooling
 
 # Reinstall the build deps to be able to build depencies
 COPY ./install-build-deps.sh /opt/install-build-deps.sh
@@ -146,5 +137,29 @@ RUN /opt/install-build-deps.sh
 RUN mkdir -p /opt/uv-cache/ && chown -R $UID /opt/uv-cache/ && chgrp -R $GID /opt/uv-cache/
 
 COPY --from=builder /bin/uv /bin/uvx /bin/
-COPY --from=builder --chown=$UID:$GID /opt/venv-tooling /opt/venv-tooling
-COPY --from=builder --chown=$UID:$GID /app /app
+
+
+# =========================
+# TEST IMAGE (with base + testing dependencies)
+# =========================
+FROM tooling AS test
+
+RUN uv sync --frozen \
+    --group test \
+    --no-install-project
+
+
+# =========================
+# DEV IMAGE (with all dependencies)
+# =========================
+FROM tooling AS dev
+
+# Entrypoint for sphinx-autobuild service
+COPY ./sphinx-autobuild.py /opt/sphinx-autobuild.py
+
+RUN uv sync --frozen \
+    --group test \
+    --group docs \
+    --group dev \
+    --no-install-project
+
