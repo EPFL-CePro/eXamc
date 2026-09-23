@@ -1,5 +1,13 @@
 {% load custom_tags %}
 {% load static %}
+{% load django_vite %}
+
+
+{% block extra_head %}
+    {% vite_asset 'src/views/amc/amc_results/index.ts' %}
+{% endblock %}
+
+
 <!-- Quilljs editor -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css">
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
@@ -12,12 +20,12 @@
             <p>Before generating the results, please check that the following points have been completed:&nbsp;</p>
             <ol style="text-align: left;">
                 <li>Pages with “sensitivity” bigger than zero have been checked.</li>
-                <li>Marking has been done, the first time with the "Update Marking Scale" box ticked in order to update
+                <li>Marking has been done, the first time with the "Update Marking Scale" box ticked to update
                     the scale.
                 </li>
                 <li>The "invalid" boxes have been checked.</li>
                 <li>The "blank" boxes of the open questions have been checked.</li>
-                <li>The marking has been done again after changes done in points 1-4.</li>
+                <li>The marking has been done again after changes done in points 1–4.</li>
                 <li>The automatic/manual association has been made.</li>
             </ol>
         </div>
@@ -464,6 +472,4 @@
             error: (error) => console.log(error)
         });
     }
-
-
 </script>
