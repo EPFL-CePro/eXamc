@@ -568,6 +568,7 @@ def get_amc_project_path(exam,even_if_not_exist):
     elif even_if_not_exist:
         return amc_project_path
     else:
+        # TODO change this, as most of this function's usage is in string concatenation, which fails with None
         return None
 
 def get_amc_project_url(exam):
@@ -1016,7 +1017,7 @@ def get_questions_scoring_details_list(exam):
 
     return questions_scoring_details_list
 
-def amc_automatic_association(exam,assoc_primary_key):
+def amc_automatic_association(exam: Exam, assoc_primary_key: str):
     project_path = get_amc_project_path(exam, False)
     amc_update_options_xml_by_key(exam,'liste_key',assoc_primary_key)
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
@@ -1028,6 +1029,7 @@ def amc_automatic_association(exam,assoc_primary_key):
         "--liste-key", assoc_primary_key,
     ]
     result = subprocess.run(command, capture_output=True, text=True)
+
     if result.stderr:
         return "ERR:" + result.stderr
     else:

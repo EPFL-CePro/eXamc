@@ -37,8 +37,8 @@ $(window).on("load",function(){
     {% endif %}
 
 })
-
 </script>
+
 {% if user_allowed %}
      <div class="tab-content" id="students-results-tabContent">
         <h4><i class="fas fa-th-list fa-l" style="margin-right:5px;"></i>Results</h4>
@@ -48,7 +48,7 @@ $(window).on("load",function(){
                 <table id="students_dt" class="table table-striped table-sm">
                     <thead>
                         <tr>
-                            <th>Copie Nr.</th>
+                            <th>Copy N°</th>
                             <th>Sciper</th>
                             <th>Name</th>
                             <th>Present</th>
@@ -64,47 +64,21 @@ $(window).on("load",function(){
                                 <td>{{ student.copie_no }}</td>
                                 <td>{{ student.sciper }}</td>
                                 <td>{{ student.name }}</td>
-                                <td><a hidden>{{student.present}}</a>
+                                <td><a hidden>{{ student.present }}</a>
                                   <div class="btn-group btn-group-toggle" data-toggle="buttons" style="margin-left:-20px;">
-                                  {% if student.present %}
-                                    <label class="btn btn-light btn-sm active" style="background-color: transparent;">
-                                      <form method="post" action="{% url 'update_student_present' exam_selected.pk student.pk 1 %}" class="d-inline">
-                                          {% csrf_token %}
-                                          <button type="submit" class="btn btn-link p-0 border-0" style="background-color: transparent;">
-                                              <input type="radio" name="options" id="present-{{student.pk}}-1" checked>
-                                              <i class="fa-solid fa-circle-check fa-2xl"></i>
-                                          </button>
-                                      </form>
-                                    </label>
-                                    <label class="btn btn-light btn-sm" style="background-color: transparent;">
-                                        <form method="post" action="{% url 'update_student_present' exam_selected.pk student.pk 0 %}" class="d-inline">
+                                    {% with current=student.present|yesno:"1,0" %}
+                                      {% for val in "10" %}
+                                        <label class="btn btn-light btn-sm{% if val == current %} active{% endif %}" style="background-color: transparent;">
+                                          <form method="post" action="{% url 'update_student_present' exam_selected.pk student.pk val %}" class="d-inline">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-link p-0 border-0" style="background-color: transparent;">
-                                                <input type="radio" name="options" id="present-{{student.pk}}-0">
-                                                <i class="fa-solid fa-circle-xmark fa-2xl" style="color:lightgray;"></i>
+                                              <input type="radio" name="options" id="present-{{ student.pk }}-{{ val }}"{% if val == current %} checked{% endif %}>
+                                              <i class="fa-solid {% if val == '1' %}fa-circle-check{% else %}fa-circle-xmark{% endif %} fa-2xl"{% if val != current %} style="color:lightgray;"{% endif %}></i>
                                             </button>
-                                        </form>
-                                    </label>
-                                  {% else %}
-                                    <label class="btn btn-light btn-sm" style="background-color: transparent;">
-                                        <form method="post" action="{% url 'update_student_present' exam_selected.pk student.pk 1 %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-link p-0 border-0" style="background-color: transparent;">
-                                                <input type="radio" name="options" id="present-{{student.pk}}-1">
-                                                <i class="fa-solid fa-circle-check fa-2xl" style="color:lightgray;"></i>
-                                            </button>
-                                        </form>
-                                    </label>
-                                    <label class="btn btn-light btn-sm active" style="background-color: transparent;">
-                                        <form method="post" action="{% url 'update_student_present' exam_selected.pk student.pk 0 %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-link p-0 border-0" style="background-color: transparent;">
-                                                <input type="radio" name="options" id="present-{{student.pk}}-0" checked>
-                                                <i class="fa-solid fa-circle-xmark fa-2xl"></i>
-                                            </button>
-                                        </form>
-                                    </label>
-                                  {% endif %}
+                                          </form>
+                                        </label>
+                                      {% endfor %}
+                                    {% endwith %}
                                   </div>
                                 </td>
                                 <td>{{ student.points }}</td>
@@ -119,21 +93,21 @@ $(window).on("load",function(){
                                 {% endif %}
                             </tr>
                         {% endfor %}
-        
+
                     </tbody>
                 </table>
             </div>
         {% else %}
             <div class="alert alert-warning">
                 <h4 class="alert-heading">Warning!</h4>
-                <p class="mb-0">No data found for this exam. Please import data and generate statistics.</a>.</p>
+                <p class="mb-0">No data was found for this exam. Please import data and generate statistics.</p>
             </div>
         {% endif %}
      </div>
 
 {% else %}
 
-<h4>You are not allowed to view this page !</h4>
+<h4>You are not allowed to view this page!</h4>
 
 {% endif %}
 

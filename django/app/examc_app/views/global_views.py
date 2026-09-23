@@ -197,7 +197,7 @@ def log_in(request):
 #         logout(request)
 #         return redirect(settings.LOGIN_URL)
 
-def documentation_view(request, path="index.html"):
+def documentation_view(request, path: str ="index.html"):
     docs_root = Path(settings.DOCUMENTATION_ROOT).resolve()
     relative_path = (path or "index.html").lstrip("/")
     full_path = (docs_root / relative_path).resolve()

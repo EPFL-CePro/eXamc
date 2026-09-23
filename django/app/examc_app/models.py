@@ -69,7 +69,7 @@ class Exam(models.Model):
         super().__init__(*args, **kwargs)
 
     def is_overall(self):
-        """ Overall exam is automatically generated for common exam to store common statistics."""
+        """ Overall exam is automatically generated for a common exam to store common statistics."""
         return bool(self.overall)
 
     def has_review_option(self):

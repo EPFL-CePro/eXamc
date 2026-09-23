@@ -1,13 +1,11 @@
-# examc_app/decorators.py
 from functools import wraps
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect
-from django.http import HttpResponseForbidden, Http404
+
+from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
-from django.urls import reverse
 
 from .models import Exam
 from .permissions import exam_group_names_allow, get_exam_group_names
+
 
 # def is_admin(function):
 #     def wrapper(request, *args, **kwargs):
