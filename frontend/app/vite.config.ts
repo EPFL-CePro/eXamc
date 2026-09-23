@@ -18,6 +18,9 @@ export default defineConfig({
 
         // Entries used by single views
         "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
+
+        "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
+        "res_and_stats/students_results": resolve(import.meta.dirname, 'src/views/res_and_stats/students_results/index.ts'),
       },
     },
   },
