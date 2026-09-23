@@ -1,7 +1,14 @@
-<html>
+{% load django_vite %}
+
+
+{% block extra_head %}
+    <!-- TODO - replace with proper entrypoint in Vite project -->
+    {% include "legacy/jquery-cdn.html" %}
+{% endblock %}
+
+<html lang="en-US">
     <head>
         <title>Ping Tester</title>
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     </head>
     <body>
         <h1>Ping an IP or Domain</h1>
