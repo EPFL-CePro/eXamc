@@ -1,4 +1,0 @@
-services:
-  django:
-    volumes:
-      - ../django/app/:/app:z
