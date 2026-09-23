@@ -227,7 +227,10 @@ function amc_mark() {
 }
 function amc_automatic_association() {
     $('#loadingModal').modal('show');
-    assoc_primary_key = document.getElementById('automatic_assoc_primary_key').value;
+    const assoc_primary_key = document.getElementById('automatic_assoc_primary_key').value;
+    const ajaxInfoModal = $('#ajax_info_modal'),
+        ajaxInfoModalMsg = document.getElementById('ajax_info_modal_msg');
+
     $.ajax({
         url: "{% url 'call_amc_automatic_association' exam_selected.pk %}",
         type: "POST",
@@ -237,16 +240,19 @@ function amc_automatic_association() {
         },
         success: (data) => {
             $('#loadingModal').modal('hide');
+
             if (data.ok && data.redirect) {
                 const url = data.redirect + (data.redirect.includes('?') ? '&' : '?') + 'tab=marking-tab';
                 window.location = url + '#marking-tab';
             } else if (!data.ok) {
-                alert(data.error || "Unknown error");
+                ajaxInfoModalMsg.innerText = data.error || "Unknown error";
+                ajaxInfoModal.modal('show');
             }
         },
         error: (xhr) => {
             $('#loadingModal').modal('hide');
             console.log(xhr.responseText || xhr.statusText);
+
             alert("Request failed.");
         }
     });
