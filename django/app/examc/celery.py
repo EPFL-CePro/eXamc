@@ -17,7 +17,7 @@ if os.getenv("DJANGO_DOTENV", "0") == "1":
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examc.settings')
 
-app = Celery('examc') #, backend='redis://localhost:6379', broker='redis://localhost:6379')
+app = Celery('examc') #, backend='redis://redis:6379', broker='redis://redis:6379')
 
 
 # Using a string here means the worker doesn't have to serialize
