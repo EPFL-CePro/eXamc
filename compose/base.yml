@@ -93,6 +93,11 @@ services:
       OASIS_BEARER: "${OASIS_BEARER}"
       OASIS_BASE_URL: "${OASIS_BASE_URL}"
 
+      # Celery settings
+      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
+      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
+      CELERY_TASK_ALWAYS_EAGER: "${CELERY_TASK_ALWAYS_EAGER:-False}"
+
       # Exam permission groups
       EXAM_PERMISSION_MANAGE_GROUP_NAMES: "${EXAM_PERMISSION_MANAGE_GROUP_NAMES:-Teacher,Assistant}"
       EXAM_PERMISSION_REVIEW_GROUP_NAMES: "${EXAM_PERMISSION_REVIEW_GROUP_NAMES:-Teacher,Reviewer,Assistant}"
@@ -121,9 +126,6 @@ services:
     environment:
       CELERY_LOGLEVEL: "INFO"
       CELERY_CONCURRENCY: "4"
-      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
-      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
-      CELERY_TASK_ALWAYS_EAGER: "${CELERY_TASK_ALWAYS_EAGER:-False}"
     command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/celery.pid && kill -0 $(cat /tmp/celery.pid)"]
@@ -137,10 +139,6 @@ services:
       service: django
     environment:
       CELERY_LOGLEVEL: "INFO"
-      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
-      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
-      CELERY_TASK_ALWAYS_EAGER: "${CELERY_TASK_ALWAYS_EAGER:-False}"
-
     command: >
       celery -A examc beat --loglevel=INFO
         --scheduler django_celery_beat.schedulers:DatabaseScheduler
