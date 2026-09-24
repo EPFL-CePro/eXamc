@@ -10,5 +10,3 @@ class ExamcAppConfig(AppConfig):
         User = get_user_model()
         if not hasattr(User, "history"):
             register(User, app=self.name)
-        from .constance_hooks import recompute_now
-        recompute_now()
