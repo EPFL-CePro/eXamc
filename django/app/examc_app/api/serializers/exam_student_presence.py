@@ -10,13 +10,6 @@ class StudentPresenceSerializer(serializers.Serializer):
     present = serializers.BooleanField()
 
 
-def student_presence_url(student: Student) -> str:
-    return reverse(
-        "exam-students-presence-presence",
-        kwargs={"exam_pk": student.exam_id, "pk": student.pk},
-    )
-
-
 def render_presence_toggle(student: Student) -> SafeString:
     def option(value: bool, icon: str) -> SafeString:
         active = value == student.present
@@ -34,7 +27,7 @@ def render_presence_toggle(student: Student) -> SafeString:
 
     return format_html(
         '<div class="btn-group btn-group-toggle presence-toggle" style="margin-left:-20px;" data-url="{}">{}{}</div>',
-        student_presence_url(student),
+        reverse("api-exam-students-presence-patch", kwargs={"exam_pk": student.exam_id, "pk": student.pk}),
         option(True, "fa-circle-check"),
         option(False, "fa-circle-xmark"),
     )

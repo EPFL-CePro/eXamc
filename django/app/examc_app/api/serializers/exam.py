@@ -10,7 +10,7 @@ from examc_app.utils.dashboard import build_exam_card
 
 _NOT_BUILT = object()
 
-class ExamDataTableRowSerializer(serializers.Serializer):
+class ExamRowSerializer(serializers.Serializer):
     exam = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()

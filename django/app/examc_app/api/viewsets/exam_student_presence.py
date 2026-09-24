@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from examc_app.api.datatables import DataTablesRequest
 from examc_app.api.decorators import exam_permission_required
-from examc_app.api.serializers.student_presence import (
+from examc_app.api.serializers.exam_student_presence import (
     StudentPresenceRowSerializer,
     StudentPresenceSerializer,
     render_presence_toggle,
@@ -58,7 +58,7 @@ class ExamStudentPresenceViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=["patch"])
     @exam_permission_required(["manage", "see_results"])
-    def presence(self, request: Request, exam_pk: str, pk: str) -> Response:
+    def patch(self, request: Request, exam_pk: int, pk: int) -> Response:
         serializer = StudentPresenceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

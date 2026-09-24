@@ -159,7 +159,9 @@ TEMPLATES = [
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         'rest_framework.authentication.SessionAuthentication',
-    ]
+    ],
+    "DEFAULT_FILTER_BACKENDS": ["examc_app.api.datatables.DataTablesFilterBackend"],
+    "DEFAULT_PAGINATION_CLASS": "examc_app.api.datatables.DataTablesPagination",
 }
 
 

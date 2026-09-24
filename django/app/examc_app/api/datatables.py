@@ -1,10 +1,16 @@
 from dataclasses import dataclass
+from typing import Any
 
+from django.db.models import Model, Q
 from django.db.models import QuerySet
 from rest_framework.exceptions import ValidationError
+from rest_framework.filters import BaseFilterBackend
+from rest_framework.pagination import BasePagination
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 MAX_PAGE_LENGTH = 100
-
 
 def _int(params, key: str, default: int, *, min_value: int = 0, max_value: int | None = None) -> int:
     raw = params.get(key)
@@ -51,3 +57,33 @@ class DataTablesRequest:
 
     def response(self, *, total: int, filtered: int, data) -> dict:
         return {"draw": self.draw, "recordsTotal": total, "recordsFiltered": filtered, "data": data}
+
+
+class DataTablesFilterBackend(BaseFilterBackend):
+    """Applies DataTables global search and column ordering."""
+
+    def filter_queryset(self, request: Request, queryset: QuerySet[Any], view: APIView) -> QuerySet[Any]:
+        dt = DataTablesRequest.from_query_params(request.query_params)
+
+        search_fields: list[str] = getattr(view, "search_fields", [])
+        if dt.search and search_fields:
+            query = Q()
+            for field in search_fields:
+                query |= Q(**{f"{field}__icontains": dt.search})
+            queryset = queryset.filter(query)
+
+        ordering_columns: dict[int, list[str]] = getattr(view, "ordering_columns", {})
+        return dt.order(queryset, ordering_columns)
+
+
+class DataTablesPagination(BasePagination):
+    """Pages the queryset and wraps results in the DataTables response shape."""
+
+    def paginate_queryset(self, queryset: QuerySet[Any], request: Request, view: APIView | None = None) -> list[Model]:
+        self.dt = DataTablesRequest.from_query_params(request.query_params)
+        self.filtered = queryset.count()
+        self.total = view.get_queryset().count() if view is not None else self.filtered  # type: ignore[attr-defined]
+        return list(self.dt.page(queryset))
+
+    def get_paginated_response(self, data: Any) -> Response:
+        return Response(self.dt.response(total=self.total, filtered=self.filtered, data=data))
