@@ -1,5 +1,5 @@
 import DataTable from 'datatables.net-dt';
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import {getLayoutElementsSeparator} from "@examc/helpers/datatables.ts";
 
 export function initExamSelectTable(options: {
     tableElement: HTMLTableElement;
@@ -10,9 +10,23 @@ export function initExamSelectTable(options: {
     new DataTable(tableElement, {
         serverSide: true,
         processing: true,
+        scrollY: "45.5dvh",
         ajax: {
             url: apiUrl,
             type: "GET",
+        },
+        layout: {
+            topStart: function() {
+                let title = document.createElement('h4');
+                title.style.margin = "0";
+                title.innerHTML = `<i class="fa-solid fa-book-open"></i> My exams`;
+                return title;
+            },
+            bottomStart: [
+                "pageLength",
+                getLayoutElementsSeparator(),
+                "info"
+            ]
         },
         columns: [
             { data: "exam", orderable: true },
