@@ -275,9 +275,12 @@ def get_sum_questions_points(exam_id):
 def get_logo_url():
     env = os.getenv("ENV")
     if env == 'prod':
-        return static("img/eXamc_bg_transp_200.png")
+        return static("img/eXamc.svg")
+    elif env == "dev":
+        return static("img/eXamc-dev.svg")
     else:
-        return static("img/eXamc_bg_transp_200_dev.png")
+        return static("img/eXamc-staging.svg")
+
 
 @register.filter
 def is_review_blocked(user_id,exam_id):
