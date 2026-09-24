@@ -1,7 +1,7 @@
 import 'vite/modulepreload-polyfill';
 
-import "./main.scss";
 import {initExamSelectTable} from "./examSelectTable";
+import "./dashboard.scss";
 
 
 /**

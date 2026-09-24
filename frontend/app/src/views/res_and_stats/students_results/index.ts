@@ -1,6 +1,5 @@
 import 'vite/modulepreload-polyfill';
 
-import "./main.scss";
 import {initStudentsTable} from "./studentSelectTable.ts";
 
 document.addEventListener("DOMContentLoaded", () => {

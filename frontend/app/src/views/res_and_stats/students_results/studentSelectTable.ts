@@ -1,6 +1,8 @@
 import DataTable from 'datatables.net-dt';
 import type {DataTableColumn} from "@examc/types/datatables.ts";
 
+import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+
 type PresenceResponse = {
     student: number;
     present: boolean;

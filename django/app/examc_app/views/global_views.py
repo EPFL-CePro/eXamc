@@ -99,19 +99,17 @@ def select_exam(request, pk, nav_url=None):
 @login_required
 def impersonate_user_select(request):
     real_user = _get_real_user(request)
+
     if not _is_impersonation_admin(real_user):
         return HttpResponseForbidden("Only superusers can impersonate users.")
 
-    users = User.objects.filter(is_active=True).exclude(
-        pk=real_user.pk
-    ).exclude(
-        is_superuser=True
-    ).order_by("last_name", "first_name", "username")
-
-    return render(request, "impersonation/select_user.html", {
-        "impersonation_users": users,
-        "real_user": real_user,
-    })
+    return render(
+        request,
+        "impersonation/select_user.html",
+        {
+            "real_user": real_user,
+        }
+    )
 
 
 @login_required

@@ -1,7 +1,7 @@
 import DataTable from 'datatables.net-dt';
 import 'datatables.net-dt/css/dataTables.dataTables.min.css';
 
-export function initExamSelectTable(options: {
+export function initUserSelectTable(options: {
     tableElement: HTMLTableElement;
     apiUrl: string;
 }) {
@@ -15,13 +15,14 @@ export function initExamSelectTable(options: {
             type: "GET",
         },
         columns: [
-            { data: "exam", orderable: true },
-            { data: "date", orderable: true, width: "10rem" },
-            { data: "role", orderable: false, width: "10rem" },
-            { data: "modules", orderable: false, width: "10rem" },
-            { data: "review", orderable: false, width: "10rem" },
-            { data: "actions", orderable: false },
+            { data: "username" },
+            { data: "name" },
+            { data: "email" },
+            { data: "last_login", render: DataTable.render.datetime() },
+            { data: "action" },
         ],
+        pageLength: 25,
+        scrollY: '75vh',
         order: [[1, "desc"]],
     });
 }
