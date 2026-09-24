@@ -325,7 +325,7 @@ class TestReviewGroupView(TestCase):
 
         response = self.client.get(
             reverse(
-                "reviewGroup",
+                "review_group",
                 kwargs={
                     "exam_pk": self.exam.pk,
                     "group_pk": self.pages_group.pk,
