@@ -7,6 +7,6 @@ class ExamcAppConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
 
     def ready(self):
-        User = get_user_model()
-        if not hasattr(User, "history"):
-            register(User, app=self.name)
+        user = get_user_model()
+        if not hasattr(user, "history"):
+            register(user, app=self.name)
