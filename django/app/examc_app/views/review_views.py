@@ -1,6 +1,7 @@
 """  REVIEW MODULE VIEWS
     This file contains all views used for the review module
 """
+from typing import Any
 
 import math
 from datetime import timedelta
@@ -285,20 +286,56 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         post: Handles POST requests for updating review settings.
     """
     model = Exam
-    template_name = 'review/reviewGroup.html'
+    template_name = 'review/review_group.html'
     pk_url_kwarg = 'exam_pk'
     perm_codenames = ['manage','review']
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs) -> dict[str, Any]:
         context = super(ReviewGroupView, self).get_context_data(**kwargs)
 
         pages_group = PagesGroup.objects.get(pk=self.kwargs.get('group_pk'))
 
         current_page = self.kwargs['currpage']
 
+        # Get scans file path dict by pages groups
+        copies_pages_list = get_copies_pages_by_group(pages_group)
+
+        # user is not allowed
+        if not user_allowed(pages_group.exam, self.request.user.id):
+            context.update({
+                'user_allowed': False,
+                'nav_url': "reviewGroup",
+                'exam': pages_group.exam,
+                'pages_group': pages_group
+            })
+
+            return context
+
+        # user is allowed
+        context.update({
+            'user_allowed': True,
+            'nav_url': "reviewGroup",
+            'pages_group': pages_group,
+            'copies_pages_list': copies_pages_list,
+            'json_copies_pages_list': json.dumps(copies_pages_list),
+            'currpage': current_page,
+            'exam_selected': pages_group.exam,
+        })
+
+        # manages common exams
+        exam = pages_group.exam
+        if exam.common_exams:
+            for common_exam in exam.common_exams.all():
+                if common_exam.is_overall():
+                    exam = common_exam
+                    break
+        context['exam'] = exam
+
+        # grading scheme
         grading_schemes = None
         if pages_group.use_grading_scheme:
             grading_schemes = pages_group.gradingSchemes.all()
+
         current_grading_scheme = self.kwargs['current_grading_scheme']
         if grading_schemes and not current_grading_scheme:
             if grading_schemes:
@@ -306,32 +343,12 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
             else:
                 current_grading_scheme = 0
 
-        # Get scans file path dict by pages groups
-        copies_pages_list = get_copies_pages_by_group(pages_group)
-        if user_allowed(pages_group.exam, self.request.user.id):
-            context['user_allowed'] = True
-            context['nav_url'] = "reviewGroup"
-            context['pages_group'] = pages_group
-            context['copies_pages_list'] = copies_pages_list
-            context['json_copies_pages_list'] = json.dumps(copies_pages_list)
-            context['currpage'] = current_page
-            context['exam_selected'] = pages_group.exam
-            exam = pages_group.exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
-            context['exam'] = exam
-            context['grading_schemes'] = grading_schemes
-            context['current_grading_scheme'] = current_grading_scheme
-            return context
-        else:
-            context['user_allowed'] = False
-            context['nav_url'] = "reviewGroup"
-            context['exam'] = pages_group.exam
-            context['pages_group'] = pages_group
-            return context
+        context.update({
+            'grading_schemes': grading_schemes,
+            'current_grading_scheme': current_grading_scheme
+        })
+
+        return context
 
 
 #@method_decorator(login_required(login_url='/'), name='dispatch')
@@ -1081,45 +1098,48 @@ def getMarkersAndComments(request, exam_pk):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def saveComment(request,exam_pk):
+def save_comment(request, exam_pk: int):
     if 'delete' in request.POST:
         get_object_or_404(
             PagesGroupComment,
             pk=request.POST['comment_id'],
             pages_group__exam_id=exam_pk,
         ).delete()
+
+        return HttpResponse('deleted')
+
+    comment_data = json.loads(request.POST['comment'])
+
+    if not comment_data['id'].startswith('c'):
+        comment = get_object_or_404(
+            PagesGroupComment,
+            pk=comment_data['id'],
+            pages_group__exam_id=exam_pk,
+        )
+        comment.content = comment_data['content']
+        comment.modified = datetime.now()
+        comment.save()
     else:
-        comment_data = json.loads(request.POST['comment'])
-        if not comment_data['id'].startswith('c'):
-            comment = get_object_or_404(
-                PagesGroupComment,
-                pk=comment_data['id'],
-                pages_group__exam_id=exam_pk,
-            )
-            comment.content = comment_data['content']
-            comment.modified = datetime.now()
-            comment.save()
-        else:
-            pages_group = get_object_or_404(
-                PagesGroup,
-                pk=request.POST['group_id'],
-                exam_id=exam_pk,
-            )
-            comment = PagesGroupComment()
-            comment.is_new = True
-            comment.content = comment_data['content']
-            comment.created = datetime.now()
-            comment.user_id = request.user.id
-            comment.pages_group = pages_group
-            comment.copy_no = request.POST['copy_no']
-            if comment_data['parent']:
-                comment.parent_id = int(comment_data['parent'])
-            comment.save()
+        pages_group = get_object_or_404(
+            PagesGroup,
+            pk=request.POST['group_id'],
+            exam_id=exam_pk,
+        )
+        comment = PagesGroupComment()
+        comment.is_new = True
+        comment.content = comment_data['content']
+        comment.created = datetime.now()
+        comment.user_id = request.user.id
+        comment.pages_group = pages_group
+        comment.copy_no = request.POST['copy_no']
+        if comment_data['parent']:
+            comment.parent_id = int(comment_data['parent'])
+        comment.save()
 
-        print(comment)
+    logger.info(comment)
 
-        return HttpResponse(comment.id)
-    return HttpResponse('deleted')
+    return HttpResponse(comment.id)
+
 
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
@@ -1557,12 +1577,15 @@ def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
         pk=grading_scheme_id,
         pages_group__exam_id=exam_pk,
     )
+
     used_grading_scheme = other_grading_scheme_used(grading_scheme,copy_nr)
-    if used_grading_scheme:
-        grading_scheme = used_grading_scheme
+
+    if used_grading_scheme: grading_scheme = used_grading_scheme
+
     points = get_question_points(grading_scheme, copy_nr)
     note_enabled = str(copy_nr) not in ('0', 'None', '')
     student_report_note = ""
+
     if note_enabled:
         note = PagesGroupStudentReportNote.objects.filter(
             pages_group=grading_scheme.pages_group,
@@ -1584,10 +1607,12 @@ def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
             "student_report_note_enabled": note_enabled,
         },
     )
+
     # Tell the client which scheme is actually in effect and points:
     resp["X-Used-Grading-Scheme-Id"] = str(grading_scheme.id)
     resp["X-Points"] = str(points)
     resp["X-Corr-Box-Index"] = str(get_review_corr_box_index(grading_scheme, copy_nr))
+
     return resp
 
 @exam_permission_required(['manage','review'])
