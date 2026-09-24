@@ -14,8 +14,8 @@
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 // Site CSS.
-import '../styles/menubars.scss';
-import '../styles/examc.scss';
+import '../styles/menubars.css';
+import '../styles/examc.css';
 
 import '../legacy/jquery.bootstrap.modal.forms.min.js';
 

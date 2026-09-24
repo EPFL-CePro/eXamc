@@ -29,4 +29,4 @@ import 'katex/dist/katex.min.css'
 // Summernote-math plugin (jQuery plugin, source:
 // https://github.com/tylerecouture/summernote-math — no npm package
 // exists for this. Requires window.katex above and window.$ from core.ts to already be set.
-import '../legacy/summernote-math.js'
+//import '../legacy/summernote-math.js'

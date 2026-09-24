@@ -5,8 +5,6 @@ services:
     extends:
       service: mysql
       file: base.yml
-    ports:
-      - ${DB_PORT:-3308}:3306
     volumes:
       # This lets the test user create a DB for testing
       - ./deploy/db/init-test-user.sql:/docker-entrypoint-initdb.d/test-user.sql:ro
@@ -25,6 +23,13 @@ services:
       # TODO: provide an example private_media dir to integrate in CI/CD
       # - ./data/private_media:/private_media:ro
 
+  fe-artifacts:
+    image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - static_volume:/static
+    restart: "no"
+
   django:
     extends:
       service: django
@@ -35,6 +40,8 @@ services:
       TESTING_MODE_ENABLED: "1"
       DJANGO_SETTINGS_MODULE: "examc.settings"
     depends_on:
+      fe-artifacts:
+        condition: service_completed_successfully
       redis:
         condition: service_started
       mysql:
