@@ -439,12 +439,10 @@ catalogs/
 autoupload/
 manage.py
 rooms_plans/export/
-static/
-!examc_app/static/
-examc_app/static/*
-!examc_app/static/css/
-examc_app/static/css/*
-!examc_app/static/css/home-dashboard.css
+
+
+django/app/examc_app/static/
+!django/app/examc_app/static/img/*
 examc/wsgi.py
 
 # Envs (ne JAMAIS versionner)
