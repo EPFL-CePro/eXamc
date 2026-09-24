@@ -169,6 +169,9 @@ importers:
       '@fortawesome/fontawesome-free':
         specifier: ^7.3.1
         version: 7.3.1
+      '@markerjs/markerjs3':
+        specifier: ^3.10.0
+        version: 3.10.0
       bootstrap:
         specifier: ^5.3.8
         version: 5.3.8(@popperjs/core@2.11.8)
@@ -326,6 +329,9 @@ packages:
 
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
+
+  '@markerjs/markerjs3@3.10.0':
+    resolution: {integrity: sha512-SvrnRjK5mvOZ+PowsGKf8D4qRjbXkR9NSI+QPt2qRu8YczQt/sWWxSKI40WW7X4lKMAzRXddsuGh9PdF0XTnzA==}
 
   '@one-ini/wasm@0.1.1':
     resolution: {integrity: sha512-XuySG1E38YScSJoMlqovLru4KTUNSjgVTIjyh7qMX6aNN5HY5Ct5LhRJdxO79JtTzKfzV/bnWpz+zquYrISsvw==}
@@ -1580,6 +1586,8 @@ snapshots:
   '@keyv/serialize@1.1.1': {}
 
   '@kurkle/color@0.3.4': {}
+
+  '@markerjs/markerjs3@3.10.0': {}
 
   '@one-ini/wasm@0.1.1': {}
 

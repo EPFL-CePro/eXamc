@@ -1,8 +1,12 @@
+import DataTable from "datatables.net-dt";
+import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import { MarkerArea } from '@markerjs/markerjs3';
+
 (function () {
     'use strict';
 
     /**
-     * Global configuration object injected from Django template.
+     * Global configuration object injected from the review_group.html template.
      * @typedef {Object} ReviewGroupConfig
      * @property {number} examId
      * @property {number} pagesGroupId
@@ -11,6 +15,14 @@
      * @property {number} currPage
      * @property {string} csrfToken
      * @property {Object} urls
+     * @property {string} urls.reviewStudentPageLocked
+     * @property {string} urls.getMarkersAndComments
+     * @property {string} urls.getCopyPage
+     * @property {string} urls.saveMarkers
+     * @property {string} urls.saveComment
+     * @property {string} urls.savePagesGroupStudentNote
+     * @property {string} urls.updatePagesGroupCheckBox
+     * @property {string} urls.reviewGradingSchemePanelBase
      * @property {Array<Object>} copiesPagesList
      * @property {number} totalCopiesPages
      */
@@ -34,7 +46,7 @@
     // Global state for the review UI
     // ---------------------------------------------------------------------------
 
-    /** Last marker.js state for the current page (JSON object). */
+    /** The last marker.js state for the current page (JSON object). */
     let markerState = null;
 
     /** ID of the currently selected row/cell in the copies/pages table. */
@@ -65,7 +77,6 @@
     // Marker.js setup
     // ---------------------------------------------------------------------------
 
-    const {MarkerArea} = markerjs3;
     const mjs3App = document.querySelector("#mjsapp");
     const markerWrapper = document.querySelector("#marker-wrapper");
     const colorInput = document.getElementById('color-input');
@@ -85,7 +96,7 @@
     let sourceImage = new Image();
 
     /**
-     * Name of currently selected marker editor (e.g. 'TextMarker', 'FreehandMarker'),
+     * Name of the currently selected marker editor (e.g. 'TextMarker', 'FreehandMarker'),
      * or null when pointer/select mode is active.
      * @type {string|null}
      */
@@ -481,15 +492,9 @@
         }
 
         const target = event.target;
-        if (!(target instanceof Element)) {
-            return false;
-        }
+        if (!(target instanceof Element)) return false;
 
-        if (target.closest('input, textarea, select, [contenteditable="true"]')) {
-            return true;
-        }
-
-        return false;
+        return !!target.closest('input, textarea, select, [contenteditable="true"]');
     }
 
     function shouldIgnoreToolShortcut(event) {
@@ -502,11 +507,7 @@
             return false;
         }
 
-        if (target.closest('input, textarea, select, [contenteditable="true"]')) {
-            return true;
-        }
-
-        return false;
+        return !!target.closest('input, textarea, select, [contenteditable="true"]');
     }
 
     /**
@@ -1278,19 +1279,13 @@
         // Remove existing HighlightMarker and decide if we add a new one
         for (let i = markers.length - 1; i >= 0; i--) {
             const m = markers[i];
-            if (m.typeName === 'HighlightMarker') {
-                shouldAddMarker = false;
 
-                if (
-                    (left !== -1 &&
-                    (m.left !== left ||
-                        m.top !== top ||
-                        m.width !== width ||
-                        m.height !== height))
-                    || useGradingScheme
-                ) {
-                    shouldAddMarker = true;
-                }
+            if (m.typeName === 'HighlightMarker') {
+                shouldAddMarker = useGradingScheme || (left !== -1 &&
+                        (m.left !== left ||
+                            m.top !== top ||
+                            m.width !== width ||
+                            m.height !== height));
                 markers.splice(i, 1);
             }
         }
@@ -1327,15 +1322,27 @@
      * @param {boolean} refresh - If true, only rebind click handler; if false, also (re)init DataTable.
      */
     function initCopyPagesTableOnClickRowEvent(refresh) {
-        $("#table-copies-pages").off().on('click', 'tr', function () {
+        const tableCopiesPages = $("#table-copies-pages");
+
+        tableCopiesPages.off().on('click', 'tr', function () {
             createPagination(copiesPagesList.length, parseFloat(this.cells[1].innerText));
         });
 
-        if (!refresh) {
-            $("#table-copies-pages").DataTable({
-                scrollY: '80vh',
-                dom: 'rtip',
+        if (refresh) return;
+
+        if ( DataTable.isDataTable( tableCopiesPages ) ) {
+            new DataTable.Api(tableCopiesPages);
+        } else {
+            new DataTable(tableCopiesPages, {
+                scrollY: '83.5vh',
+                layout: {
+                    topStart: null,
+                    topEnd: null,
+                    bottomStart: 'info',
+                    bottomEnd: null,
+                },
                 lengthChange: false,
+                order: [[1, 'asc']],
                 paging: false,
             });
         }
@@ -1460,7 +1467,7 @@
     }
 
     /**
-     * Initialize jquery-comments with comment list for the current copy/page.
+     * Initialize jquery-comments with a comment list for the current copy/page.
      */
     function initComments(commentsArray) {
         $('#comments-container').comments({
@@ -1586,9 +1593,10 @@
     });
 
     // Expand/collapse left group list panel
-    document.getElementById("expandCollapseGroupListBt").addEventListener("click", function () {
+    document.getElementById("expandCollapseGroupListBt").addEventListener("click", _=> {
         const expandIcon = $("#expand-group-list-icon");
         const collapseIcon = $("#collapse-group-list-icon");
+
         if (collapseIcon.hasClass('fa-angle-double-left')) {
             collapseIcon.removeClass('fa-angle-double-left');
             expandIcon.addClass("fa-solid fa-table-list");
@@ -1808,9 +1816,7 @@
         } else {
             const adjustId = itemId.replace('check', 'adj');
             const adjustEl = document.getElementById(adjustId);
-            if (adjustEl) {
-                adjustValue = adjustEl.value;
-            }
+            if (adjustEl) adjustValue = adjustEl.value;
         }
 
         $.ajax({
@@ -2047,5 +2053,4 @@
     window.saveStudentReportNote = saveStudentReportNote;
 
     initStudentReportNoteFields(document);
-
 })();
