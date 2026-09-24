@@ -30,7 +30,7 @@
                         {% if has_exams %}
                             <table id="dashboard-exam-table"
                                class="table table-striped table-sm mb-0 dashboard-exams-table"
-                               data-api-url="{% url 'exam-datatables-list' %}"
+                               data-api-url="{% url 'api-exams-list' %}"
                                data-is-superuser="{{ user.is_superuser|yesno:'true,false' }}"
                             >
                                 <thead>

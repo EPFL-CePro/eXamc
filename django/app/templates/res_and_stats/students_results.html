@@ -19,7 +19,7 @@
         {% if exam_selected.students %}
             <table id="students-dt"
                class="table table-striped table-sm"
-               data-api-url="{% url 'exam-students-presence-list' exam_pk=exam_selected.pk %}"
+               data-api-url="{% url 'api-exam-students-presence-list' exam_pk=exam_selected.pk %}"
                data-csrf-token="{{ csrf_token }}"
             >
                 <thead>
