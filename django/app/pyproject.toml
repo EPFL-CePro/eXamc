@@ -20,7 +20,6 @@ dependencies = [
     "django-simple-history==3.10.1",
     "django-sslserver==0.22",  # TODO remove, very old dependency
     "django-summernote==0.8.20.0",
-    "django-tables2==2.7.5",
     "docutils==0.21.2",
     "fpdf2==2.8.3",
     "gunicorn==26.2.0",
@@ -81,13 +80,19 @@ exclude = [
 
 [tool.deptry.per_rule_ignores]
 DEP002 = [
+    # Used in production
+    "gunicorn",
+
+
     # Django-related, not directly imported
+    "asgiref",
     "celery-types",
     "crispy-bootstrap4",
     "django-celery-beat",
     "django-crispy-forms",
     "django-extensions",
     "django-sslserver",
+    "django-vite",
     "mysqlclient",
     "redis",
 

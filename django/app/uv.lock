@@ -571,18 +571,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0e/20/d184fd9566c263f474e2fe964fdbcf50f277746f2d3efb0881208abbb658/django-summernote-0.8.20.0.tar.gz", hash = "sha256:52e9b12438ed9eac0d77729f758f2aae06e468b5cbce133e24100d58ae4e43a8", size = 288500, upload-time = "2021-10-14T21:54:58.75Z" }
 
 [[package]]
-name = "django-tables2"
-version = "2.7.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/19/0f/497ebb829a0f6d93ac8ae720b114a413e6e3a6eb0682f15c7a8d59f69464/django_tables2-2.7.5.tar.gz", hash = "sha256:fb5dcaa09379cf3947598ec7e1bd5f26ed63aafdee3b23963446763bbeac37bf", size = 128618, upload-time = "2025-01-02T07:49:42.674Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/66/6d454db3edcd285b767caaa790c3e7a3969c91bb6f93601d9a879aab06f2/django_tables2-2.7.5-py3-none-any.whl", hash = "sha256:d9338937797207ffb6f481be2125c5ec3a0bb1858d409c672cc25fc5d654cb22", size = 95984, upload-time = "2025-01-02T07:49:39.752Z" },
-]
-
-[[package]]
 name = "django-timezone-field"
 version = "7.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -644,7 +632,7 @@ wheels = [
 
 [[package]]
 name = "examc"
-version = "1.2.2"
+version = "1.2.5"
 source = { editable = "." }
 dependencies = [
     { name = "asgiref" },
@@ -663,7 +651,6 @@ dependencies = [
     { name = "django-simple-history" },
     { name = "django-sslserver" },
     { name = "django-summernote" },
-    { name = "django-tables2" },
     { name = "django-vite" },
     { name = "djangorestframework" },
     { name = "docutils" },
@@ -728,7 +715,6 @@ requires-dist = [
     { name = "django-simple-history", specifier = "==3.10.1" },
     { name = "django-sslserver", specifier = "==0.22" },
     { name = "django-summernote", specifier = "==0.8.20.0" },
-    { name = "django-tables2", specifier = "==2.7.5" },
     { name = "django-vite", specifier = ">=3.1.0" },
     { name = "djangorestframework", specifier = ">=3.18.1" },
     { name = "docutils", specifier = "==0.21.2" },
