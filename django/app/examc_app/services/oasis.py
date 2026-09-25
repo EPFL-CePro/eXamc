@@ -1,8 +1,14 @@
+import json
 import re
+from http.client import HTTPException
+from typing import Mapping, Any, Iterable
+from urllib.error import URLError, HTTPError
+from urllib.parse import urlencode
+from urllib.request import urlopen, Request
 
-import requests
 from django.conf import settings
 
+OASIS_TIMEOUT_SECONDS = 20
 
 def _is_complete_teacher(row):
     required_fields = (
@@ -38,41 +44,54 @@ def _validate_year(academic_year):
         raise ValueError("Academic year must cover two consecutive years.")
 
 
-def _get_list(path, *, params=None, required_fields=()):
+def _get_list(
+    path: str,
+    *,
+    params: Mapping[str, Any] | None = None,
+    required_fields: Iterable[str] = (),
+) -> list[dict[str, Any]]:
     base_url = settings.OASIS_BASE_URL
     bearer = settings.OASIS_BEARER
 
     if not base_url or not bearer:
         raise OasisError("OASIS configuration is incomplete.")
 
+    url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
+    if params:
+        url = f"{url}?{urlencode(params, doseq=True)}"
+
+    request = Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {bearer}",
+            "Accept": "application/json",
+        },
+        method="GET",
+    )
+
     try:
-        response = requests.get(
-            f"{base_url.rstrip('/')}/{path.lstrip('/')}",
-            headers={
-                "Authorization": f"Bearer {bearer}",
-                "Accept": "application/json",
-            },
-            params=params,
-            timeout=(5, 20),
-        )
-        response.raise_for_status()
-    except requests.Timeout as exc:
+        with urlopen(request, timeout=OASIS_TIMEOUT_SECONDS) as response:
+            body = response.read()
+    except HTTPError as exc:
+        raise OasisError(f"OASIS returns HTTP error {exc.code}.") from exc
+    except URLError as exc:
+        if isinstance(exc.reason, TimeoutError):
+            raise OasisError("OASIS does not reply within the specified time limit.") from exc
+        raise OasisError("Impossible to join OASIS.") from exc
+    except TimeoutError as exc:
         raise OasisError("OASIS does not reply within the specified time limit.") from exc
-    except requests.HTTPError as exc:
-        raise OasisError(
-            f"OASIS returns HTTP error {exc.response.status_code}."
-        ) from exc
-    except requests.RequestException as exc:
+    except (HTTPException, OSError) as exc:
         raise OasisError("Impossible to join OASIS.") from exc
 
     try:
-        data = response.json()
-    except requests.exceptions.JSONDecodeError as exc:
+        data = json.loads(body)
+    except ValueError as exc:
         raise OasisError("OASIS response is not a valid JSON.") from exc
 
     if not isinstance(data, list):
         raise OasisError("Unexpected OASIS Format : a list is expected.")
 
+    items: list[dict[str, Any]] = []
     for item in data:
         if not isinstance(item, dict):
             raise OasisError("One OASIS entry is not a JSON object.")
@@ -82,8 +101,9 @@ def _get_list(path, *, params=None, required_fields=()):
             if not isinstance(value, str) or not value.strip():
                 raise OasisError(f"OASIS field absent or invalid : {field}.")
 
-    return data
+        items.append(item)
 
+    return items
 
 def get_courses(academic_year):
     """Returns courses from academic year with OASIS fields names."""
