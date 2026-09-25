@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 {% load static %}
 {% load custom_tags %}
@@ -35,9 +34,11 @@ let uploadAMCProjectFrm = document.getElementById('uploadAMCProjectForm');
 
 uploadAMCProjectFrm.addEventListener('submit', function(e) {
     e.preventDefault();
-    $('#loadingModal').modal('show');
+
+    const loadingModal = $("#loading-modal");
+    loadingModal.modal('show');
     uploadAMCProjectFrm.submit();
-    $('#loadingModal').modal('hide');
+    loadingModal.modal('hide');
 });
 </script>
 
