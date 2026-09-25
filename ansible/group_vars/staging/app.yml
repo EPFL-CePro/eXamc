@@ -1,7 +1,7 @@
 repo_url: "https://github.com/EPFL-CePro/eXamc.git"
 repo_version: "staging"
 
-env_name: "prod"
+env_name: "staging"
 app_dir: "/opt/examc"
 compose_profiles: "mysql-dockerized"
 compose_file: "prod.yml"
