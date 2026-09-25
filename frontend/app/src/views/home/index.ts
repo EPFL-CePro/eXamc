@@ -11,19 +11,23 @@ import "./dashboard.scss";
  * Initializes the exam select table and last user connected after the DOM has loaded.
  */
 document.addEventListener("DOMContentLoaded", () => {
+    // exam select table
     const examTableElement = document.querySelector<HTMLTableElement>("#dashboard-exam-table");
-    const usersTableElement = document.querySelector<HTMLTableElement>("#dashboard-last-connected-users-table");
 
-    if (!examTableElement || !usersTableElement) return;
-
+    if (!examTableElement) return;
     const examApiUrl = examTableElement.dataset.apiUrl;
 
     if (!examApiUrl) {
         console.error("Exam table missing data-api-url attribute");
         return;
     }
-
-
     initExamSelectTable({ tableElement: examTableElement, apiUrl: examApiUrl });
+
+
+    // last connected users table
+    const usersTableElement = document.querySelector<HTMLTableElement>("#dashboard-last-connected-users-table");
+
+    if (!examTableElement || !usersTableElement) return;
+
     lastConnectedUsersTable({ tableElement: usersTableElement });
 });

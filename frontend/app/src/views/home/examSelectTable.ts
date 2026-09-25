@@ -4,7 +4,7 @@ import {getLayoutElementsSeparator} from "@examc/helpers/datatables.ts";
 export function initExamSelectTable(options: {
     tableElement: HTMLTableElement;
     apiUrl: string;
-}) {
+}): void {
     const { tableElement, apiUrl } = options;
 
     new DataTable(tableElement, {

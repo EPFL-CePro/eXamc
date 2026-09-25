@@ -3,7 +3,7 @@ import {getLayoutElementsSeparator} from "@examc/helpers/datatables.ts";
 
 export function lastConnectedUsersTable(options: {
     tableElement: HTMLTableElement;
-}) {
+}): void {
     const { tableElement } = options;
 
     new DataTable(tableElement, {
