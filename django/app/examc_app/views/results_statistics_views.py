@@ -254,43 +254,64 @@ def generate_stats(request, exam_pk):
 @exam_permission_required(['manage','see_results'])
 def general_statistics_view(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
-    currexam = exam
+    curr_exam = exam
 
-    if user_allowed(exam,request.user.id):
+    if not user_allowed(exam,request.user.id):
+        return render(
+            request,
+            "res_and_stats/general_statistics.html",
+            {
+                "user_allowed": False,
+                "grade_list": None,
+                "absent": 0,
+                "nav_url": "generalStats"
+            }
+        )
 
-        if exam and exam.scaleStatistics:
-            grade_list = [1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4, 4.25, 4.5, 4.75, 5, 5.25, 5.5,
-                          5.75, 6]
+    if not exam.scaleStatistics:
+        return render(
+            request,
+            "res_and_stats/general_statistics.html",
+            {
+                "user_allowed": True,
+                "grade_list": None,
+                "absent": 0,
+                "nav_url": "generalStats",
+                "exam": exam
+            }
+        )
 
-            common_list = get_common_list(exam)
+    grade_list = [
+        1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4, 4.25, 4.5, 4.75, 5, 5.25, 5.5, 5.75, 6
+    ]
 
-            if common_list:
-                currexam = exam
-                exam = common_list[0]
+    common_list = get_common_list(exam)
 
-            sum_all_students = len(currexam.students.all())
-            correlation_list = []
+    if common_list:
+        curr_exam = exam
+        exam = common_list[0]
 
-            if currexam.overall:
-                sum_all_students = currexam.get_sum_common_students()
-                correlation_list = get_comVsInd_correlation(currexam)
+    sum_all_students = len(curr_exam.students.all())
+    correlation_list = []
 
-            return render(request, "res_and_stats/general_statistics.html",
-                          {"user_allowed":True,
-                           "exam" : exam,
-                           "exam_selected": currexam,
-                           "grade_list": grade_list,
-                           "absent": sum_all_students - currexam.present_students,
-                           "common_list": common_list,
-                           "correlation_list":correlation_list,
-                           "nav_url": "generalStats"})
-        else:
-            return render(request, "res_and_stats/general_statistics.html",
-                          {"user_allowed":True,"exam": exam, "grade_list": None, "absent": 0,"nav_url": "generalStats"})
+    if curr_exam.overall:
+        sum_all_students = curr_exam.get_sum_common_students()
+        correlation_list = get_comVsInd_correlation(curr_exam)
 
-    else:
-        return render(request, "res_and_stats/general_statistics.html",
-                      {"user_allowed":False,"scaleStatistics": None, "grade_list": None, "absent": 0,"nav_url": "generalStats"})
+    return render(
+        request,
+        "res_and_stats/general_statistics.html",
+        {
+            "user_allowed": True,
+            "grade_list": grade_list,
+            "absent": sum_all_students - curr_exam.present_students,
+            "nav_url": "generalStats",
+            "exam" : exam,
+            "exam_selected": curr_exam,
+            "common_list": common_list,
+            "correlation_list":correlation_list
+        }
+    )
 
 
 #@login_required
