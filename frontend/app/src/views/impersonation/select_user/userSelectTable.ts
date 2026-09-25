@@ -4,7 +4,7 @@ import 'datatables.net-dt/css/dataTables.dataTables.min.css';
 export function initUserSelectTable(options: {
     tableElement: HTMLTableElement;
     apiUrl: string;
-}) {
+}): void {
     const { tableElement, apiUrl } = options;
 
     new DataTable(tableElement, {
