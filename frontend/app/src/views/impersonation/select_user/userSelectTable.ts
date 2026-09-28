@@ -23,6 +23,6 @@ export function initUserSelectTable(options: {
         ],
         pageLength: 25,
         scrollY: '75vh',
-        order: [[1, "desc"]],
+        order: [[3, "desc"]],
     });
 }

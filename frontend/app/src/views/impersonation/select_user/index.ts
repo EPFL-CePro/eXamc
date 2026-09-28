@@ -19,28 +19,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initUserSelectTable({ tableElement, apiUrl });
 });
-
-/*
-$(function () {
-        const $table = $('#impersonation-users-table');
-        $table.DataTable({
-            serverSide: true,
-            ajax: $table.data('url'),
-            paging: true,
-            pageLength: 50,
-            lengthChange: false,
-            info: false,
-            order: [],
-            columns: [
-                { data: 'username' },
-                { data: 'name' },
-                { data: 'email' },
-                { data: 'last_login' },
-                { data: 'action', orderable: false, searchable: false },
-            ],
-            language: {
-                zeroRecords: 'No active non-superuser account is available.',
-            },
-        });
-    });
- */
