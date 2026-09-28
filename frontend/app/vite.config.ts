@@ -13,13 +13,6 @@ export default defineConfig({
     manifest: "manifest.json",
     rollupOptions: {
       input: {
-        // Entries used by multiple views
-        "charts": resolve(import.meta.dirname, 'src/entries/charts.ts'),
-        "core": resolve(import.meta.dirname, 'src/entries/core.ts'),
-        "editor": resolve(import.meta.dirname, 'src/entries/editor.ts'),
-        "forms": resolve(import.meta.dirname, 'src/entries/forms.ts'),
-        "pdf-utils": resolve(import.meta.dirname, 'src/entries/pdfUtils.ts'),
-
         // Entries used by single views
         "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
         "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
