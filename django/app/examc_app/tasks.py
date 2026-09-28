@@ -17,9 +17,9 @@ from django.conf import settings
 from django.db.models import Sum
 from django.utils import timezone
 
-from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, PageMarkers, ExamPreviewJob, \
+from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, PageMarkers, \
     ExamAMCJob
-from examc_app.utils.amc.amc_build_functions import build_final_exam, generate_final_exam_files
+from examc_app.utils.amc.amc_build_functions import build_final_exam
 from examc_app.utils.amc.amc_layout_functions import extract_layout_from_xy, populate_subject_layout_pages, \
     LayoutExtractionError, get_pdf_page_metrics, get_subject_copy_and_page_counts_from_xy
 from examc_app.utils.amc_functions import (
