@@ -2,7 +2,7 @@
 {% load custom_tags %}
 
   
-{% block title %}Exam info {% endblock %}
+{% block title %}Exam info{% endblock %}
 
 
 {% block scripts %}
@@ -32,7 +32,7 @@ tr.question-removed-from-common td * {
                     <div class="card z-depth-0 bordered">
                         <div class="card-header" id="headingOne-{{ comex.id }}">
                             <h5 class="mb-0">
-                                <p style="text-align:left;margin-bottom:-5px;">
+                                <span style="text-align:left;margin-bottom:-5px;">
                                     <button class="btn btn-link" type="button" data-toggle="collapse"
                                             data-target="#collapseOne-{{ comex.id }}"
                                             aria-expanded="true" aria-controls="collapseOne-{{ comex.id }}">
@@ -45,7 +45,7 @@ tr.question-removed-from-common td * {
                                         <a data-toggle="modal" data-target="#displayPdfModal-{{ comex.id }}" title="Show in pdf" style="font-size:12px;">catalog<i
                                                 class="far fa-file-pdf" style="font-size:24px;color:red"></i></a>
                                     </span>
-                                </p>
+                                </span>
                             </h5>
                         </div>
                         <div id="collapseOne-{{ comex.id }}" class="" aria-labelledby="headingOne-{{ comex.id }}">
@@ -67,11 +67,11 @@ tr.question-removed-from-common td * {
                                             {% if comex.is_overall %}
                                                 GLOBAL
                                             {% else %}
-                                                <input class="form-control" type="text" name="exam_code_{{ comex.id }}" id="exam_code_{{ comex.id }}" required  style="" class="form-control" required="" aria-invalid="true" value="{{ comex.code }}">
+                                                <input class="form-control" type="text" name="exam_code_{{ comex.id }}" id="exam_code_{{ comex.id }}" required aria-invalid="true" value="{{ comex.code }}">
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <input class="form-control" type="text" size="100" name="exam_name_{{ comex.id }}" id="exam_name_{{ comex.id }}" required  style="" class="form-control" required="" aria-invalid="true" value="{{ comex.name }}">
+                                            <input class="form-control" type="text" size="100" name="exam_name_{{ comex.id }}" id="exam_name_{{ comex.id }}" required aria-invalid="true" value="{{ comex.name }}">
                                         </td>
                                         <td>                                            
                                             <select class="form-control" name="exam_year_{{ comex.id }}" id="exam_year_{{ comex.id }}" required>
@@ -88,7 +88,7 @@ tr.question-removed-from-common td * {
                                             </select>
                                         </td>
                                         <td id="exam_date_column-{{ comex.id }}">
-                                            <input class="date form-control" type="date" name="exam_date_{{ comex.id }}" id="exam_date_{{ comex.id }}"  style="" class="form-control" required aria-invalid="true" value="{{ comex.date|date:'Y-m-d' }}">
+                                            <input class="date form-control" type="date" name="exam_date_{{ comex.id }}" id="exam_date_{{ comex.id }}" required aria-invalid="true" value="{{ comex.date|date:'Y-m-d' }}">
                                         </td>
                                         {% if comex.common_exams.all %}
                                             <td>
@@ -96,10 +96,10 @@ tr.question-removed-from-common td * {
                                                 <br>
                                                 <em>[indiv_max_points];[common_max_points];[formula]
                                                     <ul>
-                                                        <li>IP - invid_max_points</li>
-                                                        <li>CP - common_max_points</li>
-                                                        <li>SCP - students common points</li>
-                                                        <li>SIP - students indiv points</li>
+                                                        <li>IP – invid_max_points</li>
+                                                        <li>CP – common_max_points</li>
+                                                        <li>SCP – students common points</li>
+                                                        <li>SIP – students indiv points</li>
                                                     </ul>
                                                 </em>
                                             </td>
