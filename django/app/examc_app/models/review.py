@@ -13,7 +13,7 @@ class PagesGroup(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='pagesGroup')
     group_name = models.CharField(max_length=50, default='0')
     nb_pages = models.IntegerField(default=0)
-    grading_help = models.TextField(default='')
+    grading_help = models.TextField(default='', blank=True)
     use_grading_scheme = models.BooleanField(default=False)
     history = HistoricalRecords()
 
@@ -121,7 +121,7 @@ class QuestionGradingScheme(models.Model):
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='gradingSchemes')
     name = models.CharField(max_length=100)
     max_points = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    description = models.TextField(default='')
+    description = models.TextField(default='', blank=True)
     history = HistoricalRecords()
 
 class QuestionGradingSchemeCheckBox(models.Model):
@@ -144,6 +144,7 @@ class PagesGroupGradingSchemeCheckedBox(models.Model):
     gradingSchemeCheckBox = models.ForeignKey(QuestionGradingSchemeCheckBox, on_delete=models.CASCADE, related_name='pagesGroupGradingSchemeCheckedBoxes', null=True)
     copy_nr = models.CharField(max_length=10, default='0')
     adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='pagesGroupGradingSchemeCheckedBoxes')
     history = HistoricalRecords()
 
 class ReviewLock(models.Model):

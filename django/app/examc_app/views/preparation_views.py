@@ -9,6 +9,7 @@ from django.db import transaction
 from django.http import HttpResponseBadRequest, JsonResponse, Http404, FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from docutils import DataError
 
 from examc_app.signing import make_token_for
 from examc_app.tasks import compile_exam_preview_task, generate_final_exam_files_task
@@ -21,7 +22,6 @@ from examc_app.forms import (
 )
 from examc_app.models import (
     AcademicYear,
-    Course,
     Exam,
     ExamUser,
     PrepQuestion,
@@ -30,6 +30,7 @@ from examc_app.models import (
     PrepSection,
     Semester, ExamAMCJob
 )
+from examc_app.services.oasis import get_courses, get_teachers_names_by_course
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.global_functions import add_course_teachers_ldap
 from examc_app.utils.preparation_functions import build_sections_list_context, build_section_form, get_questions, \
@@ -52,49 +53,77 @@ from examc_app.views import logger
 
 @login_required
 def create_exam_project(request):
-    if request.method == "POST":
-        form = CreateExamProjectForm(request.POST)
+    # get the most current academic year
+    year = AcademicYear.objects.order_by("-code").first()
+
+    if year is None: raise DataError("No academic year configured.")
+
+    teacher_names_by_course = get_teachers_names_by_course(year.code)
+    courses = get_courses(year.code)
+
+    form = CreateExamProjectForm(
+        request.POST or None,
+        courses=courses,
+        teacher_names_by_course=teacher_names_by_course
+    )
+
+    if request.method == 'POST':
         if form.is_valid():
-            course_id = form.cleaned_data["course"]
-            date = form.cleaned_data["date"]
-            year_id = form.cleaned_data["year"]
-            semester_id = form.cleaned_data["semester"]
+            course_code = form.cleaned_data['course']
+            course_name = form.courses_by_code[course_code]["coursNomFr"]
+            course_teachers = form.teachers_by_course.get(course_code, [])
+            teacher_scipers = [t["sciper"] for t in course_teachers]
+
+            date = form.cleaned_data['date']
+            semester_id = form.cleaned_data['semester']
+
+            # date_text = date.strftime('%d.%m.%Y')
+            # duration_text = form.cleaned_data['durationText']
+            # language = form.cleaned_data['language']
 
             semester = Semester.objects.get(pk=semester_id)
-            year = AcademicYear.objects.get(pk=year_id)
-            course = Course.objects.get(pk=course_id)
-            teachers = add_course_teachers_ldap(course.teachers)
+            # exam_text = course.code + " - " + course.name
+            # teachers_text = get_course_teachers_string(course.teachers)
+            teachers = add_course_teachers_ldap(teacher_scipers)
 
-            exam = Exam.objects.create(
-                code=course.code,
-                name=course.name,
-                semester=semester,
-                year=year,
-                date=date,
-            )
+            # user = request.user
+            # if not user in teachers:
+            #     teachers.append(user)
+
+            exam = Exam()
+            exam.code = course_code
+            exam.name = course_name
+            exam.semester = semester
+            exam.year = year
+            exam.date = date
+            # exam.amc_option = True
+            exam.save()
 
             for teacher in teachers:
-                ExamUser.objects.create(
-                    user=teacher,
-                    exam=exam,
-                    group_id=2,
-                )
+                exam_user = ExamUser()
+                exam_user.user = teacher
+                exam_user.exam = exam
+                exam_user.group_id = 2
+                exam_user.save()
+
+            # copy template to new amc_project directory
+            # amc_project_template_path = str(settings.AMC_PROJECTS_ROOT)+"/templates/"+language+"/base"
+            # new_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+year.code+"/"+str(semester.code)+"/"+exam.code+"_"+date.strftime("%Y%m%d")
+            # shutil.copytree(amc_project_template_path,new_project_path)
+
+            # update exam-info.tex
+            # exam_info_path = new_project_path+"/exam-info.tex"
+            # with open(exam_info_path, 'r') as file:
+            #     file_contents = file.read()
+            #     updated_contents = file_contents.replace("<TEACHER>", teachers_text).replace("<PAGES>", "8").replace("<DURATION>", duration_text).replace("<DATE>", date_text).replace("<EXAM>", exam_text)
+            #
+            #
+            # with open(exam_info_path, 'w') as file:
+            #     file.write(updated_contents)
 
             return redirect("examInfo", exam_pk=exam.pk)
 
-        logger.info("INVALID")
-        logger.info(form.errors)
-        return render(
-            request,
-            "exam/create_exam_project.html",
-            {
-                "user_allowed": True,
-                "form": form,
-                "nav_url": "create_exam_project",
-            },
-        )
-
-    form = CreateExamProjectForm()
+    # if a GET (or any other method), we'll create a blank form
     return render(
         request,
         "exam/create_exam_project.html",
@@ -102,7 +131,8 @@ def create_exam_project(request):
             "user_allowed": True,
             "form": form,
             "nav_url": "create_exam_project",
-        },
+            "errors": form.errors_list,
+        }
     )
 
 

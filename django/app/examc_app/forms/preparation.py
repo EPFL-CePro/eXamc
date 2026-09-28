@@ -4,27 +4,9 @@ from decimal import Decimal
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory, BaseModelFormSet
-from django.utils.safestring import mark_safe
 
+from examc_app.forms.general import SwitchWidget
 from examc_app.models import PrepQuestionAnswer, QuestionType, PrepQuestion, PrepSection, Exam, PrepScoringFormula
-
-
-class SwitchWidget(forms.CheckboxInput):
-    def render(self, name, value, attrs=None, renderer=None):
-        attrs = {**(attrs or {}), 'class': 'custom-control-input'}
-        if 'id' not in attrs:
-            attrs['id'] = f'id_{name}'
-        checkbox_html = super().render(name, value, attrs)
-        label_html = (
-            f'<label class="custom-control-label" '
-            f'for="{attrs["id"]}"></label>'
-        )
-        return mark_safe(
-            f'<div class="custom-control custom-switch" style="width:150px;text-align:center;">'
-            f'{checkbox_html}'
-            f'{label_html}'
-            f'</div>'
-        )
 
 
 class ExamFirstPageForm(forms.ModelForm):

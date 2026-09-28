@@ -3,8 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 from django_summernote.widgets import SummernoteWidget
 
-from examc_app.models import Course, AcademicYear, Semester, Exam
-from examc_app.utils.global_functions import get_course_teachers_string
+from examc_app.models import Semester, Exam
 
 
 class LoginForm(forms.Form):
@@ -29,46 +28,82 @@ class SwitchWidget(forms.CheckboxInput):
         )
 
 class CreateExamProjectForm(forms.Form):
-    course = forms.ChoiceField(label='Course', choices=[], widget=forms.Select(
-        attrs={'class': "selectpicker form-control", 'size': 5, 'data-live-search': "true"}), required=True)
-    semester = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
-                                 choices=[], required=True)
-    year = forms.ChoiceField(label='Year', choices=[],
-                             widget=forms.Select(attrs={'class': "selectpicker form-control", 'size': 5}),
-                             required=True)
-    date = forms.DateField(label='Date', widget=forms.DateInput(format=('%d-%m-%Y'),
-                                                                attrs={'id': 'dateAndTime', 'type': 'date',
-                                                                       'class': 'form-control'}), required=True)
+    course = forms.ChoiceField(
+        label='Course',
+        choices=[],
+        widget=forms.Select(attrs={'class': "selectpicker form-control",'size':5, 'data-live-search':"true"}),
+        required=True
+    )
+
+    semester = forms.ChoiceField(
+        label='Semester',
+        choices=[],
+        widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
+        required=True
+    )
+
+    date = forms.DateField(
+        label='Date',
+        widget=forms.DateInput(format='%d-%m-%Y', attrs={'id': 'dateAndTime', 'type': 'date', 'class': 'form-control'}),
+        required=True
+    )
 
     # durationText = forms.CharField(label='DurationTxt', widget=forms.TextInput(attrs={'class':'form-control'}),required=True)
     # language = forms.ChoiceField(label='Language', widget=forms.RadioSelect(attrs={'class': "custom-radio-list"}),
     #                   choices=[('fr','FR'),('en','EN')],
     #                   required=True)
 
-    def __init__(self, *args, **kwargs):
-        super(CreateExamProjectForm, self).__init__(*args, **kwargs)
+    def __init__(self, *args, courses, teacher_names_by_course, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        COURSES_CHOICES = [(course.pk, course.code + " - " + course.name + " (" + get_course_teachers_string(
-            course.teachers) + ")") for course in Course.objects.all().order_by("code")]
-        SEMESTER_CHOICES = [(semester.pk, semester.code) for semester in Semester.objects.all()]
-        YEAR_CHOICES = [(year.pk, year.code) for year in AcademicYear.objects.all().order_by("-code")]
+        self.errors_list = []
 
-        # Load choices here so db calls are not made during migrations.
-        self.fields['course'].choices = COURSES_CHOICES
-        self.fields['semester'].choices = SEMESTER_CHOICES
-        self.fields['year'].choices = YEAR_CHOICES
+        self.courses_by_code = {course["coursCode"]: course for course in courses}
+        self.teachers_by_course = teacher_names_by_course
+
+        courses_choices = []
+
+        for course in courses:
+            code = course["coursCode"]
+            label = f'{code} - {course["coursNomFr"]}'
+
+            course_teachers = teacher_names_by_course.get(code, [])
+            if course_teachers:
+                label += f" ({', '.join(t['name'] for t in course_teachers)})"
+
+            courses_choices.append((code, label))
+
+        # populate the course field + error mgmt
+        self.fields["course"].choices = courses_choices
+
+        if len(courses_choices) == 0:
+            self.errors_list.append("No courses are available. Please create a course first.")
+
+
+        # populate the semester field + error mgmt
+        self.fields["semester"].choices = [
+            (semester.pk, semester.code)
+            for semester in Semester.objects.all()
+        ]
+
+        if len(self.fields["semester"].choices) == 0:
+            self.errors_list.append("No semesters are available. Please create a semester first.")
 
     def clean(self):
-        cd = self.cleaned_data
-        semester = Semester.objects.get(pk=cd.get("semester"))
-        year = AcademicYear.objects.get(pk=cd.get("year"))
-        course = Course.objects.get(pk=cd.get("course"))
-        exam = Exam.objects.filter(code=course.code, year=year, semester=semester).first()
-        if exam:
-            if exam.date == cd.get("date"):
-                raise ValidationError("Exam for this year, semester and date already exists !")
+        cleaned_data = super().clean()
 
-        return cd
+        course_code = cleaned_data.get("course")
+        date = cleaned_data.get("date")
+
+        if not course_code or not date:
+            return cleaned_data
+
+        if Exam.objects.filter(code=course_code, date=date).exists():
+            raise ValidationError(
+                "An exam for this course and date already exists."
+            )
+
+        return cleaned_data
 
 class SummernoteForm(forms.Form):
     summernote_txt = forms.CharField(

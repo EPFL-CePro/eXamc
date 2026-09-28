@@ -41,10 +41,16 @@ class ManageReviewersForm(forms.ModelForm):
         fields = ['user', 'pages_groups', 'review_blocked']
 
     def __init__(self, *args, **kwargs):
-        super(ManageReviewersForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+
         # filter many to many pagesgroup to get only for curr exam
-        self.pages_groups_choices = PagesGroup.objects.filter(exam=kwargs.pop('instance').exam)
-        self.fields['pages_groups'].queryset = self.pages_groups_choices
+        if self.instance.pk:
+            self.fields['pages_groups'].queryset = PagesGroup.objects.filter(
+                exam_id=self.instance.exam_id
+            )
+        else:
+            self.fields['pages_groups'].queryset = PagesGroup.objects.none()
+
         self.fields['user'].widget.attrs['class'] = 'form-control'
         self.fields['user'].widget.attrs['style'] = 'width:300px'
         self.fields['user'].disabled = True
@@ -106,3 +112,9 @@ class DeleteUnrecognizedReviewScansForm(forms.Form):
         queryset=UnrecognizedReviewScan.objects.none(),
         widget=forms.CheckboxSelectMultiple,
     )
+
+    def __init__(self, *args, exam, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["scan_ids"].queryset = UnrecognizedReviewScan.objects.filter(
+            exam=exam, resolved=False,
+        ).order_by("pk")

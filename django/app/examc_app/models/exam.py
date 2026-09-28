@@ -18,6 +18,9 @@ class Semester(models.Model):
     code = models.IntegerField(blank=False)
     name = models.CharField(max_length=100,blank=False)
 
+    def __str__(self):
+        return str(self.code)
+
 class Exam(models.Model):
     """
     Stores exam data, related to :model:`auth.User` and :model:`examc_app.Exam`
@@ -173,7 +176,6 @@ class Question(models.Model):
     """ Stores question data for an exam, related to :model:`examc_app.Exam` """
     code = models.CharField(max_length=50)
     common = models.BooleanField(default=0)
-    # section = models.ForeignKey(ExamSection, on_delete=models.CASCADE,related_name='questions',blank=True,null=True)
     question_type = models.ForeignKey(QuestionType, on_delete=models.CASCADE,related_name='questions',blank=False,null=True)
     max_points = models.DecimalField(max_digits=10, decimal_places=5, default=0.0)
     nb_answers = models.IntegerField(default=2)
