@@ -9,7 +9,9 @@
 
     "rootDir": "./",
     "paths": {
-      "@examc/*": ["./src/*"]
+      "@examc/*": ["./src/*"],
+      // @toast-ui/editor ships types but doesn't expose them in its package.json "exports"
+      "@toast-ui/editor": ["./node_modules/@toast-ui/editor/types/index.d.ts"]
     },
 
     /* Bundler mode */

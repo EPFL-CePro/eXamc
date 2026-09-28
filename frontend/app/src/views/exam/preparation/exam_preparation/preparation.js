@@ -1,4 +1,4 @@
-/* static/js/preparation.js */
+import { initToastUiEditor } from '@examc/helpers/toastui';
 
 (function () {
     "use strict";
@@ -649,10 +649,6 @@
     }
 
     function initMarkdownEditors(root = document) {
-        if (typeof toastui === "undefined" || !toastui.Editor) {
-            return;
-        }
-
         collectMarkdownTextareas(root).forEach((textarea) => {
             if (markdownEditors.has(textarea)) {
                 return;
@@ -664,13 +660,9 @@
             textarea.parentNode.insertBefore(container, textarea.nextSibling);
             textarea.style.display = "none";
 
-            const editor = new toastui.Editor({
-                el: container,
-                initialEditType: "wysiwyg",
-                previewStyle: "vertical",
-                height: "300px",
-                initialValue: textarea.value || "",
-                usageStatistics: false
+            const editor = initToastUiEditor({
+                target: container,
+                editorOptions: { initialValue: textarea.value || "" },
             });
 
             const instance = {
