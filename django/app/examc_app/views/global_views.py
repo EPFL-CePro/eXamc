@@ -4,8 +4,7 @@ from typing import Any
 
 import pytz
 from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.signing import BadSignature, SignatureExpired
@@ -16,7 +15,6 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
-from examc_app.forms import LoginForm
 from examc_app.middleware.impersonation import (
     IMPERSONATED_SESSION_KEY,
     IMPERSONATOR_SESSION_KEY,
@@ -151,36 +149,6 @@ def impersonate_stop(request):
         )
 
     return redirect(_get_safe_next_url(request))
-
-
-### global views ###
-# def menu_access_required(view_func):
-#     def wrapped_view(request, *args, **kwargs):
-#         if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
-#             return HttpResponseForbidden("You don't have permission to access this page.")
-#         return view_func(request, *args, **kwargs)
-#     return wrapped_view
-
-def log_in(request):
-    ok = 2
-    if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            user = authenticate(
-                request,
-                username=form.cleaned_data['username'],
-                password=form.cleaned_data['password']
-            )
-            if user is not None:
-                login(request, user)
-                return redirect('home')
-            else:
-                messages.error(request, "Invalid username or password")
-    else:
-        form = LoginForm()
-
-    return render(request, 'login_form.html', {'form': form})
-
 
 # @login_required
 # def logout(request):
