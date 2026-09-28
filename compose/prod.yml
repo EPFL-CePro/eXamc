@@ -1,53 +1,78 @@
-# examc/compose/prod.yml
+name: examc-prod
+
 services:
-  web:
-    user: "1000:2770"
-    restart: unless-stopped
-    environment:
-      WEB_CONCURRENCY: "6"
-      GUNICORN_THREADS: "4"
-      GUNICORN_WORKER_CLASS: "gthread"
-    volumes:
-      - static_volume:/static       # collectstatic writes hashed assets here
-      - media_volume:/media:ro
-      - /srv/examc/private_media:/private_media:rw
-    # healthcheck
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -H 'Host: examc.epfl.ch' http://127.0.0.1:8000/healthz/ || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
+  mysql:
+    extends:
+      service: mysql
+      file: base.yml
+    profiles: [ "mysql-dockerized" ] # used to run MySQL outside Docker
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306" # used for local client
+
+  redis:
+    extends:
+      service: redis
+      file: base.yml
+
   nginx:
-    restart: unless-stopped
+    extends:
+      service: nginx
+      file: base.yml
     volumes:
-      - /srv/examc/certs/:/etc/nginx/certs:ro  # certs
-      - ../deploy/nginx/nginx.ssl.test.conf:/etc/nginx/nginx.conf:ro
-      - static_volume:/static:ro    # nginx static
-      - media_volume:/media:ro
-      - /srv/examc/private_media:/private_media:ro
-      - client_temp:/var/cache/nginx/client_temp
+      - ./deploy/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./data/private_media:/private_media:ro
+      - client_temp:/var/cache/nginx/client_temp # see ./deploy/nginx/nginx.prod.conf:8 for usage
     ports:
       - "127.0.0.1:8080:80"
       #- "8443:443"
 
-  mysql:
-    profiles: ["mysql-dockerized"]
+  fe-artifacts:
+    image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - static_volume:/static
+    restart: "no"
 
-  redis:
-    restart: unless-stopped
+  django:
+    extends:
+      service: django
+      file: base.yml
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./data/private_media:/private_media
+      - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every django service
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
+    depends_on:
+      fe-artifacts:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
   celery:
-    restart: unless-stopped
-    environment:
-      CELERY_LOGLEVEL: "INFO"
-      CELERY_CONCURRENCY: "4"
+    extends:
+      service: celery
+      file: base.yml
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
-      - /srv/examc/private_media:/private_media:rw
+      - ./data/private_media:/private_media
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
 
   celery_beat:
-    restart: unless-stopped
-    environment:
-      CELERY_LOGLEVEL: "INFO"
+    extends:
+      service: celery_beat
+      file: base.yml
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
-      - /srv/examc/private_media:/private_media:rw
+      - ./data/private_media:/private_media
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
+
+volumes:
+  mysql_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  client_temp:

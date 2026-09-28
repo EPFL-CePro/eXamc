@@ -1,5 +1,6 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-NCL%20v1.0-red)
+![](https://img.shields.io/python/required-version-toml?tomlFilePath=githubdjango/app/pyproject.toml)
 ![Status](https://img.shields.io/badge/status-production--ready-success)
 ![GitHub Issues](https://img.shields.io/github/issues/EPFL-CePro/eXamc)
 ![GitHub Stars](https://img.shields.io/github/stars/EPFL-CePro/eXamc)
@@ -30,7 +31,8 @@ This project now uses **Ansible** to manage all environment configuration and de
 
 
 Dockerized environment for **eXamc** featuring:
-- **Django** (web), **Gunicorn** (prod) / **runserver** (dev)
+- **Django**, **Gunicorn** (prod) / **runserver** (dev)
+- **Vite** frontend (TypeScript/Sass, pnpm)
 - **MySQL 8.4**
 - **Redis 7** (Celery broker/results)
 - **Celery** (worker) + **Celery Beat**
@@ -44,18 +46,7 @@ Dockerized environment for **eXamc** featuring:
 
 ## Table of Contents
 
-- [Prerequisites](#prerequisites)  
-- [Layout](#layout)  
-- [Environment files](#environment-files)  
-- [Entra ID (OIDC) parameters](#entra-id-oidc-parameters)  
-- [Run in DEV](#run-in-dev)  
-- [Makefile commands](#makefile-commands)  
-- [DB seed / import / export (optional)](#db-seed--import--export-optional)  
-- [MySQL Workbench access](#mysql-workbench-access)  
-- [Private media](#private-media)  
-- [Migrations & updates](#migrations--updates)  
-- [TEST / PROD overview](#test--prod-overview)  
-- [Troubleshooting](#troubleshooting)
+[TOC]
 
 ---
 
@@ -72,24 +63,46 @@ Dockerized environment for **eXamc** featuring:
 
 ```
 .
-├─ compose/
-│  ├─ base.yml
-│  ├─ dev.yml
-│  ├─ test.yml
-│  └─ prod.yml
-├─ deploy/
+├─ ansible/                         # Deployment configuration and automation
+├─ app/                             # Django application and Python project
+│  ├─ docs/                         # Sphinx documentation
+│  ├─ examc/                        # Django project: settings/urls/wsgi/asgi/celery
+│  ├─ examc_app/                    # Main Django application
+│  ├─ templates/                    # Django templates
 │  ├─ entrypoint.sh
 │  ├─ gunicorn.conf.py
-│  └─ nginx/
+│  ├─ pyproject.toml                # Main project configuration
+│  └─ uv.lock
+├─ compose/                         # Docker Compose configurations
+│  ├─ base.yml                      # Shared service definitions (not used directly)
+│  ├─ dev.yml                       # Development environment
+│  ├─ test.yml                      # Test/CI environment
+│  └─ prod.yml                      # Production environment (also used for staging server)
+├─ data/                            # Local persistent data
+ │  └─ private_media/                # AMC-related files
+├─ deploy/                          # Deployment-related configuration
+│  ├─ db/
+│  │  └─ init-test-user.sql
+│  └─ nginx/                        # Nginx configurations
 │     ├─ nginx.dev.conf
-│     └─ nginx.ssl.conf            # used in test/prod
-├─ examc/                          # settings/urls/wsgi/asgi
-├─ examc_app/                      # Django app(s)
+│     ├─ nginx.prod.conf
+│     └─ nginx.test.conf
+├─ docker/                          # Docker-specific scripts and patches
+├─ scripts/                         # Development and security scripts
+│  ├─ check_forbidden_calls.py
+│  ├─ check_require_post.py
+│  └─ security_check.sh
+├─ Security/                        # Security-related documentation
+│  └─ local_security_checks.md
 ├─ Dockerfile
 ├─ Makefile
-├─ requirements.txt
-├─ .env.example                    # sample env (no secrets)
-└─ README.md
+├─ CHANGELOG.md
+├─ CODE_OF_CONDUCT.md
+├─ LICENSE
+├─ README.md
+├─ README-deploy.md
+├─ SECURITY.md
+└─ VERSION
 ```
 
 
@@ -204,18 +217,60 @@ make ps                 # all services "healthy"
 xdg-open http://127.0.0.1:8000  # (use open/start on macOS/Windows)
 ```
 
+## Updating dependencies
+
+This project uses [`uv`](https://docs.astral.sh/uv/) to manage dependencies. `uv` is installed in the `tooling` target of the Dockerfile (used by test and dev environments), and can be called like this :
+
+```bash
+docker compose -f compose/test.yml run django uv add dependency_name
+docker compose -f compose/dev.yml run django uv update
+````
+
+This updates both `app/pyproject.toml` and `app/uv.lock`.
+
+Dependencies are split into groups to keep the production image lean:
+
+```toml
+[dependency-groups]
+test = [
+    # dependencies for tests
+]
+
+dev = [
+    # dependencies for development
+]
+
+docs = [
+    # dependencies for building the documentation
+]
+```
+
+The Dockerfile uses these groups to build separate environments:
+
+* **Production**: installs only production dependencies.
+* **Docs**: installs the `docs` group to build the Sphinx documentation. The generated documentation is then included in the production image.
+* **Tooling**: installs both the `dev` and `test` groups for development and testing.
+
+The tooling image can be built like this if needed:
+
+```bash
+docker compose -f compose/test.yml build --target tooling django
+```
+
 ---
 
 ## Makefile commands
 
 ```bash
-make up             # build + start
-make down           # stop
+make up             # build & starts everything
+make build          # (re)builds & starts services
+make tests          # starts tests (using compose/dev.yaml) config
+make down           # stop everything
 make reset          # stop + remove volumes (DB data!)
 make ps             # status
 make logs           # tail logs for all services
 
-make web-shell      # shell inside web container
+make django-shell   # shell inside django container
 make makemigrations # django makemigrations
 make migrate        # django migrate
 make collectstatic  # django collectstatic
@@ -228,7 +283,7 @@ make dbshell        # mysql client (root) inside container
 make dbdump         # export DB -> deploy/db/dump-YYYYmmdd_HHMMSS.sql.gz
 make dbimport FILE=deploy/db/foo.sql.gz  # import .sql(.gz)
 
-make rebuild-web    # rebuild web service only
+make rebuild-django # rebuild django service only
 make prune          # prune dangling images
 ```
 
@@ -263,7 +318,7 @@ Dev connection:
 
 ## Private media
 
-- Mounted under **`/private_media`** (web/nginx).  
+- Mounted under **`/private_media`** (django/nginx).  
 - Django returns `X-Accel-Redirect` to `/_protected/...`.  
 - Nginx (dev):
   ```nginx
@@ -285,8 +340,8 @@ Dev connection:
 - **DEV**: entrypoint auto-runs `migrate` (and `collectstatic` if `COLLECTSTATIC=1`).
 - **TEST/PROD**: **no auto-migrate** at boot. Apply migrations via CI job or manual step:
   ```bash
-  docker compose ... exec web python manage.py migrate --noinput
-  docker compose ... exec web python manage.py collectstatic --noinput
+  docker compose ... exec django python manage.py migrate --noinput
+  docker compose ... exec django python manage.py collectstatic --noinput
   # reload Gunicorn/Nginx
   ```
 
@@ -295,10 +350,16 @@ Dev connection:
 ## TEST / PROD overview
 
 - Overrides: `compose/test.yml`, `compose/prod.yml`
-- **HTTPS** via `nginx.ssl.conf` + certs (ACME/Let’s Encrypt or internal)
+- **HTTPS** is managed on the host machine
 - Security: `SECURE_SSL_REDIRECT=1`, cookie `*_SECURE=1`, **HSTS** enabled
 - **Gunicorn** in front (never `runserver`)
 - Controlled migrations, centralized logging, backups, monitoring
+
+Tests can be run with :
+
+```bash
+docker compose -f compose/test.yml run --rm --remove-orphans django
+```
 
 ---
 

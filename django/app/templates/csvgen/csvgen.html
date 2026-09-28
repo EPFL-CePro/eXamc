@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load django_vite %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/csvgen/csvgen/index.ts' %}
+{% endblock %}
+
+{% block content %}
+    <div id="csv_gen_div">
+        <div class="jumbotron text-center">
+            <h1>CSV GENERATOR</h1>
+            <form id="myform" action="{% url 'import_students_excel' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+                {% csrf_token %}
+                <div class="row g-3 align-items-center mb-3">
+                     <div class="col-md-8">
+                        <div class="input-group">
+                            <input type="file" accept=".xlsx, .xls" name="students_excel_file" id="excel_file"
+                                   class="form-control" aria-label="Upload Excel file">
+                            <label class="custom-file-label" for="excel_file">Choose file</label>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-dark btn-sm d-flex align-items-center" type="submit">
+                          <i class="fa fa-upload"></i> Upload
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+
+            <br>
+
+            <label for="choice">Choose the type of file:</label>
+            <select class="btn btn-dark btn-sm" name="choice" id="choice"
+                    onChange="window.document.location.href=this.options[this.selectedIndex].value;">
+                {% if csv_type_AMC == "a" %}
+                    <option value="{% url 'change_csv_type' 'a' %}" selected>AMC</option>
+                    <option value="{% url 'change_csv_type' 'b' %}">ANS</option>
+                {% else %}
+                    <option value="{% url 'change_csv_type' 'a' %}">AMC</option>
+                    <option value="{% url 'change_csv_type' 'b' %}" selected>ANS</option>
+                {% endif %}
+            </select>
+
+            <br>
+
+            {% for message in messages %}
+                <p class="{{ message.tags }}">
+                    {% if 'safe' in message.tags %}
+                        {{ message|safe }}
+                    {% else %}
+                        {{ message }}
+                    {% endif %}
+                </p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="margin-left: 50px;">
+        <p style="color:#c61548;">Before loading the document, you need to :</p>
+        <ol>
+            <li>Have an Excel document</li>
+            <li>Choose between the AMC or ANS type</li>
+            <li>Have header names that correspond to the type of document chosen:
+                <ul>
+                    <li>AMC: ID, Name, Sciper, Email, Seat, Room</li>
+                    <li>ANS: Class name, Email, Sciper, Name</li>
+                </ul>
+            </li>
+        </ol>
+
+        <a href="{% url 'download_csvgen_templates' %}" class="btn btn-dark btn-sm" download>
+            <i class="fa fa-download"></i> Download example Excel files
+        </a>
+    </div>
+
+    {% if students_list %}
+        <div>
+            <table id="datatable" class="table table-sm table-striped" style="margin-left:50px; text-align: left; ">
+                <thead class="thead-dark" style="text-align: left">
+                <tr>
+                    {% if csv_type_AMC == 'a' %}
+                        <th>ID</th>
+                        <th>SCIPER</th>
+                        <th>NAME</th>
+                        <th>EMAIL</th>
+                        <th>SEAT</th>
+                        <th>ROOM</th>
+
+                    {% else %}
+                        <th>CLASS_NAME</th>
+                        <th>EMAIL</th>
+                        <th>SCIPER</th>
+                        <th>LAST_NAME</th>
+                        <th>FIRST_NAME</th>
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody>
+                <!--Displaying the converted table-->
+                {% for student in students_list %}
+                    <tr>
+                        {% if csv_type_AMC == 'a' %}
+                            <td>{{ student.0 }}</td>
+                            <td>{{ student.1 }}</td>
+                            <td>{{ student.2 }}</td>
+                            <td>{{ student.5 }}</td>
+                            <td>{{ student.6 }}</td>
+                            <td>{{ student.8 }}</td>
+
+                        {% else %}
+                            <td>{{ student.7 }}</td>
+                            <td>{{ student.5 }}</td>
+                            <td>{{ student.1 }}</td>
+                            <td>{{ student.3 }}</td>
+                            <td>{{ student.4 }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="loading-modal">
+        <div class="modal-dialog modal-sm" role="document" style="width:350px;">
+            <div class="d-flex justify-content-center align-items-center p-4">
+                <div class="spinner-border text-dark" role="status" aria-label="Loading"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
