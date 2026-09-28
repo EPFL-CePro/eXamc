@@ -2,17 +2,16 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
-from django.utils.timezone import localtime
 from rest_framework import serializers
 
 
 def render_impersonate_button(user: User, csrf_token: str) -> SafeString:
     return format_html(
         '<form method="post" action="{}" class="d-inline">'
-        '<input type="hidden" name="csrfmiddlewaretoken" value="{}">'
-        '<button type="submit" class="btn btn-dark btn-sm">'
-        '<i class="fa-solid fa-user-secret" style="margin-right:5px;"></i>Impersonate'
-        '</button>'
+            '<input type="hidden" name="csrfmiddlewaretoken" value="{}">'
+            '<button type="submit" class="btn btn-dark btn-sm">'
+                '<i class="fa-solid fa-user-secret" style="margin-right:5px;"></i>Impersonate'
+            '</button>'
         '</form>',
         reverse("impersonate_start", kwargs={"user_pk": user.pk}),
         csrf_token,

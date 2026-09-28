@@ -176,9 +176,9 @@ def upload_amc_project(request, exam_pk):
 
     return render(request, 'amc/upload_amc_project.html', {'exam': exam, 'exam_selected': exam_selected,'nav_url': "upload_amc_project"})
 
-#@login_required
+
 @exam_permission_required(['manage'])
-def amc_view(request, exam_pk,curr_tab=None, task_id=None):
+def amc_view(request, exam_pk: int, curr_tab: str | None = None, task_id: str | None = None):
     exam = Exam.objects.get(pk=exam_pk)
 
     amc_data_path = get_amc_project_path(exam, False)
