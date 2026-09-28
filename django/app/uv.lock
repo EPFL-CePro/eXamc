@@ -550,17 +550,6 @@ wheels = [
 ]
 
 [[package]]
-name = "django-sslserver"
-version = "0.22"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/97/e4011f3944f83a7d2aaaf893c3689ad70e8d2ae46fb6e14fd0e3b0c6ce0b/django_sslserver-0.22-py3-none-any.whl", hash = "sha256:c598a363d2ccdc2421c08ddb3d8b0973f80e8e47a3a5b74e4a2896f21c2947c5", size = 10295, upload-time = "2019-12-10T02:30:03.76Z" },
-]
-
-[[package]]
 name = "django-summernote"
 version = "0.8.20.0"
 source = { registry = "https://pypi.org/simple" }
@@ -632,7 +621,7 @@ wheels = [
 
 [[package]]
 name = "examc"
-version = "1.2.5"
+version = "1.2.7"
 source = { editable = "." }
 dependencies = [
     { name = "asgiref" },
@@ -649,7 +638,6 @@ dependencies = [
     { name = "django-import-export" },
     { name = "django-maintenance-mode" },
     { name = "django-simple-history" },
-    { name = "django-sslserver" },
     { name = "django-summernote" },
     { name = "django-vite" },
     { name = "djangorestframework" },
@@ -713,7 +701,6 @@ requires-dist = [
     { name = "django-import-export", specifier = "==4.3.9" },
     { name = "django-maintenance-mode", specifier = "==0.22.0" },
     { name = "django-simple-history", specifier = "==3.10.1" },
-    { name = "django-sslserver", specifier = "==0.22" },
     { name = "django-summernote", specifier = "==0.8.20.0" },
     { name = "django-vite", specifier = ">=3.1.0" },
     { name = "djangorestframework", specifier = ">=3.18.1" },
