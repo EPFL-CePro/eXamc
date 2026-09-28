@@ -27,13 +27,13 @@ from examc_app.admin import ExamAdmin, CourseAdmin
 
 def healthz(_request):  # simple 200
     return HttpResponse("ok", content_type="text/plain")
+
 urlpatterns = ([
     path('admin/doc/', include('django.contrib.admindocs.urls')),
     path('admin/', admin.site.urls),
     path('django-summernote/', include('django_summernote.urls')),
     path('', include('examc_app.urls')),
     path('', views.home, name='home'),
-    path('login_form/', views.log_in, name='login_form'),
     path('home',views.home, name='home'),
     path('admin/exam/import_exams_data/', ExamAdmin.import_exams_csv_data),
     path('admin/course/import_courses_data/', CourseAdmin.import_courses_json_data),

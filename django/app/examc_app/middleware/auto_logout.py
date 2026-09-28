@@ -5,8 +5,6 @@ from django.contrib.auth import logout
 from django.utils import timezone
 
 from examc_app.models import ReviewLock
-from examc_app.views import force_oidc_logout
-
 
 class AutoLogoutMiddleware:
     def __init__(self, get_response):
