@@ -1,0 +1,60 @@
+name: examc-test
+
+services:
+  mysql:
+    extends:
+      service: mysql
+      file: base.yml
+    volumes:
+      # This lets the test user create a DB for testing
+      - ./deploy/db/init-test-user.sql:/docker-entrypoint-initdb.d/test-user.sql:ro
+
+  redis:
+    extends:
+      service: redis
+      file: base.yml
+
+  nginx:
+    extends:
+      service: nginx
+      file: base.yml
+    volumes:
+      - ./deploy/nginx/nginx.test.conf:/etc/nginx/nginx.conf:ro
+      # TODO: provide an example private_media dir to integrate in CI/CD
+      # - ./data/private_media:/private_media:ro
+
+  fe-artifacts:
+    image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - static_volume:/static
+    restart: "no"
+
+  django:
+    extends:
+      service: django
+      file: base.yml
+    image: "${TEST_IMAGE:-localhost/examc-django-test}:${IMAGE_TAG_DJANGO:-latest}"
+    command: ["pytest"]
+    environment:
+      TESTING_MODE_ENABLED: "1"
+      DJANGO_SETTINGS_MODULE: "examc.settings"
+    depends_on:
+      fe-artifacts:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    volumes:
+      # TODO: decide whether media_volume should be :ro here or across every django service consistently
+      - media_volume:/media:ro
+      - ../django/app:/app
+    restart: no
+
+volumes:
+  mysql_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  client_temp:

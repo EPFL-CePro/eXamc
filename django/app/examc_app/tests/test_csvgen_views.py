@@ -2,12 +2,18 @@ from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
 
-from django.test import SimpleTestCase
+from django.test import TestCase
 from django.urls import reverse
 from openpyxl import load_workbook
 
+from examc_app.tests.helpers.models import create_mock_user
 
-class CsvgenViewsTest(SimpleTestCase):
+
+class CsvgenViewsTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = create_mock_user()
+
     def test_csvgen_template_uses_generated_template_download(self):
         template_path = Path(__file__).resolve().parents[2] / "templates" / "csvgen" / "csvgen.html"
         template_source = template_path.read_text()
@@ -17,6 +23,8 @@ class CsvgenViewsTest(SimpleTestCase):
         self.assertNotIn("images_csvgen/30.gif", template_source)
 
     def test_download_csvgen_templates_returns_expected_excel_files(self):
+        self.client.force_login(self.user)
+
         response = self.client.get(reverse("download_csvgen_templates"))
 
         self.assertEqual(response.status_code, 200)
