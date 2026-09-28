@@ -76,13 +76,14 @@
         </form>
 
         {% if annotated_papers_available %}
-            <div class="col text-end">
+            <div class="form-group">
                 <a href="{% url 'download_annotated_pdf' exam_selected.pk %}" class="btn btn-dark btn-sm"
                    role="button" target="_blank">
-                    <i class="fas fa-file-pdf fa-lg me-1"></i>Download annotated papers
+                    <i class="fas fa-file-pdf fa-lg me-1"></i> Download annotated papers
                 </a>
+
                 <button type="button" class="btn btn-dark btn-sm" id="open-send-dialog-btn">
-                    <i class="fas fa-envelope fa-lg me-1"></i>Send annotated papers
+                    <i class="fas fa-envelope fa-lg me-1"></i> Send annotated papers
                 </button>
             </div>
         {% endif %}
@@ -132,10 +133,10 @@
                     <h6 class="mb-0"><label for="email-subject" class="form-label">Subject</label></h6>
                     <input type="text" class="form-control form-control-sm" id="email-subject" name="email-subject">
                     <hr/>
-
-                    <h6 class="mb-0"><label for="email-body" class="form-label">Body</label></h6>
-                    <div id="email-body" name="email-body" data-rich-text data-rich-text-math="false"></div>
                 </form>
+
+                <h6 class="mb-0"><label for="email-body" class="form-label">Body</label></h6>
+                <div id="email-body" name="email-body"></div>
             </div>
 
             <div class="modal-footer">
