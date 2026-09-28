@@ -116,7 +116,7 @@ jobs:
           TEST_IMAGE: localhost/examc-${{ matrix.name }}-test
           IMAGE_TAG: latest
         run: |
-          docker compose -f compose/test.yml --env-file .env.test run --rm django
+          docker compose -f compose/test-image.yml --env-file .env.test run --rm django
 
       # Push only after tests pass (or immediately, for entries with no tests).
       - name: Push staging image
@@ -139,4 +139,4 @@ jobs:
 
       - name: Docker cleanup
         if: always() && matrix.run_tests
-        run: docker compose -f compose/test.yml down -v --remove-orphans || true
+        run: docker compose -f compose/test-image.yml down -v --remove-orphans || true
