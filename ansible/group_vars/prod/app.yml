@@ -1,5 +1,5 @@
 repo_url: "https://github.com/EPFL-CePro/eXamc.git"
-repo_version: "staging" # TODO change to main when ready
+repo_version: "main"
 
 env_name: "prod"
 app_dir: "/opt/examc"

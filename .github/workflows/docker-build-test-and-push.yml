@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - staging
-      - a-zurcher # TODO: replace all "a-zurcher" branch mentions with "main" once merged
+      - main
 
 env:
   REGISTRY: ghcr.io
@@ -42,10 +42,10 @@ jobs:
           echo "IMAGE_NAME=${REGISTRY}/${GITHUB_REPOSITORY,,}-${{ matrix.name }}" >> "$GITHUB_ENV"
 
       - name: Set image tag
-        # Release branch (a-zurcher/main): use the version in app/pyproject.toml to tag the image
+        # Release branch (main): use the version in app/pyproject.toml to tag the image
         # Staging branch (staging): use the commit SHA to tag the image
         run: |
-          if [ "${GITHUB_REF_NAME}" = "a-zurcher" ]; then
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
             VERSION=$(python -c "import tomllib; print(tomllib.load(open('django/app/pyproject.toml', 'rb'))['project']['version'])")
             echo "IMAGE_TAG=$VERSION" >> "$GITHUB_ENV"
           elif [ "${GITHUB_REF_NAME}" = "staging" ]; then
@@ -64,7 +64,7 @@ jobs:
 
       - name: Check if stable image already exists
         # Skipped on staging branch, as the git commit SHA is used to tag the image
-        if: github.ref_name == 'a-zurcher'
+        if: github.ref_name == 'main'
         id: check
         run: |
           IMAGE="${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
@@ -129,7 +129,7 @@ jobs:
           docker push "${{ env.IMAGE_NAME }}:staging"
 
       - name: Push stable image
-        if: steps.check.outputs.skip != 'true' && github.ref_name == 'a-zurcher' && success()
+        if: steps.check.outputs.skip != 'true' && github.ref_name == 'main' && success()
         run: |
           docker push "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           docker tag \

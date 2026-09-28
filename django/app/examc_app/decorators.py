@@ -28,20 +28,18 @@ def exam_permission_required(
         def _wrapped(request, *args, **kwargs):
             exam = get_object_or_404(Exam, pk=kwargs.get(exam_kw))
 
-            if request.user.is_superuser:
-                return view_func(request, *args, **kwargs)
+            if request.user.is_anonymous: return TemplateResponse(request, "unauthorized.html", {"message": "No access to this exam."}, status=403)
+            if request.user.is_superuser: return view_func(request, *args, **kwargs)
 
             # fetch the user's groups *for this exam*
             group_names = get_exam_group_names(request.user, exam)
 
-            if not group_names:
-                return TemplateResponse(request, "no_access.html", {"message": "No access to this exam."}, status=403)
+            if not group_names: return TemplateResponse(request, "unauthorized.html", {"message": "No access to this exam."}, status=403)
 
             # check the permission on one of those groups
             allowed = exam_group_names_allow(group_names, perm_codenames)
 
-            if not allowed:
-                return TemplateResponse(request, "no_access.html", {"message": f"No permission for {perm_codenames}."}, status=403)
+            if not allowed: return TemplateResponse(request, "unauthorized.html", {"message": f"No permission for {perm_codenames}."}, status=403)
 
             return view_func(request, *args, **kwargs)
         return _wrapped

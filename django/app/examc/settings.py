@@ -121,6 +121,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'examc_app.middleware.login_required.LoginRequiredMiddleware',
     'examc_app.middleware.impersonation.ImpersonationMiddleware',
     'maintenance_mode.middleware.MaintenanceModeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -298,22 +299,12 @@ EXAM_PERMISSION_GROUP_NAMES = {
 COMMON_EXAM_GROUP_NAMES = env_list("COMMON_EXAM_GROUP_NAMES", "Teacher,Results,Statistics")
 EXAM_REVIEWER_GROUP_NAMES = env_list("EXAM_REVIEWER_GROUP_NAMES", "Reviewer")
 
-# Only use this setting if you want to store the access token in the session
-# To use access token to call API
-#OIDC_STORE_ACCESS_TOKEN = True
-
+# Used by login_required.LoginRequiredMiddleware
 LOGIN_REQUIRED_IGNORE_PATHS = [
-    r'/login_form/',
-    r'/$',
-    r'/$',
-    r'^/oidc/.*$',  # All OIDC-related URLs
-    r'^/admin/.*$',
-    r'^/admin$',
-    r'^/static/.*$',
-    r'^/media/.*$',
-
+    r'^/oidc/',            # all OIDC URLs
+    r'^/static/',
+    r'^/healthz/$',
 ]
-LOGIN_REQUIRED_REDIRECT_FIELD_NAME = 'next_url'
 
 # Email configuration
 EMAIL_BACKEND = 'examc_app.email_backend.py'
@@ -328,7 +319,7 @@ ROOMS_PLANS_ROOT = PRIVATE_MEDIA_ROOT / 'rooms_plans'
 ROOMS_PLANS_CSV_DIR = ROOMS_PLANS_ROOT / 'csv'
 ROOMS_PLANS_JPG_DIR = ROOMS_PLANS_ROOT / 'map'
 
-# Rooms plans paths - make sure the directories exists
+# Rooms plans paths - make sure the directories exist
 for rooms_dir in [ROOMS_PLANS_JPG_DIR, ROOMS_PLANS_CSV_DIR]:
     Path(rooms_dir).mkdir(parents=True, exist_ok=True)
 
