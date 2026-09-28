@@ -8,6 +8,7 @@ export function lastConnectedUsersTable(options: {
 
     new DataTable(tableElement, {
         scrollY: '18.1vh',
+        order: [[2, "desc"]],
         layout: {
             topStart: function() {
                 let title = document.createElement('h4');
@@ -19,7 +20,7 @@ export function lastConnectedUsersTable(options: {
                 "pageLength",
                 getLayoutElementsSeparator(),
                 "info"
-            ]
+            ],
         }
     });
 }
