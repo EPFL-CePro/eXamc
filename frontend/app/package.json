@@ -14,8 +14,8 @@
     "@types/bootstrap": "^5.2.11",
     "@types/jquery": "^4.0.1",
     "@types/katex": "^0.16.8",
-    "@types/node": "^26.6.1",
-    "eslint": "^10.10.0",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
     "globals": "^17.12.0",
     "sass": "^1.104.1",
     "typescript": "^7.0.2",
@@ -25,6 +25,8 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.1",
     "@markerjs/markerjs3": "^3.10.0",
+    "@milkdown/crepe": "^7.22.1",
+    "@milkdown/kit": "^7.22.1",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
     "datatables.net-buttons-dt": "^4.0.3",
@@ -34,7 +36,6 @@
     "jquery-comments": "^1.0.1",
     "jspdf": "^4.2.1",
     "latex.js": "^0.12.6",
-    "tinymce": "^6.8.6",
     "vite-plugin-static-copy": "^4.1.1"
   }
 }

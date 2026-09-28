@@ -10,8 +10,7 @@ import 'datatables.net-select-dt/css/select.dataTables.min.css';
 
 import { getModal } from '@examc/helpers/modals.ts';
 import { setAjaxInfoModalLocked } from '@examc/helpers/ajax-info-modal.ts';
-import { initTinyMce } from "@examc/helpers/tinymce.ts";
-import type {Editor} from "tinymce";
+import { initEditor, getEditorContent } from "@examc/editor/index.ts";
 
 
 
@@ -131,7 +130,7 @@ const sendForm = byId<HTMLFormElement>('form-send-annotated-papers');
 const sendAlert = byId('send_annotated_alert');
 const subjectInput = byId<HTMLInputElement>('email-subject');
 const emailBodyEl = byId<HTMLTextAreaElement>('email-body');
-let emailBodyEditor: Editor | null = null;
+let emailBodyEditor;
 
 const emailColumnSelect = byId<HTMLSelectElement>('email-column');
 const sendTableElement = byId<HTMLTableElement>('send-annotated-papers-table');
@@ -247,7 +246,7 @@ function textToParagraphHtml(text: string): string {
 }
 
 sendDialogElement.addEventListener('shown.bs.modal', async () => {
-    emailBodyEditor = await initTinyMce({ target: emailBodyEl });
+    emailBodyEditor = await initEditor({ target: emailBodyEl });
 
     if (pendingEmail) {
         subjectInput.value = pendingEmail.subject;
@@ -376,17 +375,20 @@ async function openSendDialog(): Promise<void> {
 
 async function sendAnnotatedPapers(): Promise<void> {
     const subject = subjectInput.value.trim();
-    const bodyIsEmpty = emailBodyEditor?.getContent({ format: 'text' }).trim() === '';
+    const editorContent = getEditorContent({ editor: emailBodyEditor });
+    const bodyIsEmpty = editorContent.trim() === '';
 
     if (bodyIsEmpty || subject === '') {
         sendAlert.style.visibility = 'visible';
         return;
     }
+
     sendAlert.style.visibility = 'hidden';
 
     // Includes the csrf token, email-column, email-subject and the synced email-body textarea.
     const formData = new FormData(sendForm);
     formData.set('selected-students', JSON.stringify(selectedStudents()));
+    formData.set('email-body', editorContent);
 
     showInfo(
         "Sending annotated papers by email could take some time. A dialog will display when it's finished, "
