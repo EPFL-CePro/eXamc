@@ -12,8 +12,14 @@ import { Modal } from "bootstrap";
  * @throws {Error} If `type` is "loading" and no element with id 'loading-modal' is found.
  * @throws {Error} If no element is provided or found to create the modal.
  */
-export function getModal(options: { type: "loading" | "local", element?: HTMLElement | null }): Modal {
-    const { type } = options;
+export function getModal(
+    options: {
+        type: "loading" | "local",
+        element?: HTMLElement | null,
+        modalOptions?: Partial<Modal.Options>
+    }
+): Modal {
+    const { type, modalOptions } = options;
     let { element } = options;
 
     if (type == "loading") {
@@ -25,5 +31,5 @@ export function getModal(options: { type: "loading" | "local", element?: HTMLEle
     // the element is required, throw an error if it's not provided
     if (!element) throw new Error("No element found/passed to create new Modal.");
 
-    return new Modal(element);
+    return new Modal(element, modalOptions);
 }
