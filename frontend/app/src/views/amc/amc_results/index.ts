@@ -10,7 +10,8 @@ import 'datatables.net-select-dt/css/select.dataTables.min.css';
 
 import { getModal } from '@examc/helpers/modals.ts';
 import { setAjaxInfoModalLocked } from '@examc/helpers/ajax-info-modal.ts';
-import {initTinyMce} from "@examc/helpers/tinymce.ts";
+import { initTinyMce } from "@examc/helpers/tinymce.ts";
+import type {Editor} from "tinymce";
 
 
 
@@ -130,6 +131,8 @@ const sendForm = byId<HTMLFormElement>('form-send-annotated-papers');
 const sendAlert = byId('send_annotated_alert');
 const subjectInput = byId<HTMLInputElement>('email-subject');
 const emailBodyEl = byId<HTMLTextAreaElement>('email-body');
+let emailBodyEditor: Editor | null = null;
+
 const emailColumnSelect = byId<HTMLSelectElement>('email-column');
 const sendTableElement = byId<HTMLTableElement>('send-annotated-papers-table');
 
@@ -244,7 +247,7 @@ function textToParagraphHtml(text: string): string {
 }
 
 sendDialogElement.addEventListener('shown.bs.modal', async () => {
-    await initTinyMce({ target: emailBodyEl });
+    emailBodyEditor = await initTinyMce({ target: emailBodyEl });
 
     if (pendingEmail) {
         subjectInput.value = pendingEmail.subject;
@@ -262,7 +265,7 @@ sendDialogElement.addEventListener('shown.bs.modal', async () => {
 // Students table
 // ---------------------------------------------------------------------------
 
-let sendTable: Api | null = null;
+let sendTable: Api<StudentRow> | null = null;
 let sendRows: StudentRow[] = [];
 
 function renderCell(key: string, value: CellValue, row: StudentRow): HTMLTableCellElement {
@@ -284,7 +287,8 @@ function renderCell(key: string, value: CellValue, row: StudentRow): HTMLTableCe
 }
 
 function buildSendTable(rows: StudentRow[]): void {
-    sendTable?.destroy();
+    if (DataTable.isDataTable(sendTableElement)) return;
+
     sendTable = null;
     sendRows = rows;
 
@@ -315,7 +319,10 @@ function buildSendTable(rows: StudentRow[]): void {
     sendTable = new DataTable(sendTableElement, {
         scrollY: '25vh',
         paging: false,
-        select: true,
+        select: {
+            style: 'os',
+            selector: 'td:first-child',
+        },
         layout: {
             topStart: {
                 buttons: [
@@ -334,7 +341,7 @@ function buildSendTable(rows: StudentRow[]): void {
             topEnd: 'search',
             bottomStart: 'info',
             bottomEnd: null,
-        },
+        }
     });
 }
 
@@ -362,14 +369,14 @@ async function openSendDialog(): Promise<void> {
         pendingEmail = { subject: data.email_subject ?? '', body: data.email_text ?? '' };
         sendDialog.show();
     } catch (error) {
-        console.error(error);
+        console.warn(error);
         showInfo('Failed to load the students list.');
     }
 }
 
 async function sendAnnotatedPapers(): Promise<void> {
     const subject = subjectInput.value.trim();
-    const bodyIsEmpty = emailBodyEl.value.trim() === '';
+    const bodyIsEmpty = emailBodyEditor?.getContent({ format: 'text' }).trim() === '';
 
     if (bodyIsEmpty || subject === '') {
         sendAlert.style.visibility = 'visible';
