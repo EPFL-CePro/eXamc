@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from django.db.models import Model, Q
+from django.db.models import Model, Q, F
 from django.db.models import QuerySet
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import BaseFilterBackend
@@ -47,11 +47,27 @@ class DataTablesRequest:
         )
 
     def order(self, queryset: QuerySet, column_map: dict[int, list[str]]) -> QuerySet:
+        """
+        Orders a Django QuerySet based on column mapping and order direction.
+
+        This function applies ordering to a given QuerySet by using a mapping
+        of column indices to field names and the current order direction (ascending
+        or descending). It supports null value handling by either placing them last
+        when ordering in descending or ascending order.
+
+        :param queryset: A Django QuerySet that will be ordered.
+        :param column_map: A dictionary where the keys are column indices and the
+            values are lists of field names corresponding to those columns.
+        :return: A reordered QuerySet with the specified ordering applied.
+        :rtype: QuerySet
+        """
         fields = column_map.get(self.order_column) if self.order_column is not None else None
         if not fields:
             return queryset
-        return queryset.order_by(*(f"-{f}" if self.order_desc else f for f in fields))
-
+        return queryset.order_by(
+            *(F(f).desc(nulls_last=True) if self.order_desc else F(f).asc(nulls_last=True) for f in fields),
+            "pk",
+        )
     def page(self, queryset: QuerySet) -> list:
         return list(queryset[self.start:self.start + self.length])
 
@@ -60,7 +76,9 @@ class DataTablesRequest:
 
 
 class DataTablesFilterBackend(BaseFilterBackend):
-    """Applies DataTables global search and column ordering."""
+    """
+    Applies DataTables global search and column ordering.
+    """
 
     def filter_queryset(self, request: Request, queryset: QuerySet[Any], view: APIView) -> QuerySet[Any]:
         dt = DataTablesRequest.from_query_params(request.query_params)
@@ -77,7 +95,9 @@ class DataTablesFilterBackend(BaseFilterBackend):
 
 
 class DataTablesPagination(BasePagination):
-    """Pages the queryset and wraps results in the DataTables response shape."""
+    """
+    Pages the queryset and wraps results in the DataTables response shape.
+    """
 
     def paginate_queryset(self, queryset: QuerySet[Any], request: Request, view: APIView | None = None) -> list[Model]:
         self.dt = DataTablesRequest.from_query_params(request.query_params)
