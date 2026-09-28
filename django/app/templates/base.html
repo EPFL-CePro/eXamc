@@ -7,8 +7,6 @@
 <head>
     <meta charset="utf-8">
 
-    <title>eXamc</title>
-
     <!-- Vite - used for hot reloading when DEBUG is set to true. Requires Vite dev server to run. -->
     {% vite_hmr_client %}
 
@@ -79,7 +77,7 @@
 
     {% block extra_head %}{% endblock %}
 
-    <title>{% block title %}eXamc{% endblock %}</title>
+    <title>eXamc - {% block title %}{% endblock %}</title>
 </head>
 
 {% if planned_maintenance.show %}
@@ -404,12 +402,11 @@
             {% endif %}
         </ul>
         <!-- List Group END-->
-
     </div>
+
     <!-- sidebar-container END -->
     <!-- page content -->
     <div id="page-content-wrapper">
-
         <div class="container-fluid">
             <!-- eXamcs navbar: display common exams list or single exam if no common -->
             {% if nav_url != 'amc_data_capture_manual' and nav_url != 'reviewGroup' %}
@@ -555,7 +552,6 @@
 </html>
 
 <script>
-
     {% if task_id %}
         function processProgress(progressBarElement, progressBarMessageElement, progress) {
             progressBarElement.style.width = progress.percent + "%";
@@ -611,7 +607,6 @@
         });
 
     {% endif %}
-    ///-END TESTING
 
 
     let ajaxInfoModalInitialized = false;
@@ -648,6 +643,4 @@
     $('[data-toggle=sidebar-colapse]').click(function () {
         SidebarCollapse();
     });
-
-
 </script>
