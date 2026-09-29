@@ -29,6 +29,7 @@ services:
       - "127.0.0.1:8000:80"
 
   fe-runner:
+    restart: unless-stopped
     build:
       context: ../frontend
       target: dev
