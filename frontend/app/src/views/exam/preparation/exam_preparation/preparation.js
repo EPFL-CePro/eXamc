@@ -1430,6 +1430,45 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
         destroyMarkdownEditors(target);
     });
 
+    // Save feedback: the panel views send a "prepSaveFeedback" HX-Trigger after a POST
+    let saveToastTimer = null;
+
+    function showSaveToast(message, isError) {
+        let toast = document.getElementById("prep-save-toast");
+        if (!toast) {
+            toast = document.createElement("div");
+            toast.id = "prep-save-toast";
+            toast.setAttribute("role", "status");
+            toast.setAttribute("aria-live", "polite");
+            document.body.appendChild(toast);
+        }
+
+        toast.textContent = message;
+        toast.classList.toggle("is-error", Boolean(isError));
+        toast.classList.add("is-visible");
+
+        clearTimeout(saveToastTimer);
+        saveToastTimer = setTimeout(function () {
+            toast.classList.remove("is-visible");
+        }, isError ? 6000 : 2500);
+    }
+
+    document.body.addEventListener("prepSaveFeedback", function (event) {
+        if (event.detail && event.detail.saved) {
+            showSaveToast("Saved", false);
+        } else {
+            showSaveToast("Not saved: please check the highlighted fields", true);
+        }
+    });
+
+    document.body.addEventListener("htmx:responseError", function (event) {
+        const elt = event.detail.elt;
+        if (!elt || !elt.closest || !elt.closest("#prep-root")) return;
+        if ((event.detail.requestConfig?.verb || "").toLowerCase() !== "post") return;
+
+        showSaveToast(`Not saved: server error (${event.detail.xhr.status})`, true);
+    });
+
     document.body.addEventListener("htmx:afterSwap", function (event) {
         initSectionSortable();
         initQuestionSortable();

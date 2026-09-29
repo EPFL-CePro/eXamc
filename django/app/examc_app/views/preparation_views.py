@@ -198,6 +198,12 @@ def unlock_exam_editing(request, exam_pk):
     return redirect("exam_preparation", exam_pk=exam.pk)
 
 
+def with_save_feedback(request, response, saved):
+    """Tell the page (htmx "prepSaveFeedback" event) whether a Save succeeded, to notify the user."""
+    if request.method == "POST":
+        response["HX-Trigger"] = json.dumps({"prepSaveFeedback": {"saved": bool(saved)}})
+    return response
+
 # -------------------------
 # First page
 # -------------------------
@@ -232,7 +238,7 @@ def prep_first_page_panel(request, exam_pk):
         form = ExamFirstPageForm(instance=exam)
         saved = False
 
-    return render(
+    response = render(
         request,
         "exam/preparation/_prep_first_page_card.html",
         {
@@ -242,6 +248,7 @@ def prep_first_page_panel(request, exam_pk):
             "is_exam_finalized": exam.is_finalized,
         },
     )
+    return with_save_feedback(request, response, saved)
 
 
 # -------------------------
@@ -283,7 +290,7 @@ def prep_section_panel(request, exam_pk, section_id):
 
     questions = get_questions(section)
 
-    return render(
+    response = render(
         request,
         "exam/preparation/_prep_section_card.html",
         {
@@ -296,6 +303,7 @@ def prep_section_panel(request, exam_pk, section_id):
             "is_exam_finalized": section.exam.is_finalized,
         },
     )
+    return with_save_feedback(request, response, saved)
 
 
 @exam_permission_required(["manage"])
@@ -513,7 +521,7 @@ def prep_question_panel(request, exam_pk, question_id):
 
     answers = get_answers(question)
 
-    return render(
+    response = render(
         request,
         "exam/preparation/_prep_question_block.html",
         {
@@ -526,6 +534,7 @@ def prep_question_panel(request, exam_pk, question_id):
             "is_exam_finalized": question.prep_section.exam.is_finalized,
         },
     )
+    return with_save_feedback(request, response, saved)
 
 
 @exam_permission_required(["manage"])
@@ -665,7 +674,7 @@ def prep_answer_panel(request, exam_pk, answer_id):
         form = build_answer_form(answer)
         saved = False
 
-    return render(
+    response = render(
         request,
         "exam/preparation/_prep_answer_row.html",
         {
@@ -677,6 +686,7 @@ def prep_answer_panel(request, exam_pk, answer_id):
             "is_exam_finalized": answer.prep_question.prep_section.exam.is_finalized,
         },
     )
+    return with_save_feedback(request, response, saved)
 
 
 @exam_permission_required(["manage"])
