@@ -641,11 +641,53 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
             if (instance.container && instance.container.parentNode) {
                 instance.container.remove();
             }
+            if (instance.hint) {
+                instance.hint.remove();
+            }
 
             textarea.style.display = "";
             markdownEditors.delete(textarea);
             delete textarea.dataset.markdownEditorId;
         });
+    }
+
+    // A text containing LaTeX must only be edited in markdown mode: the WYSIWYG mode rewrites
+    // the whole markdown (doubles the backslashes, may turn "_" into emphasis). The WYSIWYG mode
+    // escapes what it stores ("\$", "\\"), so only an unescaped "$" or "\command" means LaTeX.
+    const UNESCAPED_LATEX_RE = /(?:^|[^\\])(?:\\\\)*(?:\$|\\[A-Za-z])/;
+    const EDITOR_MODE_STORAGE_KEY = "examc.preparation.editorMode";
+
+    function containsLatex(markdown) {
+        return UNESCAPED_LATEX_RE.test(markdown || "");
+    }
+
+    function getPreferredEditorMode() {
+        try {
+            return localStorage.getItem(EDITOR_MODE_STORAGE_KEY) === "markdown" ? "markdown" : "wysiwyg";
+        } catch (e) {
+            return "wysiwyg";
+        }
+    }
+
+    function savePreferredEditorMode(mode) {
+        try {
+            localStorage.setItem(EDITOR_MODE_STORAGE_KEY, mode);
+        } catch (e) {
+            // storage unavailable: the default mode is used next time
+        }
+    }
+
+    function lockEditorToMarkdown(instance) {
+        if (instance.latexLocked) return;
+
+        instance.latexLocked = true;
+        instance.container.classList.add("md-latex-locked");
+
+        const hint = document.createElement("div");
+        hint.className = "md-latex-locked-hint text-muted";
+        hint.textContent = "Contains LaTeX: markdown editing only";
+        instance.container.parentNode.insertBefore(hint, instance.container.nextSibling);
+        instance.hint = hint;
     }
 
     function initMarkdownEditors(root = document) {
@@ -660,22 +702,45 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
             textarea.parentNode.insertBefore(container, textarea.nextSibling);
             textarea.style.display = "none";
 
+            const initialValue = textarea.value || "";
+            const hasLatex = containsLatex(initialValue);
+
             const editor = initToastUiEditor({
                 target: container,
-                editorOptions: { initialValue: textarea.value || "" },
+                editorOptions: {
+                    initialValue: initialValue,
+                    initialEditType: hasLatex ? "markdown" : getPreferredEditorMode(),
+                },
             });
 
             const instance = {
                 id: `md-${++markdownEditorSeq}`,
                 editor: editor,
-                container: container
+                container: container,
+                latexLocked: false,
+                hint: null
             };
 
             markdownEditors.set(textarea, instance);
             textarea.dataset.markdownEditorId = instance.id;
 
+            if (hasLatex) {
+                lockEditorToMarkdown(instance);
+            }
+
             editor.on("change", function () {
-                textarea.value = editor.getMarkdown();
+                const markdown = editor.getMarkdown();
+                textarea.value = markdown;
+
+                if (editor.isMarkdownMode() && containsLatex(markdown)) {
+                    lockEditorToMarkdown(instance);
+                }
+            });
+
+            editor.on("changeMode", function (mode) {
+                if (!instance.latexLocked) {
+                    savePreferredEditorMode(mode);
+                }
             });
         });
     }

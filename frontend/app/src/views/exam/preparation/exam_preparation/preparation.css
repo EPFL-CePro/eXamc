@@ -195,3 +195,13 @@ textarea.markdown-editor {
 .finalized-editor-readonly .toastui-editor-mode-switch {
     display: none !important;
 }
+/* Texts containing LaTeX are edited in markdown mode only (see containsLatex in preparation.js) */
+.md-latex-locked .toastui-editor-mode-switch {
+    display: none !important;
+}
+
+.md-latex-locked-hint {
+    font-size: 0.8rem;
+    margin-top: -0.75rem;
+    margin-bottom: 0.75rem;
+}
