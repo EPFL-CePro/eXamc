@@ -76,8 +76,10 @@ RUN set -eux; \
         texlive-lang-european \
         latexmk \
         ghostscript \
-        poppler-utils; \
+        poppler-utils \
+        pandoc; \
     test -x /usr/bin/auto-multiple-choice; \
+    test -x /usr/bin/pandoc; \
     rm -rf /var/lib/apt/lists/*
 
 # Copy everything, except the doc source which are not needed in the prod image
