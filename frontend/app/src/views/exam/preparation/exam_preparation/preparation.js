@@ -75,7 +75,7 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
         });
     }
 
-    // For requests whose dialog shows its own progress (e.g. the preview "Compilation in progress")
+    // For requests whose dialog shows its own progress (preview, final files generation)
     const WITHOUT_LOADING_MODAL = {beforeSend: function () {}, complete: function () {}};
 
     function ajaxGet(url, data, callbacks) {
@@ -170,6 +170,7 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
         showModal("#generate_final_exam_files_dialog");
 
         ajaxGet(URLS.generateFinalStart, {}, {
+            ...WITHOUT_LOADING_MODAL,
             success: function (data) {
                 if (!data.job_id || !data.task_id) {
                     showGenFinalError("Impossible to start final exam files generation.");
@@ -1379,17 +1380,20 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
             });
     }
 
-    $(document).on("hidden.bs.modal", "#generate_final_exam_files_dialog", function () {
-        currentGenFinalJobId = null;
+    // Native listener: the dialogs are Bootstrap 5 modals, whose events do not reliably reach
+    // jQuery handlers on this page (Bootstrap 4 is loaded too)
+    document.addEventListener("hidden.bs.modal", function (event) {
+        if (event.target.id === "generate_final_exam_files_dialog") {
+            currentGenFinalJobId = null;
 
-        if (genFinalWasSuccessful) {
-            window.location.reload();
+            // The page changes once the exam is finalized (download button, read-only editing)
+            if (genFinalWasSuccessful) {
+                window.location.reload();
+            }
+        } else if (event.target.id === "exam_preview_dialog") {
+            stopPreviewPolling();
+            currentPreviewJobId = null;
         }
-    });
-
-    $(document).on("hidden.bs.modal", "#exam_preview_dialog", function () {
-        stopPreviewPolling();
-        currentPreviewJobId = null;
     });
 
 
