@@ -106,21 +106,6 @@ def create_exam_project(request):
                 exam_user.group_id = 2
                 exam_user.save()
 
-            # copy template to new amc_project directory
-            # amc_project_template_path = str(settings.AMC_PROJECTS_ROOT)+"/templates/"+language+"/base"
-            # new_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+year.code+"/"+str(semester.code)+"/"+exam.code+"_"+date.strftime("%Y%m%d")
-            # shutil.copytree(amc_project_template_path,new_project_path)
-
-            # update exam-info.tex
-            # exam_info_path = new_project_path+"/exam-info.tex"
-            # with open(exam_info_path, 'r') as file:
-            #     file_contents = file.read()
-            #     updated_contents = file_contents.replace("<TEACHER>", teachers_text).replace("<PAGES>", "8").replace("<DURATION>", duration_text).replace("<DATE>", date_text).replace("<EXAM>", exam_text)
-            #
-            #
-            # with open(exam_info_path, 'w') as file:
-            #     file.write(updated_contents)
-
             return redirect("examInfo", exam_pk=exam.pk)
 
     # if a GET (or any other method), we'll create a blank form
