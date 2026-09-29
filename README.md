@@ -101,8 +101,7 @@ Dockerized environment for **eXamc** featuring:
 ├─ LICENSE
 ├─ README.md
 ├─ README-deploy.md
-├─ SECURITY.md
-└─ VERSION
+└─ SECURITY.md
 ```
 
 
