@@ -127,6 +127,10 @@ class PrepQuestionAnswerForm(forms.ModelForm):
         self.fields["is_correct"] = forms.BooleanField(label='Correct', widget=SwitchWidget(), required=False)
         self.fields["fix_position"] = forms.BooleanField(label='Fixed', widget=SwitchWidget(), required=False)
 
+    def clean_box_type(self):
+        # No box type (points of an open question) is stored as NULL, never as ""
+        return self.cleaned_data["box_type"] or None
+
 
 PrepQuestionAnswerFormSet = modelformset_factory(PrepQuestionAnswer, form=PrepQuestionAnswerForm, extra=0)
 

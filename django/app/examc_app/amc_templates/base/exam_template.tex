@@ -19,6 +19,13 @@
   \InputIfFileExists{./amc-compiled-config.tex}{}{}
 \fi
 
+% Map ligatures and symbols to Unicode, so that text copied from the PDF
+% is clean (pdflatex only, before any font is loaded)
+\ifdefined\pdfgentounicode
+  \input{glyphtounicode}
+  \pdfgentounicode=1
+\fi
+
 \documentclass[a4paper]{article}
 
 \usepackage[utf8]{inputenc}

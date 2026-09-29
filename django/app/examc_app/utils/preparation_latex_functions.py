@@ -32,6 +32,7 @@ PH_ANSWER_TYPE = '%ANSWER-TYPE%'
 PH_ANSWER_TEXT = '%ANSWERS-TEXT%'
 PH_CORR_POINTS = '%CORR-POINTS%'
 PH_QUESTION_TITLE = '%QUESTION-TITLE%'
+PH_QUESTION_SCORING = '%QUESTION-SCORING%'
 
 #USABLE VARIABLES
 VAR_NB_PAGES = r"\{NB-PAGES\}"
@@ -58,48 +59,6 @@ def corr_box_number_to_text(n: float, inc: float) -> str:
             return units[integer_part] + "Half"
         else:
             raise ValueError("Only .5 increments are supported")
-
-def replace_unicode_math_and_text(html: str) -> str:
-    replacements = {
-        "\u00a0": " ",          # nbsp
-        "∈": r"\in ",
-        "∉": r"\notin ",
-        "⊂": r"\subset ",
-        "⊆": r"\subseteq ",
-        "⊃": r"\supset ",
-        "⊇": r"\supseteq ",
-        "∖": r"\setminus ",
-        "≤": r"\le ",
-        "≥": r"\ge ",
-        "≠": r"\neq ",
-        "≈": r"\approx ",
-        "∞": r"\infty ",
-        "→": r"\to ",
-        "←": r"\leftarrow ",
-        "×": r"\times ",
-        "±": r"\pm ",
-        "∪": r"\cup ",
-        "∩": r"\cap ",
-        "∅": r"\emptyset ",
-        "ℕ": r"\mathbb{N}",
-        "ℝ": r"\mathbb{R}",
-        "ℤ": r"\mathbb{Z}",
-        "ℚ": r"\mathbb{Q}",
-        "ℂ": r"\mathbb{C}",
-        "“": '"',
-        "”": '"',
-        "‘": "'",
-        "’": "'",
-        "–": "--",
-        "—": "---",
-        "…": r"\ldots{}",
-    }
-
-    for src, dst in replacements.items():
-        html = html.replace(src, dst)
-
-    return html
-
 
 def postprocess_latex(latex: str) -> str:
     latex = latex.strip()
@@ -129,6 +88,15 @@ def clean_pasted_text(text: str) -> str:
     for src, dst in PASTED_TEXT_REPLACEMENTS.items():
         text = text.replace(src, dst)
     return CONTROL_CHARS_RE.sub("", text)
+
+LATEX_SPECIAL_CHARS = {
+    "\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_",
+    "{": r"\{", "}": r"\}", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}",
+}
+
+def latex_escape(text) -> str:
+    """Escape plain text (not markdown) inserted as is in a LaTeX template."""
+    return "".join(LATEX_SPECIAL_CHARS.get(c, c) for c in clean_pasted_text(str(text or "")))
 
 def markdown_to_latex_pandoc(markdown: str) -> str:
     latex = pypandoc.convert_text(
@@ -188,9 +156,6 @@ def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
 
             render_question_tex_from_html(question, section_latex_file_path, template_question_latex_path)
 
-            if question.question_type.code != 'OPEN':
-                update_question_scoring_latex_file(question.pk)
-
         exam_tex = (
             exam_tex
             .replace(PH_SECTIONS, f"\\input{{./{section_filename}}} \n" + f"{PH_SECTIONS}")
@@ -222,9 +187,10 @@ def render_first_page_tex_from_html(exam: Exam, html: str, template_path: str, o
             teacher_txt += ', '
         teacher_txt += f'{exam_user.user.first_name[0]}. {exam_user.user.last_name}'
 
-    exam_name_txt = f'({exam.code}) {exam.name}'
+    teacher_txt = latex_escape(teacher_txt)
+    exam_name_txt = latex_escape(f'({exam.code}) {exam.name}')
     exam_date = exam.date.strftime("%d.%m.%Y")
-    exam_time = exam.duration if exam.duration else ''
+    exam_time = latex_escape(exam.duration)
 
 
     final_tex = (
@@ -331,24 +297,23 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
     if question.question_type.code == 'OPEN':
         question_tex = (
             question_tex
-            .replace(PH_QUESTION_TITLE, f'{question.title}')
+            .replace(PH_QUESTION_TITLE, latex_escape(question.title))
             .replace(PH_CORR_POINTS, corr_box_number_to_text(float(question.max_points), float(question.point_increment)))
-            .replace(PH_QUESTION_ID, f'SECTION-{question.prep_section.position}-{question.question_type.code}-{question.position}')
         )
     else:
+        question_scoring = question.prepQuestionScoringFormulas.first()
         question_tex = (
             question_tex
             .replace(PH_ANSWER_TYPE, f'{answer_type_text}')
             .replace(PH_QUESTION_TYPE, question_type_text)
+            .replace(PH_QUESTION_SCORING, f'\\bareme{{{question_scoring.formula}}}' if question_scoring else '')
         )
 
     if question.question_type.code == 'TF':
         question_tex = question_tex.replace(f'ANSWER-{answer_type_text}',f'ANSWER-{answer_type_text}[0]')
 
-    for answer in question.prepAnswers.all():
+    for answer in question.prepAnswers.order_by("position"):
         question_tex = render_answer_tex_from_html(answer, question_tex)
-        if question.question_type.code != 'OPEN':
-            update_answer_scoring_latex_file(answer.pk)
 
     section_tex = section.replace(
         PH_SECTION_QUESTIONS,
@@ -360,7 +325,8 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
 
 def render_answer_tex_from_html(answer: PrepQuestionAnswer, question_tex: str) -> str:
     if answer.prep_question.question_type.code == 'TF':
-        latex_fragment_text = 'TRUE' if answer.is_correct else 'FALSE'
+        # "TRUE" / "FALSE" answers, is_correct tells which one is right
+        latex_fragment_text = latex_escape(answer.title)
     elif answer.prep_question.question_type.code == 'OPEN':
         latex_fragment_text = answer.title
     else:
@@ -371,16 +337,18 @@ def render_answer_tex_from_html(answer: PrepQuestionAnswer, question_tex: str) -
 
     answer_type_text = None
     if answer.prep_question.question_type.code == 'OPEN':
-        if answer.box_type:
-            if answer.box_type == BOX_TYPE_CHOICES[0]:
+        # Only the answer zones are typeset, the points answers (no box type) are the corrector boxes
+        if answer.box_height_mm:
+            if answer.box_type == BOX_TYPE_CHOICES[0][0]:
                 answer_type_text = f'\\SplitOpenGrid{{{answer.box_height_mm}mm}}'
-            else:
+            elif answer.box_type == BOX_TYPE_CHOICES[1][0]:
                 answer_type_text = f'\\SplitOpenBox{{{answer.box_height_mm}mm}}'
     else:
-        if answer.is_correct:
-            answer_type_text = f'\\correctchoice{{{latex_fragment_text}}}'
-        else:
-            answer_type_text = f'\\wrongchoice{{{latex_fragment_text}}}'
+        choice = '\\correctchoice' if answer.is_correct else '\\wrongchoice'
+        answer_scoring = answer.prepAnswersScoringFormulas.first()
+        answer_type_text = f'{choice}{{{latex_fragment_text}}}'
+        if answer_scoring:
+            answer_type_text += f'\\bareme{{{answer_scoring.formula}}}'
 
     if answer_type_text:
         question_tex = question_tex.replace(
@@ -410,82 +378,6 @@ def update_global_scoring_latex_file(scoring_formulas,exam_pk):
         content += "\n".join(lines) + "\n"
 
     filepath.write_text(content, encoding="utf-8")
-
-    return True
-
-def update_question_scoring_latex_file(question_pk):
-    question = PrepQuestion.objects.get(pk=question_pk)
-    if question.prepQuestionScoringFormulas.exists() :
-        scoring_formula = question.prepQuestionScoringFormulas.first()
-        amc_project_path = Path(ensure_amc_project(question.prep_section.exam))
-        section_filename = f"section_{question.prep_section.position}.tex"
-        file_path = amc_project_path / section_filename
-        question_latex_id = f"SECTION-{question.prep_section.position}-{question.question_type.code}-{question.position}"
-
-        with open(file_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-
-        pattern = re.compile(
-            rf".*\\begin{{(question(?:mult)?)}}{{{re.escape(question_latex_id)}}}(?:\\bareme{{.*?}})?\s*$"
-        )
-
-        new_lines = []
-        for line in lines:
-            m = pattern.search(line)
-            if m:
-                env = m.group(1)
-                new_lines.append(f"\\begin{{{env}}}{{{question_latex_id}}}\\bareme{{{scoring_formula.formula}}}\n")
-            else:
-                new_lines.append(line)
-
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.writelines(new_lines)
-
-    return True
-
-def update_answer_scoring_latex_file(answer_pk):
-    answer = PrepQuestionAnswer.objects.get(pk=answer_pk)
-    if answer.prepAnswersScoringFormulas.exists() :
-        scoring_formula = answer.prepAnswersScoringFormulas.first()
-        amc_project_path = Path(ensure_amc_project(answer.prep_question.prep_section.exam))
-        section_filename = f"section_{answer.prep_question.prep_section.position}.tex"
-        file_path = amc_project_path / section_filename
-        answer_txt = markdown_to_latex_pandoc(answer.answer_text)
-        question_latex_id = f"SECTION-{answer.prep_question.prep_section.position}-{answer.prep_question.question_type.code}-{answer.prep_question.position}"
-
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Match one full question block for the given code
-        block_pattern = re.compile(
-            rf"""
-            \\begin{{question(?:mult)?}}{{{re.escape(question_latex_id)}}}   # question start
-            (?:\\bareme{{.*?}})?                                # optional bareme
-            .*?                                                 # block content
-            \\end{{question}}                                   # question end
-            """,
-            re.DOTALL | re.VERBOSE,
-        )
-
-        def update_block(match):
-            block = match.group(0)
-
-            # Match a choice line containing exactly the wanted answer text
-            answer_pattern = re.compile(
-                rf"^(.*?(?:\\correctchoice|\\wrongchoice){{{re.escape(answer_txt)}}})(\s*)$",
-                re.MULTILINE,
-            )
-
-            def repl_answer(m):
-                return f"{m.group(1)}\\bareme{{{scoring_formula.formula}}}{m.group(2)}"
-
-            new_block, n = answer_pattern.subn(repl_answer, block, count=1)
-            return new_block
-
-        new_content, n_blocks = block_pattern.subn(update_block, content, count=1)
-
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(new_content)
 
     return True
 
