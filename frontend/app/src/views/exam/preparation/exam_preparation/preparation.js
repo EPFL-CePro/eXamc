@@ -75,6 +75,9 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
         });
     }
 
+    // For requests whose dialog shows its own progress (e.g. the preview "Compilation in progress")
+    const WITHOUT_LOADING_MODAL = {beforeSend: function () {}, complete: function () {}};
+
     function ajaxGet(url, data, callbacks) {
         return ajaxRequest("GET", url, data, callbacks);
     }
@@ -333,6 +336,7 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
         showModal("#exam_preview_dialog");
 
         ajaxGet(URLS.previewStart, {}, {
+            ...WITHOUT_LOADING_MODAL,
             success: function (data) {
                 if (!data.job_id) {
                     showPreviewError("Impossible to start preview.");
@@ -364,6 +368,7 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
         }
 
         ajaxGet(url, {}, {
+            ...WITHOUT_LOADING_MODAL,
             success: function (data) {
                 if (data.status === "pending" || data.status === "running") {
                     setPreviewLoading(true);
