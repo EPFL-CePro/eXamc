@@ -8,7 +8,7 @@ import pypandoc
 
 from examc import settings
 from examc_app.models import PrepSection, PrepQuestion, PrepQuestionAnswer, BOX_TYPE_CHOICES, Exam, ScoringStrategy
-from examc_app.utils.amc_functions import get_amc_project_path
+from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
 
 #PLACEHOLDERS FOR TEMPLATES
 PH_NEW_PAGE = '%NEW-PAGE%'
@@ -138,7 +138,7 @@ def write_exam_generated_vars(project_path: str, pages_per_copy: int | None) -> 
     return str(vars_tex_path)
 
 def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
-    amc_project_path = get_amc_project_path(exam, False)
+    amc_project_path = ensure_amc_project(exam)
     amc_project_template_path = str(settings.AMC_TEMPLATES_DIR) + "/base"
     template_exam_latex_path = amc_project_template_path + "/exam_template.tex"
     exam_latex_path_output = amc_project_path + "/exam.tex"
@@ -376,7 +376,7 @@ def render_answer_tex_from_html(answer: PrepQuestionAnswer, question_tex: str) -
 ## scoring formulas
 def update_global_scoring_latex_file(scoring_formulas,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
-    amc_project_path = Path(get_amc_project_path(exam, False))
+    amc_project_path = Path(ensure_amc_project(exam))
     filepath = amc_project_path / "global_scoring.tex"
 
     lines = []
@@ -401,7 +401,7 @@ def update_question_scoring_latex_file(question_pk):
     question = PrepQuestion.objects.get(pk=question_pk)
     if question.prepQuestionScoringFormulas.exists() :
         scoring_formula = question.prepQuestionScoringFormulas.first()
-        amc_project_path = Path(get_amc_project_path(question.prep_section.exam, False))
+        amc_project_path = Path(ensure_amc_project(question.prep_section.exam))
         section_filename = f"section_{question.prep_section.position}.tex"
         file_path = amc_project_path / section_filename
         question_latex_id = f"SECTION-{question.prep_section.position}-{question.question_type.code}-{question.position}"
@@ -431,7 +431,7 @@ def update_answer_scoring_latex_file(answer_pk):
     answer = PrepQuestionAnswer.objects.get(pk=answer_pk)
     if answer.prepAnswersScoringFormulas.exists() :
         scoring_formula = answer.prepAnswersScoringFormulas.first()
-        amc_project_path = Path(get_amc_project_path(answer.prep_question.prep_section.exam, False))
+        amc_project_path = Path(ensure_amc_project(answer.prep_question.prep_section.exam))
         section_filename = f"section_{answer.prep_question.prep_section.position}.tex"
         file_path = amc_project_path / section_filename
         answer_txt = markdown_to_latex_pandoc(answer.answer_text)

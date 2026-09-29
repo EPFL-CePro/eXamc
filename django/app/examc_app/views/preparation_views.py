@@ -31,7 +31,7 @@ from examc_app.models import (
     Semester, ExamAMCJob
 )
 from examc_app.services.oasis import get_courses, get_teachers_names_by_course
-from examc_app.utils.amc_functions import get_amc_project_path
+from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
 from examc_app.utils.global_functions import add_course_teachers_ldap
 from examc_app.utils.preparation_functions import build_sections_list_context, build_section_form, get_questions, \
     renumber_sections, build_question_form, get_answers, renumber_questions, build_answer_form, renumber_answers, \
@@ -217,7 +217,7 @@ def prep_first_page_panel(request, exam_pk):
             form.save()
             exam.refresh_from_db()
 
-            amc_project_path = get_amc_project_path(exam, False)
+            amc_project_path = ensure_amc_project(exam)
             amc_project_template_path = f"{settings.AMC_TEMPLATES_DIR}/base"
             template_first_page_latex_path = f"{amc_project_template_path}/first_page_template.tex"
             first_page_latex_path_output = f"{amc_project_path}/first_page.tex"
@@ -1003,7 +1003,7 @@ def edit_latex_file(request,exam_pk):
         return locked
 
     file_type = request.GET.get('type')
-    amc_project_path = get_amc_project_path(exam, False)
+    amc_project_path = ensure_amc_project(exam)
     if file_type == 'packages':
         filepath = Path(amc_project_path) / "packages.tex"
     else:
@@ -1022,7 +1022,7 @@ def edit_latex_packages(request,exam_pk):
     if locked:
         return locked
 
-    amc_project_path = get_amc_project_path(exam, False)
+    amc_project_path = ensure_amc_project(exam)
     filepath= Path(amc_project_path) / "packages.tex"
     f = open(filepath, 'r')
     file_contents = f.read()
@@ -1046,7 +1046,7 @@ def save_latex_edited_file(request,exam_pk):
         return locked
 
     file_type = request.POST['type']
-    amc_project_path = get_amc_project_path(exam, False)
+    amc_project_path = ensure_amc_project(exam)
     if file_type == 'packages':
         filepath = Path(amc_project_path) / "packages.tex"
     else:
@@ -1082,7 +1082,7 @@ def save_latex_edited_packages(request,exam_pk):
                 cleaned_packages.append(pkg)
 
     exam = Exam.objects.get(pk=exam_pk)
-    amc_project_path = get_amc_project_path(exam, False)
+    amc_project_path = ensure_amc_project(exam)
     filepath = Path(amc_project_path) / "packages.tex"
 
     lines = [

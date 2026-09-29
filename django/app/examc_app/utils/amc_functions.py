@@ -571,6 +571,34 @@ def get_amc_project_path(exam,even_if_not_exist):
         # TODO change this, as most of this function's usage is in string concatenation, which fails with None
         return None
 
+# Folders AMC creates when opening a new project
+AMC_PROJECT_DIRS = ("cr/corrections/jpg", "cr/corrections/pdf", "cr/diagnostic", "cr/zooms", "data", "exports", "scans")
+# Files copied from AMC_TEMPLATES_DIR/base into each new project (the *_template.tex files are rendered, not copied)
+AMC_PROJECT_BASE_FILES = ("options.xml", "style_extra.tex", "packages.tex", "commands.tex", "media")
+
+def ensure_amc_project(exam):
+    """
+    Create the AMC project folder of the exam if needed, like AMC does when opening a new project,
+    and copy the missing base files into it. Existing files are never overwritten, as packages.tex
+    and commands.tex can be edited per exam. AMC creates its sqlite databases itself in data/.
+    Returns the project path.
+    """
+    amc_project_path = Path(get_amc_project_path(exam, True))
+    for folder in AMC_PROJECT_DIRS:
+        (amc_project_path / folder).mkdir(parents=True, exist_ok=True)
+
+    base_path = Path(settings.AMC_TEMPLATES_DIR) / "base"
+    for name in AMC_PROJECT_BASE_FILES:
+        source = base_path / name
+        sources = sorted(p for p in source.rglob("*") if p.is_file()) if source.is_dir() else [source]
+        for source_file in sources:
+            target_file = amc_project_path / source_file.relative_to(base_path)
+            if not target_file.exists():
+                target_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source_file, target_file)
+
+    return str(amc_project_path)
+
 def get_amc_project_url(exam):
     amc_project_url = str(settings.AMC_PROJECTS_URL)+str(exam.year.code)+"/"+str(exam.semester.code)+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")
     return amc_project_url

@@ -13,7 +13,7 @@ from django.http import HttpResponseForbidden
 from examc import settings
 from examc_app.forms import PrepQuestionAnswerForm, PrepSectionForm, PrepQuestionForm
 from examc_app.models import PrepScoringFormula, PrepSection, PrepQuestionAnswer, PrepQuestion, Exam, Question
-from examc_app.utils.amc_functions import get_amc_project_path
+from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
 from examc_app.utils.preparation_latex_functions import update_question_scoring_latex_file, update_answer_scoring_latex_file, update_global_scoring_latex_file
 
 
@@ -252,7 +252,7 @@ def get_exam_preview_job_dir(exam, job_id):
 
 
 def compile_exam_preview(exam, job_id, timeout=30):
-    amc_project_path = Path(get_amc_project_path(exam, False))
+    amc_project_path = Path(ensure_amc_project(exam))
     root_latex_file_path = amc_project_path / "exam.tex"
 
     if not root_latex_file_path.exists():
