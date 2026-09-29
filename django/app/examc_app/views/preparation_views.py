@@ -218,7 +218,7 @@ def prep_first_page_panel(request, exam_pk):
             exam.refresh_from_db()
 
             amc_project_path = get_amc_project_path(exam, False)
-            amc_project_template_path = f"{settings.AMC_PROJECTS_ROOT}/templates/base"
+            amc_project_template_path = f"{settings.AMC_TEMPLATES_DIR}/base"
             template_first_page_latex_path = f"{amc_project_template_path}/first_page_template.tex"
             first_page_latex_path_output = f"{amc_project_path}/first_page.tex"
 

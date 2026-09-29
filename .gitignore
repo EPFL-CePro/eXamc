@@ -460,6 +460,7 @@ __pycache__/
 *.pyc
 celery_schedule/
 media/
+!django/app/examc_app/amc_templates/base/media/
 export_tmp/
 static/          # si collectstatic génère ici (sinon adapte)
 *.sqlite3

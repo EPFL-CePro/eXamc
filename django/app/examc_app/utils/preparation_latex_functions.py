@@ -139,7 +139,7 @@ def write_exam_generated_vars(project_path: str, pages_per_copy: int | None) -> 
 
 def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
     amc_project_path = get_amc_project_path(exam, False)
-    amc_project_template_path = str(settings.AMC_PROJECTS_ROOT) + "/templates/base"
+    amc_project_template_path = str(settings.AMC_TEMPLATES_DIR) + "/base"
     template_exam_latex_path = amc_project_template_path + "/exam_template.tex"
     exam_latex_path_output = amc_project_path + "/exam.tex"
     exam_template = Path(template_exam_latex_path).read_text(encoding="utf-8")

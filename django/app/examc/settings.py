@@ -261,6 +261,9 @@ AMC_PROJECTS_ROOT = PRIVATE_MEDIA_ROOT / 'amc_projects/'
 AMC_PROJECTS_URL = '/amc_projects/'
 AMC_TMP_ROOT = PRIVATE_MEDIA_ROOT / 'amc_tmp'
 
+# AMC templates (versioned with the code, copied into each new AMC project)
+AMC_TEMPLATES_DIR = BASE_DIR / 'examc_app/amc_templates'
+
 # AMC config file
 AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
 
