@@ -4,7 +4,6 @@ import re
 import shutil
 import unicodedata
 
-import pypandoc
 from celery import shared_task
 from django.contrib.auth.models import User
 from django.contrib.sessions.models import Session
@@ -58,40 +57,6 @@ def add_course_teachers_ldap(scipers):
 
         teachers_list.append(user)
     return teachers_list
-
-
-def convert_html_to_latex(html_string):
-
-    # Convert HTML to LaTeX using Pandoc with the custom filter
-    latex_content = pypandoc.convert_text(
-        html_string,
-        'latex',
-        format='html',
-    )
-
-    # remove itemsep of itemize if exist
-    latex_content = latex_content.replace("\\begin{itemize}","\\begin{itemize}[noitemsep]")
-    # remove \tightlist
-    latex_content = latex_content.replace("\\tightlist","")
-    # add total_pages command if exist
-    latex_content = latex_content.replace("{[}TOTAL\\_PAGES{]}","\\totalPages\\")
-    # remove verbatim for latex code parts
-    latex_content = latex_content.replace("\\begin{verbatim}",'')
-    latex_content = latex_content.replace("\\end{verbatim}", '')
-    latex_content = latex_content.replace("\\$\\$", '$')
-
-    if latex_content.startswith("$"):
-        i = 1
-    else:
-        i = 0
-    content_formulas_list = latex_content.split("$")
-    for formula in content_formulas_list:
-        if i%2 != 0:
-            new_text = formula.replace("\\","").replace('textbackslash ','\\')
-            latex_content = latex_content.replace(formula,new_text)
-        i += 1
-
-    return latex_content
 
 def search_and_replace(file_path, search_word, replace_word):
    with open(file_path, 'r') as file:
