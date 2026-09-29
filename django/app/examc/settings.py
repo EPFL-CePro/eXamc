@@ -265,7 +265,7 @@ AMC_TMP_ROOT = PRIVATE_MEDIA_ROOT / 'amc_tmp'
 AMC_TEMPLATES_DIR = BASE_DIR / 'examc_app/amc_templates'
 
 # AMC config file
-AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
+AMC_CONFIG_FILE = AMC_TEMPLATES_DIR / 'config/amc_config.xml'
 
 # Documentation folder
 DOCUMENTATION_ROOT = STATIC_ROOT + '/docs/html/'
