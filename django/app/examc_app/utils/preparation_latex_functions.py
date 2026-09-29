@@ -114,9 +114,25 @@ def postprocess_latex(latex: str) -> str:
 
     return latex
 
+# Text copy-pasted from a LaTeX PDF keeps the font slots of ligatures (T1 encoding) or the
+# Unicode ligatures, and invisible control characters (e.g. U+0088 before bullets) that
+# pdflatex rejects
+PASTED_TEXT_REPLACEMENTS = {
+    "\x1b": "ff", "\x1c": "fi", "\x1d": "fl", "\x1e": "ffi", "\x1f": "ffl",
+    "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl",
+    "­": "",  # soft hyphen
+    "−": "-",  # minus sign, "-" is also right inside $...$ math
+}
+CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f​-‍﻿]")
+
+def clean_pasted_text(text: str) -> str:
+    for src, dst in PASTED_TEXT_REPLACEMENTS.items():
+        text = text.replace(src, dst)
+    return CONTROL_CHARS_RE.sub("", text)
+
 def markdown_to_latex_pandoc(markdown: str) -> str:
     latex = pypandoc.convert_text(
-        markdown or "",
+        clean_pasted_text(markdown or ""),
         to="latex",
         format="markdown+tex_math_dollars",
         extra_args=["--wrap=none"],
