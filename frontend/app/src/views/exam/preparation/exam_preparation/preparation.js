@@ -1359,7 +1359,8 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
 
     document.body.addEventListener("htmx:beforeSwap", function (event) {
         const target = event.detail.target;
-        if (!target) return;
+        // htmx does not swap error responses: keep the current editors alive
+        if (!target || !event.detail.shouldSwap) return;
 
         destroyMarkdownEditors(target);
     });
