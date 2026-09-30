@@ -36,7 +36,7 @@ export function initReports(config: ReportsConfig): void {
     const head = byId<HTMLTableSectionElement>('errorDataCaptureDialogTHead');
     const body = byId<HTMLTableSectionElement>('errorDataCaptureDialogTBody');
 
-    const addDialog = byId('addUnrecognizedPageDialog');
+    // const addDialog = byId('addUnrecognizedPageDialog');
     const addForm = byId<HTMLFormElement>('addUnrecognizedPageFrm');
     const addImageInput = byId<HTMLInputElement>('unrecognized_img_src');
 
