@@ -1,11 +1,14 @@
 import DataTable from 'datatables.net-dt';
 import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import {setupDatatables} from "@examc/helpers/datatables.ts";
 
 export function initUserSelectTable(options: {
     tableElement: HTMLTableElement;
     apiUrl: string;
 }): void {
     const { tableElement, apiUrl } = options;
+
+    setupDatatables();
 
     new DataTable(tableElement, {
         serverSide: true,

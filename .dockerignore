@@ -24,3 +24,5 @@ build/
 deploy/db/*
 export_tmp/*
 celery_schedule/*
+
+node_modules/

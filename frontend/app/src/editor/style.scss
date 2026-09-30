@@ -1,0 +1,8 @@
+// Reduce the left and right padding of the main editor canvas
+.milkdown .ProseMirror,
+.milkdown-menu-wrapper,
+.milkdown .crepe-editor {
+  padding-inline: 16px !important;
+  padding-block: 8px !important;
+  max-width: 100% !important;
+}

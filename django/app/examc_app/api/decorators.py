@@ -17,6 +17,11 @@ V = TypeVar("V", bound=APIView)
 Handler = Callable[Concatenate[V, Request, P], Response]
 
 
+class ExamScopedViewMixin:
+    """Views using this get `self.exam` set by @exam_permission_required."""
+    exam: Exam
+
+
 def exam_permission_required(
     perm_codenames: Sequence[str],
     *,
@@ -25,6 +30,7 @@ def exam_permission_required(
     """
     Strict mode: check exactly perm_codenames on the exam.
     Raises PermissionDenied / Http404, which DRF returns as JSON.
+    On views using ExamScopedViewMixin, the fetched exam is stored as `self.exam`.
     """
     def decorator(handler: Handler[V, P]) -> Handler[V, P]:
         @wraps(handler)
@@ -40,6 +46,8 @@ def exam_permission_required(
                 # check the permission on one of those groups
                 if not exam_group_names_allow(group_names, perm_codenames):
                     raise PermissionDenied(f"No permission for {list(perm_codenames)}.")
+
+            if isinstance(self, ExamScopedViewMixin): self.exam = exam
 
             return handler(self, request, *args, **kwargs)
         return _wrapped

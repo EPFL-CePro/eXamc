@@ -5,9 +5,9 @@
                 <div class="alert alert-danger mb-3">{{ error_msg }}</div>
             {% endif %}
             <form method="post"
-                  data-hx-post="{% url 'grading_scheme_panel' exam_selected.pk  grading_scheme.id %}"
-                  data-hx-target="#grading-scheme-panel"
-                  data-hx-swap="innerHTML">
+                  hx-post="{% url 'grading_scheme_panel' exam_selected.pk  grading_scheme.id %}"
+                  hx-target="#grading-scheme-panel"
+                  hx-swap="innerHTML">
                 {% csrf_token %}
                 <div class="row align-items-start"
                      style="--bs-gutter-x: 2rem; --bs-gutter-y: .5rem;margin-bottom: 1rem;">
@@ -49,9 +49,9 @@
                     </button>
                 {% else %}
                     <button class="btn btn-outline-danger btn-sm"
-                            data-hx-post="{% url 'delete_grading_scheme' exam_selected.pk grading_scheme.id %}"
-                            data-hx-target="#grading-scheme-panel"
-                            data-hx-swap="innerHTML"><i class="fa-solid fa-circle-minus fa-xl"
+                            hx-post="{% url 'delete_grading_scheme' exam_selected.pk grading_scheme.id %}"
+                            hx-target="#grading-scheme-panel"
+                            hx-swap="innerHTML"><i class="fa-solid fa-circle-minus fa-xl"
                                                    style="margin-right:5px;color:red;"></i>Delete
                     </button>
                 {% endif %}
@@ -70,10 +70,10 @@
         <div class="card-header fw-semibold">Checkboxes</div>
         <div class="card-body"
              id="chk-panel-{{ grading_scheme.id }}"
-             data-hx-get="{% url 'grading_scheme_checkboxes' exam_selected.id grading_scheme.id %}"
-             data-hx-trigger="revealed"
-             data-hx-target="this"
-             data-hx-swap="innerHTML">
+             hx-get="{% url 'grading_scheme_checkboxes' exam_selected.id grading_scheme.id %}"
+             hx-trigger="revealed"
+             hx-target="this"
+             hx-swap="innerHTML">
             <div class="text-muted">Loading…</div>
         </div>
     </div>

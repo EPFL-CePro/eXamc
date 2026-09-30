@@ -1,0 +1,28 @@
+.review-grading-scheme-split-vert {
+    height: 85vh;
+    width: 500px;
+    display: grid;
+    // noinspection CssUnresolvedCustomProperty
+    grid-template-rows: var(--top, 100px) 6px 1fr;
+
+    // Make the two panes scroll independently
+    & > .pane {
+        overflow: auto;
+    }
+
+    // The draggable bar between the panes
+    .divider {
+        background: #d9d9d9;
+        cursor: row-resize;
+        position: relative;
+    }
+
+    // a small handle (optional)
+    .divider::after {
+        content: "";
+        position: absolute;
+        inset: 0 45%;
+        border-left: 2px solid #bcbcbc;
+        border-right: 2px solid #bcbcbc;
+    }
+}

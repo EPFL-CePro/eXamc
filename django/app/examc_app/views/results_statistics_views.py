@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 # STUDENTS MANAGEMENT
-#@login_required
+
 @exam_permission_required(['manage','see_results'])
 @require_POST
 def update_student_present(request, exam_pk: int, student_pk: int, value: int):
@@ -52,7 +52,7 @@ def update_student_present(request, exam_pk: int, student_pk: int, value: int):
 
     return students_results_view(request, exam_pk=exam_pk, task_id=task_id)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 def import_data_4_stats(request,exam_pk:int, task_id=None):
     exam = Exam.objects.get(pk=exam_pk)
@@ -82,7 +82,7 @@ def import_data_4_stats(request,exam_pk:int, task_id=None):
         }
     )
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def upload_amc_csv(request, exam_pk):
@@ -103,7 +103,7 @@ def upload_amc_csv(request, exam_pk):
     return redirect(f"{url}?task_id={task_id}")
     #return import_data_4_stats(request,exam_pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk) + '/'+str(task_id))
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def upload_catalog_pdf(request, exam_pk):
@@ -123,7 +123,7 @@ def upload_catalog_pdf(request, exam_pk):
 
     return redirect('../import_data_4_stats/' + str(exam.pk))
 
-#@login_required
+
 @exam_permission_required(['manage','see_results'])
 def export_data(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
@@ -240,7 +240,7 @@ def export_data(request, exam_pk: int):
 
 # STATISTICS
 # ------------------------------------------
-#@login_required
+
 @exam_permission_required(['manage','see_results'])
 def generate_stats(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
@@ -250,7 +250,7 @@ def generate_stats(request, exam_pk):
 
     return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
 
-#@login_required
+
 @exam_permission_required(['manage','see_results'])
 def general_statistics_view(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
@@ -314,7 +314,7 @@ def general_statistics_view(request,exam_pk):
     )
 
 
-#@login_required
+
 @exam_permission_required(['manage','see_results'])
 def students_results_view(request, exam_pk: int, task_id=None):
     exam = Exam.objects.get(pk=exam_pk)
@@ -351,7 +351,7 @@ def students_results_view(request, exam_pk: int, task_id=None):
         return render(request, "res_and_stats/students_results.html", {"user_allowed":False, "scales": None, "students": None,"nav_url": "studentsResults"})
 
 
-#@login_required
+
 @exam_permission_required(['manage','see_results'])
 def questions_statistics_view(request,exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
@@ -402,7 +402,7 @@ def questions_statistics_view(request,exam_pk):
 # PDF
 # ------------------------------------------
 @xframe_options_exempt
-#@login_required
+
 @exam_permission_required(['manage','see_results'])
 def display_catalog(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)

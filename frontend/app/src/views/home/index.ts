@@ -5,6 +5,7 @@ import 'datatables.net-dt/css/dataTables.dataTables.min.css';
 import {initExamSelectTable} from "./examSelectTable";
 import {lastConnectedUsersTable} from "./lastConnectedUsersTable.ts";
 import "./dashboard.scss";
+import {byId} from "@examc/helpers/dom.ts";
 
 
 /**
@@ -12,9 +13,7 @@ import "./dashboard.scss";
  */
 document.addEventListener("DOMContentLoaded", () => {
     // exam select table
-    const examTableElement = document.querySelector<HTMLTableElement>("#dashboard-exam-table");
-
-    if (!examTableElement) return;
+    const examTableElement = byId<HTMLTableElement>("dashboard-exam-table");
     const examApiUrl = examTableElement.dataset.apiUrl;
 
     if (!examApiUrl) {

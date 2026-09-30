@@ -1,0 +1,47 @@
+// Selected row of the diagnosis table
+#table-copies-pages {
+    tbody {
+        tr {
+            &.is-current {
+                background-color: rgba(0, 0, 0, 0.14);
+                color: black;
+            }
+
+            &:not(.is-current) {
+                opacity: .7;
+            }
+
+            td {
+                &.sensitive {
+                    color: red;
+                }
+            }
+        }
+    }
+}
+
+// Box zooms, 8 per row
+.zoom-grid {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.zoom-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: none;
+    font-size: 0.75rem;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        border-color: #adb5bd;
+    }
+}

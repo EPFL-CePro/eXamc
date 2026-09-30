@@ -116,7 +116,7 @@ def ldap_search_exam_user_by_email(request, exam_pk: int):
             status=400
         )
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def update_exam_users(request: HttpRequest, exam_pk: int):
@@ -160,7 +160,7 @@ def update_exam_users(request: HttpRequest, exam_pk: int):
 
     return redirect('examInfo', exam_pk=exam.pk)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def update_exam_info(request, exam_pk: int):
@@ -231,7 +231,7 @@ class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
         context['exam_pk'] = self.kwargs['exam_pk']
         return context
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def delete_exam_scale(request, scale_pk, exam_pk):
@@ -257,7 +257,7 @@ def delete_exam_scale(request, scale_pk, exam_pk):
     return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def update_exam(request,exam_pk):
@@ -273,7 +273,7 @@ def update_exam(request,exam_pk):
 
     return HttpResponse(1)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def set_final_scale(request, scale_pk, exam_pk,all_common=0):
@@ -298,7 +298,7 @@ def set_final_scale(request, scale_pk, exam_pk,all_common=0):
     return redirect(reverse('examInfo', kwargs={'exam_pk': str(final_scale.exam.pk)}))
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def update_exam_options(request,exam_pk):
@@ -325,7 +325,6 @@ def update_exam_options(request,exam_pk):
 
 # QUESTIONS MANAGEMENT
 # ------------------------------------------
-# #@login_required
 # @exam_permission_required(['manage'])
 # def update_question(request,exam_pk):
 #     question = Question.objects.get(pk=request.POST['question_pk'])
@@ -337,7 +336,7 @@ def update_exam_options(request,exam_pk):
 #     return HttpResponse(1)
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def update_questions(request,exam_pk):
@@ -395,7 +394,7 @@ def set_common_exam(request,exam_pk):
 
         return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
 
-#@login_required
+
 # @exam_permission_required(['manage'])
 # def validate_common_exams_settings(request,overall_exam_pk):
     # overall_exam = Exam.objects.get(pk=overall_exam_pk)

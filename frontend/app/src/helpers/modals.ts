@@ -14,9 +14,9 @@ import { Modal } from "bootstrap";
  */
 export function getModal(
     options: {
-        type: "loading" | "local",
-        element?: HTMLElement | null,
-        modalOptions?: Partial<Modal.Options>
+        type: "loading" | "local";
+        element?: HTMLElement | null;
+        modalOptions?: Partial<Modal.Options>;
     }
 ): Modal {
     const { type, modalOptions } = options;
