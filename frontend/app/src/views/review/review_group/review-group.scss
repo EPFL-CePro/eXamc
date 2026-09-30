@@ -1,0 +1,357 @@
+// ---------------------------------------------------------------------------
+// Variables
+// ---------------------------------------------------------------------------
+
+$editor-bg: #3a3a3a;          // marker.js area, toolbar, bottom bar
+$editor-fg: #fff;
+$editor-active-bg: #616161;   // active tool button
+
+$hint-bg: rgba(255, 255, 255, 0.12);
+$hint-fg: #f0f0f0;
+$hint-top-bg: #f1f1f1;
+$hint-top-fg: #464646;
+$hint-top-border: #d6d6d6;
+
+$carousel-bg: #343a40;
+$carousel-list-bg: #bdbdbd;
+$carousel-active-bg: #f5e58b;
+
+$magnify-help-bg: #f1de94;
+$popover-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+
+$header-height: 140px;        // page header + hint row above the editor
+$hide-hints-below: 1200px;
+
+// Stacking order, lowest to highest
+$z-block-overlay: 10;
+$z-magnifier: 999;
+$z-carousel: 1000;
+$z-color-dialog: 9999;
+$z-magnify-help: 9999;
+$z-mini-dialog: 999999;
+
+// Bootstrap's pressed/focused states on the editor's light buttons
+%editor-button-states {
+    &.btn.btn-light.active,
+    &.btn.btn-light:active,
+    &.btn.btn-light:focus {
+        box-shadow: none !important; // Bootstrap's focus ring
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
+#reviewGroup_div {
+    // Focusable (tabindex="0") for the keyboard shortcuts; don't outline it.
+    &:focus {
+        outline: none;
+    }
+
+    // -----------------------------------------------------------------------
+    // Center column
+    // -----------------------------------------------------------------------
+
+    #review-center-div {
+        // Shortcut hints above the editor
+        .review-shortcuts-hint-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 4px;
+
+            @media (max-width: $hide-hints-below) {
+                display: none;
+            }
+
+            .review-shortcuts-hint {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 4px 8px;
+                border-radius: 6px;
+                background: $hint-bg;
+                color: $hint-fg;
+                font-size: 0.78rem;
+                line-height: 1.1;
+                white-space: nowrap;
+
+                &.review-shortcuts-hint-top {
+                    border: 1px solid $hint-top-border;
+                    background: $hint-top-bg;
+                    color: $hint-top-fg;
+
+                    .hint-icons {
+                        color: #373737;
+                    }
+                }
+
+                .hint-item {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+
+                .hint-icons {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    font-size: 0.72rem;
+                }
+            }
+        }
+
+        // -------------------------------------------------------------------
+        // Editor: toolbar / marker area / bottom bar
+        // -------------------------------------------------------------------
+
+        #markerjs_div {
+            height: calc(100vh - #{$header-height});
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            border-bottom: 1px solid $editor-bg;
+
+            .markerjs-toolbar {
+                display: flex;
+                flex: 0 0 auto;
+                width: 100%;
+                padding: 0;
+                gap: 0;
+                background: $editor-bg;
+
+                .btn {
+                    margin: 0 3px;
+                }
+
+                button {
+                    @extend %editor-button-states;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding-top: 15px;
+                    padding-bottom: 15px;
+                    background: $editor-bg;
+                    color: $editor-fg;
+                    cursor: pointer;
+                }
+
+                // Three zones, each taking a third and aligning its own buttons
+                .toolbar-left {
+                    flex: 1;
+                    justify-content: flex-start;
+                }
+
+                .toolbar-center {
+                    flex: 1;
+                    justify-content: center;
+
+                    // Highlight the selected tool
+                    .btn.btn-light {
+                        &.active,
+                        &:active,
+                        &:focus {
+                            background-color: $editor-active-bg !important;
+                            color: $editor-fg !important;
+                        }
+                    }
+                }
+
+                .toolbar-right {
+                    flex: 1;
+                    justify-content: flex-end;
+
+                    #magnify-help {
+                        position: fixed; // relative to the viewport, not the toolbar
+                        top: 10px;
+                        left: 50%;
+                        z-index: $z-magnify-help;
+                        max-width: 260px;
+                        padding: 6px 10px;
+                        border-radius: 4px;
+                        background: $magnify-help-bg;
+                        color: #5c4a00;
+                        font-size: 0.8rem;
+                        transform: translateX(-50%);
+                        pointer-events: none; // clicks go through
+                    }
+                }
+            }
+
+            #mjsapp {
+                position: relative;
+                display: block;
+                flex: 1 1 auto;
+                min-width: 0;
+                min-height: 0;
+                overflow: hidden;
+
+                #marker-wrapper {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    overflow: hidden;
+                    background: $editor-bg;
+
+                    // marker.js element: override the size and display it sets on itself
+                    mjs-marker-area {
+                        display: block !important;
+                        width: 100%;
+                        height: auto !important;
+                        overflow: visible;
+                        background: $editor-bg;
+                    }
+                }
+            }
+
+            .markerjs-bottom-bar {
+                display: none; // shown with .show
+                flex: 0 0 auto;
+                justify-content: center;
+                gap: 8px;
+                padding: 6px 10px;
+                border-top: 1px solid $editor-bg;
+                background: $editor-bg;
+                color: $editor-fg;
+
+                &.show {
+                    display: flex;
+                }
+
+                button {
+                    @extend %editor-button-states;
+                    color: $editor-fg;
+                }
+
+                .color-picker-wrapper {
+                    position: relative;
+                    display: inline-flex;
+                    align-items: center;
+
+                    // Created by the script, positioned above the color button
+                    .color-dialog {
+                        position: absolute;
+                        bottom: calc(100% + 6px);
+                        left: 50%;
+                        z-index: $z-color-dialog;
+                        display: none;
+                        padding: 4px 6px;
+                        border-radius: 6px;
+                        background: #fff;
+                        box-shadow: $popover-shadow;
+                        transform: translateX(-50%);
+
+                        &.show {
+                            display: block;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Grading schemes (right column)
+    // -----------------------------------------------------------------------
+
+    #grading-scheme-div {
+        // Covers the schemes when the page isn't part of the review group (shown via JS).
+        .block-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: $z-block-overlay;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: auto; // block clicks to what's underneath
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Discussion modal (sibling of #reviewGroup_div)
+// ---------------------------------------------------------------------------
+
+#commentsModal {
+    .modal-header {
+        // Drag handle for moving the dialog
+        &.handle {
+            cursor: move;
+        }
+    }
+}
+
+// ===========================================================================
+// Script-created elements whose parent isn't in the template
+// (nest them under their container once you know where the script inserts them)
+// ===========================================================================
+
+.magnifier-glass {
+    position: absolute;
+    z-index: $z-magnifier;
+    width: 250px;
+    height: 250px;
+    border: 3px solid #000;
+    border-radius: 50%;
+    cursor: none;
+    pointer-events: none;
+}
+
+.mini-dialog {
+    position: absolute;
+    z-index: $z-mini-dialog;
+    display: none;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: #fff;
+}
+
+// Copy/page picker (dropdown carousel), probably rendered into #copy_page_select
+.page-picker-wrapper {
+    position: relative;
+    display: inline-block;
+
+    .page-carousel {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: $z-carousel;
+        width: 100%;
+        max-height: 50vh;
+        margin-top: 4px;
+        overflow-y: auto;
+        border-radius: 6px;
+        background: $carousel-bg;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+        &.is-open {
+            display: block;
+        }
+
+        .page-carousel-list {
+            width: 100%;
+            background: $carousel-list-bg;
+
+            .page-carousel-item {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 36px;
+                color: #fff;
+                font-size: 10px;
+                text-transform: uppercase;
+                cursor: pointer;
+                user-select: none;
+
+                &.page-active {
+                    background: $carousel-active-bg;
+                    color: #000;
+                }
+            }
+        }
+    }
+}
