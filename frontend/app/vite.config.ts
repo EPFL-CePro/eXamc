@@ -20,10 +20,14 @@ export default defineConfig({
     manifest: "manifest.json",
     rolldownOptions: {
       input: {
+        // Shared entries used by multiple views
+        "examc": resolve(import.meta.dirname, 'src/styles/examc.scss'),
+
         // Entries used by single views
         "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
         "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
         "amc/amc_data_capture_manual": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture_manual/index.ts'),
+        "amc/amc_data_capture": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture/index.ts'),
         "csvgen/csvgen": resolve(import.meta.dirname, 'src/views/csvgen/csvgen/index.ts'),
         "impersonation/select_user": resolve(import.meta.dirname, 'src/views/impersonation/select_user/index.ts'),
         "res_and_stats/students_results": resolve(import.meta.dirname, 'src/views/res_and_stats/students_results/index.ts'),
