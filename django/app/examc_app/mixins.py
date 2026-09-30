@@ -67,4 +67,11 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
         if not self.request.user.is_authenticated:
             return self.handle_no_permission()
         # hide whether exam exists
-        return TemplateResponse(self.request, "no_access.html",{"message": msg}, status=403)
+        return TemplateResponse(
+            self.request,
+            "unauthorized.html",
+            {
+                "message": msg
+            },
+            status=403
+        )
