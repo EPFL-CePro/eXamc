@@ -1,24 +1,19 @@
 import csv
-
 import os
+import pathlib
 import shutil
 import time
-import pathlib
 from functools import lru_cache
 
 import cv2
+import pyzbar.pyzbar as pyzbar
 from PIL import Image, ImageStat
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Sum
-from docutils.nodes import entry
 from fpdf import FPDF
 
 from examc_app.models import *
-import pyzbar.pyzbar as pyzbar
-
-from django.db import transaction
-from django.utils import timezone
-
 from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries import get_question_start_page_by_student
 from examc_app.utils.amc_functions import get_amc_project_path
@@ -27,20 +22,20 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 UNRECOGNIZED_REVIEW_SCAN_DIR = "unrecognized"
 
 
-def get_exam_scans_subdir(exam):
+def get_exam_scans_subdir(exam: Exam) -> str:
     return f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
 
 
-def get_exam_scans_dir(exam):
+def get_exam_scans_dir(exam: Exam) -> pathlib.Path:
     return pathlib.Path(settings.SCANS_ROOT) / get_exam_scans_subdir(exam)
 
 
-def get_scan_relative_path(path):
+def get_scan_relative_path(path: str) -> str:
     return pathlib.Path(path).relative_to(pathlib.Path(settings.SCANS_ROOT)).as_posix()
 
 
-def is_review_copy_dir_name(name):
-    return name.isdigit() and name != "0000"
+def is_review_copy_dir_name(name: str) -> bool:
+    return bool(name.isdigit() and name != "0000")
 
 
 def iter_review_copy_dirs(scans_dir):
@@ -935,10 +930,18 @@ def get_grading_scheme_checkboxes(grading_scheme_id, copy_nr):
 
     return grading_scheme_checkboxes_list
 
-def other_grading_scheme_used(grading_scheme, copy_nr):
-    pages_group_gs_checkedboxes = PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=grading_scheme.pages_group, copy_nr=copy_nr).exclude(gradingSchemeCheckBox__questionGradingScheme=grading_scheme)
-    if pages_group_gs_checkedboxes:
-        return pages_group_gs_checkedboxes[0].gradingSchemeCheckBox.questionGradingScheme
+def other_grading_scheme_used(grading_scheme: QuestionGradingScheme, copy_nr: int) -> QuestionGradingScheme | None:
+    pages_group_gs_checkboxes = PagesGroupGradingSchemeCheckedBox.objects.filter(
+        pages_group=grading_scheme.pages_group, copy_nr=copy_nr
+    ).exclude(
+        gradingSchemeCheckBox__questionGradingScheme=grading_scheme
+    )
+
+    if pages_group_gs_checkboxes:
+        checkbox = pages_group_gs_checkboxes[0].gradingSchemeCheckBox
+        if checkbox is not None:
+            return checkbox.questionGradingScheme
+
     return None
 
 def get_question_points(grading_scheme, copy_nr):
