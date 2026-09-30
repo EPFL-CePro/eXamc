@@ -1,11 +1,10 @@
-// nicer dragging feel
+// nicer dragging feel (global)
 .dragging {
     user-select: none;
     cursor: row-resize;
 }
 
-#commentsModal .modal-header.handle { cursor: move; }
-
+// impersonation banner (base.html)
 .impersonation-banner {
     align-items: center;
     border-radius: 0;
@@ -23,8 +22,25 @@
         padding-right: 16px;
         text-align: left;
     }
+
+    .impersonation-stop-form {
+        margin: 0;
+    }
 }
 
-.impersonation-stop-form {
-    margin: 0;
+
+// global Datatables bugfix and tweaks
+.dt-container {
+    label {
+        display: unset!important;
+    }
+
+    .dt-scroll-head {
+        overflow: visible!important;
+
+        .dtcc-popover {
+            font-size: .8rem!important;
+            text-transform: none !important;
+        }
+    }
 }
