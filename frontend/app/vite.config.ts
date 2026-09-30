@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import checker from 'vite-plugin-checker';
 
 export default defineConfig({
   base: '/static/vite',
@@ -8,14 +9,21 @@ export default defineConfig({
       '@examc': resolve(import.meta.dirname, 'src'),
     },
   },
+  plugins: [
+    checker({
+      typescript: true,
+      eslint: { lintCommand: 'eslint .', useFlatConfig: true },
+    }),
+  ],
   build: {
     outDir: resolve(import.meta.dirname, 'dist/vite'),
     manifest: "manifest.json",
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         // Entries used by single views
         "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
         "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
+        "amc/amc_data_capture_manual": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture_manual/index.ts'),
         "csvgen/csvgen": resolve(import.meta.dirname, 'src/views/csvgen/csvgen/index.ts'),
         "impersonation/select_user": resolve(import.meta.dirname, 'src/views/impersonation/select_user/index.ts'),
         "res_and_stats/students_results": resolve(import.meta.dirname, 'src/views/res_and_stats/students_results/index.ts'),
