@@ -12,6 +12,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os
+import tomllib
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -46,12 +47,12 @@ else:
 # Enables Vite's dev mode (hot reload)
 VITE_DEV_MODE = os.environ.get("VITE_DEV_MODE", "0").lower() == "1"
 
-# Version and about information
-VERSION_FILE = BASE_DIR / "VERSION"
+# Version and about information: the version of pyproject.toml, also used by the CI to tag the prod image
 try:
-    APP_VERSION = VERSION_FILE.read_text(encoding="utf-8").strip()
-except FileNotFoundError:
-    APP_VERSION = "dev"  # valeur par défaut si le fichier manque
+    with open(BASE_DIR / "pyproject.toml", "rb") as pyproject_file:
+        APP_VERSION = tomllib.load(pyproject_file)["project"]["version"]
+except (FileNotFoundError, KeyError, tomllib.TOMLDecodeError):
+    APP_VERSION = "dev"  # default value if the version cannot be read
 
 APP_NAME = "eXamc"
 APP_LICENSE = "Business Source License (non-commercial)"
