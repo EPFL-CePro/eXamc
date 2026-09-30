@@ -29,7 +29,7 @@ class LoginRequiredMiddleware:
             logger.info("Unauthenticated access blocked: %s", request.get_full_path())
             return render(
                 request,
-                "unautorized.html",
+                "unauthorized.html",
                 { "next": request.get_full_path() },
                 status=403,
             )

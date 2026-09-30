@@ -14,13 +14,19 @@ services:
       service: redis
       file: base.yml
 
+  nginx:
+    extends:
+      service: nginx
+      file: base.yml
+    volumes:
+      - ./deploy/nginx/nginx.test.conf:/etc/nginx/nginx.conf:ro
+      # TODO: provide an example private_media dir to integrate in CI/CD
+      # - ./data/private_media:/private_media:ro
+
   fe-artifacts:
-    build:
-      context: ../frontend
-      target: artifact
+    image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
-      - ../frontend/app/:/app/frontend:z
       - static_volume:/static
     restart: "no"
 
@@ -28,9 +34,7 @@ services:
     extends:
       service: django
       file: base.yml
-    build:
-      context: ../django
-      target: test
+    image: "${TEST_IMAGE:-localhost/examc-django-test}:${IMAGE_TAG_DJANGO:-latest}"
     command: ["pytest"]
     environment:
       TESTING_MODE_ENABLED: "1"
@@ -43,7 +47,6 @@ services:
       mysql:
         condition: service_healthy
     volumes:
-      - ../django/app/:/app:z
       # TODO: decide whether media_volume should be :ro here or across every django service consistently
       - media_volume:/media:ro
       - ../django/app:/app
@@ -54,3 +57,4 @@ volumes:
   redis_data:
   static_volume:
   media_volume:
+  client_temp:
