@@ -1,5 +1,7 @@
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
 
+from django.http import QueryDict
 from rest_framework import viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
@@ -10,23 +12,55 @@ from examc_app.api.decorators import exam_permission_required, ExamScopedViewMix
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.utils.global_functions import user_allowed
 
-# DataTables column index -> sort key(s)
+# Question states, with the label shown in the State column's list
+QUESTION_STATES = {"invalid": "Invalid", "empty": "Empty"}
+
+
+def _problem_count(row: dict[str, Any]) -> int:
+    return sum(row["state_counts"].values())
+
+
+# DataTables column data name -> sort key
 ORDERING_COLUMNS: dict[str, Callable[[dict[str, Any]], tuple[Any, ...]]] = {
     "copy": lambda r: (r["copy"], r["page"]),
     "page": lambda r: (r["page"], r["copy"]),
+    "states": lambda r: (len(r["states"]), "invalid" in r["states"], r["copy"], r["page"]),
     "mse": lambda r: (r["mse"] or 0,),
     "sensitivity": lambda r: (r["sensitivity"] or 0,),  # None sensitivity sorts as 0
     "timestamp_manual": lambda r: (1 if r["timestamp_manual"] else 0, r["copy"], r["page"]),
 }
 
-def _int_param(params, name: str, default: int) -> int:
+
+def _int_param(params: QueryDict, name: str, default: int) -> int:
     try:
         return int(params.get(name, default))
     except (TypeError, ValueError):
         return default
 
 
+def _column_index(params: QueryDict, data_name: str) -> str | None:
+    """Index of the DataTables column whose `data` is data_name."""
+    for key, value in params.items():
+        if value == data_name and key.startswith("columns[") and key.endswith("][data]"):
+            return key[len("columns["):-len("][data]")]
+    return None
+
+
+def _column_list(params: QueryDict, data_name: str) -> list[str]:
+    """Values selected in a column's ColumnControl searchList (sent as [list][] or [list][0], [list][1]...)."""
+    index = _column_index(params, data_name)
+    if index is None:
+        return []
+    prefix = f"columns[{index}][columnControl][list]"
+    return [v for key in params if key.startswith(prefix) for v in params.getlist(key)]
+
+
 class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
+    """
+    Pages needing manual data capture, in DataTables server-side format.
+
+    GET /api/exams/<exam_pk>/amc-data-capture-manual/
+    """
     permission_classes = [IsAuthenticated]
 
     @exam_permission_required(["manage"])
@@ -47,15 +81,21 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
         if search:
             rows = [r for r in rows if search in str(r["copy"]) or search in str(r["page"])]
 
-        # type / question filters (same markers as questions_ids)
-        question_id = _int_param(params, "question", 0)
-        marker = f"%{question_id}%" if question_id > 0 else ""
-        marker += {"invalid": "|INV|", "empty": "|EMP|"}.get(params.get("type", "all"), "")
-        if marker:
-            rows = [r for r in rows if marker in r["questions_ids"]]
+        # Questions + State lists (ColumnControl): keep pages having a question matching both.
+        # Several values in one list are combined with OR.
+        question_ids = {int(v) for v in _column_list(params, "page_questions") if v.isdigit()}
+        states = {v for v in _column_list(params, "states") if v in QUESTION_STATES}
+        if question_ids or states:
+            rows = [
+                r for r in rows
+                if any(
+                    (not question_ids or q["id"] in question_ids) and (not states or q["state"] in states)
+                    for q in r["page_questions"]
+                )
+            ]
         records_filtered = len(rows)
 
-        # ordering
+        # ordering, by the clicked column's data name (robust to column reordering)
         order_column = params.get("order[0][column]", "")
         sort_key = ORDERING_COLUMNS.get(params.get(f"columns[{order_column}][data]", ""))
         if sort_key:
@@ -72,6 +112,10 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
             "recordsTotal": records_total,
             "recordsFiltered": records_filtered,
             "data": rows,
-            "questions": data["questions"],
             "copies": data["copies"],
+            # options for the ColumnControl searchLists, keyed by column data name
+            "columnControl": {
+                "page_questions": [{"label": q["name"], "value": q["question"]} for q in data["questions"]],
+                "states": [{"label": label, "value": value} for value, label in QUESTION_STATES.items()],
+            },
         })

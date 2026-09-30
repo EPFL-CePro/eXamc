@@ -277,15 +277,9 @@ def amc_view(request, exam_pk: int, curr_tab: str | None = None, task_id: str | 
 def amc_data_capture_manual(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
 
-    amc_data_path = get_amc_project_path(exam, False)
-
     context: dict[str, Any] = {'nav_url': 'amc_data_capture_manual'}
 
     if user_allowed(exam, request.user.id):
-        data = get_amc_data_capture_manual_data(exam)
-
-        if data is not None: context['data_questions'] = data["questions"]
-
         context['exam_selected'] = exam
 
         if exam.common_exams:

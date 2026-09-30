@@ -1,17 +1,35 @@
 import DataTable, { type Api } from 'datatables.net-dt';
+import 'datatables.net-columncontrol-dt';
 import 'datatables.net-dt/css/dataTables.dataTables.css';
+import 'datatables.net-columncontrol-dt/css/columnControl.dataTables.css';
 
-import { questionButton, tableElement, typeButton } from './elements.ts';
+import { tableElement } from './elements.ts';
 import { clearPage, loadPage } from './scan.ts';
 import { state } from './state.ts';
-import type {PageQuestion, PageRow, QuestionFilter, TypeFilter} from './types.ts';
+import type {PageQuestion, PageRow, QuestionState} from './types.ts';
 
 // ---------------------------------------------------------------------------
 // Table
 // ---------------------------------------------------------------------------
 
+/** Filter-related parts of the last request, to detect when the filters changed. */
+let lastFilterKey: string | null = null;
+
 /**
- * Creates the server-side pages table. The type and question filters are sent with every request.
+ * Serializes the filter-related request parameters (global search, type, ColumnControl selections).
+ * Paging and ordering are left out, so moving between pages doesn't count as a filter change.
+ *
+ * @param {Record<string, unknown>} params - The parameters of an Ajax request.
+ * @return {string} A key that changes only when the filters change.
+ */
+function filterKey(params: Record<string, unknown>): string {
+    const columns = (params['columns'] as { columnControl?: unknown }[] | undefined) ?? [];
+    return JSON.stringify([params['search'], params['type'], columns.map((c) => c.columnControl)]);
+}
+
+/**
+ * Creates the server-side pages table. The type filter is sent with every request;
+ * the question filter is the questions column's ColumnControl list.
  *
  * @return {Api<unknown>} The DataTables instance (also stored in `state.table`).
  */
@@ -19,7 +37,6 @@ export function initTable(): Api<unknown> {
     const apiUrl = tableElement.dataset['apiUrl'];
     if (!apiUrl) throw new Error('#table-copies-pages is missing its data-api-url attribute');
 
-    // TODO - add https://datatables.net/manual/extensions/columncontrol/
     const table = new DataTable(tableElement, {
         serverSide: true,
         processing: true,
@@ -27,7 +44,7 @@ export function initTable(): Api<unknown> {
         lengthMenu: [500, 1000, 2000, 3000, 4000],
         ajax: {
             url: apiUrl,
-            data: (d) => Object.assign(d, { type: state.typeFilter, question: state.questionFilter.id }),
+            data: (d) => Object.assign(d, { type: state.typeFilter }),
         },
         columns: [
             { data: 'copy' },
@@ -35,6 +52,7 @@ export function initTable(): Api<unknown> {
             {
                 data: 'page_questions',
                 orderable: false,
+                columnControl: [['searchList']], // nested array = dropdown; options come from the server
                 render: (questions: PageQuestion[] | undefined) =>
                     (questions ?? [])
                         .map((q) => {
@@ -45,34 +63,49 @@ export function initTable(): Api<unknown> {
                         })
                         .join(''),
             },
+            {
+                data: 'states',
+                className: 'text-center',
+                columnControl: [['searchList']],
+                render: (states: QuestionState[]) => {
+                    const state_labels: Record<QuestionState, string> = { invalid: 'Invalid', empty: 'Empty' };
+                    return states
+                        .map((s) => `<span class="q-badge q-badge-${s}">${state_labels[s]}</span>`)
+                        .join('');
+                }
+            },
             { data: 'mse', render: (v: number | null) => (v == null ? '' : v.toFixed(2)) },
-            { data: 'sensitivity', render: (v: number | null) => (v ? String(v) : '-') },
+            {
+                data: 'sensitivity',
+                render: (v: number | null) => (v ? String(v) : '-'),
+                createdCell: (cell, v: number | null) => {
+                    if ((v ?? 0) > 0) {
+                        (cell as HTMLTableCellElement).style.cssText = 'background-color: red; color: black;';
+                    }
+                },
+            },
             {
                 data: 'timestamp_manual',
                 className: 'text-center',
-                render: (v: number | null, type: string) => {
-                    if (type !== 'display') return v ? 1 : 0; // same as data-order
-                    return v ? '<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>' : '';
-                },
+                render: (v: number | null) => (v ? '<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>' : ''),
             },
         ],
-        createdRow: function (row: HTMLTableRowElement, data): void {
-            const d = data as PageRow;
-            row.dataset['copy'] = String(d.copy);
-            row.dataset['page'] = String(d.page);
-            row.dataset['questions'] = d.questions_ids;
-            if ((d.sensitivity ?? 0) > 0 && row.cells[3]) {
-                row.cells[3].style.cssText = 'background-color: red; color: black;';
-            }
-        },
         layout: {
+            topEnd: "info",
             bottomStart: null,
             bottomEnd: null,
-            bottom: "paging",
-            bottom1: "info",
-            topEnd: null
+            bottom: "paging"
         },
-        scrollY: '70vh',
+        autoWidth: false,
+        scrollY: '80vh',
+    });
+
+    // On the initial load and after any filter change (question list, type, search): select the first row.
+    table.on('draw', () => {
+        const key = filterKey(table.ajax.params() as Record<string, unknown>);
+        if (key === lastFilterKey) return;
+        lastFilterKey = key;
+        selectFirstRow();
     });
 
     state.table = table;
@@ -87,6 +120,16 @@ export function initTable(): Api<unknown> {
 function pageRows(): HTMLTableRowElement[] {
     if (!state.table) return [];
     return state.table.rows({ page: 'current' }).nodes().toArray() as HTMLTableRowElement[];
+}
+
+/**
+ * The API data behind a table row, or undefined for non-data rows ("No data", "Processing").
+ *
+ * @param {HTMLTableRowElement} row - A row of the table.
+ * @return {PageRow | undefined} Its data.
+ */
+function rowData(row: HTMLTableRowElement): PageRow | undefined {
+    return state.table?.row(row).data() as PageRow | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,15 +148,18 @@ function scrollToRow(row: HTMLTableRowElement): void {
 }
 
 /**
- * Highlights a row as the current one and loads its page.
+ * Highlights a row as the current one and loads its page. Rows without data are ignored.
  *
  * @param {HTMLTableRowElement} row - The row to select.
  */
 export function selectRow(row: HTMLTableRowElement): void {
+    const data = rowData(row);
+    if (!data) return;
+
     state.currentRow?.classList.remove('is-current');
     row.classList.add('is-current');
     state.currentRow = row;
-    void loadPage(row);
+    void loadPage(data);
 }
 
 /** Selects the first row of the current table page, or shows the placeholder if there is none. */
@@ -161,30 +207,4 @@ export function navigate(step: 1 | -1): void {
         }
     });
     table.page(nextPage).draw('page');
-}
-
-// ---------------------------------------------------------------------------
-// Filters
-// ---------------------------------------------------------------------------
-
-/** Shows the current filters on the dropdown buttons. */
-export function updateFilterLabels(): void {
-    typeButton.textContent = state.typeFilter;
-    questionButton.textContent = state.questionFilter.name;
-}
-
-/**
- * Applies new filters: reloads the table from the server, then selects the first matching row.
- *
- * @param {TypeFilter} type - The type filter.
- * @param {QuestionFilter} question - The question filter.
- */
-export function setFilters(type: TypeFilter, question: QuestionFilter): void {
-    state.typeFilter = type;
-    state.questionFilter = question;
-    updateFilterLabels();
-
-    if (!state.table) return;
-    state.table.one('draw', selectFirstRow);
-    state.table.ajax.reload();
 }

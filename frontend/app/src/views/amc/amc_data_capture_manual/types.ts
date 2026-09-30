@@ -1,27 +1,13 @@
-export type TypeFilter = 'all' | 'invalid' | 'empty';
-
-export interface QuestionFilter {
-    id: number;
-    name: string;
-}
-
-/** One row of the pages table, as returned by the API. */
-export interface PageRow {
-    copy: number | string;
-    page: number | string;
-    mse: number | null;
-    timestamp_auto: number | null;
-    timestamp_manual: number | null;
-    sensitivity: number | null;
-    questions_ids: string;
-}
+/** A question state that needs attention. */
+export type QuestionState = 'invalid' | 'empty';
 
 /** A question on a page, with its special state if any. */
 export interface PageQuestion {
     id: number;
     name: string;
-    state: 'invalid' | 'empty' | null;
+    state: QuestionState | null;
 }
+
 
 /** One row of the pages table, as returned by the API. */
 export interface PageRow {
@@ -31,8 +17,8 @@ export interface PageRow {
     timestamp_auto: number | null;
     timestamp_manual: number | null;
     sensitivity: number | null;
-    questions_ids: string;
     page_questions: PageQuestion[];
+    states: QuestionState[];
 }
 
 /** One corner of a mark zone, as returned by get_amc_marks_positions. */

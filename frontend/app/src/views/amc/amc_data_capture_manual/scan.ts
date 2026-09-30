@@ -2,7 +2,7 @@ import { draw } from './drawing.ts';
 import { urls } from './elements.ts';
 import { parseJson, parseScanPath, postText } from './http.ts';
 import { state } from './state.ts';
-import type { MarkPosition, Zone } from './types.ts';
+import type { MarkPosition, PageRow, Zone } from './types.ts';
 
 /**
  * Turns a scan file path into the URL it is served from.
@@ -42,27 +42,18 @@ async function fetchMarks(copy: string, page: string): Promise<MarkPosition[]> {
 }
 
 /**
- * Loads the scan and marks of the page in a table row, then draws it.
+ * Loads the scan and marks of a page, then draws it.
  *
- * @param {HTMLTableRowElement} row - A row with `data-copy`, `data-page` and `data-questions`.
+ * @param {PageRow} row - The page's row data.
  */
-export async function loadPage(row: HTMLTableRowElement): Promise<void> {
+export async function loadPage(row: PageRow): Promise<void> {
     const token = ++state.loadToken;
-    const copy = row.dataset['copy'] ?? '';
-    const page = row.dataset['page'] ?? '';
-    const questions = row.dataset['questions'] ?? '';
+    const copy = String(row.copy);
+    const page = String(row.page);
 
     try {
-        let scanPath: string;
-        let marks: MarkPosition[] = [];
-
-        if (questions.includes('/scans/extra/')) {
-            // Extra pages have no mark zones; the field holds the scan path itself.
-            scanPath = questions;
-        } else {
-            scanPath = parseScanPath(await postText(urls.scanUrl, { copy, page }));
-            marks = await fetchMarks(copy, page);
-        }
+        const scanPath = parseScanPath(await postText(urls.scanUrl, { copy, page }));
+        const marks = await fetchMarks(copy, page);
 
         const image = await loadImage(toScanUrl(scanPath));
         if (token !== state.loadToken) return;

@@ -160,10 +160,14 @@ def get_amc_data_capture_manual_data(exam: Exam) -> AmcDataCaptureManualData | N
     question_names = {q["question"]: q["name"] for q in questions}
 
     questions_by_page = select_manual_data_capture_questions_by_page(amc_data_path)
+
     for page in pages:
-        page_rows = questions_by_page.get(_page_key(page["copy"], page["page"]))
-        page["questions_ids"] = _build_questions_ids(page_rows)  # still used by the filters
-        page["page_questions"] = _page_questions(page_rows, question_names)
+        page_questions = _page_questions(
+            questions_by_page.get(_page_key(page["copy"], page["page"])),
+            question_names,
+        )
+        page["page_questions"] = page_questions
+        page["states"] = [s for s in ("invalid", "empty") if any(q["state"] == s for q in page_questions)]
 
     return AmcDataCaptureManualData(
         pages=pages,

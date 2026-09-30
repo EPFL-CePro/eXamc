@@ -2,7 +2,7 @@
   "name": "frontend",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.6.0",
+  "packageManager": "pnpm@12.8.1",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build --emptyOutDir",
@@ -35,6 +35,7 @@
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
     "datatables.net-buttons-dt": "^4.0.3",
+    "datatables.net-columncontrol-dt": "^2.1.1",
     "datatables.net-dt": "^3.0.4",
     "datatables.net-select-dt": "^4.0.1",
     "html2canvas": "^1.4.1",
