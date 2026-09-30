@@ -19,8 +19,11 @@ export default defineConfig([
   {
     files: jsTs,
     extends: [js.configs.recommended, tseslint.configs.recommended],
-    languageOptions: {
-      globals: globals.browser,
+        languageOptions: {
+      globals: {
+        ...globals.browser,
+        CeleryProgressBar: "readonly", // loaded by celery-progress's script; typed in src/types/definitions/celery-progress.d.ts
+      },
     },
     rules: {
       "no-undef": "error",
