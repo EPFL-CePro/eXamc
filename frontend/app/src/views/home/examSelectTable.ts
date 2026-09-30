@@ -1,11 +1,13 @@
 import DataTable from 'datatables.net-dt';
-import {getLayoutElementsSeparator} from "@examc/helpers/datatables.ts";
+import {getLayoutElementsSeparator, setupDatatables} from "@examc/helpers/datatables.ts";
 
 export function initExamSelectTable(options: {
     tableElement: HTMLTableElement;
     apiUrl: string;
 }): void {
     const { tableElement, apiUrl } = options;
+
+    setupDatatables();
 
     new DataTable(tableElement, {
         serverSide: true,

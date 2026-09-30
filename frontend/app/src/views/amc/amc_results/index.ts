@@ -10,6 +10,7 @@ import { type ExamcEditor } from '@examc/types/editor';
 import { setAjaxInfoModalLocked } from '@examc/helpers/ajax-info-modal.ts';
 import { initEditor, getEditorContent } from "@examc/editor/index.ts";
 import {byId, csrfToken, icon, requireData, sleep} from "@examc/helpers/dom.ts";
+import {setupDatatables} from "@examc/helpers/datatables.ts";
 
 
 // ---------------------------------------------------------------------------
@@ -261,6 +262,8 @@ function buildSendTable(rows: StudentRow[]): void {
 
     // avoid reinitializing the table
     if (DataTable.isDataTable(sendTableElement)) return;
+
+    setupDatatables();
 
     sendTable = new DataTable(sendTableElement, {
         scrollY: '25vh',

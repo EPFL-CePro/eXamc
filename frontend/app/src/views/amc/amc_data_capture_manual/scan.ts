@@ -1,6 +1,6 @@
 import { draw } from './drawing.ts';
 import { urls } from './elements.ts';
-import { parseJson, parseScanPath, postText } from './http.ts';
+import { parseJson, parseScanPath, postText } from '@examc/helpers/http.ts';
 import { state } from './state.ts';
 import type { MarkPosition, PageRow, Zone } from './types.ts';
 

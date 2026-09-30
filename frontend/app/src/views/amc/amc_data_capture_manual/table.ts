@@ -1,12 +1,14 @@
 import DataTable, { type Api } from 'datatables.net-dt';
-import 'datatables.net-columncontrol-dt';
 import 'datatables.net-dt/css/dataTables.dataTables.css';
+
+import 'datatables.net-columncontrol-dt';
 import 'datatables.net-columncontrol-dt/css/columnControl.dataTables.css';
 
 import { tableElement } from './elements.ts';
 import { clearPage, loadPage } from './scan.ts';
 import { state } from './state.ts';
 import type {PageQuestion, PageRow, QuestionState} from './types.ts';
+import {setupDatatables} from "@examc/helpers/datatables.ts";
 
 // ---------------------------------------------------------------------------
 // Table
@@ -37,31 +39,36 @@ export function initTable(): Api<unknown> {
     const apiUrl = tableElement.dataset['apiUrl'];
     if (!apiUrl) throw new Error('#table-copies-pages is missing its data-api-url attribute');
 
+    setupDatatables();
+
     const table = new DataTable(tableElement, {
         serverSide: true,
         processing: true,
         pageLength: 500,
         lengthMenu: [500, 1000, 2000, 3000, 4000],
-        ajax: {
-            url: apiUrl,
-            data: (d) => Object.assign(d, { type: state.typeFilter }),
+        columnControl: ['info', 'order'],
+        ordering: {
+            indicators: false,
+            handler: false
         },
+        ajax: apiUrl,
         columns: [
             { data: 'copy' },
             { data: 'page' },
+            { data: 'mse', render: (v: number | null) => (v == null ? '' : v.toFixed(2)) },
             {
-                data: 'page_questions',
-                orderable: false,
-                columnControl: [['searchList']], // nested array = dropdown; options come from the server
-                render: (questions: PageQuestion[] | undefined) =>
-                    (questions ?? [])
-                        .map((q) => {
-                            const stateClass = q.state ? ` q-badge-${q.state}` : '';
-                            const title = q.state ? ` title="${q.state}"` : '';
-                            const name = DataTable.util.escapeHtml(q.name);
-                            return `<span class="q-badge${stateClass}"${title}>${name}</span>`;
-                        })
-                        .join(''),
+                data: 'sensitivity',
+                render: (v: number | null) => (v ? String(v) : '-'),
+                createdCell: (cell: HTMLTableCellElement, v: number | null) => {
+                    if ((v ?? 0) > 0) {
+                        (cell as HTMLTableCellElement).classList.add("sensitive");
+                    }
+                },
+            },
+            {
+                data: 'timestamp_manual',
+                className: 'text-center',
+                render: (v: number | null) => (v ? '<i class="fas fa-user-pen fa-sm" style="color: #0d72bf;"></i>' : ''),
             },
             {
                 data: 'states',
@@ -70,24 +77,23 @@ export function initTable(): Api<unknown> {
                 render: (states: QuestionState[]) => {
                     const state_labels: Record<QuestionState, string> = { invalid: 'Invalid', empty: 'Empty' };
                     return states
-                        .map((s) => `<span class="q-badge q-badge-${s}">${state_labels[s]}</span>`)
+                        .map((s) => `<span class="badge badge-secondary ${s}">${state_labels[s]}</span>`)
                         .join('');
                 }
             },
-            { data: 'mse', render: (v: number | null) => (v == null ? '' : v.toFixed(2)) },
             {
-                data: 'sensitivity',
-                render: (v: number | null) => (v ? String(v) : '-'),
-                createdCell: (cell, v: number | null) => {
-                    if ((v ?? 0) > 0) {
-                        (cell as HTMLTableCellElement).style.cssText = 'background-color: red; color: black;';
-                    }
-                },
-            },
-            {
-                data: 'timestamp_manual',
-                className: 'text-center',
-                render: (v: number | null) => (v ? '<i class="fas fa-star fa-sm" style="color: #0d72bf;"></i>' : ''),
+                data: 'page_questions',
+                orderable: false,
+                columnControl: [['searchList']], // nested array = dropdown; options come from the server
+                render: (questions: PageQuestion[] | undefined) =>
+                    (questions ?? [])
+                        .map((q) => {
+                            const stateClass = q.state ? ` badge badge-secondary ${q.state}` : '';
+                            const title = q.state ? ` title="${q.state}"` : '';
+                            const name = DataTable.util.escapeHtml(q.name);
+                            return `<span class="badge badge-secondary ${stateClass}"${title}>${name}</span>`;
+                        })
+                        .join(''),
             },
         ],
         layout: {
@@ -96,7 +102,6 @@ export function initTable(): Api<unknown> {
             bottomEnd: null,
             bottom: "paging"
         },
-        autoWidth: false,
         scrollY: '80vh',
     });
 

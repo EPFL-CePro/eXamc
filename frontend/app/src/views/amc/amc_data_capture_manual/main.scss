@@ -9,7 +9,42 @@
 #amc-data-capture:focus {
     outline: none;
 }
-#table-copies-pages tbody tr.is-current > td {
-    background-color: yellow !important;
-    box-shadow: none !important;
+
+#table-copies-pages {
+    tbody {
+        tr {
+            &.is-current {
+                background-color: rgba(0, 0, 0, 0.14);
+                color: black;
+            }
+
+            &:not(.is-current) {
+                opacity: .7;
+            }
+
+            td {
+                &.sensitive {
+                    color: red;
+                }
+
+                .badge {
+                    display: inline-block;
+                    margin: 0 2px 2px 0;
+                    padding: 0 4px;
+                    border: 1px solid #dee2e6;
+                    border-radius: 3px;
+                    font-size: 0.75em;
+                    white-space: nowrap;
+
+                    &.invalid {
+                        background-color: #ffff33;
+                    }
+
+                    &.empty {
+                        background-color: #00ffff;
+                    }
+                }
+            }
+        }
+    }
 }

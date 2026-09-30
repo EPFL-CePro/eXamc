@@ -1,10 +1,12 @@
 import DataTable from 'datatables.net-dt';
-import {getLayoutElementsSeparator} from "@examc/helpers/datatables.ts";
+import {getLayoutElementsSeparator, setupDatatables} from "@examc/helpers/datatables.ts";
 
 export function lastConnectedUsersTable(options: {
     tableElement: HTMLTableElement;
 }): void {
     const { tableElement } = options;
+
+    setupDatatables();
 
     new DataTable(tableElement, {
         scrollY: '18.1vh',

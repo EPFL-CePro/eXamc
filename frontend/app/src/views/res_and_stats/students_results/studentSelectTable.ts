@@ -2,6 +2,7 @@ import DataTable from 'datatables.net-dt';
 import type {DataTableColumn} from "@examc/types/datatables.ts";
 
 import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import {setupDatatables} from "@examc/helpers/datatables.ts";
 
 type PresenceResponse = {
     student: number;
@@ -51,6 +52,8 @@ export function initStudentsTable(options: {
             "Do all scale <th> have data-scale-pk?"
         );
     }
+
+    setupDatatables();
 
     const table = new DataTable(tableElement, {
         serverSide: true,
