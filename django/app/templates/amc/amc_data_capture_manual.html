@@ -1,6 +1,4 @@
 {% extends 'base.html' %}
-{% load static %}
-{% load custom_tags %}
 {% load django_vite %}
 {% block title %}AMC Manual Data Capture{% endblock %}
 
@@ -26,7 +24,7 @@
             <canvas id="canvas-scan"></canvas>
         </div>
 
-        <div class="list-group" style="width: 50rem; margin-left: 16px; height: 85vh;">
+        <div class="list-group" style="margin-left: 16px; height: 85vh;">
             <table id="table-copies-pages" class="table table-sm table-striped"
                    data-api-url="{% url 'api-amc-data-capture-manual-list' exam_pk=exam_selected.pk %}"
             >
@@ -34,11 +32,11 @@
                     <tr>
                         <th>Copy</th>
                         <th>Page</th>
-                        <th>Questions</th>
-                        <th>State</th>
-                        <th>MSE</th>
+                        <th title="An indicator for the alignment during the scan. If the value is too high, the detection could be wrong.">MSE</th>
                         <th>Sensitivity</th>
-                        <th>Man</th>
+                        <th>Changed</th>
+                        <th>State</th>
+                        <th>Questions</th>
                     </tr>
                 </thead>
             </table>
