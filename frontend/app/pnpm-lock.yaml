@@ -185,16 +185,16 @@ importers:
         specifier: ^4.5.1
         version: 4.5.1
       datatables.net-buttons-dt:
-        specifier: ^4.0.3
+        specifier: ^4.1.1
         version: 4.1.1
       datatables.net-columncontrol-dt:
         specifier: ^2.1.1
         version: 2.1.1
       datatables.net-dt:
-        specifier: ^3.0.4
+        specifier: ^3.1.1
         version: 3.1.1
       datatables.net-select-dt:
-        specifier: ^4.0.1
+        specifier: ^4.1.0
         version: 4.1.0
       html2canvas:
         specifier: ^1.4.1
