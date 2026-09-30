@@ -5,7 +5,7 @@
  * @return {function(): HTMLSpanElement} A function that returns the pre-created separator span element.
  */
 export function getLayoutElementsSeparator(): () => HTMLSpanElement {
-    let separator = document.createElement('span');
+    const separator = document.createElement('span');
     separator.innerText = "|";
 
     return function() {

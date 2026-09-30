@@ -1,17 +1,15 @@
 import DataTable, { type Api } from 'datatables.net-dt';
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import 'datatables.net-dt/css/dataTables.dataTables.css';
 
 import 'datatables.net-buttons-dt';
-import 'datatables.net-buttons-dt/css/buttons.dataTables.min.css';
-
 import 'datatables.net-select-dt';
-import 'datatables.net-select-dt/css/select.dataTables.min.css';
 
 
 import { getModal } from '@examc/helpers/modals.ts';
+import { type ExamcEditor } from '@examc/types/editor';
 import { setAjaxInfoModalLocked } from '@examc/helpers/ajax-info-modal.ts';
 import { initEditor, getEditorContent } from "@examc/editor/index.ts";
-
+import {byId, csrfToken, icon, requireData, sleep} from "@examc/helpers/dom.ts";
 
 
 // ---------------------------------------------------------------------------
@@ -43,38 +41,6 @@ interface SelectedStudent {
     id: CellValue;
     copy: CellValue;
     email: CellValue;
-}
-
-// ---------------------------------------------------------------------------
-// DOM helpers
-// ---------------------------------------------------------------------------
-
-function byId<T extends HTMLElement = HTMLElement>(id: string): T {
-    const element = document.getElementById(id);
-    if (!element) throw new Error(`#${id} not found`);
-    return element as T;
-}
-
-function requireData(element: HTMLElement, key: string): string {
-    const value = element.dataset[key];
-    if (!value) throw new Error(`Missing data attribute "${key}" on #${element.id}`);
-    return value;
-}
-
-function csrfToken(): string {
-    return document.querySelector<HTMLInputElement>('input[name="csrfmiddlewaretoken"]')?.value ?? '';
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function icon(className: string, color: string, title = ''): HTMLElement {
-    const element = document.createElement('i');
-    element.className = className;
-    element.style.color = color;
-    if (title) element.title = title;
-    return element;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +96,7 @@ const sendForm = byId<HTMLFormElement>('form-send-annotated-papers');
 const sendAlert = byId('send_annotated_alert');
 const subjectInput = byId<HTMLInputElement>('email-subject');
 const emailBodyEl = byId<HTMLTextAreaElement>('email-body');
-let emailBodyEditor;
+let emailBodyEditor: ExamcEditor;
 
 const emailColumnSelect = byId<HTMLSelectElement>('email-column');
 const sendTableElement = byId<HTMLTableElement>('send-annotated-papers-table');
@@ -227,30 +193,11 @@ async function pollAnnotateJob(statusUrl: string): Promise<void> {
 
 let pendingEmail: { subject: string; body: string } | null = null;
 
-function looksLikeHtml(text: string): boolean {
-    return /<\/?(p|br|div|span|b|strong|i|em|u|ul|ol|li|a|table|tr|td|h[1-6])[\s>]/i.test(text);
-}
-
-function escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-/** Blank lines separate paragraphs; single newlines become <br>. */
-function textToParagraphHtml(text: string): string {
-    return escapeHtml(text)
-        .split(/\r?\n\s*\r?\n/)
-        .map((paragraph) => `<p>${paragraph.replace(/\r?\n/g, '<br>')}</p>`)
-        .join('');
-}
-
 sendDialogElement.addEventListener('shown.bs.modal', async () => {
     emailBodyEditor = await initEditor({ target: emailBodyEl });
 
     if (pendingEmail) {
         subjectInput.value = pendingEmail.subject;
-        const body = pendingEmail.body;
 
         pendingEmail = null;
 
@@ -319,24 +266,19 @@ function buildSendTable(rows: StudentRow[]): void {
         scrollY: '25vh',
         paging: false,
         select: {
-            style: 'os',
-            selector: 'td:first-child',
+            style: 'multi',
+            selector: 'td',
+            items: 'row',
         },
-        layout: {
-            topStart: {
-                buttons: [
-                    {
-                        text: 'Select all',
-                        className: 'btn btn-dark btn-sm',
-                        action: () => sendTable?.rows().select(),
-                    },
-                    {
-                        text: 'Select none',
-                        className: 'btn btn-dark btn-sm',
-                        action: () => sendTable?.rows().deselect(),
-                    },
-                ],
+        columnDefs: [
+            {
+                targets: 0,
+                orderable: false,
+                searchable: false,
+                render: DataTable.render.select(), // renders the checkbox
             },
+        ],
+        layout: {
             topEnd: 'search',
             bottomStart: 'info',
             bottomEnd: null,
@@ -375,7 +317,7 @@ async function openSendDialog(): Promise<void> {
 
 async function sendAnnotatedPapers(): Promise<void> {
     const subject = subjectInput.value.trim();
-    const editorContent = getEditorContent({ editor: emailBodyEditor });
+    const editorContent = getEditorContent({ editor: emailBodyEditor, format: "markdown" });
     const bodyIsEmpty = editorContent.trim() === '';
 
     if (bodyIsEmpty || subject === '') {
