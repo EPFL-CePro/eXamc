@@ -1,6 +1,7 @@
 name: Build and Push Image to GHCR, with testing
 
 on:
+  workflow_dispatch: 
   workflow_call:
   push:
     branches:
