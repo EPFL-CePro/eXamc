@@ -2,39 +2,46 @@
   "name": "frontend",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.4.1",
+  "packageManager": "pnpm@12.8.1",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build --emptyOutDir",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . && tsc --noEmit"
   },
   "devDependencies": {
+    "@eslint-community/eslint-utils": "^4.10.1",
     "@eslint/css": "^2.0.0",
     "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/bootstrap": "^5.2.11",
     "@types/jquery": "^4.0.1",
     "@types/katex": "^0.16.8",
-    "@types/node": "^26.6.1",
-    "eslint": "^10.10.0",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
     "globals": "^17.12.0",
+    "jiti": "^2.7.0",
     "sass": "^1.104.1",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vite-plugin-checker": "^0.14.5"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.1",
     "@markerjs/markerjs3": "^3.10.0",
+    "@milkdown/crepe": "^7.22.1",
+    "@milkdown/kit": "^7.22.1",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
-    "datatables.net-buttons-dt": "^4.0.3",
-    "datatables.net-dt": "^3.0.4",
-    "datatables.net-select-dt": "^4.0.1",
+    "datatables.net-buttons-dt": "^4.1.1",
+    "datatables.net-columncontrol-dt": "^2.1.1",
+    "datatables.net-dt": "^3.1.1",
+    "datatables.net-select-dt": "^4.1.0",
     "html2canvas": "^1.4.1",
     "jquery-comments": "^1.0.1",
     "jspdf": "^4.2.1",
     "latex.js": "^0.12.6",
-    "tinymce": "^6.8.6",
     "vite-plugin-static-copy": "^4.1.1"
   }
 }

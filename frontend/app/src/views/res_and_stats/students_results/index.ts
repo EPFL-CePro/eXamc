@@ -1,10 +1,10 @@
 import 'vite/modulepreload-polyfill';
 
 import {initStudentsTable} from "./studentSelectTable.ts";
+import {byId} from "@examc/helpers/dom.ts";
 
 document.addEventListener("DOMContentLoaded", () => {
-    const tableElement = document.querySelector<HTMLTableElement>("#students-dt");
-    if (!tableElement) return;
+    const tableElement = byId<HTMLTableElement>("students-dt");
 
     if (tableElement) {
         const {apiUrl, csrfToken} = tableElement.dataset;

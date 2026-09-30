@@ -1,11 +1,13 @@
 import DataTable from 'datatables.net-dt';
-import {getLayoutElementsSeparator} from "@examc/helpers/datatables.ts";
+import {getLayoutElementsSeparator, setupDatatables} from "@examc/helpers/datatables.ts";
 
 export function initExamSelectTable(options: {
     tableElement: HTMLTableElement;
     apiUrl: string;
 }): void {
     const { tableElement, apiUrl } = options;
+
+    setupDatatables();
 
     new DataTable(tableElement, {
         serverSide: true,
@@ -17,7 +19,7 @@ export function initExamSelectTable(options: {
         },
         layout: {
             topStart: function() {
-                let title = document.createElement('h4');
+                const title = document.createElement('h4');
                 title.style.margin = "0";
                 title.innerHTML = `<i class="fa-solid fa-book-open"></i> My exams`;
                 return title;

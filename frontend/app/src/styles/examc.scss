@@ -1,0 +1,46 @@
+// nicer dragging feel (global)
+.dragging {
+    user-select: none;
+    cursor: row-resize;
+}
+
+// impersonation banner (base.html)
+.impersonation-banner {
+    align-items: center;
+    border-radius: 0;
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    margin: 0;
+    min-height: 48px;
+    padding-right: 24px;
+    text-align: right;
+
+    @media (max-width: 767.98px) {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-right: 16px;
+        text-align: left;
+    }
+
+    .impersonation-stop-form {
+        margin: 0;
+    }
+}
+
+
+// global Datatables bugfix and tweaks
+.dt-container {
+    label {
+        display: unset!important;
+    }
+
+    .dt-scroll-head {
+        overflow: visible!important;
+
+        .dtcc-popover {
+            font-size: .8rem!important;
+            text-transform: none !important;
+        }
+    }
+}

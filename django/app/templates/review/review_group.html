@@ -149,9 +149,7 @@
                     </div>
                     <div class="col-xs-6" id="mjsapp">
                         <div id="marker-wrapper">
-                            {#
                             <div class="corr-box-div" id="corr_box_div"></div>
-                            #}
                         </div>
                     </div>
                     <div class="markerjs-bottom-bar" id="mjs-bottom-bar">
@@ -194,8 +192,8 @@
                                     <a aria-selected="{% if current_grading_scheme and current_grading_scheme.id == gs.id %}true{% else %}false{% endif %}"
                                        class="nav-link js-scheme-link {% if current_grading_scheme and current_grading_scheme.id == gs.id %}active{% endif %}"
                                        data-exam-id="{{ exam_selected.id }}"
-                                       data-hx-get="{% url 'review_grading_scheme_panel' exam_selected.id gs.id 0 %}"
-                                       data-hx-trigger="never"
+                                       hx-get="{% url 'review_grading_scheme_panel' exam_selected.id gs.id 0 %}"
+                                       hx-trigger="never"
                                        id="review-scheme-link-{{ gs.id }}"
                                        onclick="return sendScheme(this, event)"
                                        type="button">

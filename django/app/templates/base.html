@@ -70,8 +70,8 @@
     <link rel="stylesheet" href="{% static 'css/menubars.css' %}">
 
     <!-- CSS eXamc -->
+    {% vite_asset 'src/styles/examc.scss' %}
 
-    <link rel="stylesheet" href="{% static 'css/examc.css' %}">
     <!-- favicon -->
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
 
@@ -608,31 +608,6 @@
         });
 
     {% endif %}
-
-
-    let ajaxInfoModalInitialized = false;
-
-    function setAjaxInfoModalLocked(locked) {
-        const okBtn = document.getElementById('ajax_modal_ok');
-        const closeBtn = document.getElementById('ajax_modal_close');
-
-        okBtn.disabled = locked;
-        closeBtn.disabled = locked;
-
-        // Optional: hide the "X" (top-right)
-        const xBtn = document.querySelector('#ajax_info_modal .close, #ajax_info_modal .btn-close');
-        if (xBtn) xBtn.style.pointerEvents = locked ? 'none' : 'auto';
-        if (xBtn) xBtn.style.opacity = locked ? '0.5' : '1';
-
-        // Configure modal once (prevents closing via backdrop/ESC)
-        if (!ajaxInfoModalInitialized) {
-            $('#ajax_info_modal').modal({
-                backdrop: 'static',
-                keyboard: false
-            });
-            ajaxInfoModalInitialized = true;
-        }
-    }
 
     // Hide submenus
     $('#body-row .collapse').collapse('hide');
