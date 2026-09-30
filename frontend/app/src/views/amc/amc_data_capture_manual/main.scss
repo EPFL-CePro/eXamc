@@ -1,0 +1,15 @@
+#canvasScan {
+    display: block;
+    height: 93vh;
+    width: auto;
+    aspect-ratio: 210 / 297; // ~A4 ratio
+    border: 1px solid lightgray;
+}
+
+#amc-data-capture:focus {
+    outline: none;
+}
+#table-copies-pages tbody tr.is-current > td {
+    background-color: yellow !important;
+    box-shadow: none !important;
+}

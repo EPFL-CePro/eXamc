@@ -231,7 +231,7 @@ def get_locked_pages_group_ids_for_exam(exam):
         if pages_group_has_review_activity(pages_group)
     ]
 
-#@method_decorator(login_required(login_url='/'), name='dispatch')
+
 class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
     model = Exam
     template_name = 'review/review.html'
@@ -269,7 +269,7 @@ class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMix
             return context
 
 
-#@method_decorator(login_required(login_url='/'), name='dispatch')
+
 class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
     """
     View for managing review groups for a specific exam.
@@ -351,7 +351,7 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         return context
 
 
-#@method_decorator(login_required(login_url='/'), name='dispatch')
+
 class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
     """
     View for managing review settings for a specific exam.
@@ -731,7 +731,7 @@ def generate_marked_files(request, exam_pk, task_id=None):
                                                                             "exam_selected": exam_selected,
                                                                           "nav_url": "generate_marked_files"})
 
-#@login_required
+
 @exam_permission_required(['manage'])
 def download_marked_files(request,filename, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
@@ -768,7 +768,7 @@ def testing(request):
 #
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 def upload_scans(request, exam_pk, task_id=None):
     """

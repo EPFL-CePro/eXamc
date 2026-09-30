@@ -1,13 +1,14 @@
 import pathlib
-
 from celery.result import AsyncResult
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
+from typing import Any
 
 from examc_app.models import *
+from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.tasks import import_csv_data, amc_annotate_task, amc_import_from_review_task
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
@@ -19,13 +20,11 @@ from examc_app.utils.marker_rendering import (
 )
 from examc_app.utils.review_functions import (
     create_students_from_amc,
-    generate_marked_pdfs,
     get_scans_list,
     iter_review_copy_dirs,
     iter_review_scan_files,
 )
 from examc_app.utils.review_upload_state import clear_pending_amc_import
-
 
 AMC_ANNOTATE_JOBS_SESSION_KEY = "amc_annotate_jobs"
 AMC_IMPORT_JOBS_SESSION_KEY = "amc_import_jobs"
@@ -80,8 +79,9 @@ def _prune_amc_annotate_jobs(raw_jobs):
             continue
         created_at = int(meta.get("created_at", 0))
         exam_pk = meta.get("exam_pk")
-        if created_at < min_ts or exam_pk is None:
+        if created_at < min_ts or exam_pk:
             continue
+
         pruned[str(job_id)] = {
             "exam_pk": int(exam_pk),
             "created_at": created_at,
@@ -144,7 +144,7 @@ def _get_running_amc_import_job_id(request, exam_pk):
     return None
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 def upload_amc_project(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
@@ -184,6 +184,7 @@ def amc_view(request, exam_pk: int, curr_tab: str | None = None, task_id: str | 
     amc_data_path = get_amc_project_path(exam, False)
 
     context = {}
+
     if user_allowed(exam, request.user.id):
         if amc_data_path:
             # get amc options and infos
@@ -199,7 +200,7 @@ def amc_view(request, exam_pk: int, curr_tab: str | None = None, task_id: str | 
             project_dir_files_list = project_dir_info[1]
 
             # get data
-            data = get_amc_data_capture_manual_data(exam)
+            data_capture_manual = get_amc_data_capture_manual_data(exam)
             amc_data_capture_summary = get_automatic_data_capture_summary(exam)
             number_of_copies = amc_data_capture_summary[0]
             number_of_incomplete_copies = len(amc_data_capture_summary[1])
@@ -222,19 +223,19 @@ def amc_view(request, exam_pk: int, curr_tab: str | None = None, task_id: str | 
             has_grading_schemes = PagesGroup.objects.filter(exam=exam,use_grading_scheme=True).exists()
 
             exam_nb_pages = 1
-            if data[0] and len(data[0])>0:
-                exam_nb_pages = max(data[0],key=lambda x: float(x['page']))['page']
+            if data_capture_manual is not None:
+                exam_nb_pages = max(data_capture_manual["pages"], key=lambda x: float(x['page']))['page']
+                context['data_pages'] = data_capture_manual["pages"]
+                context['data_questions'] = data_capture_manual["questions"]
+                context['data_copies'] = data_capture_manual["copies"]
+
             context['number_of_copies_param'] = amc_option_nb_copies
             context['copy_count'] = number_of_copies
-            #context['exam_pdf_path'] = amc_exam_pdf_path
             context['catalog_pdf_path'] = amc_catalog_pdf_path
             context['update_documents_msg'] = amc_update_documents_msg
             context['layout_detection_msg'] = amc_layout_detection_msg
             context['project_dir_dict'] = project_dir_dict
             context['project_dir_files_list'] = project_dir_files_list
-            context['data_pages'] = data[0]
-            context['data_questions'] = data[1]
-            context['data_copies'] = data[2]
             context['data_capture_message'] = data_capture_message
             context['missing_pages'] = missing_pages
             context['nb_unrecognized_pages'] = nb_unrecognized_pages
@@ -252,7 +253,7 @@ def amc_view(request, exam_pk: int, curr_tab: str | None = None, task_id: str | 
             context['task_id'] = task_id
             context['curr_tab'] = curr_tab
             context['scans_list_json'] = json.loads(scans_list_json_string)
-            context['exam_nb_pages'] = range(1,int(float(exam_nb_pages))+1,1)
+            context['exam_nb_pages'] = range(1, int(float(exam_nb_pages)) + 1, 1)
 
         context['exam_selected'] = exam
         if exam.common_exams:
@@ -267,40 +268,44 @@ def amc_view(request, exam_pk: int, curr_tab: str | None = None, task_id: str | 
     else:
         context['user_allowed'] = False
 
-    return render(request, 'amc/amc.html',  context)
+    logger.info(context['data_questions'])
 
-#@login_required
+    return render(request, 'amc/amc.html', context)
+
+
 @exam_permission_required(['manage'])
 def amc_data_capture_manual(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
 
     amc_data_path = get_amc_project_path(exam, False)
 
-    context = {}
-    context['nav_url'] = 'amc_data_capture_manual'
+    context: dict[str, Any] = {'nav_url': 'amc_data_capture_manual'}
+
     if user_allowed(exam, request.user.id):
+        data = get_amc_data_capture_manual_data(exam)
 
-        if amc_data_path:
-
-            data = get_amc_data_capture_manual_data(exam)
-
-            context['data_pages'] = data[0]
-            context['data_questions'] = data[1]
+        if data is not None: context['data_questions'] = data["questions"]
 
         context['exam_selected'] = exam
+
         if exam.common_exams:
             for common_exam in exam.common_exams.all():
                 if common_exam.is_overall():
                     exam = common_exam
                     break
+
         context['exam'] = exam
         context['user_allowed'] = True
     else:
         context['user_allowed'] = False
 
-    return render(request, 'amc/amc_data_capture_manual.html', context)
+    return render(
+        request,
+        'amc/amc_data_capture_manual.html',
+        context
+    )
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def get_amc_marks_positions(request,exam_pk):
@@ -346,7 +351,7 @@ def get_unrecognized_pages(request,exam_pk):
 
     return HttpResponse(json.dumps(unrecognized_pages))
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def update_amc_mark_zone(request,exam_pk):
@@ -380,7 +385,7 @@ def _resolve_students_list_path(exam, amc_project_path: str) -> Path:
     return students_list_path
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def edit_amc_file(request,exam_pk):
@@ -399,7 +404,7 @@ def edit_amc_file(request,exam_pk):
         f.close()
         return HttpResponse(file_contents)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def save_amc_edited_file(request,exam_pk):
@@ -429,7 +434,7 @@ def save_amc_edited_file(request,exam_pk):
         f.close()
         return HttpResponse('ok')
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def call_amc_update_documents(request,exam_pk):
@@ -440,7 +445,7 @@ def call_amc_update_documents(request,exam_pk):
 
     return HttpResponse(result)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def call_amc_layout_detection(request,exam_pk):
@@ -762,7 +767,7 @@ def open_amc_catalog_pdf(request, exam_pk):
     except FileNotFoundError:
         raise Http404('not found')
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def view_amc_log_file(request, exam_pk):
@@ -773,7 +778,7 @@ def view_amc_log_file(request, exam_pk):
     f.close()
     return HttpResponse(file_contents)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def get_amc_zooms(request,exam_pk):
@@ -785,7 +790,7 @@ def get_amc_zooms(request,exam_pk):
 
     return HttpResponse(json.dumps(zooms_data))
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def add_unrecognized_page(request,exam_pk):
@@ -798,7 +803,7 @@ def add_unrecognized_page(request,exam_pk):
 
     return HttpResponse(True)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def call_amc_mark(request,exam_pk):
@@ -808,7 +813,7 @@ def call_amc_mark(request,exam_pk):
     return streaming_text_response(amc_mark_subprocess(request, exam, update_scoring_strategy))
    # result = amc_mark(exam,update_scoring_strategy)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def call_amc_automatic_association(request,exam_pk):
@@ -823,7 +828,7 @@ def call_amc_automatic_association(request,exam_pk):
     else:
         return JsonResponse({'error': result})
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def amc_update_students_file(request, exam_pk):
@@ -848,7 +853,7 @@ def amc_update_students_file(request, exam_pk):
 
     return HttpResponse('ok')
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def old_call_amc_annotate(request,exam_pk):
@@ -919,7 +924,7 @@ def amc_annotate_status(request, exam_pk, job_id):
         "progress": result.get("progress", ""),
     })
 
-#@login_required
+
 @exam_permission_required(['manage'])
 def download_annotated_pdf(request, exam_pk):
     exam = Exam.objects.get(pk=exam_pk)
@@ -931,7 +936,7 @@ def download_annotated_pdf(request, exam_pk):
     else:
         return HttpResponse('ZIP file not created !')
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def call_amc_generate_results(request,exam_pk):
@@ -951,7 +956,7 @@ def call_amc_generate_results(request,exam_pk):
     else:
         return HttpResponse(result)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def amc_manual_association_data(request,exam_pk):
@@ -983,7 +988,7 @@ def amc_send_annotated_papers_data(request,exam_pk):
     values = {"email_subject": email_subject, "email_text": email_text,"data": data}
     return HttpResponse(json.dumps(values))
 
-#@login_required
+
 @require_POST
 @exam_permission_required(['manage'])
 def call_amc_send_annotated_papers(request, exam_pk):

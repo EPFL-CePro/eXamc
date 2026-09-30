@@ -5,7 +5,6 @@
 {% block content %}
     {% if user_allowed %}
         <div class="tab-content">
-
             <h4>AMC (auto-multiple-choice)</h4>
 
             {% if project_dir_dict %}
@@ -55,8 +54,8 @@
             {% else %}
                 <div class="alert alert-warning" id="no-amc-project-dir-msg" role="alert"
                      style="margin-top:20px;text-align:center;">
-                    There is no AMC project directory. Please upload AMC project directory from the left to be able to
-                    use this module !
+                    There is no AMC project directory. Please upload an AMC project directory from the left panel to be
+                    able to use this module !
                 </div>
             {% endif %}
         </div>

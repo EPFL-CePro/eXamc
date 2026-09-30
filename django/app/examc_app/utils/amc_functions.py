@@ -57,6 +57,7 @@ from examc_app.utils.zip_security import safe_extract_zip
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+
 def safe_filename_part(s: str) -> str:
     # 1) normalize unicode (splits accents from letters)
     s = unicodedata.normalize("NFKD", s)
@@ -69,10 +70,12 @@ def safe_filename_part(s: str) -> str:
     # 5) avoid empty parts
     return s or "unknown"
 
-def get_amc_update_document_info(exam):
+
+def get_amc_update_document_info(exam: Exam):
     info = ''
-    exam_sujet_filename = get_amc_option_by_key(exam,'doc_question')
-    exam_sujet_filepath = get_amc_project_path(exam, False)+"/"+exam_sujet_filename
+    exam_sujet_filename = get_amc_option_by_key(exam, 'doc_question')
+    exam_sujet_filepath = get_amc_project_path(exam, False) + "/" + exam_sujet_filename
+
     if os.path.isfile(exam_sujet_filepath):
         last_modified_ts = os.path.getmtime(exam_sujet_filepath)
         datetime_str = datetime.fromtimestamp(last_modified_ts).strftime('%d.%m.%Y %H:%M:%S')
@@ -80,7 +83,8 @@ def get_amc_update_document_info(exam):
         info += datetime_str
     return info
 
-def get_amc_layout_detection_info(exam):
+
+def get_amc_layout_detection_info(exam: Exam):
     info = ''
     amc_data_path = get_amc_project_path(exam, False)
 
@@ -90,12 +94,13 @@ def get_amc_layout_detection_info(exam):
         nb_pages_detected = select_count_layout_pages(amc_data_path)
 
         if nb_pages_detected > 0:
-            info = "Processed "+str(nb_pages_detected)+" pages"
+            info = "Processed " + str(nb_pages_detected) + " pages"
 
     return info
 
-def get_amc_option_by_key(exam,key):
-    options_xml_path = get_amc_project_path(exam, False)+"/options.xml"
+
+def get_amc_option_by_key(exam: Exam, key):
+    options_xml_path = get_amc_project_path(exam, False) + "/options.xml"
     option_value = None
     # Open the project xml config and read the contents
     with open(options_xml_path, 'r', encoding='utf-8') as file:
@@ -106,7 +111,7 @@ def get_amc_option_by_key(exam,key):
         options_dict = xmltodict.parse(options_xml)
 
         # search by key
-        option_value = find_value_dict_by_key(options_dict,key)
+        option_value = find_value_dict_by_key(options_dict, key)
 
     # if not found in project config, try in global amc config xml
     if not option_value:
@@ -122,11 +127,12 @@ def get_amc_option_by_key(exam,key):
 
     return option_value
 
-def find_value_dict_by_key(dict,search_key):
-    key_value=None
+
+def find_value_dict_by_key(dict, search_key):
+    key_value = None
     for key, value in dict.items():
-        if isinstance(value,type(dict)):
-            key_value=find_value_dict_by_key(value,search_key)
+        if isinstance(value, type(dict)):
+            key_value = find_value_dict_by_key(value, search_key)
             if key_value:
                 return key_value
         elif key == search_key:
@@ -134,53 +140,54 @@ def find_value_dict_by_key(dict,search_key):
 
     # try searching in global by addind 'defaut_' in pre key name
     if not key_value and not search_key.startswith("defaut_"):
-        key_value = find_value_dict_by_key(dict,'defaut_'+search_key)
-
+        key_value = find_value_dict_by_key(dict, 'defaut_' + search_key)
 
     return key_value
 
-def get_project_dir_info(exam):
 
-    project_dir = get_amc_project_path(exam,False)
+def get_project_dir_info(exam: Exam):
+    project_dir = get_amc_project_path(exam, False)
 
-    data = path_to_dict(project_dir,[],project_dir)
+    data = path_to_dict(project_dir, [], project_dir)
     project_dir_dict = data[0]
     project_files_dict_list = data[1]
 
+    return [project_dir_dict, project_files_dict_list]
 
-    return [project_dir_dict,project_files_dict_list]
 
-def path_to_dict(path,dir_files_dict_list,amc_project_path):
+def path_to_dict(path, dir_files_dict_list, amc_project_path):
     text = os.path.basename(path)
-    dir_node=None
+    dir_node = None
     if path and os.path.isdir(path):
-        dir_node = {'text':text,'href':'#pills-'+text,'nodes':[]}
-        new_dir_files_node = {'folder':text,'files':latex_files_to_list(path,amc_project_path)}
+        dir_node = {'text': text, 'href': '#pills-' + text, 'nodes': []}
+        new_dir_files_node = {'folder': text, 'files': latex_files_to_list(path, amc_project_path)}
         dir_files_dict_list.append(new_dir_files_node)
-        for dir in sorted(os.listdir(path), key = lambda x:x.upper()):
-            data = path_to_dict(os.path.join(path,dir),dir_files_dict_list,amc_project_path)
-            if(data[0]):
+        for dir in sorted(os.listdir(path), key=lambda x: x.upper()):
+            data = path_to_dict(os.path.join(path, dir), dir_files_dict_list, amc_project_path)
+            if (data[0]):
                 dir_node['nodes'].append(data[0])
-            if(data[1]):
+            if (data[1]):
                 dir_files_dict_list = data[1]
 
         if dir_node and not dir_node['nodes'] and not new_dir_files_node['files']:
             dir_node = None
-            pos = len(dir_files_dict_list)-1
+            pos = len(dir_files_dict_list) - 1
             dir_files_dict_list.pop(pos)
         if dir_node and not dir_node['nodes']:
             del dir_node['nodes']
-    return [dir_node,dir_files_dict_list]
+    return [dir_node, dir_files_dict_list]
 
-def latex_files_to_list(path,amc_project_path):
+
+def latex_files_to_list(path, amc_project_path):
     extensions = ('.tex')
     file_list = []
-    for file in sorted(os.listdir(path),key = lambda x:x.upper()):
-        if os.path.isfile(os.path.join(path,file)) and file.endswith(extensions):
-            path_str = os.path.relpath(path+"/"+file,amc_project_path)#(path+file).replace('/','//')
-            file_list.append([os.path.basename(file),path_str])
+    for file in sorted(os.listdir(path), key=lambda x: x.upper()):
+        if os.path.isfile(os.path.join(path, file)) and file.endswith(extensions):
+            path_str = os.path.relpath(path + "/" + file, amc_project_path)  #(path+file).replace('/','//')
+            file_list.append([os.path.basename(file), path_str])
 
     return file_list
+
 
 # ##testing
 # def process(request):
@@ -241,13 +248,11 @@ def latex_files_to_list(path,amc_project_path):
 #     subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
 
 
-
-def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
-
-    amc_project_path = get_amc_project_path(exam,False)
+def amc_update_documents(exam, nb_copies, scoring_only, preview=False):
+    amc_project_path = get_amc_project_path(exam, False)
     if preview:
-        os.rename(amc_project_path+"/students.csv",amc_project_path+"/students.bck")
-        os.rename(amc_project_path+"/sample.csv",amc_project_path+"/students.csv")
+        os.rename(amc_project_path + "/students.csv", amc_project_path + "/students.bck")
+        os.rename(amc_project_path + "/sample.csv", amc_project_path + "/students.csv")
 
     if scoring_only:
         command = [
@@ -261,18 +266,18 @@ def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
         ]
         result = subprocess.run(command, capture_output=True, text=True)
     else:
-        amc_update_options_xml_by_key(exam,'nombre_copies',nb_copies)
-        exam_file = get_amc_option_by_key(exam,'doc_question')
-        correction_file = get_amc_option_by_key(exam,'doc_catalog')
-        doc_setting = get_amc_option_by_key(exam,'doc_setting')
+        amc_update_options_xml_by_key(exam, 'nombre_copies', nb_copies)
+        exam_file = get_amc_option_by_key(exam, 'doc_question')
+        correction_file = get_amc_option_by_key(exam, 'doc_catalog')
+        doc_setting = get_amc_option_by_key(exam, 'doc_setting')
         command = [
             "auto-multiple-choice", "prepare",
             "--mode", "s",
             "--with", "pdflatex",
             "--filter", "latex",
-            "--prefix", f"{get_amc_project_path(exam,False)}/",
-            f"{get_amc_project_path(exam,False)}/exam.tex",
-            "--data", f"{get_amc_project_path(exam,False)}/data/",
+            "--prefix", f"{get_amc_project_path(exam, False)}/",
+            f"{get_amc_project_path(exam, False)}/exam.tex",
+            "--data", f"{get_amc_project_path(exam, False)}/data/",
             "--out-sujet", exam_file,
             "--out-catalog", correction_file,
             "--out-calage", doc_setting,
@@ -280,15 +285,15 @@ def amc_update_documents(exam,nb_copies,scoring_only,preview=False):
         result = subprocess.run(command, capture_output=True, text=True)
 
     if preview:
-        os.rename(amc_project_path+"/students.csv",amc_project_path+"/sample.csv")
-        os.rename(amc_project_path+"/students.bck",amc_project_path+"/students.csv")
+        os.rename(amc_project_path + "/students.csv", amc_project_path + "/sample.csv")
+        os.rename(amc_project_path + "/students.bck", amc_project_path + "/students.csv")
 
     return result.stdout
 
 
-def amc_layout_detection(exam):
-    project_path = get_amc_project_path(exam,False)
-    doc_setting = get_amc_option_by_key(exam,'doc_setting')
+def amc_layout_detection(exam: Exam):
+    project_path = get_amc_project_path(exam, False)
+    doc_setting = get_amc_option_by_key(exam, 'doc_setting')
     command = [
         "auto-multiple-choice", "meptex",
         "--src", f"{project_path}/{doc_setting}",
@@ -296,11 +301,12 @@ def amc_layout_detection(exam):
     ]
     result = subprocess.run(command, capture_output=True, text=True)
     if result.stderr:
-        return "ERR:"+result.stderr
+        return "ERR:" + result.stderr
     else:
         return result.stdout
 
-def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file_list_path=None):
+
+def amc_automatic_datacapture_subprocess(request, exam, file_path, from_review, file_list_path=None):
     logger.info(
         "AMC datacapture started exam=%s from_review=%s file_list_path=%s",
         exam.pk,
@@ -385,11 +391,11 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
         yield "Automatic data capture ...\n"
         errors = ''
         with subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            bufsize=1,
-            universal_newlines=True,
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                bufsize=1,
+                universal_newlines=True,
         ) as process:
             for line in process.stdout:
                 logger.info("AMC analyse exam=%s output=%s", exam.pk, line.strip())
@@ -415,44 +421,49 @@ def amc_automatic_datacapture_subprocess(request,exam,file_path,from_review,file
         #     os.remove(file_list_path)
         if errors:
             logger.warning("AMC datacapture analyse reported errors exam=%s errors=%s", exam.pk, errors)
-            yield "\n\n**************************\nERRORS: \n-------\n\n"+errors+"\n**************************\n\n"
+            yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
         logger.info("AMC datacapture completed exam=%s from_review=%s", exam.pk, from_review)
     except GeneratorExit:
         logger.warning("AMC datacapture client disconnected exam=%s from_review=%s", exam.pk, from_review)
         raise
     except (BrokenPipeError, ConnectionResetError):
-        logger.warning("AMC datacapture connection interrupted exam=%s from_review=%s", exam.pk, from_review, exc_info=True)
+        logger.warning("AMC datacapture connection interrupted exam=%s from_review=%s", exam.pk, from_review,
+                       exc_info=True)
         raise
     except Exception:
-        logger.exception("AMC datacapture failed exam=%s from_review=%s file_list_path=%s", exam.pk, from_review, file_list_path)
+        logger.exception("AMC datacapture failed exam=%s from_review=%s file_list_path=%s", exam.pk, from_review,
+                         file_list_path)
         raise
 
-def check_pages_recognition_consistency(exam):
+
+def check_pages_recognition_consistency(exam: Exam):
     project_path = get_amc_project_path(exam, False)
 
-    capture_pages = select_capture_pages(project_path+"/data/")
+    capture_pages = select_capture_pages(project_path + "/data/")
 
     for capture_page in capture_pages:
         #yield " -- copy "+ str(capture_page['student']) + " page " + str(capture_page['page']) + "\n"
         filename = capture_page['src'].split("/")[-1]
         filename_split = filename.split('.')
         if len(filename_split) > 2:
-            new_filename_path = capture_page['src'].replace(filename,'')
-            new_filename = 'copy_'+str(capture_page['student']).zfill(4)+"_"+str(capture_page['page']).zfill(2)+"."+filename_split[2]
-            new_filename = new_filename_path+new_filename
+            new_filename_path = capture_page['src'].replace(filename, '')
+            new_filename = 'copy_' + str(capture_page['student']).zfill(4) + "_" + str(capture_page['page']).zfill(
+                2) + "." + filename_split[2]
+            new_filename = new_filename_path + new_filename
             if '%HOME' in new_filename:
-                shutil.move(capture_page['src'].replace('%HOME',str(Path.home())),new_filename.replace('%HOME',str(Path.home())))
+                shutil.move(capture_page['src'].replace('%HOME', str(Path.home())),
+                            new_filename.replace('%HOME', str(Path.home())))
             else:
-                shutil.move(capture_page['src'],new_filename)
-            update_capture_page_src(project_path+"/data/",capture_page['student'],capture_page['page'],new_filename)
+                shutil.move(capture_page['src'], new_filename)
+            update_capture_page_src(project_path + "/data/", capture_page['student'], capture_page['page'],
+                                    new_filename)
 
 
-
-def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
+def amc_automatic_data_capture(exam, file_path, from_review, file_list_path=None):
     project_path = get_amc_project_path(exam, False)
 
     if not from_review:
-        tmp_dir_path = project_path+"/tmp"
+        tmp_dir_path = project_path + "/tmp"
         if os.path.exists(tmp_dir_path):
             try:
                 shutil.rmtree(tmp_dir_path)
@@ -472,10 +483,10 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
             # Security hardening: validated extraction (no traversal/symlink/oversized archive).
             safe_extract_zip(zip_ref, tmp_extract_path)
 
-            file_list_path = tmp_dir_path+"/list-file"
+            file_list_path = tmp_dir_path + "/list-file"
             tmp_file_list = open(file_list_path, "a+")
 
-            files = glob(tmp_extract_path+'/**/*.*', recursive=True)
+            files = glob(tmp_extract_path + '/**/*.*', recursive=True)
             for file in files:
                 tmp_file_list.write(file + "\n")
 
@@ -487,7 +498,7 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
     if not from_review:
         command.extend(["--copy-to", f"{project_path}/scans"])
 
-    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
+    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
         for line in process.stdout:
             print(line.strip())
     # if result.stderr:
@@ -499,17 +510,17 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
         # replace tmp scans dir with scans dir to file_list_path
         # rename file_list_path to .txt
         # finally send this file as parameter to analyse
-        with open(file_list_path,'r') as file:
+        with open(file_list_path, 'r') as file:
             data = file.read()
-            data = data.replace(tmp_extract_path,project_path+'/scans')
-        with open(file_list_path,'w') as file:
+            data = data.replace(tmp_extract_path, project_path + '/scans')
+        with open(file_list_path, 'w') as file:
             file.write(data)
 
-    os.rename(file_list_path,file_list_path+".txt")
-    file_list_path+=".txt"
+    os.rename(file_list_path, file_list_path + ".txt")
+    file_list_path += ".txt"
     box_prop = get_amc_option_by_key(exam, "box_size_proportion")
     print("before analyse")
-    # analyse scans
+    # analyze the scans
     print("amc analyse")
     command = [
         "auto-multiple-choice", "analyse",
@@ -528,39 +539,41 @@ def amc_automatic_data_capture(exam,file_path,from_review,file_list_path=None):
     return 'ok'
 
 
-def amc_update_options_xml_by_key(exam,key,value):
-
+def amc_update_options_xml_by_key(exam, key, value):
     # Open original file
-    options_xml_path = get_amc_project_path(exam,False)+"/options.xml"
+    options_xml_path = get_amc_project_path(exam, False) + "/options.xml"
     xml = xmlET.parse(options_xml_path)
     root = xml.getroot()
 
     # find element and modify value
-    element =  root.find(key)
+    element = root.find(key)
     element.text = value
 
     # Write back to file
     # et.write('file.xml')
-    xml.write(get_amc_project_path(exam,False)+"/options.xml")
+    xml.write(get_amc_project_path(exam, False) + "/options.xml")
 
 
-def get_amc_exam_pdf_path(exam):
-    file_name = get_amc_option_by_key(exam,'doc_question')
-    file_path = get_amc_project_path(exam,False)+"/"+file_name
+def get_amc_exam_pdf_path(exam: Exam):
+    file_name = get_amc_option_by_key(exam, 'doc_question')
+    file_path = get_amc_project_path(exam, False) + "/" + file_name
     return file_path
 
-def get_amc_exam_pdf_url(exam):
+
+def get_amc_exam_pdf_url(exam: Exam):
     file_name = get_amc_option_by_key(exam, 'doc_question')
     file_url = get_amc_project_url(exam) + "/" + file_name
     return file_url
 
-def get_amc_catalog_pdf_path(exam):
-    file_name = get_amc_option_by_key(exam,'doc_catalog')
-    file_path = get_amc_project_path(exam,False)+"/"+file_name
+
+def get_amc_catalog_pdf_path(exam: Exam):
+    file_name = get_amc_option_by_key(exam, 'doc_catalog')
+    file_path = get_amc_project_path(exam, False) + "/" + file_name
     return file_path
 
-def get_amc_project_path(exam,even_if_not_exist):
-    amc_project_path = str(settings.AMC_PROJECTS_ROOT)+"/"+str(exam.year.code)+"/"+str(exam.semester.code)+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")
+
+def get_amc_project_path(exam: Exam, even_if_not_exist) -> str | None:
+    amc_project_path = f"{settings.AMC_PROJECTS_ROOT}/{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
 
     #print('****************** amc_project_path : ' + amc_project_path)
     if os.path.isdir(amc_project_path):
@@ -571,78 +584,45 @@ def get_amc_project_path(exam,even_if_not_exist):
         # TODO change this, as most of this function's usage is in string concatenation, which fails with None
         return None
 
-def get_amc_project_url(exam):
-    amc_project_url = str(settings.AMC_PROJECTS_URL)+str(exam.year.code)+"/"+str(exam.semester.code)+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")
+
+def get_amc_project_url(exam: Exam) -> str:
+    amc_project_url = f"{settings.AMC_PROJECTS_URL}{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
     return amc_project_url
 
-def get_amc_data_capture_manual_data(exam):
-    amc_project_path = get_amc_project_path(exam, False)
 
-
-    if amc_project_path:
-        amc_extra_pages_path = amc_project_path+"/scans/extra/"
-        amc_data_path = amc_project_path+"/data/"
-        amc_project_url = get_amc_project_url(exam)
-        amc_threshold = get_amc_option_by_key(exam,"seuil")
-        data_pages = select_manual_datacapture_pages(amc_data_path,amc_project_url,amc_threshold)
-
-        # get extra_pages
-        extra_pages = get_extra_pages(amc_extra_pages_path,amc_project_url+"/scans/extra/")
-        data_pages += extra_pages
-        data_pages = sorted(data_pages, key=lambda k: (float(k['copy']), float(k['page'])))
-
-        # if data_pages and '%HOME' in data_pages[0]['source']:
-        #     app_home_path = str(settings.BASE_DIR).replace(str(Path.home()),'%HOME')
-        #     for data in data_pages:
-        #         data['source'] = data['source'].replace(app_home_path,'')
-
-        data_copies = []
-        for data in data_pages:
-            data_questions_id = select_manual_datacapture_questions(amc_data_path,data)
-            questions_ids = ''
-            if data_questions_id:
-                for qid in data_questions_id:
-                    questions_ids += '%' + str(qid['question_id']) + '%'
-                    if 'why' in qid.keys():
-                        if qid['why'] == 'E':
-                            questions_ids += '|INV|'
-                        elif qid['why'] == 'V':
-                            questions_ids += '|EMP|'
-
-            if not data['copy'] in data_copies:
-                data_copies.append(data['copy'])
-
-            data['questions_ids'] = questions_ids + '%'
-
-        data_questions = select_questions(amc_data_path)
-
-        return [data_pages, data_questions, data_copies]
-
-    return None
-
-def get_extra_pages(amc_extra_pages_path,amc_extra_pages_url=None,student=None):
+def get_extra_pages(amc_extra_pages_path: str, amc_extra_pages_url: str | None = None, student = None):
     extra_pages_data = []
+
     if not amc_extra_pages_url:
         amc_extra_pages_url = amc_extra_pages_path
+
     if os.path.exists(amc_extra_pages_path):
         extra_subdirs = os.listdir(amc_extra_pages_path)
         for subdir in extra_subdirs:
-            if not student or (str(student) == subdir.lstrip("0") ):
-                for file in os.listdir(amc_extra_pages_path+subdir):
-                    filepath = amc_extra_pages_url+subdir+"/"+file
+            if not student or (str(student) == subdir.lstrip("0")):
+                for file in os.listdir(amc_extra_pages_path + subdir):
+                    filepath = amc_extra_pages_url + subdir + "/" + file
                     copy = file.split('_')[1].lstrip('0')
-                    page = file.split('_')[2].replace('.jpg','').lstrip('0')
-                    extra_page = {'copy':copy,'mse':0.0,'page':page,'sensitivity':0.0,'source':filepath,'timestamp_auto':0}
+                    page = file.split('_')[2].replace('.jpg', '').lstrip('0')
+                    extra_page = {
+                        'copy': copy,
+                        'mse': 0.0,
+                        'page': page,
+                        'sensitivity': 0.0,
+                        'source': filepath,
+                        'timestamp_auto': 0
+                    }
                     extra_pages_data.append(extra_page)
 
     return extra_pages_data
 
-def get_amc_marks_positions_data(exam,copy,page):
+
+def get_amc_marks_positions_data(exam, copy, page):
     amc_data_path = get_amc_project_path(exam, False)
 
     if amc_data_path:
         amc_data_path += "/data/"
-        data_positions = select_marks_positions(amc_data_path,copy,page,float(get_amc_option_by_key(exam,"seuil")))
+        data_positions = select_marks_positions(amc_data_path, copy, page, float(get_amc_option_by_key(exam, "seuil")))
 
         for idx, item in enumerate(data_positions):
             item["checked"] = False
@@ -654,22 +634,24 @@ def get_amc_marks_positions_data(exam,copy,page):
 
         return data_positions
 
-def update_amc_mark_zone_data(exam,zoneid,copy,page):
+
+def update_amc_mark_zone_data(exam, zoneid, copy, page):
     amc_data_path = get_amc_project_path(exam, False)
 
     if amc_data_path:
         amc_data_path += "/data/"
 
-        data_zones = select_data_zones(amc_data_path,zoneid)
+        data_zones = select_data_zones(amc_data_path, zoneid)
 
         manual = data_zones[0]['manual']
         bvalue = data_zones[0]['bvalue']
-        if (manual == -1.0 and bvalue >= float(get_amc_option_by_key(exam,"seuil"))) or manual == 1.0:
+        if (manual == -1.0 and bvalue >= float(get_amc_option_by_key(exam, "seuil"))) or manual == 1.0:
             manual = "0.0"
         else:
             manual = "1.0"
 
-        update_data_zone(amc_data_path,manual,zoneid, copy, page)
+        update_data_zone(amc_data_path, manual, zoneid, copy, page)
+
 
 def _is_valid_amc_options_xml(options_xml_path):
     try:
@@ -677,12 +659,13 @@ def _is_valid_amc_options_xml(options_xml_path):
             first_line = options_file.readline().strip()
             second_line = options_file.readline().strip()
         return (
-            (first_line == '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            and second_line == "<project>")
-            or second_line == "<projetAMC>"
+                (first_line == '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                 and second_line == "<project>")
+                or second_line == "<projetAMC>"
         )
     except OSError:
         return False
+
 
 def _find_amc_project_dir(extracted_root_path):
     candidates = []
@@ -703,7 +686,8 @@ def _find_amc_project_dir(extracted_root_path):
     candidates.sort(key=lambda item: (item[0], item[1]))
     return candidates[0][1]
 
-def create_amc_project_dir_from_zip(exam,zip_file):
+
+def create_amc_project_dir_from_zip(exam, zip_file):
     file_name = f"exam_{exam.pk}_amc_project.zip"
     temp_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, file_name)
 
@@ -713,7 +697,8 @@ def create_amc_project_dir_from_zip(exam,zip_file):
         for chunk in zip_file.chunks():
             temp_file.write(chunk)
 
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code
+    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(
+        exam.semester.code) + "_" + exam.code
     tmp_extract_path = zip_path + "/tmp_extract"
 
     os.makedirs(zip_path, exist_ok=True)
@@ -744,8 +729,8 @@ def create_amc_project_dir_from_zip(exam,zip_file):
 
     return 'AMC project folder uploaded !'
 
-def get_automatic_data_capture_summary(exam):
 
+def get_automatic_data_capture_summary(exam: Exam):
     amc_data_path = get_amc_project_path(exam, False)
     amc_data_url = get_amc_project_url(exam)
 
@@ -767,24 +752,25 @@ def get_automatic_data_capture_summary(exam):
         for missing_page in data_missing_pages:
 
             if prev_stud and missing_page.get("student") != prev_stud:
-                incomplete_copy = {"copy_no":prev_stud,"missing_pages":missing_pages}
+                incomplete_copy = {"copy_no": prev_stud, "missing_pages": missing_pages}
                 incomplete_copies.append(incomplete_copy)
                 missing_pages = []
 
             missing_pages.append(missing_page.get("page"))
             prev_stud = missing_page.get("student")
 
-        if missing_pages :
+        if missing_pages:
             incomplete_copy = {"copy_no": prev_stud, "missing_pages": missing_pages}
             incomplete_copies.append(incomplete_copy)
 
         data_overwritten_pages = select_overwritten_pages(amc_data_path)
 
-        return [nb_copies, incomplete_copies,nb_unrecognized_pages,data_overwritten_pages]
+        return [nb_copies, incomplete_copies, nb_unrecognized_pages, data_overwritten_pages]
 
     return None
 
-def get_copy_page_zooms(exam,copy,page):
+
+def get_copy_page_zooms(exam, copy, page):
     amc_data_path = get_amc_project_path(exam, False)
     zooms_data = None
     if amc_data_path:
@@ -797,14 +783,16 @@ def get_copy_page_zooms(exam,copy,page):
             imagedata = base64.b64encode(item["imagedata"])
             item["imagedata"] = imagedata.decode()
             item["checked"] = False
-            if (item["bvalue"] >= float(get_amc_option_by_key(exam,"seuil")) and item["manual"] == -1) or item["manual"] == 1:
+            if (item["bvalue"] >= float(get_amc_option_by_key(exam, "seuil")) and item["manual"] == -1) or item[
+                "manual"] == 1:
                 item["checked"] = True
 
             zooms_data[idx] = item
 
     return zooms_data
 
-def add_unrecognized_page_to_project(exam,copy,page,extra,img_filename):
+
+def add_unrecognized_page_to_project(exam, copy, page, extra, img_filename):
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:
 
@@ -825,37 +813,38 @@ def add_unrecognized_page_to_project(exam,copy,page,extra,img_filename):
                     last_exNum = curr_exNum
 
             new_exNum = str(last_exNum + 1)
-            filename = "copy_"+str(copy).zfill(4)+"_"+str(page)+"."+new_exNum+".jpg"
+            filename = "copy_" + str(copy).zfill(4) + "_" + str(page) + "." + new_exNum + ".jpg"
 
             #get scan path unsigned
-            extra_path = str(verify_and_get_path(unquote(img_filename.replace('/protected/?token=',''))))
+            extra_path = str(verify_and_get_path(unquote(img_filename.replace('/protected/?token=', ''))))
             #move to extra folder
-            shutil.copy(extra_path, copy_extra_folder_path+'/'+extra_path.split('/')[-1].replace('marked_',''))
+            shutil.copy(extra_path, copy_extra_folder_path + '/' + extra_path.split('/')[-1].replace('marked_', ''))
 
             #remove as unrecognized page
-            delete_unrecognized_page(amc_data_path+'/data/',extra_path)
+            delete_unrecognized_page(amc_data_path + '/data/', extra_path)
 
         else:
-            one=1#todo
+            one = 1  #todo
 
-def get_students_csv_headers(exam):
+
+def get_students_csv_headers(exam: Exam):
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:
+        students_file = get_amc_option_by_key(exam, "listeetudiants").replace("%PROJET", amc_data_path)
 
-        students_file = get_amc_option_by_key(exam,"listeetudiants").replace("%PROJET",amc_data_path)
-
-        with open(students_file,'r', encoding="utf-8") as csv_file:
-
+        with open(students_file, 'r', encoding="utf-8") as csv_file:
             csv_reader = csv.DictReader(csv_file)
             dict_from_csv = dict(list(csv_reader)[0])
             return list(dict_from_csv.keys())
 
-def get_automatic_association_code(exam):
+
+def get_automatic_association_code(exam: Exam):
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:
         association_code = get_amc_option_by_key(exam, "assoc_code")
         if association_code:
             return association_code
+
 
 #     return "Pre-association"
 #
@@ -888,10 +877,10 @@ def get_automatic_association_code(exam):
 #     else:
 #         return result.stdout
 
-def amc_mark(exam,update_scoring_strategy):
+def amc_mark(exam, update_scoring_strategy):
     print("************** Start marking")
     if update_scoring_strategy == 'true':
-        result = amc_update_documents(exam,None,True)
+        result = amc_update_documents(exam, None, True)
 
     project_path = get_amc_project_path(exam, False)
     threshold = get_amc_option_by_key(exam, "seuil")
@@ -915,24 +904,25 @@ def amc_mark(exam,update_scoring_strategy):
         "--plafond", plafond,
     ]
     errors = ''
-    with subprocess.Popen(command,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
-        with open(project_path+'/amc-compiled.amc', 'r') as file:
+    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
+        with open(project_path + '/amc-compiled.amc', 'r') as file:
             # Read each line in the file
             for line in file:
                 if 'ETU' in line:
-                    info_str = 'Student Nr. '+line.split('=')[1].split('}')[0] + ' \n'
+                    info_str = 'Student Nr. ' + line.split('=')[1].split('}')[0] + ' \n'
                     print(info_str)
                     yield info_str
 
-        if  process.returncode and process.returncode != 0:
+        if process.returncode and process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, process.args)
 
     if errors:
         yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
 
-def amc_mark_subprocess(request, exam,update_scoring_strategy):
+
+def amc_mark_subprocess(request, exam, update_scoring_strategy):
     if update_scoring_strategy == 'true':
-        result = amc_update_documents(exam,None,True)
+        result = amc_update_documents(exam, None, True)
 
     project_path = get_amc_project_path(exam, False)
     threshold = get_amc_option_by_key(exam, "seuil")
@@ -954,27 +944,29 @@ def amc_mark_subprocess(request, exam,update_scoring_strategy):
         "--notemax", notemax,
     ]
     errors = ''
-    with subprocess.Popen(command,stdout=subprocess.PIPE, bufsize=1,universal_newlines=True) as process:
-        with open(project_path+'/amc-compiled.amc', 'r') as file:
+    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
+        with open(project_path + '/amc-compiled.amc', 'r') as file:
             # Read each line in the file
             for line in file:
                 if 'ETU' in line:
-                    info_str = 'Student Nr. '+line.split('=')[1].split('}')[0] + ' \n'
+                    info_str = 'Student Nr. ' + line.split('=')[1].split('}')[0] + ' \n'
                     print(info_str)
                     yield info_str
 
-        if  process.returncode and process.returncode != 0:
+        if process.returncode and process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, process.args)
 
     if errors:
         yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
 
-def get_amc_mean(exam):
+
+def get_amc_mean(exam: Exam):
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:
-        return get_mean(amc_data_path+"/data/")
+        return get_mean(amc_data_path + "/data/")
 
-def get_questions_scoring_details_list(exam):
+
+def get_questions_scoring_details_list(exam: Exam):
     questions_scoring_details_list = []
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:
@@ -984,9 +976,9 @@ def get_questions_scoring_details_list(exam):
         q_scoring_details_copy = {}
         q_question_scoring = {}
         q_question_scoring_list = []
-        new_copy = False;
+        new_copy = False
         for row in data:
-            for key,value in row.items():
+            for key, value in row.items():
                 if key == 'copy' and value != last_copy:
                     if last_copy != 0:
                         q_question_scoring_list.append(q_question_scoring)
@@ -994,16 +986,16 @@ def get_questions_scoring_details_list(exam):
                         q_question_scoring_list = []
                         q_question_scoring = {}
                         questions_scoring_details_list.append(q_scoring_details_copy)
-                    q_scoring_details_copy = {'copy':value}
+                    q_scoring_details_copy = {'copy': value}
                     new_copy = True
                     last_copy = value
 
-                if new_copy and key not in ['question','score','max_question','mark']:
+                if new_copy and key not in ['question', 'score', 'max_question', 'mark']:
                     q_scoring_details_copy[key] = value
                 elif key == 'mark':
                     new_copy = False
 
-                elif not new_copy and key in ['question','score','max_question']:
+                elif not new_copy and key in ['question', 'score', 'max_question']:
                     if key == 'question':
                         if q_question_scoring:
                             q_question_scoring_list.append(q_question_scoring)
@@ -1017,10 +1009,11 @@ def get_questions_scoring_details_list(exam):
 
     return questions_scoring_details_list
 
+
 def amc_automatic_association(exam: Exam, assoc_primary_key: str):
     project_path = get_amc_project_path(exam, False)
-    amc_update_options_xml_by_key(exam,'liste_key',assoc_primary_key)
-    students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
+    amc_update_options_xml_by_key(exam, 'liste_key', assoc_primary_key)
+    students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
     command = [
         "auto-multiple-choice", "association-auto",
         "--data", f"{project_path}/data/",
@@ -1036,9 +1029,9 @@ def amc_automatic_association(exam: Exam, assoc_primary_key: str):
         sync_student_amc_ids_from_association(exam)
         return result.stdout
 
-def check_students_csv_file(file):
 
-    with open(file,'rb') as csvfile:
+def check_students_csv_file(file):
+    with open(file, 'rb') as csvfile:
         data = csvfile.read()
         #check encoding
         encoding = chardet.detect(bytearray(data))['encoding']
@@ -1070,17 +1063,17 @@ def check_students_csv_file(file):
     return "ok"
 
 
-def get_annotated_pdfs_dir(exam):
+def get_annotated_pdfs_dir(exam: Exam):
     return Path(get_amc_project_path(exam, False)) / "cr" / "corrections" / "pdf"
 
 
-def get_annotated_zip_path(exam):
+def get_annotated_zip_path(exam: Exam):
     corrections_path = Path(get_amc_project_path(exam, False)) / "cr" / "corrections"
     zip_filename = f"annotated_pdfs_{exam.code}_{exam.year.code}_{exam.semester.code}.zip"
     return corrections_path / zip_filename
 
 
-def cleanup_previous_annotated_outputs(exam):
+def cleanup_previous_annotated_outputs(exam: Exam):
     annotated_pdfs_dir = get_annotated_pdfs_dir(exam)
     annotated_pdfs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1187,16 +1180,17 @@ def run_amc_annotate_command(command, exam, single_file, progress_callback=None)
     return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
 
 
-def amc_annotate(exam, single_file, add_grading_scheme_report, progress_callback=None):
+def amc_annotate(exam: Exam, single_file, add_grading_scheme_report, progress_callback = None):
     project_path = get_amc_project_path(exam, False)
-    assoc_primary_key = get_amc_option_by_key(exam,'liste_key')
-    students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET',project_path)
-    filename_model = get_amc_option_by_key(exam,'modele_regroupement')
-    verdict = get_amc_option_by_key(exam,'verdict').replace('\n','\r\n')
-    verdict_q = get_amc_option_by_key(exam,'verdict_q')
-    verdict_qc = get_amc_option_by_key(exam,'verdict_qc')
+    assoc_primary_key = get_amc_option_by_key(exam, 'liste_key')
+    students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
+    filename_model = get_amc_option_by_key(exam, 'modele_regroupement')
+    verdict = get_amc_option_by_key(exam, 'verdict').replace('\n', '\r\n')
+    verdict_q = get_amc_option_by_key(exam, 'verdict_q')
+    verdict_qc = get_amc_option_by_key(exam, 'verdict_qc')
     symbols = get_annotation_symbols(exam)
-    annote_position = get_amc_option_by_key(exam,'annote_position')
+    annote_position = get_amc_option_by_key(exam, 'annote_position')
+
     command = [
         "auto-multiple-choice", "annotate",
         "--project", project_path,
@@ -1220,8 +1214,10 @@ def amc_annotate(exam, single_file, add_grading_scheme_report, progress_callback
         add_grading_scheme_report,
         command,
     )
+
     if progress_callback:
         progress_callback(message="Cleaning previous annotated outputs...")
+
     cleanup_previous_annotated_outputs(exam)
 
     result = run_amc_annotate_command(
@@ -1242,7 +1238,7 @@ def amc_annotate(exam, single_file, add_grading_scheme_report, progress_callback
         return "ERR:" + result.stderr
     else:
 
-        student_report_data = get_student_report_data(project_path+"/data/")
+        student_report_data = get_student_report_data(project_path + "/data/")
         report_type = 2 if single_file else 1
         generated_rows = [
             row for row in student_report_data
@@ -1275,11 +1271,12 @@ def amc_annotate(exam, single_file, add_grading_scheme_report, progress_callback
 
         return result.stdout
 
+
 def add_extra_to_annotated_pdf(student, annotated_file, amc_project_path):
-    amc_extra_pages_path = amc_project_path+"/scans/extra/"
-    amc_annoted_pdfs_path = amc_project_path+"/cr/corrections/pdf/"
-    extra_pdf_tmp_path = amc_extra_pages_path+str(student).zfill(4)+"/"
-    extra_pages = get_extra_pages(amc_extra_pages_path,None,student)
+    amc_extra_pages_path = amc_project_path + "/scans/extra/"
+    amc_annoted_pdfs_path = amc_project_path + "/cr/corrections/pdf/"
+    extra_pdf_tmp_path = amc_extra_pages_path + str(student).zfill(4) + "/"
+    extra_pages = get_extra_pages(amc_extra_pages_path, None, student)
     extra_pages = sorted(extra_pages, key=lambda d: int(d['page'].split('.')[0]))
 
     #set A4 for img conversion to pdf page
@@ -1290,13 +1287,13 @@ def add_extra_to_annotated_pdf(student, annotated_file, amc_project_path):
         added_pages = 0
         for extra_page in extra_pages:
             with Image.open(extra_page['source']) as img:
-                pdf = img2pdf.convert(extra_page['source'],layout_fun=layout_fun)
-                with open(extra_pdf_tmp_path+"tmp_extra.pdf","wb") as file:
+                pdf = img2pdf.convert(extra_page['source'], layout_fun=layout_fun)
+                with open(extra_pdf_tmp_path + "tmp_extra.pdf", "wb") as file:
                     file.write(pdf)
                     file.close()
 
-            extra_pdf = PdfReader(extra_pdf_tmp_path+"tmp_extra.pdf", 'rb')
-            annotated_pdf = PdfReader(amc_annoted_pdfs_path+annotated_file, 'rb')
+            extra_pdf = PdfReader(extra_pdf_tmp_path + "tmp_extra.pdf", 'rb')
+            annotated_pdf = PdfReader(amc_annoted_pdfs_path + annotated_file, 'rb')
             final_annotated_pdf = PdfWriter()
 
             page_to_add = extra_pdf.pages[0]
@@ -1304,19 +1301,19 @@ def add_extra_to_annotated_pdf(student, annotated_file, amc_project_path):
             page_added = False
             for i in range(len(annotated_pdf.pages)):
                 final_annotated_pdf.add_page(annotated_pdf.pages[i])
-                if not page_added and i+1 == int(extra_page['page'].split(".")[0])+added_pages:
+                if not page_added and i + 1 == int(extra_page['page'].split(".")[0]) + added_pages:
                     final_annotated_pdf.add_page(page_to_add)
                     added_pages += 1
                     page_added = True
 
-
-            with open(amc_annoted_pdfs_path+annotated_file, 'wb') as f:
+            with open(amc_annoted_pdfs_path + annotated_file, 'wb') as f:
                 final_annotated_pdf.write(f)
 
-            os.remove(extra_pdf_tmp_path+"tmp_extra.pdf")
+            os.remove(extra_pdf_tmp_path + "tmp_extra.pdf")
 
-def get_annotation_symbols(exam):
-    symb_0_0_color = get_amc_option_by_key(exam,'symbole_0_0_color')
+
+def get_annotation_symbols(exam: Exam):
+    symb_0_0_color = get_amc_option_by_key(exam, 'symbole_0_0_color')
     symb_0_0_type = get_amc_option_by_key(exam, 'symbole_0_0_type')
     symb_0_1_color = get_amc_option_by_key(exam, 'symbole_0_1_color')
     symb_0_1_type = get_amc_option_by_key(exam, 'symbole_0_1_type')
@@ -1325,9 +1322,9 @@ def get_annotation_symbols(exam):
     symb_1_1_color = get_amc_option_by_key(exam, 'symbole_1_1_color')
     symb_1_1_type = get_amc_option_by_key(exam, 'symbole_1_1_type')
 
-    symbols_string = "0-0:"+symb_0_0_type
+    symbols_string = "0-0:" + symb_0_0_type
     if symb_0_0_type != 'none':
-        symbols_string += ":"+symb_0_0_color
+        symbols_string += ":" + symb_0_0_color
     symbols_string += ",0-1:" + symb_0_1_type
     if symb_0_1_type != 'none':
         symbols_string += ":" + symb_0_1_color
@@ -1340,14 +1337,16 @@ def get_annotation_symbols(exam):
 
     return symbols_string
 
-def check_annotated_papers_available(exam):
-    project_path = get_amc_project_path(exam,False)
-    annotated_path = project_path+"/cr/corrections/pdf/"
+
+def check_annotated_papers_available(exam: Exam):
+    project_path = get_amc_project_path(exam, False)
+    annotated_path = project_path + "/cr/corrections/pdf/"
     pdf_list = [os.path.join(annotated_path, f) for f in os.listdir(annotated_path) if f.endswith(".pdf")]
     if len(pdf_list) > 0:
         return True
     else:
         return False
+
 
 def resolve_annotated_pdf_path(annotated_pdfs_dir, filename):
     annotated_pdf_path = Path(filename or "")
@@ -1406,7 +1405,7 @@ def find_student_for_association_value(exam, assoc_primary_key, associated_stude
     )
 
 
-def sync_student_amc_ids_from_association(exam):
+def sync_student_amc_ids_from_association(exam: Exam):
     project_path = get_amc_project_path(exam, False)
     if not project_path:
         return 0
@@ -1632,6 +1631,7 @@ def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=No
 
     logger.info("AMC grading scheme report append completed exam=%s total=%s", exam_pk, total)
 
+
 def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     writer = PdfWriter()
 
@@ -1645,7 +1645,8 @@ def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     out.seek(0)
     return out.getvalue()
 
-def create_annotated_zip(exam):
+
+def create_annotated_zip(exam: Exam):
     corrections_path = Path(get_amc_project_path(exam, False)) / "cr" / "corrections"
     zip_path = get_annotated_zip_path(exam)
     # Creating the ZIP file
@@ -1656,9 +1657,10 @@ def create_annotated_zip(exam):
     else:
         return False
 
-def amc_generate_results(exam):
-    project_path = get_amc_project_path(exam,False)
-    results_csv_path = project_path+"/exports/"+exam.code+"_amc_raw.csv"
+
+def amc_generate_results(exam: Exam):
+    project_path = get_amc_project_path(exam, False)
+    results_csv_path = project_path + "/exports/" + exam.code + "_amc_raw.csv"
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
 
     command = [
@@ -1679,7 +1681,8 @@ def amc_generate_results(exam):
     else:
         return result.stdout
 
-def get_amc_results_file_path(exam):
+
+def get_amc_results_file_path(exam: Exam):
     project_path = get_amc_project_path(exam, False)
     results_csv_path = project_path + "/exports/" + exam.code + "_amc_raw.csv"
     if os.path.exists(results_csv_path):
@@ -1687,7 +1690,8 @@ def get_amc_results_file_path(exam):
 
     return None
 
-def get_amc_manual_association_data(exam):
+
+def get_amc_manual_association_data(exam: Exam):
     project_path = get_amc_project_path(exam, False)
     amc_assoc_img_path = ""
     if project_path:
@@ -1758,11 +1762,11 @@ def get_amc_manual_association_data(exam):
         return rel_path
 
     if project_path:
-        amc_data_path = project_path+"/data/"
-        data_assoc = select_associations(amc_data_path,amc_assoc_img_path)
+        amc_data_path = project_path + "/data/"
+        data_assoc = select_associations(amc_data_path, amc_assoc_img_path)
 
         students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
-        file = open(students_list, "r",encoding='utf-8')
+        file = open(students_list, "r", encoding='utf-8')
         students_data = list(csv.reader(file, delimiter=","))
 
         # signing images
@@ -1774,10 +1778,12 @@ def get_amc_manual_association_data(exam):
                 signed_url = f"{settings.SIGNED_FILES_URL}?token={signed_url.split('?token=', 1)[1]}"
             assoc["image_path"] = signed_url
 
-        return {"data_assoc":json.dumps(data_assoc),"data_students":json.dumps(students_data)}
+        return {"data_assoc": json.dumps(data_assoc), "data_students": json.dumps(students_data)}
 
     return ''
-def set_amc_manual_association(exam,copy_nr,student_id):
+
+
+def set_amc_manual_association(exam, copy_nr, student_id):
     project_path = get_amc_project_path(exam, False)
     result = ''
     if project_path:
@@ -1787,7 +1793,8 @@ def set_amc_manual_association(exam,copy_nr,student_id):
 
     return result
 
-def get_amc_send_annotated_papers_data(exam):
+
+def get_amc_send_annotated_papers_data(exam: Exam):
     project_path = get_amc_project_path(exam, False)
 
     if project_path:
@@ -1811,16 +1818,15 @@ def get_amc_send_annotated_papers_data(exam):
                             merged_dict[key] = value
                     students_data.append(merged_dict)
 
-
         return students_data
 
     return ''
 
-def amc_send_annotated_papers(exam,selected_students,email_subject,email_body,email_column):
 
+def amc_send_annotated_papers(exam, selected_students, email_subject, email_body, email_column):
     result = 'ok'
     project_path = get_amc_project_path(exam, False)
-    amc_data_path = project_path+"/data/"
+    amc_data_path = project_path + "/data/"
     result_list = []
     count_sent = 0
     count_error = 0
@@ -1843,23 +1849,23 @@ def amc_send_annotated_papers(exam,selected_students,email_subject,email_body,em
                 [student['email']]  # To email addresses
             )
 
-            annotated_pdf_path = get_annotated_pdf_path(amc_data_path,student["id"])
+            annotated_pdf_path = get_annotated_pdf_path(amc_data_path, student["id"])
 
             # Set content type to HTML
             email.content_subtype = "html"
-            email.attach_file(project_path+"/cr/corrections/pdf/"+annotated_pdf_path)
+            email.attach_file(project_path + "/cr/corrections/pdf/" + annotated_pdf_path)
 
             try:
                 # Send email
                 email.send()
                 student_send_result += "email sent !"
                 count_sent += 1
-                update_report_student(amc_data_path, student["id"], time.time(), 1,'')
+                update_report_student(amc_data_path, student["id"], time.time(), 1, '')
             except Exception as e:
-                student_send_result += "Failed to send email: "+repr(e)
+                student_send_result += "Failed to send email: " + repr(e)
                 logger.error(result)
                 count_error += 1
-                update_report_student(amc_data_path,student["id"],time.time(),100,repr(e))
+                update_report_student(amc_data_path, student["id"], time.time(), 100, repr(e))
                 result_list.append(student_send_result)
 
     return [count_sent, count_error, result_list]
@@ -1891,8 +1897,6 @@ def wrap_canvas_text_lines(c, text, max_width, font_name="Helvetica", font_size=
         wrapped_lines.append(current)
 
     return wrapped_lines
-
-
 
 
 def clean_report_text(value) -> str:
@@ -2061,7 +2065,8 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk, amc_copy_nr=None, review
             questionGradingScheme_id=grading_scheme_id,
         ).order_by("position", "pk")
 
-        max_points = all_grading_scheme_checkboxes.aggregate(points__sum=Sum("points"))["points__sum"] or Decimal("0.00")
+        max_points = all_grading_scheme_checkboxes.aggregate(points__sum=Sum("points"))["points__sum"] or Decimal(
+            "0.00")
         grading_scheme_checkboxes = list(
             all_grading_scheme_checkboxes
             .exclude(name__in=("ZERO", "ADJ"))
@@ -2088,11 +2093,11 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk, amc_copy_nr=None, review
             pg_checked_box = pg_checked_box_item is not None
 
             add_row = not (
-                grading_scheme_checkbox.name == "ZERO"
-                or (
-                    grading_scheme_checkbox.name == "ADJ"
-                    and (not pg_checked_box_item or pg_checked_box_item.adjustment == 0)
-                )
+                    grading_scheme_checkbox.name == "ZERO"
+                    or (
+                            grading_scheme_checkbox.name == "ADJ"
+                            and (not pg_checked_box_item or pg_checked_box_item.adjustment == 0)
+                    )
             )
             if not add_row:
                 continue
@@ -2165,6 +2170,7 @@ def build_grading_report_pdf_bytes(exam_pk, student_pk, amc_copy_nr=None, review
     buffer.close()
     return pdf_bytes
 
+
 def draw_table(c, data, x, y, col_widths):
     """
     Dessine un tableau ReportLab à la position x,y (y = haut du tableau).
@@ -2176,7 +2182,7 @@ def draw_table(c, data, x, y, col_widths):
         # header row style
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('ALIGN', (1, 0), (2, 0), 'CENTER'),   # Points + Validated centered in header
+        ('ALIGN', (1, 0), (2, 0), 'CENTER'),  # Points + Validated centered in header
 
         # body alignment for numeric columns
         ('ALIGN', (1, 1), (2, -1), 'CENTER'),  # Points + Validated values centered
