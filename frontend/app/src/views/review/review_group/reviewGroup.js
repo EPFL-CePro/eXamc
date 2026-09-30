@@ -1,6 +1,7 @@
 import DataTable from "datatables.net-dt";
 import 'datatables.net-dt/css/dataTables.dataTables.min.css';
 import { MarkerArea } from '@markerjs/markerjs3';
+import {setupDatatables} from "@examc/helpers/datatables.ts";
 
 (function () {
     'use strict';
@@ -1330,6 +1331,8 @@ import { MarkerArea } from '@markerjs/markerjs3';
 
         if (refresh) return;
 
+        setupDatatables();
+
         if ( DataTable.isDataTable( tableCopiesPages ) ) {
             new DataTable.Api(tableCopiesPages);
         } else {
@@ -1901,12 +1904,12 @@ import { MarkerArea } from '@markerjs/markerjs3';
         el.classList.add('active');
         el.setAttribute('aria-selected', 'true');
 
-        let currentUrl = el.getAttribute('data-hx-get') || '';
+        let currentUrl = el.getAttribute('hx-get') || '';
         const copyNo = currentSourceIdParts[1];
         if (copyNo == null) return false;
 
         const updatedUrl = currentUrl.replace(/\/[^/?#]+(?=[?#]|$)/, '/' + encodeURIComponent(copyNo));
-        el.setAttribute('data-hx-get', updatedUrl);
+        el.setAttribute('hx-get', updatedUrl);
 
         const onAfterSwap = (e) => {
             if (!e.detail || !e.detail.target || e.detail.target.id !== 'review-scheme-panel') return;
