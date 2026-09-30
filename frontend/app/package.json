@@ -2,25 +2,30 @@
   "name": "frontend",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.4.1",
+  "packageManager": "pnpm@12.6.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build --emptyOutDir",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . && tsc --noEmit"
   },
   "devDependencies": {
+    "@eslint-community/eslint-utils": "^4.10.1",
     "@eslint/css": "^2.0.0",
     "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/bootstrap": "^5.2.11",
     "@types/jquery": "^4.0.1",
     "@types/katex": "^0.16.8",
     "@types/node": "^26.6.2",
     "eslint": "^10.11.0",
     "globals": "^17.12.0",
+    "jiti": "^2.7.0",
     "sass": "^1.104.1",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vite-plugin-checker": "^0.14.5"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.1",

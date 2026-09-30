@@ -11,9 +11,10 @@ export function lastConnectedUsersTable(options: {
         order: [[2, "desc"]],
         layout: {
             topStart: function() {
-                let title = document.createElement('h4');
+                const title = document.createElement('h4');
                 title.style.margin = "0";
                 title.innerHTML = `<i class="fa-solid fa-clock-rotate-left dashboard-section-icon"></i>Users' last connection`;
+
                 return title;
             },
             bottomStart: [

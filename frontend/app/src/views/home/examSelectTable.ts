@@ -17,7 +17,7 @@ export function initExamSelectTable(options: {
         },
         layout: {
             topStart: function() {
-                let title = document.createElement('h4');
+                const title = document.createElement('h4');
                 title.style.margin = "0";
                 title.innerHTML = `<i class="fa-solid fa-book-open"></i> My exams`;
                 return title;
