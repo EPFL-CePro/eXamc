@@ -1,7 +1,7 @@
 name: Build and Push Image to GHCR, with testing
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
   workflow_call:
   push:
     branches:
@@ -15,44 +15,50 @@ permissions:
   contents: read
   packages: write
 
+# Avoid two runs on the same branch racing to move :staging / :stable
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  build-test-and-push:
+  # ---------------------------------------------------------------------------
+  # Compute the image tag and names once, and (on main) check whether the
+  # versioned images already exist so later jobs can skip rebuilding them.
+  # ---------------------------------------------------------------------------
+  meta:
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: django
-            context: ./django
-            target: production
-            test_target: test
-            run_tests: true
-          - name: fe-artifacts
-            context: ./frontend
-            target: artifact
-            test_target: ""
-            run_tests: false
-
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      floating_tag: ${{ steps.tag.outputs.floating_tag }}
+      django_image: ${{ steps.names.outputs.django_image }}
+      fe_image: ${{ steps.names.outputs.fe_image }}
+      skip_django: ${{ steps.check.outputs.skip_django }}
+      skip_fe: ${{ steps.check.outputs.skip_fe }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Set image name
+      - name: Set image names
+        id: names
         run: |
-          echo "IMAGE_NAME=${REGISTRY}/${GITHUB_REPOSITORY,,}-${{ matrix.name }}" >> "$GITHUB_ENV"
+          BASE="${REGISTRY}/${GITHUB_REPOSITORY,,}"
+          echo "django_image=${BASE}-django" >> "$GITHUB_OUTPUT"
+          echo "fe_image=${BASE}-fe-artifacts" >> "$GITHUB_OUTPUT"
 
       - name: Set image tag
-        # Release branch (main): use the version in app/pyproject.toml to tag the image
-        # Staging branch (staging): use the commit SHA to tag the image
+        # main:    version from django/app/pyproject.toml, promoted to :stable
+        # staging: commit SHA, promoted to :staging
+        id: tag
         run: |
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
-            VERSION=$(python -c "import tomllib; print(tomllib.load(open('django/app/pyproject.toml', 'rb'))['project']['version'])")
-            echo "IMAGE_TAG=$VERSION" >> "$GITHUB_ENV"
+            VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('django/app/pyproject.toml', 'rb'))['project']['version'])")
+            echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "floating_tag=stable" >> "$GITHUB_OUTPUT"
           elif [ "${GITHUB_REF_NAME}" = "staging" ]; then
-            echo "IMAGE_TAG=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            echo "floating_tag=staging" >> "$GITHUB_OUTPUT"
           else
-            echo "Unsupported branch: ${GITHUB_REF_NAME}"
+            echo "::error::Unsupported branch: ${GITHUB_REF_NAME}"
             exit 1
           fi
 
@@ -63,81 +69,161 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check if stable image already exists
-        # Skipped on staging branch, as the git commit SHA is used to tag the image
-        if: github.ref_name == 'main'
+      - name: Check if versioned images already exist
+        # Only relevant on main: staging tags are commit SHAs and always new
         id: check
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          DJANGO_IMAGE: ${{ steps.names.outputs.django_image }}
+          FE_IMAGE: ${{ steps.names.outputs.fe_image }}
         run: |
-          IMAGE="${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-          if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
-            echo "::warning::Image $IMAGE already exists — skipping build and push"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+          exists() { docker manifest inspect "$1" >/dev/null 2>&1; }
+
+          if [ "${GITHUB_REF_NAME}" = "main" ] && exists "${DJANGO_IMAGE}:${TAG}"; then
+            echo "::warning::${DJANGO_IMAGE}:${TAG} already exists, skipping django build"
+            echo "skip_django=true" >> "$GITHUB_OUTPUT"
           else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "skip_django=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if [ "${GITHUB_REF_NAME}" = "main" ] && exists "${FE_IMAGE}:${TAG}"; then
+            echo "::warning::${FE_IMAGE}:${TAG} already exists, skipping fe-artifacts build"
+            echo "skip_fe=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_fe=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Build and push the frontend artifacts image under the immutable tag only.
+  # The floating tag is moved later, in `promote`, once everything has passed.
+  # ---------------------------------------------------------------------------
+  fe-artifacts:
+    needs: meta
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        if: needs.meta.outputs.skip_fe != 'true'
+        uses: actions/checkout@v7
+
+      - name: Log in to the Container registry
+        if: needs.meta.outputs.skip_fe != 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Docker Buildx
-        if: steps.check.outputs.skip != 'true'
+        if: needs.meta.outputs.skip_fe != 'true'
         uses: docker/setup-buildx-action@v4
 
-      # Build the target image once and load it into the local Docker daemon.
-      # This is the image that will be tested (if applicable) and pushed if all tests succeed.
-      - name: Build image
-        if: steps.check.outputs.skip != 'true'
+      - name: Build and push fe-artifacts image
+        if: needs.meta.outputs.skip_fe != 'true'
         uses: docker/build-push-action@v7
         with:
-          context: ${{ matrix.context }}
-          target: ${{ matrix.target }}
-          load: true
-          push: false
+          context: ./frontend
+          target: artifact
+          push: true
           platforms: linux/amd64
-          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ needs.meta.outputs.fe_image }}:${{ needs.meta.outputs.tag }}
+          cache-from: type=gha,scope=fe-artifacts
+          cache-to: type=gha,mode=max,scope=fe-artifacts
 
-      # Build the test target, if this matrix entry has one.
-      # It shares the runtime base and dependencies with the production target and is used to run tests.
-      - name: Build test image
-        if: steps.check.outputs.skip != 'true' && matrix.run_tests
+  # ---------------------------------------------------------------------------
+  # Build the django production and test images, run the tests against the
+  # fe-artifacts image from THIS commit/version, then push the production image.
+  # ---------------------------------------------------------------------------
+  django:
+    needs: [meta, fe-artifacts]
+    runs-on: ubuntu-latest
+    if: needs.meta.outputs.skip_django != 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Build the production image once and load it into the local daemon.
+      # This exact image is pushed after the tests pass.
+      - name: Build production image
         uses: docker/build-push-action@v7
         with:
-          context: ${{ matrix.context }}
-          target: ${{ matrix.test_target }}
+          context: ./django
+          target: production
           load: true
           push: false
           platforms: linux/amd64
-          #    "image.name": "ghcr.io/epfl-cepro/examc-django-test:1.2.0"
-          tags: localhost/examc-${{ matrix.name }}-test:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ needs.meta.outputs.django_image }}:${{ needs.meta.outputs.tag }}
+          cache-from: type=gha,scope=django-production
+          cache-to: type=gha,mode=max,scope=django-production
+
+      # The test target shares the runtime base and dependencies with production.
+      - name: Build test image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./django
+          target: test
+          load: true
+          push: false
+          platforms: linux/amd64
+          tags: localhost/examc-django-test:latest
+          cache-from: |
+            type=gha,scope=django-test
+            type=gha,scope=django-production
+          cache-to: type=gha,mode=max,scope=django-test
 
       - name: Run tests
-        if: steps.check.outputs.skip != 'true' && matrix.run_tests
         env:
-          TEST_IMAGE: localhost/examc-${{ matrix.name }}-test
+          TEST_IMAGE: localhost/examc-django-test
           IMAGE_TAG: latest
+          FE_ARTIFACTS_IMAGE_TAG: ${{ needs.meta.outputs.tag }}
         run: |
-          docker compose -f compose/test-image.yml --env-file .env.test run --rm django
+          docker compose -f compose/test-image.yml --env-file .env.test \
+            run --rm django
 
-      # Push only after tests pass (or immediately, for entries with no tests).
-      - name: Push staging image
-        if: steps.check.outputs.skip != 'true' && github.ref_name == 'staging' && success()
-        run: |
-          docker push "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-          docker tag \
-            "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
-            "${{ env.IMAGE_NAME }}:staging"
-          docker push "${{ env.IMAGE_NAME }}:staging"
-
-      - name: Push stable image
-        if: steps.check.outputs.skip != 'true' && github.ref_name == 'main' && success()
-        run: |
-          docker push "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-          docker tag \
-            "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
-            "${{ env.IMAGE_NAME }}:stable"
-          docker push "${{ env.IMAGE_NAME }}:stable"
+      - name: Push production image
+        run: docker push "${{ needs.meta.outputs.django_image }}:${{ needs.meta.outputs.tag }}"
 
       - name: Docker cleanup
-        if: always() && matrix.run_tests
+        if: always()
         run: docker compose -f compose/test-image.yml down -v --remove-orphans || true
+
+  promote:
+    needs: [meta, fe-artifacts, django]
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.meta.result == 'success' &&
+      needs.fe-artifacts.result == 'success' &&
+      (needs.django.result == 'success' || needs.django.result == 'skipped')
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Retag images
+        # imagetools retags in the registry directly, no pull needed
+        env:
+          TAG: ${{ needs.meta.outputs.tag }}
+          FLOATING: ${{ needs.meta.outputs.floating_tag }}
+          DJANGO_IMAGE: ${{ needs.meta.outputs.django_image }}
+          FE_IMAGE: ${{ needs.meta.outputs.fe_image }}
+        run: |
+          for IMAGE in "$DJANGO_IMAGE" "$FE_IMAGE"; do
+            echo "Tagging ${IMAGE}:${TAG} as ${IMAGE}:${FLOATING}"
+            docker buildx imagetools create -t "${IMAGE}:${FLOATING}" "${IMAGE}:${TAG}"
+          done
