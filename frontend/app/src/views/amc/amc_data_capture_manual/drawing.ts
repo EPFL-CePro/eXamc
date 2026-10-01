@@ -1,8 +1,12 @@
-import { canvas } from './elements.ts';
 import { state } from './state.ts';
 import type { MarkPosition, Point, Zone } from './types.ts';
 
-const PLACEHOLDER_TEXT = 'Please select a page in the right panel';
+let canvas: HTMLCanvasElement | null = null;
+
+/** Sets the canvas to draw on. Called by index.ts once the DOM has loaded. */
+export function initDrawing(element: HTMLCanvasElement): void {
+    canvas = element;
+}
 
 /**
  * Groups mark corners into zones, in canvas coordinates.
@@ -90,7 +94,7 @@ function drawZone(ctx: CanvasRenderingContext2D, zone: Zone): void {
  * @param {number} height - Canvas height in CSS pixels.
  * @param {string} text - The message.
  */
-function drawPlaceholder(ctx: CanvasRenderingContext2D, width: number, height: number, text: string): void {
+function drawPlaceholder(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, width: number, height: number, text: string): void {
     const style = getComputedStyle(canvas);
     ctx.font = `${parseFloat(style.fontSize) * 1.25}px ${style.fontFamily}`;
     ctx.fillStyle = '#6c757d'; // Bootstrap's secondary text color
@@ -104,6 +108,8 @@ function drawPlaceholder(ctx: CanvasRenderingContext2D, width: number, height: n
  * The canvas size comes from CSS; the scan is fitted inside it, centered, keeping its own aspect ratio.
  */
 export function draw(): void {
+    if (!canvas) return; // not initialized yet
+    
     // Size as laid out by CSS, in CSS pixels.
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
@@ -119,10 +125,13 @@ export function draw(): void {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     if (!state.view) {
+        const placeholder_text = 'Please select a page in the right panel';
+
         state.zones = [];
-        drawPlaceholder(ctx, width, height, PLACEHOLDER_TEXT);
+        drawPlaceholder(ctx, canvas, width, height, placeholder_text);
         return;
     }
+
     const { image, marks } = state.view;
 
     // Fit the scan inside the box ("contain") and center it.

@@ -4,15 +4,18 @@ import 'datatables.net-dt/css/dataTables.dataTables.css';
 import 'datatables.net-columncontrol-dt';
 import 'datatables.net-columncontrol-dt/css/columnControl.dataTables.css';
 
-import { tableElement } from './elements.ts';
 import { clearPage, loadPage } from './scan.ts';
 import { state } from './state.ts';
 import type {PageQuestion, PageRow, QuestionState} from './types.ts';
 import {setupDatatables} from "@examc/helpers/datatables.ts";
 
+
 // ---------------------------------------------------------------------------
 // Table
 // ---------------------------------------------------------------------------
+
+let tableElement: HTMLTableElement | null = null;
+
 
 /** Filter-related parts of the last request, to detect when the filters changed. */
 let lastFilterKey: string | null = null;
@@ -35,7 +38,9 @@ function filterKey(params: Record<string, unknown>): string {
  *
  * @return {Api<unknown>} The DataTables instance (also stored in `state.table`).
  */
-export function initTable(): Api<unknown> {
+export function initTable(element: HTMLTableElement): Api<unknown> {
+    tableElement = element;
+
     const apiUrl = tableElement.dataset['apiUrl'];
     if (!apiUrl) throw new Error('#table-copies-pages is missing its data-api-url attribute');
 
@@ -147,7 +152,7 @@ function rowData(row: HTMLTableRowElement): PageRow | undefined {
  * @param {HTMLTableRowElement} row - The row to scroll to.
  */
 function scrollToRow(row: HTMLTableRowElement): void {
-    const container = tableElement.parentElement; // DataTables' scroll body
+    const container = tableElement?.parentElement; // DataTables' scroll body
     if (!container) return;
     container.scrollTop = row.offsetTop - container.clientHeight / 2;
 }

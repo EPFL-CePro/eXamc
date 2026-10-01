@@ -1,8 +1,28 @@
 import { draw } from './drawing.ts';
-import { urls } from './elements.ts';
 import { parseJson, parseScanPath, postText } from '@examc/helpers/http.ts';
 import { state } from './state.ts';
-import type { MarkPosition, PageRow, Zone } from './types.ts';
+import type { MarkPosition, PageRow, ScanUrls, Zone } from './types.ts';
+
+let urls: ScanUrls | null = null;
+
+class UrlsUnintialized extends Error {
+    constructor() {
+        super("urls object is uninitialized. Please run initScan() before referencing.");
+        this.name = "UrlsUnintialized";
+
+        // Set the prototype explicitly to maintain the correct prototype chain
+        Object.setPrototypeOf(this, UrlsUnintialized.prototype);
+    }
+}
+
+
+/** Sets the API endpoints. Called by index.ts once the DOM has loaded. */
+export function initScan(endpoints: ScanUrls): void {
+    urls = endpoints;
+}
+
+
+
 
 /**
  * Turns a scan file path into the URL it is served from.
@@ -38,6 +58,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
  * @return {Promise<MarkPosition[]>} The mark corners, 4 per zone.
  */
 async function fetchMarks(copy: string, page: string): Promise<MarkPosition[]> {
+    if (!urls) throw new Error("initScan() has not been called");
     return parseJson<MarkPosition[]>(await postText(urls.marks, { copy, page })) ?? [];
 }
 
@@ -47,6 +68,7 @@ async function fetchMarks(copy: string, page: string): Promise<MarkPosition[]> {
  * @param {PageRow} row - The page's row data.
  */
 export async function loadPage(row: PageRow): Promise<void> {
+    if (!urls) throw new UrlsUnintialized();
     const token = ++state.loadToken;
     const copy = String(row.copy);
     const page = String(row.page);
@@ -59,7 +81,6 @@ export async function loadPage(row: PageRow): Promise<void> {
         if (token !== state.loadToken) return;
 
         state.view = { copy, page, image, marks };
-        console.log(state);
         
         draw();
     } catch (error) {
@@ -74,6 +95,8 @@ export async function loadPage(row: PageRow): Promise<void> {
  */
 export async function toggleZone(zone: Zone): Promise<void> {
     if (!state.view) return;
+    if (!urls) throw new UrlsUnintialized();
+
     const { copy, page } = state.view;
     const token = ++state.loadToken;
 

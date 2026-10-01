@@ -3,6 +3,7 @@ import { parseJson, postText } from '@examc/helpers/http.ts';
 
 import type { PagePosition, Zoom } from './types.ts';
 import {getModal} from "@examc/helpers/modals.ts";
+import type { Modal } from 'bootstrap';
 
 interface ZoomsConfig {
     zoomsUrl: string;
@@ -25,12 +26,15 @@ let changed = false;
 /** Incremented on every load, so responses for a page the user already left are ignored. */
 let loadToken = 0;
 
+let zoomDataCaptureDiagnosisDialogModal: Modal | null = null;
+
 /** Wires the zooms dialog. */
 export function initZooms(zoomsConfig: ZoomsConfig): void {
     config = zoomsConfig;
+
     elements = {
-        dialog: byId('zoomDataCaptureDiagnosisDialog'),
-        header: byId('zoomDataCaptureDiagnosisDialogHeader'),
+        dialog: byId('zoom-data-capture-diagnosis-dialog'),
+        header: byId('zoom-data-capture-diagnosis-dialog-header'),
         unchecked: byId('zoom-unchecked-boxes'),
         checked: byId('zoom-checked-boxes'),
     };
@@ -51,8 +55,11 @@ export async function openZooms(position: PagePosition): Promise<void> {
     if (!elements) return;
     current = position;
     elements.header.replaceChildren('Boxes zooms for', document.createElement('br'), `Copy ${position.copy} / Page ${position.page}`);
-    const modal = getModal({ type: "local", element: elements.dialog });
-    modal.show();
+    if (!zoomDataCaptureDiagnosisDialogModal) {
+        zoomDataCaptureDiagnosisDialogModal = getModal({ type: "local", element: elements.dialog });
+    }
+    
+    zoomDataCaptureDiagnosisDialogModal.show();
 
     await loadZooms();
 }

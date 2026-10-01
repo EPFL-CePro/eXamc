@@ -1,21 +1,28 @@
 import './main.scss';
 
-import { draw, zoneAt } from './drawing.ts';
-import { canvas, root, tableElement } from './elements.ts';
-import { toggleZone } from './scan.ts';
+import { byId, requireData } from '@examc/helpers/dom.ts';
+import { draw, initDrawing, zoneAt } from './drawing.ts';
+import { initScan, toggleZone } from './scan.ts';
 import { initTable, navigate, selectRow } from './table.ts';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Filters live in the table headers (ColumnControl); the first row is selected once data arrives.
-    initTable();
+    const root = byId('amc-data-capture');
+    const canvas = byId<HTMLCanvasElement>('canvas-scan');
+    const tableElement = byId<HTMLTableElement>('table-copies-pages');
 
-    // Row click -> show that page
+    initDrawing(canvas);
+    initScan({
+        scanUrl: requireData(root, 'scanUrl'),
+        marks: requireData(root, 'marksUrl'),
+        updateZone: requireData(root, 'updateZoneUrl'),
+    });
+    initTable(tableElement);
+
     tableElement.tBodies[0]?.addEventListener('click', (event) => {
         const row = (event.target as Element).closest('tr');
         if (row) selectRow(row);
     });
 
-    // Zone click -> toggle it
     canvas.addEventListener('click', (event) => {
         const zone = zoneAt(event.offsetX, event.offsetY);
         if (zone) void toggleZone(zone);
@@ -36,8 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Redraw whenever CSS changes the canvas size; also draws the placeholder right away.
     new ResizeObserver(() => draw()).observe(canvas);
-
     root.focus();
 });

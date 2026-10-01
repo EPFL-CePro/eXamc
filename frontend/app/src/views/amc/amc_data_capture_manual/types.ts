@@ -58,3 +58,10 @@ export interface ScanView {
     image: HTMLImageElement;
     marks: MarkPosition[];
 }
+
+/** Endpoints read from the root element's data attributes. */
+export interface ScanUrls {
+    scanUrl: string;
+    marks: string;
+    updateZone: string;
+}
