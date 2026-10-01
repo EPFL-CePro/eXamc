@@ -44,13 +44,9 @@ services:
         condition: service_healthy
     volumes:
       - ../django/app/:/app:z
-      # TODO: decide whether media_volume should be :ro here or across every django service consistently
-      - media_volume:/media:ro
-      - ../django/app:/app
     restart: no
 
 volumes:
   mysql_data:
   redis_data:
   static_volume:
-  media_volume:

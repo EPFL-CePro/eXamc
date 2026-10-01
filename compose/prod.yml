@@ -41,7 +41,6 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./data/private_media:/private_media
-      - media_volume:/media:ro # TODO figure out if ro should be put or not here, or be put in every django service
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
     depends_on:
@@ -74,5 +73,4 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
-  media_volume:
   client_temp:

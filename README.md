@@ -36,7 +36,7 @@ Dockerized environment for **eXamc** featuring:
 - **MySQL 8.4**
 - **Redis 7** (Celery broker/results)
 - **Celery** (worker) + **Celery Beat**
-- **Nginx** (reverse proxy + static/media)
+- **Nginx** (reverse proxy + static dir)
 - **Private media** via **Nginx X-Accel-Redirect**
 
 > ⚠️ Internal repo note: the app relies on **Entra ID** (Azure AD) configuration.  
@@ -133,8 +133,8 @@ make up ENV=dev
 ---
 
 
-`.gitignore` excludes: `.env.*` (keep `.env.example`), SQL dumps, `media/`, `export_tmp/`, `__pycache__`, etc.  
-`.dockerignore` excludes: `.git`, `.env.*`, dumps, `media/`, caches, etc.
+`.gitignore` excludes: `.env.*` (keep `.env.example`), SQL dumps, `export_tmp/`, `__pycache__`, etc.  
+`.dockerignore` excludes: `.git`, `.env.*`, dumps, caches, etc.
 
 ---
 
@@ -167,7 +167,6 @@ DB_PORT=3306
 REDIS_URL=redis://redis:6379/0
 
 STATIC_ROOT=/static
-MEDIA_ROOT=/media
 PRIVATE_MEDIA_ROOT=/private_media
 
 # --- Entra ID / OIDC ---
@@ -364,6 +363,7 @@ docker compose -f compose/test.yml run --rm --remove-orphans django
 
 
 **Ansible deployment (TEST/PROD):**
+
 ```bash
 ansible-playbook -i ansible/inventory/<env>/hosts.ini   ansible/playbooks/deploy.yml   -e env=<env>   --vault-id @prompt
 ```
@@ -371,7 +371,7 @@ This playbook renders `/opt/examc/.env` from `.env.j2`, decrypts Vault values, a
 
 ## Troubleshooting
 
-- **MIME `text/plain` for JS/CSS**: ensure `mime.types` is included; `alias /static/` / `alias /media/` paths correct.
+- **MIME `text/plain` for JS/CSS**: ensure `mime.types` is included; `alias /static/` / path correct.
 - **`the input device is not a TTY`**: use `docker compose exec -T` for non-interactive commands (done in Makefile).
 - **`DB not reachable`**: check `.env.*` (`DB_HOST=mysql`, `DB_PORT=3306`), startup order, healthchecks.
 - **OIDC issues**:

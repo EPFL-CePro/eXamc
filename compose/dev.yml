@@ -96,5 +96,4 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
-  media_volume:
   client_temp:

@@ -36,7 +36,6 @@ services:
       django:
         condition: service_started
     volumes:
-      - media_volume:/media:ro
       - static_volume:/static:ro
       # configuration and private_media are mounted in dev.yml
     healthcheck:
@@ -108,7 +107,6 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - media_volume:/media
       - static_volume:/static # collectstatic writes hashed assets here
       # ../django/app is only mounted in dev.yml
       # /private_media is mounted in dev.yml and prod.yml
@@ -154,5 +152,4 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
-  media_volume:
   client_temp:
