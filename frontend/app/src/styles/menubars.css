@@ -4,10 +4,6 @@
  * Licensed under MIT
 (https://github.com/BlackrockDigital/startbootstrap-simple-sidebar/blob/master/LICENSE)
  */
-/*#page-content-wrapper {*/
-/*    transition: margin-left 0.2s;*/
-/*}*/
-
 .bg-dark {
     background-color: #000 !important;
 }
@@ -20,7 +16,7 @@
 
 #sidebar-container {
     min-height: 100vh;
-    background-color: #000000;
+    background-color: #000;
     padding: 0;
     position: fixed;
     top: 0;
@@ -52,11 +48,9 @@ li.bg-dark.list-group-item:hover {
 
 .container-fluid {
     transition: margin-left .2s; /* If you want a transition effect */
-    /*padding: 230px;*/
     width: 100%;
-    /*padding-right: 15px;*/
     padding-left: 250px;
-    margin: 20px 0 20px 0;
+    margin: 20px 0;
 }
 
 /* Sidebar sizes when expanded and expanded */
@@ -68,13 +62,13 @@ li.bg-dark.list-group-item:hover {
     width: 60px;
 }
 
-/* Menu item*/
+/* Menu item */
 #sidebar-container .list-group a {
     height: 50px;
     color: white;
 }
 
-/* Submenu item*/
+/* Submenu item */
 #sidebar-container .list-group .sidebar-submenu a {
     height: 45px;
     padding-left: 30px;
@@ -86,17 +80,17 @@ li.bg-dark.list-group-item:hover {
 
 /* Separators */
 .sidebar-separator-title {
-    background-color: #000000;
+    background-color: #000;
     height: 35px;
 }
 
 .sidebar-separator {
-    background-color: #000000;
+    background-color: #000;
     height: 25px;
 }
 
 .logo-separator {
-    background-color: #000000;
+    background-color: #000;
     height: 60px;
 }
 
