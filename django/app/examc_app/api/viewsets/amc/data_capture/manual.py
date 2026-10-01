@@ -99,7 +99,7 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
         order_column = params.get("order[0][column]", "")
         sort_key = ORDERING_COLUMNS.get(params.get(f"columns[{order_column}][data]", ""))
         if sort_key:
-            rows = sorted(rows, key=sort_key, reverse=params.get("order[0][dir]") == "desc")
+            rows = sorted(rows, key=lambda r: str(sort_key(r)), reverse=params.get("order[0][dir]") == "desc")
 
         # paging (length -1 = "All")
         start = _int_param(params, "start", 0)
