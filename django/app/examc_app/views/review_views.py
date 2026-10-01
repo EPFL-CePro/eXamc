@@ -12,9 +12,10 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect, Http404
+from django.http.request import HttpRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.views.generic import DetailView
 
 
@@ -72,7 +73,7 @@ def _format_page_number_like(value, reference):
     return f"{page_number:0{max(len(str(reference or '')), 2)}d}"
 
 
-def _get_unrecognized_scan_assignment_defaults(scan):
+def _get_unrecognized_scan_assignment_defaults(scan: UnrecognizedReviewScan):
     if scan.previous_copy_no and scan.next_copy_no and scan.previous_copy_no == scan.next_copy_no:
         previous_page = _page_number_as_int(scan.previous_page_no)
         next_page = _page_number_as_int(scan.next_page_no)
@@ -114,16 +115,10 @@ def _get_unrecognized_scan_assignment_defaults(scan):
     }
 
 
-def _make_protected_scan_url(relative_path):
-    signed_url = make_token_for(relative_path, str(settings.SCANS_ROOT))
-    if "?token=" in signed_url:
-        return f"{settings.SIGNED_FILES_URL}?token={signed_url.split('?token=', 1)[1]}"
-    return signed_url
-
-
-def _build_unrecognized_review_scan_context(exam):
+def _build_unrecognized_review_scan_context(exam: Exam) -> list:
     rows = []
     scans = UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).order_by("upload_order", "pk")
+
     for scan in scans:
         assignment_defaults = _get_unrecognized_scan_assignment_defaults(scan)
         rows.append({
@@ -131,9 +126,9 @@ def _build_unrecognized_review_scan_context(exam):
             "filename": scan.filename,
             "original_filename": scan.original_filename,
             "upload_order": scan.upload_order,
-            "scan_url": _make_protected_scan_url(scan.relative_path),
+            "scan_url": make_token_for(scan.relative_path, str(settings.SCANS_ROOT)),
             "previous_url": (
-                _make_protected_scan_url(scan.previous_relative_path)
+                make_token_for(scan.previous_relative_path, str(settings.SCANS_ROOT))
                 if scan.previous_relative_path else ""
             ),
             "previous_label": (
@@ -141,7 +136,7 @@ def _build_unrecognized_review_scan_context(exam):
                 if scan.previous_copy_no else ""
             ),
             "next_url": (
-                _make_protected_scan_url(scan.next_relative_path)
+                make_token_for(scan.next_relative_path, str(settings.SCANS_ROOT))
                 if scan.next_relative_path else ""
             ),
             "next_label": (
@@ -153,10 +148,11 @@ def _build_unrecognized_review_scan_context(exam):
             "assignment_page_no": assignment_defaults["page_no"],
             "assignment_mode": assignment_defaults["mode"],
         })
+
     return rows
 
 
-def _is_celery_task_active(task_id):
+def _is_celery_task_active(task_id: str | None) -> bool:
     if not task_id:
         return False
     try:
@@ -166,7 +162,7 @@ def _is_celery_task_active(task_id):
         return False
 
 
-def _get_upload_scan_pending_context(request, exam_pk: int,  task_id=None):
+def _get_upload_scan_pending_context(request: HttpRequest, exam_pk: int,  task_id: str | None = None) -> dict[str, Any]:
     active_task_id = task_id
     if not active_task_id:
         pending_task_id = get_pending_amc_import_upload_task_id(request, exam_pk)
@@ -180,7 +176,7 @@ def _get_upload_scan_pending_context(request, exam_pk: int,  task_id=None):
     }
 
 
-def _get_unrecognized_review_block_response(request, exam):
+def _get_unrecognized_review_block_response(request: HttpRequest, exam: Exam):
     unresolved_count = UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).count()
     if not unresolved_count:
         return None
@@ -200,12 +196,13 @@ def _get_unrecognized_review_block_response(request, exam):
         return HttpResponse(message, status=409)
 
     messages.warning(request, message)
+
     return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
 
 
 def block_review_until_unrecognized_scans_assigned(view_func):
     @wraps(view_func)
-    def _wrapped(request, *args, **kwargs):
+    def _wrapped(request: HttpRequest, *args, **kwargs):
         exam = get_object_or_404(Exam, pk=kwargs.get("exam_pk"))
         response = _get_unrecognized_review_block_response(request, exam)
         if response:
@@ -216,7 +213,7 @@ def block_review_until_unrecognized_scans_assigned(view_func):
 
 
 class ReviewUnrecognizedScansBlockMixin:
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
         exam = get_object_or_404(Exam, pk=kwargs.get("exam_pk"))
         response = _get_unrecognized_review_block_response(request, exam)
         if response:
@@ -546,7 +543,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def add_new_pages_group(request, exam_pk: int):
+def add_new_pages_group(request: HttpRequest, exam_pk: int):
     """
         Add a new pages group for an exam.
 
@@ -575,7 +572,7 @@ def add_new_pages_group(request, exam_pk: int):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def delete_pages_group(request, group_pk, exam_pk: int):
+def delete_pages_group(request: HttpRequest, group_pk, exam_pk: int):
     """
        Delete a pages group.
 
@@ -608,7 +605,7 @@ def delete_pages_group(request, group_pk, exam_pk: int):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def edit_pages_group_grading_help(request,exam_pk: int):
+def edit_pages_group_grading_help(request: HttpRequest,exam_pk: int):
     """
        Edit the grading help.
 
@@ -633,7 +630,7 @@ def edit_pages_group_grading_help(request,exam_pk: int):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def get_pages_group_grading_help(request,exam_pk: int):
+def get_pages_group_grading_help(request: HttpRequest,exam_pk: int):
     """
       Get the grading help.
 
@@ -658,7 +655,7 @@ def get_pages_group_grading_help(request,exam_pk: int):
 # @menu_access_required
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
-def generate_marked_files(request, exam_pk: int,  task_id=None):
+def generate_marked_files(request: HttpRequest, exam_pk: int,  task_id=None):
     """
           Export all the marked files.
 
@@ -733,7 +730,7 @@ def generate_marked_files(request, exam_pk: int,  task_id=None):
 
 
 @exam_permission_required(['manage'])
-def download_marked_files(request,filename, exam_pk: int):
+def download_marked_files(request: HttpRequest,filename, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     if os.path.basename(filename) != filename or not filename.endswith(".zip"):
         raise Http404("Invalid filename")
@@ -770,25 +767,26 @@ def testing(request):
 
 
 @exam_permission_required(['manage'])
-def upload_scans(request, exam_pk: int,  task_id=None):
+def upload_scans(request: HttpRequest, exam_pk: int):
     """
-           Handles the upload of scanned files for a specific exam.
+    Handles the upload of scanned files for a specific exam.
 
-           This function is responsible for processing the upload of scanned files for a particular exam. It receives a POST
-           request containing a zip file containing scanned images, extracts the images, and imports them into the system for
-           further processing.
+    This function is responsible for processing the upload of scanned files for a particular exam. It receives a POST
+    request containing a zip file containing scanned images, extracts the images, and imports them into the system for
+    further processing.
 
-        Args:
-            request: TThe HTTP request object.
-            pk: The primary key of the exam.
+    Args:
+        request: TThe HTTP request object.
+        exam_pk: The primary key of the exam.
 
-        Returns:
-            return: A rendered HTML page displaying the upload status and any error messages.
-           """
+    Returns:
+        return: A rendered HTML page displaying the upload status and any error messages.
+    """
 
     exam = Exam.objects.get(pk=exam_pk)
+    task_id = None
 
-    # check if amc project exists and documents are compiled. if not inform user and set field readlonly
+    # check if amc project exists and documents are compiled. if not, inform the the user, and set field to read only
     amc_ok = True
     amc_proj_path = get_amc_project_path(exam,False)
     if not amc_proj_path :
@@ -814,13 +812,12 @@ def upload_scans(request, exam_pk: int,  task_id=None):
         os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
 
         with open(temp_file_path, 'wb') as temp_file:
-            for chunk in zip_file.chunks():
-                temp_file.write(chunk)
+            for chunk in zip_file.chunks(): temp_file.write(chunk)
 
         task = import_exam_scans.delay(temp_file_path, exam_pk,delete_old_data)
         task_id = task.task_id
         set_pending_amc_import(request, exam_pk, upload_task_id=task_id)
-       # message = start_upload_scans(request, exam.pk, temp_file_path)
+        # message = start_upload_scans(request, exam.pk, temp_file_path)
 
         exam_selected = exam
         if exam.common_exams:
@@ -829,16 +826,19 @@ def upload_scans(request, exam_pk: int,  task_id=None):
                     exam = common_exam
                     break
 
-        return render(request, 'review/import/upload_scans.html', {
-            'exam': exam,
-            'exam_selected': exam_selected,
-            'files': [],
-            'message': '',
-            'amc_ok':amc_ok,
-            'nav_url':'upload_scans',
-            'unrecognized_review_scans': _build_unrecognized_review_scan_context(exam_selected),
-            **_get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
-        })
+        return render(
+            request,
+            'review/import/upload_scans.html',
+            {
+                'exam': exam,
+                'exam_selected': exam_selected,
+                'files': [],
+                'message': '',
+                'amc_ok':amc_ok,
+                'nav_url':'upload_scans',
+                **_get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
+            }
+        )
 
 
 
@@ -848,20 +848,25 @@ def upload_scans(request, exam_pk: int,  task_id=None):
             if common_exam.is_overall():
                 exam = common_exam
                 break
-    return render(request, 'review/import/upload_scans.html', {
-        'exam': exam,
-        'exam_selected': exam_selected,
-        'amc_ok': amc_ok,
-        'files': [],
-        'nav_url': 'upload_scans',
-        'unrecognized_review_scans': _build_unrecognized_review_scan_context(exam_selected),
-        **_get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
-    })
+
+    return render(
+        request,
+        'review/import/upload_scans.html',
+        {
+            'exam': exam,
+            'exam_selected': exam_selected,
+            'amc_ok': amc_ok,
+            'files': [],
+            'nav_url': 'upload_scans',
+            **_get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
+        }
+    )
+
 
 
 @exam_permission_required(['manage'])
 @require_GET
-def unrecognized_review_scans_table(request, exam_pk: int):
+def unrecognized_review_scans_table(request: HttpRequest, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     return render(request, 'review/import/_unrecognized_review_scans_table.html', {
         'exam_selected': exam,
@@ -871,7 +876,7 @@ def unrecognized_review_scans_table(request, exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def assign_unrecognized_review_scan(request, exam_pk: int):
+def assign_unrecognized_review_scan(request: HttpRequest, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     unrecognized_scan = get_object_or_404(
         UnrecognizedReviewScan,
@@ -907,7 +912,7 @@ def assign_unrecognized_review_scan(request, exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def delete_unrecognized_review_scan(request, exam_pk: int):
+def delete_unrecognized_review_scan(request: HttpRequest, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     unrecognized_scan = get_object_or_404(
         UnrecognizedReviewScan,
@@ -932,7 +937,7 @@ def delete_unrecognized_review_scan(request, exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def delete_unrecognized_review_scans(request, exam_pk: int):
+def delete_unrecognized_review_scans(request: HttpRequest, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     form = DeleteUnrecognizedReviewScansForm(request.POST, exam=exam)
     if not form.is_valid():
@@ -970,7 +975,7 @@ def _redirect_after_unrecognized_review_scan_resolution(exam):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def saveMarkers(request, exam_pk: int):
+def saveMarkers(request: HttpRequest, exam_pk: int):
     """  Save the markers and comments for a given exam page group.
         This function saves the markers and comments provided by the user for a specific exam page group.
         Args:
@@ -1058,7 +1063,7 @@ def saveMarkers(request, exam_pk: int):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def getMarkersAndComments(request, exam_pk: int):
+def getMarkersAndComments(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     data_dict = {}
 
@@ -1098,7 +1103,7 @@ def getMarkersAndComments(request, exam_pk: int):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def save_comment(request, exam_pk: int):
+def save_comment(request: HttpRequest, exam_pk: int):
     if 'delete' in request.POST:
         get_object_or_404(
             PagesGroupComment,
@@ -1144,7 +1149,7 @@ def save_comment(request, exam_pk: int):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def update_page_group_markers(request,exam_pk: int):
+def update_page_group_markers(request: HttpRequest,exam_pk: int):
     if request.method == 'POST':
 
         exam = Exam.objects.get(pk=exam_pk)
@@ -1181,7 +1186,7 @@ def cleanup_expired_review_locks():
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def review_student_pages_group_is_locked(request,exam_pk: int):
+def review_student_pages_group_is_locked(request: HttpRequest,exam_pk: int):
     if request.method != 'POST':
         return HttpResponse("Invalid request method", status=405)
 
@@ -1247,7 +1252,7 @@ def review_student_pages_group_is_locked(request,exam_pk: int):
 
 @exam_permission_required(['manage','review'])
 @require_POST
-def remove_review_user_locks(request,exam_pk: int):
+def remove_review_user_locks(request: HttpRequest,exam_pk: int):
     if request.method != 'POST':
         return HttpResponse("Invalid request method", status=405)
 
@@ -1257,7 +1262,7 @@ def remove_review_user_locks(request,exam_pk: int):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def get_copy_page(request,exam_pk: int):
+def get_copy_page(request: HttpRequest,exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     copy_nr = request.POST.get('copy_no')
     page_nr = request.POST.get('page_no')
@@ -1270,7 +1275,7 @@ def get_copy_page(request,exam_pk: int):
 ############ Grading schemes settings
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
-def grading_scheme_pages_group(request, exam_pk: int,  pages_group_id: int,current_grading_scheme_id=None):
+def grading_scheme_pages_group(request: HttpRequest, exam_pk: int,  pages_group_id: int,current_grading_scheme_id=None):
     pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
     grading_schemes = QuestionGradingScheme.objects.filter(
         pages_group=pages_group,
@@ -1295,7 +1300,7 @@ def grading_scheme_pages_group(request, exam_pk: int,  pages_group_id: int,curre
 
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
-def grading_scheme_panel(request, exam_pk: int,  grading_scheme_id: int):
+def grading_scheme_panel(request: HttpRequest, exam_pk: int,  grading_scheme_id: int):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1351,7 +1356,7 @@ def grading_scheme_panel(request, exam_pk: int,  grading_scheme_id: int):
 
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
-def grading_scheme_checkboxes(request, exam_pk: int,  grading_scheme_id):
+def grading_scheme_checkboxes(request: HttpRequest, exam_pk: int,  grading_scheme_id):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1416,7 +1421,7 @@ def grading_scheme_checkboxes(request, exam_pk: int,  grading_scheme_id):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def add_new_grading_scheme_checkbox(request, exam_pk: int,  grading_scheme_id):
+def add_new_grading_scheme_checkbox(request: HttpRequest, exam_pk: int,  grading_scheme_id):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1456,7 +1461,7 @@ def add_new_grading_scheme_checkbox(request, exam_pk: int,  grading_scheme_id):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def delete_grading_scheme_checkbox(request, exam_pk: int,  grading_scheme_checkbox_id):
+def delete_grading_scheme_checkbox(request: HttpRequest, exam_pk: int,  grading_scheme_checkbox_id):
     grading_scheme_checkbox = get_object_or_404(
         QuestionGradingSchemeCheckBox,
         pk=grading_scheme_checkbox_id,
@@ -1485,7 +1490,7 @@ def delete_grading_scheme_checkbox(request, exam_pk: int,  grading_scheme_checkb
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def add_new_grading_scheme(request, exam_pk: int,  pages_group_id):
+def add_new_grading_scheme(request: HttpRequest, exam_pk: int,  pages_group_id):
     pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
     exam = get_object_or_404(Exam, pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
@@ -1513,7 +1518,7 @@ def add_new_grading_scheme(request, exam_pk: int,  pages_group_id):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def delete_grading_scheme(request, exam_pk: int,  grading_scheme_id):
+def delete_grading_scheme(request: HttpRequest, exam_pk: int,  grading_scheme_id):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1571,7 +1576,7 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
 
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
-def review_grading_scheme_panel(request, exam_pk: int,  grading_scheme_id, copy_nr):
+def review_grading_scheme_panel(request: HttpRequest, exam_pk: int,  grading_scheme_id, copy_nr):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1617,7 +1622,7 @@ def review_grading_scheme_panel(request, exam_pk: int,  grading_scheme_id, copy_
 
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
-def review_grading_scheme_checkboxes(request, exam_pk: int,  grading_scheme_id, copy_nr):
+def review_grading_scheme_checkboxes(request: HttpRequest, exam_pk: int,  grading_scheme_id, copy_nr):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1649,7 +1654,7 @@ def review_grading_scheme_checkboxes(request, exam_pk: int,  grading_scheme_id, 
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def save_pages_group_student_report_note(request, exam_pk: int):
+def save_pages_group_student_report_note(request: HttpRequest, exam_pk: int):
     pages_group_id = request.POST.get('pages_group_id')
     copy_nr = request.POST.get('copy_nr')
     content = request.POST.get('content', '')
@@ -1678,7 +1683,7 @@ def save_pages_group_student_report_note(request, exam_pk: int):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def update_pages_group_check_box(request,exam_pk: int):
+def update_pages_group_check_box(request: HttpRequest,exam_pk: int):
     copy_nr = request.POST.get('copy_nr')
     item_id_str = request.POST.get('item_id')
     checked = request.POST.get('checked') == 'true'

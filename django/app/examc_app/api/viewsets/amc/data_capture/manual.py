@@ -112,7 +112,7 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
         order_column = params.get("order[0][column]", "")
         sort_key = ORDERING_COLUMNS.get(params.get(f"columns[{order_column}][data]", ""))
         if sort_key:
-            rows = sorted(rows, key=lambda r: str(sort_key(r)), reverse=params.get("order[0][dir]") == "desc")
+            rows = sorted(rows, key=sort_key, reverse=params.get("order[0][dir]") == "desc")
 
         # paging (length -1 = "All")
         start = _int_param(params, "start", 0)
@@ -163,4 +163,10 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
             logger.warning('Scan not found: copy=%s page=%s path=%s', copy_nr, page_nr, scan_path)
             raise NotFound('Scan file not found')
 
-        return Response({ 'url': make_token_for(str(scan_path.relative_to(root)), str(root)) })
+        return Response({
+            'url': make_token_for(
+                rel_path=str(scan_path.relative_to(root)),
+                type_root=str(root),
+                copy_page_in_url=False
+            )
+        })

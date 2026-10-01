@@ -938,7 +938,6 @@ def call_amc_generate_results(request,exam_pk: int):
     result = amc_generate_results(exam)
 
     if not 'ERR:' in result:
-
         project_path = get_amc_project_path(exam, False)
         results_csv_path = project_path + "/exports/" + exam.code + "_amc_raw.csv"
         file = open(results_csv_path, 'r', encoding='utf8')
@@ -953,7 +952,7 @@ def call_amc_generate_results(request,exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def amc_manual_association_data(request,exam_pk: int):
+def amc_manual_association_data(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     data = get_amc_manual_association_data(exam)
 

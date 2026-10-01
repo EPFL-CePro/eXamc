@@ -242,9 +242,7 @@ def delete_unrecognized_review_scan_file(unrecognized_scan, resolved_by=None):
             raise ValueError("This unrecognized scan has already been assigned or deleted.")
 
         scans_root = pathlib.Path(settings.SCANS_ROOT).resolve()
-        unrecognized_dir = (
-            get_exam_scans_dir(fresh_scan.exam) / UNRECOGNIZED_REVIEW_SCAN_DIR
-        ).resolve()
+        unrecognized_dir = (get_exam_scans_dir(fresh_scan.exam) / UNRECOGNIZED_REVIEW_SCAN_DIR).resolve()
         source_path = scans_root / fresh_scan.relative_path
         try:
             unrecognized_dir.relative_to(scans_root)
@@ -269,8 +267,7 @@ def delete_unrecognized_review_scan_file(unrecognized_scan, resolved_by=None):
 
 
 # Detect QRCodes on scans, split copies in subfolders and detect nb pages
-def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,process_number):
-
+def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count, process_number):
     scans_dir = get_exam_scans_dir(exam)
     os.makedirs(scans_dir, exist_ok=True)
     unrecognized_dir = scans_dir / UNRECOGNIZED_REVIEW_SCAN_DIR
@@ -284,13 +281,12 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
     pending_unrecognized_ids = []
     scans_files = sorted(os.listdir(tmp_extract_path))
 
-
     for upload_order, filename in enumerate(scans_files, start=1):
-        print(' -- '+filename)
+        print(' -- ' + filename)
 
         process_number += 1
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
-            process_count) + ' - Splitting scans by copy :'+ filename)
+            process_count) + ' - Splitting scans by copy :' + filename)
 
         f = os.path.join(tmp_extract_path, filename)
         # checking if it is a jpeg file
@@ -364,12 +360,13 @@ def split_scans_by_copy(exam, tmp_extract_path,progress_recorder,process_count,p
     exam.save()
 
     copy_count = len(pages_by_copy)
-    return [copy_count,process_number]
+    return [copy_count, process_number]
 
 
-def import_scans(exam, path,delete_old,progress_recorder,process_count,process_number):
+def import_scans(exam, path, delete_old, progress_recorder, process_count, process_number):
     print("* Start importing scans")
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     os.makedirs(scans_dir, exist_ok=True)
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Deleting old scans...')
@@ -395,9 +392,10 @@ def import_scans(exam, path,delete_old,progress_recorder,process_count,process_n
     process_number += 1
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Splitting scans by copy...')
-    result = split_scans_by_copy(exam, path,progress_recorder,process_count,process_number)
+    result = split_scans_by_copy(exam, path, progress_recorder, process_count, process_number)
 
     return result
+
 
 def create_students_from_amc(exam):
     amc_project_path = get_amc_project_path(exam, False)
@@ -425,12 +423,12 @@ def create_students_from_amc(exam):
                         copy_no = fields[headers.index('ID')]
                         sciper = fields[headers.index('SCIPER')]
                         name = fields[headers.index('NAME')]
-                        Student.objects.get_or_create(copie_no=copy_no,sciper=sciper,name=name,exam=exam)
-
+                        Student.objects.get_or_create(copie_no=copy_no, sciper=sciper, name=name, exam=exam)
 
 
 def delete_old_scans(exam):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     for filename in os.listdir(scans_dir):
         file_path = os.path.join(scans_dir, filename)
         try:
@@ -441,7 +439,8 @@ def delete_old_scans(exam):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-    marked_scans_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    marked_scans_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     if os.path.exists(marked_scans_dir):
         for filename in os.listdir(marked_scans_dir):
             file_path = os.path.join(scans_dir, filename)
@@ -452,6 +451,7 @@ def delete_old_scans(exam):
                     shutil.rmtree(file_path)
             except Exception as e:
                 print('Failed to delete %s. Reason: %s' % (file_path, e))
+
 
 #### TESTING DISPLAYING FULL COPIE JPGS ####
 def get_scans_pathes_by_exam(exam):
@@ -487,67 +487,16 @@ def get_scans_pathes_by_exam(exam):
             # merged_scans.save(scans_dir+"/"+dir+"/"+dir+"_full.jpg")
             scans_path_dict = {}
             scans_path_dict["copy_no"] = dir
-            scans_path_dict["path"] = scans_url+"/"+dir+"/"+dir+"_full.jpg"
+            scans_path_dict["path"] = scans_url + "/" + dir + "/" + dir + "_full.jpg"
             # scans_path_dict["marked"] = marked
             # scans_path_dict["comment"] = comment
             # scans_path_dict["marked_by"] = marked_by
             scans_pathes.append(scans_path_dict)
 
     return scans_pathes
+
+
 #### END TESTING DISPLAYING FULL COPIE JPGS ###
-
-
-def get_scans_pathes_by_group(pagesGroup):
-
-
-    project_subdir = str(pagesGroup.exam.year.code) + "/" + str(pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
-    scans_dir = str(settings.SCANS_ROOT) + "/" + project_subdir
-    #scans_url = str(settings.SCANS_URL) + project_subdir
-
-    scans_pathes = []
-
-    scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
-
-    if os.path.exists(scans_dir):
-        for dir in sorted(os.listdir(scans_dir)):
-            if not is_review_copy_dir_name(dir):
-                continue
-            for filename in sorted(os.listdir(scans_dir + "/" + dir)):
-                if not filename.endswith("full.jpg"):
-                    split_filename = filename.split('_')
-                    copy_no = split_filename[-2]
-                    page_no_real = split_filename[-1].replace('.jpg','')
-                    # get only two first char to prevent extra pages with a,b,c suffixes
-                    page_no_int = int(page_no_real[0:2])
-
-                    amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
-                    if amc_questions_pages:
-                        from_p = amc_questions_pages[0]['page']
-                        to_p = from_p+pagesGroup.nb_pages-1
-                        if page_no_int >= from_p and page_no_int <= to_p:
-                            marked = False
-                            comment = None
-                            if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
-                                comment = True
-                            pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
-                                                                  page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
-                            if pageMarkers:
-                                if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
-                                    marked = True
-
-                                #marked_by = pageMarkers.get_users_with_date()
-
-                            scans_path_dict = {}
-                            scans_path_dict["copy_no"] = copy_no
-                            scans_path_dict["page_no"] = page_no_real.lstrip("0")
-                            scans_path_dict["path"] = make_token_for(project_subdir+"/"+dir+"/"+filename,str(settings.SCANS_ROOT))
-                            scans_path_dict["marked"] = marked
-                            scans_path_dict["comment"] = comment
-                            #scans_path_dict["marked_by"] = marked_by
-                            scans_pathes.append(scans_path_dict)
-
-        scans_pathes = sorted(scans_pathes, key=lambda k: (k['copy_no'], float(k['page_no'])))
-    return scans_pathes
 
 ### old function rewritten after for best performances
 # def get_copies_pages_by_group(pagesGroup):
@@ -597,9 +546,9 @@ def get_scans_pathes_by_group(pagesGroup):
 #         copies_pages_list = sorted(copies_pages_list, key=lambda k: (k['copy_no'], float(k['page_no'])))
 #     return copies_pages_list
 
-def get_copies_pages_by_group(pagesGroup):
+def get_copies_pages_by_group(pages_group: PagesGroup):
     print('********************* START GET COPIES')
-    exam = pagesGroup.exam
+    exam = pages_group.exam
     project_subdir = f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
     scans_dir = pathlib.Path(settings.SCANS_ROOT) / project_subdir
     print(scans_dir)
@@ -616,12 +565,12 @@ def get_copies_pages_by_group(pagesGroup):
         for row in scans_markers
     }
     grading_scheme_marked_copies = set()
-    if pagesGroup.use_grading_scheme:
+    if pages_group.use_grading_scheme:
         grading_scheme_marked_copies = {
             str(copy_nr).zfill(4)
             for copy_nr in (
                 PagesGroupGradingSchemeCheckedBox.objects
-                .filter(pages_group=pagesGroup)
+                .filter(pages_group=pages_group)
                 .values_list("copy_nr", flat=True)
             )
         }
@@ -629,7 +578,7 @@ def get_copies_pages_by_group(pagesGroup):
     # Comments -> set of copy_no strings
     comments_set = set(
         PagesGroupComment.objects
-        .filter(pages_group=pagesGroup)
+        .filter(pages_group=pages_group)
         .values_list("copy_no", flat=True)
     )
 
@@ -638,11 +587,11 @@ def get_copies_pages_by_group(pagesGroup):
 
     @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
-        pages = get_question_start_page_by_student(str(amc_data_root) + "/", pagesGroup.group_name, copy_no_int)
+        pages = get_question_start_page_by_student(str(amc_data_root) + "/", pages_group.group_name, copy_no_int)
         if not pages:
             return None
         from_p = pages[0]["page"]
-        to_p = from_p + pagesGroup.nb_pages - 1
+        to_p = from_p + pages_group.nb_pages - 1
         return (from_p, to_p)
 
     copies_pages_list = []
@@ -670,7 +619,6 @@ def get_copies_pages_by_group(pagesGroup):
                     # filename not matching pattern; skip quickly
                     continue
 
-
                 # page number checks (first 2 chars)
                 try:
                     page_no_int = int(page_no_real[:2])
@@ -695,7 +643,7 @@ def get_copies_pages_by_group(pagesGroup):
                 # Normalize keys like before
                 copy_no_z4 = str(copy_no).zfill(4)
                 page_no_norm = str(page_no_real).zfill(2).replace(".", "x")
-                if pagesGroup.use_grading_scheme:
+                if pages_group.use_grading_scheme:
                     marked = copy_no_z4 in grading_scheme_marked_copies and page_no_int == from_p
                 else:
                     marked = markers_idx.get((copy_no_z4, page_no_norm), False)
@@ -705,6 +653,7 @@ def get_copies_pages_by_group(pagesGroup):
                     "marked": marked,
                     "comment": copy_has_comment,
                 })
+
     # Sorting: avoid float() (can fail if letters); sort by numeric copy_no then by (first two digits, full tail)
     def page_sort_key(page_no: str):
         head = page_no[:2]
@@ -718,7 +667,8 @@ def get_copies_pages_by_group(pagesGroup):
     copies_pages_list.sort(key=lambda k: (int(k["copy_no"]), page_sort_key(k["page_no"])))
     return copies_pages_list
 
-def generate_marked_pdfs(exam,files_path, with_comments=False, progress_recorder=None):
+
+def generate_marked_pdfs(exam, files_path, with_comments=False, progress_recorder=None):
     scans_count = len(os.listdir(files_path))
 
     process_count = scans_count
@@ -734,7 +684,7 @@ def generate_marked_pdfs(exam,files_path, with_comments=False, progress_recorder
 
         pdf = FPDF(orientation='P', unit='mm', format='A4')
         pdf.set_auto_page_break(0)
-        pdf.set_margins(0,0,0)
+        pdf.set_margins(0, 0, 0)
         for image in sorted(os.listdir(files_path + "/" + subdir)):
             if pathlib.Path(image).suffix.lower() not in IMAGE_EXTENSIONS:
                 continue
@@ -744,25 +694,24 @@ def generate_marked_pdfs(exam,files_path, with_comments=False, progress_recorder
             # force image to sRGB if grayscale
             img_path = files_path + "/" + subdir + "/" + image
             if is_grayscale(img_path):
-
                 img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
                 img_path = files_path + "/" + subdir + "/rgb" + image
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
                 cv2.imwrite(img_path, img_rgb)
-                pdf.image(img_path, 0,0,pdf.epw)
+                pdf.image(img_path, 0, 0, pdf.epw)
 
-            pdf.image(img_path,w=pdf.epw)
-
+            pdf.image(img_path, w=pdf.epw)
 
         if with_comments == '1':
 
-            pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam,copy_no=subdir).order_by('copy_no','pages_group__group_name','parent_id')
+            pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam, copy_no=subdir).order_by(
+                'copy_no', 'pages_group__group_name', 'parent_id')
             if pages_comments:
                 pdf.add_page()
 
             pdf.set_font("Helvetica", "", 8)
             pdf.set_auto_page_break(1)
-            generate_comments_pdf_pages(exam,None,subdir,pdf)
+            generate_comments_pdf_pages(exam, None, subdir, pdf)
 
         pdf.output(files_path + "/copy_" + subdir + ".pdf", "F")
 
@@ -770,8 +719,10 @@ def generate_marked_pdfs(exam,files_path, with_comments=False, progress_recorder
 
     return ' Process finished. '
 
-def generate_comments_pdf_pages(exam,parent,copy_no,pdf,margin_left=10):
-    pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam, copy_no=copy_no, parent=parent).order_by('pages_group_id')
+
+def generate_comments_pdf_pages(exam, parent, copy_no, pdf, margin_left=10):
+    pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam, copy_no=copy_no, parent=parent).order_by(
+        'pages_group_id')
     last_pages_group_id = None
     for comment in pages_comments.all():
         pdf.ln()
@@ -781,12 +732,11 @@ def generate_comments_pdf_pages(exam,parent,copy_no,pdf,margin_left=10):
         if not parent and (last_pages_group_id is None or last_pages_group_id != comment.pages_group_id):
             pdf.multi_cell(new_x="LEFT", w=190, txt='', fill=True)
             pdf.set_font(style="B")
-            pdf.set_text_color(255,255,255)
-            pdf.multi_cell(new_x="LEFT", w=190, txt=comment.pages_group.group_name,fill=True)
+            pdf.set_text_color(255, 255, 255)
+            pdf.multi_cell(new_x="LEFT", w=190, txt=comment.pages_group.group_name, fill=True)
             pdf.multi_cell(new_x="LEFT", w=190, txt='', fill=True)
             pdf.ln()
-            pdf.set_text_color(0,0,0)
-
+            pdf.set_text_color(0, 0, 0)
 
         date_str = comment.created.strftime('%Y-%m-%d %H:%M:%S')
         if comment.modified:
@@ -804,24 +754,26 @@ def generate_comments_pdf_pages(exam,parent,copy_no,pdf,margin_left=10):
         pdf.multi_cell(new_x="LEFT", w=100, txt=comment.content, fill=True)
         pdf.multi_cell(new_x="LEFT", w=100, txt='', fill=True)
         if comment.children.all():
-            generate_comments_pdf_pages(exam,comment,copy_no,pdf,margin_left+10)
+            generate_comments_pdf_pages(exam, comment, copy_no, pdf, margin_left + 10)
 
         last_pages_group_id = comment.pages_group_id
+
 
 def is_grayscale(path):
     im = Image.open(path).convert("RGB")
     stat = ImageStat.Stat(im)
-    if sum(stat.sum)/3 == stat.sum[0]: #check the avg with any element value
-        return True #if grayscale
+    if sum(stat.sum) / 3 == stat.sum[0]:  #check the avg with any element value
+        return True  #if grayscale
     else:
-        return False #else its colour
+        return False  #else its colour
+
 
 def zipdir(path, ziph):
     # ziph is zipfile handle
     for root, dirs, files in os.walk(path):
         for file in files:
             ziph.write(os.path.join(root, file),
-                       os.path.relpath(os.path.join(root, file),os.path.join(path, '..')))
+                       os.path.relpath(os.path.join(root, file), os.path.join(path, '..')))
 
 
 def updateCorrectorBoxMarked(pageMarkers):
@@ -829,81 +781,102 @@ def updateCorrectorBoxMarked(pageMarkers):
     for marker in markers:
         return None
 
+
 def get_exam_copies_from_to(exam):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     copies_folders = [entry.name for entry in iter_review_copy_dirs(scans_dir)]
     copies = [copy.lstrip('0') for copy in copies_folders]
     return copies
 
 
 def get_scans_list(exam):
-    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     scans_dir_path = scans_dir_path.replace(' ', '_')
     result = []
     if os.path.exists(scans_dir_path):
         for entry in [entry.name for entry in iter_review_copy_dirs(scans_dir_path)]:
             entry_path = os.path.join(scans_dir_path, entry)
             copy = {'copy': entry,
-                      'pages': []}
+                    'pages': []}
             list_dir_pages = sorted(os.listdir(entry_path))
             for child in list_dir_pages:
                 #check if marked page exist
-                marked_scan_path = (entry_path+"/marked_"+child).replace('scans','marked_scans')
-                page = child.replace('.jpg','').replace('_',' ')
+                marked_scan_path = (entry_path + "/marked_" + child).replace('scans', 'marked_scans')
+                page = child.replace('.jpg', '').replace('_', ' ')
                 if os.path.exists(marked_scan_path):
-                    copy['pages'].append({'page': page+'*','path':marked_scan_path})
+                    copy['pages'].append({'page': page + '*', 'path': marked_scan_path})
                 else:
-                    copy['pages'].append({'page': page,'path':entry_path+"/"+child})
+                    copy['pages'].append({'page': page, 'path': entry_path + "/" + child})
 
             result.append(copy)
 
     return result
 
-def get_scans_list_by_copy(exam,copy_nr):
-    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+
+def get_scans_list_by_copy(exam, copy_nr):
+    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     scans_dir_path = scans_dir_path.replace(' ', '_')
-    scans_dir_path += "/"+copy_nr
+    scans_dir_path += "/" + copy_nr
     result = []
     if os.path.exists(scans_dir_path):
         list_dir_copies = sorted(os.listdir(scans_dir_path))
         for entry in list_dir_copies:
             page = entry.replace('.jpg', '').split('_').pop()
             if int(page.split('.')[0]) != 1:
-                result.append({'copy_no':copy_nr,'page_no':page})
+                result.append({'copy_no': copy_nr, 'page_no': page})
     return result
 
-def get_scan_url(exam,copy_nr,page_nr):
-    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+
+def get_scan_url(exam: Exam, copy_nr, page_nr) -> str:
+    scans_dir_path = f"{settings.SCANS_ROOT}/{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
+
     scans_dir_path = scans_dir_path.replace(' ', '_')
-    scans_dir_path += "/" + copy_nr
-    scans_url = str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
-    scans_url += "/"+ copy_nr + "/"
+    scans_dir_path += f"/{copy_nr}"
+    scans_url = f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
+    scans_url += f"/{copy_nr}/"
 
     scan_url = ''
-    if os.path.exists(scans_dir_path):
-        list_dir_copies = sorted(os.listdir(scans_dir_path))
-        for entry in list_dir_copies:
-            entry_path = os.path.join(scans_dir_path, entry)
-            page = entry.replace('.jpg', '').split('_').pop()
-            if page == page_nr:
-                scan_url = make_token_for(scans_url+entry,str(settings.SCANS_ROOT))
-                break
+    if not os.path.exists(scans_dir_path): return scan_url
+
+    list_dir_copies = sorted(os.listdir(scans_dir_path))
+    for entry in list_dir_copies:
+        page = entry.replace('.jpg', '').split('_').pop()
+        if page == page_nr:
+            scan_url = make_token_for(scans_url + entry, str(settings.SCANS_ROOT))
+            break
+
     return scan_url
 
-def get_grading_scheme_checkboxes(grading_scheme_id, copy_nr):
+
+def get_grading_scheme_checkboxes(grading_scheme_id: int, copy_nr: int):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
-    grading_scheme_checkboxes_qs = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme).order_by('adjustment','id')
+    grading_scheme_checkboxes_qs = QuestionGradingSchemeCheckBox.objects.filter(
+        questionGradingScheme=grading_scheme).order_by('adjustment', 'id')
     grading_scheme_checkboxes_list = []
-    item_id = None
 
     # Full points checkbox
-    points = (PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=grading_scheme.pages_group,copy_nr=copy_nr).aggregate(total=Sum("gradingSchemeCheckBox__points"))["total"]) or 0
+    points = (PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=grading_scheme.pages_group,
+                                                               copy_nr=copy_nr).aggregate(
+        total=Sum("gradingSchemeCheckBox__points"))["total"]) or 0
     checked = False
     if points == grading_scheme.max_points:
         checked = True
 
-    grading_scheme_checkbox = {"item_id":0,"ref":"full","points":grading_scheme.max_points,"name":"FULL","description":"Full points","checked":checked,"adjustment":''}
+    grading_scheme_checkbox = {
+        "item_id": 0,
+        "ref": "full",
+        "points": grading_scheme.max_points,
+        "name": "FULL",
+        "description": "Full points",
+        "checked": checked,
+        "adjustment": ''
+    }
+
     grading_scheme_checkboxes_list.append(grading_scheme_checkbox)
+
     for checkbox in grading_scheme_checkboxes_qs:
         try:
             pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(
@@ -914,21 +887,30 @@ def get_grading_scheme_checkboxes(grading_scheme_id, copy_nr):
             checked = True
             item_id = pggsc.id
             adjustment = pggsc.adjustment
-            ref="pggsc"
+            ref = "pggsc"
         except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
             checked = False
             item_id = checkbox.id
             adjustment = 0
-            ref="gsc"
+            ref = "gsc"
 
-        grading_scheme_checkbox = {"item_id":item_id, "ref": ref,"points":checkbox.points,"name":checkbox.name,"description":checkbox.description,"checked":checked,"adjustment":adjustment}
+        grading_scheme_checkbox = {
+            "item_id": item_id,
+            "ref": ref,
+            "points": checkbox.points,
+            "name": checkbox.name,
+            "description": checkbox.description,
+            "checked": checked,
+            "adjustment": adjustment
+        }
 
         if checkbox.name == 'ZERO':
-            grading_scheme_checkboxes_list.insert(0,grading_scheme_checkbox)
+            grading_scheme_checkboxes_list.insert(0, grading_scheme_checkbox)
         else:
             grading_scheme_checkboxes_list.append(grading_scheme_checkbox)
 
     return grading_scheme_checkboxes_list
+
 
 def other_grading_scheme_used(grading_scheme: QuestionGradingScheme, copy_nr: int) -> QuestionGradingScheme | None:
     pages_group_gs_checkboxes = PagesGroupGradingSchemeCheckedBox.objects.filter(
@@ -944,14 +926,24 @@ def other_grading_scheme_used(grading_scheme: QuestionGradingScheme, copy_nr: in
 
     return None
 
-def get_question_points(grading_scheme, copy_nr):
-    points = QuestionGradingSchemeCheckBox.objects.filter(questionGradingScheme=grading_scheme,
-                                                          pagesGroupGradingSchemeCheckedBoxes__copy_nr=copy_nr).aggregate(points__sum=Sum('points'))['points__sum']
+
+def get_question_points(grading_scheme: QuestionGradingScheme, copy_nr: int):
+    points = QuestionGradingSchemeCheckBox.objects.filter(
+        questionGradingScheme=grading_scheme,
+        pagesGroupGradingSchemeCheckedBoxes__copy_nr=copy_nr
+    ).aggregate(
+        points__sum=Sum('points')
+    )['points__sum']
+
     if not points:
         points = 0
     try:
-        adjust = PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=grading_scheme.pages_group,
-                                                               gradingSchemeCheckBox__name="ADJ", copy_nr=copy_nr)
+        adjust = PagesGroupGradingSchemeCheckedBox.objects.get(
+            pages_group=grading_scheme.pages_group,
+            gradingSchemeCheckBox__name="ADJ",
+            copy_nr=copy_nr
+        )
+
         points += adjust.adjustment
     except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
         pass

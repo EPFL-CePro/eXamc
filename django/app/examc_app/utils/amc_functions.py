@@ -581,7 +581,6 @@ def get_amc_project_path(exam: Exam, even_if_not_exist) -> str | None:
     elif even_if_not_exist:
         return amc_project_path
     else:
-        # TODO change this, as most of this function's usage is in string concatenation, which fails with None
         return None
 
 
@@ -1650,11 +1649,18 @@ def concat_pdfs(*pdfs_bytes: bytes) -> bytes:
     return out.getvalue()
 
 
-def create_annotated_zip(exam: Exam):
-    corrections_path = Path(get_amc_project_path(exam, False)) / "cr" / "corrections"
+def create_annotated_zip(exam: Exam) -> bool | str:
+    logger.info(f"Creating annotated zip for exam '{exam.code}' ({exam.pk})")
+    start_time = time.time()
+    amc_project_path = get_amc_project_path(exam, False)
+
+    if not amc_project_path: return False
+
+    corrections_path = Path(amc_project_path) / "cr" / "corrections"
     zip_path = get_annotated_zip_path(exam)
     # Creating the ZIP file
     archived = shutil.make_archive(str(zip_path.with_suffix("")), 'zip', str(corrections_path / "pdf"))
+    logger.info(f"Created annotated zip created for exam '{exam.code}' ({exam.pk}) in {time.time() - start_time:.2f} seconds")
 
     if zip_path.exists():
         return archived
@@ -1775,11 +1781,13 @@ def get_amc_manual_association_data(exam: Exam):
 
         # signing images
         for assoc in data_assoc:
-            rel_path = _assoc_image_relpath(assoc.get("image_path"))
-            rel_path = _resolve_existing_assoc_relpath(rel_path)
-            signed_url = make_token_for(rel_path, str(settings.AMC_PROJECTS_ROOT))
+            img_rel_path = _assoc_image_relpath(assoc.get("image_path"))
+            img_rel_path = _resolve_existing_assoc_relpath(img_rel_path)
+            signed_url = make_token_for(img_rel_path, str(settings.AMC_PROJECTS_ROOT))
+
             if "?token=" in signed_url:
                 signed_url = f"{settings.SIGNED_FILES_URL}?token={signed_url.split('?token=', 1)[1]}"
+
             assoc["image_path"] = signed_url
 
         return {"data_assoc": json.dumps(data_assoc), "data_students": json.dumps(students_data)}

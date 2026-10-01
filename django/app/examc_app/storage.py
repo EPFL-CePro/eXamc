@@ -4,9 +4,9 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-
-from examc_app.signing import make_token_for, signer, b64url_encode
 from django.utils.http import urlencode
+
+from examc_app.signing import signer, b64url_encode
 
 private_storage = FileSystemStorage(
     location=str(settings.PRIVATE_MEDIA_ROOT),
