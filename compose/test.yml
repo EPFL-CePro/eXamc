@@ -30,7 +30,7 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: test
+      target: tooling
     command: ["pytest"]
     environment:
       TESTING_MODE_ENABLED: "1"

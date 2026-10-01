@@ -43,7 +43,7 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: dev
+      target: tooling
       args:
         UID: ${UID:-1000}
         GID: ${GID:-1000}
@@ -74,7 +74,7 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: dev
+      target: tooling
     volumes:
       - ./data/private_media:/private_media
     env_file:
@@ -86,7 +86,7 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: dev
+      target: tooling
     volumes:
       - ./data/private_media:/private_media
     env_file:

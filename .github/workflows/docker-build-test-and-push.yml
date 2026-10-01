@@ -170,9 +170,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ./django
-          target: test
+          target: tooling
           load: true
-          push: false
           platforms: linux/amd64
           tags: localhost/examc-django-test:latest
           cache-from: |
@@ -185,16 +184,20 @@ jobs:
           TEST_IMAGE: localhost/examc-django-test
           IMAGE_TAG: latest
           FE_ARTIFACTS_IMAGE_TAG: ${{ needs.meta.outputs.tag }}
-        run: |
-          docker compose -f compose/test-image.yml --env-file .env.test \
-            run --rm django
+        run: docker compose -f compose/test-image.yml --env-file .env.test run --rm django
 
-      - name: Push production image
-        run: docker push "${{ needs.meta.outputs.django_image }}:${{ needs.meta.outputs.tag }}"
-
-      - name: Docker cleanup
-        if: always()
-        run: docker compose -f compose/test-image.yml down -v --remove-orphans || true
+      - name: Build and push production image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./django
+          target: production
+          push: true
+          platforms: linux/amd64
+          tags: ${{ needs.meta.outputs.django_image }}:${{ needs.meta.outputs.tag }}
+          cache-from: |
+            type=gha,scope=django-production
+            type=gha,scope=django-test
+          cache-to: type=gha,mode=max,scope=django-production
 
   promote:
     needs: [meta, fe-artifacts, django]
