@@ -8,7 +8,6 @@ FROM ghcr.io/astral-sh/uv:0.12 AS uv
 # =========================
 FROM ${PYTHON_IMAGE} AS uv-base
 
-# Pin uv: "latest" would invalidate the builders on every uv release
 COPY --from=uv /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \
@@ -16,6 +15,10 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_NO_CACHE=1
 
 WORKDIR /app
+
+# Build deps: mysqlclient is compiled from source for both venvs
+COPY ./install-build-deps.sh /opt/install-build-deps.sh
+RUN /opt/install-build-deps.sh
 
 COPY app/pyproject.toml app/uv.lock ./
 
