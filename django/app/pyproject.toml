@@ -5,12 +5,11 @@ requires-python = "==3.12.*"
 
 dependencies = [
     "asgiref==3.9.1",
-    "celery==5.5.3",
     "celery-progress==0.5",
     "celery-types==0.23.0",
-    "crispy-bootstrap4==2025.6",
+    "celery==5.5.3",
     "chardet==5.2.0",
-    "django==5.2.17",
+    "crispy-bootstrap4==2025.6",
     "django-celery-beat==2.8.1",
     "django-constance==4.3.3",
     "django-crispy-forms==2.4",
@@ -19,6 +18,9 @@ dependencies = [
     "django-maintenance-mode==0.22.0",
     "django-simple-history==3.10.1",
     "django-summernote==0.8.20.0",
+    "django-vite>=3.1.0",
+    "django==5.2.17",
+    "djangorestframework>=3.18.1",
     "docutils==0.21.2",
     "fpdf2==2.8.3",
     "gunicorn==26.2.0",
@@ -28,6 +30,7 @@ dependencies = [
     "mysqlclient==2.2.8",
     "num2words==0.5.14",
     "numpy==2.5.2",
+    "opencv-python-headless>=5.0.0.93",
     "opencv-python==5.0.0.93",
     "openpyxl==3.1.5",
     "pandas==3.0.5",
@@ -43,18 +46,16 @@ dependencies = [
     "reportlab==4.4.7",
     "scipy==1.18.1",
     "shapely==2.1.1",
-    "xmltodict==0.14.2",
     "unidecode==1.4.0",
-    "djangorestframework>=3.18.1",
-    "django-vite>=3.1.0",
+    "xmltodict==0.14.2",
 ]
 
 [dependency-groups]
 test = [
     "bandit==1.9.4",
     "pip-audit==2.10.1",
-    "pytest==9.1.1",
-    "pytest-django==4.14.0"
+    "pytest-django==4.14.0",
+    "pytest==9.1.1"
 ]
 
 dev = [
@@ -63,8 +64,8 @@ dev = [
 
 docs = [
     "furo==2025.12.19",
-    "sphinx==8.2.3",
-    "sphinx-autobuild==2025.8.25"
+    "sphinx-autobuild==2025.8.25",
+    "sphinx==8.2.3"
 ]
 
 [build-system]
