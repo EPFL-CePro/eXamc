@@ -126,9 +126,9 @@ def _build_unrecognized_review_scan_context(exam: Exam) -> list:
             "filename": scan.filename,
             "original_filename": scan.original_filename,
             "upload_order": scan.upload_order,
-            "scan_url": make_token_for(scan.relative_path, str(settings.SCANS_ROOT)),
+            "scan_url": make_token_for(scan.relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False),
             "previous_url": (
-                make_token_for(scan.previous_relative_path, str(settings.SCANS_ROOT))
+                make_token_for(scan.previous_relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False)
                 if scan.previous_relative_path else ""
             ),
             "previous_label": (
@@ -136,7 +136,7 @@ def _build_unrecognized_review_scan_context(exam: Exam) -> list:
                 if scan.previous_copy_no else ""
             ),
             "next_url": (
-                make_token_for(scan.next_relative_path, str(settings.SCANS_ROOT))
+                make_token_for(scan.next_relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False)
                 if scan.next_relative_path else ""
             ),
             "next_label": (
