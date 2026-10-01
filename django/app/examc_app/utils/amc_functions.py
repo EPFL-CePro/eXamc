@@ -248,7 +248,7 @@ def latex_files_to_list(path, amc_project_path):
 #     subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
 
 
-def amc_update_documents(exam, nb_copies, scoring_only, preview=False):
+def amc_update_documents(exam: Exam, nb_copies, scoring_only, preview=False):
     amc_project_path = get_amc_project_path(exam, False)
     if preview:
         os.rename(amc_project_path + "/students.csv", amc_project_path + "/students.bck")
@@ -306,7 +306,7 @@ def amc_layout_detection(exam: Exam):
         return result.stdout
 
 
-def amc_automatic_datacapture_subprocess(request, exam, file_path, from_review, file_list_path=None):
+def amc_automatic_datacapture_subprocess(request, exam: Exam, file_path, from_review, file_list_path=None):
     logger.info(
         "AMC datacapture started exam=%s from_review=%s file_list_path=%s",
         exam.pk,
@@ -459,7 +459,7 @@ def check_pages_recognition_consistency(exam: Exam):
                                     new_filename)
 
 
-def amc_automatic_data_capture(exam, file_path, from_review, file_list_path=None):
+def amc_automatic_data_capture(exam: Exam, file_path, from_review, file_list_path=None):
     project_path = get_amc_project_path(exam, False)
 
     if not from_review:
@@ -539,7 +539,7 @@ def amc_automatic_data_capture(exam, file_path, from_review, file_list_path=None
     return 'ok'
 
 
-def amc_update_options_xml_by_key(exam, key, value):
+def amc_update_options_xml_by_key(exam: Exam, key, value):
     # Open original file
     options_xml_path = get_amc_project_path(exam, False) + "/options.xml"
     xml = xmlET.parse(options_xml_path)
@@ -617,7 +617,7 @@ def get_extra_pages(amc_extra_pages_path: str, amc_extra_pages_url: str | None =
     return extra_pages_data
 
 
-def get_amc_marks_positions_data(exam, copy, page):
+def get_amc_marks_positions_data(exam: Exam, copy, page):
     amc_data_path = get_amc_project_path(exam, False)
 
     if amc_data_path:
@@ -635,7 +635,7 @@ def get_amc_marks_positions_data(exam, copy, page):
         return data_positions
 
 
-def update_amc_mark_zone_data(exam, zoneid, copy, page):
+def update_amc_mark_zone_data(exam: Exam, zoneid, copy, page):
     amc_data_path = get_amc_project_path(exam, False)
 
     if amc_data_path:
@@ -687,7 +687,7 @@ def _find_amc_project_dir(extracted_root_path):
     return candidates[0][1]
 
 
-def create_amc_project_dir_from_zip(exam, zip_file):
+def create_amc_project_dir_from_zip(exam: Exam, zip_file):
     file_name = f"exam_{exam.pk}_amc_project.zip"
     temp_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, file_name)
 
@@ -770,7 +770,7 @@ def get_automatic_data_capture_summary(exam: Exam):
     return None
 
 
-def get_copy_page_zooms(exam, copy, page):
+def get_copy_page_zooms(exam: Exam, copy, page):
     amc_data_path = get_amc_project_path(exam, False)
     zooms_data = None
     if amc_data_path:
@@ -792,7 +792,7 @@ def get_copy_page_zooms(exam, copy, page):
     return zooms_data
 
 
-def add_unrecognized_page_to_project(exam, copy, page, extra, img_filename):
+def add_unrecognized_page_to_project(exam: Exam, copy, page, extra, img_filename):
     amc_data_path = get_amc_project_path(exam, False)
     if amc_data_path:
 
@@ -815,12 +815,12 @@ def add_unrecognized_page_to_project(exam, copy, page, extra, img_filename):
             new_exNum = str(last_exNum + 1)
             filename = "copy_" + str(copy).zfill(4) + "_" + str(page) + "." + new_exNum + ".jpg"
 
-            #get scan path unsigned
+            # get scan path unsigned
             extra_path = str(verify_and_get_path(unquote(img_filename.replace('/protected/?token=', ''))))
-            #move to extra folder
+            # move to extra folder
             shutil.copy(extra_path, copy_extra_folder_path + '/' + extra_path.split('/')[-1].replace('marked_', ''))
 
-            #remove as unrecognized page
+            # remove as unrecognized page
             delete_unrecognized_page(amc_data_path + '/data/', extra_path)
 
         else:
@@ -837,6 +837,8 @@ def get_students_csv_headers(exam: Exam):
             dict_from_csv = dict(list(csv_reader)[0])
             return list(dict_from_csv.keys())
 
+    return None
+
 
 def get_automatic_association_code(exam: Exam):
     amc_data_path = get_amc_project_path(exam, False)
@@ -845,10 +847,12 @@ def get_automatic_association_code(exam: Exam):
         if association_code:
             return association_code
 
+    return None
+
 
 #     return "Pre-association"
 #
-# def amc_mark(exam,update_scoring_strategy):
+# def amc_mark(exam: Exam,update_scoring_strategy):
 #     if update_scoring_strategy == 'true':
 #         result = amc_update_documents(exam,None,True)
 #
@@ -877,7 +881,7 @@ def get_automatic_association_code(exam: Exam):
 #     else:
 #         return result.stdout
 
-def amc_mark(exam, update_scoring_strategy):
+def amc_mark(exam: Exam, update_scoring_strategy):
     print("************** Start marking")
     if update_scoring_strategy == 'true':
         result = amc_update_documents(exam, None, True)
@@ -920,7 +924,7 @@ def amc_mark(exam, update_scoring_strategy):
         yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
 
 
-def amc_mark_subprocess(request, exam, update_scoring_strategy):
+def amc_mark_subprocess(request, exam: Exam, update_scoring_strategy):
     if update_scoring_strategy == 'true':
         result = amc_update_documents(exam, None, True)
 
@@ -1133,7 +1137,7 @@ def count_updated_annotated_pdfs(annotated_pdfs_dir, initial_mtimes):
     return count
 
 
-def run_amc_annotate_command(command, exam, single_file, progress_callback=None):
+def run_amc_annotate_command(command, exam: Exam, single_file, progress_callback=None):
     annotated_pdfs_dir = get_annotated_pdfs_dir(exam)
     total = 1 if single_file else Student.objects.filter(exam=exam).count()
     initial_mtimes = get_annotated_pdf_mtimes(annotated_pdfs_dir)
@@ -1372,7 +1376,7 @@ def report_row_amc_copy_nr(report_row):
     return report_row.get("amc_copy") or report_row.get("student")
 
 
-def find_student_for_association_value(exam, assoc_primary_key, associated_student):
+def find_student_for_association_value(exam: Exam, assoc_primary_key, associated_student):
     if associated_student is None or str(associated_student).strip() == "":
         return None
 
@@ -1469,7 +1473,7 @@ def update_student_amc_id_if_missing(student, amc_copy_nr):
         )
 
 
-def find_student_for_amc_report(exam, report_row):
+def find_student_for_amc_report(exam: Exam, report_row):
     assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
     amc_copy_nr = report_row_amc_copy_nr(report_row)
     amc_copy_candidates = copy_number_candidates(amc_copy_nr)
@@ -1783,7 +1787,7 @@ def get_amc_manual_association_data(exam: Exam):
     return ''
 
 
-def set_amc_manual_association(exam, copy_nr, student_id):
+def set_amc_manual_association(exam: Exam, copy_nr, student_id):
     project_path = get_amc_project_path(exam, False)
     result = ''
     if project_path:
@@ -1823,7 +1827,7 @@ def get_amc_send_annotated_papers_data(exam: Exam):
     return ''
 
 
-def amc_send_annotated_papers(exam, selected_students, email_subject, email_body, email_column):
+def amc_send_annotated_papers(exam: Exam, selected_students, email_subject, email_body, email_column):
     result = 'ok'
     project_path = get_amc_project_path(exam, False)
     amc_data_path = project_path + "/data/"
