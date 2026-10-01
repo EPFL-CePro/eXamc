@@ -16,7 +16,7 @@
     </div>
 
     <div id="amc-data-capture" tabindex="0" class="d-flex"
-         data-scan-url="{% url 'get_amc_scan_url' exam_selected.pk %}"
+         data-scan-url="{% url 'api-amc-data-capture-manual-scan-url' exam_selected.pk %}"
          data-marks-url="{% url 'get_amc_marks_positions' exam_selected.pk %}"
          data-update-zone-url="{% url 'update_amc_mark_zone' exam_selected.pk %}">
 

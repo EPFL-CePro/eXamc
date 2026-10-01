@@ -1,16 +1,29 @@
+import logging
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from django.http import QueryDict
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from examc import settings
 from examc_app.api.decorators import exam_permission_required, ExamScopedViewMixin
+from examc_app.api.serializers.amc.data_capture.manual import ScanUrlQuerySerializer
+from examc_app.models import Exam
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
+from examc_app.signing import make_token_for
+from examc_app.utils.amc.path import resolve_amc_path
+from examc_app.utils.amc_db_queries import select_amc_scan_path
+from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.global_functions import user_allowed
+
+logger = logging.getLogger(__name__)
 
 # Question states, with the label shown in the State column's list
 QUESTION_STATES = {"invalid": "Invalid", "empty": "Empty"}
@@ -119,3 +132,35 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
                 "states": [{"label": label, "value": value} for value, label in QUESTION_STATES.items()],
             },
         })
+
+    @action(detail=False, methods=['get'], url_path='scan-url')
+    @exam_permission_required(['manage'])  # use the same permission decorator as list()
+    def scan_url(self, request: Request, exam_pk: int | None = None):
+        query = ScanUrlQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        copy_nr = query.validated_data['copy']
+        page_nr = query.validated_data['page']
+
+        exam = get_object_or_404(Exam, pk=exam_pk)
+        project_path = get_amc_project_path(exam, False)
+
+        if not project_path:
+            raise NotFound('No AMC project')
+
+        if '.' in page_nr:  # extra page
+            c = copy_nr.zfill(4)
+            scan_path = Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
+        else:
+            raw = select_amc_scan_path(f'{project_path}/data/', copy_nr, page_nr)
+            if not raw:
+                raise NotFound('No scan for this page')
+            scan_path = resolve_amc_path(raw, project_path)
+
+        roots = [Path(settings.MARKED_SCANS_ROOT), Path(settings.SCANS_ROOT), Path(project_path, 'scans', 'extra')]
+        root = next((r.resolve() for r in roots if scan_path.is_relative_to(r.resolve())), None)
+
+        if root is None or not scan_path.is_file():
+            logger.warning('Scan not found: copy=%s page=%s path=%s', copy_nr, page_nr, scan_path)
+            raise NotFound('Scan file not found')
+
+        return Response({ 'url': make_token_for(str(scan_path.relative_to(root)), str(root)) })
