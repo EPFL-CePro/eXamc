@@ -46,6 +46,7 @@ services:
     restart: unless-stopped
 
   django:
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       # TODO - use secrets instead of env vars for secrets for better security
       # See https://docs.docker.com/compose/how-tos/use-secrets/
@@ -152,4 +153,5 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
+  media_volume:
   client_temp:

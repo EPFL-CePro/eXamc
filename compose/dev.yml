@@ -44,10 +44,6 @@ services:
     build:
       context: ../django
       target: tooling
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    user: "${UID:-1000}:${GID:-1000}"
     environment:
       DEBUG: "1"
       VITE_DEV_MODE: "1"

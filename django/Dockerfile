@@ -4,7 +4,7 @@ FROM ghcr.io/astral-sh/uv:0.12 AS uv
 
 
 # =========================
-# UV BASE: uv + lockfile, shared by both builders
+# UV BASE: uv, build deps and lockfile, shared by both builders
 # =========================
 FROM ${PYTHON_IMAGE} AS uv-base
 
@@ -24,7 +24,7 @@ COPY app/pyproject.toml app/uv.lock ./
 
 
 # =========================
-# BUILDER: production venv + docs (no build deps needed)
+# BUILDER: production venv + docs
 # =========================
 FROM uv-base AS builder
 
@@ -39,20 +39,17 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 
 # =========================
-# BUILDER-TOOLING: dev/test venv, the only one that needs compilers
+# BUILDER-TOOLING: dev/test venv (all groups)
 # =========================
 FROM uv-base AS builder-tooling
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv-tooling
 
-COPY ./install-build-deps.sh /opt/install-build-deps.sh
-RUN /opt/install-build-deps.sh
-
 RUN uv sync --frozen --group test --group docs --group dev --no-install-project
 
 
 # =========================
-# RUNTIME BASE: system packages and the app user (no app code)
+# RUNTIME BASE: system packages, the app user and its data dirs (no app code)
 # =========================
 FROM ${PYTHON_IMAGE} AS runtime-base
 
@@ -77,13 +74,17 @@ RUN set -eux; \
     test -x /usr/bin/auto-multiple-choice; \
     rm -rf /var/lib/apt/lists/*
 
+# Root owns the code, examc owns the data.
+# The data dirs exist in the image so new named volumes start owned by examc
+# (bind mounts keep the host's ownership: chown them to UID:GID on the host).
 RUN groupadd --gid ${GID} examc \
     && useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash examc \
-    && chown examc:examc /app
+    && mkdir -p /static /media /private_media \
+    && chown examc:examc /static /media /private_media
 
 
 # =========================
-# PRODUCTION
+# PRODUCTION: code and venv owned by root, read-only for examc
 # =========================
 FROM runtime-base AS production
 
@@ -92,27 +93,27 @@ RUN chmod +x /opt/entrypoint.sh && sed -i 's/\r$//' /opt/entrypoint.sh
 
 ENV PATH="/opt/venv-prod/bin:$PATH"
 
-# Create /static owned by examc *before* declaring the volume,
-# so a fresh volume starts with that ownership and collectstatic can write to it
-RUN mkdir -p /static && chown examc:examc /static
 VOLUME /static
 
-COPY --from=builder --chown=examc:examc /opt/venv-prod /opt/venv-prod
-COPY --chown=examc:examc --exclude=app/docs ./app /app
-COPY --from=builder --chown=examc:examc /app/examc_app/static/docs /app/examc_app/static/docs
+COPY --from=builder /opt/venv-prod /opt/venv-prod
+COPY --exclude=app/docs ./app /app
+COPY --from=builder /app/examc_app/static/docs /app/examc_app/static/docs
 
 USER examc
 
+# Entrypoint: migrations, collectstatic, then execute CMD
 ENTRYPOINT ["/opt/entrypoint.sh"]
 
 
 # =========================
-# TOOLING (dev and test; CI runs the tests in it)
+# TOOLING (dev and test; CI runs the tests in it): everything owned by examc
 # =========================
 FROM runtime-base AS tooling
 
 ENV PATH="/opt/venv-tooling/bin:$PATH" \
     UV_PROJECT_ENVIRONMENT=/opt/venv-tooling
+
+RUN chown examc:examc /app
 
 COPY --from=uv-base /bin/uv /bin/uvx /bin/
 COPY ./sphinx-autobuild.py /opt/sphinx-autobuild.py

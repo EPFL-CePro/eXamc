@@ -38,7 +38,6 @@ services:
       service: django
       file: base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
-    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./data/private_media:/private_media
     extra_hosts:
