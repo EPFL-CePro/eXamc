@@ -26,7 +26,7 @@ export function initDiagnosis(tableElement: HTMLTableElement): void {
         processing: true,
         pageLength: 500,
         lengthMenu: [500, 1000, 2000, 3000, 4000],
-        columnControl: ['info', 'order', 'searchDropdown'],
+        columnControl: ['info', 'order'],
         ordering: {
             indicators: false,
             handler: false
