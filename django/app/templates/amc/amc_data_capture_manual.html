@@ -20,9 +20,7 @@
          data-marks-url="{% url 'get_amc_marks_positions' exam_selected.pk %}"
          data-update-zone-url="{% url 'update_amc_mark_zone' exam_selected.pk %}">
 
-        <div id="scan_page" style="height: 80vh;">
-            <canvas id="canvas-scan"></canvas>
-        </div>
+        <canvas id="canvas-scan"></canvas>
 
         <div class="list-group" style="margin-left: 16px; height: 85vh;">
             <table id="table-copies-pages" class="table table-sm table-striped"
