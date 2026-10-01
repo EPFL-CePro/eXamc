@@ -15,29 +15,26 @@
         </a>
     </div>
 
-    <div id="amc-data-capture" tabindex="0" class="d-flex"
+    <div id="amc-data-capture" tabindex="0"
          data-scan-url="{% url 'api-amc-data-capture-manual-scan-url' exam_selected.pk %}"
          data-marks-url="{% url 'get_amc_marks_positions' exam_selected.pk %}"
          data-update-zone-url="{% url 'update_amc_mark_zone' exam_selected.pk %}">
 
         <canvas id="canvas-scan"></canvas>
-
-        <div class="list-group" style="margin-left: 16px; height: 85vh;">
-            <table id="table-copies-pages" class="table table-sm table-striped"
-                   data-api-url="{% url 'api-amc-data-capture-manual-list' exam_pk=exam_selected.pk %}"
-            >
-                <thead>
-                    <tr>
-                        <th>Copy</th>
-                        <th>Page</th>
-                        <th title="An indicator for the alignment during the scan. If the value is too high, the detection could be wrong.">MSE</th>
-                        <th>Sensitivity</th>
-                        <th title="Pages where boxes were checked or unchecked manually">Edited</th>
-                        <th>State</th>
-                        <th>Questions</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
+        <table id="table-copies-pages" class="table table-sm table-striped"
+               data-api-url="{% url 'api-amc-data-capture-manual-list' exam_pk=exam_selected.pk %}"
+        >
+            <thead>
+                <tr>
+                    <th>Copy</th>
+                    <th>Page</th>
+                    <th title="An indicator for the alignment during the scan. If the value is too high, the detection could be wrong.">MSE</th>
+                    <th>Sensitivity</th>
+                    <th title="Pages where boxes were checked or unchecked manually">Edited</th>
+                    <th>State</th>
+                    <th>Questions</th>
+                </tr>
+            </thead>
+        </table>
     </div>
 {% endblock %}

@@ -1,5 +1,5 @@
 import { draw } from './drawing.ts';
-import { parseJson, parseScanPath, postText } from '@examc/helpers/http.ts';
+import { parseJson, postText } from '@examc/helpers/http.ts';
 import { state } from './state.ts';
 import type { MarkPosition, PageRow, ScanUrls, Zone } from './types.ts';
 
@@ -21,19 +21,6 @@ export function initScan(endpoints: ScanUrls): void {
     urls = endpoints;
 }
 
-
-
-
-/**
- * Turns a scan file path into the URL it is served from.
- *
- * @param {string} path - The scan path.
- * @return {string} The scan URL.
- */
-function toScanUrl(path: string): string {
-    const parts = path.split('/');
-    return `/${parts[1] ?? ''}/${parts[3] ?? ''}`;
-}
 
 /**
  * Loads an image.
@@ -58,8 +45,17 @@ function loadImage(src: string): Promise<HTMLImageElement> {
  * @return {Promise<MarkPosition[]>} The mark corners, 4 per zone.
  */
 async function fetchMarks(copy: string, page: string): Promise<MarkPosition[]> {
-    if (!urls) throw new Error("initScan() has not been called");
+    if (!urls) throw new UrlsUnintialized();
     return parseJson<MarkPosition[]>(await postText(urls.marks, { copy, page })) ?? [];
+}
+
+
+async function fetchScanUrl(copy: string, page: string): Promise<string> {
+    if (!urls) throw new UrlsUnintialized();
+    const response = await fetch(`${urls.scanUrl}?${new URLSearchParams({ copy, page })}`);
+    if (!response.ok) throw new Error(`Scan URL request failed: ${response.status}`);
+    const { url } = (await response.json()) as { url: string };
+    return url;
 }
 
 /**
@@ -74,10 +70,10 @@ export async function loadPage(row: PageRow): Promise<void> {
     const page = String(row.page);
 
     try {
-        const scanPath = parseScanPath(await postText(urls.scanUrl, { copy, page }));
+        const scanPath = await fetchScanUrl(copy, page);
         const marks = await fetchMarks(copy, page);
 
-        const image = await loadImage(toScanUrl(scanPath));
+        const image = await loadImage(scanPath);
         if (token !== state.loadToken) return;
 
         state.view = { copy, page, image, marks };

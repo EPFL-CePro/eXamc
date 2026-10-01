@@ -1,47 +1,58 @@
-#canvas-scan {
-    display: block;
-    height: 92vh;
-    width: auto;
-    aspect-ratio: 210 / 297; // ~A4 ratio
-    border: 1px solid lightgray;
-}
+#amc-data-capture {
+    display: flex;
+    gap: 16px;
 
-#amc-data-capture:focus {
-    outline: none;
-}
+    #canvas-scan {
+        display: block;
+        height: 92vh;
+        width: auto;
+        aspect-ratio: 210 / 297; // ~A4 ratio
+        border: 1px solid lightgray;
+    }
 
-#table-copies-pages {
-    tbody {
-        tr {
-            &.is-current {
-                background-color: rgba(0, 0, 0, 0.14);
-                color: black;
-            }
+    #amc-data-capture:focus {
+        outline: none;
+    }
 
-            &:not(.is-current) {
-                opacity: .7;
-            }
-
-            td {
-                &.sensitive {
-                    color: red;
+    #table-copies-pages {
+        tbody {
+            tr {
+                &.is-current {
+                    background-color: rgba(0, 0, 0, 0.14);
+                    color: black;
                 }
 
-                .badge {
-                    display: inline-block;
-                    margin: 0 2px 2px 0;
-                    padding: 0 4px;
-                    border: 1px solid #dee2e6;
-                    border-radius: 3px;
-                    font-size: 0.75em;
-                    white-space: nowrap;
+                &:not(.is-current) {
+                    opacity: .7;
+                }
 
-                    &.invalid {
-                        background-color: #ffff33;
+                td {
+                    &.sensitive {
+                        color: red;
                     }
 
-                    &.empty {
-                        background-color: #00ffff;
+                    .question-badges {
+                        display: flex;
+                        flex-wrap: wrap;
+                        min-width: 20rem;
+                        
+                        .badge {
+                            display: inline-block;
+                            margin: 0 2px 2px 0;
+                            padding: 0 4px;
+                            border: 1px solid #dee2e6;
+                            border-radius: 3px;
+                            font-size: 0.75em;
+                            white-space: nowrap;
+
+                            &.invalid {
+                                background-color: #ffff33;
+                            }
+
+                            &.empty {
+                                background-color: #00ffff;
+                            }
+                        }
                     }
                 }
             }

@@ -86,21 +86,6 @@ export function parseJson<T>(text: string): T | null {
     return data as T | null;
 }
 
-/**
- * Extracts a scan path from a response that is either a plain path or a JSON-encoded string.
- *
- * @param {string} text - A plain scan path, or a JSON string containing one.
- * @return {string} The scan path.
- */
-export function parseScanPath(text: string): string {
-    try {
-        const data: unknown = JSON.parse(text);
-        if (typeof data === 'string') return data;
-    } catch {
-        // not JSON: plain path
-    }
-    return text.trim();
-}
 
 /**
  * Turns an AMC scan file path into the URL it is served from.

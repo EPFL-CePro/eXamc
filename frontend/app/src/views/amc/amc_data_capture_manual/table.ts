@@ -89,16 +89,21 @@ export function initTable(element: HTMLTableElement): Api<unknown> {
             {
                 data: 'page_questions',
                 orderable: false,
+                width: "60rem",
                 columnControl: [['searchList']], // nested array = dropdown; options come from the server
-                render: (questions: PageQuestion[] | undefined) =>
-                    (questions ?? [])
+                render: (questions: PageQuestion[] | undefined) => {
+                    let html = `<div class="question-badges">`;
+                    html += (questions ?? [])
                         .map((q) => {
                             const stateClass = q.state ? ` badge badge-secondary ${q.state}` : '';
                             const title = q.state ? ` title="${q.state}"` : '';
                             const name = DataTable.util.escapeHtml(q.name);
                             return `<span class="badge badge-secondary ${stateClass}"${title}>${name}</span>`;
-                        })
-                        .join(''),
+                        }).join('');
+                    html += "</div>";
+
+                    return html;
+                }
             },
         ],
         layout: {
