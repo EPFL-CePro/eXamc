@@ -59,6 +59,8 @@ export async function loadPage(row: PageRow): Promise<void> {
         if (token !== state.loadToken) return;
 
         state.view = { copy, page, image, marks };
+        console.log(state);
+        
         draw();
     } catch (error) {
         if (token === state.loadToken) console.error(error);
