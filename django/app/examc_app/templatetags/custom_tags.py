@@ -77,7 +77,7 @@ def is_admin(user):
         return True
 
 @register.filter
-def get_scale_stats(exam_pk, scale_name):
+def get_scale_stats(exam_pk: int,  scale_name):
     result = ScaleStatistic.objects.get(exam__pk=exam_pk, scale__name=scale_name)
     return result
 

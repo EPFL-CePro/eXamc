@@ -166,7 +166,7 @@ def _is_celery_task_active(task_id):
         return False
 
 
-def _get_upload_scan_pending_context(request, exam_pk, task_id=None):
+def _get_upload_scan_pending_context(request, exam_pk: int,  task_id=None):
     active_task_id = task_id
     if not active_task_id:
         pending_task_id = get_pending_amc_import_upload_task_id(request, exam_pk)
@@ -546,7 +546,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def add_new_pages_group(request, exam_pk):
+def add_new_pages_group(request, exam_pk: int):
     """
         Add a new pages group for an exam.
 
@@ -575,7 +575,7 @@ def add_new_pages_group(request, exam_pk):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def delete_pages_group(request, group_pk, exam_pk):
+def delete_pages_group(request, group_pk, exam_pk: int):
     """
        Delete a pages group.
 
@@ -608,7 +608,7 @@ def delete_pages_group(request, group_pk, exam_pk):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def edit_pages_group_grading_help(request,exam_pk):
+def edit_pages_group_grading_help(request,exam_pk: int):
     """
        Edit the grading help.
 
@@ -633,7 +633,7 @@ def edit_pages_group_grading_help(request,exam_pk):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def get_pages_group_grading_help(request,exam_pk):
+def get_pages_group_grading_help(request,exam_pk: int):
     """
       Get the grading help.
 
@@ -658,7 +658,7 @@ def get_pages_group_grading_help(request,exam_pk):
 # @menu_access_required
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
-def generate_marked_files(request, exam_pk, task_id=None):
+def generate_marked_files(request, exam_pk: int,  task_id=None):
     """
           Export all the marked files.
 
@@ -733,7 +733,7 @@ def generate_marked_files(request, exam_pk, task_id=None):
 
 
 @exam_permission_required(['manage'])
-def download_marked_files(request,filename, exam_pk):
+def download_marked_files(request,filename, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     if os.path.basename(filename) != filename or not filename.endswith(".zip"):
         raise Http404("Invalid filename")
@@ -770,7 +770,7 @@ def testing(request):
 
 
 @exam_permission_required(['manage'])
-def upload_scans(request, exam_pk, task_id=None):
+def upload_scans(request, exam_pk: int,  task_id=None):
     """
            Handles the upload of scanned files for a specific exam.
 
@@ -861,7 +861,7 @@ def upload_scans(request, exam_pk, task_id=None):
 
 @exam_permission_required(['manage'])
 @require_GET
-def unrecognized_review_scans_table(request, exam_pk):
+def unrecognized_review_scans_table(request, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     return render(request, 'review/import/_unrecognized_review_scans_table.html', {
         'exam_selected': exam,
@@ -871,7 +871,7 @@ def unrecognized_review_scans_table(request, exam_pk):
 
 @exam_permission_required(['manage'])
 @require_POST
-def assign_unrecognized_review_scan(request, exam_pk):
+def assign_unrecognized_review_scan(request, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     unrecognized_scan = get_object_or_404(
         UnrecognizedReviewScan,
@@ -907,7 +907,7 @@ def assign_unrecognized_review_scan(request, exam_pk):
 
 @exam_permission_required(['manage'])
 @require_POST
-def delete_unrecognized_review_scan(request, exam_pk):
+def delete_unrecognized_review_scan(request, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     unrecognized_scan = get_object_or_404(
         UnrecognizedReviewScan,
@@ -932,7 +932,7 @@ def delete_unrecognized_review_scan(request, exam_pk):
 
 @exam_permission_required(['manage'])
 @require_POST
-def delete_unrecognized_review_scans(request, exam_pk):
+def delete_unrecognized_review_scans(request, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     form = DeleteUnrecognizedReviewScansForm(request.POST, exam=exam)
     if not form.is_valid():
@@ -970,7 +970,7 @@ def _redirect_after_unrecognized_review_scan_resolution(exam):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def saveMarkers(request, exam_pk):
+def saveMarkers(request, exam_pk: int):
     """  Save the markers and comments for a given exam page group.
         This function saves the markers and comments provided by the user for a specific exam page group.
         Args:
@@ -1058,7 +1058,7 @@ def saveMarkers(request, exam_pk):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def getMarkersAndComments(request, exam_pk):
+def getMarkersAndComments(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     data_dict = {}
 
@@ -1144,7 +1144,7 @@ def save_comment(request, exam_pk: int):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def update_page_group_markers(request,exam_pk):
+def update_page_group_markers(request,exam_pk: int):
     if request.method == 'POST':
 
         exam = Exam.objects.get(pk=exam_pk)
@@ -1181,7 +1181,7 @@ def cleanup_expired_review_locks():
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def review_student_pages_group_is_locked(request,exam_pk):
+def review_student_pages_group_is_locked(request,exam_pk: int):
     if request.method != 'POST':
         return HttpResponse("Invalid request method", status=405)
 
@@ -1247,7 +1247,7 @@ def review_student_pages_group_is_locked(request,exam_pk):
 
 @exam_permission_required(['manage','review'])
 @require_POST
-def remove_review_user_locks(request,exam_pk):
+def remove_review_user_locks(request,exam_pk: int):
     if request.method != 'POST':
         return HttpResponse("Invalid request method", status=405)
 
@@ -1257,7 +1257,7 @@ def remove_review_user_locks(request,exam_pk):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def get_copy_page(request,exam_pk):
+def get_copy_page(request,exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     copy_nr = request.POST.get('copy_no')
     page_nr = request.POST.get('page_no')
@@ -1270,7 +1270,7 @@ def get_copy_page(request,exam_pk):
 ############ Grading schemes settings
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
-def grading_scheme_pages_group(request, exam_pk, pages_group_id: int,current_grading_scheme_id=None):
+def grading_scheme_pages_group(request, exam_pk: int,  pages_group_id: int,current_grading_scheme_id=None):
     pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
     grading_schemes = QuestionGradingScheme.objects.filter(
         pages_group=pages_group,
@@ -1295,7 +1295,7 @@ def grading_scheme_pages_group(request, exam_pk, pages_group_id: int,current_gra
 
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
-def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
+def grading_scheme_panel(request, exam_pk: int,  grading_scheme_id: int):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1351,7 +1351,7 @@ def grading_scheme_panel(request, exam_pk, grading_scheme_id: int):
 
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
-def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
+def grading_scheme_checkboxes(request, exam_pk: int,  grading_scheme_id):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1416,7 +1416,7 @@ def grading_scheme_checkboxes(request, exam_pk, grading_scheme_id):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def add_new_grading_scheme_checkbox(request, exam_pk, grading_scheme_id):
+def add_new_grading_scheme_checkbox(request, exam_pk: int,  grading_scheme_id):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1456,7 +1456,7 @@ def add_new_grading_scheme_checkbox(request, exam_pk, grading_scheme_id):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def delete_grading_scheme_checkbox(request, exam_pk, grading_scheme_checkbox_id):
+def delete_grading_scheme_checkbox(request, exam_pk: int,  grading_scheme_checkbox_id):
     grading_scheme_checkbox = get_object_or_404(
         QuestionGradingSchemeCheckBox,
         pk=grading_scheme_checkbox_id,
@@ -1485,7 +1485,7 @@ def delete_grading_scheme_checkbox(request, exam_pk, grading_scheme_checkbox_id)
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def add_new_grading_scheme(request, exam_pk, pages_group_id):
+def add_new_grading_scheme(request, exam_pk: int,  pages_group_id):
     pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
     exam = get_object_or_404(Exam, pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
@@ -1513,7 +1513,7 @@ def add_new_grading_scheme(request, exam_pk, pages_group_id):
 @exam_permission_required(['manage'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def delete_grading_scheme(request, exam_pk, grading_scheme_id):
+def delete_grading_scheme(request, exam_pk: int,  grading_scheme_id):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1571,7 +1571,7 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
 
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
-def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
+def review_grading_scheme_panel(request, exam_pk: int,  grading_scheme_id, copy_nr):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1617,7 +1617,7 @@ def review_grading_scheme_panel(request, exam_pk, grading_scheme_id, copy_nr):
 
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
-def review_grading_scheme_checkboxes(request, exam_pk, grading_scheme_id, copy_nr):
+def review_grading_scheme_checkboxes(request, exam_pk: int,  grading_scheme_id, copy_nr):
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
@@ -1649,7 +1649,7 @@ def review_grading_scheme_checkboxes(request, exam_pk, grading_scheme_id, copy_n
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def save_pages_group_student_report_note(request, exam_pk):
+def save_pages_group_student_report_note(request, exam_pk: int):
     pages_group_id = request.POST.get('pages_group_id')
     copy_nr = request.POST.get('copy_nr')
     content = request.POST.get('content', '')
@@ -1678,7 +1678,7 @@ def save_pages_group_student_report_note(request, exam_pk):
 @exam_permission_required(['manage','review'])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
-def update_pages_group_check_box(request,exam_pk):
+def update_pages_group_check_box(request,exam_pk: int):
     copy_nr = request.POST.get('copy_nr')
     item_id_str = request.POST.get('item_id')
     checked = request.POST.get('checked') == 'true'

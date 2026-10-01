@@ -143,7 +143,7 @@ def exam_preparation_view(request, exam_pk: int):
 
 @login_required
 @require_POST
-def exam_add_section(request,exam_pk):
+def exam_add_section(request,exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     section_num = 1
     if exam.sections.all():

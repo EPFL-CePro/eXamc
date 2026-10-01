@@ -44,7 +44,7 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 
 @shared_task(bind=True)
-def import_csv_data(self, temp_csv_file_path, exam_pk):
+def import_csv_data(self, temp_csv_file_path, exam_pk: int):
 
     try:
         progress_recorder = ProgressRecorder(self)
@@ -222,7 +222,7 @@ def import_csv_data(self, temp_csv_file_path, exam_pk):
 
 
 @shared_task(bind=True)
-def import_exam_scans(self, zip_file_path, exam_pk,delete_old):
+def import_exam_scans(self, zip_file_path, exam_pk: int, delete_old):
     """
     Extracts and imports scanned files for an exam upload.
 
@@ -331,7 +331,7 @@ def import_exam_scans(self, zip_file_path, exam_pk,delete_old):
     return 'upload_scans_ok'
 
 @shared_task(bind=True)
-def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
+def generate_marked_files_zip(self,exam_pk: int,  export_type, with_comments):
     try:
         exam = Exam.objects.get(pk=exam_pk)
         scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
@@ -401,7 +401,7 @@ def generate_marked_files_zip(self,exam_pk, export_type, with_comments):
         raise exception
 
 @shared_task(bind=True)
-def generate_statistics(self,exam_pk):
+def generate_statistics(self,exam_pk: int):
     try:
         exam = Exam.objects.get(pk=exam_pk)
         logger.info(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : Start generating statistics ---> ")
@@ -587,7 +587,7 @@ def _write_review_import_file_list(exam, scans_list=None):
 
 
 @shared_task(bind=True)
-def amc_import_from_review_task(self, exam_pk, scans_list=None):
+def amc_import_from_review_task(self, exam_pk: int, scans_list=None):
     lines = []
     try:
         exam = Exam.objects.get(pk=exam_pk)

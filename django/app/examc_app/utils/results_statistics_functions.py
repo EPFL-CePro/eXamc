@@ -36,7 +36,7 @@ def clone_scale(src: "Scale", *, exam) -> "Scale":
     data = {f: getattr(src, f) for f in SCALE_COPY_FIELDS}
     return src.__class__(exam=exam, name=src.name, **data)
 
-def update_common_exams_scales(overall_exam_pk):
+def update_common_exams_scales(overall_exam_pk: int):
     overall_exam = Exam.objects.get(pk=overall_exam_pk)
     children = list(overall_exam.common_exams.all())
 
@@ -84,7 +84,7 @@ def update_common_exams_scales(overall_exam_pk):
         if to_create:
             overall_exam.scales.model.objects.bulk_create(to_create)
 
-def update_common_exams_users(overall_exam_pk):
+def update_common_exams_users(overall_exam_pk: int):
     overall_exam = Exam.objects.get(pk=overall_exam_pk)
     for comex in overall_exam.common_exams.all():
         for exam_user in comex.exam_users.all():
@@ -98,7 +98,7 @@ def update_common_exams_users(overall_exam_pk):
     overall_exam.save()
 
 @transaction.atomic
-def update_common_exams_questions(overall_exam_pk):
+def update_common_exams_questions(overall_exam_pk: int):
     overall_exam = Exam.objects.select_for_update().get(pk=overall_exam_pk)
 
     child_exams = overall_exam.common_exams.all()

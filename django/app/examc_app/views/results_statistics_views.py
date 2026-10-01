@@ -85,7 +85,7 @@ def import_data_4_stats(request,exam_pk:int, task_id=None):
 
 @exam_permission_required(['manage'])
 @require_POST
-def upload_amc_csv(request, exam_pk):
+def upload_amc_csv(request, exam_pk: int):
     csv_file = request.FILES["amc_csv_file"]
     temp_csv_file_name = "tmp_upload_amc_csv_"+datetime.now().strftime("%Y%m%d%H%M%S")+".csv"
     temp_csv_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, temp_csv_file_name)
@@ -106,7 +106,7 @@ def upload_amc_csv(request, exam_pk):
 
 @exam_permission_required(['manage'])
 @require_POST
-def upload_catalog_pdf(request, exam_pk):
+def upload_catalog_pdf(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     catalog = request.FILES["catalog_pdf_file"]
 
@@ -242,7 +242,7 @@ def export_data(request, exam_pk: int):
 # ------------------------------------------
 
 @exam_permission_required(['manage','see_results'])
-def generate_stats(request, exam_pk):
+def generate_stats(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
 
     task = generate_statistics.delay(exam.pk)
@@ -252,7 +252,7 @@ def generate_stats(request, exam_pk):
 
 
 @exam_permission_required(['manage','see_results'])
-def general_statistics_view(request,exam_pk):
+def general_statistics_view(request,exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     curr_exam = exam
 
@@ -353,7 +353,7 @@ def students_results_view(request, exam_pk: int, task_id=None):
 
 
 @exam_permission_required(['manage','see_results'])
-def questions_statistics_view(request,exam_pk):
+def questions_statistics_view(request,exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     currexam = exam
 
@@ -404,7 +404,7 @@ def questions_statistics_view(request,exam_pk):
 @xframe_options_exempt
 
 @exam_permission_required(['manage','see_results'])
-def display_catalog(request, exam_pk):
+def display_catalog(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     if exam.is_overall():
         exam = exam.common_exams.all().first()

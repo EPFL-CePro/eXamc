@@ -1509,7 +1509,7 @@ def find_student_for_amc_report(exam: Exam, report_row):
     return student
 
 
-def add_grading_schemes_reports(exam_pk, single_file=False, progress_callback=None):
+def add_grading_schemes_reports(exam_pk: int,  single_file: bool = False, progress_callback=None):
     exam = Exam.objects.get(pk=exam_pk)
 
     project_path = Path(get_amc_project_path(exam, False))
@@ -1933,7 +1933,7 @@ def build_long_table(rows, col_widths, repeat_rows=1):
         return LongTable(rows, colWidths=col_widths, repeatRows=repeat_rows, splitByRow=1)
 
 
-def build_grading_report_pdf_bytes(exam_pk, student_pk, amc_copy_nr=None, review_copy_nr=None) -> bytes:
+def build_grading_report_pdf_bytes(exam_pk: int,  student_pk, amc_copy_nr=None, review_copy_nr=None) -> bytes:
     """
     Generate grading report and return the content in bytes.
     """

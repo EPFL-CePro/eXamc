@@ -234,7 +234,7 @@ class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
 
 @exam_permission_required(['manage'])
 @require_POST
-def delete_exam_scale(request, scale_pk, exam_pk):
+def delete_exam_scale(request, scale_pk, exam_pk: int):
     scale_to_delete = Scale.objects.get(pk=scale_pk)
     exam_to_manage = Exam.objects.get(pk=exam_pk)
 
@@ -260,7 +260,7 @@ def delete_exam_scale(request, scale_pk, exam_pk):
 
 @exam_permission_required(['manage'])
 @require_POST
-def update_exam(request,exam_pk):
+def update_exam(request,exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     field_name = request.POST['field']
     value = request.POST['value']
@@ -276,7 +276,7 @@ def update_exam(request,exam_pk):
 
 @exam_permission_required(['manage'])
 @require_POST
-def set_final_scale(request, scale_pk, exam_pk,all_common=0):
+def set_final_scale(request, scale_pk, exam_pk: int, all_common=0):
     final_scale = Scale.objects.get(id=scale_pk)
 
     for scale in final_scale.exam.scales.all():
@@ -301,7 +301,7 @@ def set_final_scale(request, scale_pk, exam_pk,all_common=0):
 
 @exam_permission_required(['manage'])
 @require_POST
-def update_exam_options(request,exam_pk):
+def update_exam_options(request,exam_pk: int):
     if request.method == 'POST':
         exam = Exam.objects.get(pk=exam_pk)
         exam.review_option = False
@@ -326,7 +326,7 @@ def update_exam_options(request,exam_pk):
 # QUESTIONS MANAGEMENT
 # ------------------------------------------
 # @exam_permission_required(['manage'])
-# def update_question(request,exam_pk):
+# def update_question(request,exam_pk: int):
 #     question = Question.objects.get(pk=request.POST['question_pk'])
 #     field_name = request.POST['field']
 #     value = request.POST['value']
@@ -339,7 +339,7 @@ def update_exam_options(request,exam_pk):
 
 @exam_permission_required(['manage'])
 @require_POST
-def update_questions(request,exam_pk):
+def update_questions(request,exam_pk: int):
     data = json.loads(request.POST.get('data'))
     for question in data:
         quest = Question.objects.get(pk=question['QUESTION'])
@@ -364,7 +364,7 @@ def update_questions(request,exam_pk):
 
 @exam_permission_required(['manage'])
 @require_POST
-def set_common_exam(request,exam_pk):
+def set_common_exam(request,exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
 
     # get or create overall exam if not from overall exam
@@ -396,7 +396,7 @@ def set_common_exam(request,exam_pk):
 
 
 # @exam_permission_required(['manage'])
-# def validate_common_exams_settings(request,overall_exam_pk):
+# def validate_common_exams_settings(request,overall_exam_pk: int):
     # overall_exam = Exam.objects.get(pk=overall_exam_pk)
     # common_exams_ids = request.POST.getlist(str(overall_exam_pk)+'_common_to[]')
     # if common_exams_ids:
@@ -424,7 +424,7 @@ def set_common_exam(request,exam_pk):
     # return redirect('../examInfo/' + str(exam.pk))
 @exam_permission_required(['manage'])
 @require_POST
-def validate_common_exams_settings(request,exam_pk):
+def validate_common_exams_settings(request,exam_pk: int):
     overall_exam = Exam.objects.get(pk=exam_pk)
     common_exams_ids = request.POST.getlist(str(exam_pk) + '_common_to[]')
     if common_exams_ids:
