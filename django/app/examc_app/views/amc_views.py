@@ -270,8 +270,6 @@ def amc_view(request, exam_pk: int, curr_tab: str | None = None, task_id: str | 
     else:
         context['user_allowed'] = False
 
-    logger.info(context['data_questions'])
-
     return render(request, 'amc/amc.html', context)
 
 
@@ -1020,6 +1018,7 @@ def get_amc_scan_url(request, exam_pk: int):
 
     roots = [Path(settings.MARKED_SCANS_ROOT), Path(settings.SCANS_ROOT), Path(project_path, 'scans', 'extra')]
     root = next((r.resolve() for r in roots if scan_path.is_relative_to(r.resolve())), None)
+
     if root is None or not scan_path.is_file():
         logger.warning('Scan not found: copy=%s page=%s path=%s', copy_nr, page_nr, scan_path)
         return HttpResponseNotFound('Scan file not found')
