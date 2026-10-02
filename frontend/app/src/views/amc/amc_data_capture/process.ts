@@ -7,9 +7,9 @@ import {getModal} from "@examc/helpers/modals.ts";
 const POLL_INTERVAL_MS = 2000;
 
 // The process modal is shared with the other AMC tabs, so its elements are looked up when used.
-const processModalEl = (): HTMLElement => byId('amc_process_modal');
-const titleEl = (): HTMLElement => byId('amc_process_modal_title');
-const outputEl = (): HTMLElement => byId('amc_process_modal_body');
+const processModalEl = (): HTMLElement => byId('amc-process-modal');
+const titleEl = (): HTMLElement => byId('amc-process-modal-title');
+const outputEl = (): HTMLElement => byId('amc-process-modal-body');
 
 // ---------------------------------------------------------------------------
 // Output
@@ -20,8 +20,7 @@ export function openProcess(titleText: string): void {
     titleEl().textContent = titleText;
     setOutput('');
 
-    const modal = getModal({ type: "local", element: processModalEl() });
-    modal.show();
+    getModal({ type: "local", element: processModalEl() }).show();
 }
 
 /** Replaces the whole output, keeping it scrolled to the bottom. */

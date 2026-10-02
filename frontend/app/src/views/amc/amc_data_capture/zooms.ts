@@ -3,7 +3,6 @@ import { parseJson, postText } from '@examc/helpers/http.ts';
 
 import type { PagePosition, Zoom } from './types.ts';
 import {getModal} from "@examc/helpers/modals.ts";
-import type { Modal } from 'bootstrap';
 
 interface ZoomsConfig {
     zoomsUrl: string;
@@ -25,8 +24,6 @@ let current: PagePosition | null = null;
 let changed = false;
 /** Incremented on every load, so responses for a page the user already left are ignored. */
 let loadToken = 0;
-
-let zoomDataCaptureDiagnosisDialogModal: Modal | null = null;
 
 /** Wires the zooms dialog. */
 export function initZooms(zoomsConfig: ZoomsConfig): void {
@@ -55,11 +52,8 @@ export async function openZooms(position: PagePosition): Promise<void> {
     if (!elements) return;
     current = position;
     elements.header.replaceChildren('Boxes zooms for', document.createElement('br'), `Copy ${position.copy} / Page ${position.page}`);
-    if (!zoomDataCaptureDiagnosisDialogModal) {
-        zoomDataCaptureDiagnosisDialogModal = getModal({ type: "local", element: elements.dialog });
-    }
     
-    zoomDataCaptureDiagnosisDialogModal.show();
+    getModal({ type: "local", element: elements.dialog }).show();
 
     await loadZooms();
 }

@@ -30,8 +30,7 @@ export function initAutomaticImport(config: AutomaticImportConfig): void {
 
     /** Closes the dialog and opens the process output. */
     function startProcess(): void {
-        const modal = getModal({ type: "local", element: dialog });
-        modal.hide();
+        getModal({ type: "local", element: dialog }).hide();
 
         openProcess(PROCESS_TITLE);
     }
@@ -41,8 +40,7 @@ export function initAutomaticImport(config: AutomaticImportConfig): void {
     // -----------------------------------------------------------------------
 
     byId('open-automatic-capture-btn').addEventListener('click', () => {
-        const modal = getModal({ type: "local", element: dialog });
-        modal.show();
+        getModal({ type: "local", element: dialog }).show();
     });
 
     // Show the chosen file name in the custom file input's label

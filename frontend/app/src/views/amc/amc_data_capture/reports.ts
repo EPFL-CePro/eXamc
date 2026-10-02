@@ -2,7 +2,7 @@ import { byId } from '@examc/helpers/dom.ts';
 import { parseJson, postForm, postText, toScanUrl } from '@examc/helpers/http.ts';
 
 import type { MissingPagesCopy, OverwrittenPage, UnrecognizedPage } from './types.ts';
-import {getModal} from "@examc/helpers/modals.ts";
+import { getModal } from "@examc/helpers/modals.ts";
 
 interface ReportsConfig {
     unrecognizedUrl: string;
@@ -18,6 +18,7 @@ const TITLES: Record<ReportKind, string> = {
     overwritten: 'Overwritten pages',
 };
 
+
 function isReportKind(value: string | undefined): value is ReportKind {
     return value !== undefined && value in TITLES;
 }
@@ -31,17 +32,24 @@ function formatTimestamp(seconds: number | null): string {
  * and the "Add unrecognized page to..." form.
  */
 export function initReports(config: ReportsConfig): void {
-    const dialog = byId('errorDataCaptureDialog');
-    const dialogTitle = byId('errorDataCaptureDialogTitle');
-    const head = byId<HTMLTableSectionElement>('errorDataCaptureDialogTHead');
-    const body = byId<HTMLTableSectionElement>('errorDataCaptureDialogTBody');
+    // modals elements and instanciation
+    const errorDataCaptureDialogEl = byId('error-data-capture-dialog');
+    const addUnrecognizedPageDialogEl = byId('add-unrecognized-page-dialog');
 
-    // const addDialog = byId('addUnrecognizedPageDialog');
-    const addForm = byId<HTMLFormElement>('addUnrecognizedPageFrm');
-    const addImageInput = byId<HTMLInputElement>('unrecognized_img_src');
+    const errorDataCaptureDialogModal = getModal({ type: "local", element: errorDataCaptureDialogEl });
+    const addUnrecognizedPageDialogModal = getModal({ type: "local", element: addUnrecognizedPageDialogEl });
+    
+    // rest of the dom elements
+    const dialogTitle = byId('error-data-capture-dialog-title');
+    const head = byId<HTMLTableSectionElement>('error-data-capture-dialog-thead');
+    const body = byId<HTMLTableSectionElement>('error-data-capture-dialog-tbody');
+
+    const addForm = byId<HTMLFormElement>('add-unrecognized-page-form');
+    const addImageInput = byId<HTMLInputElement>('unrecognized-img-src');
 
     /** Row of the unrecognized page being added, removed once the server accepted it. */
     let pendingRow: HTMLTableRowElement | null = null;
+    
     /** Incremented on every unrecognized-pages load, so a stale response is ignored. */
     let loadToken = 0;
 
@@ -105,6 +113,7 @@ export function initReports(config: ReportsConfig): void {
         if (token !== loadToken) return;
 
         const addButtons: HTMLButtonElement[] = [];
+
         const rows = fillTable(['File', 'Image', ''], pages.map((page) => {
             const scanUrl = toScanUrl(page.filepath);
 
@@ -127,28 +136,36 @@ export function initReports(config: ReportsConfig): void {
         // Rows only exist once the table is filled, so the buttons are wired afterwards.
         addButtons.forEach((button, i) => {
             const row = rows[i];
-            if (row) button.addEventListener('click', () => openAddDialog(button.dataset['scanUrl'] ?? '', row));
+            if (row) button.addEventListener('click', () => {
+                const scanUrl = button.dataset.scanUrl;
+                console.debug(`Add button clicked for scan URL: ${scanUrl}`);
+                if (!scanUrl) return;
+                openAddDialog(scanUrl, row);
+            });
         });
     }
 
     function showReport(kind: ReportKind): void {
         dialogTitle.textContent = TITLES[kind];
+
         if (kind === 'missing') showMissing();
         else if (kind === 'overwritten') showOverwritten();
         else void showUnrecognized();
-        const modal = getModal({ type: "local", element: dialog });
-        modal.show();
+
+        errorDataCaptureDialogModal.show();
     }
 
     // -----------------------------------------------------------------------
     // Add unrecognized page
     // -----------------------------------------------------------------------
-
     function openAddDialog(scanUrl: string, row: HTMLTableRowElement): void {
         addImageInput.value = scanUrl;
         pendingRow = row;
-        const modal = getModal({ type: "local", element: dialog });
-        modal.show();
+
+        errorDataCaptureDialogModal.hide();
+        addUnrecognizedPageDialogEl.addEventListener("hide.bs.modal", () => errorDataCaptureDialogModal.show());
+        
+        addUnrecognizedPageDialogModal.show(); 
     }
 
     addForm.addEventListener('submit', (event) => {
@@ -158,8 +175,7 @@ export function initReports(config: ReportsConfig): void {
                 pendingRow?.remove();
                 pendingRow = null;
 
-                const modal = getModal({ type: "local", element: dialog });
-                modal.hide();
+                errorDataCaptureDialogModal.hide();
 
                 void showUnrecognized(); // refresh: the page may now be recognized
             })
