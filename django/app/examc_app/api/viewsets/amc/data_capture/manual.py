@@ -1,4 +1,5 @@
 import logging
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -29,18 +30,29 @@ logger = logging.getLogger(__name__)
 QUESTION_STATES = {"invalid": "Invalid", "empty": "Empty"}
 
 
+def _num_key(value: Any) -> tuple[int, ...]:
+    """Sort key for AMC copy/page numbers: 3 / '3' -> (3,), '3.1' -> (3, 1).
+
+    A regular page sorts just before its extra pages; non-numeric parts sort last.
+    """
+    return tuple(int(part) if part.isdigit() else sys.maxsize for part in str(value).split("."))
+
+
+def _copy_page(r: dict[str, Any]) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    return _num_key(r["copy"]), _num_key(r["page"])
+
 def _problem_count(row: dict[str, Any]) -> int:
     return sum(row["state_counts"].values())
 
 
 # DataTables column data name -> sort key
 ORDERING_COLUMNS: dict[str, Callable[[dict[str, Any]], tuple[Any, ...]]] = {
-    "copy": lambda r: (r["copy"], r["page"]),
-    "page": lambda r: (r["page"], r["copy"]),
-    "states": lambda r: (len(r["states"]), "invalid" in r["states"], r["copy"], r["page"]),
+    "copy": _copy_page,
+    "page": lambda r: (_num_key(r["page"]), _num_key(r["copy"])),
+    "states": lambda r: (len(r["states"]), "invalid" in r["states"], *_copy_page(r)),
     "mse": lambda r: (r["mse"] or 0,),
     "sensitivity": lambda r: (r["sensitivity"] or 0,),  # None sensitivity sorts as 0
-    "timestamp_manual": lambda r: (1 if r["timestamp_manual"] else 0, r["copy"], r["page"]),
+    "timestamp_manual": lambda r: (1 if r["timestamp_manual"] else 0, *_copy_page(r)),
 }
 
 
