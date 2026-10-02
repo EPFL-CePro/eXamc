@@ -1,47 +1,37 @@
 import base64
 import csv
+import html
 import io
-import json
-import logging
 import os
 import re
 import shutil
 import subprocess
-import time
-import unicodedata
 import xml.etree.ElementTree as xmlET
 import zipfile
 from datetime import datetime
 from decimal import Decimal
-import html
-from pathlib import Path
+from glob import glob
 
 import chardet
 import img2pdf
 import pandas as pd
+import unicodedata
 import xmltodict
-
 from PIL import Image
-
-from pypdf import PdfReader, PdfWriter
-
 from django.conf import settings
 from django.contrib.admin.utils import unquote
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
 from django.db.models import Q, Sum
-from django.template.loader import get_template
 from django.utils.html import strip_tags
+from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.pdfgen import canvas
 from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-from glob import glob
 
-from examc_app.decorators import exam_permission_required
 from examc_app.models import (
     Student,
     Exam,
@@ -52,6 +42,7 @@ from examc_app.models import (
 )
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries import *
+from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.zip_security import safe_extract_zip
 
 # Get an instance of a logger
@@ -1410,8 +1401,7 @@ def find_student_for_association_value(exam: Exam, assoc_primary_key, associated
 
 def sync_student_amc_ids_from_association(exam: Exam):
     project_path = get_amc_project_path(exam, False)
-    if not project_path:
-        return 0
+    if not project_path: return 0
 
     amc_data_path = project_path + "/data/"
     assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
@@ -1447,6 +1437,7 @@ def sync_student_amc_ids_from_association(exam: Exam):
         updated_count,
         len(associations),
     )
+
     return updated_count
 
 
@@ -1773,37 +1764,27 @@ def get_amc_manual_association_data(exam: Exam):
 
     if project_path:
         amc_data_path = project_path + "/data/"
-        data_assoc = select_associations(amc_data_path, amc_assoc_img_path)
+        data_assoc = get_assoc_details_with_images(amc_data_path, amc_assoc_img_path)
 
         students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
         file = open(students_list, "r", encoding='utf-8')
-        students_data = list(csv.reader(file, delimiter=","))
+        data_students = list(csv.reader(file, delimiter=","))
+        data_students.pop(0) # remove header
 
         # signing images
         for assoc in data_assoc:
             img_rel_path = _assoc_image_relpath(assoc.get("image_path"))
             img_rel_path = _resolve_existing_assoc_relpath(img_rel_path)
-            signed_url = make_token_for(img_rel_path, str(settings.AMC_PROJECTS_ROOT))
-
-            if "?token=" in signed_url:
-                signed_url = f"{settings.SIGNED_FILES_URL}?token={signed_url.split('?token=', 1)[1]}"
+            signed_url = make_token_for(img_rel_path, str(settings.AMC_PROJECTS_ROOT), copy_page_in_url=False)
 
             assoc["image_path"] = signed_url
 
-        return {"data_assoc": json.dumps(data_assoc), "data_students": json.dumps(students_data)}
+        return {
+            "data_assoc": data_assoc,
+            "data_students": data_students
+        }
 
-    return ''
-
-
-def set_amc_manual_association(exam: Exam, copy_nr, student_id):
-    project_path = get_amc_project_path(exam, False)
-    result = ''
-    if project_path:
-        amc_data_path = project_path + "/data/"
-        result = update_association(amc_data_path, copy_nr, student_id)
-        sync_student_amc_ids_from_association(exam)
-
-    return result
+    return {}
 
 
 def get_amc_send_annotated_papers_data(exam: Exam):
