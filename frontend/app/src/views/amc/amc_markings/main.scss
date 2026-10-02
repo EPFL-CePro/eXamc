@@ -1,0 +1,57 @@
+#amc-marking {
+    .marking-panel {
+        padding: 20px;
+        width: 800px;
+    }
+
+    .marking-actions {
+        text-align: center;
+        padding: 10px;
+
+        #btn-mark {
+            margin-left: 10px;
+
+            .fa-calculator {
+                color: #fb2323;
+            }
+        }
+    }
+
+    .alert {
+        text-align: center;
+    }
+
+    .btn {
+        > i {
+            margin-right: 5px;
+        }
+
+        > img {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+        }
+
+        & + .btn {
+            margin-left: 10px;
+        }
+    }
+
+    .marking-done-btn i {
+        margin: 0 0 0 25px;
+    }
+
+    .assoc-code-row {
+        visibility: hidden;
+    }
+
+    #marking-details-dialog .modal-body {
+        overflow: auto;
+    }
+
+    #manual-association-table {
+        tr.missing-association {
+            background-color: #ff00009e;
+        }
+    }
+}
