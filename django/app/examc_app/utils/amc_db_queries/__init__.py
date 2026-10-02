@@ -393,7 +393,7 @@ def get_count_missing_associations(amc_data_path):
     return count
 
 
-def select_associations(amc_data_path, amc_assoc_img_path):
+def get_assoc_details_with_images(amc_data_path: str, amc_assoc_img_path: str) -> list:
     db = AmcDb(amc_data_path + "association.sqlite")
     db.cur.execute("ATTACH DATABASE '" + amc_data_path + "capture.sqlite' as capture")
     query_str = ("SELECT aa.*, '" + amc_assoc_img_path + "' || cz.image as image_path "
@@ -408,19 +408,6 @@ def select_associations(amc_data_path, amc_assoc_img_path):
     db.close()
 
     return assoc_details
-
-
-def update_association(amc_data_path, copy_nr, student_id):
-    db = AmcDb(amc_data_path + "association.sqlite")
-    query_str = ("UPDATE association_association "
-                 "SET manual = '" + student_id + "' "
-                                                 "WHERE student = " + copy_nr)
-
-    response = db.execute_query(query_str)
-
-    db.close()
-
-    return response
 
 
 def select_student_association_data(amc_data_path):
