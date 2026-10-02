@@ -166,6 +166,9 @@ importers:
 
   .:
     dependencies:
+      '@datatables/type-detector':
+        specifier: ^1.1.6
+        version: 1.1.6
       '@fortawesome/fontawesome-free':
         specifier: ^7.3.1
         version: 7.3.1
@@ -191,6 +194,9 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       datatables.net-dt:
+        specifier: ^3.1.1
+        version: 3.1.1
+      datatables.net-keytable-dt:
         specifier: ^3.1.1
         version: 3.1.1
       datatables.net-select-dt:
@@ -439,6 +445,9 @@ packages:
     engines: {node: '>=20.19.0'}
     peerDependencies:
       postcss-selector-parser: ^7.1.1
+
+  '@datatables/type-detector@1.1.6':
+    resolution: {integrity: sha512-pN69WtcKgSrUTmrLXebGc2ZlAs22arVgM2EVDsOgvGo78tKkhbKKBaUS6FpV7ebT81b2o86oY1ZonWJZXgPDjw==}
 
   '@eslint-community/eslint-utils@4.10.1':
     resolution: {integrity: sha512-cuadcxVFE8sDK6iWJbs8Sn0av2Nrh2QSGQhVlBW9AaAHqHwjWsZHT8LJ4hFGPh7ASBV2deFdM7H/DPjulmh8rg==}
@@ -1233,6 +1242,12 @@ packages:
   datatables.net-dt@3.1.1:
     resolution: {integrity: sha512-CeooC2ByHWu4fUpVxBvgimCseR1/1gr8IjO34BjYmZ4pUp6cNEkCzx49uzK0AnFqDR3v32Hue9BDAf9BnFMxxA==}
 
+  datatables.net-keytable-dt@3.1.1:
+    resolution: {integrity: sha512-yGQiSowvnf9sHPTr3JustaiD8evcgGNxzD2LfxxQD0GZCQNzsKJ+McbedgmkjckCngL9KldztQSo1mXzSs1lmw==}
+
+  datatables.net-keytable@3.1.1:
+    resolution: {integrity: sha512-kmvklrl226CS3+QJq/wmGJuN64Don8YiEIspjVqqcMy6iBcXkWJQFF7HE4RzNFBm/t8NGu738JUVXrBicYjbsA==}
+
   datatables.net-select-dt@4.1.0:
     resolution: {integrity: sha512-ZIVCrKg8QVGJkInyhQ9VVHY2mBulFan0kOf6ToKwSEcDNOChctJueITh7N/rMqLwTxF7iNZQwdcGW2hCXo7/Wg==}
 
@@ -1902,6 +1917,9 @@ packages:
   minipass@7.1.3:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
+
+  moment@2.31.0:
+    resolution: {integrity: sha512-0acOTfMiWOheYS4eoWb80yYMb/JLvVv9SHbs2PehaDzfUG0Bw855SKyk0IKTnPGa5+U2bmi3W68l1+sGLX/pvw==}
 
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
@@ -2855,6 +2873,10 @@ snapshots:
   '@csstools/selector-specificity@6.0.0(postcss-selector-parser@7.1.6)':
     dependencies:
       postcss-selector-parser: 7.1.6
+
+  '@datatables/type-detector@1.1.6':
+    dependencies:
+      moment: 2.31.0
 
   '@eslint-community/eslint-utils@4.10.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))':
     dependencies:
@@ -3876,6 +3898,15 @@ snapshots:
     dependencies:
       datatables.net: 3.1.1
 
+  datatables.net-keytable-dt@3.1.1:
+    dependencies:
+      datatables.net-dt: 3.1.1
+      datatables.net-keytable: 3.1.1
+
+  datatables.net-keytable@3.1.1:
+    dependencies:
+      datatables.net: 3.1.1
+
   datatables.net-select-dt@4.1.0:
     dependencies:
       datatables.net-dt: 3.1.1
@@ -4711,6 +4742,8 @@ snapshots:
       brace-expansion: 2.1.7
 
   minipass@7.1.3: {}
+
+  moment@2.31.0: {}
 
   ms@2.1.3: {}
 

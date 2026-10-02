@@ -28,6 +28,7 @@ export default defineConfig({
         "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
         "amc/amc_data_capture_manual": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture_manual/index.ts'),
         "amc/amc_data_capture": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture/index.ts'),
+        "amc/amc_markings": resolve(import.meta.dirname, 'src/views/amc/amc_markings/index.ts'),
         "csvgen/csvgen": resolve(import.meta.dirname, 'src/views/csvgen/csvgen/index.ts'),
         "impersonation/select_user": resolve(import.meta.dirname, 'src/views/impersonation/select_user/index.ts'),
         "res_and_stats/students_results": resolve(import.meta.dirname, 'src/views/res_and_stats/students_results/index.ts'),
