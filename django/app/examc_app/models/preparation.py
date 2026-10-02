@@ -66,6 +66,8 @@ class PrepStudent(models.Model):
     section = models.CharField(max_length=20,blank=True, null=True)
     room = models.CharField(max_length=500, blank=True,null=True)
     seat = models.CharField(max_length=500, blank=False,null=False)
+    # SCIPER not found in the EPFL directory at import: to be corrected by the user before the generation
+    needs_correction = models.BooleanField(default=False)
     history = HistoricalRecords()
 
     class Meta:

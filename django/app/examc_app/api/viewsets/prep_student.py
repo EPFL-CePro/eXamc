@@ -1,56 +1,44 @@
-from django.db.models import Q
-from rest_framework import viewsets
+from django.shortcuts import get_object_or_404
+from rest_framework import status, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from examc_app.api.datatables import DataTablesRequest
 from examc_app.api.decorators import exam_permission_required
-from examc_app.api.serializers.prep_student import PrepStudentRowSerializer
-from examc_app.models import PrepStudent
-
-# DataTables column index -> model field(s) for server-side ordering
-ORDER_COLUMN_MAP = {
-    0: ["copy_no"],
-    1: ["sciper"],
-    2: ["last_name", "first_name"],
-    3: ["first_name"],
-    4: ["email"],
-    5: ["section"],
-    6: ["room"],
-    7: ["seat"],
-}
+from examc_app.api.serializers.prep_student import PrepStudentRowSerializer, PrepStudentUpdateSerializer
+from examc_app.models import Exam, PrepStudent
+from examc_app.services.person_directory import PersonDirectoryError
+from examc_app.services.student.prep_import import StudentsFileError, correct_prep_student
 
 
 class PrepStudentViewSet(viewsets.ViewSet):
     """
-    GET /api/exams/<exam_pk>/prep-students/ -> DataTables server-side protocol
+    GET   /api/exams/<exam_pk>/prep-students/       -> {"data": [...]}, all the students of the exam.
+          An exam has at most ~550 students: DataTables searches and sorts them in the browser.
+    PATCH /api/exams/<exam_pk>/prep-students/<pk>/  -> the corrected student (see correct_prep_student)
     """
+    lookup_value_regex = r"\d+"
 
     @exam_permission_required(["manage"])
     def list(self, request: Request, exam_pk: str) -> Response:
-        dt = DataTablesRequest.from_query_params(request.query_params)
-        base_qs = PrepStudent.objects.filter(exam_id=exam_pk)
-        students = base_qs
+        students = PrepStudent.objects.filter(exam_id=exam_pk).order_by("copy_no")
+        return Response({"data": PrepStudentRowSerializer(students, many=True).data})
 
-        if dt.search:
-            query = (
-                Q(last_name__icontains=dt.search)
-                | Q(first_name__icontains=dt.search)
-                | Q(email__icontains=dt.search)
-                | Q(section__icontains=dt.search)
-                | Q(room__icontains=dt.search)
-                | Q(seat__icontains=dt.search)
-            )
-            # sciper and copy_no are integers: compared exactly
-            if dt.search.isdigit():
-                query |= Q(sciper=int(dt.search)) | Q(copy_no=int(dt.search))
-            students = students.filter(query)
+    @exam_permission_required(["manage"])
+    def partial_update(self, request: Request, exam_pk: str, pk: str) -> Response:
+        if get_object_or_404(Exam, pk=exam_pk).is_finalized:
+            raise PermissionDenied("This exam is finalized. Unlock editing before making changes.")
 
-        students = dt.order(students, ORDER_COLUMN_MAP)
-        serializer = PrepStudentRowSerializer(dt.page(students), many=True)
+        student = get_object_or_404(PrepStudent, pk=pk, exam_id=exam_pk)
+        serializer = PrepStudentUpdateSerializer(student, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
 
-        return Response(dt.response(
-            total=base_qs.count(),
-            filtered=students.count(),
-            data=serializer.data,
-        ))
+        try:
+            student = correct_prep_student(student, serializer.validated_data)
+        except StudentsFileError as error:
+            return Response({"errors": error.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except PersonDirectoryError:
+            return Response({"errors": ["The EPFL directory could not be reached: please try again later."]},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response(PrepStudentRowSerializer(student).data)

@@ -59,6 +59,7 @@ urlpatterns = [
     path("exam_preparation_students/<int:exam_pk>", views.exam_preparation_students_view, name="exam_preparation_students"),
     path("exam_preparation_students/<int:exam_pk>/import_students_xlsx", views.import_prep_students_xlsx, name="import_prep_students_xlsx"),
     path("exam_preparation_students/<int:exam_pk>/students_template", views.download_prep_students_template, name="download_prep_students_template"),
+    path("exam_preparation_students/<int:exam_pk>/import_students_api", views.import_prep_students_api, name="import_prep_students_api"),
 
 
     # REVIEW SETTINGS

@@ -211,3 +211,30 @@ def get_teachers_names_by_course(academic_year):
         )
         for code, teachers in grouped.items()
     }
+
+
+def get_course_students_scipers(academic_year, course_code) -> list[str]:
+    """SCIPERs of the students enrolled in a course (IS-Academia), deduplicated, in the OASIS order."""
+    _validate_year(academic_year)
+
+    if not isinstance(course_code, str) or not course_code.strip():
+        raise ValueError("Course code is mandatory.")
+
+    course_code = course_code.strip()
+
+    rows = _get_list(
+        "inscription-cours",
+        params={"annee-academique": academic_year, "code-cours": course_code},
+    )
+
+    scipers = {}
+    for row in rows:
+        if row.get("codeCours") != course_code or row.get("anneeAcademique") != academic_year:
+            raise OasisError("OASIS returned an enrolment that was not part of the course.")
+
+        sciper = str(row.get("sciper") or "").strip()
+        if not re.fullmatch(r"[0-9]{6}", sciper):
+            raise OasisError("OASIS returned an enrolment with an invalid SCIPER.")
+        scipers[sciper] = None
+
+    return list(scipers)

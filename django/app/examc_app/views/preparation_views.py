@@ -30,9 +30,10 @@ from examc_app.models import (
     PrepSection,
     Semester, ExamAMCJob
 )
-from examc_app.services.oasis import get_courses, get_teachers_names_by_course
+from examc_app.services.oasis import OasisError, get_courses, get_teachers_names_by_course
+from examc_app.services.person_directory import PersonDirectoryError
 from examc_app.services.student.prep_import import (
-    StudentsFileError, build_students_template, read_students_file, replace_prep_students,
+    StudentsFileError, build_students_template, load_students_file, load_students_from_oasis, replace_prep_students,
 )
 from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
 from examc_app.utils.global_functions import add_course_teachers_ldap
@@ -208,12 +209,44 @@ def import_prep_students_xlsx(request, exam_pk):
 
     # The file is only read: nothing is saved on disk
     try:
-        students = read_students_file(uploaded_file.name, uploaded_file.read())
+        students, warnings = load_students_file(uploaded_file.name, uploaded_file.read())
     except StudentsFileError as error:
         return JsonResponse({"errors": error.errors}, status=400)
+    except PersonDirectoryError:
+        logger.exception("EPFL directory unavailable during the students import of exam %s", exam.pk)
+        return JsonResponse({"errors": ["The EPFL directory could not be reached: please try again later."]},
+                            status=503)
 
-    result = replace_prep_students(exam, students)
-    return JsonResponse({"imported": result.imported, "replaced": result.replaced})
+    result = replace_prep_students(exam, students, warnings)
+    return JsonResponse({"imported": result.imported, "replaced": result.replaced, "warnings": list(result.warnings)})
+
+@exam_permission_required(["manage"])
+def import_prep_students_api(request, exam_pk):
+    """Replaces the exam students by those enrolled in the course in IS-Academia (see services.student.prep_import)."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    exam = get_object_or_404(Exam, pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
+    try:
+        students, warnings = load_students_from_oasis(exam)
+    except StudentsFileError as error:
+        return JsonResponse({"errors": error.errors}, status=400)
+    except OasisError:
+        logger.exception("OASIS unavailable during the students import of exam %s", exam.pk)
+        return JsonResponse({"errors": ["IS-Academia (OASIS) could not be reached: please try again later."]},
+                            status=503)
+    except PersonDirectoryError:
+        logger.exception("EPFL directory unavailable during the students import of exam %s", exam.pk)
+        return JsonResponse({"errors": ["The EPFL directory could not be reached: please try again later."]},
+                            status=503)
+
+    result = replace_prep_students(exam, students, warnings)
+    return JsonResponse({"imported": result.imported, "replaced": result.replaced, "warnings": list(result.warnings)})
 
 @exam_permission_required(["manage"])
 def unlock_exam_editing(request, exam_pk):
@@ -1152,6 +1185,11 @@ def save_latex_edited_packages(request,exam_pk):
 @exam_permission_required(["manage"])
 def generate_final_exam_files_start(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
+
+    to_correct = exam.prepStudents.filter(needs_correction=True).count()
+    if to_correct:
+        return JsonResponse({"error": f"{to_correct} student(s) of the Students page must be corrected first "
+                                      "(SCIPER not found in the EPFL directory)."}, status=400)
 
     active_jobs = ExamAMCJob.objects.filter(
         exam=exam,

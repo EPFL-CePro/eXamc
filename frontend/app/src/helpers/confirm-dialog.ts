@@ -1,10 +1,4 @@
-import type { Modal } from "bootstrap";
-
-// Bootstrap 5 of the page (legacy/bootstrap-cdn.html), not the npm package: importing it would load a second
-// Bootstrap in dev mode, whose data-api handlers toggle the dropdowns a second time (they never open)
-function getBootstrap(): { Modal: typeof Modal } {
-    return (window as unknown as { bootstrap: { Modal: typeof Modal } }).bootstrap;
-}
+import { getPageBootstrap } from "@examc/helpers/page-bootstrap";
 
 interface ConfirmDialogOptions {
     title: string;
@@ -68,7 +62,7 @@ export function confirmDialog({
     const stacked = document.querySelector(".modal.show") !== null;
 
     document.body.append(element);
-    const BootstrapModal = getBootstrap().Modal;
+    const BootstrapModal = getPageBootstrap().Modal;
     const modal = new BootstrapModal(element);
 
     if (stacked) {
