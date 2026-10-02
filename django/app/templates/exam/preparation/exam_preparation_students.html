@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load django_vite %}
+
+{% block title %}Exam students{% endblock %}
+
+{% block extra_head %}
+{#    {{ fp_txt_form.media }}#}
+    {% vite_asset 'src/views/exam/preparation/exam_preparation_students/index.ts' %}
+{% endblock %}
+
+{% block content %}
+
+<h4><i class="fas fa-edit"></i> Exam Students</h4>
+    <div id="prep-root" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        {% if is_exam_finalized %}
+            <div class="alert alert-warning mt-3">
+                This exam has been finalized. Editing is locked. Download the final files or unlock editing from preparation to modify the exam.
+            </div>
+        {% endif %}
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <button
+                type="button"
+                class="btn btn-outline-dark btn-sm import-students-from-xlsx"
+                id="importStudentsFromXlsx"
+                data-exam-pk="{{ exam_selected.pk }}"
+                data-import-url="{% url 'import_prep_students_xlsx' exam_pk=exam_selected.pk %}"
+                data-csrf-token="{{ csrf_token }}"
+                {% if is_exam_finalized %}disabled{% endif %}
+            >
+                <i class="fa-solid fa-file-import fa-xl" style="margin-right:5px;"></i>
+                Import from Excel
+            </button>
+            <input type="file" id="importStudentsFile"
+                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+            <a class="btn btn-outline-dark btn-sm"
+               href="{% url 'download_prep_students_template' exam_pk=exam_selected.pk %}">
+                <i class="fa-solid fa-file-arrow-down fa-xl" style="margin-right:5px;"></i>
+                Download template
+            </a>
+            <button
+                type="button"
+                class="btn btn-outline-dark btn-sm import-students-from-api"
+                id="importStudentsFromAPI"
+                data-exam-pk="{{ exam_selected.pk }}"
+                {% if is_exam_finalized %}disabled{% endif %}
+            >
+                <i class="fa-solid fa-cloud-arrow-down fa-xl" style="margin-right:5px;"></i>
+                Import from API
+            </button>
+        </div>
+
+        <p class="text-muted small mt-2 mb-0">
+            Excel file (.xlsx), one student per row, first row = column names.
+            <strong>Required:</strong> ID, SCIPER, LAST NAME, FIRST NAME, SEAT.
+            <strong>Optional:</strong> EMAIL, SECTION, ROOM.
+            Importing replaces all the students of the exam.
+        </p>
+
+        <div id="importStudentsResult" class="alert mt-3 mb-0" role="status" hidden></div>
+
+        <table id="prep-students-dt"
+               class="table table-striped table-sm mt-3"
+               data-api-url="{% url 'api-exam-prep-students-list' exam_pk=exam_selected.pk %}"
+        >
+            <thead>
+                <tr>
+                    <th>Copy N°</th>
+                    <th>Sciper</th>
+                    <th>Last name</th>
+                    <th>First name</th>
+                    <th>Email</th>
+                    <th>Section</th>
+                    <th>Room</th>
+                    <th>Seat</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+    <script>
+      window.EXAM_PREP_STUDENTS_CONFIG = {
+        csrfToken: "{{ csrf_token }}",
+        examPk: "{{ exam_selected.pk }}",
+        isFinalized: {{ is_exam_finalized|yesno:"true,false" }},
+        urls: {
+            celeryTaskStatusTemplate: "{% url 'celery_progress:task_status' 'TASK_ID_PLACEHOLDER' %}".replace("TASK_ID_PLACEHOLDER", "__TASK_ID__"),
+        }
+      };
+    </script>
+
+{% endblock %}

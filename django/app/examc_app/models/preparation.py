@@ -56,6 +56,23 @@ class PrepScoringFormula(models.Model):
     formula = models.CharField(max_length=500)
     history = HistoricalRecords()
 
+class PrepStudent(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='prepStudents')
+    copy_no = models.IntegerField(default=0,blank=False, null=False)
+    sciper = models.IntegerField(default=0,blank=False, null=False)
+    first_name = models.CharField(max_length=500, blank=False,null=False)
+    last_name = models.CharField(max_length=500, blank=False,null=False)
+    email = models.EmailField(max_length=500, blank=True,null=True)
+    section = models.CharField(max_length=20,blank=True, null=True)
+    room = models.CharField(max_length=500, blank=True,null=True)
+    seat = models.CharField(max_length=500, blank=False,null=False)
+    history = HistoricalRecords()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["exam", "sciper"], name="unique_prep_student_sciper"),
+        ]
+
 class ExamAMCJob(models.Model):
     JOB_TYPE_CHOICES = [
         ("preview", "Preview"),

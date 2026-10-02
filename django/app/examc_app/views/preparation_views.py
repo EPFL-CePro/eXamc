@@ -31,6 +31,9 @@ from examc_app.models import (
     Semester, ExamAMCJob
 )
 from examc_app.services.oasis import get_courses, get_teachers_names_by_course
+from examc_app.services.student.prep_import import (
+    StudentsFileError, build_students_template, read_students_file, replace_prep_students,
+)
 from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
 from examc_app.utils.global_functions import add_course_teachers_ldap
 from examc_app.utils.preparation_functions import build_sections_list_context, build_section_form, get_questions, \
@@ -122,7 +125,7 @@ def create_exam_project(request):
 
 
 # -------------------------
-# Main page
+# Exam preparation page
 # -------------------------
 
 @exam_permission_required(["manage"])
@@ -162,6 +165,55 @@ def exam_preparation_view(request, exam_pk):
             **build_sections_list_context(exam),
         },
     )
+
+@exam_permission_required(["manage"])
+def exam_preparation_students_view(request, exam_pk):
+    exam = get_object_or_404(Exam, pk=exam_pk)
+
+    return render(
+        request,
+        "exam/preparation/exam_preparation_students.html",
+        {
+            "exam_selected": exam,
+            "nav_url": "exam_preparation_students",
+            "is_exam_finalized": exam.is_finalized,
+        },
+    )
+
+@exam_permission_required(["manage"])
+def download_prep_students_template(request, exam_pk):
+    response = HttpResponse(
+        build_students_template(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="students_template.xlsx"'
+    return response
+
+
+@exam_permission_required(["manage"])
+def import_prep_students_xlsx(request, exam_pk):
+    """Replaces the exam students by those of an uploaded .xlsx file (see services.student.prep_import)."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    exam = get_object_or_404(Exam, pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
+    uploaded_file = request.FILES.get("students_file")
+    if not uploaded_file:
+        return JsonResponse({"errors": ["No file selected."]}, status=400)
+
+    # The file is only read: nothing is saved on disk
+    try:
+        students = read_students_file(uploaded_file.name, uploaded_file.read())
+    except StudentsFileError as error:
+        return JsonResponse({"errors": error.errors}, status=400)
+
+    result = replace_prep_students(exam, students)
+    return JsonResponse({"imported": result.imported, "replaced": result.replaced})
 
 @exam_permission_required(["manage"])
 def unlock_exam_editing(request, exam_pk):
