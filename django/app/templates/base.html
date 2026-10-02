@@ -440,22 +440,22 @@
             {% endblock %}
         </div>
 
-        <div class="modal fade" id="ajax_info_modal" tabindex="-1" role="dialog" aria-labelledby="ajaxInfoModal"
+        <div class="modal fade" id="ajax-info-modal" tabindex="-1" role="dialog" aria-labelledby="ajaxInfoModal"
              aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="ajax_info_modal_title">Process info</h5>
                         <button id="ajax_modal_close" type="button" class="close"
-                                onclick="$('#ajax_info_modal').modal('hide');" aria-label="Close">
+                                onclick="$('#ajax-info-modal').modal('hide');" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body" id="ajax_info_modal_msg">
+                    <div class="modal-body" id="ajax-info-modal-msg">
                     </div>
                     <div class="modal-footer">
                         <button id="ajax_modal_ok" type="button" class="btn btn-secondary"
-                                onclick="$('#ajax_info_modal').modal('hide');">OK
+                                onclick="$('#ajax-info-modal').modal('hide');">OK
                         </button>
                     </div>
                 </div>
@@ -473,7 +473,7 @@
         </div>
     </div>
 </div>
-<div class="modal" id="celeryProgressBarModal" tabindex="-1" role="dialog"
+<div class="modal fade" id="celeryProgressBarModal" tabindex="-1" role="dialog"
      style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content" style="border:none;">
@@ -495,21 +495,21 @@
     </div>
 </div>
 
-<div class="modal fade" id="amc_process_modal" tabindex="-1" role="dialog" aria-labelledby="amcProcessModal"
+<div class="modal fade" id="amc-process-modal" tabindex="-1" role="dialog" aria-labelledby="amcProcessModal"
      aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="amc_process_modal_title">Process info</h5>
-                <button type="button" class="close" onclick="$('#amc_process_modal').modal('hide');" aria-label="Close">
+                <h5 class="modal-title" id="amc-process-modal-title">Process info</h5>
+                <button type="button" class="close" onclick="$('#amc-process-modal').modal('hide');" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body" id="amc_process_modal_body"
+            <div class="modal-body text-monospace" id="amc-process-modal-body"
                  style="margin:10px;white-space: pre-line;height:500px;overflow-y: scroll;background-color: black;color:white;">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="$('#amc_process_modal').modal('hide');">Close
+                <button type="button" class="btn btn-secondary" onclick="$('#amc-process-modal').modal('hide');">Close
                 </button>
             </div>
         </div>

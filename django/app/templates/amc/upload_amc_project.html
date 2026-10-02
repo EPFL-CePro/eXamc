@@ -4,7 +4,6 @@
 {% block title %}Upload AMC project{% endblock %}
 
 {% block content %}
-<body>
 <div id="uploadAMCProjectDiv" style="padding:10px;width:100%;margin-top:100px;color:#000;">
     <h3>Upload AMC projects .zip file</h3>
 
@@ -24,6 +23,7 @@
     </form>
     <h6>{{ message }}</h6>
 </div>
+
 <script>
 $("#amc_project_zip_file").on("change", function () {
     var fileName = $(this).val().split("\\").pop();
@@ -35,13 +35,11 @@ let uploadAMCProjectFrm = document.getElementById('uploadAMCProjectForm');
 uploadAMCProjectFrm.addEventListener('submit', function(e) {
     e.preventDefault();
 
-    const loadingModal = $("#loading-modal");
+    const loadingModal = $("#loadingModal");
     loadingModal.modal('show');
     uploadAMCProjectFrm.submit();
     loadingModal.modal('hide');
 });
 </script>
-
-</body>
 {% endblock %}
 

@@ -1,5 +1,5 @@
-{% load static %}
 {% load custom_tags %}
+{% load static %}
 {% load django_vite %}
 
 {% block extra_head %}
@@ -85,7 +85,7 @@
 </div>
 
 {# ---------------------------------------------------------------- Automatic data capture #}
-<div class="modal" id="confirmAutomaticDataCaptureModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="confirmAutomaticDataCaptureModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -160,16 +160,16 @@
 </div>
 
 {# ---------------------------------------------------------------- Reports (missing / unrecognized / overwritten) #}
-<div class="modal" id="errorDataCaptureDialog" tabindex="-1" role="dialog">
+<div class="modal fade" id="error-data-capture-dialog" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title" id="errorDataCaptureDialogTitle"></h6>
+                <h6 class="modal-title" id="error-data-capture-dialog-title"></h6>
             </div>
             <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
                 <table class="table table-sm table-striped">
-                    <thead id="errorDataCaptureDialogTHead"></thead>
-                    <tbody id="errorDataCaptureDialogTBody"></tbody>
+                    <thead id="error-data-capture-dialog-thead"></thead>
+                    <tbody id="error-data-capture-dialog-tbody"></tbody>
                 </table>
             </div>
             <div class="modal-footer">
@@ -180,14 +180,14 @@
 </div>
 
 {# ---------------------------------------------------------------- Add unrecognized page #}
-<div class="modal" id="addUnrecognizedPageDialog" tabindex="-1" role="dialog">
+<div class="modal fade" id="add-unrecognized-page-dialog" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h6 class="modal-title">Add unrecognized page to...</h6>
             </div>
             <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
-                <form id="addUnrecognizedPageFrm" method="POST" action="{% url 'add_unrecognized_page' exam_selected.pk %}">
+                <form id="add-unrecognized-page-form" method="POST" action="{% url 'add_unrecognized_page' exam_selected.pk %}">
                     {% csrf_token %}
                     <div class="form-group">
                         <label for="inputGroupSelectCopy">Copy Nr.</label>
@@ -209,7 +209,7 @@
                         <label for="extra">add as extra page</label>
                         <input type="checkbox" id="extra" name="extra" checked disabled>
                     </div>
-                    <input type="hidden" id="unrecognized_img_src" name="unrecognized_img_src"/>
+                    <input type="hidden" id="unrecognized-img-src" name="unrecognized-img-src"/>
                     <input type="hidden" name="exam_pk" value="{{ exam_selected.pk }}"/>
                     <div class="form-group" style="text-align:right;">
                         <button class="btn btn-primary btn-sm" type="submit">Validate</button>
@@ -224,7 +224,7 @@
 </div>
 
 {# ---------------------------------------------------------------- Box zooms #}
-<div class="modal" id="zoom-data-capture-diagnosis-dialog" tabindex="-1" role="dialog">
+<div class="modal fade" id="zoom-data-capture-diagnosis-dialog" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">

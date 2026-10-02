@@ -8,10 +8,10 @@ from examc_app.utils.amc_functions import get_amc_project_path
 def get_scan_qrcode_data(file_path):
     # read qrcode
     image = cv2.imread(file_path)
-    decodeObjects = pyzbar.decode(image)
+    decode_objects = pyzbar.decode(image)
     data = None
-    if len(decodeObjects) > 0:
-        for obj in decodeObjects:
+    if len(decode_objects) > 0:
+        for obj in decode_objects:
             if str(obj.type) == 'QRCODE' and 'CePROExamsQRC' in str(obj.data):
                 data = obj.data.decode("utf-8").split(',')
     return data

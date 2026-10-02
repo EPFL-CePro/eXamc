@@ -15,8 +15,8 @@
                            aria-selected="false">Project</a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a class="flex-sm-fill text-sm-center nav-link" id="dataCapture-tab" data-toggle="pill"
-                           href="#pills-dataCapture" role="tab" aria-controls="pills-dataCapture" aria-selected="false">Data
+                        <a class="flex-sm-fill text-sm-center nav-link" id="data-capture-tab" data-toggle="pill"
+                           href="#pills-data-capture" role="tab" aria-controls="pills-data-capture" aria-selected="false">Data
                             capture</a>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -26,7 +26,7 @@
                     </li>
                     <li class="nav-item" role="presentation">
                         <a class="flex-sm-fill text-sm-center nav-link{% if not data_pages %} disabled{% endif %}"
-                           id="reports-tab" data-toggle="pill" href="#pills-reports" role="tab"
+                           id="results-tab" data-toggle="pill" href="#pills-reports" role="tab"
                            aria-controls="pills-reports" aria-selected="false">Results</a>
                     </li>
                     <li style="padding-left:200px;">
@@ -35,19 +35,19 @@
                         </button>
                     </li>
                 </ul>
-                <div class="tab-content" id="project-pills-tabContent">
+                <div class="tab-content" id="project-pills-tab-content">
                     <div class="tab-pane fade" id="pills-project" role="tabpanel" aria-labelledby="pills-project-tab">
                         {% include "./amc_preparation.html" %}
                     </div>
-                    <div class="tab-pane fade" id="pills-dataCapture" role="tabpanel"
-                         aria-labelledby="pills-dataCapture-tab">
+                    <div class="tab-pane fade" id="pills-data-capture" role="tabpanel"
+                         aria-labelledby="pills-data-capture-tab">
                         {% include "./amc_data_capture.html" %}
                     </div>
 
                     <div class="tab-pane fade" id="pills-marking" role="tabpanel" aria-labelledby="pills-marking-tab">
                         {% include "./amc_marking.html" %}
                     </div>
-                    <div class="tab-pane fade" id="pills-reports" role="tabpanel" aria-labelledby="pills-reports-tab">
+                    <div class="tab-pane fade" id="pills-reports" role="tabpanel" aria-labelledby="pills-results-tab">
                         {% include "./amc_results.html" %}
                     </div>
                 </div>
@@ -61,15 +61,15 @@
         </div>
 
 
-        <div id="view_log_file_modal" class="modal" tabindex="-1" role="dialog">
+        <div id="view_log_file_modal" class="modal fade" tabindex="-1" role="dialog">
             <div class="modal-dialog modal-xl" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">AMC log file</h5>
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                     </div>
-                    <div class="modal-body">
-                        <textarea class="form-control" id="amc_logfile_text" rows="50" readonly></textarea>
+                    <div class="modal-body text-monospace">
+                        <textarea class="form-control" id="amc-logfile-text" rows="50" readonly></textarea>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -103,7 +103,7 @@
                         'csrfmiddlewaretoken': "{{ csrf_token }}"
                     },
                     success: (data) => {
-                        document.getElementById('amc_logfile_text').value = data;
+                        document.getElementById('amc-logfile-text').value = data;
                         $('#view_log_file_modal').modal('show');
                     },
                     error: (error) => {

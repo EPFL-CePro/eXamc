@@ -216,13 +216,13 @@ function appendProcessOutput(text) {
     if (text === undefined || text === null) {
         return;
     }
-    var body = $('#amc_process_modal_body');
+    var body = $('#amc-process-modal-body');
     body.append(document.createTextNode(String(text)));
     body.scrollTop(body.prop("scrollHeight"));
 }
 
 function setProcessOutput(text) {
-    var body = $('#amc_process_modal_body');
+    var body = $('#amc-process-modal-body');
     body.text(text || '');
     body.scrollTop(body.prop("scrollHeight"));
 }
@@ -291,10 +291,10 @@ function pollAmcImportJob(statusUrl, doneCallback) {
 }
 
 function call_amc_automatic_datacapture_process(){
-    var amc_process_modal_title = document.getElementById('amc_process_modal_title');
-    amc_process_modal_title.innerHTML = "Automatic data capture processing";
+    var amc-process-modal-title = document.getElementById('amc-process-modal-title');
+    amc-process-modal-title.innerHTML = "Automatic data capture processing";
     setProcessOutput('');
-    $('#amc_process_modal').modal('show');    
+    $('#amc-process-modal').modal('show');    
     return $.ajax({
         url: "{% url 'import_scans_from_review' exam_selected.pk %}",
         type: "POST",
@@ -326,7 +326,7 @@ function call_amc_automatic_datacapture_process(){
 }
 
 function call_amc_mark_process(){
-    var dataCaptureResponseText = $('#amc_process_modal_body').text();
+    var dataCaptureResponseText = $('#amc-process-modal-body').text();
     var markPrefixText = dataCaptureResponseText + '\n\n** START MARKING ... **\n';
     setProcessOutput(markPrefixText);
     $.ajax({
