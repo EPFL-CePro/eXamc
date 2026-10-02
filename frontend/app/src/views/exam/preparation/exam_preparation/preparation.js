@@ -1,4 +1,5 @@
-import { initToastUiEditor } from '@examc/helpers/toastui';
+import { initMilkdownEditor, registerKatexMacros } from '@examc/helpers/milkdown';
+import { confirmDialog } from '@examc/helpers/confirm-dialog';
 
 (function () {
     "use strict";
@@ -647,9 +648,6 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
             if (instance.container && instance.container.parentNode) {
                 instance.container.remove();
             }
-            if (instance.hint) {
-                instance.hint.remove();
-            }
 
             textarea.style.display = "";
             markdownEditors.delete(textarea);
@@ -657,43 +655,30 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
         });
     }
 
-    // A text containing LaTeX must only be edited in markdown mode: the WYSIWYG mode rewrites
-    // the whole markdown (doubles the backslashes, may turn "_" into emphasis). The WYSIWYG mode
-    // escapes what it stores ("\$", "\\"), so only an unescaped "$" or "\command" means LaTeX.
-    const UNESCAPED_LATEX_RE = /(?:^|[^\\])(?:\\\\)*(?:\$|\\[A-Za-z])/;
-    const EDITOR_MODE_STORAGE_KEY = "examc.preparation.editorMode";
+    // Editor settings by field (name suffix: the formsets prefix the names). The long texts ask the
+    // user to choose the editor mode when empty, the short ones start in the visual editor.
+    const MARKDOWN_FIELD_SETTINGS = [
+        { suffix: "first_page_text", minHeight: "200px" },
+        { suffix: "question_text", minHeight: "160px" },
+        { suffix: "section_text", minHeight: "100px", emptyMode: "wysiwyg" },
+        { suffix: "answer_text", minHeight: "60px", emptyMode: "wysiwyg" },
+    ];
 
-    function containsLatex(markdown) {
-        return UNESCAPED_LATEX_RE.test(markdown || "");
+    function getMarkdownFieldSettings(textarea) {
+        const name = textarea.name || "";
+        return MARKDOWN_FIELD_SETTINGS.find((settings) => name.endsWith(settings.suffix)) || {};
     }
 
-    function getPreferredEditorMode() {
+    // Macros of the exam commands.tex, for the math preview (see get_exam_katex_macros)
+    function loadKatexMacros() {
+        const el = document.getElementById("prep-katex-macros");
+        if (!el) return;
+
         try {
-            return localStorage.getItem(EDITOR_MODE_STORAGE_KEY) === "markdown" ? "markdown" : "wysiwyg";
+            registerKatexMacros(JSON.parse(el.textContent || "{}"));
         } catch (e) {
-            return "wysiwyg";
+            console.error("Invalid KaTeX macros", e);
         }
-    }
-
-    function savePreferredEditorMode(mode) {
-        try {
-            localStorage.setItem(EDITOR_MODE_STORAGE_KEY, mode);
-        } catch (e) {
-            // storage unavailable: the default mode is used next time
-        }
-    }
-
-    function lockEditorToMarkdown(instance) {
-        if (instance.latexLocked) return;
-
-        instance.latexLocked = true;
-        instance.container.classList.add("md-latex-locked");
-
-        const hint = document.createElement("div");
-        hint.className = "md-latex-locked-hint text-muted";
-        hint.textContent = "Contains LaTeX: markdown editing only";
-        instance.container.parentNode.insertBefore(hint, instance.container.nextSibling);
-        instance.hint = hint;
     }
 
     function initMarkdownEditors(root = document) {
@@ -702,20 +687,23 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
                 return;
             }
 
+            const settings = getMarkdownFieldSettings(textarea);
             const container = document.createElement("div");
-            container.className = "toastui-editor-container mb-3";
+            container.className = "milkdown-editor-container mb-3";
+            if (settings.minHeight) {
+                container.style.setProperty("--prep-editor-min-height", settings.minHeight);
+            }
 
             textarea.parentNode.insertBefore(container, textarea.nextSibling);
             textarea.style.display = "none";
 
-            const initialValue = textarea.value || "";
-            const hasLatex = containsLatex(initialValue);
-
-            const editor = initToastUiEditor({
+            const editor = initMilkdownEditor({
                 target: container,
-                editorOptions: {
-                    initialValue: initialValue,
-                    initialEditType: hasLatex ? "markdown" : getPreferredEditorMode(),
+                initialValue: textarea.value || "",
+                readonly: isExamFinalized(),
+                emptyMode: settings.emptyMode,
+                onChange: (markdown) => {
+                    textarea.value = markdown;
                 },
             });
 
@@ -723,31 +711,10 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
                 id: `md-${++markdownEditorSeq}`,
                 editor: editor,
                 container: container,
-                latexLocked: false,
-                hint: null
             };
 
             markdownEditors.set(textarea, instance);
             textarea.dataset.markdownEditorId = instance.id;
-
-            if (hasLatex) {
-                lockEditorToMarkdown(instance);
-            }
-
-            editor.on("change", function () {
-                const markdown = editor.getMarkdown();
-                textarea.value = markdown;
-
-                if (editor.isMarkdownMode() && containsLatex(markdown)) {
-                    lockEditorToMarkdown(instance);
-                }
-            });
-
-            editor.on("changeMode", function (mode) {
-                if (!instance.latexLocked) {
-                    savePreferredEditorMode(mode);
-                }
-            });
         });
     }
 
@@ -1072,10 +1039,15 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
             });
         },
 
-        deleteSavedRow(deleteUrl) {
+        async deleteSavedRow(deleteUrl) {
             if (!deleteUrl) return;
 
-            const confirmed = window.confirm("Delete this scoring?");
+            const confirmed = await confirmDialog({
+                title: "Delete scoring formula",
+                message: "Delete this scoring formula? This cannot be undone.",
+                confirmLabel: "Yes, delete",
+                confirmClass: "btn-danger",
+            });
             if (!confirmed) return;
 
             ajaxPost(deleteUrl, {}, {
@@ -1363,8 +1335,8 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
             el.classList.add('is-finalized-readonly');
         });
 
-        // Toast UI wrappers
-        container.querySelectorAll('#prep-root .toastui-editor-container')
+        // Markdown editors (already created read-only, see initMarkdownEditors)
+        container.querySelectorAll('#prep-root .milkdown-editor-container')
             .forEach(function (editorEl) {
                 editorEl.classList.add('finalized-editor-readonly');
 
@@ -1493,6 +1465,7 @@ import { initToastUiEditor } from '@examc/helpers/toastui';
         initAnswerSortable();
         ScoringFormulasModal.bindEvents();
         initPreparationUI(document);
+        loadKatexMacros();
         initMarkdownEditors(document);
         applyFinalizedReadOnlyState(document);
 

@@ -183,27 +183,194 @@ textarea.markdown-editor {
     display: none!important;
 }
 
+/* Crepe is styled as a full page editor, fit it into a form field */
+.milkdown-editor-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.milkdown-editor-container .milkdown {
+    --crepe-base-font-size: 14px;
+    --crepe-font-default: inherit;
+    --crepe-font-title: inherit;
+    border-radius: inherit;
+}
+
+/* The left padding leaves room for the block handles (drag, "+") */
+.milkdown-editor-container .milkdown .ProseMirror {
+    min-height: var(--prep-editor-min-height, 200px);
+    padding: 12px 16px 12px 56px;
+}
+
+.milkdown-editor-container [hidden] {
+    display: none !important;
+}
+
+.milkdown-editor-container .milkdown-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 4px 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.milkdown-editor-container .milkdown-mode-status-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.milkdown-editor-container .milkdown-mode-status {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.milkdown-editor-container .milkdown-mode-help-button {
+    padding: 2px 6px;
+    line-height: 1;
+    color: #0d6efd;
+    background: none;
+    border: 0;
+}
+
+.milkdown-editor-container .milkdown-mode-help-button:hover {
+    color: #0a58ca;
+}
+
+/* Segmented Visual / Source toggle, styled here: Bootstrap 4 and 5 are both loaded on this page and their
+   button styles conflict (white text on white for a disabled outline button) */
+.milkdown-editor-container .milkdown-mode-buttons {
+    display: inline-flex;
+    border: 1px solid #adb5bd;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.milkdown-editor-container .milkdown-mode-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #495057;
+    background: #fff;
+    border: 0;
+}
+
+.milkdown-editor-container .milkdown-mode-button + .milkdown-mode-button {
+    border-left: 1px solid #adb5bd;
+}
+
+.milkdown-editor-container .milkdown-mode-button:hover:not(:disabled):not(.active) {
+    background: #e9ecef;
+}
+
+.milkdown-editor-container .milkdown-mode-button.active {
+    color: #fff;
+    background: #6c757d;
+}
+
+.milkdown-editor-container .milkdown-mode-button:disabled {
+    color: #adb5bd;
+    background: #f8f9fa;
+    cursor: not-allowed;
+}
+
+.milkdown-editor-container .milkdown-mode-lock-icon {
+    font-size: 0.7rem;
+}
+
+.milkdown-editor-container .milkdown-mode-help,
+.milkdown-editor-container .milkdown-mode-lock-note {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.milkdown-editor-container .milkdown-mode-help {
+    background: #f8f9fa;
+}
+
+.milkdown-editor-container .milkdown-mode-lock-note {
+    background: #fff8e1;
+}
+
+.milkdown-editor-container .milkdown-mode-lock-note .fa-lock {
+    margin-right: 6px;
+    color: #b58105;
+}
+
+.milkdown-editor-container .milkdown-mode-clear-button {
+    padding: 0 0 0 6px;
+    font-size: inherit;
+    color: #0d6efd;
+    background: none;
+    border: 0;
+    text-decoration: underline;
+}
+
+.milkdown-editor-container .milkdown-mode-clear-button:hover {
+    color: #0a58ca;
+}
+
+.milkdown-editor-container .milkdown-editor-loading {
+    padding: 12px 16px;
+    font-size: 0.85rem;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser {
+    padding: 12px;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-title {
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    text-align: left;
+    font-size: 0.85rem;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-card strong .fa-solid {
+    margin-right: 4px;
+    color: #0d6efd;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-card:hover,
+.milkdown-editor-container .milkdown-mode-chooser-card:focus-visible {
+    border-color: #0d6efd;
+    background: #f5f9ff;
+}
+
+.milkdown-editor-container .milkdown-source-host .cm-editor {
+    min-height: var(--prep-editor-min-height, 200px);
+    font-size: 13px;
+}
+
+.milkdown-editor-container .milkdown-source-host .cm-editor.cm-focused {
+    outline: none;
+}
+
 .finalized-editor-readonly .ProseMirror,
-.finalized-editor-readonly .toastui-editor-contents,
 .finalized-editor-surface {
     background-color: #f8f9fa;
     cursor: default;
-}
-
-.finalized-editor-readonly .toastui-editor-toolbar,
-.finalized-editor-readonly .toastui-editor-defaultUI-toolbar,
-.finalized-editor-readonly .toastui-editor-mode-switch {
-    display: none !important;
-}
-/* Texts containing LaTeX are edited in markdown mode only (see containsLatex in preparation.js) */
-.md-latex-locked .toastui-editor-mode-switch {
-    display: none !important;
-}
-
-.md-latex-locked-hint {
-    font-size: 0.8rem;
-    margin-top: -0.75rem;
-    margin-bottom: 0.75rem;
 }
 
 /* Save feedback toast (showSaveToast in preparation.js) */

@@ -482,3 +482,155 @@ def package_exists(package_name: str) -> bool:
 
     result = run_cmd(["kpsewhich", f"{package_name}.sty"])
     return result.returncode == 0 and bool(result.stdout.strip())
+
+# =============================
+# KaTeX macros for the editors preview
+# =============================
+
+_LATEX_COMMENT_RE = re.compile(r"(?<!\\)%.*$", re.MULTILINE)
+_MACRO_DEFINITION_RE = re.compile(r"\\(newcommand|renewcommand|providecommand|def|gdef|let)(?![A-Za-z@])\*?")
+_CONTROL_SEQUENCE_RE = re.compile(r"\\(?:[A-Za-z@]+|.)")
+_DEF_PARAMS_RE = re.compile(r"^(?:\s*#[1-9])*\s*$")
+# TeX spacing assignments that KaTeX does not know (\mathsurround0pt in \ffrac): useless for the preview
+_TEX_SPACING_ASSIGNMENT_RE = re.compile(
+    r"\\(?:mathsurround|nulldelimiterspace|scriptspace)\s*=?\s*-?[\d.]+\s*(?:pt|em|ex|mu|cm|mm|in|bp|sp)"
+)
+
+
+def _skip_spaces(text: str, i: int) -> int:
+    while i < len(text) and text[i].isspace():
+        i += 1
+    return i
+
+
+def _read_control_sequence(text: str, i: int) -> tuple[str | None, int]:
+    match = _CONTROL_SEQUENCE_RE.match(text, i)
+    return (match.group(0), match.end()) if match else (None, i)
+
+
+def _read_braced_group(text: str, i: int) -> tuple[str | None, int]:
+    """Reads the {...} group starting at text[i]: returns its content and the index after it."""
+    if i >= len(text) or text[i] != "{":
+        return None, i
+
+    depth = 0
+    j = i
+    while j < len(text):
+        c = text[j]
+        if c == "\\":
+            j += 2
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return text[i + 1:j], j + 1
+        j += 1
+    return None, i
+
+
+def _read_macro_definition(kind: str, text: str, i: int) -> tuple[str | None, str | None, int]:
+    """Reads the definition after \\newcommand, \\def or \\let: returns (name, body, end index)."""
+    i = _skip_spaces(text, i)
+
+    if kind == "let":
+        name, i = _read_control_sequence(text, i)
+        i = _skip_spaces(text, i)
+        if i < len(text) and text[i] == "=":
+            i = _skip_spaces(text, i + 1)
+        target, end = _read_control_sequence(text, i)
+        if target is None and i < len(text):
+            target, end = text[i], i + 1
+        return name, target, end
+
+    if kind in ("def", "gdef"):
+        name, i = _read_control_sequence(text, i)
+        brace = text.find("{", i)
+        # Delimited parameters (\def\x#1.{...}) are not supported by KaTeX
+        if name is None or brace < 0 or not _DEF_PARAMS_RE.match(text[i:brace]):
+            return None, None, i
+        body, end = _read_braced_group(text, brace)
+        return name, body, end
+
+    # \newcommand{\name}[n]{body} or \newcommand\name[n]{body}
+    if i < len(text) and text[i] == "{":
+        group, i = _read_braced_group(text, i)
+        name = group.strip() if group else None
+    else:
+        name, i = _read_control_sequence(text, i)
+    i = _skip_spaces(text, i)
+    if i < len(text) and text[i] == "[":
+        close = text.find("]", i)
+        if close < 0:
+            return None, None, i
+        i = _skip_spaces(text, close + 1)
+    # An optional argument with a default value is not supported by KaTeX
+    if i < len(text) and text[i] == "[":
+        return None, None, i
+    body, end = _read_braced_group(text, i)
+    return name, body, end
+
+
+def _drop_recursive_macros(macros: dict[str, str]) -> dict[str, str]:
+    """Drops the macros that expand into themselves, like \\let\\oldint=\\int then \\def\\int{\\oldint\\limits}:
+    KaTeX cannot expand them, the built-in command is used instead."""
+    references = {
+        name: {ref for ref in _CONTROL_SEQUENCE_RE.findall(body) if ref in macros}
+        for name, body in macros.items()
+    }
+
+    def is_recursive(start: str) -> bool:
+        seen = set()
+        stack = list(references[start])
+        while stack:
+            name = stack.pop()
+            if name == start:
+                return True
+            if name not in seen:
+                seen.add(name)
+                stack.extend(references[name])
+        return False
+
+    return {name: body for name, body in macros.items() if not is_recursive(name)}
+
+
+def extract_katex_macros(commands_tex: str) -> dict[str, str]:
+    """
+    Extracts from a commands.tex the macros KaTeX can use for the math preview of the editors:
+    \\newcommand, \\renewcommand, \\providecommand, \\def and \\let. Later definitions replace earlier ones,
+    like in LaTeX. Environments and macros with delimited or optional arguments are ignored.
+    """
+    text = _LATEX_COMMENT_RE.sub("", commands_tex or "")
+    macros: dict[str, str] = {}
+    end = 0
+
+    for match in _MACRO_DEFINITION_RE.finditer(text):
+        # Definitions nested in the body of another macro are not global
+        if match.start() < end:
+            continue
+
+        kind = match.group(1)
+        name, body, end = _read_macro_definition(kind, text, match.end())
+        if name is None or body is None:
+            end = match.end()
+            continue
+
+        if kind == "providecommand" and name in macros:
+            continue
+        # \let copies the current definition
+        macros[name] = macros.get(body, body) if kind == "let" else _TEX_SPACING_ASSIGNMENT_RE.sub("", body)
+
+    return _drop_recursive_macros(macros)
+
+
+def get_exam_katex_macros(exam: Exam) -> dict[str, str]:
+    """KaTeX macros of the exam commands.tex, or of the base one when the AMC project does not exist yet."""
+    commands_path = Path(get_amc_project_path(exam, True)) / "commands.tex"
+    if not commands_path.is_file():
+        commands_path = Path(settings.AMC_TEMPLATES_DIR) / "base" / "commands.tex"
+
+    try:
+        return extract_katex_macros(commands_path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return {}

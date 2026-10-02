@@ -102,6 +102,7 @@
         {% include "./_prep_modals.html" %}
     </div>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+    {{ katex_macros|json_script:"prep-katex-macros" }}
     <script>
       window.EXAM_PREP_CONFIG = {
         csrfToken: "{{ csrf_token }}",

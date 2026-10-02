@@ -40,7 +40,7 @@ from examc_app.utils.preparation_functions import build_sections_list_context, b
     delete_exam_preview_job_files, ensure_exam_not_finalized, update_open_answers
 from examc_app.utils.preparation_latex_functions import (
     render_first_page_tex_from_html,
-    update_exam_latex, list_available_latex_packages, extract_used_packages,
+    update_exam_latex, list_available_latex_packages, extract_used_packages, get_exam_katex_macros,
 )
 from examc_app.views import logger
 
@@ -158,6 +158,7 @@ def exam_preparation_view(request, exam_pk):
             "is_exam_finalized": exam.is_finalized,
             "final_subject_pdf": final_subject_pdf,
             "final_catalog_pdf": final_catalog_pdf,
+            "katex_macros": get_exam_katex_macros(exam),
             **build_sections_list_context(exam),
         },
     )
