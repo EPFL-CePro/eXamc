@@ -47,6 +47,7 @@ function processResult(_resultElement: HTMLElement | null, result: unknown): voi
         showDownloadLink(result);
     } else if (result === 'upload_scans_ok') {
         progressModal.hide();
+        
         if (window.onUploadScansComplete) {
             window.onUploadScansComplete();
         } else {
@@ -65,8 +66,6 @@ if (progressModalElement && progressUrl) {
     });
 }
 
-let ajaxInfoModalInitialized = false;
-
 export function setAjaxInfoModalLocked(locked: boolean): void {
     const okBtn = document.querySelector<HTMLButtonElement>('#ajax_modal_ok');
     const closeBtn = document.querySelector<HTMLButtonElement>('#ajax_modal_close');
@@ -76,21 +75,17 @@ export function setAjaxInfoModalLocked(locked: boolean): void {
     closeBtn.disabled = locked;
 
     // Visually disable the "X" (top-right)
-    const xBtn = document.querySelector<HTMLButtonElement>('#ajax_info_modal .close, #ajax_info_modal .btn-close');
+    const xBtn = document.querySelector<HTMLButtonElement>('#ajax-info-modal .close, #ajax-info-modal .btn-close');
     if (xBtn) {
         xBtn.style.pointerEvents = locked ? 'none' : 'auto';
         xBtn.style.opacity = locked ? '0.5' : '1';
     }
 
-    // Configure the modal once (prevents closing via backdrop/ESC)
-    if (!ajaxInfoModalInitialized) {
-        getModal({
-            type: 'local',
-            element: document.getElementById('ajax_info_modal'),
-            modalOptions: { backdrop: 'static', keyboard: false },
-        }).show();
-        ajaxInfoModalInitialized = true;
-    }
+    getModal({
+        type: 'local',
+        element: document.getElementById('ajax-info-modal'),
+        modalOptions: { backdrop: 'static', keyboard: false },
+    }).show();
 }
 
 // Hide submenus
