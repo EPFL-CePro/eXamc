@@ -1,7 +1,7 @@
 import {csrfToken} from "@examc/helpers/dom.ts";
 
 /** Form fields; an array value appends the key once per item (e.g. 'pages_list[]'). */
-export type FormFields = Record<string, string | readonly string[]>;
+export type FormFields = Record<string, boolean | number | string | readonly string[]>;
 
 /** A non-2xx response, keeping the body so callers can show the server's message. */
 export class HttpError extends Error {
@@ -24,8 +24,12 @@ export class HttpError extends Error {
  */
 export function toFormData(fields: FormFields = {}, base: FormData = new FormData()): FormData {
     for (const [key, value] of Object.entries(fields)) {
-        if (typeof value === 'string') base.append(key, value);
-        else for (const item of value) base.append(key, item);
+        if (typeof value === "string") base.append(key, value);
+        if (typeof value === "boolean") base.append(key, value ? "true" : "false");
+        if (typeof value === "number") base.append(key, String(value));
+
+        // is it an iterator check
+        if (value != null && typeof value === "object" && Symbol.iterator in value) for (const item of value) base.append(key, item);
     }
     if (!base.has('csrfmiddlewaretoken')) base.append('csrfmiddlewaretoken', csrfToken());
     return base;
