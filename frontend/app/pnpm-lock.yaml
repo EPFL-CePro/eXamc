@@ -7,153 +7,153 @@ importers:
     configDependencies: {}
     packageManagerDependencies:
       pnpm:
-        specifier: 12.8.1
-        version: 12.8.1
+        specifier: 12.9.1
+        version: 12.9.1
 
 packages:
 
-  '@pnpm/exe.android-arm64@12.8.1':
-    resolution: {integrity: sha512-siDxcidfz5eM6L2tJfik+i2bbUEw8UC7MZ3Yl2HYdRmqbdhHGAOQACtOOu6QVW4Jul4/w5wVKm+wM8ACtgh1Pg==}
+  '@pnpm/exe.android-arm64@12.9.1':
+    resolution: {integrity: sha512-Hgm1XdqMTfBC8PdGLL+NjZWv4xyi7D6XNrN9fb24XGYlyTBmUtdCefKnCLmHujShRD8BEO1zqM30SNcKBDLysw==}
     cpu: [arm64]
     os: [android]
 
-  '@pnpm/exe.android-x64@12.8.1':
-    resolution: {integrity: sha512-0F/uqPRc3aN4vLHsa0f+6fTtmsigFQ9/yxEU43fionF//pNHEd5e97b3w/nKIgqYMCUQCJphmBRMA9Q8/wlo9Q==}
+  '@pnpm/exe.android-x64@12.9.1':
+    resolution: {integrity: sha512-WDGCe6jZRVZP3RC/q6hOkZylkPkIQIi1/GcrR/d/YzbihhAHXCczrk+UYnV5TgbsEnAYO7Cx+2rX3nfhHvy24w==}
     cpu: [x64]
     os: [android]
 
-  '@pnpm/exe.darwin-arm64@12.8.1':
-    resolution: {integrity: sha512-/rwavvMQJsl2RIxOHBnDF+4Gk+fhQFAY4M3PQZoKskJOEnaJcygG9p1xby6wcQcbS4d9dIubv09CQhufTgfmpw==}
+  '@pnpm/exe.darwin-arm64@12.9.1':
+    resolution: {integrity: sha512-+7iiEEBgYN9szPWUnAuN6eOVMTI6Hrki5bcuC9n9xl9tTnT53Tpxpo45Hml+W4IrAU0d+Tmd0sPnVIbX59PD6w==}
     cpu: [arm64]
     os: [darwin]
 
-  '@pnpm/exe.darwin-x64@12.8.1':
-    resolution: {integrity: sha512-htYt2gN7zqJKLhC99Ft6EUiO7myjZAZXfmGCTJUL1v+o7vE9hZdE1+fAkk4Oj1ZHNRti6b2woOxEkRkAusi8OQ==}
+  '@pnpm/exe.darwin-x64@12.9.1':
+    resolution: {integrity: sha512-SK7TxJiR12GbJZGffRFHItkc+Mx+99v6xMMJ9/X//8NwWV1wo17a2bwfGI8qZpl17YwsrmPEFOOqhzE1GIlrtQ==}
     cpu: [x64]
     os: [darwin]
 
-  '@pnpm/exe.freebsd-x64@12.8.1':
-    resolution: {integrity: sha512-PB5BULNgytxvExoOXUUeseS/DcpPENs+cg3iA6xHHeaLT4ctEGKSGXEbuj7USeqvo8JBpAx039hivnbzGqDwnA==}
+  '@pnpm/exe.freebsd-x64@12.9.1':
+    resolution: {integrity: sha512-4AjLk6uvTs2iO6wMit2hcxJ2M32xb7OV5SNFk+w6G8/NzcjcMB7ENEpyeXyLiP0kcnp8uaCGUct2NfrLCJ35eQ==}
     cpu: [x64]
     os: [freebsd]
 
-  '@pnpm/exe.linux-arm64-musl@12.8.1':
-    resolution: {integrity: sha512-kKeyC/ArjrgdciQRBrOL0j9HtOI4gDRgoyP+eJ1CQKyadpKlf/DhDDyspXe07R3B9KagTVLUF2nlt6Dr5quFIg==}
+  '@pnpm/exe.linux-arm64-musl@12.9.1':
+    resolution: {integrity: sha512-dZL2ES1ckDWM9v+EtxoOklZ0WNdtayooi9iLiDUubopudX3zXPNR2mlrxBRgjbDgECOndQen2SmyxL5eZiBuKw==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@pnpm/exe.linux-arm64@12.8.1':
-    resolution: {integrity: sha512-q4s9a9X2O3N9aeUFooW24orNrxvu20+jyVUFR5RanPCqOKKPBrgs2iywMkBBx1aXkkzdWT54/mfz8Be8sJlWEw==}
+  '@pnpm/exe.linux-arm64@12.9.1':
+    resolution: {integrity: sha512-cx+uF6xqwEtm7B8NV+1ve0xBg9gcuzQZ5R+0WgOWvKG/h978UljS6BgWs1ipIGuGgUdeVhm3PKmBltXIcczLXA==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.linux-ppc64@12.8.1':
-    resolution: {integrity: sha512-F7XSjKJthwCh/L6abZiMpAfo2Cm61SZIT3e4dfgiIjESndlWaXCnfLKngSgZ/SEMsdmHT6dud3+kWIB3tw0/xQ==}
+  '@pnpm/exe.linux-ppc64@12.9.1':
+    resolution: {integrity: sha512-MpjPsy4XR17zAtLziQZfsN+wveWa/bUJggZtwfo3+SuyRmXnSvVkFD4+v8/3RTWyYaM6mwLUTjZDJ+g3urL+ew==}
     cpu: [ppc64]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.linux-riscv64@12.8.1':
-    resolution: {integrity: sha512-z1ecpIK/ZY08Unk69KWWE9867oaKUytGUjrHnBoGFAAhsK+q+0cfvBH+f5fWobJ7FX97leMlLO+gkJolddM45Q==}
+  '@pnpm/exe.linux-riscv64@12.9.1':
+    resolution: {integrity: sha512-Oo67TKqqH+Bno+L6X7Xyorwp1QG82zKIkL0vbo1x2kcPTDiyPbdM+d6lIs4+hzeB1KHT5FDoGzZj2dad7Ft+eg==}
     cpu: [riscv64]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.linux-s390x@12.8.1':
-    resolution: {integrity: sha512-KU6tnrBfu4uKXTq6N5qJwSm8FSrs9Wc8b5AUEsHK9bRXwNdsZ1/lRxG1++X29SKRW9OSNuDSjxASv5mAvGo1gA==}
+  '@pnpm/exe.linux-s390x@12.9.1':
+    resolution: {integrity: sha512-QAD5FRCdW36HfD58BV7DoDm6z8yv+GgSqcUV1+ERwYjpVQuG6ZTpf5o0x3KDas8eTLIW7MLYVdDdlAurWeArEg==}
     cpu: [s390x]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.linux-x64-musl@12.8.1':
-    resolution: {integrity: sha512-eUE8BWJkDr2tJb/yrk0yVnszlmNqFarVxUlqiZ9BAkct28Nq/5g2H0tvMDmPA7fAQW3STNj+omJPPRVT+4s5sQ==}
+  '@pnpm/exe.linux-x64-musl@12.9.1':
+    resolution: {integrity: sha512-mQDhBsGqcTkrLQM4q5igmRFcr6EAl4UM/FGawY+0CWGcqPpUmYUvDy9LHy80xxkHIWVJ886gvvso2XOjfav1Jw==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@pnpm/exe.linux-x64@12.8.1':
-    resolution: {integrity: sha512-8bDZ0lZlCdi2rvnFul7EYgcC7zKeWSe76y8JV2oXobaS8p9i9d6PSf6LgLtTM0fI7R9Oh4eLCbveXyNDMmvZ+g==}
+  '@pnpm/exe.linux-x64@12.9.1':
+    resolution: {integrity: sha512-+M5N74hM4fc87AAckxx/UIW+dUnWf2eko+HchJs/NZUxehLhekNyMI/GNaNXlvd+kWR+97XXBD51XRkkNiUtrA==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.win32-arm64@12.8.1':
-    resolution: {integrity: sha512-MsT0dlrRxnCRCHCaosNbhWpEiAFnFuMEu3KuDJDU41BXgTwiINxU8goloUSUDejWZUqKaUqNC/qUTihl9nFtqg==}
+  '@pnpm/exe.win32-arm64@12.9.1':
+    resolution: {integrity: sha512-mI28C2wxobrDi6x1OYhBRyG10hnDq/4sEIyy5RzoX6LB4kLuv6K/d25HOpMwlW20cuM4M72k9NZpOdcmUxMbEA==}
     cpu: [arm64]
     os: [win32]
 
-  '@pnpm/exe.win32-x64@12.8.1':
-    resolution: {integrity: sha512-SWtPe0PsbTTk//gJND10tMdOfCYjrkq5+qV49hzVhY7xz2iJ339Rc+xwASlcvbwTfrvH39YNqpKYibD+CRGLwA==}
+  '@pnpm/exe.win32-x64@12.9.1':
+    resolution: {integrity: sha512-SWoDMT0oD7NrDSIoPpkKD09D9fAQKNjwFZ3lezlCUhAfXxMv70zsfrNT2/P+GoCK2kefXF9OysUZkH1l5vvvfA==}
     cpu: [x64]
     os: [win32]
 
-  pnpm@12.8.1:
-    resolution: {integrity: sha512-9kupB1B/XOr+BsjTjmBS0BeURFgOwSed3Vv8EctIqoomRLZlmOB+dh2oSHKp/FfV+QK4f6SdAkGY1VhhKqu+RQ==}
+  pnpm@12.9.1:
+    resolution: {integrity: sha512-BrBV//XNINwSeB3hc87TMQzglRvy7GICEaFgRdVETVyTpmMhB2TvKaZTphBFm6A2jw50+E2AxUcjz5Wq57wNbQ==}
     engines: {node: '>=18.*'}
     hasBin: true
 
 snapshots:
 
-  '@pnpm/exe.android-arm64@12.8.1':
+  '@pnpm/exe.android-arm64@12.9.1':
     optional: true
 
-  '@pnpm/exe.android-x64@12.8.1':
+  '@pnpm/exe.android-x64@12.9.1':
     optional: true
 
-  '@pnpm/exe.darwin-arm64@12.8.1':
+  '@pnpm/exe.darwin-arm64@12.9.1':
     optional: true
 
-  '@pnpm/exe.darwin-x64@12.8.1':
+  '@pnpm/exe.darwin-x64@12.9.1':
     optional: true
 
-  '@pnpm/exe.freebsd-x64@12.8.1':
+  '@pnpm/exe.freebsd-x64@12.9.1':
     optional: true
 
-  '@pnpm/exe.linux-arm64-musl@12.8.1':
+  '@pnpm/exe.linux-arm64-musl@12.9.1':
     optional: true
 
-  '@pnpm/exe.linux-arm64@12.8.1':
+  '@pnpm/exe.linux-arm64@12.9.1':
     optional: true
 
-  '@pnpm/exe.linux-ppc64@12.8.1':
+  '@pnpm/exe.linux-ppc64@12.9.1':
     optional: true
 
-  '@pnpm/exe.linux-riscv64@12.8.1':
+  '@pnpm/exe.linux-riscv64@12.9.1':
     optional: true
 
-  '@pnpm/exe.linux-s390x@12.8.1':
+  '@pnpm/exe.linux-s390x@12.9.1':
     optional: true
 
-  '@pnpm/exe.linux-x64-musl@12.8.1':
+  '@pnpm/exe.linux-x64-musl@12.9.1':
     optional: true
 
-  '@pnpm/exe.linux-x64@12.8.1':
+  '@pnpm/exe.linux-x64@12.9.1':
     optional: true
 
-  '@pnpm/exe.win32-arm64@12.8.1':
+  '@pnpm/exe.win32-arm64@12.9.1':
     optional: true
 
-  '@pnpm/exe.win32-x64@12.8.1':
+  '@pnpm/exe.win32-x64@12.9.1':
     optional: true
 
-  pnpm@12.8.1:
+  pnpm@12.9.1:
     optionalDependencies:
-      '@pnpm/exe.android-arm64': 12.8.1
-      '@pnpm/exe.android-x64': 12.8.1
-      '@pnpm/exe.darwin-arm64': 12.8.1
-      '@pnpm/exe.darwin-x64': 12.8.1
-      '@pnpm/exe.freebsd-x64': 12.8.1
-      '@pnpm/exe.linux-arm64': 12.8.1
-      '@pnpm/exe.linux-arm64-musl': 12.8.1
-      '@pnpm/exe.linux-ppc64': 12.8.1
-      '@pnpm/exe.linux-riscv64': 12.8.1
-      '@pnpm/exe.linux-s390x': 12.8.1
-      '@pnpm/exe.linux-x64': 12.8.1
-      '@pnpm/exe.linux-x64-musl': 12.8.1
-      '@pnpm/exe.win32-arm64': 12.8.1
-      '@pnpm/exe.win32-x64': 12.8.1
+      '@pnpm/exe.android-arm64': 12.9.1
+      '@pnpm/exe.android-x64': 12.9.1
+      '@pnpm/exe.darwin-arm64': 12.9.1
+      '@pnpm/exe.darwin-x64': 12.9.1
+      '@pnpm/exe.freebsd-x64': 12.9.1
+      '@pnpm/exe.linux-arm64': 12.9.1
+      '@pnpm/exe.linux-arm64-musl': 12.9.1
+      '@pnpm/exe.linux-ppc64': 12.9.1
+      '@pnpm/exe.linux-riscv64': 12.9.1
+      '@pnpm/exe.linux-s390x': 12.9.1
+      '@pnpm/exe.linux-x64': 12.9.1
+      '@pnpm/exe.linux-x64-musl': 12.9.1
+      '@pnpm/exe.win32-arm64': 12.9.1
+      '@pnpm/exe.win32-x64': 12.9.1
 
 ---
 lockfileVersion: '9.0'
@@ -166,6 +166,15 @@ importers:
 
   .:
     dependencies:
+      '@codemirror/lang-markdown':
+        specifier: ^6.5.2
+        version: 6.5.2
+      '@codemirror/state':
+        specifier: ^6.7.6
+        version: 6.7.6
+      '@codemirror/view':
+        specifier: ^6.43.13
+        version: 6.43.13
       '@datatables/type-detector':
         specifier: ^1.1.6
         version: 1.1.6
@@ -176,31 +185,34 @@ importers:
         specifier: ^3.10.0
         version: 3.10.0
       '@milkdown/crepe':
-        specifier: ^7.22.1
-        version: 7.22.1(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-view@1.42.5)(supports-color@10.2.2)(typescript@6.0.3)
+        specifier: ^7.22.2
+        version: 7.22.2(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-view@1.42.5)(supports-color@10.2.2)(typescript@6.0.3)
       '@milkdown/kit':
-        specifier: ^7.22.1
-        version: 7.22.1(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)
+        specifier: 7.22.2
+        version: 7.22.2(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)
       bootstrap:
         specifier: ^5.3.8
         version: 5.3.8(@popperjs/core@2.11.8)
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1
+      codemirror:
+        specifier: ^6.0.2
+        version: 6.0.2
       datatables.net-buttons-dt:
-        specifier: ^4.1.1
+        specifier: ^4.0.3
         version: 4.1.1
       datatables.net-columncontrol-dt:
         specifier: ^2.1.1
         version: 2.1.1
       datatables.net-dt:
-        specifier: ^3.1.1
+        specifier: ^3.0.4
         version: 3.1.1
       datatables.net-keytable-dt:
         specifier: ^3.1.1
         version: 3.1.1
       datatables.net-select-dt:
-        specifier: ^4.1.0
+        specifier: ^4.0.1
         version: 4.1.0
       html2canvas:
         specifier: ^1.4.1
@@ -211,6 +223,9 @@ importers:
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1
+      katex:
+        specifier: ^0.18.7
+        version: 0.18.7
       latex.js:
         specifier: ^0.12.6
         version: 0.12.6
@@ -605,78 +620,78 @@ packages:
   '@markerjs/markerjs3@3.10.0':
     resolution: {integrity: sha512-SvrnRjK5mvOZ+PowsGKf8D4qRjbXkR9NSI+QPt2qRu8YczQt/sWWxSKI40WW7X4lKMAzRXddsuGh9PdF0XTnzA==}
 
-  '@milkdown/components@7.22.1':
-    resolution: {integrity: sha512-6IA8fcFcBTm/x1X1typz73yUoT1JuN4srmifGAIeWEtCnayEwRjFxpQOoQrfvMgBYx4DSHcPVLhJUlR/xbBtxg==}
+  '@milkdown/components@7.22.2':
+    resolution: {integrity: sha512-qlXh+KvMeELXdy2h0ndIVKffbuAr2mkuVYbEDuyTBffRC00SfRKOVf+ObZBKpvAoQKo18iDS4tCHFMmkzr29EA==}
     peerDependencies:
       '@codemirror/language': ^6
       '@codemirror/state': ^6
       '@codemirror/view': ^6
 
-  '@milkdown/core@7.22.1':
-    resolution: {integrity: sha512-X4O3al2aYugpFP/Do7VoPgvVEftjJVi+6UhZmz9fSdqMtpU70AitJ8R/erUA18hay2hWvNO9m3pxIJoR6no6KQ==}
+  '@milkdown/core@7.22.2':
+    resolution: {integrity: sha512-grJ0enYKFwfV9Ur2GLiDtzOi7kzSqhCueBudqgfmmlx3HVGXwg78/CXsYDhn8cNFqpPSA0TMhdxIpBFKxXOMKA==}
 
-  '@milkdown/crepe@7.22.1':
-    resolution: {integrity: sha512-0BZTGBRV8lnlKsA3vmPK5Qyomjqd952493AIzfnbhiYwzHpluX03iMtOgHC6E2UcpMXP86P5CXhPUWjzDu+JZQ==}
+  '@milkdown/crepe@7.22.2':
+    resolution: {integrity: sha512-izn9AcNXk3ooJrc6tA0qTnUfmvuFdhGZxAamxifz4wuj5DAKwtwj5m0c3HSqQNHXZOgzC0DW7+hdd08Z2VJPCw==}
 
-  '@milkdown/ctx@7.22.1':
-    resolution: {integrity: sha512-6+LJdo3DcrkO1lzGcje0yWqaG6ZKgTR8kDxyDrrm7iocBjq3M+bkw04f99ZG/BLp1Rbc4yRyin2mUy6m4SEVaA==}
+  '@milkdown/ctx@7.22.2':
+    resolution: {integrity: sha512-w2kkMfBIxTpXtnjqltxIiMhflfZzyPN+q31ZwLtwUZjgTpiPCHS/ROUOH1U891mKNUKcD10lOFfOQSS959yIqg==}
 
-  '@milkdown/exception@7.22.1':
-    resolution: {integrity: sha512-wXUfn+fpWy0jeJ6AVEjKPieouLfJIDLQ4IRqyEL3d5yZDiZTtKu1Va0+RprrvqANpGJ1YBRQ1uCgDE6sJgTEjQ==}
+  '@milkdown/exception@7.22.2':
+    resolution: {integrity: sha512-uS4Gx6xE/iTSKslverVWIWQ8RN5B+NXxP8BLSATnlwDKiYlgBYZYLbvSx632VM9j5Qsd5YuKRGt9k3dXe54EWw==}
 
-  '@milkdown/kit@7.22.1':
-    resolution: {integrity: sha512-gXLMhjqe0j8XRSUe97LBXbpZ0sDi5EM6nnt1zXewUaGDS3mleMjNntSCWrp9ln40kz8tGs0ol50kSAr1n/JBnQ==}
+  '@milkdown/kit@7.22.2':
+    resolution: {integrity: sha512-omjaInj/xiuVnSchr9vm7Kv+ORgFtmdmk0xUbeCEj7ptpCl0aS71vTFjuuc/FKSpTxcJ2ptHa52mrR6MvK8Bhw==}
 
-  '@milkdown/plugin-block@7.22.1':
-    resolution: {integrity: sha512-R0gOuKRqR1DyFULD75Oic0+57DXTthagUZbbB9lsHM59aQmxKJ1nRmujptPeMfDlDfEod2ao5rsow7LO8p+ZWQ==}
+  '@milkdown/plugin-block@7.22.2':
+    resolution: {integrity: sha512-9rwkvGsM+zP+rlxIVjZVQX86nUe7/vBc38HwcYTqEEaXAuVcw1BJ8dcpvvlbsywlZqKlazyFJ32uf+X2+tFfnw==}
 
-  '@milkdown/plugin-clipboard@7.22.1':
-    resolution: {integrity: sha512-H1meyLEj2fOnFWSopeQ2H7hl6VXM+OQZoU9H7GrlHFM5GKtBFBErFFV4Cl5tUSVFY+xYy/4rEPOA23Ba1u6OfA==}
+  '@milkdown/plugin-clipboard@7.22.2':
+    resolution: {integrity: sha512-6Zr5r7hURwZKvKi7ox+7lrET7ktRgxcBSvrB/XwmfxN69F8M+vILJFlW+ZZ2ezm3x81pu3kpAsvxZJN7d7ol2g==}
 
-  '@milkdown/plugin-cursor@7.22.1':
-    resolution: {integrity: sha512-3tJzpQl5cyn+8vzsHkPBYsW6QacEN7yP2O5GkyUjrNLvMIQ5vVi7GUuztLeoouJKlOc1vjIq3h7ARXCgHAKe8g==}
+  '@milkdown/plugin-cursor@7.22.2':
+    resolution: {integrity: sha512-lTjYXmhYFxlB6JLa+UMI3dvKQJog+I58Gtpl1qn26ynG+jC24bGLNNzj9H7/EaN1yKGevnvl/Hq6EhCjnnUXtg==}
 
-  '@milkdown/plugin-diff@7.22.1':
-    resolution: {integrity: sha512-qjuCMx11HwhMlTJuybqbFZT8PQkasSi0qICxq2HdYqH0WQuLO99I2mb17UAJz1aF+JM9rp1StHWr4bxC0ofamA==}
+  '@milkdown/plugin-diff@7.22.2':
+    resolution: {integrity: sha512-lIAPV1Xh9M3kwXyXZ57CYQBMPQanxSgz3r0n3QKxpCR0LEZnCBZMF61CMsD2c+gcGNG9drnmfFQJLXAhEq2hjw==}
 
-  '@milkdown/plugin-history@7.22.1':
-    resolution: {integrity: sha512-SRD6emVhfVmA6mrcCsCiWrONN/2Kp+VT5LLojIQxNc/spzjWw15PtkA3r4nUe9cZmNN5rE7XvrPaA0WnjJIyeQ==}
+  '@milkdown/plugin-history@7.22.2':
+    resolution: {integrity: sha512-30jM0TWWbG2gwd9QtbrXHfNi737sr6Q5O26eZqIPsmDVFAfqm+ZEd5cpJWngcQ3C5GflvWxyPC+xPEqY97B9AA==}
 
-  '@milkdown/plugin-indent@7.22.1':
-    resolution: {integrity: sha512-s/wmqxaJpIKT01gEXsC9gCkzA3Clm+MNioZLzNCYD8xI/4Hf3AhmIEoEqf3LIQ9w10Zs2yhIxIrknNWfCOgsEw==}
+  '@milkdown/plugin-indent@7.22.2':
+    resolution: {integrity: sha512-U5W1ZAFV0VmP4YBn192fD/Uk1qnf4q+boWEgtHcXL84hb0EwbXqXHsTTkW8SjKHGQchnT8cQyDRomfbVw/4Q2A==}
 
-  '@milkdown/plugin-listener@7.22.1':
-    resolution: {integrity: sha512-6k8JMDrdAL0E0WygpDX1YOR0Q9Wc4pia8pIMN5nN5liEeAyNaM6LwAxXJY+awQJ0OstDKHTfjkh7WzJo4QiXOA==}
+  '@milkdown/plugin-listener@7.22.2':
+    resolution: {integrity: sha512-KXsfm2f1tmHtBZHTIvaVsu/Y6TVdgmxJBacooCE6R8tcB9Segj24ICNy0/0+t3i85GUTr1rzx+2rGmpj5WhNZA==}
 
-  '@milkdown/plugin-slash@7.22.1':
-    resolution: {integrity: sha512-eFKCjfgXfAQusTSOyzhz4nASquOApdiBy9hnGkPB/SJ6oltTC8SonB3nIxF/X0wPZHfn09vuz/JBqh9cyDtXJA==}
+  '@milkdown/plugin-slash@7.22.2':
+    resolution: {integrity: sha512-4hL/dj6fCs3MOFKGHpXIXAAvu/Hm9fxG2tv2XOZ6Z3ps63z9q8xMSTyuFx1cV9U0z+3J64LnKaQ1lgwzviwD9A==}
 
-  '@milkdown/plugin-streaming@7.22.1':
-    resolution: {integrity: sha512-CR0lujyc7ae0sbjNfscvS+b+cUP7b6XJ90ioTor605UV+F8EKh5t4PMJM79IVzSUCeob51a+rtXA2LAA1b/GyA==}
+  '@milkdown/plugin-streaming@7.22.2':
+    resolution: {integrity: sha512-fxB2veftnm490aE1TPCJuTftiZSfTR7CZ2JEVmgMQHGy4HApIqJ9MqOyMevR23GSX/Qef9rWsZJNQRgI+9VazA==}
 
-  '@milkdown/plugin-tooltip@7.22.1':
-    resolution: {integrity: sha512-drdWA/7WlrDr2B+ABYf4tY9xTiwg/CJMUCydfD05dR2d8wOkaF6oOHZwJbWnkWLMtAJWdieOYgfXGPhQRwXxCg==}
+  '@milkdown/plugin-tooltip@7.22.2':
+    resolution: {integrity: sha512-bMT5Kj+sNliKHzaH9o/7JdUAnmoTkTjanG7muRBw6vo9oQVoeSpWuRrZaE6qC25mQoUzCeqrGukMRtVhnwSyhg==}
 
-  '@milkdown/plugin-trailing@7.22.1':
-    resolution: {integrity: sha512-Buy8IX3I7wwq0QPfJRep77QnvlkBeg6BvDHkbh5eTMrgnwSiWhN+tV9RVCYpdWXM7QhQZpSjU2SejluLuTyVCg==}
+  '@milkdown/plugin-trailing@7.22.2':
+    resolution: {integrity: sha512-VH5oVcT4Nvb7MbmJpQdqgTZmaBDtRsUmrbIEewMsyDMCF6WWiV9Ykxxg4S+D/BKZdyQkooWUTd97pP/XGN3eEw==}
 
-  '@milkdown/plugin-upload@7.22.1':
-    resolution: {integrity: sha512-vV0bZzdh/PhM+Jk9Nk5cKHDXHY5jt+ePcaitTfvESDYfg83YZ9AglOhw/YclPWklMvswrnCGZZFTZD4daqc4hg==}
+  '@milkdown/plugin-upload@7.22.2':
+    resolution: {integrity: sha512-fkBiyvQt25IX9DxIeiT5kScCAv2uo/94wwXUEOtEFs+F2RtvbiXHRXx6xzrymepT3L6TYGchxTyKSEWOOLe/qg==}
 
-  '@milkdown/preset-commonmark@7.22.1':
-    resolution: {integrity: sha512-it+G0YUG5MDXt0qLB6W083ss5i6tnWAXWCW8SgnmsehGxntkN5//gNM/8vh3rqwl8RvnBvjLWpJ6TgHSlBPhlw==}
+  '@milkdown/preset-commonmark@7.22.2':
+    resolution: {integrity: sha512-+dy6qG7kcHsuh63saIhP4fg2wdqYMrJWvXZH7CxGDFMg1GMVbBeCPtOHlhO+2CssCKgbwctelbHRvdEHZYRmIw==}
 
-  '@milkdown/preset-gfm@7.22.1':
-    resolution: {integrity: sha512-UPMdHRdMHlVourOOTiwsp3qHu614pDFWlWtVzxe8fyl8uKZUk6IOuewH5ubhqD/opos8OEB+zgEomUGfee1oTw==}
+  '@milkdown/preset-gfm@7.22.2':
+    resolution: {integrity: sha512-G9NJ0seKnuM6k6SM9rXzXmT8zfemFcVJn+yekrqPkQ2VniwX+cJDHG3s7+cWedPVRFOMzKvpHKMkaPSO34IZtg==}
 
-  '@milkdown/prose@7.22.1':
-    resolution: {integrity: sha512-fqgTHl94G7oDPY94cPYBm6ARxEoLQ10ubkTNLD1nzAlTUfJLULZkIEMSMy4CECncw2go3ExW32CZPpXLJVSxnQ==}
+  '@milkdown/prose@7.22.2':
+    resolution: {integrity: sha512-sh23B62WiA9+rRwDV1OhC34bpOPRGKbDWDdYxkJkMn+YGUj5HXhNb6hJmqDSqTdPcB2WQTF+WNVbrtde/jkVPg==}
 
-  '@milkdown/transformer@7.22.1':
-    resolution: {integrity: sha512-rU1IBtxezNg7TSWaq+RP59/t6tfD3jIPGrwAtMKPIGuYEax+8d1fyGisp98TeI3l0VQEIgMpF+KlNDV+Y1HJVA==}
+  '@milkdown/transformer@7.22.2':
+    resolution: {integrity: sha512-RP2NkKFKHwzUidPvi7V9le7o68KwCuMdFCxkvwX5eaxaxHEmH6v4p5GKoCnjU3+SWUc4XOPKXA15/b6Byg7TuA==}
 
-  '@milkdown/utils@7.22.1':
-    resolution: {integrity: sha512-ye0LGy/Ez8fjtcYyYj93wp4XfH00JYpCiy1IDHYB+9HVIpnbr3ed7PvY4s2000xmDWe0Vlx07TOyv96yvFrnjQ==}
+  '@milkdown/utils@7.22.2':
+    resolution: {integrity: sha512-lRKIaX+kFZycqHxc2xtIwgPdp5BWlSKJKCljZ8Uiih98uaNWQvFlpfzc5Bp4+XJS6BEq2K3ZVILUKa5eWJofWw==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -3070,22 +3085,22 @@ snapshots:
 
   '@markerjs/markerjs3@3.10.0': {}
 
-  '@milkdown/components@7.22.1(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)':
+  '@milkdown/components@7.22.2(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
       '@codemirror/language': 6.12.4
       '@codemirror/state': 6.7.6
       '@codemirror/view': 6.43.13
       '@floating-ui/dom': 1.8.0
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/exception': 7.22.1
-      '@milkdown/plugin-diff': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-tooltip': 7.22.1(supports-color@10.2.2)
-      '@milkdown/preset-commonmark': 7.22.1(supports-color@10.2.2)
-      '@milkdown/preset-gfm': 7.22.1(supports-color@10.2.2)
-      '@milkdown/prose': 7.22.1
-      '@milkdown/transformer': 7.22.1(supports-color@10.2.2)
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/exception': 7.22.2
+      '@milkdown/plugin-diff': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-tooltip': 7.22.2(supports-color@10.2.2)
+      '@milkdown/preset-commonmark': 7.22.2(supports-color@10.2.2)
+      '@milkdown/preset-gfm': 7.22.2(supports-color@10.2.2)
+      '@milkdown/prose': 7.22.2
+      '@milkdown/transformer': 7.22.2(supports-color@10.2.2)
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
       '@types/lodash-es': 4.17.12
       clsx: 2.1.1
       dompurify: 3.4.15
@@ -3097,19 +3112,19 @@ snapshots:
       - supports-color
       - typescript
 
-  '@milkdown/core@7.22.1(supports-color@10.2.2)':
+  '@milkdown/core@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/exception': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/transformer': 7.22.1(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/exception': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/transformer': 7.22.2(supports-color@10.2.2)
       remark-parse: 11.0.0(supports-color@10.2.2)
       remark-stringify: 11.0.0
       unified: 11.0.5
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/crepe@7.22.1(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-view@1.42.5)(supports-color@10.2.2)(typescript@6.0.3)':
+  '@milkdown/crepe@7.22.2(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-view@1.42.5)(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
       '@codemirror/commands': 6.11.1
       '@codemirror/language': 6.12.4
@@ -3117,7 +3132,7 @@ snapshots:
       '@codemirror/state': 6.7.6
       '@codemirror/theme-one-dark': 6.1.3
       '@codemirror/view': 6.43.13
-      '@milkdown/kit': 7.22.1(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)
+      '@milkdown/kit': 7.22.2(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)
       '@types/lodash-es': 4.17.12
       clsx: 2.1.1
       codemirror: 6.0.2
@@ -3135,35 +3150,35 @@ snapshots:
       - supports-color
       - typescript
 
-  '@milkdown/ctx@7.22.1':
+  '@milkdown/ctx@7.22.2':
     dependencies:
-      '@milkdown/exception': 7.22.1
+      '@milkdown/exception': 7.22.2
 
-  '@milkdown/exception@7.22.1': {}
+  '@milkdown/exception@7.22.2': {}
 
-  '@milkdown/kit@7.22.1(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)':
+  '@milkdown/kit@7.22.2(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
-      '@milkdown/components': 7.22.1(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/exception': 7.22.1
-      '@milkdown/plugin-block': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-clipboard': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-cursor': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-diff': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-history': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-indent': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-listener': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-slash': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-streaming': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-tooltip': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-trailing': 7.22.1(supports-color@10.2.2)
-      '@milkdown/plugin-upload': 7.22.1(supports-color@10.2.2)
-      '@milkdown/preset-commonmark': 7.22.1(supports-color@10.2.2)
-      '@milkdown/preset-gfm': 7.22.1(supports-color@10.2.2)
-      '@milkdown/prose': 7.22.1
-      '@milkdown/transformer': 7.22.1(supports-color@10.2.2)
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/components': 7.22.2(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)(supports-color@10.2.2)(typescript@6.0.3)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/exception': 7.22.2
+      '@milkdown/plugin-block': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-clipboard': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-cursor': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-diff': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-history': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-indent': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-listener': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-slash': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-streaming': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-tooltip': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-trailing': 7.22.2(supports-color@10.2.2)
+      '@milkdown/plugin-upload': 7.22.2(supports-color@10.2.2)
+      '@milkdown/preset-commonmark': 7.22.2(supports-color@10.2.2)
+      '@milkdown/preset-gfm': 7.22.2(supports-color@10.2.2)
+      '@milkdown/prose': 7.22.2
+      '@milkdown/transformer': 7.22.2(supports-color@10.2.2)
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
     transitivePeerDependencies:
       - '@codemirror/language'
       - '@codemirror/state'
@@ -3171,154 +3186,154 @@ snapshots:
       - supports-color
       - typescript
 
-  '@milkdown/plugin-block@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-block@7.22.2(supports-color@10.2.2)':
     dependencies:
       '@floating-ui/dom': 1.8.0
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
       '@types/lodash-es': 4.17.12
       lodash-es: 4.18.1
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-clipboard@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-clipboard@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-cursor@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-cursor@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
       prosemirror-drop-indicator: 0.1.4
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-diff@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-diff@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/transformer': 7.22.1(supports-color@10.2.2)
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/transformer': 7.22.2(supports-color@10.2.2)
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-history@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-history@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-indent@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-indent@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-listener@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-listener@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
       '@types/lodash-es': 4.17.12
       lodash-es: 4.18.1
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-slash@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-slash@7.22.2(supports-color@10.2.2)':
     dependencies:
       '@floating-ui/dom': 1.8.0
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
       '@types/lodash-es': 4.17.12
       lodash-es: 4.18.1
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-streaming@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-streaming@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/plugin-diff': 7.22.1(supports-color@10.2.2)
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/plugin-diff': 7.22.2(supports-color@10.2.2)
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-tooltip@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-tooltip@7.22.2(supports-color@10.2.2)':
     dependencies:
       '@floating-ui/dom': 1.8.0
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
       '@types/lodash-es': 4.17.12
       lodash-es: 4.18.1
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-trailing@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-trailing@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/plugin-upload@7.22.1(supports-color@10.2.2)':
+  '@milkdown/plugin-upload@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/exception': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/exception': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/preset-commonmark@7.22.1(supports-color@10.2.2)':
+  '@milkdown/preset-commonmark@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/exception': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/transformer': 7.22.1(supports-color@10.2.2)
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/exception': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/transformer': 7.22.2(supports-color@10.2.2)
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
       remark-inline-links: 7.0.0
       unist-util-visit: 5.1.0
       unist-util-visit-parents: 6.0.2
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/preset-gfm@7.22.1(supports-color@10.2.2)':
+  '@milkdown/preset-gfm@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/exception': 7.22.1
-      '@milkdown/preset-commonmark': 7.22.1(supports-color@10.2.2)
-      '@milkdown/prose': 7.22.1
-      '@milkdown/transformer': 7.22.1(supports-color@10.2.2)
-      '@milkdown/utils': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/exception': 7.22.2
+      '@milkdown/preset-commonmark': 7.22.2(supports-color@10.2.2)
+      '@milkdown/prose': 7.22.2
+      '@milkdown/transformer': 7.22.2(supports-color@10.2.2)
+      '@milkdown/utils': 7.22.2(supports-color@10.2.2)
       prosemirror-safari-ime-span: 1.0.2
       remark-gfm: 4.0.1(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/prose@7.22.1':
+  '@milkdown/prose@7.22.2':
     dependencies:
-      '@milkdown/exception': 7.22.1
+      '@milkdown/exception': 7.22.2
       prosemirror-changeset: 2.4.3
       prosemirror-commands: 1.7.2
       prosemirror-dropcursor: 1.8.3
@@ -3333,22 +3348,22 @@ snapshots:
       prosemirror-transform: 1.12.1
       prosemirror-view: 1.42.5
 
-  '@milkdown/transformer@7.22.1(supports-color@10.2.2)':
+  '@milkdown/transformer@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/exception': 7.22.1
-      '@milkdown/prose': 7.22.1
+      '@milkdown/exception': 7.22.2
+      '@milkdown/prose': 7.22.2
       remark: 15.0.1(supports-color@10.2.2)
       unified: 11.0.5
     transitivePeerDependencies:
       - supports-color
 
-  '@milkdown/utils@7.22.1(supports-color@10.2.2)':
+  '@milkdown/utils@7.22.2(supports-color@10.2.2)':
     dependencies:
-      '@milkdown/core': 7.22.1(supports-color@10.2.2)
-      '@milkdown/ctx': 7.22.1
-      '@milkdown/exception': 7.22.1
-      '@milkdown/prose': 7.22.1
-      '@milkdown/transformer': 7.22.1(supports-color@10.2.2)
+      '@milkdown/core': 7.22.2(supports-color@10.2.2)
+      '@milkdown/ctx': 7.22.2
+      '@milkdown/exception': 7.22.2
+      '@milkdown/prose': 7.22.2
+      '@milkdown/transformer': 7.22.2(supports-color@10.2.2)
       nanoid: 6.0.1
     transitivePeerDependencies:
       - supports-color
