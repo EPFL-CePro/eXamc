@@ -111,9 +111,8 @@ def _track_amc_job(request: HttpRequest, session_key: str, exam_pk: int, job_id:
         "exam_pk": int(exam_pk),
         "created_at": int(timezone.now().timestamp()),
     }
-    request.session[AMC_ANNOTATE_JOBS_SESSION_KEY] = _prune_amc_annotate_jobs(jobs)
+    request.session[session_key] = _prune_amc_annotate_jobs(jobs)
     request.session.modified = True
-
 
 def _is_amc_job_owned(request: HttpRequest, session_key: str, exam_pk: int, job_id: str) -> bool:
     jobs = _prune_amc_annotate_jobs(request.session.get(session_key, {}))
