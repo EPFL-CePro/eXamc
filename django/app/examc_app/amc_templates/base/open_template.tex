@@ -1,0 +1,18 @@
+% --- %QUESTION-ID%
+% Number the question in exam order, whatever the order of the copies
+% (the layout maps AMC question numbers to the exam questions order).
+\csname AMC@prepare\endcsname{%QUESTION-ID%}
+\element{%SECTION-ID%}{
+%NEW-PAGE%
+% Corrector boxes (\corrector<points>, see style_extra.tex)
+\corrector%CORR-POINTS%{%QUESTION-ID%}{\textbf{%QUESTION-TITLE%}}
+\correctorStop
+
+\noindent
+%QUESTION-TEXT%
+
+\medskip
+% Answer zones (\SplitOpenGrid / \SplitOpenBox, see style_extra.tex)
+%ANSWERS%
+
+}

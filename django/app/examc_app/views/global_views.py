@@ -26,6 +26,8 @@ from examc_app.utils.results_statistics_functions import update_common_exams
 
 logger = logging.getLogger(__name__)
 
+User.__str__ = lambda user_instance: user_instance.first_name + " " + user_instance.last_name
+
 
 def _get_real_user(request):
     return getattr(request, "impersonator", None) or request.user

@@ -21,22 +21,33 @@ def b64url_encode(s: str) -> str:
     return base64.urlsafe_b64encode(s.encode()).rstrip(b"=").decode()
 
 
-def make_token_for(rel_path: str, type_root: str, copy_page_in_url: bool = True) -> str:
+def make_token_for(rel_path: str, type_root: str, token_type: str | None = None, copy_page_in_url: bool = True) -> str:
     """
     Creates a signed token that embarks {type, path} and sends back an URL like this: /protected/?token=<TOKEN>
     """
-    content_type = type_root.rstrip("/").split("/")[-1]  # "scans" | "marked_scans" | "amc_projects" | ...
+    root_str = str(type_root)
+
+    type_name = token_type or Path(root_str).name # "scans" | "marked_scans" | "amc_projects" | ...
 
     payload = {
-        "type": content_type,
+        "type": type_name,
         "path": rel_path
     }
 
-    if content_type == 'extra': payload['path'] = type_root.replace(str(settings.AMC_PROJECTS_ROOT), "")[1:] + rel_path
+    if type_name == "extra":
+        payload["path"] = root_str.replace(str(settings.AMC_PROJECTS_ROOT), "").lstrip("/") + rel_path
+
+
+    if type_name == 'extra': payload['path'] = type_root.replace(str(settings.AMC_PROJECTS_ROOT), "")[1:] + rel_path
 
     # JSON -> base64url for a compact token and no special characters
     msg = b64url_encode(json.dumps(payload, separators=(",", ":")))
     token = signer.sign(msg)  # TimestampSigner
+
+    base_url = str(settings.SIGNED_FILES_URL).rstrip("/") + "/"
+
+    if type_name in {"amc_document"}:
+        return f"{base_url}?{urlencode({'token': token})}"
 
     copy_page = ""
     if copy_page_in_url:
@@ -75,13 +86,14 @@ def verify_and_get_path(token: str, max_age=None) -> Path:
 
     # --- 3) Résolution de la racine en fonction du type ---
     roots = {
-        "scans": Path(settings.SCANS_ROOT),
-        "marked_scans": Path(settings.MARKED_SCANS_ROOT),
-        "amc_projects": Path(settings.AMC_PROJECTS_ROOT),
-        "CATALOG": Path(settings.AMC_PROJECTS_ROOT),
-        "assoc": Path(settings.AMC_PROJECTS_ROOT),
-        "extra": Path(settings.AMC_PROJECTS_ROOT),
-        "private_media": Path(settings.PRIVATE_MEDIA_ROOT),
+        "scans":          Path(settings.SCANS_ROOT),
+        "marked_scans":   Path(settings.MARKED_SCANS_ROOT),
+        "amc_projects":   Path(settings.AMC_PROJECTS_ROOT),
+        "CATALOG":        Path(settings.AMC_PROJECTS_ROOT),
+        "assoc":          Path(settings.AMC_PROJECTS_ROOT),
+        "extra":          Path(settings.AMC_PROJECTS_ROOT),
+        "private_media":  Path(settings.PRIVATE_MEDIA_ROOT),
+        "amc_document" :  Path(settings.AMC_PROJECTS_ROOT)
     }
     root = roots.get(typ)
     if root is None:

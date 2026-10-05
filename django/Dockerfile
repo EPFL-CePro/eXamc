@@ -68,10 +68,19 @@ RUN set -eux; \
         libgl1 libglib2.0-0 libsm6 libxext6 mariadb-client \
         fonts-dejavu-core fonts-liberation fonts-noto-core \
         auto-multiple-choice \
-        texlive-xetex texlive-latex-recommended texlive-latex-extra \
-        texlive-fonts-recommended texlive-fonts-extra lmodern \
-        texlive-lang-european latexmk ghostscript poppler-utils; \
+        texlive-xetex \
+        texlive-latex-recommended \
+        texlive-latex-extra \
+        texlive-fonts-recommended \
+        texlive-fonts-extra \
+        lmodern \
+        texlive-lang-european \
+        latexmk \
+        ghostscript \
+        poppler-utils \
+        pandoc; \
     test -x /usr/bin/auto-multiple-choice; \
+    test -x /usr/bin/pandoc; \
     rm -rf /var/lib/apt/lists/*
 
 # Root owns the code, examc owns the data.

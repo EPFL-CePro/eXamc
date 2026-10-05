@@ -1,0 +1,34 @@
+<div id="prep-first-page-panel" class="card mt-3">
+    <div class="card-header">
+        <div class="d-flex align-items-center flex-grow-1"
+                 role="button"
+                 data-bs-toggle="collapse"
+                 data-bs-target="#prep-first-page-body"
+                 aria-expanded="{% if saved %}true{% else %}false{% endif %}"
+                 aria-controls="prep-first-page-body"
+                 style="cursor:pointer;">
+                <span>First page</span>
+        </div>
+    </div>
+    <div id="prep-first-page-body" class="collapse{% if saved %} show{% endif %}">
+        <div class="card-body">
+            <form
+                    hx-post="{% url 'prep_first_page_panel' exam_selected.pk %}"
+                    hx-target="#prep-first-page-panel"
+                    hx-swap="outerHTML">
+
+                {% csrf_token %}
+
+                <div class="mb-2">
+                    {{ fp_txt_form.first_page_text }}
+                </div>
+
+                {% if not is_exam_finalized %}
+                    <button class="btn btn-dark btn-sm">Save</button>
+                {% endif %}
+
+            </form>
+
+        </div>
+    </div>
+</div>

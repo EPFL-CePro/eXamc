@@ -1,0 +1,72 @@
+% =====================================================================
+% eXamc - preparation module - first page template (FR/EN)
+% Rendered to <project>/first_page.tex by render_first_page_tex_from_html()
+% (placeholder names are not written in comments: every occurrence is replaced):
+%   - teacher(s), exam name, date and duration
+%   - "FIRST-PAGE-TEXT": "First Page" text of the application
+%   - "NB-PAGES": number of pages per copy ("??" before the AMC build)
+% \ID, \SCIPER, \SECTION... come from the students CSV (one copy per student).
+% =====================================================================
+
+\noindent
+\begin{minipage}[b]{260pt}
+  \IfFileExists{media/epfl-logo.pdf}{\includegraphics[scale=0.6]{epfl-logo.pdf}}{}  \\
+  \medskip
+
+  \bf %TEACHER%
+  \\
+  \bf %EXAM-NAME%
+  ~-~\SECTION \\
+  \bf %EXAM-DATE%
+  \\
+  \bf %EXAM-TIME%
+\end{minipage}
+\begin{minipage}[b]{180pt}
+  \begin{flushright}
+    \fontsize{100}{120}{\selectfont{\ID{}}} \\
+    ~\    \
+  \end{flushright}
+\end{minipage}
+\vspace{1cm}
+\noindent
+\newline
+\noindent
+\begin{minipage}[c]{\textwidth}
+    \begin{center}
+        \fontsize{40}{48}{\selectfont{\namefield{\SCIPER{}}}}
+    \end{center}
+\end{minipage}
+
+\vspace{1cm}
+\noindent
+\vspace{1cm}
+
+\noindent
+\textbf{Ne pas tourner la page avant le début de l'examen. / Do not turn the page before the start of the exam.}
+
+\noindent
+\textbf{Ce document est recto-verso et comporte \{NB-PAGES\} pages, les dernières pouvant être vierges. / This document is double-sided and has \{NB-PAGES\} pages, the last ones possibly blank.}
+
+\noindent
+\textbf{Ne pas désagrafer. / Do not unstaple.}
+\medskip
+\vfill
+\noindent
+\begin{center}
+  \fbox{
+    \parbox{160mm}{\raggedright\setlength{\parindent}{0pt}
+      \mbox{}
+      \vspace{2mm}
+
+%FIRST-PAGE-TEXT%
+
+      \vspace{-1mm}
+      \mbox{}
+    }
+  }
+\end{center}
+\vfill
+\noindent
+\begin{center}
+\IfFileExists{media/good_bad_square.png}{\includegraphics[scale=0.19]{good_bad_square}}{}
+\end{center}

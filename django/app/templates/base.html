@@ -207,13 +207,26 @@
                     </a>
                     {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
                         {% if exam_selected.has_prep_option %}
-                            <a href="{% url 'exam_preparation' exam_selected.pk %}"
-                               class="bg-dark list-group-item list-group-item-action">
+                            <li class="bg-dark list-group-item list-group-item-action">
                                 <div class="d-flex w-100 justify-content-start align-items-center">
-                                    <span class="fas fa-edit" style="margin-right:5px;"></span>
-                                    <span class="menu-collapsed" style="margin-right:5px;">Preparation</span>
+                                    <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle"
+                                       href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
+                                       aria-expanded="false">
+                                        <span class="fas fa-edit" style="margin-right:5px;"></span>
+                                        <span class="menu-collapsed" style="margin-right:5px;">Preparation</span>
+                                    </a>
+                                    <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
+                                        <li><a class="bg-secondary dropdown-item"
+                                               href="{% url 'exam_preparation' exam_selected.pk %}" style="padding-top:15px;"><i
+                                                class="fas fa-glasses" style="margin-right:5px;"></i>Exam</a></li>
+                                        <li class="bg-secondary dropdown-divider"></li>
+                                        <li><a class="bg-secondary dropdown-item"
+                                               href="{% url 'exam_preparation_students' exam_selected.pk %}"
+                                               style="padding-top:15px;"><i class="fas fa-cogs"
+                                                                            style="margin-right:5px;"></i>Students</a></li>
+                                    </ul>
                                 </div>
-                            </a>
+                            </li>
                             <hr class="hr-sidebar">
                         {% endif %}
                     {% endif %}

@@ -1,3 +1,4 @@
+import logging
 from django import forms
 from django.contrib import admin
 from django.db import transaction
@@ -138,5 +139,7 @@ admin.site.register(Student)
 admin.site.register(Scale)
 admin.site.register(Semester)
 admin.site.register(AcademicYear)
-admin.site.register(ExamSection, SimpleHistoryAdmin)
 admin.site.register(QuestionAnswer, SimpleHistoryAdmin)
+admin.site.register(PrepSection, SimpleHistoryAdmin)
+admin.site.register(PrepQuestion, SimpleHistoryAdmin)
+admin.site.register(PrepQuestionAnswer, SimpleHistoryAdmin)

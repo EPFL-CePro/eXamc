@@ -1,5 +1,6 @@
 # RESULTS & STATISTICS FUNCTIONS
 #------------------------------------------
+from django.db.models import Count
 import _io
 import csv
 import io

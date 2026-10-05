@@ -1,0 +1,401 @@
+.latex-btn {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    display: inline-flex;
+    align-items: center;
+}
+
+.latex-text {
+    font-size: 0.8rem;
+    text-transform: lowercase;
+    margin-left:5px;
+}
+
+/*LaTex packages */
+.latex-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1056;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    margin-top: 0.4rem;
+    max-height: 260px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .latex-search-item {
+    padding: 0.65rem 0.9rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f3f5;
+    font-size: 0.95rem;
+  }
+
+  .latex-search-item:last-child {
+    border-bottom: none;
+  }
+
+  .latex-search-item:hover {
+    background: #f8f9fa;
+  }
+
+  .latex-package-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.25rem 0;
+  }
+
+  .latex-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 999px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
+  .latex-chip-remove {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    padding: 0;
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .latex-chip-remove:hover {
+    color: #dc3545;
+  }
+
+  .latex-empty-state {
+    color: #6c757d;
+    font-size: 0.95rem;
+    padding: 0.4rem 0;
+  }
+
+/*Preparation layout  */
+
+.question-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 1rem;
+}
+
+.question-top-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.field-block {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.field-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 40px;
+    flex: 0 0 auto;
+}
+
+.js-question-text,
+.js-answer-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+}
+
+.js-question-text {
+    margin-top: 0.5rem;
+}
+
+/* ANSWER LAYOUT: 2 small columns + 1 flexible editor column */
+.answer-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: start;
+    column-gap: 1rem;
+    row-gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.js-answer-fix-position,
+.js-answer-correct {
+    min-width: 140px;
+}
+
+.js-answer-text {
+    min-width: 0;
+}
+
+.js-answer-box-type,
+.js-answer-box-height {
+    min-width: 180px;
+}
+
+.js-answer-box-type select,
+.js-answer-box-height input {
+    width: 180px;
+}
+
+.answer-save {
+    margin-top: 28px;
+}
+
+.js-question-text iframe,
+.js-answer-text iframe {
+    display: block;
+    width: 100% !important;
+    border: 0;
+    min-width: 0;
+}
+
+.sortable-question,
+.sortable-answer,
+.card-body,
+.collapse,
+.collapse.show {
+    overflow: visible;
+    min-width: 0;
+}
+
+textarea.markdown-editor {
+    display: none!important;
+}
+
+/* Crepe is styled as a full page editor, fit it into a form field */
+.milkdown-editor-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.milkdown-editor-container .milkdown {
+    --crepe-base-font-size: 14px;
+    --crepe-font-default: inherit;
+    --crepe-font-title: inherit;
+    border-radius: inherit;
+}
+
+/* The left padding leaves room for the block handles (drag, "+") */
+.milkdown-editor-container .milkdown .ProseMirror {
+    min-height: var(--prep-editor-min-height, 200px);
+    padding: 12px 16px 12px 56px;
+}
+
+.milkdown-editor-container [hidden] {
+    display: none !important;
+}
+
+.milkdown-editor-container .milkdown-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 4px 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.milkdown-editor-container .milkdown-mode-status-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.milkdown-editor-container .milkdown-mode-status {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.milkdown-editor-container .milkdown-mode-help-button {
+    padding: 2px 6px;
+    line-height: 1;
+    color: #0d6efd;
+    background: none;
+    border: 0;
+}
+
+.milkdown-editor-container .milkdown-mode-help-button:hover {
+    color: #0a58ca;
+}
+
+/* Segmented Visual / Source toggle, styled here: Bootstrap 4 and 5 are both loaded on this page and their
+   button styles conflict (white text on white for a disabled outline button) */
+.milkdown-editor-container .milkdown-mode-buttons {
+    display: inline-flex;
+    border: 1px solid #adb5bd;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.milkdown-editor-container .milkdown-mode-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #495057;
+    background: #fff;
+    border: 0;
+}
+
+.milkdown-editor-container .milkdown-mode-button + .milkdown-mode-button {
+    border-left: 1px solid #adb5bd;
+}
+
+.milkdown-editor-container .milkdown-mode-button:hover:not(:disabled):not(.active) {
+    background: #e9ecef;
+}
+
+.milkdown-editor-container .milkdown-mode-button.active {
+    color: #fff;
+    background: #6c757d;
+}
+
+.milkdown-editor-container .milkdown-mode-button:disabled {
+    color: #adb5bd;
+    background: #f8f9fa;
+    cursor: not-allowed;
+}
+
+.milkdown-editor-container .milkdown-mode-lock-icon {
+    font-size: 0.7rem;
+}
+
+.milkdown-editor-container .milkdown-mode-help,
+.milkdown-editor-container .milkdown-mode-lock-note {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.milkdown-editor-container .milkdown-mode-help {
+    background: #f8f9fa;
+}
+
+.milkdown-editor-container .milkdown-mode-lock-note {
+    background: #fff8e1;
+}
+
+.milkdown-editor-container .milkdown-mode-lock-note .fa-lock {
+    margin-right: 6px;
+    color: #b58105;
+}
+
+.milkdown-editor-container .milkdown-mode-clear-button {
+    padding: 0 0 0 6px;
+    font-size: inherit;
+    color: #0d6efd;
+    background: none;
+    border: 0;
+    text-decoration: underline;
+}
+
+.milkdown-editor-container .milkdown-mode-clear-button:hover {
+    color: #0a58ca;
+}
+
+.milkdown-editor-container .milkdown-editor-loading {
+    padding: 12px 16px;
+    font-size: 0.85rem;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser {
+    padding: 12px;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-title {
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    text-align: left;
+    font-size: 0.85rem;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-card strong .fa-solid {
+    margin-right: 4px;
+    color: #0d6efd;
+}
+
+.milkdown-editor-container .milkdown-mode-chooser-card:hover,
+.milkdown-editor-container .milkdown-mode-chooser-card:focus-visible {
+    border-color: #0d6efd;
+    background: #f5f9ff;
+}
+
+.milkdown-editor-container .milkdown-source-host .cm-editor {
+    min-height: var(--prep-editor-min-height, 200px);
+    font-size: 13px;
+}
+
+.milkdown-editor-container .milkdown-source-host .cm-editor.cm-focused {
+    outline: none;
+}
+
+.finalized-editor-readonly .ProseMirror,
+.finalized-editor-surface {
+    background-color: #f8f9fa;
+    cursor: default;
+}
+
+/* Save feedback toast (showSaveToast in preparation.js) */
+#prep-save-toast {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 2000;
+    max-width: calc(100vw - 3rem);
+    padding: 0.6rem 1rem;
+    border-radius: 0.375rem;
+    background: #198754;
+    color: #fff;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transform: translateY(0.5rem);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+#prep-save-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#prep-save-toast.is-error {
+    background: #dc3545;
+}

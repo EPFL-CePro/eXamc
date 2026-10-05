@@ -1,0 +1,130 @@
+% =====================================================================
+% eXamc - preparation module - main exam template
+% Rendered to <project>/exam.tex by update_exam_latex(), which fills two anchors
+% (placeholder names are not written in comments: every occurrence is replaced):
+%   - "SECTIONS" anchor (after \begin{document}): one \input{./section_<n>.tex} per section
+%   - "SECTIONS-INSERT" anchor (in \examcCopy): per section \input{./section_header_<n>.tex}
+%     followed by \insertgroup{SECTION-<n>}
+% Both anchors must stay alone at the end of their line.
+% =====================================================================
+
+% --- AMC build configuration (written by the final build before each compile).
+% Only read for the AMC build job, so the plain preview (jobname "exam") is
+% not affected by a config file left in the project by a previous build.
+\ifdefined\pdfstrcmp
+  \ifnum\pdfstrcmp{\jobname}{amc-compiled}=0
+    \InputIfFileExists{./amc-compiled-config.tex}{}{}
+  \fi
+\else
+  \InputIfFileExists{./amc-compiled-config.tex}{}{}
+\fi
+
+% Map ligatures and symbols to Unicode, so that text copied from the PDF
+% is clean (pdflatex only, before any font is loaded)
+\ifdefined\pdfgentounicode
+  \input{glyphtounicode}
+  \pdfgentounicode=1
+\fi
+
+\documentclass[a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{xcolor}
+\usepackage{fix-cm}
+\usepackage[nolinks]{qrcode}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{ifthen}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{csvsimple}
+\usepackage{url}
+% Optional packages used by pandoc output (strike-through, tables)
+\IfFileExists{soul.sty}{\usepackage{soul}}{}
+\providecommand{\st}[1]{#1}
+\IfFileExists{longtable.sty}{\usepackage{longtable}}{}
+\IfFileExists{booktabs.sty}{\usepackage{booktabs}}{}
+\usepackage[lang=FR,bloc]{automultiplechoice}
+
+\graphicspath{ {media/} }
+
+% Color used for signature box
+\definecolor{light-Gray}{gray}{0.95}
+
+% --- Project files (all optional: missing files are skipped)
+\InputIfFileExists{./packages.tex}{}{}
+\InputIfFileExists{./style_extra.tex}{}{\PackageWarning{examc}{style_extra.tex not found in the project}}
+\InputIfFileExists{./commands.tex}{}{}
+
+% Number of pages per copy, written by write_exam_generated_vars()
+\InputIfFileExists{./examc_generated_vars.tex}{}{}
+\providecommand{\TotalPagesPerCopy}{2}
+
+% Exam-level scoring formulas, written by update_global_scoring_latex_file()
+\InputIfFileExists{./global_scoring.tex}{}{}
+\providecommand{\baremeDefautTF}{}
+
+% Students list (the AMC build sets \AMCStudentFile in amc-compiled-config.tex)
+\providecommand{\AMCStudentFile}{students.csv}
+
+% --- Helpers for the LaTeX produced by pandoc from the markdown editors
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\pandocbounded}[1]{#1}
+\providecommand{\passthrough}[1]{#1}
+\providecommand{\href}[2]{#2}
+
+% --- Answer lists. TF questions are rendered as "ANSWER-choiceshoriz[0]" by
+% render_question_tex_from_html(): keep their answers in the given order.
+% (defined with \csname: \newenvironment does not accept "[" in a name)
+\expandafter\def\csname ANSWER-choices\endcsname{\begin{choices}}
+\expandafter\def\csname endANSWER-choices\endcsname{\end{choices}}
+\expandafter\def\csname ANSWER-choiceshoriz\endcsname{\begin{choiceshoriz}}
+\expandafter\def\csname endANSWER-choiceshoriz\endcsname{\end{choiceshoriz}}
+\expandafter\def\csname ANSWER-choiceshoriz[0]\endcsname{\begin{choiceshoriz}[o]}
+\expandafter\def\csname endANSWER-choiceshoriz[0]\endcsname{\end{choiceshoriz}}
+
+%%% increase the space between header and bottom for AMC control dots
+\renewcommand{\baselinestretch}{1.10}
+\geometry{includeheadfoot,hmargin=2.25cm,headheight=2cm,headsep=0.2cm}
+\geometry{footskip=.8cm,top=.5cm,bottom=1.1cm,paper=a4paper}
+
+% Pad the current copy with blank pages up to \TotalPagesPerCopy
+\newcommand{\examcPadPages}{%
+  \loop\ifnum\value{page}<\TotalPagesPerCopy\relax
+    \clearpage\mbox{}%
+  \repeat
+}
+
+% One copy of the exam, for the current student of the CSV list
+\newcommand{\examcCopy}{%
+  \onecopy{1}{%
+    \setcounter{equation}{0}%
+    \input{./first_page.tex}
+    %SECTIONS-INSERT%
+    \examcPadPages
+    \AMCassociation{\ID}%
+  }%
+}
+
+\begin{document}
+
+%%% random seed
+\AMCrandomseed{11051975}
+
+%%% Sections (groups of questions)
+%SECTIONS%
+
+%%% One copy per student of the CSV list (a single anonymous copy without list)
+\IfFileExists{\AMCStudentFile}{%
+  \csvreader[head to column names]{\AMCStudentFile}{}{\examcCopy}%
+}{%
+  \def\ID{1}\def\SCIPER{000000}\def\NAME{}\def\SECTION{}\def\ROOM{}\def\SEAT{}%
+  \examcCopy
+}
+
+\end{document}

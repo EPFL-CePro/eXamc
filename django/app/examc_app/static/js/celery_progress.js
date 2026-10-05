@@ -21,7 +21,7 @@ class CeleryProgressBar {
         this.onNetworkError = options.onNetworkError || this.onError;
         this.onHttpError = options.onHttpError || this.onError;
         this.pollInterval = options.pollInterval || 500;
-        this.maxNetworkRetryAttempts = options.maxNetworkRetryAttempts | 5;
+        this.maxNetworkRetryAttempts = options.maxNetworkRetryAttempts || 5;
         // Other options
         this.barColors = Object.assign({}, this.constructor.getBarColorsDefault(), options.barColors);
 
@@ -36,6 +36,7 @@ class CeleryProgressBar {
         result = this.getMessageDetails(result);
         if (progressBarElement) {
             progressBarElement.style.backgroundColor = this.barColors.success;
+            progressBarElement.style.width = "100%";
         }
         if (progressBarMessageElement) {
             progressBarMessageElement.textContent = "Success! " + result;

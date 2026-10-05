@@ -1,0 +1,216 @@
+############
+# REVIEW
+############
+from django.contrib.auth.models import Group, User
+from django.db import models
+from simple_history.models import HistoricalRecords
+
+from examc_app.models import Exam, Student
+
+
+class PagesGroup(models.Model):
+    """ Stores pages group data, representing pages for questions, related to :model:`examc_app.Exam` """
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='pagesGroup')
+    group_name = models.CharField(max_length=50, default='0')
+    nb_pages = models.IntegerField(default=0)
+    grading_help = models.TextField(default='', blank=True)
+    use_grading_scheme = models.BooleanField(default=False)
+    history = HistoricalRecords()
+
+    def __str__(self):
+        return self.group_name + " ( pages " + str(self.nb_pages) + " )"
+
+class ExamUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_exams')
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE,related_name='exam_users')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE,related_name='user_groups', null=True,default=None)
+    pages_groups = models.ManyToManyField(PagesGroup, blank=True)
+    review_blocked = models.BooleanField(default=False)
+    history = HistoricalRecords()
+
+
+class PagesGroupComment(models.Model):
+    """ Stores comments data for group of pages for an exam copy, related to :model:`examc_app.Exam`, :model:`examc_app.PagesGroup`, :model:`examc_app.PagesGroupComment` and :model:`auth.User` """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pagesGroupComments')
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='pagesGroupComments', blank=True)
+    copy_no = models.CharField(max_length=10, default='0')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, default=None, null=True, related_name='children')
+    created = models.DateTimeField(auto_now_add=True, blank=True)
+    modified = models.DateTimeField(blank=True, null=True)
+    content = models.TextField()
+    is_new = models.BooleanField(default=False)
+    history = HistoricalRecords()
+
+    def serialize(self, curr_user_id):
+        """ Serialize the comment data """
+        modified_str = ""
+        if self.modified:
+            modified_str = self.modified.strftime("%Y-%m-%d %H:%M:%S")
+        profile_picture = 'fa-regular fa-circle-user fa-2xs'
+        created_by_curr_user = False
+        if self.user_id == curr_user_id:
+            profile_picture = 'fa-solid fa-circle-user fa-2xs'
+            created_by_curr_user = True
+        return {
+            "id": self.pk,
+            "parent": self.parent_id,
+            "created": self.created.strftime("%Y-%m-%d %H:%M:%S"),
+            "modified": modified_str,
+            "content": self.content,
+            "creator": self.user_id,
+            "fullname": self.user.first_name + " " + self.user.last_name,
+            "is_new": self.is_new,
+            "profile_picture_url": profile_picture,
+            "created_by_current_user": created_by_curr_user
+        }
+
+class PagesGroupStudentReportNote(models.Model):
+    """Stores the per-question note exported in grading scheme report PDFs."""
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='studentReportNotes')
+    copy_nr = models.CharField(max_length=10, default='0')
+    content = models.TextField(blank=True, default='')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='studentReportNotes')
+    modified = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['pages_group', 'copy_nr'],
+                name='uniq_pages_group_student_report_note_copy',
+            ),
+        ]
+
+
+class PageMarkers(models.Model):
+    """ Stores markers data for a scan page, related to :model:`examc_app.Exam`, :model:`examc_app.PagesGroup`, :model:`examc_app.PagesGroupComment` """
+    copie_no = models.CharField(max_length=10, default='',blank=True)
+    page_no = models.CharField(max_length=10, default='')
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='pageMarkers', blank=True,
+                                    null=True)
+    filename = models.CharField(max_length=100)
+    markers = models.TextField(blank=True)
+    #comment = models.TextField(blank=True)
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='pageMarkers')
+    correctorBoxMarked = models.BooleanField(default=False)
+    history = HistoricalRecords()
+
+    def __str__(self):
+        return self.copie_no + " - " + self.filename + " " + self.exam.code
+
+    def get_users_with_date(self):
+        users_list = []
+        for pm_user in self.pageMarkers_users.all():
+            user_dict = {}
+            user_dict["username"]=pm_user.user.username
+            user_dict["date"]=pm_user.modified.strftime("%Y-%m-%d %H:%M:%S")
+            users_list.append(user_dict)
+
+        return users_list
+
+class PageMarkersUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_pageMarkers')
+    pageMarkers = models.ForeignKey(PageMarkers, on_delete=models.CASCADE,related_name='pageMarkers_users')
+    created = models.DateTimeField(auto_now_add=True, blank=True)
+    modified = models.DateTimeField(blank=True, null=True)
+
+###########################
+# Grading Schemes
+###########################
+class QuestionGradingScheme(models.Model):
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='gradingSchemes')
+    name = models.CharField(max_length=100)
+    max_points = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    description = models.TextField(default='', blank=True)
+    history = HistoricalRecords()
+
+class QuestionGradingSchemeCheckBox(models.Model):
+    questionGradingScheme = models.ForeignKey(QuestionGradingScheme, on_delete=models.CASCADE, related_name='checkboxes')
+    name = models.CharField(max_length=100)
+    points = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    description = models.TextField(blank=True, default="")
+    adjustment = models.BooleanField(default=0)
+    position = models.IntegerField(default=0)
+    history = HistoricalRecords()
+
+    class Meta:
+        ordering = ['position']
+
+#############################
+# Review Grading Schemes Checked Boxes
+#############################
+class PagesGroupGradingSchemeCheckedBox(models.Model):
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='pagesGroupGradingSchemeCheckedBoxes')
+    gradingSchemeCheckBox = models.ForeignKey(QuestionGradingSchemeCheckBox, on_delete=models.CASCADE, related_name='pagesGroupGradingSchemeCheckedBoxes', null=True)
+    copy_nr = models.CharField(max_length=10, default='0')
+    adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='pagesGroupGradingSchemeCheckedBoxes')
+    history = HistoricalRecords()
+
+class ReviewLock(models.Model):
+    pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='reviewLocks')
+    copy_no = models.CharField(max_length=10, default='0')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='reviewLocks', null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewLocks')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['pages_group', 'copy_no'],
+                name='uniq_review_lock_pages_group_copy',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['updated_at'], name='review_lock_updated_idx'),
+        ]
+
+
+###########################
+# Unrecognized review scans
+###########################
+class UnrecognizedReviewScan(models.Model):
+    ASSIGNMENT_MODE_NORMAL = "normal"
+    ASSIGNMENT_MODE_EXTRA = "extra"
+    ASSIGNMENT_MODE_CHOICES = (
+        (ASSIGNMENT_MODE_NORMAL, "Normal page"),
+        (ASSIGNMENT_MODE_EXTRA, "Extra page"),
+    )
+
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="unrecognized_review_scans")
+    relative_path = models.CharField(max_length=500)
+    filename = models.CharField(max_length=255)
+    original_filename = models.CharField(max_length=255, blank=True)
+    upload_order = models.PositiveIntegerField()
+
+    previous_copy_no = models.CharField(max_length=10, blank=True)
+    previous_page_no = models.CharField(max_length=10, blank=True)
+    previous_relative_path = models.CharField(max_length=500, blank=True)
+
+    next_copy_no = models.CharField(max_length=10, blank=True)
+    next_page_no = models.CharField(max_length=10, blank=True)
+    next_relative_path = models.CharField(max_length=500, blank=True)
+
+    assigned_copy_no = models.CharField(max_length=10, blank=True)
+    assigned_page_no = models.CharField(max_length=10, blank=True)
+    assigned_mode = models.CharField(max_length=10, choices=ASSIGNMENT_MODE_CHOICES, blank=True)
+    assigned_relative_path = models.CharField(max_length=500, blank=True)
+
+    resolved = models.BooleanField(default=False)
+    resolved_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resolved_unrecognized_review_scans",
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["exam_id", "upload_order", "id"]
+
+    def __str__(self):
+        return f"{self.exam.code} - {self.filename}"
