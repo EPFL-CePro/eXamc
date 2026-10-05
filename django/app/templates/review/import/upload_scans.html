@@ -291,8 +291,8 @@ function pollAmcImportJob(statusUrl, doneCallback) {
 }
 
 function call_amc_automatic_datacapture_process(){
-    var amc-process-modal-title = document.getElementById('amc-process-modal-title');
-    amc-process-modal-title.innerHTML = "Automatic data capture processing";
+    const amcProcessModalTitle = document.getElementById('amc-process-modal-title');
+    amcProcessModalTitle.innerHTML = "Automatic data capture processing";
     setProcessOutput('');
     $('#amc-process-modal').modal('show');    
     return $.ajax({
