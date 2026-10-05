@@ -11,12 +11,9 @@ ASSOC_TABLE = "association_association"
 NO_STUDENT = "NONE"
 
 
-class AmcAssociationError(RuntimeError):
-    """An association query failed."""
-
-
 class AmcAssociationDbManager(AbstractAmcDbManager):
-    """Access to AMC's association.sqlite.
+    """
+    Access to AMC's association.sqlite.
 
     In the association table, (student, copy) identify an answer sheet: `student` is the sheet
     number and `copy` the copy number (0 unless sheets were photocopied). `auto` and `manual` hold
@@ -29,36 +26,33 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
 
     @staticmethod
     def _code(code) -> str:
-        """Student codes are text: never go through int, which would drop leading zeros."""
+        """
+        Student codes are text: never go through int, which would drop leading zeros."""
         text = str(code).strip()
         if not text:
             raise ValueError("A student code is required")
         return text
 
-    def _execute(self, query: str, params: dict, error: str):
-        cursor = self._db.execute_query(query, params)
-        if cursor is None:
-            raise AmcAssociationError(error)
-        return cursor
 
     def sheets_of(self, code) -> list[tuple[Any]]:
-        """(student, copy) of the sheets currently associated with a student code.
+        """
+        (student, copy) of the sheets currently associated with a student code.
 
         Port of AMC::DataModule::association realBack.
         """
         code = self._code(code)
-        cursor = self._execute(
-            f"""
-            SELECT student, copy FROM {ASSOC_TABLE}
-            WHERE coalesce(manual, auto) = :code || ''
-            """,
-            {"code": code},
-            f"Could not read the sheets associated with {code}",
-        )
-        return [tuple(row) for row in cursor.fetchall()]
+        query_str = f"SELECT student, copy FROM {ASSOC_TABLE} WHERE coalesce(manual, auto) = :code || ''"
+        query_param = {"code": code}
+
+        try:
+            cursor = self._execute(query_str, query_param, f"Could not read the sheets associated with {code}")
+            return [tuple(row) for row in cursor.fetchall()]
+        finally:
+            self._db.close()
 
     def delete_target(self, code) -> list[tuple[Any]]:
-        """Unlink a student code from every sheet. Port of AMC::DataModule::association::delete_target.
+        """
+        Unlink a student code from every sheet. Port of AMC::DataModule::association::delete_target.
 
         Manual links to the code are cleared, falling back to `auto`; where `auto` is the code too,
         or the sheet only had the automatic link, manual becomes 'NONE' to override it.
@@ -68,44 +62,50 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
         code = self._code(code)
         previous = self.sheets_of(code)
 
-        self._execute(
-            f"""
+        query_str = f"""
             UPDATE {ASSOC_TABLE}
-            SET manual = CASE WHEN manual IS NULL OR auto = :code || '' THEN '{NO_STUDENT}' ELSE NULL END
-            WHERE manual = :code || '' OR (auto = :code || '' AND manual IS NULL)
-            """,
-            {"code": code},
-            f"Could not unlink the sheets associated with {code}",
-        )
+                SET manual = CASE WHEN manual IS NULL OR auto = :code || '' THEN '{NO_STUDENT}' ELSE NULL END
+                WHERE manual = :code || '' OR (auto = :code || '' AND manual IS NULL)
+        """
+        query_params = {"code": code}
 
-        return previous
+        try:
+            self._execute(query_str, query_params, f"Could not unlink the sheets associated with {code}")
+
+            return previous
+        finally:
+            self._db.close()
 
     def set_manual(self, sheet: int, copy: int, manual: str | None) -> None:
-        """Set a sheet's manual association. Port of AMC::DataModule::association::set_manual.
+        """
+        Set a sheet's manual association. Port of AMC::DataModule::association::set_manual.
 
         :param sheet: The sheet number (the table's `student` column).
         :param copy: The copy number.
         :param manual: A student code, 'NONE' for no student, or None to fall back to `auto`.
         """
-        params = {"sheet": sheet, "copy": copy, "manual": manual}
+        update_query_str = f"UPDATE {ASSOC_TABLE} SET manual = :manual WHERE student = :sheet AND copy = :copy"
+        update_query_params = {"sheet": sheet, "copy": copy, "manual": manual}
 
-        cursor = self._execute(
-            f"UPDATE {ASSOC_TABLE} SET manual = :manual WHERE student = :sheet AND copy = :copy",
-            params,
-            f"Could not update the association of sheet {sheet}/{copy}",
-        )
-        if cursor.rowcount > 0:
-            return
+        insert_query_str = f"INSERT INTO {ASSOC_TABLE} (student, copy, manual, auto) VALUES (:sheet, :copy, :manual, NULL)"
+        insert_query_params = {"sheet": sheet, "copy": copy, "manual": manual}
 
-        # No row yet for this sheet (never auto-associated): create it.
-        self._execute(
-            f"INSERT INTO {ASSOC_TABLE} (student, copy, manual, auto) VALUES (:sheet, :copy, :manual, NULL)",
-            params,
-            f"Could not create the association of sheet {sheet}/{copy}",
-        )
+        try:
+            cursor = self._execute(update_query_str, update_query_params,
+                f"Could not update the association of sheet {sheet}/{copy}",
+            )
+            if cursor.rowcount > 0: return
 
-    def associate_manually(self, code, sheet: int, copy: int = 0) -> list[tuple[int, int]]:
-        """Associate a student code with a sheet, unlinking it from any other sheet first.
+            # No row yet for this sheet (never auto-associated): create it.
+            self._execute(insert_query_str, insert_query_params,
+                f"Could not create the association of sheet {sheet}/{copy}",
+            )
+        finally:
+            self._db.close()
+
+    def associate_manually(self, code, sheet: int, copy: int = 0) -> list[tuple[Any]]:
+        """
+        Associate a student code with a sheet, unlinking it from any other sheet first.
 
         :return: The sheets the code was associated with before.
         """

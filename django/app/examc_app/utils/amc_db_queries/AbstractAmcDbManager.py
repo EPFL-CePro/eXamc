@@ -29,3 +29,19 @@ class AbstractAmcDbManager(ABC):
             raise AmcDbManagerError(f"Could not open AMC database {db_path}")
 
         return db
+
+    def _execute(self, query: str, params: dict | None = None, error: str = ""):
+        """
+        Helper method to execute a query and raise an error if the cursor is None.
+        :param query: The SQL query to execute.
+        :param params: The parameters to pass to the query.
+        :param error: The error message to raise if the cursor is None.
+        :return: The cursor object.
+        :raise AmcDbManagerError: if the cursor is None
+        """
+        if params is None: params = dict()
+        cursor = self._db.execute_query(query, params)
+
+        if cursor is None: raise AmcDbManagerError(error)
+
+        return cursor
