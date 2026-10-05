@@ -1,4 +1,3 @@
-import json
 import csv
 import os
 import pathlib
@@ -9,7 +8,7 @@ from functools import lru_cache
 import cv2
 import pyzbar.pyzbar as pyzbar
 from PIL import Image, ImageStat
-from django.conf import settings
+
 from django.db import transaction
 from django.db.models import Sum
 from fpdf import FPDF
@@ -852,7 +851,7 @@ def get_scan_url(exam: Exam, copy_nr, page_nr) -> str:
     return scan_url
 
 
-def get_grading_scheme_checkboxes(grading_scheme_id: int, copy_nr: int):
+def get_grading_scheme_checkboxes(grading_scheme_id: int, copy_nr: str):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
     grading_scheme_checkboxes_qs = QuestionGradingSchemeCheckBox.objects.filter(
         questionGradingScheme=grading_scheme).order_by('adjustment', 'id')
@@ -913,7 +912,7 @@ def get_grading_scheme_checkboxes(grading_scheme_id: int, copy_nr: int):
     return grading_scheme_checkboxes_list
 
 
-def other_grading_scheme_used(grading_scheme: QuestionGradingScheme, copy_nr: int) -> QuestionGradingScheme | None:
+def other_grading_scheme_used(grading_scheme: QuestionGradingScheme, copy_nr: str) -> QuestionGradingScheme | None:
     pages_group_gs_checkboxes = PagesGroupGradingSchemeCheckedBox.objects.filter(
         pages_group=grading_scheme.pages_group, copy_nr=copy_nr
     ).exclude(
@@ -928,7 +927,7 @@ def other_grading_scheme_used(grading_scheme: QuestionGradingScheme, copy_nr: in
     return None
 
 
-def get_question_points(grading_scheme: QuestionGradingScheme, copy_nr: int):
+def get_question_points(grading_scheme: QuestionGradingScheme, copy_nr: str):
     points = QuestionGradingSchemeCheckBox.objects.filter(
         questionGradingScheme=grading_scheme,
         pagesGroupGradingSchemeCheckedBoxes__copy_nr=copy_nr
