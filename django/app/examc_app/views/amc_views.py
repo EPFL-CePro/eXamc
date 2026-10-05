@@ -117,7 +117,7 @@ def _track_amc_job(request: HttpRequest, session_key: str, exam_pk: int, job_id:
 
 def _is_amc_job_owned(request: HttpRequest, session_key: str, exam_pk: int, job_id: str) -> bool:
     jobs = _prune_amc_annotate_jobs(request.session.get(session_key, {}))
-    request.session[AMC_ANNOTATE_JOBS_SESSION_KEY] = jobs
+    request.session[session_key] = jobs
     request.session.modified = True
     meta = jobs.get(str(job_id))
     return bool(meta and int(meta.get("exam_pk")) == int(exam_pk))
@@ -611,7 +611,7 @@ def import_scans_from_review(request: HttpRequest, exam_pk: int):
 
 @require_GET
 @exam_permission_required(['manage'])
-def amc_import_from_review_status(request, exam_pk: int,  job_id):
+def amc_import_from_review_status(request: HttpRequest, exam_pk: int,  job_id: str):
     if not _is_amc_import_job_owned(request, exam_pk, job_id):
         return JsonResponse({"status": "forbidden", "error": "Unknown or unauthorized job id."}, status=403)
 
