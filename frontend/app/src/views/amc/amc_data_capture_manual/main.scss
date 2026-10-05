@@ -35,23 +35,23 @@
                         display: flex;
                         flex-wrap: wrap;
                         min-width: 20rem;
-                        
-                        .badge {
-                            display: inline-block;
-                            margin: 0 2px 2px 0;
-                            padding: 0 4px;
-                            border: 1px solid #dee2e6;
-                            border-radius: 3px;
-                            font-size: 0.75em;
-                            white-space: nowrap;
+                    }
 
-                            &.invalid {
-                                background-color: #ffff33;
-                            }
+                    .badge {
+                        display: inline-block;
+                        margin: 0 2px 2px 0;
+                        padding: 0 4px;
+                        border: 1px solid #dee2e6;
+                        border-radius: 3px;
+                        font-size: 0.75em;
+                        white-space: nowrap;
 
-                            &.empty {
-                                background-color: #00ffff;
-                            }
+                        &.invalid {
+                            background-color: #ffff33;
+                        }
+
+                        &.empty {
+                            background-color: #00ffff;
                         }
                     }
                 }
