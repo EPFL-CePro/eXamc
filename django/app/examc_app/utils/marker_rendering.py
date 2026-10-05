@@ -23,14 +23,13 @@ import json
 import logging
 import shutil
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Callable
 
 from django.conf import settings
 from django.db.models import Sum
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-from examc_app.models import PageMarkers, PagesGroupGradingSchemeCheckedBox
+from examc_app.models import PageMarkers, PagesGroupGradingSchemeCheckedBox, Exam, PagesGroup, QuestionGradingScheme
 from examc_app.utils.amc_db_queries import get_question_max_points, select_copy_question_page
 from examc_app.utils.amc_functions import get_amc_project_path, get_amc_marks_positions_data
 
@@ -43,7 +42,7 @@ DEFAULT_FONT_PATHS = (
 logger = logging.getLogger(__name__)
 
 
-def resolve_scan_path(page_markers) -> Path:
+def resolve_scan_path(page_markers: PageMarkers) -> Path:
     """Resolve the original scan file path for a ``PageMarkers`` row.
 
     The stored filename is currently expected to be either:
@@ -76,7 +75,7 @@ def resolve_scan_path(page_markers) -> Path:
     return fallback
 
 
-def build_marked_scan_path(page_markers) -> Path:
+def build_marked_scan_path(page_markers: PageMarkers) -> Path:
     """Build the destination path for the derived marked scan image."""
     original_path = resolve_scan_path(page_markers)
     project_subdir = (
@@ -92,7 +91,7 @@ def build_marked_scan_path(page_markers) -> Path:
     )
 
 
-def get_exam_marked_scans_dir(exam) -> Path:
+def get_exam_marked_scans_dir(exam: Exam) -> Path:
     """Return the root marked_scans directory for one exam."""
     project_subdir = (
         f"{exam.year.code}/"
@@ -102,14 +101,14 @@ def get_exam_marked_scans_dir(exam) -> Path:
     return Path(settings.MARKED_SCANS_ROOT) / project_subdir
 
 
-def copy_number_variants(copy_nr) -> list[str]:
-    """Return common stored forms for a copy number, preserving priority."""
+def copy_number_variants(copy_nr: str) -> list[str]:
+    """Return forms stored in common for a copy number, preserving priority."""
     raw = str(copy_nr)
     variants = [raw, raw.zfill(4), raw.zfill(2), raw.lstrip("0") or "0"]
     return list(dict.fromkeys(variants))
 
 
-def render_key(pages_group_id, copy_nr, page_no) -> tuple[int, str, str]:
+def render_key(pages_group_id: int, copy_nr: str, page_no: str) -> tuple[int, str, str]:
     """Normalize page identity across zero-padded and non-padded values."""
     return (
         pages_group_id,
@@ -118,7 +117,7 @@ def render_key(pages_group_id, copy_nr, page_no) -> tuple[int, str, str]:
     )
 
 
-def get_grading_copy_nr(pages_group, copy_nr, grading_scheme=None) -> str:
+def get_grading_copy_nr(pages_group: PagesGroup, copy_nr: str, grading_scheme: QuestionGradingScheme | None = None) -> str:
     """Resolve the copy number form used in grading checked-box rows."""
     variants = copy_number_variants(copy_nr)
     checked_boxes = PagesGroupGradingSchemeCheckedBox.objects.filter(
@@ -137,7 +136,7 @@ def get_grading_copy_nr(pages_group, copy_nr, grading_scheme=None) -> str:
     return str(copy_nr)
 
 
-def get_grading_question_points(grading_scheme, copy_nr):
+def get_grading_question_points(grading_scheme: QuestionGradingScheme, copy_nr: str):
     """Compute grading-scheme points using the stored copy number variant."""
     grading_copy_nr = get_grading_copy_nr(grading_scheme.pages_group, copy_nr, grading_scheme)
     checked_boxes = PagesGroupGradingSchemeCheckedBox.objects.filter(
@@ -183,13 +182,15 @@ def scaled_rect(marker: dict, scale_x: float, scale_y: float) -> tuple[int, int,
     return left, top, width, height
 
 
-def render_freehand_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float) -> None:
-    """Render a ``FreehandMarker`` from either embedded PNG data or point paths."""
+def render_freehand_marker(base_img: Image.Image, marker: dict, scale_x: float | int, scale_y: float | int ) -> None:
+    """
+    Render a ``FreehandMarker`` from either embedded PNG data or point paths
+    ."""
     drawing = marker.get("drawingImgUrl")
-    if drawing:
+    if isinstance(drawing, str):
         overlay = image_from_data_url(drawing)
         left, top, width, height = scaled_rect(marker, scale_x, scale_y)
-        overlay = overlay.resize((width, height), Image.LANCZOS)
+        overlay = overlay.resize((width, height), Image.Resampling.LANCZOS)
         base_img.alpha_composite(overlay, (left, top))
         return
 
@@ -219,7 +220,7 @@ def render_freehand_marker(base_img: Image.Image, marker: dict, scale_x: float, 
     base_img.alpha_composite(overlay)
 
 
-def render_highlight_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float) -> None:
+def render_highlight_marker(base_img: Image.Image, marker: dict, scale_x: float| int , scale_y: float| int ) -> None:
     """Render a ``HighlightMarker`` as a filled rectangle overlay."""
     left, top, width, height = scaled_rect(marker, scale_x, scale_y)
     fill = parse_rgba(marker.get("fillColor", "#000000"), marker.get("opacity", 1))
@@ -230,7 +231,7 @@ def render_highlight_marker(base_img: Image.Image, marker: dict, scale_x: float,
     base_img.alpha_composite(overlay)
 
 
-def render_frame_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float) -> None:
+def render_frame_marker(base_img: Image.Image, marker: dict, scale_x: float| int , scale_y: float| int ) -> None:
     """Render a ``FrameMarker`` as a rectangle stroke."""
     left, top, width, height = scaled_rect(marker, scale_x, scale_y)
     stroke = parse_rgba(marker.get("strokeColor", "#000000"), marker.get("opacity", 1))
@@ -262,7 +263,7 @@ def grow_font(font, delta: int):
         return font
     font_path = getattr(font, "path", None)
     font_size = getattr(font, "size", None)
-    if font_path and font_size:
+    if isinstance(font_path, str) and isinstance(font_size, int | float):
         try:
             return ImageFont.truetype(font_path, font_size + delta)
         except OSError:
@@ -306,12 +307,12 @@ def fit_wrapped_font(draw: ImageDraw.ImageDraw, text: str, max_width: int, max_h
     return font, wrap_text(draw, text, font, max_width), 2
 
 
-def line_metrics(draw: ImageDraw.ImageDraw, line: str, font) -> tuple[int, int, int, int]:
+def line_metrics(draw: ImageDraw.ImageDraw, line: str, font) -> tuple[float|int, float|int, float|int, float|int]:
     """Return Pillow text bbox metrics for one line."""
     return draw.textbbox((0, 0), line or " ", font=font)
 
 
-def render_text_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float) -> None:
+def render_text_marker(base_img: Image.Image, marker: dict, scale_x: float | int, scale_y: float | int) -> None:
     """Render a ``TextMarker`` using approximate server-side text layout."""
     left, top, width, height = scaled_rect(marker, scale_x, scale_y)
     avg_scale = max(0.1, (scale_x + scale_y) / 2)
@@ -380,10 +381,14 @@ def render_text_marker(base_img: Image.Image, marker: dict, scale_x: float, scal
     base_img.alpha_composite(overlay)
 
 
-def render_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float) -> None:
-    """Dispatch rendering based on markerjs3 ``typeName``."""
+def render_marker(base_img: Image.Image, marker: dict, scale_x: float| int, scale_y: float | int) -> None:
+    """
+    Dispatch rendering based on markerjs3 `typeName`.
+    """
     marker_type = marker.get("typeName")
-    renderer_map: dict[str, Callable[[Image.Image, dict, float, float], None]] = {
+    if not marker_type or not isinstance(marker_type, str): return
+
+    renderer_map: dict[str, Callable[[Image.Image, dict, float | int, float | int], None]] = {
         "FreehandMarker": render_freehand_marker,
         "HighlightMarker": render_highlight_marker,
         "FrameMarker": render_frame_marker,
@@ -394,23 +399,23 @@ def render_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: 
         renderer(base_img, marker, scale_x, scale_y)
 
 
-def get_active_grading_scheme(page_markers):
+def get_active_grading_scheme(page_markers: PageMarkers):
     """Return the grading scheme currently applied to this copy/pages_group, if any."""
     checked_box = (
         PagesGroupGradingSchemeCheckedBox.objects
-        .filter(
-            pages_group=page_markers.pages_group,
-            copy_nr__in=copy_number_variants(page_markers.copie_no),
-        )
-        .select_related("gradingSchemeCheckBox__questionGradingScheme")
-        .first()
+            .filter(
+                pages_group=page_markers.pages_group,
+                copy_nr__in=copy_number_variants(page_markers.copie_no),
+            )
+            .select_related("gradingSchemeCheckBox__questionGradingScheme")
+            .first()
     )
     if not checked_box or not checked_box.gradingSchemeCheckBox:
         return None
     return checked_box.gradingSchemeCheckBox.questionGradingScheme
 
 
-def get_review_corr_box_index_for_page(page_markers):
+def get_review_corr_box_index_for_page(page_markers: PageMarkers) -> int | None:
     """Recompute the active corr-box index from grading DB state for this page."""
     grading_scheme = get_active_grading_scheme(page_markers)
     if not grading_scheme:
@@ -424,7 +429,10 @@ def get_review_corr_box_index_for_page(page_markers):
         points = float(grading_scheme.max_points)
 
     if points > 0:
-        amc_data_path = get_amc_project_path(pages_group.exam, True) + "/data/"
+        amc_project_path = get_amc_project_path(pages_group.exam, True)
+        if not amc_project_path: return None
+        amc_data_path = amc_project_path + "/data/"
+
         question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
 
         # Only the page that owns the corr boxes should render the grading overlay.
@@ -450,8 +458,10 @@ def get_review_corr_box_index_for_page(page_markers):
     return 0 if zero_checked else -1
 
 
-def build_grading_corr_box_marker(page_markers, state: dict, image_width: int, image_height: int) -> dict | None:
-    """Build a derived HighlightMarker from grading-scheme DB state for export."""
+def build_grading_corr_box_marker(page_markers: PageMarkers, state: dict, image_width: int, image_height: int) -> dict | None:
+    """
+    Build a derived HighlightMarker from grading-scheme DB state for export.
+    """
     if not getattr(page_markers.pages_group, "use_grading_scheme", False):
         return None
 
@@ -486,17 +496,17 @@ def build_grading_corr_box_marker(page_markers, state: dict, image_width: int, i
     }
 
 
-def render_marked_scan(page_markers, extra_markers: list[dict] | None = None, require_grading_marker: bool = False) -> Path | None:
+def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | None = None, require_grading_marker: bool = False) -> Path | None:
     """Render one marked scan image from a ``PageMarkers`` database row.
 
-    Args:
-        page_markers: ``PageMarkers`` instance containing persisted marker JSON.
-        extra_markers: Optional additional marker definitions rendered on top of
-            the persisted state. This is intended for future derived overlays,
-            such as grading-driven correction box highlights.
+    :arg page_markers: `PageMarkers` instance containing persisted marker JSON.
+    :arg extra_markers: Optional additional marker definitions rendered on top of the persisted state.
+        This is intended for future derived overlays, such as grading-driven correction box highlights.
+    :arg require_grading_marker: If True, raise an error if no grading marker is found in the page markers.
 
-    Returns:
-        Filesystem path to the generated PNG file under ``MARKED_SCANS_ROOT``.
+
+    :return: Filesystem path to the generated PNG file under `MARKED_SCANS_ROOT`.
+    :rtype: Path
     """
     if not page_markers.markers:
         raise ValueError("Page markers do not contain marker state")
@@ -536,7 +546,7 @@ def render_marked_scan(page_markers, extra_markers: list[dict] | None = None, re
     return output_path
 
 
-def build_scan_path_for_copy_page(exam, copy_nr, page_no) -> Path | None:
+def build_scan_path_for_copy_page(exam: Exam, copy_nr: str, page_no: str) -> Path | None:
     """Find the original scan file for a copy/page under SCANS_ROOT."""
     project_subdir = (
         f"{exam.year.code}/"
@@ -583,9 +593,14 @@ def build_empty_marker_state(image_path: Path) -> str:
     })
 
 
-def build_synthetic_page_markers_for_grading(pages_group, copy_nr):
+def build_synthetic_page_markers_for_grading(pages_group: PagesGroup, copy_nr: str) -> PageMarkers | None:
     """Build a PageMarkers-like object for grading-only rendering."""
-    amc_data_path = get_amc_project_path(pages_group.exam, True) + "/data/"
+    amc_project_path = get_amc_project_path(pages_group.exam, True)
+
+    if not amc_project_path: return None
+
+    amc_data_path = amc_project_path + "/data/"
+
     try:
         question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
     except (IndexError, TypeError, ValueError, AttributeError):
@@ -602,18 +617,18 @@ def build_synthetic_page_markers_for_grading(pages_group, copy_nr):
     if not image_path:
         return None
 
-    return SimpleNamespace(
-        exam=pages_group.exam,
-        pages_group=pages_group,
+    return PageMarkers(
         copie_no=str(copy_nr).zfill(4),
         page_no=str(question_page),
+        pages_group=pages_group,
         filename=str(image_path),
         markers=build_empty_marker_state(image_path),
+        exam=pages_group.exam,
     )
 
 
 def render_grading_only_marked_scans_for_exam(
-    exam,
+    exam: Exam,
     rendered_keys: set[tuple[int, str, str]] | None = None,
     selected_filenames: set[str] | None = None,
 ) -> int:
@@ -629,11 +644,13 @@ def render_grading_only_marked_scans_for_exam(
 
 
 def iter_render_grading_only_marked_scans(
-    exam,
+    exam: Exam,
     rendered_keys: set[tuple[int, str, str]] | None = None,
     selected_filenames: set[str] | None = None,
 ):
-    """Yield each grading-derived marked scan rendered without a PageMarkers row."""
+    """
+    Yield each grading-derived marked scan rendered without a PageMarkers row.
+    """
     if rendered_keys is None:
         rendered_keys = {
             render_key(row["pages_group_id"], row["copie_no"], row["page_no"])
@@ -686,7 +703,7 @@ def iter_render_grading_only_marked_scans(
             )
 
 
-def regenerate_marked_scans_for_exam(exam, progress_callback: Callable[[int, int], None] | None = None) -> int:
+def regenerate_marked_scans_for_exam(exam: Exam, progress_callback: Callable[[int, int], None] | None = None) -> int:
     """Regenerate all derived marked scan images for an exam from DB marker state."""
     marked_dir = get_exam_marked_scans_dir(exam)
     if marked_dir.exists():
@@ -703,17 +720,3 @@ def regenerate_marked_scans_for_exam(exam, progress_callback: Callable[[int, int
         rendered_keys.add(render_key(page_markers.pages_group_id, page_markers.copie_no, page_markers.page_no))
 
     return total + render_grading_only_marked_scans_for_exam(exam, rendered_keys)
-
-
-def regenerate_marked_scans_for_page_markers(page_markers_qs) -> int:
-    """Regenerate marked scans for a specific queryset/iterable of PageMarkers rows."""
-    if hasattr(page_markers_qs, "iterator") and hasattr(page_markers_qs, "count"):
-        total = page_markers_qs.count()
-        page_markers_iterable = page_markers_qs.iterator()
-    else:
-        page_markers_iterable = list(page_markers_qs)
-        total = len(page_markers_iterable)
-
-    for page_markers in page_markers_iterable:
-        render_marked_scan(page_markers)
-    return total
