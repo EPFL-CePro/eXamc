@@ -17,7 +17,8 @@ from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manu
 from examc_app.services.amc_jobs import AmcJobsManager
 from examc_app.tasks import import_csv_data, amc_annotate_task, amc_import_from_review_task
 from examc_app.utils.amc.path import resolve_amc_path
-from examc_app.utils.amc_db_queries.association import AmcAssociationError
+from examc_app.utils.amc_db_queries.AbstractAmcDbManager import AmcDbManagerError
+from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import (
@@ -1001,20 +1002,20 @@ def amc_set_manual_association(request: HttpRequest, exam_pk: int) -> JsonRespon
             {"error": "No association data for this exam yet. Run the automatic association or the marking first."},
             status=404)
 
-    db = AmcAssociationDbManager(amc_data_path)
+    amc_association_db_manager = AmcAssociationDbManager(amc_data_path)
 
     try:
         no_student_choice = "0"
         if code in ("", no_student_choice):
-            db.unlink(sheet, copy)
+            amc_association_db_manager.unlink(sheet, copy)
             logger.info("%s removed the student of sheet %s/%s (exam %s)", request.user, sheet, copy, exam.pk)
         else:
-            previous = db.associate_manually(code, sheet, copy)
+            previous = amc_association_db_manager.associate_manually(code, sheet, copy)
             logger.info(
                 "%s associated student %s with sheet %s/%s (exam %s), previously on %s",
                 request.user, code, sheet, copy, exam.pk, previous or "no sheet",
             )
-    except AmcAssociationError:
+    except AmcDbManagerError:
         logger.exception("Manual association failed for sheet %s/%s, student %r (exam %s)", sheet, copy, code, exam.pk)
         return JsonResponse({"error": "The association could not be saved."})
 
@@ -1062,10 +1063,12 @@ def get_amc_scan_url(request: HttpRequest, exam_pk: int):
         c = copy_nr.zfill(4)
         scan_path = Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
     else:
-        raw = select_amc_scan_path(f'{project_path}/data/', copy_nr, page_nr)
-        if not raw:
+        raw_scan_path = AmcCaptureDbManager(f'{project_path}/data/').select_amc_scan_path(copy_nr, page_nr)
+
+        if not raw_scan_path:
             return HttpResponseNotFound('No scan for this page')
-        scan_path = resolve_amc_path(raw, project_path)
+
+        scan_path = resolve_amc_path(raw_scan_path, project_path)
 
     roots = [Path(settings.MARKED_SCANS_ROOT), Path(settings.SCANS_ROOT), Path(project_path, 'scans', 'extra')]
     root = next((r.resolve() for r in roots if scan_path.is_relative_to(r.resolve())), None)
