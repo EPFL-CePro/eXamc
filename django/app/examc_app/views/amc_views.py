@@ -1,9 +1,7 @@
-import json
-import logging
-from django.utils import timezone
 import pathlib
-from typing import Any
+from typing import Any, Final
 
+import celery
 from celery.result import AsyncResult
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import UploadedFile
@@ -16,10 +14,10 @@ from django.views.decorators.http import require_POST, require_GET
 from examc_app.decorators import exam_permission_required
 from examc_app.models import *
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
+from examc_app.services.amc_jobs import AmcJobsManager
 from examc_app.tasks import import_csv_data, amc_annotate_task, amc_import_from_review_task
 from examc_app.utils.amc.path import resolve_amc_path
-from examc_app.utils.amc_db_queries.association import AmcAssociationError, AmcAssociationDbManager
-
+from examc_app.utils.amc_db_queries.association import AmcAssociationError
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import (
@@ -36,10 +34,8 @@ from examc_app.utils.review_functions import (
 )
 from examc_app.utils.review_upload_state import clear_pending_amc_import
 
-AMC_ANNOTATE_JOBS_SESSION_KEY = "amc_annotate_jobs"
-AMC_IMPORT_JOBS_SESSION_KEY = "amc_import_jobs"
-AMC_ANNOTATE_JOB_TTL_SECONDS = 24 * 3600
-AMC_ANNOTATE_JOB_MAX_TRACKED = 200
+AMC_ANNOTATE_JOBS_SESSION_KEY: Final = "amc_annotate_jobs"
+AMC_IMPORT_JOBS_SESSION_KEY: Final = "amc_import_jobs"
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +47,7 @@ def streaming_text_response(iterator):
     return response
 
 
-def logged_stream(iterator, operation, exam_pk: int,  user=None):
+def logged_stream(iterator, operation, exam_pk: int, user=None):
     user_pk = getattr(user, "pk", None)
     logger.info("AMC stream started operation=%s exam=%s user=%s", operation, exam_pk, user_pk)
     try:
@@ -76,79 +72,13 @@ def logged_stream(iterator, operation, exam_pk: int,  user=None):
         logger.info("AMC stream completed operation=%s exam=%s user=%s", operation, exam_pk, user_pk)
 
 
-def _prune_amc_annotate_jobs(raw_jobs):
-    """Keep only valid/recent annotate jobs for session ownership checks."""
-    if not isinstance(raw_jobs, dict):
-        return {}
-
-    now_ts = int(timezone.now().timestamp())
-    min_ts = now_ts - AMC_ANNOTATE_JOB_TTL_SECONDS
-    pruned = {}
-    for job_id, meta in raw_jobs.items():
-        if not isinstance(meta, dict):
-            continue
-        created_at = int(meta.get("created_at", 0))
-        exam_pk = meta.get("exam_pk")
-        if created_at < min_ts or exam_pk:
-            continue
-
-        pruned[str(job_id)] = {
-            "exam_pk": int(exam_pk),
-            "created_at": created_at,
-        }
-
-    if len(pruned) > AMC_ANNOTATE_JOB_MAX_TRACKED:
-        # Keep the newest jobs only.
-        sorted_items = sorted(pruned.items(), key=lambda item: item[1]["created_at"], reverse=True)
-        pruned = dict(sorted_items[:AMC_ANNOTATE_JOB_MAX_TRACKED])
-
-    return pruned
-
-
-def _track_amc_job(request: HttpRequest, session_key: str, exam_pk: int, job_id: str) -> None:
-    jobs = _prune_amc_annotate_jobs(request.session.get(session_key, {}))
-    jobs[str(job_id)] = {
-        "exam_pk": int(exam_pk),
-        "created_at": int(timezone.now().timestamp()),
-    }
-    request.session[session_key] = _prune_amc_annotate_jobs(jobs)
-    request.session.modified = True
-
-def _is_amc_job_owned(request: HttpRequest, session_key: str, exam_pk: int, job_id: str) -> bool:
-    jobs = _prune_amc_annotate_jobs(request.session.get(session_key, {}))
-    request.session[session_key] = jobs
-    request.session.modified = True
-    meta = jobs.get(str(job_id))
-    return bool(meta and int(meta.get("exam_pk")) == int(exam_pk))
-
-
-def _track_amc_annotate_job(request: HttpRequest, exam_pk: int, job_id: str) -> None:
-    _track_amc_job(request, AMC_ANNOTATE_JOBS_SESSION_KEY, exam_pk, job_id)
-
-
-def _is_amc_annotate_job_owned(request: HttpRequest, exam_pk: int,  job_id: str) -> bool:
-    return _is_amc_job_owned(request, AMC_ANNOTATE_JOBS_SESSION_KEY, exam_pk, job_id)
-
-def _track_amc_import_job(request: HttpRequest, exam_pk: int, job_id: str) -> None:
-    _track_amc_job(request, AMC_IMPORT_JOBS_SESSION_KEY, exam_pk, job_id)
-
-def _is_amc_import_job_owned(request: HttpRequest, exam_pk: int,  job_id: str) -> bool:
-    return _is_amc_job_owned(request, AMC_IMPORT_JOBS_SESSION_KEY, exam_pk, job_id)
-
-
-
-def _get_running_amc_import_job_id(request: HttpRequest, exam_pk: int):
-    jobs = _prune_amc_annotate_jobs(request.session.get(AMC_IMPORT_JOBS_SESSION_KEY, {}))
-    request.session[AMC_IMPORT_JOBS_SESSION_KEY] = jobs
-    request.session.modified = True
-
-    for job_id, meta in jobs.items():
-        if int(meta.get("exam_pk")) != int(exam_pk):
-            continue
-        if AsyncResult(job_id).state in ("PENDING", "RECEIVED", "STARTED", "PROGRESS", "RETRY"):
-            return job_id
-    return None
-
+def _job_response(status_url_name: str, exam_pk: int, job_id: str, existing: bool = False) -> JsonResponse:
+    """202 response pointing the frontend to the job's status URL."""
+    return JsonResponse({
+        "job_id": job_id,
+        "status_url": reverse(status_url_name, args=[exam_pk, job_id]),
+        "existing": existing,
+    }, status=202)
 
 
 @exam_permission_required(['manage'])
@@ -165,22 +95,42 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
     if request.method == 'POST':
         if 'amc_project_zip_file' not in request.FILES:
             message = "No zip file provided."
-            return render(request, 'amc/upload_amc_project.html', {'exam': exam,'message': message,"nav_url":"upload_amc_project"})
+            return render(
+                request,
+                'amc/upload_amc_project.html',
+                {
+                    'exam': exam,
+                    'message': message,
+                    "nav_url": "upload_amc_project"
+                }
+            )
 
         zip_file = request.FILES['amc_project_zip_file']
 
-        message = create_amc_project_dir_from_zip(exam,zip_file)
+        message = create_amc_project_dir_from_zip(exam, zip_file)
 
         create_students_from_amc(exam)
 
-        return render(request, 'amc/upload_amc_project.html', {
+        return render(
+            request,
+            'amc/upload_amc_project.html',
+            {
+                'exam': exam,
+                'exam_selected': exam_selected,
+                'nav_url': "upload_amc_project",
+                'message': message
+            }
+        )
+
+    return render(
+        request,
+        'amc/upload_amc_project.html',
+        {
             'exam': exam,
             'exam_selected': exam_selected,
-            'nav_url': "upload_amc_project",
-            'message': message
-        })
-
-    return render(request, 'amc/upload_amc_project.html', {'exam': exam, 'exam_selected': exam_selected,'nav_url': "upload_amc_project"})
+            'nav_url': "upload_amc_project"
+        }
+    )
 
 
 @exam_permission_required(['manage'])
@@ -194,7 +144,7 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
     if user_allowed(exam, request.user.id):
         if amc_data_path:
             # get amc options and infos
-            amc_option_nb_copies = get_amc_option_by_key(exam,'nombre_copies')
+            amc_option_nb_copies = get_amc_option_by_key(exam, 'nombre_copies')
             amc_update_documents_msg = get_amc_update_document_info(exam)
             amc_layout_detection_msg = get_amc_layout_detection_info(exam)
             #amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
@@ -212,21 +162,23 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
             number_of_incomplete_copies = len(amc_data_capture_summary[1])
             missing_pages = amc_data_capture_summary[1]
             if number_of_incomplete_copies > 0:
-                data_capture_message = "Data capture from "+str(number_of_copies-number_of_incomplete_copies)+" complete and "+str(number_of_incomplete_copies)+" incomplete papers"
+                data_capture_message = "Data capture from " + str(
+                    number_of_copies - number_of_incomplete_copies) + " complete and " + str(
+                    number_of_incomplete_copies) + " incomplete papers"
             else:
-                data_capture_message = "Data capture from "+str(number_of_copies)+" complete papers"
+                data_capture_message = "Data capture from " + str(number_of_copies) + " complete papers"
             nb_unrecognized_pages = amc_data_capture_summary[2]
 
             overwritten_pages = amc_data_capture_summary[3]
 
-            students_list = get_amc_option_by_key(exam,"listeetudiants").replace("%PROJET/",'')
+            students_list = get_amc_option_by_key(exam, "listeetudiants").replace("%PROJET/", '')
 
             has_results = get_amc_results_file_path(exam)
 
             scans_list = get_scans_list(exam)
             scans_list_json_string = json.dumps(scans_list)
 
-            has_grading_schemes = PagesGroup.objects.filter(exam=exam,use_grading_scheme=True).exists()
+            has_grading_schemes = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True).exists()
 
             exam_nb_pages = 1
             if data_capture_manual is not None:
@@ -248,11 +200,11 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
             context['overwritten_pages'] = overwritten_pages
             context['students_list'] = students_list
             context['students_list_headers'] = get_students_csv_headers(exam)
-            context['auto_assoc_pk'] = get_amc_option_by_key(exam,'liste_key')
+            context['auto_assoc_pk'] = get_amc_option_by_key(exam, 'liste_key')
             context['auto_assoc_code'] = get_automatic_association_code(exam)
             context['mean'] = get_amc_mean(exam)
             context['questions_scoring_details'] = get_questions_scoring_details_list(exam)
-            context['count_missing_assoc'] = get_count_missing_associations(amc_data_path+'/data/')
+            context['count_missing_assoc'] = get_count_missing_associations(amc_data_path + '/data/')
             context['annotated_papers_available'] = check_annotated_papers_available(exam)
             context['has_results'] = has_results
             context['has_grading_schemes'] = has_grading_schemes
@@ -306,8 +258,7 @@ def amc_data_capture_manual(request: HttpRequest, exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def get_amc_marks_positions(request: HttpRequest,exam_pk: int):
-
+def get_amc_marks_positions(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     copy = request.POST['copy']
     page = request.POST['page']
@@ -316,9 +267,10 @@ def get_amc_marks_positions(request: HttpRequest,exam_pk: int):
 
     return HttpResponse(json.dumps(data_positions))
 
+
 @require_POST
 @exam_permission_required(['manage'])
-def get_unrecognized_pages(request: HttpRequest,exam_pk: int):
+def get_unrecognized_pages(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     amc_project_path = get_amc_project_path(exam, False)
     unrecognized_pages = None
@@ -333,7 +285,7 @@ def get_unrecognized_pages(request: HttpRequest,exam_pk: int):
                 print("******************* " + str(Path.home()) + " **************************")
 
                 app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
-                file_path = file_path.replace(app_home_path+'/', '')
+                file_path = file_path.replace(app_home_path + '/', '')
                 print("******************* " + file_path + " **************************")
 
                 # change old file path (www/html/...) to new (srv/examc/private_media/...) from amc db
@@ -342,17 +294,16 @@ def get_unrecognized_pages(request: HttpRequest,exam_pk: int):
             file_root = str(settings.SCANS_ROOT)
             if file_path.startswith(str(settings.MARKED_SCANS_ROOT)):
                 file_root = str(settings.MARKED_SCANS_ROOT)
-            file_path = make_token_for(os.path.relpath(file_path,file_root), file_root)
+            file_path = make_token_for(os.path.relpath(file_path, file_root), file_root)
 
             unrecognized_page['filepath'] = file_path
-
 
     return HttpResponse(json.dumps(unrecognized_pages))
 
 
 @exam_permission_required(['manage'])
 @require_POST
-def update_amc_mark_zone(request: HttpRequest,exam_pk: int):
+def update_amc_mark_zone(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     zoneid = request.POST['zoneid']
     copy = request.POST['copy']
@@ -361,6 +312,7 @@ def update_amc_mark_zone(request: HttpRequest,exam_pk: int):
     update_amc_mark_zone_data(exam, zoneid, copy, page)
 
     return HttpResponse('')
+
 
 def _resolve_amc_project_file(amc_project_path: str, relative_path: str) -> Path:
     project_root = Path(amc_project_path).resolve()
@@ -383,12 +335,15 @@ def _resolve_students_list_path(exam, amc_project_path: str) -> Path:
     return students_list_path
 
 
-
 @exam_permission_required(['manage'])
 @require_POST
-def edit_amc_file(request: HttpRequest,exam_pk: int):
+def edit_amc_file(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     amc_project_path = get_amc_project_path(exam, False)
+
+    if not amc_project_path:
+        raise Http404("AMC project path not found")
+
     if request.POST['filepath'] == 'students_list':
         filepath = _resolve_students_list_path(exam, amc_project_path)
         f = open(filepath, 'r')
@@ -405,13 +360,17 @@ def edit_amc_file(request: HttpRequest,exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def save_amc_edited_file(request: HttpRequest,exam_pk: int):
+def save_amc_edited_file(request: HttpRequest, exam_pk: int):
     data = request.POST['data']
     exam = Exam.objects.get(pk=exam_pk)
     amc_project_path = get_amc_project_path(exam, False)
+
+    if not amc_project_path:
+        raise Http404("AMC project path not found")
+
     filepath = _resolve_amc_project_file(amc_project_path, request.POST['filepath'])
     if 'is_students_list' in request.POST:
-        tmp_filepath = get_amc_project_path(exam,False)+'/_tmp_students.csv'
+        tmp_filepath = get_amc_project_path(exam, False) + '/_tmp_students.csv'
         shutil.copyfile(filepath, tmp_filepath)
         f = open(tmp_filepath, 'r+', encoding="utf-8")
         f.truncate(0)
@@ -419,7 +378,7 @@ def save_amc_edited_file(request: HttpRequest,exam_pk: int):
         f.close()
         check = check_students_csv_file(tmp_filepath)
         if check == 'ok':
-            os.rename(tmp_filepath,filepath)
+            os.rename(tmp_filepath, filepath)
         else:
             os.remove(tmp_filepath)
             check += " -- file not updated !"
@@ -435,43 +394,45 @@ def save_amc_edited_file(request: HttpRequest,exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def call_amc_update_documents(request: HttpRequest,exam_pk: int):
+def call_amc_update_documents(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     nb_copies = request.POST['nb_copies']
 
-    result = amc_update_documents(exam,nb_copies,False)
+    result = amc_update_documents(exam, nb_copies, False)
 
     return HttpResponse(result)
 
 
 @exam_permission_required(['manage'])
 @require_POST
-def call_amc_layout_detection(request: HttpRequest,exam_pk: int):
+def call_amc_layout_detection(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     result = amc_layout_detection(exam)
     if not 'ERR:' in result:
         result = get_amc_layout_detection_info(exam)
     return HttpResponse(result)
 
+
 @require_POST
 @exam_permission_required(['manage'])
-def call_amc_automatic_data_capture(request: HttpRequest,exam_pk: int, from_review=False):
+def call_amc_automatic_data_capture(request: HttpRequest, exam_pk: int, from_review=False):
     exam = Exam.objects.get(pk=exam_pk)
     zip_file = request.FILES['amc_scans_zip_file']
 
     return streaming_text_response(
         logged_stream(
-            amc_automatic_datacapture_subprocess(request, exam,zip_file,from_review,file_list_path=None),
+            amc_automatic_datacapture_subprocess(request, exam, zip_file, from_review, file_list_path=None),
             "automatic_data_capture_upload",
             exam.pk,
             request.user,
         )
     )
 
+
 @exam_permission_required(['manage'])
 @require_POST
-def import_scans_from_review_pages(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
+def import_scans_from_review_pages(request: HttpRequest, exam_pk: int) -> JsonResponse:
+    exam = get_object_or_404(Exam, pk=exam_pk)
     scans_list = request.POST.getlist('pages_list[]')
     logger.info(
         "AMC import selected review scans requested exam=%s user=%s selected_count=%s",
@@ -479,20 +440,30 @@ def import_scans_from_review_pages(request: HttpRequest, exam_pk: int):
         getattr(request.user, "pk", None),
         len(scans_list),
     )
-    running_job_id = _get_running_amc_import_job_id(request, exam.pk)
-    if running_job_id:
+
+    status_url_name = "amc_import_from_review_status"
+
+    import_jobs = AmcJobsManager(
+        request=request,
+        session_key=AMC_ANNOTATE_JOBS_SESSION_KEY,
+        status_url_name=status_url_name
+    )
+
+    def job_response(job_id: str, existing: bool = False) -> JsonResponse:
         return JsonResponse({
-            "job_id": running_job_id,
-            "status_url": reverse("amc_import_from_review_status", args=[exam.pk, running_job_id]),
-            "existing": True,
+            "job_id": job_id,
+            "status_url": reverse(status_url_name, args=[exam.pk, job_id]),
+            "existing": existing,
         }, status=202)
 
+    running_job_id = import_jobs.get_running_job_id(exam.pk)
+
+    if running_job_id:
+        return job_response(running_job_id, existing=True)
+
     job = amc_import_from_review_task.delay(exam.pk, scans_list)
-    _track_amc_import_job(request, exam.pk, job.id)
-    return JsonResponse({
-        "job_id": job.id,
-        "status_url": reverse("amc_import_from_review_status", args=[exam.pk, job.id]),
-    }, status=202)
+    import_jobs.track(exam.pk, job.id)
+    return job_response(job.id)
 
 
 def stream_import_scans_from_review_pages(request: HttpRequest, exam, scans_list):
@@ -527,9 +498,9 @@ def stream_import_scans_from_review_pages(request: HttpRequest, exam, scans_list
 
         grading_count = 0
         for page_markers, output_path in iter_render_grading_only_marked_scans(
-            exam,
-            rendered_keys=rendered_keys,
-            selected_filenames=selected_filenames,
+                exam,
+                rendered_keys=rendered_keys,
+                selected_filenames=selected_filenames,
         ):
             grading_count += 1
             yield (
@@ -572,10 +543,11 @@ def stream_import_scans_from_review_pages(request: HttpRequest, exam, scans_list
 
     yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
 
+
 @exam_permission_required(['manage'])
 @require_POST
-def import_scans_from_review(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
+def import_scans_from_review(request: HttpRequest, exam_pk: int) -> JsonResponse:
+    exam = get_object_or_404(Exam, pk=exam_pk)
     logger.info(
         "AMC import all review scans requested exam=%s user=%s",
         exam.pk,
@@ -590,37 +562,41 @@ def import_scans_from_review(request: HttpRequest, exam_pk: int):
             "unresolved_count": unresolved_count,
         }, status=409)
 
-    running_job_id = _get_running_amc_import_job_id(request, exam.pk)
-    if running_job_id:
-        clear_pending_amc_import(request, exam.pk)
-        return JsonResponse({
-            "job_id": running_job_id,
-            "status_url": reverse("amc_import_from_review_status", args=[exam.pk, running_job_id]),
-            "existing": True,
-        }, status=202)
+    status_url_name = "amc_import_from_review_status"
 
-    job = amc_import_from_review_task.delay(exam.pk)
-    _track_amc_import_job(request, exam.pk, job.id)
+    import_jobs = AmcJobsManager(
+        request=request,
+        session_key=AMC_IMPORT_JOBS_SESSION_KEY,
+        status_url_name=status_url_name
+    )
+
+    job_id = import_jobs.get_running_job_id(exam.pk)
+    existing = job_id is not None
+    if job_id is None:
+        job_id = amc_import_from_review_task.delay(exam.pk).id
+        import_jobs.track(exam.pk, job_id)
+
     clear_pending_amc_import(request, exam.pk)
-    return JsonResponse({
-        "job_id": job.id,
-        "status_url": reverse("amc_import_from_review_status", args=[exam.pk, job.id]),
-    }, status=202)
+    return _job_response(status_url_name, exam.pk, job_id, existing)
 
 
 @require_GET
 @exam_permission_required(['manage'])
-def amc_import_from_review_status(request: HttpRequest, exam_pk: int,  job_id: str):
-    if not _is_amc_import_job_owned(request, exam_pk, job_id):
+def amc_import_from_review_status(request: HttpRequest, exam_pk: int, job_id: str) -> JsonResponse:
+    amc_job_manager = AmcJobsManager(
+        request=request,
+        session_key=AMC_IMPORT_JOBS_SESSION_KEY,
+        status_url_name="amc_import_from_review_status"
+    )
+
+    if not amc_job_manager.is_owned(exam_pk, job_id):
         return JsonResponse({"status": "forbidden", "error": "Unknown or unauthorized job id."}, status=403)
 
     res = AsyncResult(job_id)
 
-    if res.state in ("PENDING", "STARTED", "RETRY"):
-        return JsonResponse({"status": "running", "state": res.state, "output": ""})
-
-    if res.state == "PROGRESS":
-        meta = res.info if isinstance(res.info, dict) else {}
+    if not res.ready():
+        # PENDING, RECEIVED, STARTED, RETRY, or the custom PROGRESS state with output so far
+        meta = res.info if res.state == "PROGRESS" and isinstance(res.info, dict) else {}
         return JsonResponse({
             "status": "running",
             "state": res.state,
@@ -628,24 +604,25 @@ def amc_import_from_review_status(request: HttpRequest, exam_pk: int,  job_id: s
             "line_count": meta.get("line_count", 0),
         })
 
-    if res.state == "FAILURE":
-        meta = res.info if isinstance(res.info, dict) else {}
+    if res.state != celery.states.SUCCESS:
+        # FAILURE or REVOKED: res.result is the exception
         return JsonResponse({
             "status": "error",
             "state": res.state,
-            "error": meta.get("exc_message", str(res.result)),
-            "output": meta.get("output", ""),
-            "line_count": meta.get("line_count", 0),
+            "error": str(res.result) or "The import was cancelled.",
+            "output": "",
+            "line_count": 0,
         }, status=500)
 
-    result = res.result if isinstance(res.result, dict) else {}
+    result = res.result
+    if not isinstance(result, dict): result = {}
+
     return JsonResponse({
         "status": "done",
         "state": res.state,
         "output": result.get("output", ""),
         "line_count": result.get("line_count", 0),
     })
-
 
 def stream_import_scans_from_review(request: HttpRequest, exam):
     amc_proj_path = get_amc_project_path(exam, False)
@@ -654,16 +631,18 @@ def stream_import_scans_from_review(request: HttpRequest, exam):
     if os.path.exists(file_list_path):
         os.remove(file_list_path)
 
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
     logger.info("AMC full review import scans_dir exam=%s path=%s", exam.pk, scans_dir)
     marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
 
     yield "Generating marked scans from review annotations ...\n"
     logger.info("AMC full review import marked scan generation started exam=%s", exam.pk)
     marked_scans_root = get_exam_marked_scans_dir(exam)
     if marked_scans_root.exists():
-        logger.info("AMC full review import removing previous marked scan directory exam=%s path=%s", exam.pk, marked_scans_root)
+        logger.info("AMC full review import removing previous marked scan directory exam=%s path=%s", exam.pk,
+                    marked_scans_root)
         shutil.rmtree(marked_scans_root)
 
     page_markers_qs = PageMarkers.objects.filter(exam=exam).exclude(markers__isnull=True).exclude(markers="")
@@ -720,7 +699,6 @@ def stream_import_scans_from_review(request: HttpRequest, exam):
             else:
                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
-
     tmp_file_list = open(file_list_path, "w")
     files = [str(path) for path in iter_review_scan_files(scans_dir)]
     file_list_count = 0
@@ -756,6 +734,7 @@ def open_amc_exam_pdf(request: HttpRequest, exam_pk: int):
     except FileNotFoundError:
         raise Http404('not found')
 
+
 @exam_permission_required(['manage'])
 def open_amc_catalog_pdf(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
@@ -770,7 +749,7 @@ def open_amc_catalog_pdf(request: HttpRequest, exam_pk: int):
 @require_POST
 def view_amc_log_file(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
-    amc_log_file_path = get_amc_project_path(exam,False)+"/amc-compiled.log"
+    amc_log_file_path = get_amc_project_path(exam, False) + "/amc-compiled.log"
     f = open(amc_log_file_path, 'r', encoding='latin-1')
     file_contents = f.read()
     f.close()
@@ -779,42 +758,44 @@ def view_amc_log_file(request: HttpRequest, exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def get_amc_zooms(request: HttpRequest,exam_pk: int):
+def get_amc_zooms(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     copy = request.POST['copy']
     page = request.POST['page']
 
-    zooms_data = get_copy_page_zooms(exam,copy,page)
+    zooms_data = get_copy_page_zooms(exam, copy, page)
 
     return HttpResponse(json.dumps(zooms_data))
 
 
 @exam_permission_required(['manage'])
 @require_POST
-def add_unrecognized_page(request: HttpRequest,exam_pk: int):
+def add_unrecognized_page(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     page = request.POST['unrec_page']
     copy = request.POST['copy']
-    extra = True#request.POST['extra']
-    img_filename = request.POST['unrecognized-img-src']#.split('/')[-1]
-    add_unrecognized_page_to_project(exam,copy,page,extra,img_filename)
+    extra = True  #request.POST['extra']
+    img_filename = request.POST['unrecognized-img-src']  #.split('/')[-1]
+    add_unrecognized_page_to_project(exam, copy, page, extra, img_filename)
 
     return HttpResponse(True)
 
 
 @exam_permission_required(['manage'])
 @require_POST
-def call_amc_mark(request: HttpRequest,exam_pk: int):
+def call_amc_mark(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     update_scoring_strategy = request.POST['update_scoring_strategy']
 
     return streaming_text_response(amc_mark_subprocess(request, exam, update_scoring_strategy))
-   # result = amc_mark(exam,update_scoring_strategy)
+
+
+# result = amc_mark(exam,update_scoring_strategy)
 
 
 @exam_permission_required(['manage'])
 @require_POST
-def call_amc_automatic_association(request: HttpRequest,exam_pk: int):
+def call_amc_automatic_association(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     assoc_primary_key = request.POST['assoc_primary_key']
 
@@ -861,7 +842,7 @@ def amc_update_students_file(request: HttpRequest, exam_pk: int) -> HttpResponse
 
 @exam_permission_required(['manage'])
 @require_POST
-def old_call_amc_annotate(request: HttpRequest,exam_pk: int):
+def old_call_amc_annotate(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     single_file = request.POST['single_file']
     add_grading_scheme_report = request.POST['add_grading_scheme_report']
@@ -870,39 +851,49 @@ def old_call_amc_annotate(request: HttpRequest,exam_pk: int):
     else:
         single_file = False
 
-    result = amc_annotate(exam,single_file,add_grading_scheme_report)
+    result = amc_annotate(exam, single_file, add_grading_scheme_report)
 
     return HttpResponse(result)
 
+
 @require_POST
 @exam_permission_required(['manage'])
-def call_amc_annotate(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
+def call_amc_annotate(request: HttpRequest, exam_pk: int) -> JsonResponse:
+    exam = get_object_or_404(Exam, pk=exam_pk)
 
     single_file = request.POST.get("single_file") == "1"
-    add_grading_scheme_report = request.POST.get("add_grading_scheme_report") in ("true", "True", "1", True)
+    add_grading_scheme_report = request.POST.get("add_grading_scheme_report") in ("true", "True", "1")
 
-    job = amc_annotate_task.delay(exam_pk, single_file, add_grading_scheme_report)
-    _track_amc_annotate_job(request, exam_pk, job.id)
-    return JsonResponse({
-        "job_id": job.id,
-        "status_url": reverse("amc_annotate_status", args=[exam.pk,job.id]),
-    }, status=202)
+    amc_job_manager = AmcJobsManager(
+        request=request,
+        session_key=AMC_ANNOTATE_JOBS_SESSION_KEY,
+        status_url_name="amc_annotate_status",
+    )
+    job = amc_annotate_task.delay(exam.pk, single_file, add_grading_scheme_report)
+    amc_job_manager.track(exam.pk, job.id)
+
+    return _job_response(amc_job_manager.status_url_name, exam.pk, job.id)
+
+
+
 
 @require_GET
 @exam_permission_required(['manage'])
-def amc_annotate_status(request: HttpRequest, exam_pk: int,  job_id):
-    if not _is_amc_annotate_job_owned(request, exam_pk, job_id):
+def amc_annotate_status(request: HttpRequest, exam_pk: int, job_id: str) -> JsonResponse:
+    amc_job_manager = AmcJobsManager(
+        request=request,
+        session_key=AMC_ANNOTATE_JOBS_SESSION_KEY,
+        status_url_name="amc_annotate_status",
+    )
+    if not amc_job_manager.is_owned(exam_pk, job_id):
         return JsonResponse({"status": "forbidden", "error": "Unknown or unauthorized job id."}, status=403)
 
     res = AsyncResult(job_id)
 
-    # Celery states: PENDING, STARTED, SUCCESS, FAILURE, RETRY...
-    if res.state in ("PENDING", "STARTED", "RETRY"):
-        return JsonResponse({"status": "running", "state": res.state})
-
-    if res.state == "PROGRESS":
-        meta = res.info if isinstance(res.info, dict) else {}
+    if not res.ready():
+        # PENDING, RECEIVED, STARTED, RETRY, or the custom PROGRESS state with its progress info
+        raw_info = res.info
+        meta: dict[str, Any] = raw_info if res.state == "PROGRESS" and isinstance(raw_info, dict) else {}
         return JsonResponse({
             "status": "running",
             "state": res.state,
@@ -911,17 +902,17 @@ def amc_annotate_status(request: HttpRequest, exam_pk: int,  job_id):
             "total": meta.get("total"),
         })
 
-    if res.state == "FAILURE":
-        meta = res.info if isinstance(res.info, dict) else {}
+    if res.state != celery.states.SUCCESS:
+        # FAILURE or REVOKED: res.result is the exception
         return JsonResponse({
             "status": "error",
             "state": res.state,
-            "error": meta.get("exc_message", str(res.result)),
-            "progress": meta.get("progress", ""),
+            "error": str(res.result) or "The annotation was cancelled.",
+            "progress": "",
         }, status=500)
 
-    # SUCCESS
-    result = res.result if isinstance(res.result, dict) else {"output": res.result}
+    raw_result = res.result
+    result: dict[str, Any] = raw_result if isinstance(raw_result, dict) else {"output": raw_result}
     return JsonResponse({
         "status": "done",
         "state": res.state,
@@ -944,7 +935,7 @@ def download_annotated_pdf(request: HttpRequest, exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def call_amc_generate_results(request: HttpRequest,exam_pk: int):
+def call_amc_generate_results(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     result = amc_generate_results(exam)
 
@@ -969,6 +960,7 @@ def amc_manual_association_data(request: HttpRequest, exam_pk: int):
 
     return HttpResponse(json.dumps(data))
 
+
 @require_POST
 @exam_permission_required(['manage'])
 def amc_set_manual_association(request: HttpRequest, exam_pk: int) -> JsonResponse:
@@ -991,19 +983,23 @@ def amc_set_manual_association(request: HttpRequest, exam_pk: int) -> JsonRespon
         sheet = int(request.POST["copy_nr"])
         copy = int(request.POST.get("copy", 0))
     except (KeyError, ValueError):
-        return JsonResponse({ "error": "Invalid sheet number." }, status=400)
+        return JsonResponse({"error": "Invalid sheet number."}, status=400)
     if sheet < 0 or copy < 0:
-        return JsonResponse({ "error": "Invalid sheet number." }, status=400)
+        return JsonResponse({"error": "Invalid sheet number."}, status=400)
 
     code = request.POST.get("student_id", "").strip()  # kept as text: codes can have leading zeros
 
     amc_project_path = get_amc_project_path(exam, even_if_not_exist=False)
     if not amc_project_path:
-        return JsonResponse({ "error": "No association data for this exam yet. Run the automatic association or the marking first." }, status=404)
+        return JsonResponse(
+            {"error": "No association data for this exam yet. Run the automatic association or the marking first."},
+            status=404)
 
     amc_data_path = os.path.join(amc_project_path, "data")
     if not os.path.isfile(os.path.join(amc_data_path, "association.sqlite")):
-        return JsonResponse({ "error": "No association data for this exam yet. Run the automatic association or the marking first." }, status=404)
+        return JsonResponse(
+            {"error": "No association data for this exam yet. Run the automatic association or the marking first."},
+            status=404)
 
     db = AmcAssociationDbManager(amc_data_path)
 
@@ -1020,9 +1016,9 @@ def amc_set_manual_association(request: HttpRequest, exam_pk: int) -> JsonRespon
             )
     except AmcAssociationError:
         logger.exception("Manual association failed for sheet %s/%s, student %r (exam %s)", sheet, copy, code, exam.pk)
-        return JsonResponse({ "error": "The association could not be saved." })
+        return JsonResponse({"error": "The association could not be saved."})
 
-    return JsonResponse({ "ok": True })
+    return JsonResponse({"ok": True})
 
 
 @require_POST
@@ -1034,7 +1030,7 @@ def amc_send_annotated_papers_data(request: HttpRequest, exam_pk: int):
     email_text = get_amc_option_by_key(exam, 'email_text')
     # amc_update_options_xml_by_key()
 
-    values = {"email_subject": email_subject, "email_text": email_text,"data": data}
+    values = {"email_subject": email_subject, "email_text": email_text, "data": data}
     return HttpResponse(json.dumps(values))
 
 
@@ -1047,7 +1043,7 @@ def call_amc_send_annotated_papers(request: HttpRequest, exam_pk: int):
     email_body = request.POST['email-body']
     email_column = request.POST['email-column']
 
-    result = amc_send_annotated_papers(exam,selected_students,email_subject,email_body,email_column)
+    result = amc_send_annotated_papers(exam, selected_students, email_subject, email_body, email_column)
     return HttpResponse(json.dumps(result))
 
 
