@@ -2,6 +2,9 @@ import { draw } from './drawing.ts';
 import { parseJson, postText } from '@examc/helpers/http.ts';
 import { state } from './state.ts';
 import type { MarkPosition, PageRow, ScanUrls, Zone } from './types.ts';
+import { isExamcError } from '@examc/exceptions/shared.ts';
+import { buildApiError } from '@examc/exceptions/api.ts';
+import { buildFrontendError } from '@examc/exceptions/frontend.ts';
 
 let urls: ScanUrls | null = null;
 
@@ -32,7 +35,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const image = new Image();
         image.onload = () => resolve(image);
-        image.onerror = () => reject(new Error(`Failed to load ${src}`));
+        image.onerror = () => reject(buildFrontendError({ detail: `Failed to load ${src}`}));
         image.src = src;
     });
 }
@@ -53,9 +56,19 @@ async function fetchMarks(copy: string, page: string): Promise<MarkPosition[]> {
 async function fetchScanUrl(copy: string, page: string): Promise<string> {
     if (!urls) throw new UrlsUnintialized();
     const response = await fetch(`${urls.scanUrl}?${new URLSearchParams({ copy, page })}`);
-    if (!response.ok) throw new Error(`Scan URL request failed: ${response.status}`);
-    const { url } = (await response.json()) as { url: string };
-    return url;
+    const data = await response.json();
+    
+    if (!response.ok) {
+        let errorMsg = `Scan URL request failed: ${response.status}`;
+        if (data.detail) errorMsg = data.detail;
+        throw buildApiError({ detail: errorMsg });
+    }
+
+    if (!("url" in data && data.url)) {
+        throw buildApiError({ type: "wrong-api-response", detail: "'url' key is missing in the object returned by the server" });
+    }
+
+    return data.url;
 }
 
 /**
@@ -69,19 +82,37 @@ export async function loadPage(row: PageRow): Promise<void> {
     const copy = String(row.copy);
     const page = String(row.page);
 
+    let scanPath, marks, image;
+    
     try {
-        const scanPath = await fetchScanUrl(copy, page);
-        const marks = await fetchMarks(copy, page);
+        scanPath = await fetchScanUrl(copy, page);
 
-        const image = await loadImage(scanPath);
-        if (token !== state.loadToken) return;
-
-        state.view = { copy, page, image, marks };
-        
-        draw();
-    } catch (error) {
-        if (token === state.loadToken) console.error(error);
+    } catch (error: unknown) {
+        if (isExamcError(error)) draw({ error });
+        return;
     }
+
+    try {
+        marks = await fetchMarks(copy, page);
+    } catch (error: unknown) {
+        if (isExamcError(error)) draw({ error });
+        return;
+    }
+
+    try {
+        image = await loadImage(scanPath);
+    } catch (error: unknown) {
+        if (isExamcError(error)) draw({ error });
+        return;
+    }
+
+    if (token !== state.loadToken) {
+        console.error("error");
+        return;
+    }
+    state.view = { copy, page, image, marks };
+    
+    draw();
 }
 
 /**

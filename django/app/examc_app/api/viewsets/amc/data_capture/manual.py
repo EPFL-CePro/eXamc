@@ -157,7 +157,7 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
         project_path = get_amc_project_path(exam, False)
 
         if not project_path:
-            raise NotFound('No AMC project')
+            raise NotFound('No AMC project was found for this exam.')
 
         if '.' in page_nr:  # extra page
             c = copy_nr.zfill(4)
@@ -165,15 +165,15 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
         else:
             raw = select_amc_scan_path(f'{project_path}/data/', copy_nr, page_nr)
             if not raw:
-                raise NotFound('No scan for this page')
+                raise NotFound('No scan was found for this page.')
             scan_path = resolve_amc_path(raw, project_path)
 
         roots = [Path(settings.MARKED_SCANS_ROOT), Path(settings.SCANS_ROOT), Path(project_path, 'scans', 'extra')]
         root = next((r.resolve() for r in roots if scan_path.is_relative_to(r.resolve())), None)
 
         if root is None or not scan_path.is_file():
-            logger.warning('Scan not found: copy=%s page=%s path=%s', copy_nr, page_nr, scan_path)
-            raise NotFound('Scan file not found')
+            logger.error('Scan not found: copy=%s page=%s path=%s', copy_nr, page_nr, scan_path)
+            raise NotFound('No scan file was found for this page.')
 
         return Response({
             'url': make_token_for(

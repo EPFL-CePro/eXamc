@@ -11,7 +11,7 @@ let table: Api<unknown> | null = null;
 let currentRow: HTMLTableRowElement | null = null;
 
 /**
- * Creates the diagnosis table from the manual data capture API (server-side processing).
+ * Creates the diagnosis table from the manual data capture API
  *
  * @param {HTMLTableElement} tableElement - The table, with a data-api-url attribute.
  */

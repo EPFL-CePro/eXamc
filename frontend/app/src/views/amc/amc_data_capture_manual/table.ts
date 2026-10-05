@@ -112,7 +112,7 @@ export function initTable(element: HTMLTableElement): Api<unknown> {
             bottomEnd: null,
             bottom: "paging"
         },
-        scrollY: '80vh',
+        scrollY: '79vh',
     });
 
     // On the initial load and after any filter change (question list, type, search): select the first row.
@@ -174,7 +174,7 @@ export function selectRow(row: HTMLTableRowElement): void {
     state.currentRow?.classList.remove('is-current');
     row.classList.add('is-current');
     state.currentRow = row;
-    void loadPage(data);
+    loadPage(data);
 }
 
 /** Selects the first row of the current table page, or shows the placeholder if there is none. */

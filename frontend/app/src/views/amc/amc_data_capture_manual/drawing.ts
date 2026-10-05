@@ -1,3 +1,4 @@
+import type { ExamcError } from '@examc/exceptions/shared.ts';
 import { state } from './state.ts';
 import type { MarkPosition, Point, Zone } from './types.ts';
 
@@ -87,29 +88,54 @@ function drawZone(ctx: CanvasRenderingContext2D, zone: Zone): void {
 }
 
 /**
- * Draws a centered message in the page's font.
+ * Draws centered messages in the page's font.
  *
  * @param {CanvasRenderingContext2D} ctx - The rendering context.
  * @param {number} width - Canvas width in CSS pixels.
  * @param {number} height - Canvas height in CSS pixels.
- * @param {string} text - The message.
+ * @param {string[]} messages - A list of messages to render.
  */
-function drawPlaceholder(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, width: number, height: number, text: string): void {
-    const style = getComputedStyle(canvas);
-    ctx.font = `${parseFloat(style.fontSize) * 1.25}px ${style.fontFamily}`;
-    ctx.fillStyle = '#6c757d'; // Bootstrap's secondary text color
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, width / 2, height / 2);
+function drawPlaceholder(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, width: number, height: number, messages: string[], error: boolean = false): void {
+  const style = getComputedStyle(canvas);
+  const fontSize = parseFloat(style.fontSize) * 1.25;
+  ctx.font = `${fontSize}px ${style.fontFamily}`;
+  ctx.fillStyle = error ? 'red' : '#6c757d'; // Bootstrap's secondary text color
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Wrap each message separately so each one starts on its own line
+  const lines: string[] = [];
+  for (const message of messages) {
+    if (lines.length) lines.push(''); // blank line between messages
+    let line = '';
+    for (const word of message.split(' ')) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx.measureText(test).width > width * 0.9 && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    lines.push(line);
+  }
+  
+  // Draw the lines centered as a block
+  const lineHeight = fontSize * 1.3;
+  const startY = height / 2 - ((lines.length - 1) * lineHeight) / 2;
+  lines.forEach((l, i) => ctx.fillText(l, width / 2, startY + i * lineHeight));
 }
+
 
 /**
  * Renders the current scan and its mark zones, or a placeholder when no page is selected.
  * The canvas size comes from CSS; the scan is fitted inside it, centered, keeping its own aspect ratio.
  */
-export function draw(): void {
+export function draw(options?: { error?: ExamcError }): void {
+    const { error } = options || {};
+
     if (!canvas) return; // not initialized yet
-    
+
     // Size as laid out by CSS, in CSS pixels.
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
@@ -124,11 +150,14 @@ export function draw(): void {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    if (!state.view) {
-        const placeholder_text = 'Please select a page in the right panel';
 
+    if (!state.view || error) {
+        const placeholder_text = error ? error.messages : ['Please select a page in the right panel'];
+        
         state.zones = [];
-        drawPlaceholder(ctx, canvas, width, height, placeholder_text);
+        console.log(ctx, canvas, width, height, placeholder_text, !!error);
+        
+        drawPlaceholder(ctx, canvas, width, height, placeholder_text, !!error);
         return;
     }
 
@@ -139,6 +168,7 @@ export function draw(): void {
     const scanWidth = image.naturalWidth * scale;
     const scanHeight = image.naturalHeight * scale;
     const offset = { x: (width - scanWidth) / 2, y: (height - scanHeight) / 2 };
+
 
     ctx.drawImage(image, offset.x, offset.y, scanWidth, scanHeight);
 
