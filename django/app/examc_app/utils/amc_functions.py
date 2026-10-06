@@ -2,15 +2,18 @@ import base64
 import csv
 import html
 import io
+import logging
 import os
 import re
 import shutil
 import subprocess
+import time
 import xml.etree.ElementTree as xmlET
 import zipfile
 from datetime import datetime
 from decimal import Decimal
 from glob import glob
+from pathlib import Path
 
 import chardet
 import img2pdf
@@ -41,8 +44,10 @@ from examc_app.models import (
     PagesGroupStudentReportNote,
 )
 from examc_app.signing import make_token_for, verify_and_get_path
-from examc_app.utils.amc_db_queries import *
+from examc_app.utils.amc_db_queries import select_count_layout_pages, get_questions_scoring_details, get_mean, \
+    get_student_report_data, select_students_report, update_report_student, get_annotated_pdf_path, get_question_number
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
+from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.zip_security import safe_extract_zip
 
 # Get an instance of a logger
@@ -90,7 +95,7 @@ def get_amc_layout_detection_info(exam: Exam):
     return info
 
 
-def get_amc_option_by_key(exam: Exam, key):
+def get_amc_option_by_key(exam: Exam, key: str) -> Any:
     options_xml_path = get_amc_project_path(exam, False) + "/options.xml"
     option_value = None
     # Open the project xml config and read the contents
@@ -428,9 +433,14 @@ def amc_automatic_datacapture_subprocess(request, exam: Exam, file_path, from_re
 
 
 def check_pages_recognition_consistency(exam: Exam):
+    """
+    Check if page recognition is consistent with the database.
+    """
     project_path = get_amc_project_path(exam, False)
+    if project_path is None: return
 
-    capture_pages = select_capture_pages(project_path + "/data/")
+    amc_capture_db_manager = AmcCaptureDbManager(amc_data_path=project_path + "/data/")
+    capture_pages = amc_capture_db_manager.select_capture_pages()
 
     for capture_page in capture_pages:
         #yield " -- copy "+ str(capture_page['student']) + " page " + str(capture_page['page']) + "\n"
@@ -446,8 +456,12 @@ def check_pages_recognition_consistency(exam: Exam):
                             new_filename.replace('%HOME', str(Path.home())))
             else:
                 shutil.move(capture_page['src'], new_filename)
-            update_capture_page_src(project_path + "/data/", capture_page['student'], capture_page['page'],
-                                    new_filename)
+
+            amc_capture_db_manager.update_capture_page_src(
+                student=capture_page['student'],
+                page=capture_page['page'],
+                new_filename=new_filename
+            )
 
 
 def amc_automatic_data_capture(exam: Exam, file_path, from_review, file_list_path=None):
@@ -639,21 +653,27 @@ def get_extra_pages(amc_extra_pages_path: str, amc_extra_pages_url: str | None =
 
 
 def get_amc_marks_positions_data(exam: Exam, copy, page):
-    amc_data_path = get_amc_project_path(exam, False)
+    amc_project_path = get_amc_project_path(exam, False)
 
-    if amc_data_path:
-        amc_data_path += "/data/"
-        data_positions = select_marks_positions(amc_data_path, copy, page, float(get_amc_option_by_key(exam, "seuil")))
+    if not amc_project_path:
+        return None
 
-        for idx, item in enumerate(data_positions):
-            item["checked"] = False
-            if (item["bvalue"] >= float(get_amc_option_by_key(exam, "seuil")) and item["manual"] == -1.0) or item[
-                "manual"] == 1.0:
-                item["checked"] = True
+    amc_data_path = f"{amc_project_path}/data/"
+    amc_capture_db_manager = AmcCaptureDbManager(amc_data_path=amc_data_path)
+    data_positions = amc_capture_db_manager.select_marks_positions(
+        copy=copy, page=page
+    )
 
-            data_positions[idx] = item
 
-        return data_positions
+    for idx, item in enumerate(data_positions):
+        item["checked"] = False
+        if (item["bvalue"] >= float(get_amc_option_by_key(exam, "seuil")) and item["manual"] == -1.0) or item[
+            "manual"] == 1.0:
+            item["checked"] = True
+
+        data_positions[idx] = item
+
+    return data_positions
 
 
 def update_amc_mark_zone_data(exam: Exam, zoneid, copy, page):
@@ -662,16 +682,26 @@ def update_amc_mark_zone_data(exam: Exam, zoneid, copy, page):
     if amc_data_path:
         amc_data_path += "/data/"
 
-        data_zones = select_data_zones(amc_data_path, zoneid)
+        amc_capture_db_manager = AmcCaptureDbManager(amc_data_path=os.path.join(amc_data_path, "data", ""))
 
-        manual = data_zones[0]['manual']
-        bvalue = data_zones[0]['bvalue']
-        if (manual == -1.0 and bvalue >= float(get_amc_option_by_key(exam, "seuil"))) or manual == 1.0:
-            manual = "0.0"
-        else:
-            manual = "1.0"
+        try:
+            data_zones = amc_capture_db_manager.select_data_zones(zoneid)
 
-        update_data_zone(amc_data_path, manual, zoneid, copy, page)
+            if not data_zones:
+                raise ValueError(f"Zone {zoneid} not found")
+
+            manual = data_zones[0]["manual"]
+            bvalue = data_zones[0]["bvalue"]
+            threshold = float(get_amc_option_by_key(exam, "seuil"))
+
+            if (manual == -1.0 and bvalue >= threshold) or manual == 1.0:
+                new_manual = 0.0
+            else:
+                new_manual = 1.0
+
+            amc_capture_db_manager.update_data_zone(new_manual, zoneid, copy, page)
+        finally:
+            amc_capture_db_manager.close_db()
 
 
 def _is_valid_amc_options_xml(options_xml_path):
@@ -758,14 +788,16 @@ def get_automatic_data_capture_summary(exam: Exam):
     if amc_data_path:
         amc_data_path += "/data/"
 
-        nb_copies = select_nb_copies(amc_data_path)
+        amc_capture_db_manager = AmcCaptureDbManager(amc_data_path=amc_data_path)
+
+        nb_copies = amc_capture_db_manager.select_nb_copies()
 
         data_missing_pages = []
         nb_unrecognized_pages = []
 
         if nb_copies > 0:
-            data_missing_pages = select_missing_pages(amc_data_path)
-            nb_unrecognized_pages = count_unrecognized_pages(amc_data_path)
+            data_missing_pages = amc_capture_db_manager.select_missing_pages()
+            nb_unrecognized_pages = amc_capture_db_manager.count_unrecognized_pages()
 
         prev_stud = None
         incomplete_copies = []
@@ -784,7 +816,7 @@ def get_automatic_data_capture_summary(exam: Exam):
             incomplete_copy = {"copy_no": prev_stud, "missing_pages": missing_pages}
             incomplete_copies.append(incomplete_copy)
 
-        data_overwritten_pages = select_overwritten_pages(amc_data_path)
+        data_overwritten_pages = amc_capture_db_manager.select_overwritten_pages()
 
         return [nb_copies, incomplete_copies, nb_unrecognized_pages, data_overwritten_pages]
 
@@ -792,60 +824,60 @@ def get_automatic_data_capture_summary(exam: Exam):
 
 
 def get_copy_page_zooms(exam: Exam, copy, page):
-    amc_data_path = get_amc_project_path(exam, False)
-    zooms_data = None
-    if amc_data_path:
-        amc_data_path += "/data/"
+    amc_project_path = get_amc_project_path(exam, False)
 
-        zooms_data = select_copy_page_zooms(amc_data_path, copy, page)
+    if not amc_project_path:
+        return None
 
-        #decode bytes imagedata to base64
-        for idx, item in enumerate(zooms_data):
-            imagedata = base64.b64encode(item["imagedata"])
-            item["imagedata"] = imagedata.decode()
-            item["checked"] = False
-            if (item["bvalue"] >= float(get_amc_option_by_key(exam, "seuil")) and item["manual"] == -1) or item[
-                "manual"] == 1:
-                item["checked"] = True
+    amc_data_path = f"{amc_project_path}/data/"
 
-            zooms_data[idx] = item
+    amc_capture_db_manager = AmcCaptureDbManager(amc_data_path=amc_data_path)
+    zooms_data = amc_capture_db_manager.select_copy_page_zooms(copy, page)
+
+    threshold = float(get_amc_option_by_key(exam, "seuil"))
+
+    for item in zooms_data:
+        imagedata = item["imagedata"]
+        item["imagedata"] = base64.b64encode(imagedata).decode("ascii") if imagedata is not None else None
+        item["checked"] = (item["manual"] == -1.0 and item["bvalue"] >= threshold) or item["manual"] == 1.0
 
     return zooms_data
 
 
 def add_unrecognized_page_to_project(exam: Exam, copy, page, extra, img_filename):
-    amc_data_path = get_amc_project_path(exam, False)
-    if amc_data_path:
+    amc_project_path = get_amc_project_path(exam, False)
 
-        if extra:
+    if not amc_project_path: return
 
-            #page = select_copy_question_page(amc_data_path+'/data/', copy, question)
-            copy_extra_folder_path = amc_data_path + "/scans/extra/" + copy.zfill(4)
-            #create extra folder for copy if not exist
-            Path(copy_extra_folder_path).mkdir(parents=True, exist_ok=True)
+    if extra:
+        #page = select_copy_question_page(amc_data_path+'/data/', copy, question)
+        copy_extra_folder_path = amc_project_path + "/scans/extra/" + copy.zfill(4)
+        #create extra folder for copy if not exist
+        Path(copy_extra_folder_path).mkdir(parents=True, exist_ok=True)
 
-            # #list files and get last extraNumber
-            last_exNum = 0
-            #
-            for f in os.listdir(copy_extra_folder_path):
-                curr_page = int(f.split('_')[-1].split(".")[0])
-                curr_exNum = int(f.split(".")[1])
-                if curr_page == page and curr_exNum > last_exNum:
-                    last_exNum = curr_exNum
+        # #list files and get last extraNumber
+        last_ex_num = 0
+        #
+        for f in os.listdir(copy_extra_folder_path):
+            curr_page = int(f.split('_')[-1].split(".")[0])
+            curr_ex_num = int(f.split(".")[1])
+            if curr_page == page and curr_ex_num > last_ex_num:
+                last_ex_num = curr_ex_num
 
-            new_exNum = str(last_exNum + 1)
-            filename = "copy_" + str(copy).zfill(4) + "_" + str(page) + "." + new_exNum + ".jpg"
+        new_ex_num = str(last_ex_num + 1)
+        filename = "copy_" + str(copy).zfill(4) + "_" + str(page) + "." + new_ex_num + ".jpg"
 
-            # get scan path unsigned
-            extra_path = str(verify_and_get_path(unquote(img_filename.replace('/protected/?token=', ''))))
-            # move to extra folder
-            shutil.copy(extra_path, copy_extra_folder_path + '/' + extra_path.split('/')[-1].replace('marked_', ''))
+        # get scan path unsigned
+        extra_path = str(verify_and_get_path(unquote(img_filename.replace('/protected/?token=', ''))))
+        # move to extra folder
+        shutil.copy(extra_path, copy_extra_folder_path + '/' + extra_path.split('/')[-1].replace('marked_', ''))
 
-            # remove as unrecognized page
-            delete_unrecognized_page(amc_data_path + '/data/', extra_path)
+        # remove as unrecognized page
+        amc_capture_db_manager = AmcCaptureDbManager(amc_data_path=f"{amc_project_path}/data/")
+        amc_capture_db_manager.delete_unrecognized_page(img_filename=extra_path)
 
-        else:
-            one = 1  #todo
+    else:
+        one = 1  #todo
 
 
 def get_students_csv_headers(exam: Exam):
@@ -1348,15 +1380,22 @@ def get_annotation_symbols(exam: Exam):
     symb_1_1_type = get_amc_option_by_key(exam, 'symbole_1_1_type')
 
     symbols_string = "0-0:" + symb_0_0_type
+
     if symb_0_0_type != 'none':
         symbols_string += ":" + symb_0_0_color
+
     symbols_string += ",0-1:" + symb_0_1_type
+
     if symb_0_1_type != 'none':
         symbols_string += ":" + symb_0_1_color
+
     symbols_string += ",1-0:" + symb_1_0_type
+
     if symb_1_0_type != 'none':
         symbols_string += ":" + symb_1_0_color
+
     symbols_string += ",1-1:" + symb_1_1_type
+
     if symb_1_1_type != 'none':
         symbols_string += ":" + symb_1_1_color
 
@@ -1436,7 +1475,10 @@ def sync_student_amc_ids_from_association(exam: Exam):
 
     amc_data_path = project_path + "/data/"
     assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
-    associations = select_student_association_data(amc_data_path)
+
+    amc_association_db_manager = AmcAssociationDbManager(amc_data_path=amc_data_path)
+
+    associations = amc_association_db_manager.select_student_association_data()
 
     Student.objects.filter(exam=exam).update(amc_id="0")
     updated_count = 0
@@ -1795,9 +1837,16 @@ def get_amc_manual_association_data(exam: Exam):
 
     if project_path:
         amc_data_path = project_path + "/data/"
-        data_assoc = get_assoc_details_with_images(amc_data_path, amc_assoc_img_path)
 
-        students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
+        amc_association_db_manager = AmcAssociationDbManager(amc_data_path=amc_data_path)
+        data_assoc = amc_association_db_manager.get_assoc_details_with_images(amc_assoc_img_path)
+
+        students_list_raw = get_amc_option_by_key(exam, 'listeetudiants')
+        if students_list_raw is None:
+            return {}
+
+        students_list = students_list_raw.replace('%PROJET', project_path)
+
         file = open(students_list, "r", encoding='utf-8')
         data_students = list(csv.reader(file, delimiter=","))
         data_students.pop(0) # remove header
@@ -2192,6 +2241,7 @@ def build_grading_report_pdf_bytes(exam_pk: int,  student_pk, amc_copy_nr=None, 
     doc.build(story, onFirstPage=draw_header_footer, onLaterPages=draw_header_footer)
     pdf_bytes = buffer.getvalue()
     buffer.close()
+
     return pdf_bytes
 
 

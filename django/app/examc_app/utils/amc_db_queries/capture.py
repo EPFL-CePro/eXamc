@@ -1,7 +1,7 @@
 import time
 from typing import Any, TypedDict
 
-from examc_app.utils.amc_db_queries.AbstractAmcDbManager import AbstractAmcDbManager
+from examc_app.utils.amc_db_queries.AbstractAmcDbManager import AbstractAmcDbManager, AmcDbManagerError
 from examc_app.utils.amc_db_queries.AmcDbFiles import AmcDbFile
 
 
@@ -18,16 +18,6 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         super().__init__(amc_data_path, amc_db_file=AmcDbFile.CAPTURE)
 
     # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _rows_as_dicts(cursor) -> list[dict[str, Any]]:
-        """Convert all the rows of a cursor to dicts keyed by the column's name."""
-        columns = [d[0] for d in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-    # ------------------------------------------------------------------
     # capture_page
     # ------------------------------------------------------------------
 
@@ -42,13 +32,11 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error="Couldn't select capture pages"
         )
 
-        try:
-            return [
-                CapturePage(student=student, page=page, src=src)
-                for student, page, src in cursor.fetchall()
-            ]
-        finally:
-            cursor.close()
+        return [
+            CapturePage(student=student, page=page, src=src)
+            for student, page, src in cursor.fetchall()
+        ]
+
 
     def update_capture_page_src(self, student: str, page, new_filename: str) -> int:
         """
@@ -67,10 +55,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error=f"Failed to update capture_page src (student={student}, page={page})"
         )
 
-        try:
-            return cursor.rowcount
-        finally:
-            cursor.close()
+        return cursor.rowcount
 
     def select_amc_scan_path(self, copy_no: str, page_no: str) -> str:
         """
@@ -89,10 +74,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
         row = cursor.fetchone()
 
-        try:
-            return row["src"] if row else ""
-        finally:
-            cursor.close()
+        return row["src"] if row else ""
 
     def select_nb_copies(self) -> int:
         """
@@ -112,10 +94,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error="Failed to select number of copies with captured pages"
         )
         
-        try:
-            return len(cursor.fetchall())
-        finally:
-            cursor.close()
+        return len(cursor.fetchall())
 
     def select_missing_pages(self) -> list[dict[str, Any]]:
         """
@@ -142,10 +121,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error="Failed to select pages expected by layout but not captured"
         )
 
-        try:
-            return self._rows_as_dicts(cursor)
-        finally:
-            cursor.close()
+        return self._rows_as_dicts(cursor)
 
     def select_overwritten_pages(self) -> list[dict[str, Any]]:
         """
@@ -163,10 +139,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error="Failed to select overwritten pages"
         )
 
-        try:
-            return self._rows_as_dicts(cursor)
-        finally:
-            cursor.close()
+        return self._rows_as_dicts(cursor)
 
     def get_count_missing_associations(self) -> int:
         """
@@ -189,10 +162,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
         row = cursor.fetchone()
 
-        try:
-            return row["count"] if row and row["count"] else 0
-        finally:
-            cursor.close()
+        return row["count"] if row and row["count"] else 0
 
     # ------------------------------------------------------------------
     # capture_zone / capture_position
@@ -236,10 +206,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         cursor.close()
 
         if questions:
-            try:
-                return questions
-            finally:
-                cursor.close()
+            return questions
 
         # No capture zone for this page: take its questions from the layout
         self._attach(AmcDbFile.LAYOUT)
@@ -253,10 +220,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error=f"Failed to query layout (copy={copy}, page={page})",
         )
 
-        try:
-            return self._rows_as_dicts(cursor)
-        finally:
-            cursor.close()
+        return self._rows_as_dicts(cursor)
 
     def select_marks_positions(self, copy, page) -> list[dict[str, Any]]:
         """
@@ -292,29 +256,40 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error=f"Couldn't query data zones (copy={query_params['copy']}, page={query_params['page']})"
         )
 
-        try:
-            return self._rows_as_dicts(cursor)
-        finally:
-            cursor.close()
+        return self._rows_as_dicts(cursor)
 
-    def select_data_zones(self, zoneid) -> list[dict[str, Any]]:
+    def select_data_zones(self, zoneid: int) -> list[dict[str, float | int]]:
         """
-        Select a capture zone, with its darkness ratio.
+        Select a capture zone's manual value and darkness ratio.
         :param zoneid: The zone id.
-        :return: Dicts with key bvalue and all the capture_zone columns.
+        :return: Dicts with the keys "manual" and "bvalue".
         """
-        query_str = "SELECT CAST(black AS REAL) / total AS bvalue, * FROM capture_zone WHERE zoneid = :zoneid"
-        query_param = {"zoneid": zoneid}
-
-        cursor = self._execute(
-            query_str, query_param,
-            error=f"Couldn't query data zone (zoneid={zoneid})"
+        query_str = (
+            "SELECT manual, "
+            "CASE WHEN total > 0 THEN CAST(black AS REAL) / total ELSE 0.0 END AS bvalue "
+            "FROM capture_zone WHERE zoneid = :zoneid"
         )
 
-        try:
-            return self._rows_as_dicts(cursor)
-        finally:
-            cursor.close()
+        cursor = self._execute(
+            query_str, {"zoneid": zoneid},
+            error=f"Couldn't query data zone (zoneid={zoneid})",
+        )
+
+        rows = [
+            {
+                "manual": manual,
+                "bvalue": bvalue
+            } for manual, bvalue in cursor.fetchall()
+        ]
+
+        for row in rows:
+            for key, value in row.items():
+                if type(value) is not float:
+                    raise AmcDbManagerError(
+                        f"zone {zoneid}: {key} expected float, got {type(value).__name__} ({value!r})"
+                    )
+
+        return rows
 
 
     def update_data_zone(self, manual, zoneid, copy, page):
@@ -348,10 +323,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             )
             update_count += cursor.rowcount
 
-        try:
-            return update_count
-        finally:
-            cursor.close()
+        return update_count
 
     def select_copy_page_zooms(self, copy, page) -> list[dict[str, Any]]:
         """
@@ -374,10 +346,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error=f"Couldn't select zooms (copy={copy}, page={page})"
         )
 
-        try:
-            return self._rows_as_dicts(cursor)
-        finally:
-            cursor.close()
+        return self._rows_as_dicts(cursor)
 
     # ------------------------------------------------------------------
     # capture_failed
@@ -397,10 +366,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
         row = cursor.fetchone()
 
-        try:
-            return row["count"] if row and row["count"] else 0
-        finally:
-            cursor.close()
+        return row["count"] if row and row["count"] else 0
 
     def select_unrecognized_pages(self) -> list[dict[str, str]]:
         """
@@ -413,15 +379,12 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error="Couldn't select unrecognized pages"
         )
 
-        try:
-            return [
-                {
-                    "filename": row["filename"].split("/")[-1],
-                    "filepath": row["filename"]
-                } for row in cursor.fetchall()
-            ]
-        finally:
-            cursor.close()
+        return [
+            {
+                "filename": row["filename"].split("/")[-1],
+                "filepath": row["filename"]
+            } for row in cursor.fetchall()
+        ]
 
     def delete_unrecognized_page(self, img_filename: str) -> int:
         """
@@ -437,7 +400,4 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             error=f"Couldn't delete unrecognized page for image '{img_filename}'"
         )
 
-        try:
-            return cursor.rowcount
-        finally:
-            cursor.close()
+        return cursor.rowcount

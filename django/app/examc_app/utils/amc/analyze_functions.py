@@ -17,16 +17,10 @@ def get_scan_qrcode_data(file_path):
     return data
 
 def analyze_scan(file_path,exam,student=None,page_nr=None):
-
     if not student or not page_nr:
         data = get_scan_qrcode_data(file_path)
         student = data[1]
         page_nr = data[2]
 
     layout_boxes = get_page_layout_boxes(get_amc_project_path(exam, True) + "/data/",student, page_nr)
-
-
-
-
-
 

@@ -101,9 +101,10 @@ class PageMarkers(models.Model):
     def get_users_with_date(self):
         users_list = []
         for pm_user in self.pageMarkers_users.all():
-            user_dict = {}
-            user_dict["username"]=pm_user.user.username
-            user_dict["date"]=pm_user.modified.strftime("%Y-%m-%d %H:%M:%S")
+            user_dict = {
+                "username": pm_user.user.username,
+                "date": pm_user.modified.strftime("%Y-%m-%d %H:%M:%S")
+            }
             users_list.append(user_dict)
 
         return users_list
@@ -140,9 +141,15 @@ class QuestionGradingSchemeCheckBox(models.Model):
 # Review Grading Schemes Checked Boxes
 #############################
 class PagesGroupGradingSchemeCheckedBox(models.Model):
+    """
+    A grading scheme checkbox checked for one exam copy, in a pages group, with an optional score adjustment.
+
+    copy_nr is a string because AMC does not require copy identifiers to be integers: copies can be
+    associated with something other than a numeric ID, such as a student's name.
+    """
     pages_group = models.ForeignKey(PagesGroup, on_delete=models.CASCADE, related_name='pagesGroupGradingSchemeCheckedBoxes')
     gradingSchemeCheckBox = models.ForeignKey(QuestionGradingSchemeCheckBox, on_delete=models.CASCADE, related_name='pagesGroupGradingSchemeCheckedBoxes', null=True)
-    copy_nr = models.CharField(max_length=10, default='0')
+    copy_nr = models.CharField(max_length=10, default='0') # copy number of the exam copy. AMC stores it as a string
     adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='pagesGroupGradingSchemeCheckedBoxes')
     history = HistoricalRecords()

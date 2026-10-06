@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
 from examc_app.utils.amc_db_queries.AbstractAmcDbManager import AbstractAmcDbManager
 from examc_app.utils.amc_db_queries.AmcDbFiles import AmcDbFile
@@ -10,6 +10,24 @@ ASSOC_TABLE = "association_association"
 
 #: Value AMC stores in `manual` to mark a sheet as explicitly not associated, overriding `auto`.
 NO_STUDENT = "NONE"
+
+#: capture_zone.type of the zone where the student writes their name (AMC's ZONE_NAME).
+ZONE_NAME = 2
+
+
+class AssociationWithImage(TypedDict):
+    """An association row, with the path of the scanned name zone of its sheet."""
+    student: int
+    copy: int
+    manual: str | None
+    auto: str | None
+    image_path: str
+
+
+class SheetAssociation(TypedDict):
+    """The student code a sheet is effectively associated with, None if there is none."""
+    amc_copy: int
+    associated_student: str | None
 
 
 class AmcAssociationDbManager(AbstractAmcDbManager):
@@ -39,10 +57,7 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
             error=f"Could not read the sheets associated with {code}"
         )
 
-        try:
-            return [tuple(row) for row in cursor.fetchall()]
-        finally:
-            cursor.close()
+        return [tuple(row) for row in cursor.fetchall()]
 
     def delete_target(self, code) -> list[tuple[Any]]:
         """
@@ -67,10 +82,7 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
             error=f"Could not unlink the sheets associated with {code}"
         )
 
-        try:
-            return previous
-        finally:
-            cursor.close()
+        return previous
 
     def set_manual(self, sheet: int, copy: int, manual: str | None) -> int:
         """
@@ -99,10 +111,7 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
                 error=f"Could not create the association of sheet {sheet}/{copy}",
             )
 
-        try:
-            return cursor.rowcount
-        finally:
-            cursor.close()
+        return cursor.rowcount
 
     def associate_manually(self, code, sheet: int, copy: int = 0) -> list[tuple[Any]]:
         """
@@ -121,3 +130,55 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
     def unlink(self, sheet: int, copy: int = 0) -> None:
         """Mark a sheet as associated with no student, overriding any automatic association."""
         self.set_manual(sheet, copy, NO_STUDENT)
+
+    def get_assoc_details_with_images(self, amc_assoc_img_path: str) -> list[AssociationWithImage]:
+        """
+        All the association rows, each with the scan of its sheet's name zone.
+
+        :param amc_assoc_img_path: Folder (or URL prefix) of the name zone images, prepended to the
+            image file names stored by AMC.
+        :return: One entry per sheet that has a scanned name zone.
+        """
+        query_str = f"""
+            SELECT aa.student, aa.copy, aa.manual, aa.auto, :img_path || cz.image AS image_path
+                FROM {ASSOC_TABLE} aa
+                INNER JOIN capture.capture_zone cz ON cz.student = aa.student --AND cz.copy = aa.copy
+                WHERE cz.type = :zone_name
+        """
+        query_params = {"img_path": amc_assoc_img_path, "zone_name": ZONE_NAME}
+
+        self._attach(AmcDbFile.CAPTURE)
+
+        cursor = self._execute(
+            query_str, query_params,
+            error="Could not read the associations with their name zone images",
+        )
+
+        return [
+            AssociationWithImage(student=student, copy=copy, manual=manual, auto=auto, image_path=image_path)
+            for student, copy, manual, auto, image_path in cursor.fetchall()
+        ]
+
+    def select_student_association_data(self) -> list[SheetAssociation]:
+        """
+        The student code each sheet is effectively associated with: manual first, then auto.
+        Empty values and the 'NONE' marker give None.
+
+        :return: One entry per association row.
+        """
+        query_str = f"""
+            SELECT student AS amc_copy,
+                   NULLIF(COALESCE(NULLIF(manual, ''), NULLIF(auto, '')), :no_student) AS associated_student
+                FROM {ASSOC_TABLE}
+        """
+        query_params = {"no_student": NO_STUDENT}
+
+        cursor = self._execute(
+            query_str, query_params,
+            error="Could not read the sheets associations",
+        )
+
+        return [
+            SheetAssociation(amc_copy=amc_copy, associated_student=associated_student)
+            for amc_copy, associated_student in cursor.fetchall()
+        ]
