@@ -14,6 +14,7 @@ from datetime import datetime
 from decimal import Decimal
 from glob import glob
 from pathlib import Path
+from typing import Any
 
 import chardet
 import img2pdf
