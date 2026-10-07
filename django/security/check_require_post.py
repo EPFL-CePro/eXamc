@@ -60,17 +60,6 @@ TARGET_URL_NAMES = {
     "update_student_present",
     "upload_amc_csv",
     "upload_catalog_pdf",
-    # preparation_views.py
-    "exam_add_section",
-    "exam_update_section",
-    "get_header_section_txt",
-    "exam_update_question",
-    "exam_update_answers",
-    "exam_add_answer",
-    "exam_remove_answer",
-    "exam_remove_question",
-    "exam_remove_section",
-    "exam_update_first_page",
     # amc_views.py
     "get_amc_marks_positions",
     "update_amc_mark_zone",
