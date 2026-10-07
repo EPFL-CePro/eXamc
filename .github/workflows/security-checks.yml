@@ -23,4 +23,4 @@ jobs:
           python-version: "3.12"
 
       - name: Run Security Checks
-        run: bash scripts/security_check.sh
+        run: bash django/security/security_check.sh
