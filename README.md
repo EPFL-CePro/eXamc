@@ -1,34 +1,16 @@
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2FEPFL-CePro%2FeXamc%2Frefs%2Fheads%2Fmain%2Fdjango%2Fapp%2Fpyproject.toml&query=%24.project.version&label=version&color=blue)
 ![License](https://img.shields.io/badge/license-NCL%20v1.0-red)
-![](https://img.shields.io/python/required-version-toml?tomlFilePath=githubdjango/app/pyproject.toml)
-![Status](https://img.shields.io/badge/status-production--ready-success)
+![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/EPFL-CePro/eXamc/refs/heads/main/django/app/pyproject.toml)
+![CI](https://img.shields.io/github/actions/workflow/status/EPFL-CePro/eXamc/docker-build-test-and-push.yml?branch=main&label=CI)
 ![GitHub Issues](https://img.shields.io/github/issues/EPFL-CePro/eXamc)
-![GitHub Stars](https://img.shields.io/github/stars/EPFL-CePro/eXamc)
-![GitHub Issues](https://img.shields.io/github/issues/EPFL-CePro/eXamc)
-![GitHub Stars](https://img.shields.io/github/stars/EPFL-CePro/eXamc)
 
 
 
-# eXamc — Django + MySQL + Redis + Celery (Docker)
+<div style="text-align: center;">
+    <img width="400" src="https://raw.githubusercontent.com/EPFL-CePro/eXamc/refs/heads/main/django/app/examc_app/static/img/eXamc.svg" alt="eXamc logo">
+</div>
 
 ---
-
-### ✨ New: Automated with Ansible + Vault
-
-This project now uses **Ansible** to manage all environment configuration and deployment securely.
-
-- 🔐 **Secrets** are stored encrypted with **Ansible Vault** (`ansible/group_vars/<env>/vault.yml`).
-- 🧩 **Environment files** (`.env.dev`, `.env.test`, `.env.prod`) are **generated automatically** from a Jinja2 template (`.env.j2`).
-- 🚀 **Local dev**: run `make env ENV=dev` to create `.env.dev`, then `make up ENV=dev`.
-- 🌍 **TEST / PROD**: deploy using:
-  ```bash
-  ansible-playbook -i ansible/inventory/prod/hosts.ini ansible/playbooks/deploy.yml -e env=prod --vault-id @prompt
-  ```
-
-> This replaces manual `.env.*` editing while keeping `.env.example` as a public reference.
-
----
-
 
 Dockerized environment for **eXamc** featuring:
 - **Django**, **Gunicorn** (prod) / **runserver** (dev)
@@ -38,15 +20,33 @@ Dockerized environment for **eXamc** featuring:
 - **Celery** (worker) + **Celery Beat**
 - **Nginx** (reverse proxy + static dir)
 - **Private media** via **Nginx X-Accel-Redirect**
+- **Ansible** for deployment, see repository [EPFL-CePro/eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops) for configuration
 
-> ⚠️ Internal repo note: the app relies on **Entra ID** (Azure AD) configuration.  
+> [!IMPORTANT]
+> This app relies on **Entra ID** (Azure AD) configuration.  
 > Do **not** commit any real `.env.*` files or DB dumps.
 
 ---
 
 ## Table of Contents
 
-[TOC]
+<!-- TOC -->
+  * [Prerequisites](#prerequisites)
+  * [Layout](#layout)
+  * [Environment files](#environment-files)
+  * [Entra ID (OIDC) parameters](#entra-id-oidc-parameters)
+  * [Run in DEV](#run-in-dev)
+  * [Updating dependencies](#updating-dependencies)
+  * [Makefile commands](#makefile-commands)
+  * [DB seed / import / export (optional)](#db-seed--import--export-optional)
+  * [MySQL Workbench access](#mysql-workbench-access)
+  * [Private media](#private-media)
+  * [Migrations & updates](#migrations--updates)
+  * [TEST / PROD overview](#test--prod-overview)
+  * [Troubleshooting](#troubleshooting)
+  * [📄 License](#-license)
+  * [🙋 Support](#-support)
+<!-- TOC -->
 
 ---
 
@@ -63,7 +63,6 @@ Dockerized environment for **eXamc** featuring:
 
 ```
 .
-├─ ansible/                         # Deployment configuration and automation
 ├─ app/                             # Django application and Python project
 │  ├─ docs/                         # Sphinx documentation
 │  ├─ examc/                        # Django project: settings/urls/wsgi/asgi/celery
@@ -79,7 +78,7 @@ Dockerized environment for **eXamc** featuring:
 │  ├─ test.yml                      # Test/CI environment
 │  └─ prod.yml                      # Production environment (also used for staging server)
 ├─ data/                            # Local persistent data
- │  └─ private_media/                # AMC-related files
+│  └─ private_media/                # AMC-related files
 ├─ deploy/                          # Deployment-related configuration
 │  ├─ db/
 │  │  └─ init-test-user.sql
@@ -104,38 +103,6 @@ Dockerized environment for **eXamc** featuring:
 └─ SECURITY.md
 ```
 
-
----
-
-## 🧰 Ansible-managed environments (preferred)
-
-> This section **adds** an automated workflow without removing the manual approach below.
-
-- Secrets and env values are generated from **Ansible templates** and **Vault-encrypted** variables.
-- Template: `ansible/templates/.env.j2`
-- Per-environment vars:
-  - Non-sensitive: `ansible/group_vars/<env>/app.yml`
-  - **Secrets (encrypted):** `ansible/group_vars/<env>/vault.yml`
-
-Generate your local `.env.dev`:
-```bash
-make env ENV=dev
-```
-
-Then start the stack:
-```bash
-make up ENV=dev
-```
-
-> If `.env.dev` is missing, `make up` will prompt you to run `make env` first.
-> Real `.env.*` files remain **untracked** (ignored by Git). Keep `.env.example` for reference.
-
----
-
-
-`.gitignore` excludes: `.env.*` (keep `.env.example`), SQL dumps, `export_tmp/`, `__pycache__`, etc.  
-`.dockerignore` excludes: `.git`, `.env.*`, dumps, caches, etc.
-
 ---
 
 ## Environment files
@@ -147,6 +114,9 @@ cp .env.example .env.dev
 cp .env.example .env.test
 cp .env.example .env.prod
 ```
+
+`.gitignore` excludes: `.env.*` (keep `.env.example`), SQL dumps, `export_tmp/`, `__pycache__`, etc.  
+`.dockerignore` excludes: `.git`, `.env.*`, dumps, caches, etc.
 
 Expected variables (example **.env.dev**):
 
@@ -222,7 +192,7 @@ This project uses [`uv`](https://docs.astral.sh/uv/) to manage dependencies. `uv
 ```bash
 docker compose -f compose/test.yml run django uv add dependency_name
 docker compose -f compose/dev.yml run django uv update
-````
+```
 
 This updates both `app/pyproject.toml` and `app/uv.lock`.
 
@@ -361,14 +331,6 @@ docker compose -f compose/test.yml run --rm --remove-orphans django
 
 ---
 
-
-**Ansible deployment (TEST/PROD):**
-
-```bash
-ansible-playbook -i ansible/inventory/<env>/hosts.ini   ansible/playbooks/deploy.yml   -e env=<env>   --vault-id @prompt
-```
-This playbook renders `/opt/examc/.env` from `.env.j2`, decrypts Vault values, and runs `docker compose up -d --build` on the target host.
-
 ## Troubleshooting
 
 - **MIME `text/plain` for JS/CSS**: ensure `mime.types` is included; `alias /static/` / path correct.
@@ -401,6 +363,4 @@ A separate commercial license may be granted upon request.
 
 ## 🙋 Support
 
-For questions or assistance regarding eXamc, please contact:
-
-cepro-exams@epfl.ch
+For questions or assistance regarding eXamc, please contact[cepro-exams@epfl.ch](mailto:cepro-exams@epfl.ch).
