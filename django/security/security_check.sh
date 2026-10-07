@@ -19,7 +19,10 @@ uv run --project "$APP_DIR" python -W ignore::SyntaxWarning "$DJANGO_DIR/securit
 echo "[security] running Bandit (blocking only on HIGH/HIGH)..."
 uv run --project "$APP_DIR" bandit -q -r examc_app -x examc_app/migrations,examc_app/tests -lll -iii
 
-echo "[security] running dependency audit..."
-uv run --project "$APP_DIR" pip-audit
+echo "[security] auditing dependencies with pip-audit..."
+REQS="$(mktemp)"
+trap 'rm -f "$REQS"' EXIT
+uv export --project "$APP_DIR" --frozen --no-emit-project --all-groups --format requirements-txt > "$REQS"
+uv run --project "$APP_DIR" pip-audit -r "$REQS" --disable-pip
 
 echo "[security] all checks passed."
