@@ -43,7 +43,7 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: tooling
+      target: dev
     environment:
       DEBUG: "1"
       VITE_DEV_MODE: "1"

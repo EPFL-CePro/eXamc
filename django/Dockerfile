@@ -131,3 +131,12 @@ COPY --from=builder-tooling --chown=examc:examc /opt/venv-tooling /opt/venv-tool
 USER examc
 
 COPY --chown=examc:examc --exclude=app/docs ./app /app
+
+
+# =========================
+# DEV (same as tooling, with build deps installed
+# =========================
+FROM runtime-base AS dev
+
+COPY --from=uv-base /opt/install-build-deps.sh /opt/
+RUN /opt/install-build-deps.sh
