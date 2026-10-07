@@ -60,23 +60,10 @@ def home(request):
 
     user_info = user.__dict__
     user_info.update(user.__dict__)
-    last_connection_users = []
-
-    if user.is_superuser:
-        for u in User.objects.all().order_by('-last_login'):
-            if u.last_login:
-                datetime_zone = u.last_login.astimezone(pytz.timezone(settings.TIME_ZONE))
-                last_connection_users.append(
-                    {
-                        "username": u.get_username(),
-                        "last_login": datetime_zone.strftime('%Y-%m-%d %H:%M:%S')
-                    }
-                )
 
     context: dict[str, Any] = {
         'user': user,
         'user_info': user_info,
-        'last_connection_users': last_connection_users,
     }
 
     if user.is_authenticated:

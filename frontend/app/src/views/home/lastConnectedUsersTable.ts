@@ -3,14 +3,21 @@ import {getLayoutElementsSeparator, setupDatatables} from "@examc/helpers/datata
 
 export function lastConnectedUsersTable(options: {
     tableElement: HTMLTableElement;
+    apiUrl: string;
 }): void {
-    const { tableElement } = options;
+    const { tableElement, apiUrl } = options;
 
     setupDatatables();
 
     new DataTable(tableElement, {
+        serverSide: true,
+        processing: true,
+         ajax: {
+            url: apiUrl,
+            type: "GET",
+        },
         scrollY: '18.1vh',
-        order: [[2, "desc"]],
+        order: [[1, "desc"]],
         layout: {
             topStart: function() {
                 const title = document.createElement('h4');
@@ -24,6 +31,13 @@ export function lastConnectedUsersTable(options: {
                 getLayoutElementsSeparator(),
                 "info"
             ],
+        },
+        columns:[
+            { data: "username", orderable: true },
+            { data: "last_login", orderable: true }
+        ],
+        language:{
+            emptyTable: "No login data available.",
         }
     });
 }

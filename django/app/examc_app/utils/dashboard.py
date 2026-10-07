@@ -486,3 +486,10 @@ def get_dashboard_exam_queryset(user: User | AnonymousUser) -> QuerySet[Exam, Ex
         "scales",
         "scaleStatistics",
     ).order_by("-date", "code")
+
+
+def get_dashboard_connected_users_queryset(user: User | AnonymousUser) -> QuerySet[User, User]:
+    if not user.is_superuser:
+        return User.objects.none()
+
+    return User.objects.exclude(last_login=None).order_by('-last_login')
