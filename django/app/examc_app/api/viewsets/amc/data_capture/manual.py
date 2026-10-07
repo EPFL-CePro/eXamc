@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from examc import settings
-from examc_app.api.decorators import exam_permission_required, ExamScopedViewMixin
+from examc_app.api.decorators import ExamScopedViewMixin, exam_permission_required
 from examc_app.api.serializers.amc.data_capture.manual import ScanUrlQuerySerializer
 from examc_app.models import Exam
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data

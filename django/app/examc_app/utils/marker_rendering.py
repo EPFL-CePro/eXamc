@@ -22,17 +22,26 @@ import io
 import json
 import logging
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from django.conf import settings
 from django.db.models import Sum
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-from examc_app.models import PageMarkers, PagesGroupGradingSchemeCheckedBox, Exam, PagesGroup, QuestionGradingScheme
-from examc_app.utils.amc_db_queries import get_question_max_points, select_copy_question_page
-from examc_app.utils.amc_functions import get_amc_project_path, get_amc_marks_positions_data
-
+from examc_app.models import (
+    Exam,
+    PageMarkers,
+    PagesGroup,
+    PagesGroupGradingSchemeCheckedBox,
+    QuestionGradingScheme,
+)
+from examc_app.utils.amc_db_queries import get_question_max_points
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_functions import (
+    get_amc_marks_positions_data,
+    get_amc_project_path,
+)
 
 DEFAULT_FONT_PATHS = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -425,15 +434,15 @@ def get_review_corr_box_index_for_page(page_markers: PageMarkers) -> int | None:
     copy_nr = get_grading_copy_nr(pages_group, page_markers.copie_no, grading_scheme)
     points = float(get_grading_question_points(grading_scheme, copy_nr))
 
-    if points > float(grading_scheme.max_points):
-        points = float(grading_scheme.max_points)
+    points = min(points, float(grading_scheme.max_points))
 
     if points > 0:
         amc_project_path = get_amc_project_path(pages_group.exam, True)
         if not amc_project_path: return None
         amc_data_path = amc_project_path + "/data/"
 
-        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            question_page = amc_layout_db_manager.select_copy_question_page(copy_nr, pages_group.group_name)
 
         # Only the page that owns the corr boxes should render the grading overlay.
         if str(question_page) not in copy_number_variants(page_markers.page_no):
@@ -546,7 +555,7 @@ def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | No
     return output_path
 
 
-def build_scan_path_for_copy_page(exam: Exam, copy_nr: str, page_no: str) -> Path | None:
+def build_scan_path_for_copy_page(exam: Exam, copy_nr, page_no) -> Path | None:
     """Find the original scan file for a copy/page under SCANS_ROOT."""
     project_subdir = (
         f"{exam.year.code}/"
@@ -602,7 +611,8 @@ def build_synthetic_page_markers_for_grading(pages_group: PagesGroup, copy_nr: s
     amc_data_path = amc_project_path + "/data/"
 
     try:
-        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            question_page = amc_layout_db_manager.select_copy_question_page(copy_nr, pages_group.group_name)
     except (IndexError, TypeError, ValueError, AttributeError):
         logger.warning(
             "Skipping grading-only render: no AMC question page for pages_group=%s copy_nr=%s",

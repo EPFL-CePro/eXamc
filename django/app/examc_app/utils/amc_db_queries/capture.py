@@ -1,8 +1,11 @@
 import time
 from typing import Any, TypedDict
 
-from examc_app.utils.amc_db_queries.AbstractAmcDbManager import AbstractAmcDbManager, AmcDbManagerError
-from examc_app.utils.amc_db_queries.AmcDbFiles import AmcDbFile
+from examc_app.utils.amc_db_queries import (
+    AbstractAmcDbManager,
+    AmcDbFile,
+    AmcDbManagerError,
+)
 
 
 class CapturePage(TypedDict):

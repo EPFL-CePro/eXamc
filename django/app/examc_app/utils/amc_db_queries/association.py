@@ -1,8 +1,7 @@
 import logging
 from typing import Any, TypedDict
 
-from examc_app.utils.amc_db_queries.AbstractAmcDbManager import AbstractAmcDbManager
-from examc_app.utils.amc_db_queries.AmcDbFiles import AmcDbFile
+from examc_app.utils.amc_db_queries import AbstractAmcDbManager, AmcDbFile
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +71,12 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
 
         query_str = f"""
             UPDATE {ASSOC_TABLE}
-                SET manual = CASE WHEN manual IS NULL OR auto = :code || '' THEN '{NO_STUDENT}' ELSE NULL END
+                SET manual = CASE WHEN manual IS NULL OR auto = :code || '' THEN '{NO_STUDENT}' END
                 WHERE manual = :code || '' OR (auto = :code || '' AND manual IS NULL)
         """
         query_params = {"code": code}
 
-        cursor = self._execute(
+        self._execute(
             query_str, query_params,
             error=f"Could not unlink the sheets associated with {code}"
         )

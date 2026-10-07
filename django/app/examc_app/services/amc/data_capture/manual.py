@@ -4,9 +4,12 @@ from typing import Any, TypedDict
 
 from examc_app.models import Exam
 from examc_app.services.amc.AmcDb import AmcDb
-from examc_app.utils.amc_db_queries import select_questions
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import (
-    get_amc_option_by_key, get_amc_project_path, get_amc_project_url, get_extra_pages,
+    get_amc_option_by_key,
+    get_amc_project_path,
+    get_amc_project_url,
+    get_extra_pages,
 )
 
 # AMC "why" codes -> marker appended after the question id
@@ -157,7 +160,9 @@ def get_amc_data_capture_manual_data(exam: Exam) -> AmcDataCaptureManualData | N
     pages += get_extra_pages(f"{amc_project_path}/scans/extra/", f"{amc_project_url}/scans/extra/")
     pages.sort(key=lambda p: (float(p["copy"]), float(p["page"])))
 
-    questions = select_questions(amc_data_path)
+    with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+        questions = amc_layout_db_manager.select_questions()
+
     question_names = {q["question"]: q["name"] for q in questions}
 
     questions_by_page = select_manual_data_capture_questions_by_page(amc_data_path)
