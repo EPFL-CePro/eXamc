@@ -2,15 +2,19 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import pytz
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
-from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, FileResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpResponseForbidden,
+    HttpResponseRedirect,
+)
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST

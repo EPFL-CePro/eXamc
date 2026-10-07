@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib.auth.models import User
 from django.db.models import QuerySet
 from rest_framework import mixins, viewsets
@@ -12,14 +14,17 @@ class ConnectedUsersViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     Last connected Users for the dashboard's "select" table.
     GET /api/users/
     """
-    serializer_class = ConnectedUserRowSerializer
-    filter_backends = [DataTablesFilterBackend]
-    search_fields = ["username"]
-    # Column index -> model field(s) for server-side ordering.
-    ordering_columns = {
-        0: ["username"],
-        1: ["last_login"],
-    }
+    def __init__(self, **kwargs: Any):
+        super().__init__()
 
-    def get_queryset(self) -> QuerySet[User, User]:
+        self.serializer_class = ConnectedUserRowSerializer
+        self.filter_backends = [DataTablesFilterBackend]
+        self.search_fields = ["username"]
+        # Column index -> model field(s) for server-side ordering.
+        self.ordering_columns = {
+            0: ["username"],
+            1: ["last_login"],
+        }
+
+    def get_queryset(self) -> QuerySet[User]:
         return get_dashboard_connected_users_queryset(self.request.user)
