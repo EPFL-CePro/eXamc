@@ -20,7 +20,7 @@ from examc_app.models import Exam
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.signing import make_token_for
 from examc_app.utils.amc.path import resolve_amc_path
-from examc_app.utils.amc_db_queries import select_amc_scan_path
+from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.global_functions import user_allowed
 
@@ -163,7 +163,7 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
             c = copy_nr.zfill(4)
             scan_path = Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
         else:
-            raw = select_amc_scan_path(f'{project_path}/data/', copy_nr, page_nr)
+            raw = AmcCaptureDbManager(f'{project_path}/data/').select_amc_scan_path(copy_nr, page_nr)
             if not raw:
                 raise NotFound('No scan was found for this page.')
             scan_path = resolve_amc_path(raw, project_path)

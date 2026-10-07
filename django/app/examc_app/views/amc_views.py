@@ -138,12 +138,15 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
 def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, task_id: str | None = None):
     exam = Exam.objects.get(pk=exam_pk)
 
-    amc_data_path = get_amc_project_path(exam, False)
+    amc_project_path = get_amc_project_path(exam, False)
 
     context = {}
 
     if user_allowed(exam, request.user.id):
-        if amc_data_path:
+        if amc_project_path:
+            # capture db mgt
+            amc_capture_db_manager = AmcCaptureDbManager(f"{amc_project_path}/data/")
+
             # get amc options and infos
             amc_option_nb_copies = get_amc_option_by_key(exam, 'nombre_copies')
             amc_update_documents_msg = get_amc_update_document_info(exam)
@@ -205,7 +208,7 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
             context['auto_assoc_code'] = get_automatic_association_code(exam)
             context['mean'] = get_amc_mean(exam)
             context['questions_scoring_details'] = get_questions_scoring_details_list(exam)
-            context['count_missing_assoc'] = get_count_missing_associations(amc_data_path + '/data/')
+            context['count_missing_assoc'] = amc_capture_db_manager.get_count_missing_associations()
             context['annotated_papers_available'] = check_annotated_papers_available(exam)
             context['has_results'] = has_results
             context['has_grading_schemes'] = has_grading_schemes
@@ -215,11 +218,13 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
             context['exam_nb_pages'] = range(1, int(float(exam_nb_pages)) + 1, 1)
 
         context['exam_selected'] = exam
+
         if exam.common_exams:
             for common_exam in exam.common_exams.all():
                 if common_exam.is_overall():
                     exam = common_exam
                     break
+
         context['exam'] = exam
         context['user_allowed'] = True
         context['nav_url'] = 'amc_view'
@@ -278,7 +283,9 @@ def get_unrecognized_pages(request: HttpRequest, exam_pk: int):
     if amc_project_path:
         amc_data_path = amc_project_path + "/data/"
 
-        unrecognized_pages = select_unrecognized_pages(amc_data_path)
+        amc_capture_db_manager = AmcCaptureDbManager(amc_data_path)
+
+        unrecognized_pages = amc_capture_db_manager.select_unrecognized_pages()
 
         for unrecognized_page in unrecognized_pages:
             file_path = unrecognized_page['filepath']
