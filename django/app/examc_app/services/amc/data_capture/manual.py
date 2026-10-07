@@ -4,8 +4,9 @@ from typing import Any, TypedDict
 
 from examc_app.models import Exam
 from examc_app.services.amc.AmcDb import AmcDb
+from examc_app.utils.amc_db_queries import select_questions
 from examc_app.utils.amc_functions import (
-    get_amc_option_by_key, get_amc_project_path, get_amc_project_url, get_extra_pages, select_questions,
+    get_amc_option_by_key, get_amc_project_path, get_amc_project_url, get_extra_pages,
 )
 
 # AMC "why" codes -> marker appended after the question id
