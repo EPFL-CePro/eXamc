@@ -50,8 +50,20 @@ from examc_app.models import (
     Student,
     UnrecognizedReviewScan,
 )
+from examc_app.services.celery_tasks import is_celery_task_active
+from examc_app.services.review.grading import (
+    get_amc_question_layout_and_marks,
+    get_review_corr_box_index,
+)
+from examc_app.services.review.locks import cleanup_expired_review_locks
+from examc_app.services.review.unrecognized_scans import (
+    build_unrecognized_review_scan_context,
+)
+from examc_app.services.review.upload import _get_upload_scan_pending_context
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.tasks import generate_marked_files_zip, import_exam_scans
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import (
     get_amc_layout_detection_info,
     get_amc_marks_positions_data,
@@ -64,6 +76,7 @@ from examc_app.utils.review_functions import (
     assign_unrecognized_review_scan_file,
     delete_unrecognized_review_scan_file,
     get_copies_pages_by_group,
+    get_grading_scheme_checkboxes,
     get_question_points,
     get_scan_url,
     get_scans_list_by_copy,
@@ -82,7 +95,7 @@ from examc_app.utils.review_upload_state import (
     set_pending_amc_import,
 )
 
-
+logger = logging.getLogger(__name__)
 
 def _get_unrecognized_review_block_response(request: HttpRequest, exam: Exam):
     unresolved_count = UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).count()
@@ -1378,7 +1391,8 @@ def add_new_grading_scheme(request: HttpRequest, exam_pk: int, pages_group_id):
     pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
     exam = get_object_or_404(Exam, pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
-    max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, None))
+    with AmcScoringDbManager(amc_data_path) as amc_db:
+        max_points = float(amc_db.get_question_max_points(pages_group.group_name, None))
 
     grading_scheme = QuestionGradingScheme.objects.create(
         pages_group=pages_group,
