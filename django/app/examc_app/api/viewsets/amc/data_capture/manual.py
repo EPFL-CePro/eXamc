@@ -86,7 +86,10 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
 
     GET /api/exams/<exam_pk>/amc-data-capture-manual/
     """
-    permission_classes = [IsAuthenticated]
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
+
+        self.permission_classes = [IsAuthenticated]
 
     @exam_permission_required(["manage"])
     def list(self, request: Request, exam_pk: str) -> Response:

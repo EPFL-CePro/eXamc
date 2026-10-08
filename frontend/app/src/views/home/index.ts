@@ -22,11 +22,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     initExamSelectTable({ tableElement: examTableElement, apiUrl: examApiUrl });
 
-
     // last connected users table
     const usersTableElement = document.querySelector<HTMLTableElement>("#dashboard-last-connected-users-table");
+    const usersConnectedApiUrl = usersTableElement?.dataset.apiUrl;
+    if (!usersConnectedApiUrl) {
+        console.error("Connected users table missing data-api-url attribute");
+        return;
+    }
 
     if (!examTableElement || !usersTableElement) return;
 
-    lastConnectedUsersTable({ tableElement: usersTableElement });
+    lastConnectedUsersTable({ tableElement: usersTableElement, apiUrl: usersConnectedApiUrl });
 });

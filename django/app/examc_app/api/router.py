@@ -1,6 +1,7 @@
 from rest_framework import routers
 
 from examc_app.api.viewsets.amc.data_capture.manual import AmcDataCaptureManualViewSet
+from examc_app.api.viewsets.connected_user import ConnectedUsersViewSet
 from examc_app.api.viewsets.exam import ExamViewSet
 
 from examc_app.api.viewsets.exam_student_presence import ExamStudentPresenceViewSet
@@ -14,6 +15,12 @@ examc_router.register(
     r"exams",
     ExamViewSet,
     basename="api-exams"
+)
+
+examc_router.register(
+r"connected-users",
+    ConnectedUsersViewSet,
+    basename="api-connected-users"
 )
 
 examc_router.register(
