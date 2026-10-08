@@ -5,10 +5,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from examc_app.api.decorators import exam_permission_required
-from examc_app.api.serializers.prep_student import PrepStudentRowSerializer, PrepStudentUpdateSerializer
+from examc_app.api.serializers.prep_student import (
+    PrepStudentRowSerializer,
+    PrepStudentUpdateSerializer,
+)
 from examc_app.models import Exam, PrepStudent
 from examc_app.services.person_directory import PersonDirectoryError
-from examc_app.services.student.prep_import import StudentsFileError, correct_prep_student
+from examc_app.services.student.prep_import import (
+    StudentsFileError,
+    correct_prep_student,
+)
 
 
 class PrepStudentViewSet(viewsets.ViewSet):
