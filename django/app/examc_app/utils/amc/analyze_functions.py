@@ -24,8 +24,6 @@ def analyze_scan(file_path,exam,student=None,page_nr=None):
 
     amc_project_path = get_amc_project_path(exam, True)
 
-    if not amc_project_path: return
-
     with AmcLayoutDbManager(amc_data_path=f"{amc_project_path}/data/") as amc_layout_db_manager:
         amc_layout_db_manager.get_page_layout_boxes(student, page_nr)
 

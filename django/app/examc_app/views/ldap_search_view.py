@@ -1,18 +1,19 @@
-from examc_app.utils.epflldap import ldap_search
-from ..forms import ldapForm
-from ..utils.epflldap.ldap_search import LDAP_search
-from django.shortcuts import render
-from django.contrib import messages
-import pandas as pd
-from django.http import HttpResponse
 import csv
+
+import pandas as pd
+from django.contrib import messages
+from django.http import HttpResponse
+from django.shortcuts import render
+
+from examc_app.forms.misc import LdapForm
+from examc_app.utils.epflldap import ldap_search
 
 
 def get_entry(searchvalue,searchattribute):
     """
     return user ldap entry
     """
-    response = LDAP_search(
+    response = ldap_search.LDAP_search(
         pattern_search='('+searchattribute+'={})'.format(searchvalue),
     )
     try:
@@ -31,7 +32,7 @@ def get_entry(searchvalue,searchattribute):
 
 def upload_excel_generate_csv(request):
     if request.method == 'POST':
-        form = ldapForm(request.POST)
+        form = LdapForm(request.POST)
 
         if form.is_valid() and 'file' in request.FILES:
             file = request.FILES['file']
@@ -81,6 +82,6 @@ def upload_excel_generate_csv(request):
             return response
 
     else:
-        form = ldapForm()
+        form = LdapForm()
 
     return render(request, 'search_ldap/search.html', {'form': form})

@@ -6,8 +6,8 @@ from collections.abc import Callable
 from enum import StrEnum
 from typing import TypeVar
 
+from examc_app.exceptions.amc import AmcDbManagerError
 from examc_app.services.amc.AmcDb import AmcDb
-from examc_app.utils.amc.exceptions import AmcDbManagerError
 
 logger = logging.getLogger(__name__)
 

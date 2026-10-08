@@ -1,5 +1,4 @@
-class AmcProjectPathNotFoundError(Exception):
-    """Exception raised when the AMC project path is not found."""
+import logging
 
-class AmcDbManagerError(Exception):
-    """Raised when reading or writing the AMC association database fails."""
+
+

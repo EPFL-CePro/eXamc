@@ -528,7 +528,7 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
 
     @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
-        with AmcLayoutDbManager(str(amc_data_root)) as amc_layout_db_manager:
+        with AmcLayoutDbManager(amc_data_path=str(amc_data_root)) as amc_layout_db_manager:
             pages = amc_layout_db_manager.get_question_start_page_by_student(pages_group.group_name, copy_no_int)
 
             if not pages: return None

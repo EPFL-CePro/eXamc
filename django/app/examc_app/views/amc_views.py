@@ -26,6 +26,10 @@ from django.views.decorators.http import require_GET, require_POST
 
 from examc import settings
 from examc_app.decorators import exam_permission_required
+from examc_app.exceptions.amc import (
+    AmcDbManagerError,
+    AmcProjectPathNotFoundError,
+)
 from examc_app.models import Exam, PageMarkers, PagesGroup, UnrecognizedReviewScan
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.services.amc_jobs import AmcJobsManager
@@ -35,7 +39,6 @@ from examc_app.tasks import (
     amc_import_from_review_task,
     import_csv_data,
 )
-from examc_app.utils.amc.exceptions import AmcDbManagerError
 from examc_app.utils.amc.path import resolve_amc_path
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
@@ -197,7 +200,7 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
     if user_allowed(exam, request.user.id):
         if amc_project_path:
             # capture db mgt
-            with AmcCaptureDbManager(f"{amc_project_path}/data/") as amc_capture_db_manager:
+            with AmcCaptureDbManager(amc_data_path=f"{amc_project_path}/data/") as amc_capture_db_manager:
                 # get amc options and infos
                 amc_option_nb_copies = get_amc_option_by_key(exam, 'nombre_copies')
                 amc_update_documents_msg = get_amc_update_document_info(exam)
@@ -332,9 +335,9 @@ def get_unrecognized_pages(request: HttpRequest, exam_pk: int):
     amc_project_path = get_amc_project_path(exam, False)
     unrecognized_pages = None
     if amc_project_path:
-        amc_data_path = amc_project_path + "/data/"
+        amc_data_path = f"{amc_project_path}/data/"
 
-        with AmcCaptureDbManager(amc_data_path) as amc_capture_db_manager:
+        with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
             unrecognized_pages = amc_capture_db_manager.select_unrecognized_pages()
 
             for unrecognized_page in unrecognized_pages:
@@ -665,7 +668,7 @@ def amc_import_from_review_status(request: HttpRequest, exam_pk: int, job_id: st
         })
 
     if res.state != celery.states.SUCCESS:
-        # FAILURE or REVOKED: res.result is the exception
+        # FAILURE or REVOKED: res.result is the user_facing_exception
         return JsonResponse({
             "status": "error",
             "state": res.state,
@@ -874,12 +877,13 @@ def call_amc_automatic_association(request: HttpRequest, exam_pk: int):
 def amc_update_students_file(request: HttpRequest, exam_pk: int) -> HttpResponse:
     exam: Exam = get_object_or_404(Exam, pk=exam_pk)
 
-    students_list_csv: UploadedFile | None = request.FILES.get('students_list_csv')
+    students_list_csv: UploadedFile | None = request.FILES.get('students-list-csv')
     if students_list_csv is None or not students_list_csv.name:
         return HttpResponseBadRequest('No students file uploaded')
 
-    amc_project_dir: str | None = get_amc_project_path(exam, False)
-    if not amc_project_dir:
+    try:
+        amc_project_dir: str = get_amc_project_path(exam, False)
+    except AmcProjectPathNotFoundError:
         return HttpResponse('ok')  # same as the original; consider returning an error instead
 
     project_path = pathlib.Path(amc_project_dir)
@@ -964,7 +968,7 @@ def amc_annotate_status(request: HttpRequest, exam_pk: int, job_id: str) -> Json
         })
 
     if res.state != celery.states.SUCCESS:
-        # FAILURE or REVOKED: res.result is the exception
+        # FAILURE or REVOKED: res.result is the user_facing_exception
         return JsonResponse({
             "status": "error",
             "state": res.state,
@@ -1061,7 +1065,7 @@ def amc_set_manual_association(request: HttpRequest, exam_pk: int) -> JsonRespon
             {"error": "No association data for this exam yet. Run the automatic association or the marking first."},
             status=404)
 
-    with AmcAssociationDbManager(amc_data_path) as amc_association_db_manager:
+    with AmcAssociationDbManager(amc_data_path=amc_data_path) as amc_association_db_manager:
         try:
             no_student_choice = "0"
             if code in ("", no_student_choice):
@@ -1121,7 +1125,7 @@ def get_amc_scan_url(request: HttpRequest, exam_pk: int):
         c = copy_nr.zfill(4)
         scan_path = pathlib.Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
     else:
-        with AmcCaptureDbManager(f'{project_path}/data/') as amc_capture_db_manager:
+        with AmcCaptureDbManager(amc_data_path=f'{project_path}/data/') as amc_capture_db_manager:
             raw_scan_path = amc_capture_db_manager.select_amc_scan_path(copy_nr, page_nr)
 
         if not raw_scan_path:

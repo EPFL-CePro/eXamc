@@ -1,7 +1,7 @@
 import time
 from typing import Any, TypedDict
 
-from examc_app.utils.amc.exceptions import AmcDbManagerError
+from examc_app.exceptions.amc import AmcDbManagerError
 from examc_app.utils.amc_db_queries import (
     AbstractAmcDbManager,
     AmcDbFile,

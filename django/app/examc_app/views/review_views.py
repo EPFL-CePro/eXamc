@@ -302,9 +302,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                 grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
                 locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
                 amc_data_path = get_amc_project_path(exam, True) + "/data/"
-                with AmcLayoutDbManager(
-                    amc_data_path=amc_data_path
-                ) as amc_layout_db_manager:
+                with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
                     questions = amc_layout_db_manager.select_questions()
                 questions_choices = [(q['name'], q['name']) for q in questions]
                 formset_pages_groups = PagesGroupsFormSet(queryset=pages_groups, initial=[  # noqa: F821
@@ -370,9 +368,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
         else:
             curr_tab = "groups"
             amc_data_path = get_amc_project_path(exam, True) + "/data/"
-            with AmcLayoutDbManager(
-                amc_data_path=amc_data_path
-            ) as amc_layout_db_manager:
+            with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
                 questions = amc_layout_db_manager.select_questions()
             questions_choices = [(q['name'], q['name']) for q in questions]
             formset = PagesGroupsFormSet(self.request.POST, form_kwargs={"questions_choices": questions_choices})
@@ -1384,7 +1380,7 @@ def add_new_grading_scheme(request: HttpRequest, exam_pk: int, pages_group_id):
     pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
     exam = get_object_or_404(Exam, pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
-    with AmcScoringDbManager(amc_data_path) as amc_db:
+    with AmcScoringDbManager(amc_data_path=amc_data_path) as amc_db:
         max_points = float(amc_db.get_question_max_points(pages_group.group_name, None))
 
     grading_scheme = QuestionGradingScheme.objects.create(

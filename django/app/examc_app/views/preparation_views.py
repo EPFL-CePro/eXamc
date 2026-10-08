@@ -83,7 +83,6 @@ from examc_app.utils.preparation_latex_functions import (
 )
 from examc_app.views import logger
 
-
 # -------------------------
 # Create exam project
 # -------------------------
