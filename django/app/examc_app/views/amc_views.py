@@ -1,25 +1,76 @@
+import datetime
+import logging
+import os
 import pathlib
+import shutil
 from typing import Any, Final
 
 import celery
 from celery.result import AsyncResult
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import UploadedFile
-from django.http import HttpResponse, Http404, FileResponse, StreamingHttpResponse, JsonResponse, HttpResponseNotFound, \
-    HttpRequest, HttpResponseBadRequest
-from django.shortcuts import render, redirect, get_object_or_404
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseNotFound,
+    JsonResponse,
+    StreamingHttpResponse,
+)
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from examc_app.decorators import exam_permission_required
 from examc_app.models import *
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.services.amc_jobs import AmcJobsManager
-from examc_app.tasks import import_csv_data, amc_annotate_task, amc_import_from_review_task
+from examc_app.signing import make_token_for
+from examc_app.tasks import (
+    amc_annotate_task,
+    amc_import_from_review_task,
+    import_csv_data,
+)
 from examc_app.utils.amc.path import resolve_amc_path
-from examc_app.utils.amc_db_queries.AbstractAmcDbManager import AmcDbManagerError
+from examc_app.utils.amc_db_queries import AmcDbManagerError
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
-from examc_app.utils.amc_functions import *
+from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
+from examc_app.utils.amc_functions import (
+    add_unrecognized_page_to_project,
+    amc_annotate,
+    amc_automatic_association,
+    amc_automatic_datacapture_subprocess,
+    amc_generate_results,
+    amc_layout_detection,
+    amc_mark_subprocess,
+    amc_send_annotated_papers,
+    amc_update_documents,
+    amc_update_options_xml_by_key,
+    check_annotated_papers_available,
+    check_students_csv_file,
+    create_amc_project_dir_from_zip,
+    create_annotated_zip,
+    get_amc_catalog_pdf_path,
+    get_amc_exam_pdf_path,
+    get_amc_layout_detection_info,
+    get_amc_manual_association_data,
+    get_amc_marks_positions_data,
+    get_amc_mean,
+    get_amc_option_by_key,
+    get_amc_project_path,
+    get_amc_results_file_path,
+    get_amc_send_annotated_papers_data,
+    get_amc_update_document_info,
+    get_automatic_association_code,
+    get_automatic_data_capture_summary,
+    get_copy_page_zooms,
+    get_project_dir_info,
+    get_questions_scoring_details_list,
+    get_students_csv_headers,
+    update_amc_mark_zone_data,
+)
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import (
     get_exam_marked_scans_dir,
@@ -52,8 +103,7 @@ def logged_stream(iterator, operation, exam_pk: int, user=None):
     user_pk = getattr(user, "pk", None)
     logger.info("AMC stream started operation=%s exam=%s user=%s", operation, exam_pk, user_pk)
     try:
-        for chunk in iterator:
-            yield chunk
+        yield from iterator
     except GeneratorExit:
         logger.warning("AMC stream client disconnected operation=%s exam=%s user=%s", operation, exam_pk, user_pk)
         raise
@@ -145,77 +195,76 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
     if user_allowed(exam, request.user.id):
         if amc_project_path:
             # capture db mgt
-            amc_capture_db_manager = AmcCaptureDbManager(f"{amc_project_path}/data/")
+            with AmcCaptureDbManager(f"{amc_project_path}/data/") as amc_capture_db_manager:
+                # get amc options and infos
+                amc_option_nb_copies = get_amc_option_by_key(exam, 'nombre_copies')
+                amc_update_documents_msg = get_amc_update_document_info(exam)
+                amc_layout_detection_msg = get_amc_layout_detection_info(exam)
+                #amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
+                amc_catalog_pdf_path = get_amc_catalog_pdf_path(exam)
 
-            # get amc options and infos
-            amc_option_nb_copies = get_amc_option_by_key(exam, 'nombre_copies')
-            amc_update_documents_msg = get_amc_update_document_info(exam)
-            amc_layout_detection_msg = get_amc_layout_detection_info(exam)
-            #amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
-            amc_catalog_pdf_path = get_amc_catalog_pdf_path(exam)
+                # get project dir list
+                project_dir_info = get_project_dir_info(exam)
+                project_dir_dict = project_dir_info[0]
+                project_dir_files_list = project_dir_info[1]
 
-            # get project dir list
-            project_dir_info = get_project_dir_info(exam)
-            project_dir_dict = project_dir_info[0]
-            project_dir_files_list = project_dir_info[1]
+                # get data
+                data_capture_manual = get_amc_data_capture_manual_data(exam)
+                amc_data_capture_summary = get_automatic_data_capture_summary(exam)
+                number_of_copies = amc_data_capture_summary[0]
+                number_of_incomplete_copies = len(amc_data_capture_summary[1])
+                missing_pages = amc_data_capture_summary[1]
+                if number_of_incomplete_copies > 0:
+                    data_capture_message = "Data capture from " + str(
+                        number_of_copies - number_of_incomplete_copies) + " complete and " + str(
+                        number_of_incomplete_copies) + " incomplete papers"
+                else:
+                    data_capture_message = "Data capture from " + str(number_of_copies) + " complete papers"
+                nb_unrecognized_pages = amc_data_capture_summary[2]
 
-            # get data
-            data_capture_manual = get_amc_data_capture_manual_data(exam)
-            amc_data_capture_summary = get_automatic_data_capture_summary(exam)
-            number_of_copies = amc_data_capture_summary[0]
-            number_of_incomplete_copies = len(amc_data_capture_summary[1])
-            missing_pages = amc_data_capture_summary[1]
-            if number_of_incomplete_copies > 0:
-                data_capture_message = "Data capture from " + str(
-                    number_of_copies - number_of_incomplete_copies) + " complete and " + str(
-                    number_of_incomplete_copies) + " incomplete papers"
-            else:
-                data_capture_message = "Data capture from " + str(number_of_copies) + " complete papers"
-            nb_unrecognized_pages = amc_data_capture_summary[2]
+                overwritten_pages = amc_data_capture_summary[3]
 
-            overwritten_pages = amc_data_capture_summary[3]
+                students_list = get_amc_option_by_key(exam, "listeetudiants").replace("%PROJET/", '')
 
-            students_list = get_amc_option_by_key(exam, "listeetudiants").replace("%PROJET/", '')
+                has_results = get_amc_results_file_path(exam)
 
-            has_results = get_amc_results_file_path(exam)
+                scans_list = get_scans_list(exam)
+                scans_list_json_string = json.dumps(scans_list)
 
-            scans_list = get_scans_list(exam)
-            scans_list_json_string = json.dumps(scans_list)
+                has_grading_schemes = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True).exists()
 
-            has_grading_schemes = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True).exists()
+                exam_nb_pages = 1
+                if data_capture_manual is not None:
+                    exam_nb_pages = max(data_capture_manual["pages"], key=lambda x: float(x['page']))['page']
+                    context['data_pages'] = data_capture_manual["pages"]
+                    context['data_questions'] = data_capture_manual["questions"]
+                    context['data_copies'] = data_capture_manual["copies"]
 
-            exam_nb_pages = 1
-            if data_capture_manual is not None:
-                exam_nb_pages = max(data_capture_manual["pages"], key=lambda x: float(x['page']))['page']
-                context['data_pages'] = data_capture_manual["pages"]
-                context['data_questions'] = data_capture_manual["questions"]
-                context['data_copies'] = data_capture_manual["copies"]
-
-            context['number_of_copies_param'] = amc_option_nb_copies
-            context['copy_count'] = number_of_copies
-            context['catalog_pdf_path'] = amc_catalog_pdf_path
-            context['update_documents_msg'] = amc_update_documents_msg
-            context['layout_detection_msg'] = amc_layout_detection_msg
-            context['project_dir_dict'] = project_dir_dict
-            context['project_dir_files_list'] = project_dir_files_list
-            context['data_capture_message'] = data_capture_message
-            context['missing_pages'] = missing_pages
-            context['nb_unrecognized_pages'] = nb_unrecognized_pages
-            context['overwritten_pages'] = overwritten_pages
-            context['students_list'] = students_list
-            context['students_list_headers'] = get_students_csv_headers(exam)
-            context['auto_assoc_pk'] = get_amc_option_by_key(exam, 'liste_key')
-            context['auto_assoc_code'] = get_automatic_association_code(exam)
-            context['mean'] = get_amc_mean(exam)
-            context['questions_scoring_details'] = get_questions_scoring_details_list(exam)
-            context['count_missing_assoc'] = amc_capture_db_manager.get_count_missing_associations()
-            context['annotated_papers_available'] = check_annotated_papers_available(exam)
-            context['has_results'] = has_results
-            context['has_grading_schemes'] = has_grading_schemes
-            context['task_id'] = task_id
-            context['curr_tab'] = curr_tab
-            context['scans_list_json'] = json.loads(scans_list_json_string)
-            context['exam_nb_pages'] = range(1, int(float(exam_nb_pages)) + 1, 1)
+                context['number_of_copies_param'] = amc_option_nb_copies
+                context['copy_count'] = number_of_copies
+                context['catalog_pdf_path'] = amc_catalog_pdf_path
+                context['update_documents_msg'] = amc_update_documents_msg
+                context['layout_detection_msg'] = amc_layout_detection_msg
+                context['project_dir_dict'] = project_dir_dict
+                context['project_dir_files_list'] = project_dir_files_list
+                context['data_capture_message'] = data_capture_message
+                context['missing_pages'] = missing_pages
+                context['nb_unrecognized_pages'] = nb_unrecognized_pages
+                context['overwritten_pages'] = overwritten_pages
+                context['students_list'] = students_list
+                context['students_list_headers'] = get_students_csv_headers(exam)
+                context['auto_assoc_pk'] = get_amc_option_by_key(exam, 'liste_key')
+                context['auto_assoc_code'] = get_automatic_association_code(exam)
+                context['mean'] = get_amc_mean(exam)
+                context['questions_scoring_details'] = get_questions_scoring_details_list(exam)
+                context['count_missing_assoc'] = amc_capture_db_manager.get_count_missing_associations()
+                context['annotated_papers_available'] = check_annotated_papers_available(exam)
+                context['has_results'] = has_results
+                context['has_grading_schemes'] = has_grading_schemes
+                context['task_id'] = task_id
+                context['curr_tab'] = curr_tab
+                context['scans_list_json'] = json.loads(scans_list_json_string)
+                context['exam_nb_pages'] = range(1, int(float(exam_nb_pages)) + 1, 1)
 
         context['exam_selected'] = exam
 
@@ -283,28 +332,27 @@ def get_unrecognized_pages(request: HttpRequest, exam_pk: int):
     if amc_project_path:
         amc_data_path = amc_project_path + "/data/"
 
-        amc_capture_db_manager = AmcCaptureDbManager(amc_data_path)
+        with AmcCaptureDbManager(amc_data_path) as amc_capture_db_manager:
+            unrecognized_pages = amc_capture_db_manager.select_unrecognized_pages()
 
-        unrecognized_pages = amc_capture_db_manager.select_unrecognized_pages()
+            for unrecognized_page in unrecognized_pages:
+                file_path = unrecognized_page['filepath']
+                if '%HOME' in file_path:
+                    print("******************* " + str(pathlib.Path.home()) + " **************************")
 
-        for unrecognized_page in unrecognized_pages:
-            file_path = unrecognized_page['filepath']
-            if '%HOME' in file_path:
-                print("******************* " + str(Path.home()) + " **************************")
+                    app_home_path = str(settings.BASE_DIR).replace(str(pathlib.Path.home()), '%HOME')
+                    file_path = file_path.replace(app_home_path + '/', '')
+                    print("******************* " + file_path + " **************************")
 
-                app_home_path = str(settings.BASE_DIR).replace(str(Path.home()), '%HOME')
-                file_path = file_path.replace(app_home_path + '/', '')
-                print("******************* " + file_path + " **************************")
+                    # change old file path (www/html/...) to new (srv/examc/private_media/...) from amc db
+                    file_path = file_path.replace('%HOME/html/eXamc', str(settings.PRIVATE_MEDIA_ROOT))
 
-                # change old file path (www/html/...) to new (srv/examc/private_media/...) from amc db
-                file_path = file_path.replace('%HOME/html/eXamc', str(settings.PRIVATE_MEDIA_ROOT))
+                file_root = str(settings.SCANS_ROOT)
+                if file_path.startswith(str(settings.MARKED_SCANS_ROOT)):
+                    file_root = str(settings.MARKED_SCANS_ROOT)
+                file_path = make_token_for(os.path.relpath(file_path, file_root), file_root)
 
-            file_root = str(settings.SCANS_ROOT)
-            if file_path.startswith(str(settings.MARKED_SCANS_ROOT)):
-                file_root = str(settings.MARKED_SCANS_ROOT)
-            file_path = make_token_for(os.path.relpath(file_path, file_root), file_root)
-
-            unrecognized_page['filepath'] = file_path
+                unrecognized_page['filepath'] = file_path
 
     return HttpResponse(json.dumps(unrecognized_pages))
 
@@ -322,8 +370,8 @@ def update_amc_mark_zone(request: HttpRequest, exam_pk: int):
     return HttpResponse('')
 
 
-def _resolve_amc_project_file(amc_project_path: str, relative_path: str) -> Path:
-    project_root = Path(amc_project_path).resolve()
+def _resolve_amc_project_file(amc_project_path: str, relative_path: str) -> pathlib.Path:
+    project_root = pathlib.Path(amc_project_path).resolve()
     candidate = (project_root / relative_path).resolve()
     try:
         candidate.relative_to(project_root)
@@ -332,10 +380,10 @@ def _resolve_amc_project_file(amc_project_path: str, relative_path: str) -> Path
     return candidate
 
 
-def _resolve_students_list_path(exam, amc_project_path: str) -> Path:
+def _resolve_students_list_path(exam, amc_project_path: str) -> pathlib.Path:
     students_list_raw = get_amc_option_by_key(exam, 'listeetudiants').replace("%PROJET", amc_project_path)
-    students_list_path = Path(students_list_raw).resolve()
-    project_root = Path(amc_project_path).resolve()
+    students_list_path = pathlib.Path(students_list_raw).resolve()
+    project_root = pathlib.Path(amc_project_path).resolve()
     try:
         students_list_path.relative_to(project_root)
     except ValueError as exc:
@@ -354,16 +402,18 @@ def edit_amc_file(request: HttpRequest, exam_pk: int):
 
     if request.POST['filepath'] == 'students_list':
         filepath = _resolve_students_list_path(exam, amc_project_path)
-        f = open(filepath, 'r')
-        file_contents = f.read()
-        f.close()
-        return HttpResponse(json.dumps([os.path.relpath(str(filepath), amc_project_path), file_contents]))
+
+        with open(filepath, 'r') as f:
+            file_contents = f.read()
+            f.close()
+            return HttpResponse(json.dumps([os.path.relpath(str(filepath), amc_project_path), file_contents]))
     else:
         filepath = _resolve_amc_project_file(amc_project_path, request.POST['filepath'])
-        f = open(filepath, 'r', encoding='utf-8')
-        file_contents = f.read()
-        f.close()
-        return HttpResponse(file_contents)
+
+        with open(filepath, 'r', encoding='utf-8') as f:
+            file_contents = f.read()
+            f.close()
+            return HttpResponse(file_contents)
 
 
 @exam_permission_required(['manage'])
@@ -380,10 +430,10 @@ def save_amc_edited_file(request: HttpRequest, exam_pk: int):
     if 'is_students_list' in request.POST:
         tmp_filepath = get_amc_project_path(exam, False) + '/_tmp_students.csv'
         shutil.copyfile(filepath, tmp_filepath)
-        f = open(tmp_filepath, 'r+', encoding="utf-8")
-        f.truncate(0)
-        f.write(data)
-        f.close()
+        with open(tmp_filepath, 'r+', encoding="utf-8") as f:
+            f.truncate(0)
+            f.write(data)
+            f.close()
         check = check_students_csv_file(tmp_filepath)
         if check == 'ok':
             os.rename(tmp_filepath, filepath)
@@ -393,10 +443,10 @@ def save_amc_edited_file(request: HttpRequest, exam_pk: int):
         return HttpResponse(check)
     else:
         filepath = _resolve_amc_project_file(amc_project_path, request.POST['filepath'])
-        f = open(filepath, 'r+', encoding="utf-8")
-        f.truncate(0)
-        f.write(data)
-        f.close()
+        with open(filepath, 'r+', encoding="utf-8") as f:
+            f.truncate(0)
+            f.write(data)
+            f.close()
         return HttpResponse('ok')
 
 
@@ -681,7 +731,7 @@ def stream_import_scans_from_review(request: HttpRequest, exam):
     )
 
     export_subdir = 'marked_' + str(exam.year.code) + "_" + str(
-        exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
+        exam.semester.code) + "_" + exam.code + "_" + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-5]
     export_subdir = export_subdir.replace(" ", "_")
     export_tmp_dir = (str(settings.EXPORT_TMP_ROOT) + "/" + export_subdir)
 
@@ -707,30 +757,30 @@ def stream_import_scans_from_review(request: HttpRequest, exam):
             else:
                 shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
 
-    tmp_file_list = open(file_list_path, "w")
-    files = [str(path) for path in iter_review_scan_files(scans_dir)]
-    file_list_count = 0
-    marked_file_count = 0
-    for file in files:
-        file_path = pathlib.Path(file)
-        marked_file_path = pathlib.Path(marked_dir) / file_path.parent.name / f"marked_{file_path.stem}.png"
-        if os.path.exists(marked_file_path):
-            tmp_file_list.write(str(marked_file_path) + "\n")
-            marked_file_count += 1
-        else:
-            tmp_file_list.write(file + "\n")
-        file_list_count += 1
+    with open(file_list_path, "w") as tmp_file_list:
+        files = [str(path) for path in iter_review_scan_files(scans_dir)]
+        file_list_count = 0
+        marked_file_count = 0
+        for file in files:
+            file_path = pathlib.Path(file)
+            marked_file_path = pathlib.Path(marked_dir) / file_path.parent.name / f"marked_{file_path.stem}.png"
+            if os.path.exists(marked_file_path):
+                tmp_file_list.write(str(marked_file_path) + "\n")
+                marked_file_count += 1
+            else:
+                tmp_file_list.write(file + "\n")
+            file_list_count += 1
 
-    tmp_file_list.close()
-    logger.info(
-        "AMC full review import file list written exam=%s path=%s count=%s marked_count=%s",
-        exam.pk,
-        file_list_path,
-        file_list_count,
-        marked_file_count,
-    )
+        tmp_file_list.close()
+        logger.info(
+            "AMC full review import file list written exam=%s path=%s count=%s marked_count=%s",
+            exam.pk,
+            file_list_path,
+            file_list_count,
+            marked_file_count,
+        )
 
-    yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
+        yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
 
 
 @exam_permission_required(['manage'])
@@ -758,10 +808,11 @@ def open_amc_catalog_pdf(request: HttpRequest, exam_pk: int):
 def view_amc_log_file(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     amc_log_file_path = get_amc_project_path(exam, False) + "/amc-compiled.log"
-    f = open(amc_log_file_path, 'r', encoding='latin-1')
-    file_contents = f.read()
-    f.close()
-    return HttpResponse(file_contents)
+
+    with open(amc_log_file_path, 'r', encoding='latin-1') as f:
+        file_contents = f.read()
+        f.close()
+        return HttpResponse(file_contents)
 
 
 @exam_permission_required(['manage'])
@@ -829,14 +880,14 @@ def amc_update_students_file(request: HttpRequest, exam_pk: int) -> HttpResponse
     if not amc_project_dir:
         return HttpResponse('ok')  # same as the original; consider returning an error instead
 
-    project_path = Path(amc_project_dir)
-    file_name: str = Path(students_list_csv.name).name  # drop any client-supplied path parts
+    project_path = pathlib.Path(amc_project_dir)
+    file_name: str = pathlib.Path(students_list_csv.name).name  # drop any client-supplied path parts
     storage = FileSystemStorage(location=project_path)
 
     # Save to a temp file for checking.
     # storage.save() returns the name actually used, which differs if the file already exists.
     tmp_name: str = storage.save('_tmp_students.csv', students_list_csv)
-    tmp_path: Path = project_path / tmp_name
+    tmp_path: pathlib.Path = project_path / tmp_name
 
     check: str = check_students_csv_file(str(tmp_path))
     if check != 'ok':
@@ -935,8 +986,8 @@ def download_annotated_pdf(request: HttpRequest, exam_pk: int):
     zip_file_path = create_annotated_zip(exam)
 
     if zip_file_path:
-        zip_file = open(zip_file_path, 'rb')
-        return FileResponse(zip_file)
+        with open(zip_file_path, 'rb') as zip_file:
+            return FileResponse(zip_file)
     else:
         return HttpResponse('ZIP file not created !')
 
@@ -950,7 +1001,7 @@ def call_amc_generate_results(request: HttpRequest, exam_pk: int):
     if not 'ERR:' in result:
         project_path = get_amc_project_path(exam, False)
         results_csv_path = project_path + "/exports/" + exam.code + "_amc_raw.csv"
-        file = open(results_csv_path, 'r', encoding='utf8')
+
         task = import_csv_data.delay(results_csv_path, exam.pk)
         task_id = task.task_id
 
@@ -1009,24 +1060,23 @@ def amc_set_manual_association(request: HttpRequest, exam_pk: int) -> JsonRespon
             {"error": "No association data for this exam yet. Run the automatic association or the marking first."},
             status=404)
 
-    amc_association_db_manager = AmcAssociationDbManager(amc_data_path)
+    with AmcAssociationDbManager(amc_data_path) as amc_association_db_manager:
+        try:
+            no_student_choice = "0"
+            if code in ("", no_student_choice):
+                amc_association_db_manager.unlink(sheet, copy)
+                logger.info("%s removed the student of sheet %s/%s (exam %s)", request.user, sheet, copy, exam.pk)
+            else:
+                previous = amc_association_db_manager.associate_manually(code, sheet, copy)
+                logger.info(
+                    "%s associated student %s with sheet %s/%s (exam %s), previously on %s",
+                    request.user, code, sheet, copy, exam.pk, previous or "no sheet",
+                )
+        except AmcDbManagerError:
+            logger.exception("Manual association failed for sheet %s/%s, student %r (exam %s)", sheet, copy, code, exam.pk)
+            return JsonResponse({"error": "The association could not be saved."})
 
-    try:
-        no_student_choice = "0"
-        if code in ("", no_student_choice):
-            amc_association_db_manager.unlink(sheet, copy)
-            logger.info("%s removed the student of sheet %s/%s (exam %s)", request.user, sheet, copy, exam.pk)
-        else:
-            previous = amc_association_db_manager.associate_manually(code, sheet, copy)
-            logger.info(
-                "%s associated student %s with sheet %s/%s (exam %s), previously on %s",
-                request.user, code, sheet, copy, exam.pk, previous or "no sheet",
-            )
-    except AmcDbManagerError:
-        logger.exception("Manual association failed for sheet %s/%s, student %r (exam %s)", sheet, copy, code, exam.pk)
-        return JsonResponse({"error": "The association could not be saved."})
-
-    return JsonResponse({"ok": True})
+        return JsonResponse({"ok": True})
 
 
 @require_POST
@@ -1068,16 +1118,17 @@ def get_amc_scan_url(request: HttpRequest, exam_pk: int):
 
     if '.' in page_nr:  # extra page
         c = copy_nr.zfill(4)
-        scan_path = Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
+        scan_path = pathlib.Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
     else:
-        raw_scan_path = AmcCaptureDbManager(f'{project_path}/data/').select_amc_scan_path(copy_nr, page_nr)
+        with AmcCaptureDbManager(f'{project_path}/data/') as amc_capture_db_manager:
+            raw_scan_path = amc_capture_db_manager.select_amc_scan_path(copy_nr, page_nr)
 
         if not raw_scan_path:
             return HttpResponseNotFound('No scan for this page')
 
         scan_path = resolve_amc_path(raw_scan_path, project_path)
 
-    roots = [Path(settings.MARKED_SCANS_ROOT), Path(settings.SCANS_ROOT), Path(project_path, 'scans', 'extra')]
+    roots = [pathlib.Path(settings.MARKED_SCANS_ROOT), pathlib.Path(settings.SCANS_ROOT), pathlib.Path(project_path, 'scans', 'extra')]
     root = next((r.resolve() for r in roots if scan_path.is_relative_to(r.resolve())), None)
 
     if root is None or not scan_path.is_file():

@@ -1,58 +1,143 @@
 import logging
+import os
 import sqlite3
+from abc import ABC
+from collections.abc import Callable
+from enum import StrEnum
+from pathlib import Path
+from typing import TypeVar
 
 from examc_app.services.amc.AmcDb import AmcDb
 
 logger = logging.getLogger(__name__)
 
-def select_count_layout_pages(amc_data_path: str):
-    db = AmcDb(amc_data_path + "layout.sqlite")
-    query_str = "SELECT count(*) FROM layout_page"
-    response = db.execute_query(query_str)
-    nb_pages_detected = 0
-
-    if response: nb_pages_detected = response.fetchall()[0][0]
-
-    db.close()
-    return nb_pages_detected
+T = TypeVar("T")
 
 
-def select_questions(amc_data_path):
-    db = AmcDb(amc_data_path + "layout.sqlite")
-    query_str = ("SELECT * FROM layout_question")
-
-    response = db.execute_query(query_str)
-    data_questions = []
-    if response:
-        colname_questions = [d[0] for d in response.description]
-        data_questions = [dict(zip(colname_questions, r)) for r in response.fetchall()]
-    db.close()
-
-    return data_questions
+class AmcDbManagerError(Exception):
+    """Raised when reading or writing the AMC association database fails."""
 
 
 
-def select_copy_question_page(amc_data_path: str, copy: str, question: str):
-    db = AmcDb(amc_data_path + "layout.sqlite")
+class AmcDbFile(StrEnum):
+    ASSOCIATION = "association.sqlite"
+    SCORING = "scoring.sqlite"
+    CAPTURE = "capture.sqlite"
+    LAYOUT = "layout.sqlite"
 
-    query_str = (
-        "SELECT DISTINCT lb.page "
-        "FROM layout_box lb "
-        "INNER JOIN layout_question lq ON lq.question = lb.question "
-        "WHERE lb.student = :copy AND lq.name = ':question'"
-    )
 
-    cursor = db.execute_query(query_str, {"copy": copy, "question": question})
-    if not cursor: return None
+class AbstractAmcDbManager(ABC):
+    """
+    Abstract base class for managing AMC database queries.
+    """
+    def __init__(self, amc_data_path: str, amc_db_file: AmcDbFile):
+        self._amc_data_path: str = amc_data_path
+        self._amc_table_file: str = amc_db_file.value
+        self._amc_db: AmcDb = self.open_db()
 
-    data = cursor.fetchall()
+    def __enter__(self):
+        return self
 
-    page = None
-    if data[0] and data[0]['page']: page = data[0]['page']
+    def __exit__(self, exc_type, exc, tb) -> None:
+        """Always close the database connection."""
+        self.close_db()
 
-    db.close()
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _rows_as_dicts(cursor: sqlite3.Cursor, row_type: Callable[..., T] = dict) -> list[T]:
+        """Convert all the rows of a cursor to dicts keyed by column's name."""
+        columns = [d[0] for d in cursor.description]
+        return [row_type(**dict(zip(columns, row))) for row in cursor.fetchall()]
 
-    return page
+    # ------------------------------------------------------------------
+    # DB operations
+    # ------------------------------------------------------------------
+    def close_db(self):
+        """Close the database connection."""
+        self._amc_db.close()
+
+    def open_db(self) -> AmcDb:
+        db_path = os.path.join(self._amc_data_path, self._amc_table_file)
+
+        # sqlite silently creates an empty file for a missing path, so check first.
+        if not os.path.isfile(db_path):
+            raise AmcDbManagerError(f"AMC database not found: {db_path}")
+
+        db = AmcDb(db_path)
+
+        if db.conn is None:
+            raise AmcDbManagerError(f"Could not open AMC database {db_path}")
+
+        return db
+
+    def _execute(self, query: str, params: dict | None = None, error: str = "") -> sqlite3.Cursor:
+        """
+        Helper method to execute a query and raise an error if the cursor is None.
+        :param query: The SQL query to execute.
+        :param params: The parameters to pass to the query.
+        :param error: The error message to raise if the cursor is None.
+        :return: The cursor object.
+        :raise AmcDbManagerError: if the cursor is None
+        """
+        # Default error message
+        if error == "":
+            error = f"Could not execute the following query: {query}"
+            if params is not None:
+                error += f"\nwith parameters {params}"
+
+        # Default parameters
+        if params is None: params = {}
+
+        cursor = self._amc_db.execute_query(query, params)
+
+        if cursor is None: raise AmcDbManagerError(error)
+
+        return cursor
+
+    def _attach(self, amc_db_file: AmcDbFile, alias: str = "") -> None:
+        """
+        Attach another AMC database of the same data folder to the connection using ATTACH DATABASE {db_file} AS {alias}.
+        :param amc_db_file: File name of the database, e.g. "scoring.sqlite".
+        :type amc_db_file: AmcDbFile
+        :param alias: Schema name to use in queries. If unspecified, the amc DB file name without extension is used.
+        """
+        # Default alias value
+        if alias == "":
+            alias = amc_db_file.value.split(".")[0]
+
+        database = self._amc_data_path + amc_db_file.value
+        logger.critical(f"Attaching database '{database}' as '{alias}'")
+        query_str = f"ATTACH DATABASE '{database}' AS :alias"
+        query_params = {"alias": alias}
+
+        if self._amc_db.cursor is None or not self._amc_db.cursor:
+            raise AmcDbManagerError(f"SQLite cursor is None for file '{self._amc_data_path}/{self._amc_table_file}'")
+
+        self._amc_db.cursor.execute(query_str, query_params)
+
+
+    def _has_db(self, amc_db_file: AmcDbFile) -> bool:
+        """
+        True if a given db file name such as "scoring.sqlite" exists in the same amc_data_path and is not empty.
+        :rtype: bool
+        """
+        return Path(self._amc_data_path + amc_db_file.value).stat().st_size > 0
+
+
+
+
+
+
+
+
+
+
+
+################################################
+# SCORING
+################################################
 
 
 def get_mean(amc_data_path: str):
@@ -106,6 +191,30 @@ def get_questions_scoring_details(amc_data_path):
     db.close()
 
     return marking_details
+
+
+
+def get_question_max_points(amc_data_path, question_name, copy_nr):
+    db = AmcDb(amc_data_path + "scoring.sqlite")
+    db.cursor.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
+    query_str = ("SELECT strategy FROM scoring_question sc"
+                 " INNER JOIN layout_question lq ON lq.question = sc.question"
+                 " WHERE lq.name = '" + str(question_name) + "'")
+
+    if copy_nr:
+        query_str += " AND sc.student = " + str(copy_nr)
+
+    response = db.execute_query(query_str)
+    strategy = response.fetchall()[0]['strategy']
+    max_points = strategy.split("=")[1]
+    return max_points
+
+
+
+
+################################################
+# REPORT
+################################################
 
 def select_students_report(amc_data_path):
     db = AmcDb(amc_data_path + "report.sqlite")
@@ -182,114 +291,3 @@ def update_report_student(amc_data_path, student, mail_timestamp, mail_status, m
     return response
 
 
-def get_questions(amc_data_path):
-    db = AmcDb(amc_data_path + "layout.sqlite")
-    query_str = "SELECT * FROM layout_question"
-    response = db.execute_query(query_str)
-    colname_question = [d[0] for d in response.description]
-    question_details = [dict(zip(colname_question, r)) for r in response.fetchall()]
-
-    return question_details
-
-
-def get_question_start_page_by_student(amc_data_path, question_name, student_id):
-    db = AmcDb(amc_data_path + "layout.sqlite")
-    query_str = ("SELECT DISTINCT b.student, q.question, q.name, b.page FROM layout_box b"
-                 " INNER JOIN layout_question q ON q.question = b.question"
-                 " WHERE q.name = '" + str(question_name) + "' AND b.student = " + str(student_id))
-
-    response = db.execute_query(query_str)
-    colname_qp = [d[0] for d in response.description]
-    qp_details = [dict(zip(colname_qp, r)) for r in response.fetchall()]
-
-    return qp_details
-
-
-def get_question_name_by_student_page(amc_data_path, student_id, page_no):
-    db = AmcDb(amc_data_path + "layout.sqlite")
-    query_str = ("SELECT DISTINCT q.name FROM layout_box b"
-                 " INNER JOIN layout_question q ON q.question = b.question"
-                 " WHERE b.page = " + str(page_no) + " AND b.student = " + str(student_id))
-
-    response = db.execute_query(query_str)
-    rows = response.fetchall()
-    if rows:
-        qname = rows[0]['name']
-    else:
-        qname = get_question_name_by_student_page(amc_data_path, student_id, page_no - 1)
-    return qname
-
-
-
-def get_question_max_points(amc_data_path, question_name, copy_nr):
-    db = AmcDb(amc_data_path + "scoring.sqlite")
-    db.cursor.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
-    query_str = ("SELECT strategy FROM scoring_question sc"
-                 " INNER JOIN layout_question lq ON lq.question = sc.question"
-                 " WHERE lq.name = '" + str(question_name) + "'")
-
-    if copy_nr:
-        query_str += " AND sc.student = " + str(copy_nr)
-
-    response = db.execute_query(query_str)
-    strategy = response.fetchall()[0]['strategy']
-    max_points = strategy.split("=")[1]
-    return max_points
-
-
-def get_question_number(amc_data_path, copy_nr, question_name):
-    db = AmcDb(amc_data_path + "layout.sqlite")
-
-    # minimal safe quoting
-    qname = question_name.replace("'", "''")  # SQLite escaping
-
-    query_str = f"""
-    WITH q AS (
-      SELECT question
-      FROM layout_question
-      WHERE name = '{qname}'
-    ),
-    firstpos AS (
-      SELECT b.question,
-             MIN(b.page) AS p,
-             MIN(b.ymin) AS y0,
-             MIN(b.xmin) AS x0
-      FROM layout_box b
-      WHERE b.student = {int(copy_nr)}
-        AND b.role = 1
-      GROUP BY b.question
-    ),
-    ordered AS (
-      SELECT question,
-             ROW_NUMBER() OVER (ORDER BY p, y0, x0) AS qnum
-      FROM firstpos
-    )
-    SELECT o.qnum
-    FROM ordered o
-    JOIN q USING(question);
-    """
-
-    response = db.execute_query(query_str)
-    row = response.fetchone()
-    db.close()
-
-    if row is None:
-        raise ValueError(f"Question name '{question_name}' not found for student/copy {copy_nr}")
-
-    return row["qnum"]
-
-
-################################################
-# AMC CONVERT
-################################################
-
-def get_page_layout_boxes(amc_data_path, student, page_nr):
-    db = AmcDb(amc_data_path + "layout.sqlite")
-    query_str = (
-            "SELECT * FROM layout_box WHERE student = " + student + " AND page = " + page_nr + " ORDER BY question, answer")
-
-    response = db.execute_query(query_str)
-    colname_layout_boxes = [d[0] for d in response.description]
-    layout_boxes_details = [dict(zip(colname_layout_boxes, r)) for r in response.fetchall()]
-
-    return layout_boxes_details
