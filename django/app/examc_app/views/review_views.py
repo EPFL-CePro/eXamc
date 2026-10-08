@@ -3,31 +3,72 @@
 """
 import json
 import logging
-from django.utils import timezone
-from typing import Any
-
 import math
-from datetime import timedelta
+import os
+import pathlib
+from datetime import datetime, timedelta
 from functools import wraps
+from typing import Any
 
 from celery.result import AsyncResult
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect, Http404
+from django.db import IntegrityError, transaction
+from django.db.models import Sum
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST, require_GET
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView
 
+from examc import settings
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import *
+from examc_app.forms import (
+    DeleteUnrecognizedReviewScansForm,
+    ExportMarkedFilesForm,
+    GradingSchemeCheckBoxForm,
+    GradingSchemeCheckboxFormSet,
+    GradingSchemeForm,
+    PagesGroupsFormSet,
+    ReviewersFormSet,
+)
 from examc_app.mixins import ExamPermissionAndRedirectMixin
-from examc_app.tasks import import_exam_scans, generate_marked_files_zip
-from examc_app.utils.amc_functions import *
+from examc_app.models import (
+    Exam,
+    ExamUser,
+    PageMarkers,
+    PageMarkersUser,
+    PagesGroup,
+    PagesGroupComment,
+    PagesGroupGradingSchemeCheckedBox,
+    PagesGroupStudentReportNote,
+    QuestionGradingScheme,
+    QuestionGradingSchemeCheckBox,
+    ReviewLock,
+    Student,
+    UnrecognizedReviewScan,
+)
+from examc_app.signing import make_token_for, verify_and_get_path
+from examc_app.tasks import generate_marked_files_zip, import_exam_scans
+from examc_app.utils.amc_functions import (
+    get_amc_layout_detection_info,
+    get_amc_marks_positions_data,
+    get_amc_project_path,
+    get_amc_update_document_info,
+)
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import *
+from examc_app.utils.preparation_functions import get_questions
+from examc_app.utils.review_functions import (
+    assign_unrecognized_review_scan_file,
+    delete_unrecognized_review_scan_file,
+    get_copies_pages_by_group,
+    get_question_points,
+    get_scan_url,
+    get_scans_list_by_copy,
+    other_grading_scheme_used,
+)
 from examc_app.utils.review_settings_guards import (
     decimal_value_changed,
     grading_scheme_has_usage,
@@ -723,8 +764,7 @@ def download_marked_files(request: HttpRequest, filename, exam_pk: int):
     if not file_path.startswith(export_root + os.sep) or not os.path.isfile(file_path):
         raise Http404("Export file not found")
 
-    zip_file = open(file_path, 'rb')
-    return FileResponse(zip_file)
+    return FileResponse(open(file_path, 'rb'))
 
 
 # TESTING
