@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import pathlib
 import shutil
@@ -6,16 +7,27 @@ import time
 from functools import lru_cache
 
 import cv2
-import pyzbar.pyzbar as pyzbar
-from PIL import Image, ImageStat
-
 from django.db import transaction
 from django.db.models import Sum
+from django.utils import timezone
 from fpdf import FPDF
+from PIL import Image, ImageStat
+from pyzbar import pyzbar
 
-from examc_app.models import *
+from examc import settings
+from examc_app.models import (
+    Exam,
+    PageMarkers,
+    PagesGroup,
+    PagesGroupComment,
+    PagesGroupGradingSchemeCheckedBox,
+    QuestionGradingScheme,
+    QuestionGradingSchemeCheckBox,
+    Student,
+    UnrecognizedReviewScan,
+)
 from examc_app.signing import make_token_for
-from examc_app.utils.amc_db_queries import get_question_start_page_by_student
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
@@ -464,87 +476,16 @@ def get_scans_pathes_by_exam(exam):
     scans_pathes = []
     if os.path.exists(scans_dir):
         for dir in sorted(os.listdir(scans_dir)):
-            if not is_review_copy_dir_name(dir):
-                continue
-            # files = []
-            # for filename in sorted(os.listdir(scans_dir + "/" + dir)):
-            #     if not filename.endswith("full.jpg"):
-            #         files.append(scans_dir + "/"+dir+"/"+filename)
-            #
-            # scans = [Image.open(x) for x in files]
-            # widths, heights = zip(*(i.size for i in scans))
-            #
-            # total_width = max(widths)
-            # max_height = sum(heights)
-            #
-            # merged_scans = Image.new('RGB', (total_width, max_height))
-            #
-            # y_offset = 0
-            # for im in scans:
-            #     merged_scans.paste(im, (0,y_offset))
-            #     y_offset += im.height
-            #
-            # merged_scans.save(scans_dir+"/"+dir+"/"+dir+"_full.jpg")
-            scans_path_dict = {}
-            scans_path_dict["copy_no"] = dir
-            scans_path_dict["path"] = scans_url + "/" + dir + "/" + dir + "_full.jpg"
-            # scans_path_dict["marked"] = marked
-            # scans_path_dict["comment"] = comment
-            # scans_path_dict["marked_by"] = marked_by
+            if not is_review_copy_dir_name(dir): continue
+            scans_path_dict = {
+                "copy_no": dir,
+                "path": scans_url + "/" + dir + "/" + dir + "_full.jpg"
+            }
             scans_pathes.append(scans_path_dict)
 
     return scans_pathes
 
 
-#### END TESTING DISPLAYING FULL COPIE JPGS ###
-
-### old function rewritten after for best performances
-# def get_copies_pages_by_group(pagesGroup):
-#
-#
-#     project_subdir = str(pagesGroup.exam.year.code) + "/" + str(pagesGroup.exam.semester.code) + "/" + pagesGroup.exam.code+"_"+pagesGroup.exam.date.strftime("%Y%m%d")
-#     scans_dir = str(settings.SCANS_ROOT) + "/" + project_subdir
-#
-#     copies_pages_list = []
-#
-#     scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
-#
-#     if os.path.exists(scans_dir):
-#         for dir in sorted(os.listdir(scans_dir)):
-#             for filename in sorted(os.listdir(scans_dir + "/" + dir)):
-#                 if not filename.endswith("full.jpg"):
-#                     split_filename = filename.split('_')
-#                     copy_no = split_filename[-2]
-#                     page_no_real = split_filename[-1].replace('.jpg', '')
-#                     # get only two first char to prevent extra pages with a,b,c suffixes
-#                     page_no_int = int(page_no_real[0:2])
-#
-#                     amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
-#                     if amc_questions_pages:
-#                         from_p = amc_questions_pages[0]['page']
-#                         to_p = from_p+pagesGroup.nb_pages-1
-#                         if page_no_int >= from_p and page_no_int <= to_p:
-#                             marked = False
-#                             comment = False
-#                             if PagesGroupComment.objects.filter(pages_group=pagesGroup, copy_no=copy_no).all():
-#                                 comment = True
-#                             pageMarkers = scans_markers_qs.filter(copie_no=str(copy_no).zfill(4),
-#                                                                   page_no=str(page_no_real).zfill(2).replace('.', 'x')).first()
-#                             if pageMarkers:
-#                                 if pageMarkers.markers is not None and pageMarkers.correctorBoxMarked:
-#                                     marked = True
-#
-#                                 #marked_by = pageMarkers.get_users_with_date()
-#
-#                             copy_page_dict = {}
-#                             copy_page_dict["copy_no"] = copy_no
-#                             copy_page_dict["page_no"] = page_no_real
-#                             copy_page_dict["marked"] = marked
-#                             copy_page_dict["comment"] = comment
-#                             copies_pages_list.append(copy_page_dict)
-#
-#         copies_pages_list = sorted(copies_pages_list, key=lambda k: (k['copy_no'], float(k['page_no'])))
-#     return copies_pages_list
 
 def get_copies_pages_by_group(pages_group: PagesGroup):
     print('********************* START GET COPIES')
@@ -587,12 +528,13 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
 
     @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
-        pages = get_question_start_page_by_student(str(amc_data_root) + "/", pages_group.group_name, copy_no_int)
-        if not pages:
-            return None
-        from_p = pages[0]["page"]
-        to_p = from_p + pages_group.nb_pages - 1
-        return (from_p, to_p)
+        with AmcLayoutDbManager(str(amc_data_root)) as amc_layout_db_manager:
+            pages = amc_layout_db_manager.get_question_start_page_by_student(pages_group.group_name, copy_no_int)
+
+            if not pages: return None
+            from_p = pages[0]["page"]
+            to_p = from_p + pages_group.nb_pages - 1
+            return (from_p, to_p)
 
     copies_pages_list = []
 
