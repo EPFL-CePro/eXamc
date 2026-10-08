@@ -25,6 +25,8 @@ from examc_app.decorators import exam_permission_required
 from examc_app.forms import *
 from examc_app.mixins import ExamPermissionAndRedirectMixin
 from examc_app.tasks import import_exam_scans, generate_marked_files_zip
+from examc_app.utils.amc_db_queries import get_question_max_points, get_questions, get_question_name_by_student_page, \
+    select_copy_question_page
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import *
@@ -1553,7 +1555,7 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
         amc_data_path = get_amc_project_path(exam, True) + "/data/"
         question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
         max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-        amc_corr_boxes = select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
+        amc_corr_boxes = AmcCaptureDbManager.select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
 
         nb_boxes = len(amc_corr_boxes) / 4 - 1
         if nb_boxes <= 0 or max_points <= 0:
@@ -1769,7 +1771,7 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
     question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
     max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-    amc_corr_boxes = select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
+    amc_corr_boxes = AmcCaptureDbManager.select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
 
     if points > 0:
         nb_boxes = len(amc_corr_boxes) / 4 - 1
