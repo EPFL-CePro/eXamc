@@ -18,6 +18,10 @@ from django.views.generic import DetailView
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import *
 from examc_app.mixins import ExamPermissionAndRedirectMixin
+from examc_app.services.celery_tasks import is_celery_task_active
+from examc_app.services.review.unrecognized_scans import (
+    build_unrecognized_review_scan_context,
+)
 from examc_app.tasks import generate_marked_files_zip, import_exam_scans
 from examc_app.utils.amc_db_queries import get_question_max_points
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
@@ -37,131 +41,12 @@ from examc_app.utils.review_upload_state import (
     set_pending_amc_import,
 )
 
-ACTIVE_CELERY_STATES = ("PENDING", "RECEIVED", "STARTED", "PROGRESS", "RETRY")
-
-def _page_number_as_int(page_no):
-    try:
-        return int(str(page_no).split(".", 1)[0])
-    except (TypeError, ValueError):
-        return None
-
-
-def _format_unrecognized_scan_suggestion(scan):
-    if scan.previous_copy_no and scan.next_copy_no and scan.previous_copy_no == scan.next_copy_no:
-        previous_page = _page_number_as_int(scan.previous_page_no)
-        next_page = _page_number_as_int(scan.next_page_no)
-        if previous_page is not None and next_page is not None and next_page - previous_page == 2:
-            page_width = max(len(scan.previous_page_no), len(scan.next_page_no), 2)
-            return f"Copy {scan.previous_copy_no}, missing page {previous_page + 1:0{page_width}d}"
-        return f"Copy {scan.previous_copy_no}, between pages {scan.previous_page_no} and {scan.next_page_no}"
-    if scan.previous_copy_no:
-        return f"After copy {scan.previous_copy_no}, page {scan.previous_page_no}"
-    if scan.next_copy_no:
-        return f"Before copy {scan.next_copy_no}, page {scan.next_page_no}"
-    return "No recognized neighbor"
-
-
-def _format_page_number_like(value, reference):
-    page_number = _page_number_as_int(value)
-    if page_number is None:
-        return ""
-    return f"{page_number:0{max(len(str(reference or '')), 2)}d}"
-
-
-def _get_unrecognized_scan_assignment_defaults(scan: UnrecognizedReviewScan):
-    if scan.previous_copy_no and scan.next_copy_no and scan.previous_copy_no == scan.next_copy_no:
-        previous_page = _page_number_as_int(scan.previous_page_no)
-        next_page = _page_number_as_int(scan.next_page_no)
-        if previous_page is not None and next_page is not None and next_page - previous_page == 2:
-            page_width = max(len(scan.previous_page_no), len(scan.next_page_no), 2)
-            return {
-                "copy_no": scan.previous_copy_no,
-                "page_no": f"{previous_page + 1:0{page_width}d}",
-                "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_NORMAL,
-            }
-        return {
-            "copy_no": scan.previous_copy_no,
-            "page_no": scan.previous_page_no,
-            "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_EXTRA,
-        }
-    if scan.previous_copy_no:
-        return {
-            "copy_no": scan.previous_copy_no,
-            "page_no": scan.previous_page_no,
-            "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_EXTRA,
-        }
-    if scan.next_copy_no:
-        next_page = _page_number_as_int(scan.next_page_no)
-        if next_page and next_page > 1:
-            return {
-                "copy_no": scan.next_copy_no,
-                "page_no": _format_page_number_like(next_page - 1, scan.next_page_no),
-                "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_NORMAL,
-            }
-        return {
-            "copy_no": scan.next_copy_no,
-            "page_no": scan.next_page_no,
-            "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_EXTRA,
-        }
-    return {
-        "copy_no": "",
-        "page_no": "",
-        "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_NORMAL,
-    }
-
-
-def _build_unrecognized_review_scan_context(exam: Exam) -> list:
-    rows = []
-    scans = UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).order_by("upload_order", "pk")
-
-    for scan in scans:
-        assignment_defaults = _get_unrecognized_scan_assignment_defaults(scan)
-        rows.append({
-            "id": scan.pk,
-            "filename": scan.filename,
-            "original_filename": scan.original_filename,
-            "upload_order": scan.upload_order,
-            "scan_url": make_token_for(scan.relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False),
-            "previous_url": (
-                make_token_for(scan.previous_relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False)
-                if scan.previous_relative_path else ""
-            ),
-            "previous_label": (
-                f"Copy {scan.previous_copy_no}, page {scan.previous_page_no}"
-                if scan.previous_copy_no else ""
-            ),
-            "next_url": (
-                make_token_for(scan.next_relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False)
-                if scan.next_relative_path else ""
-            ),
-            "next_label": (
-                f"Copy {scan.next_copy_no}, page {scan.next_page_no}"
-                if scan.next_copy_no else ""
-            ),
-            "suggestion": _format_unrecognized_scan_suggestion(scan),
-            "assignment_copy_no": assignment_defaults["copy_no"],
-            "assignment_page_no": assignment_defaults["page_no"],
-            "assignment_mode": assignment_defaults["mode"],
-        })
-
-    return rows
-
-
-def _is_celery_task_active(task_id: str | None) -> bool:
-    if not task_id:
-        return False
-    try:
-        return AsyncResult(task_id).state in ACTIVE_CELERY_STATES
-    except Exception:
-        logger.warning("Unable to read celery task state task_id=%s", task_id, exc_info=True)
-        return False
-
 
 def _get_upload_scan_pending_context(request: HttpRequest, exam_pk: int, task_id: str | None = None) -> dict[str, Any]:
     active_task_id = task_id
     if not active_task_id:
         pending_task_id = get_pending_amc_import_upload_task_id(request, exam_pk)
-        if _is_celery_task_active(pending_task_id):
+        if is_celery_task_active(pending_task_id):
             active_task_id = pending_task_id
 
     return {
@@ -177,7 +62,7 @@ def _get_unrecognized_review_block_response(request: HttpRequest, exam: Exam):
         return None
 
     pending_task_id = get_pending_amc_import_upload_task_id(request, exam.pk)
-    if _is_celery_task_active(pending_task_id):
+    if is_celery_task_active(pending_task_id):
         return None
 
     message = (
@@ -827,7 +712,7 @@ def unrecognized_review_scans_table(request: HttpRequest, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     return render(request, 'review/import/_unrecognized_review_scans_table.html', {
         'exam_selected': exam,
-        'unrecognized_review_scans': _build_unrecognized_review_scan_context(exam),
+        'unrecognized_review_scans': build_unrecognized_review_scan_context(exam),
     })
 
 
