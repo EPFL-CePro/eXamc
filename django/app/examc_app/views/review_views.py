@@ -173,11 +173,8 @@ class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMix
             context['nav_url'] = "reviewView"
             context['exam_pages_group_list'] = pages_groups
             context['exam_selected'] = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
+            exam = exam.get_common_exam_or_default()
+
             context['exam'] = exam
             return context
         else:
@@ -239,12 +236,7 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         })
 
         # manages common exams
-        exam = pages_group.exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = pages_group.exam.get_common_exam_or_default()
         context['exam'] = exam
 
         # grading scheme
@@ -334,11 +326,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                 context['locked_pages_group_ids'] = []
 
             context['exam_selected'] = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
+            exam = exam.get_common_exam_or_default()
             context['exam'] = exam
             return context
         else:
@@ -432,11 +420,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
             context['user_allowed'] = True
             context['nav_url'] = "reviewSettingsView"
             context['exam_selected'] = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
+            exam = exam.get_common_exam_or_default()
             context['exam'] = exam
             context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
@@ -448,11 +432,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
             context['user_allowed'] = False
             context['nav_url'] = "reviewSettingsView"
             context['exam_selected'] = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
+            exam = exam.get_common_exam_or_default()
             context['exam'] = exam
             return context
 
@@ -588,11 +568,7 @@ def generate_marked_files(request: HttpRequest, exam_pk: int, task_id: str | Non
                 form = ExportMarkedFilesForm()
 
                 exam_selected = exam
-                if exam.common_exams:
-                    for common_exam in exam.common_exams.all():
-                        if common_exam.is_overall():
-                            exam = common_exam
-                            break
+                exam = exam.get_common_exam_or_default()
                 return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                                                                                   "form": form,
                                                                                   "exam_selected": exam_selected,
@@ -612,11 +588,7 @@ def generate_marked_files(request: HttpRequest, exam_pk: int, task_id: str | Non
         else:
             form = ExportMarkedFilesForm()
             exam_selected = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
+            exam = exam.get_common_exam_or_default()
             return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                                                                               "form": form,
                                                                               "exam": exam,
@@ -624,11 +596,7 @@ def generate_marked_files(request: HttpRequest, exam_pk: int, task_id: str | Non
                                                                               "nav_url": "generate_marked_files"})
     else:
         exam_selected = exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_common_exam_or_default()
         return render(request, 'review/export/export_marked_files.html', {"user_allowed": False,
                                                                           "form": None,
                                                                           "exam": exam,
@@ -705,11 +673,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
         # message = start_upload_scans(request, exam.pk, temp_file_path)
 
         exam_selected = exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_common_exam_or_default()
 
         return render(
             request,
@@ -726,11 +690,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
         )
 
     exam_selected = exam
-    if exam.common_exams:
-        for common_exam in exam.common_exams.all():
-            if common_exam.is_overall():
-                exam = common_exam
-                break
+    exam = exam.get_common_exam_or_default()
 
     return render(
         request,

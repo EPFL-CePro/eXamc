@@ -159,6 +159,10 @@ class Exam(models.Model):
                     available_exams.append(exam)
         return available_exams
 
+    def get_common_exam_or_default(self):
+        """ The overall exam among the common exams if there is one, otherwise this exam """
+        return self.common_exams.filter(overall=True).first() or self
+
 
 
 class QuestionType(models.Model):
