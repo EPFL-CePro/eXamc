@@ -5,12 +5,16 @@ from celery.result import AsyncResult
 from django.http import HttpRequest
 from django.utils import timezone
 
+from examc_app.services.celery_tasks import (
+    is_celery_task_active,
+    get_celery_task_status,
+    ACTIVE_CELERY_STATES,
+)
+
 logger = logging.getLogger(__name__)
 
 AMC_JOB_TTL_SECONDS: Final = 24 * 3600
 AMC_JOB_MAX_TRACKED: Final = 200
-
-AMC_JOB_MANAGER_CELERY_STATES = ("PENDING", "RECEIVED", "STARTED", "PROGRESS", "RETRY")
 
 class AmcJob(TypedDict):
     exam_pk: int
@@ -87,7 +91,12 @@ class AmcJobsManager:
     def get_running_job_id(self, exam_pk: int) -> str | None:
         """Id of a job of this exam still running in Celery, if any."""
         for job_id, meta in self.get_jobs().items():
-            logger.info(f"Exam {exam_pk} job {job_id} state: {AsyncResult(job_id).state}")
-            if meta["exam_pk"] == exam_pk and AsyncResult(job_id).state in AMC_JOB_MANAGER_CELERY_STATES:
+            if meta["exam_pk"] != exam_pk:
+                continue
+
+            job_state = get_celery_task_status(task_id=job_id)
+            logger.info(f"Exam {exam_pk} job {job_id} state: {job_state}")
+
+            if job_state in ACTIVE_CELERY_STATES:
                 return job_id
         return None
