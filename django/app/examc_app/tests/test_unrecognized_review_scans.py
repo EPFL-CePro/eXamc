@@ -1,16 +1,22 @@
 from datetime import date
 from pathlib import Path
-from types import SimpleNamespace
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from PIL import Image
 from django.contrib.auth.models import Group, User
 from django.contrib.messages import get_messages
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
-from examc_app.models import AcademicYear, Exam, ExamUser, Semester, UnrecognizedReviewScan
+from examc_app.models import (
+    AcademicYear,
+    Exam,
+    ExamUser,
+    Semester,
+    UnrecognizedReviewScan,
+)
 from examc_app.utils.review_functions import (
     assign_unrecognized_review_scan_file,
     delete_unrecognized_review_scan_file,
@@ -18,7 +24,7 @@ from examc_app.utils.review_functions import (
     get_scan_relative_path,
     split_scans_by_copy,
 )
-from examc_app.views.review_views import _build_unrecognized_review_scan_context
+from examc_app.services.review.unrecognized_scans import build_unrecognized_review_scan_context
 
 
 class DummyProgressRecorder:

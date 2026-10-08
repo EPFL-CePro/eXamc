@@ -12,7 +12,11 @@ from examc_app.models import (
     PagesGroupGradingSchemeCheckedBox,
     Semester,
 )
-from examc_app.utils.dashboard import _add_manage_todos, _get_pages_group_progress, _get_review_progress
+from examc_app.utils.dashboard import (
+    _add_manage_todos,
+    _get_pages_group_progress,
+    _get_review_progress,
+)
 
 
 class DashboardReviewProgressTestCase(TestCase):
