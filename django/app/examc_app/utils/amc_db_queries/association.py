@@ -1,14 +1,11 @@
 import logging
-from typing import Any, TypedDict
+from typing import TypedDict
 
-from examc_app.utils.amc_db_queries import AbstractAmcDbManager, AmcDbFile
+from examc_app.utils.amc_db_queries import NO_STUDENT, AbstractAmcDbManager, AmcDbFile
 
 logger = logging.getLogger(__name__)
 
 ASSOC_TABLE = "association_association"
-
-#: Value AMC stores in `manual` to mark a sheet as explicitly not associated, overriding `auto`.
-NO_STUDENT = "NONE"
 
 #: capture_zone.type of the zone where the student writes their name (AMC's ZONE_NAME).
 ZONE_NAME = 2
@@ -42,23 +39,23 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
     def __init__(self, amc_data_path: str):
         super().__init__(amc_data_path, amc_db_file=AmcDbFile.ASSOCIATION)
 
-    def sheets_of(self, code) -> list[tuple[Any]]:
+    def sheets_of(self, code: str) -> list[tuple[int, int]]:
         """
         (student, copy) of the sheets currently associated with a student code.
 
         Port of AMC::DataModule::association realBack.
         """
         query_str = f"SELECT student, copy FROM {ASSOC_TABLE} WHERE coalesce(manual, auto) = :code || ''"
-        query_param = {"code": code}
+        query_params = {"code": code}
 
         cursor = self._execute(
-            query_str, query_param,
+            query_str, query_params,
             error=f"Could not read the sheets associated with {code}"
         )
 
-        return [tuple(row) for row in cursor.fetchall()]
+        return [(student, copy) for student, copy in cursor.fetchall()]
 
-    def delete_target(self, code) -> list[tuple[Any]]:
+    def delete_target(self, code) -> list[tuple[int, int]]:
         """
         Unlink a student code from every sheet. Port of AMC::DataModule::association::delete_target.
 
@@ -67,19 +64,22 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
 
         :return: The (student, copy) sheets that were associated with the code before.
         """
-        previous = self.sheets_of(code)
-
         query_str = f"""
             UPDATE {ASSOC_TABLE}
-                SET manual = CASE WHEN manual IS NULL OR auto = :code || '' THEN '{NO_STUDENT}' END
+                SET manual = CASE WHEN manual IS NULL OR auto = :code || '' THEN :no_student END
                 WHERE manual = :code || '' OR (auto = :code || '' AND manual IS NULL)
         """
-        query_params = {"code": code}
+        query_params = {"code": code, "no_student": NO_STUDENT}
 
-        self._execute(
-            query_str, query_params,
-            error=f"Could not unlink the sheets associated with {code}"
-        )
+        # One transaction: the sheets returned are exactly the ones unlinked.
+        with self._amc_db.transaction():
+            previous = self.sheets_of(code)
+
+            self._execute(
+                query_str,
+                query_params,
+                error=f"Could not unlink the sheets associated with {code}",
+            )
 
         return previous
 
@@ -98,31 +98,38 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
         insert_query_str = f"INSERT INTO {ASSOC_TABLE} (student, copy, manual, auto) VALUES (:sheet, :copy, :manual, NULL)"
         insert_query_params = {"sheet": sheet, "copy": copy, "manual": manual}
 
-        cursor = self._execute(
-            update_query_str, update_query_params,
-            error=f"Could not update the association of sheet {sheet}/{copy}",
-        )
-
-        if cursor.rowcount == 0:
-            # No row yet for this sheet (never auto-associated): create it.
+        # One transaction: no other writer can create the row between the UPDATE and the INSERT.
+        with self._amc_db.transaction():
             cursor = self._execute(
-                insert_query_str, insert_query_params,
-                error=f"Could not create the association of sheet {sheet}/{copy}",
+                update_query_str,
+                update_query_params,
+                error=f"Could not update the association of sheet {sheet}/{copy}",
             )
+
+            if cursor.rowcount == 0:
+                # No row yet for this sheet (never auto-associated): create it.
+                cursor = self._execute(
+                    insert_query_str,
+                    insert_query_params,
+                    error=f"Could not create the association of sheet {sheet}/{copy}",
+                )
 
         return cursor.rowcount
 
-    def associate_manually(self, code, sheet: int, copy: int = 0) -> list[tuple[Any]]:
+    def associate_manually(self, code, sheet: int, copy: int = 0) -> list[tuple[int, int]]:
         """
         Associate a student code with a sheet, unlinking it from any other sheet first.
 
         :return: The sheets the code was associated with before.
         """
-        previous = self.delete_target(code)
-        if previous:
-            logger.info("Unlinking student %s from sheets %s", code, previous)
+        # One transaction: if set_manual fails, delete_target is rolled back too.
+        with self._amc_db.transaction():
+            previous = self.delete_target(code)  # a code can only be on one sheet
+            self.set_manual(sheet, copy, code)   # manual overrides AMC's auto association
 
-        self.set_manual(sheet, copy, code)
+        # Logged after commit, so only actual changes are reported.
+        if previous:
+            logger.info("Unlinked student %s from sheets %s", code, previous)
 
         return previous
 
@@ -141,8 +148,9 @@ class AmcAssociationDbManager(AbstractAmcDbManager):
         query_str = f"""
             SELECT aa.student, aa.copy, aa.manual, aa.auto, :img_path || cz.image AS image_path
                 FROM {ASSOC_TABLE} aa
-                INNER JOIN capture.capture_zone cz ON cz.student = aa.student --AND cz.copy = aa.copy
-                WHERE cz.type = :zone_name
+                INNER JOIN capture.capture_zone cz ON cz.student = aa.student AND cz.copy = aa.copy
+                WHERE cz.type = :zone_name AND cz.image IS NOT NULL
+                ORDER BY aa.student, aa.copy
         """
         query_params = {"img_path": amc_assoc_img_path, "zone_name": ZONE_NAME}
 
