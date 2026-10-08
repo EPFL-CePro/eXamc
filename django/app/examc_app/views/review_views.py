@@ -19,9 +19,15 @@ from examc_app.decorators import exam_permission_required
 from examc_app.forms import *
 from examc_app.mixins import ExamPermissionAndRedirectMixin
 from examc_app.services.celery_tasks import is_celery_task_active
+from examc_app.services.review.grading import (
+    get_amc_question_layout_and_marks,
+    get_review_corr_box_index,
+)
+from examc_app.services.review.locks import cleanup_expired_review_locks
 from examc_app.services.review.unrecognized_scans import (
     build_unrecognized_review_scan_context,
 )
+from examc_app.services.review.upload import _get_upload_scan_pending_context
 from examc_app.tasks import generate_marked_files_zip, import_exam_scans
 from examc_app.utils.amc_db_queries import get_question_max_points
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
@@ -41,19 +47,6 @@ from examc_app.utils.review_upload_state import (
     set_pending_amc_import,
 )
 
-
-def _get_upload_scan_pending_context(request: HttpRequest, exam_pk: int, task_id: str | None = None) -> dict[str, Any]:
-    active_task_id = task_id
-    if not active_task_id:
-        pending_task_id = get_pending_amc_import_upload_task_id(request, exam_pk)
-        if is_celery_task_active(pending_task_id):
-            active_task_id = pending_task_id
-
-    return {
-        "task_id": active_task_id,
-        "pending_amc_import": has_pending_amc_import(request, exam_pk),
-        "upload_task_active": bool(active_task_id),
-    }
 
 
 def _get_unrecognized_review_block_response(request: HttpRequest, exam: Exam):
@@ -644,7 +637,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
 
     if request.method == 'POST':
         delete_old_data = False
-        if 'delete_old_data' in request.POST.keys() and request.POST['delete_old_data'] == 'on':
+        if 'delete_old_data' in request.POST and request.POST['delete_old_data'] == 'on':
             delete_old_data = True
         if 'exams_zip_file' not in request.FILES:
             messages.error(request, "No zip file provided.")
@@ -657,7 +650,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
         os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
 
         with open(temp_file_path, 'wb') as temp_file:
-            for chunk in zip_file.chunks(): temp_file.write(chunk)
+            temp_file.writelines(zip_file.chunks())
 
         task = import_exam_scans.delay(temp_file_path, exam_pk, delete_old_data)
         task_id = task.task_id
@@ -1023,12 +1016,6 @@ def update_page_group_markers(request: HttpRequest, exam_pk: int):
         return HttpResponse("Markers updated successfully")
     else:
         return HttpResponse("Invalid request method", status=405)
-
-# TODO : Extract business logic in service
-def cleanup_expired_review_locks():
-    timeout_seconds = max(1, int(getattr(settings, 'REVIEW_LOCK_TIMEOUT', settings.AUTO_LOGOUT_DELAY)))
-    lock_threshold = timezone.now() - timedelta(seconds=timeout_seconds)
-    ReviewLock.objects.filter(updated_at__lt=lock_threshold).delete()
 
 
 @exam_permission_required(['manage', 'review'])
@@ -1408,40 +1395,7 @@ def delete_grading_scheme(request: HttpRequest, exam_pk: int, grading_scheme_id)
                   )
 
 
-########### Grading Scheme Review Group
-def get_review_corr_box_index(grading_scheme, copy_nr):
-    if not copy_nr or str(copy_nr) in ('0', 'None', ''):
-        return -1
 
-    pages_group = grading_scheme.pages_group
-    points = float(get_question_points(grading_scheme, copy_nr))
-
-    if points > grading_scheme.max_points:
-        points = float(grading_scheme.max_points)
-
-    if points > 0:
-        exam = pages_group.exam
-        amc_data_path = get_amc_project_path(exam, True) + "/data/"
-        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-            question_page = amc_layout_db_manager.select_copy_question_page(
-                copy_nr, pages_group.group_name
-            )
-        max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-        amc_corr_boxes = AmcCaptureDbManager.select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
-
-        nb_boxes = len(amc_corr_boxes) / 4 - 1
-        if nb_boxes <= 0 or max_points <= 0:
-            return -1
-
-        points_per_box = max_points / nb_boxes
-        return math.floor(points / points_per_box + 0.5)
-
-    zero_checked = PagesGroupGradingSchemeCheckedBox.objects.filter(
-        pages_group=pages_group,
-        copy_nr=copy_nr,
-        gradingSchemeCheckBox__name='ZERO'
-    ).exists()
-    return 0 if zero_checked else -1
 
 
 @exam_permission_required(['manage', 'review'])
@@ -1640,13 +1594,7 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
         points = float(grading_scheme.max_points)
 
     exam = Exam.objects.get(pk=exam_pk)
-    amc_data_path = get_amc_project_path(exam, True) + "/data/"
-    with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-        question_page = amc_layout_db_manager.select_copy_question_page(
-            copy_nr, pages_group.group_name
-        )
-    max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-    amc_corr_boxes = AmcCaptureDbManager.select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
+    _, max_points, amc_corr_boxes = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
 
     if points > 0:
         nb_boxes = len(amc_corr_boxes) / 4 - 1
