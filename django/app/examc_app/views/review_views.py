@@ -25,10 +25,9 @@ from django.views.generic import DetailView
 
 from examc import settings
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import (
+from examc_app.forms.results_statistics import ExportMarkedFilesForm
+from examc_app.forms.review import (
     DeleteUnrecognizedReviewScansForm,
-    ExportMarkedFilesForm,
-    GradingSchemeCheckBoxForm,
     GradingSchemeCheckboxFormSet,
     GradingSchemeForm,
     PagesGroupsFormSet,
@@ -64,6 +63,7 @@ from examc_app.utils.review_functions import (
     assign_unrecognized_review_scan_file,
     delete_unrecognized_review_scan_file,
     get_copies_pages_by_group,
+    get_grading_scheme_checkboxes,
     get_question_points,
     get_scan_url,
     get_scans_list_by_copy,
@@ -421,7 +421,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
             curr_tab = "groups"
             if self.kwargs.get("curr_tab") != '':
                 curr_tab = self.kwargs.get("curr_tab")
-            formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam, group__pk__in=[2, 3, 4]))
+            formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam, group__pk__in=[2, 3, 4]))  # noqa: F821
 
             amc_project_path = get_amc_project_path(exam, False)
             if amc_project_path:
@@ -430,11 +430,11 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                 locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
                 questions = get_questions(get_amc_project_path(exam, True) + "/data/")
                 questions_choices = [(q['name'], q['name']) for q in questions]
-                formset_pages_groups = PagesGroupsFormSet(queryset=pages_groups, initial=[
+                formset_pages_groups = PagesGroupsFormSet(queryset=pages_groups, initial=[  # noqa: F821
                     {'id': None, 'group_name': 'Select', 'nb_pages': -1}],
                                                           form_kwargs={"questions_choices": questions_choices})
 
-                summernote_media_form = GradingSchemeCheckBoxForm()  # empty instance, just for .media
+                summernote_media_form = GradingSchemeCheckBoxForm()  # empty instance, just for .media  # noqa: F821
 
                 context['user_allowed'] = True
                 context['nav_url'] = "reviewSettingsView"
@@ -480,7 +480,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
 
         if "submit-reviewers" in self.request.POST:
             curr_tab = "reviewers"
-            formset = ReviewersFormSet(self.request.POST)
+            formset = ReviewersFormSet(self.request.POST)  # noqa: F821
             if formset.is_valid():
                 for form in formset:
                     print(form)
@@ -495,7 +495,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
             curr_tab = "groups"
             questions = get_questions(get_amc_project_path(exam, True) + "/data/")
             questions_choices = [(q['name'], q['name']) for q in questions]
-            formset = PagesGroupsFormSet(self.request.POST, form_kwargs={"questions_choices": questions_choices})
+            formset = PagesGroupsFormSet(self.request.POST, form_kwargs={"questions_choices": questions_choices})  # noqa: F821
             if formset.is_valid():
                 for form in formset:
                     if form.is_valid() and form.cleaned_data:
