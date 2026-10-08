@@ -159,16 +159,15 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
         exam = get_object_or_404(Exam, pk=exam_pk)
         project_path = get_amc_project_path(exam, False)
 
-        if not project_path:
-            raise NotFound('No AMC project was found for this exam.')
-
         if '.' in page_nr:  # extra page
             c = copy_nr.zfill(4)
             scan_path = Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
         else:
-            raw = AmcCaptureDbManager(f'{project_path}/data/').select_amc_scan_path(copy_nr, page_nr)
-            if not raw:
-                raise NotFound('No scan was found for this page.')
+            with AmcCaptureDbManager(amc_data_path=f'{project_path}/data/') as amc_capture_db_manager:
+                raw = amc_capture_db_manager.select_amc_scan_path(copy_nr, page_nr)
+                if not raw:
+                    raise NotFound('No scan was found for this page.')
+
             scan_path = resolve_amc_path(raw, project_path)
 
         roots = [Path(settings.MARKED_SCANS_ROOT), Path(settings.SCANS_ROOT), Path(project_path, 'scans', 'extra')]

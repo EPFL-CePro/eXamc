@@ -1,30 +1,18 @@
-import datetime
 import os.path
-import re
 import shutil
-import unicodedata
-
-from celery import shared_task
-from django.contrib.auth.models import User
-from django.contrib.sessions.models import Session
-from django.core.signing import Signer
-from django.db.models import Q, Max
-from django.db.models.fields import IntegerField
-from django.db.models.functions import Cast
-from num2words import num2words
 
 from django.conf import settings
-from examc_app.models import ExamUser, ReviewLock
-from examc_app.utils.amc_functions import get_amc_project_path, amc_update_documents, get_amc_exam_pdf_url
+from django.contrib.auth.models import User
+from django.db.models import Q
+
+from examc_app.models import ExamUser
 from examc_app.utils.epflldap.ldap_search import ldap_search_by_sciper
+
 
 def user_allowed(exam, user_id):
     user = User.objects.get(pk=user_id)
     exam_users = ExamUser.objects.filter(Q(user=user) & (Q(exam=exam) | Q(exam__in=exam.common_exams.all())))
-    if exam_users or user.is_superuser:
-        return True
-    else:
-        return False
+    return bool(exam_users or user.is_superuser)
 
 def get_course_teachers_string(teachers):
     teachers_list = teachers.split('|')

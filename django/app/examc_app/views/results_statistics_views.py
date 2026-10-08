@@ -1,25 +1,36 @@
+import logging
+import os
 import shutil
 import zipfile
 from datetime import datetime
 
 from django.core.files.base import ContentFile
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect
-from django.shortcuts import redirect
-from django.shortcuts import render, get_object_or_404
+from django.http import FileResponse, HttpResponse, HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import require_POST
 
 from examc import settings
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import ExportResultsForm
-from examc_app.storage import to_private_name, private_storage
+from examc_app.forms.results_statistics import ExportResultsForm
+from examc_app.models import Exam, Question, Scale, Student
+from examc_app.storage import private_storage, to_private_name
+
 ## testing
-from examc_app.tasks import import_csv_data, generate_statistics
+from examc_app.tasks import generate_statistics, import_csv_data
 from examc_app.utils.amc_functions import get_amc_catalog_pdf_path
-from examc_app.utils.generate_statistics_functions import *
+from examc_app.utils.generate_statistics_functions import get_comVsInd_correlation
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.results_statistics_functions import *
+from examc_app.utils.results_statistics_functions import (
+    generate_isa_csv,
+    generate_scale_pdf,
+    generate_students_data_csv,
+    get_common_list,
+    get_questions_stats_by_exam,
+    zipdir,
+)
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -93,8 +104,7 @@ def upload_amc_csv(request, exam_pk: int):
     os.makedirs(os.path.dirname(temp_csv_file_path), exist_ok=True)
 
     with open(temp_csv_file_path, 'wb') as temp_file:
-        for chunk in csv_file.chunks():
-            temp_file.write(chunk)
+        temp_file.writelines(csv_file.chunks())
 
     task = import_csv_data.delay(temp_csv_file_path, exam_pk)
     task_id = task.task_id
@@ -184,7 +194,7 @@ def export_data(request, exam_pk: int):
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
             except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
+                logger.exception('Failed to delete %s', file_path)
 
         form = ExportResultsForm(request.POST,exam=exam)
         logger.info(form)
@@ -223,8 +233,7 @@ def export_data(request, exam_pk: int):
             zipdir(export_path, zipf)
             zipf.close()
 
-            zip_file = open(export_path+".zip", 'rb')
-            return FileResponse(zip_file)
+            return FileResponse(open(export_path + ".zip", "rb"))
 
             # process the data in form.cleaned_data as required
             # ...
@@ -402,9 +411,8 @@ def questions_statistics_view(request,exam_pk: int):
 # PDF
 # ------------------------------------------
 @xframe_options_exempt
-
 @exam_permission_required(['manage','see_results'])
-def display_catalog(request, exam_pk: int):
+def display_catalog(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     if exam.is_overall():
         exam = exam.common_exams.all().first()
@@ -415,9 +423,6 @@ def display_catalog(request, exam_pk: int):
       #try to find it in amc dir
       cat_path = get_amc_catalog_pdf_path(exam)
     try:
-        response = FileResponse(open(cat_path, 'rb'), content_type='application/pdf')
-        return response
+        return FileResponse(open(cat_path, "rb"), content_type="application/pdf")
     except FileNotFoundError:
-        raise HttpResponse("No catalog found !")
-
-## TESTING
+        return HttpResponse("No catalog found !", status=404)

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="alert alert-warning mt-4" role="alert">
+        <h5 class="alert-heading">{{ error.title }}</h5>
+        {{ error.detail_html|safe }}
+    </div>
+    {% if error.action_url %}
+        <a href="{{ error.action_url }}" class="btn btn-primary btn-sm">{{ error.action_label|default:"Continue" }}</a>
+    {% endif %}
+    <a href="javascript:history.back()" class="btn btn-dark btn-sm">Go back</a>
+{% endblock %}

@@ -22,17 +22,26 @@ import io
 import json
 import logging
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from django.conf import settings
 from django.db.models import Sum
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-from examc_app.models import PageMarkers, PagesGroupGradingSchemeCheckedBox, Exam, PagesGroup, QuestionGradingScheme
-from examc_app.utils.amc_db_queries import get_question_max_points, select_copy_question_page
-from examc_app.utils.amc_functions import get_amc_project_path, get_amc_marks_positions_data
-
+from examc_app.models import (
+    Exam,
+    PageMarkers,
+    PagesGroup,
+    PagesGroupGradingSchemeCheckedBox,
+    QuestionGradingScheme,
+)
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
+from examc_app.utils.amc_functions import (
+    get_amc_marks_positions_data,
+    get_amc_project_path,
+)
 
 DEFAULT_FONT_PATHS = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -182,10 +191,10 @@ def scaled_rect(marker: dict, scale_x: float, scale_y: float) -> tuple[int, int,
     return left, top, width, height
 
 
-def render_freehand_marker(base_img: Image.Image, marker: dict, scale_x: float | int, scale_y: float | int ) -> None:
+def render_freehand_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float ) -> None:
     """
     Render a ``FreehandMarker`` from either embedded PNG data or point paths
-    ."""
+    """
     drawing = marker.get("drawingImgUrl")
     if isinstance(drawing, str):
         overlay = image_from_data_url(drawing)
@@ -220,7 +229,7 @@ def render_freehand_marker(base_img: Image.Image, marker: dict, scale_x: float |
     base_img.alpha_composite(overlay)
 
 
-def render_highlight_marker(base_img: Image.Image, marker: dict, scale_x: float| int , scale_y: float| int ) -> None:
+def render_highlight_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float) -> None:
     """Render a ``HighlightMarker`` as a filled rectangle overlay."""
     left, top, width, height = scaled_rect(marker, scale_x, scale_y)
     fill = parse_rgba(marker.get("fillColor", "#000000"), marker.get("opacity", 1))
@@ -231,7 +240,7 @@ def render_highlight_marker(base_img: Image.Image, marker: dict, scale_x: float|
     base_img.alpha_composite(overlay)
 
 
-def render_frame_marker(base_img: Image.Image, marker: dict, scale_x: float| int , scale_y: float| int ) -> None:
+def render_frame_marker(base_img: Image.Image, marker: dict, scale_x: float , scale_y: float) -> None:
     """Render a ``FrameMarker`` as a rectangle stroke."""
     left, top, width, height = scaled_rect(marker, scale_x, scale_y)
     stroke = parse_rgba(marker.get("strokeColor", "#000000"), marker.get("opacity", 1))
@@ -307,12 +316,12 @@ def fit_wrapped_font(draw: ImageDraw.ImageDraw, text: str, max_width: int, max_h
     return font, wrap_text(draw, text, font, max_width), 2
 
 
-def line_metrics(draw: ImageDraw.ImageDraw, line: str, font) -> tuple[float|int, float|int, float|int, float|int]:
+def line_metrics(draw: ImageDraw.ImageDraw, line: str, font) -> tuple[float, float, float, float]:
     """Return Pillow text bbox metrics for one line."""
     return draw.textbbox((0, 0), line or " ", font=font)
 
 
-def render_text_marker(base_img: Image.Image, marker: dict, scale_x: float | int, scale_y: float | int) -> None:
+def render_text_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float) -> None:
     """Render a ``TextMarker`` using approximate server-side text layout."""
     left, top, width, height = scaled_rect(marker, scale_x, scale_y)
     avg_scale = max(0.1, (scale_x + scale_y) / 2)
@@ -381,14 +390,14 @@ def render_text_marker(base_img: Image.Image, marker: dict, scale_x: float | int
     base_img.alpha_composite(overlay)
 
 
-def render_marker(base_img: Image.Image, marker: dict, scale_x: float| int, scale_y: float | int) -> None:
+def render_marker(base_img: Image.Image, marker: dict, scale_x: float| int, scale_y: float) -> None:
     """
     Dispatch rendering based on markerjs3 `typeName`.
     """
     marker_type = marker.get("typeName")
     if not marker_type or not isinstance(marker_type, str): return
 
-    renderer_map: dict[str, Callable[[Image.Image, dict, float | int, float | int], None]] = {
+    renderer_map: dict[str, Callable[[Image.Image, dict, float, float], None]] = {
         "FreehandMarker": render_freehand_marker,
         "HighlightMarker": render_highlight_marker,
         "FrameMarker": render_frame_marker,
@@ -425,21 +434,23 @@ def get_review_corr_box_index_for_page(page_markers: PageMarkers) -> int | None:
     copy_nr = get_grading_copy_nr(pages_group, page_markers.copie_no, grading_scheme)
     points = float(get_grading_question_points(grading_scheme, copy_nr))
 
-    if points > float(grading_scheme.max_points):
-        points = float(grading_scheme.max_points)
+    points = min(points, float(grading_scheme.max_points))
 
     if points > 0:
         amc_project_path = get_amc_project_path(pages_group.exam, True)
         if not amc_project_path: return None
         amc_data_path = amc_project_path + "/data/"
 
-        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            question_page = amc_layout_db_manager.select_copy_question_page(copy_nr, pages_group.group_name)
 
         # Only the page that owns the corr boxes should render the grading overlay.
         if str(question_page) not in copy_number_variants(page_markers.page_no):
             return -1
 
-        max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
+        with AmcScoringDbManager(amc_data_path=amc_data_path) as amc_scoring_db_manager:
+            max_points = float(amc_scoring_db_manager.get_question_max_points(pages_group.group_name, copy_nr))
+
         amc_corr_boxes = get_amc_marks_positions_data(pages_group.exam, copy_nr.lstrip("0"), float(question_page)) or []
         nb_boxes = len(amc_corr_boxes) / 4 - 1
         if nb_boxes <= 0 or max_points <= 0:
@@ -546,7 +557,7 @@ def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | No
     return output_path
 
 
-def build_scan_path_for_copy_page(exam: Exam, copy_nr: str, page_no: str) -> Path | None:
+def build_scan_path_for_copy_page(exam: Exam, copy_nr, page_no) -> Path | None:
     """Find the original scan file for a copy/page under SCANS_ROOT."""
     project_subdir = (
         f"{exam.year.code}/"
@@ -602,7 +613,8 @@ def build_synthetic_page_markers_for_grading(pages_group: PagesGroup, copy_nr: s
     amc_data_path = amc_project_path + "/data/"
 
     try:
-        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            question_page = amc_layout_db_manager.select_copy_question_page(copy_nr, pages_group.group_name)
     except (IndexError, TypeError, ValueError, AttributeError):
         logger.warning(
             "Skipping grading-only render: no AMC question page for pages_group=%s copy_nr=%s",

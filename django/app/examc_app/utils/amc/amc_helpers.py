@@ -15,42 +15,10 @@ Important:
     convention changes, these helpers must be updated at the same time.
 """
 
-import os
 from pathlib import Path
 from typing import Optional
 
-from examc import settings
 from examc_app.models import Exam, PrepQuestion, PrepQuestionAnswer
-
-
-def get_amc_project_path(exam, even_if_not_exist):
-    """
-    Return the persistent AMC project folder for an exam.
-
-    The path is derived from the configured AMC root and the exam academic
-    context (year, semester, code, date). This folder is used as the long-lived
-    project workspace that stores the latest generated LaTeX sources and the
-    latest promoted AMC artifacts.
-
-    Args:
-        exam: Exam instance.
-        even_if_not_exist: When ``True``, return the computed path even if the
-            directory does not exist yet. When ``False``, return ``None`` if the
-            directory is missing.
-
-    Returns:
-        str | None: The AMC project path, or ``None`` when the directory is
-        required to exist but is missing.
-    """
-    amc_project_path = str(settings.AMC_PROJECTS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
-
-    print('****************** amc_project_path : ' + amc_project_path)
-    if os.path.isdir(amc_project_path):
-        return amc_project_path
-    elif even_if_not_exist:
-        return amc_project_path
-    else:
-        return None
 
 # ---------------------------------------------------------------------------
 # AMC ID HELPERS (SINGLE SOURCE OF TRUTH)

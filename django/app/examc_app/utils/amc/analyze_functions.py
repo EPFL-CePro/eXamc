@@ -1,7 +1,7 @@
 import cv2
 from pyzbar import pyzbar
 
-from examc_app.utils.amc_db_queries import get_page_layout_boxes
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 
 
@@ -22,5 +22,8 @@ def analyze_scan(file_path,exam,student=None,page_nr=None):
         student = data[1]
         page_nr = data[2]
 
-    layout_boxes = get_page_layout_boxes(get_amc_project_path(exam, True) + "/data/",student, page_nr)
+    amc_project_path = get_amc_project_path(exam, True)
+
+    with AmcLayoutDbManager(amc_data_path=f"{amc_project_path}/data/") as amc_layout_db_manager:
+        amc_layout_db_manager.get_page_layout_boxes(student, page_nr)
 

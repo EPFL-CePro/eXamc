@@ -217,13 +217,15 @@
                                     </a>
                                     <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
                                         <li><a class="bg-secondary dropdown-item"
-                                               href="{% url 'exam_preparation' exam_selected.pk %}" style="padding-top:15px;"><i
+                                               href="{% url 'exam_preparation' exam_selected.pk %}"
+                                               style="padding-top:15px;"><i
                                                 class="fas fa-glasses" style="margin-right:5px;"></i>Exam</a></li>
                                         <li class="bg-secondary dropdown-divider"></li>
                                         <li><a class="bg-secondary dropdown-item"
                                                href="{% url 'exam_preparation_students' exam_selected.pk %}"
                                                style="padding-top:15px;"><i class="fas fa-cogs"
-                                                                            style="margin-right:5px;"></i>Students</a></li>
+                                                                            style="margin-right:5px;"></i>Students</a>
+                                        </li>
                                     </ul>
                                 </div>
                             </li>
@@ -273,11 +275,14 @@
                                 <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle"
                                    href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
                                    aria-expanded="false">
-                                    <img src="{% static 'img/amc_icons/amc.ico' %}" style="margin-right:5px;" alt="AMC icon"/>
+                                    <img src="{% static 'img/amc_icons/amc.ico' %}" style="margin-right:5px;"
+                                         alt="AMC icon"/>
                                     <span class="menu-collapsed" style="margin-right:5px;">AMC</span>
                                 </a>
                                 <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
-                                    <li><a class="bg-secondary dropdown-item" href="{% url 'amc_view' exam_pk=exam_selected.pk %}" style="padding-top:15px;">
+                                    <li><a class="bg-secondary dropdown-item"
+                                           href="{% url 'amc_view' exam_pk=exam_selected.pk %}"
+                                           style="padding-top:15px;">
                                         <img src="{% static 'img/amc_icons/amc.ico' %}"
                                              style="margin-right:5px;" alt="AMC icon"/>AMC</a>
                                     </li>
@@ -458,7 +463,7 @@
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="ajax_info_modal_title">Process info</h5>
+                        <h5 class="modal-title" id="ajax-info-modal-title">Process info</h5>
                         <button id="ajax_modal_close" type="button" class="close"
                                 onclick="$('#ajax-info-modal').modal('hide');" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
@@ -474,6 +479,8 @@
                 </div>
             </div>
         </div>
+
+        {% include "errors/_user_facing_error_modal.html" %}
     </div>
 </div>
 <div class="modal" id="loadingModal" tabindex="-1" role="dialog"

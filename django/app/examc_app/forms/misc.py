@@ -105,7 +105,7 @@ class SeatingSpecialForm(forms.Form):
     )
 
 
-class ldapForm(forms.Form):
+class LdapForm(forms.Form):
     LDAP_SEARCH_CHOICES = [
         ('uniqueidentifier', 'Sciper'),
         ('displayName', 'Name'),

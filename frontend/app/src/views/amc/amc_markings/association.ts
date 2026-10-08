@@ -32,8 +32,8 @@ export function initAssociation(endpoints: AssociationUrls): void {
  * @param {string} message - The message.
  */
 function showInfo(message: string): void {
-    byId('ajax_info_modal_msg').innerText = message;
-    getModal({ type: 'local', element: byId('ajax_info_modal') }).show();
+    byId('ajax-info-modal-msg').innerText = message;
+    getModal({ type: 'local', element: byId('ajax-info-modal') }).show();
 }
 
 /**

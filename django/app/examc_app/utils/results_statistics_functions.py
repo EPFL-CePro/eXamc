@@ -1,17 +1,12 @@
-# RESULTS & STATISTICS FUNCTIONS
-#------------------------------------------
-from django.db.models import Count
-import _io
 import csv
-import io
 import logging
 import operator
 import os
-from decimal import *
+from decimal import ROUND_HALF_UP, Decimal
 
 import numpy as np
 from django.db import transaction
-from django.db.models import Sum, FloatField, Subquery
+from django.db.models import Count, FloatField, Subquery, Sum
 from django.db.models.functions import Cast
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -19,7 +14,15 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from examc_app.models import *
+from examc_app.models import (
+    Exam,
+    ExamUser,
+    Question,
+    Scale,
+    Student,
+    StudentQuestionAnswer,
+    StudentScaleGrade,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +36,7 @@ SCALE_COPY_FIELDS = (
     "final",
 )
 
-def clone_scale(src: "Scale", *, exam) -> "Scale":
+def clone_scale(src: Scale, *, exam) -> Scale:
     data = {f: getattr(src, f) for f in SCALE_COPY_FIELDS}
     return src.__class__(exam=exam, name=src.name, **data)
 
@@ -192,23 +195,22 @@ def remove_common_exams(overall_pk):
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
-def generate_isa_csv(exam,scale,folder_path):
-    f = open(folder_path+"/"+exam.code+"_"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_ISA.csv", 'w', newline='', encoding='utf-8')
-    writer = csv.writer(f)
-    for student in exam.students.all():
-        try:
-            grade = StudentScaleGrade.objects.get(student=student,scale__name=scale.name)
-            row = str(student.sciper)+";"+str(grade.grade)
-        except StudentScaleGrade.DoesNotExist:
-            row = str(student.sciper+";NA")
+def generate_isa_csv(exam: Exam, scale,folder_path):
+    with open(folder_path+"/"+exam.code+"_"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_ISA.csv", 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
 
-        writer.writerow([row])
+        for student in exam.students.all():
+            try:
+                grade = StudentScaleGrade.objects.get(student=student,scale__name=scale.name)
+                row = str(student.sciper)+";"+str(grade.grade)
+            except StudentScaleGrade.DoesNotExist:
+                row = str(student.sciper+";NA")
 
-    f.close()
+            writer.writerow([row])
 
-    return True
+        return True
 
-def generate_scale_pdf(exam,scale,folder_path):
+def generate_scale_pdf(exam: Exam,scale,folder_path):
 
     scale_list = {}
     grade_list = np.arange(float(scale.min_grade),float(scale.max_grade)+0.25,0.25)
@@ -217,13 +219,12 @@ def generate_scale_pdf(exam,scale,folder_path):
     max_pts = Question.objects.filter(exam=exam).values('max_points').aggregate(Sum('max_points')).get('max_points__sum')
     #get max decimal places of students points
     all_pts = Student.objects.filter(exam=exam).values_list('points',flat=True)
-    maxD = get_max_decimal_places(all_pts)
-    if maxD > 3:
-        maxD = 3
+    max_d = get_max_decimal_places(all_pts)
+    max_d = min(max_d, 3)
 
-    if maxD > 0:
-        decimal_string_from = f"{0.000000:.{maxD}f}"
-        decimal_string_to = f"{0.000000:.{maxD-1}f}1"
+    if max_d > 0:
+        decimal_string_from = f"{0.000000:.{max_d}f}"
+        decimal_string_to = f"{0.000000:.{max_d-1}f}1"
     else:
         decimal_string_from = "0"
         decimal_string_to = "1"
@@ -242,7 +243,7 @@ def generate_scale_pdf(exam,scale,folder_path):
             pt_grade = Decimal(((point+scale.points_to_add) / scale.total_points * 5 + 1)*4).quantize(Decimal('1'),rounding=ROUND_HALF_UP) / 4
 
             if pt_grade > grade and pt_grade <= scale.max_grade:
-                scale_list[grade] = str(round(last_step,maxD))+"-"+str(round(last_point,maxD))
+                scale_list[grade] = str(round(last_step,max_d))+"-"+str(round(last_point,max_d))
                 last_step = point
                 break
             last_point = point

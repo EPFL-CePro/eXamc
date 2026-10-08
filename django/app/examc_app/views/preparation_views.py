@@ -5,18 +5,23 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.http import HttpResponseBadRequest, JsonResponse, Http404, FileResponse, HttpResponse
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseBadRequest,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST
 from docutils import DataError
 
-from examc_app.signing import make_token_for
-from examc_app.tasks import compile_exam_preview_task, generate_final_exam_files_task
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import (
+from examc_app.forms.general import (
     CreateExamProjectForm,
+)
+from examc_app.forms.preparation import (
     CreatePrepQuestionForm,
     ExamFirstPageForm,
     PrepScoringFormulaFormSet,
@@ -24,33 +29,59 @@ from examc_app.forms import (
 from examc_app.models import (
     AcademicYear,
     Exam,
+    ExamAMCJob,
     ExamUser,
     PrepQuestion,
     PrepQuestionAnswer,
     PrepScoringFormula,
     PrepSection,
-    Semester, ExamAMCJob
+    Semester,
 )
-from examc_app.services.oasis import OasisError, get_courses, get_teachers_names_by_course
+from examc_app.services.oasis import (
+    OasisError,
+    get_courses,
+    get_teachers_names_by_course,
+)
 from examc_app.services.person_directory import PersonDirectoryError
 from examc_app.services.student.prep_import import (
-    StudentsFileError, build_students_template, load_students_file, load_students_from_oasis, replace_prep_students,
+    StudentsFileError,
+    build_students_template,
+    load_students_from_oasis,
+    replace_prep_students,
 )
-from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
+from examc_app.signing import make_token_for
+from examc_app.tasks import compile_exam_preview_task, generate_final_exam_files_task
+from examc_app.utils.amc_functions import ensure_amc_project
 from examc_app.utils.global_functions import add_course_teachers_ldap
-from examc_app.utils.preparation_functions import build_sections_list_context, build_section_form, get_questions, \
-    renumber_sections, build_question_form, get_answers, renumber_questions, build_answer_form, renumber_answers, \
-    get_scoring_formula_scope, get_scoring_formula_queryset, create_prep_section, create_prep_question, \
-    create_prep_answer, compile_exam_preview, save_scoring_formulas, \
-    delete_exam_preview_job_files, ensure_exam_not_finalized, update_open_answers
+from examc_app.utils.preparation_functions import (
+    build_answer_form,
+    build_question_form,
+    build_section_form,
+    build_sections_list_context,
+    compile_exam_preview,
+    create_prep_answer,
+    create_prep_question,
+    create_prep_section,
+    delete_exam_preview_job_files,
+    ensure_exam_not_finalized,
+    get_answers,
+    get_questions,
+    get_scoring_formula_queryset,
+    get_scoring_formula_scope,
+    renumber_answers,
+    renumber_questions,
+    renumber_sections,
+    save_scoring_formulas,
+    update_open_answers,
+)
 from examc_app.utils.preparation_latex_functions import (
+    extract_used_packages,
+    get_exam_katex_macros,
+    list_available_latex_packages,
     render_first_page_tex_from_html,
-    update_exam_latex, list_available_latex_packages, extract_used_packages, get_exam_katex_macros,
+    update_exam_latex,
 )
 from examc_app.views import logger
-
-
-
 
 # -------------------------
 # Create exam project
@@ -72,48 +103,47 @@ def create_exam_project(request):
         teacher_names_by_course=teacher_names_by_course
     )
 
-    if request.method == 'POST':
-        if form.is_valid():
-            course_code = form.cleaned_data['course']
-            course_name = form.courses_by_code[course_code]["coursNomFr"]
-            course_teachers = form.teachers_by_course.get(course_code, [])
-            teacher_scipers = [t["sciper"] for t in course_teachers]
+    if request.method == 'POST' and form.is_valid():
+        course_code = form.cleaned_data['course']
+        course_name = form.courses_by_code[course_code]["coursNomFr"]
+        course_teachers = form.teachers_by_course.get(course_code, [])
+        teacher_scipers = [t["sciper"] for t in course_teachers]
 
-            date = form.cleaned_data['date']
-            semester_id = form.cleaned_data['semester']
+        date = form.cleaned_data['date']
+        semester_id = form.cleaned_data['semester']
 
-            # date_text = date.strftime('%d.%m.%Y')
-            # duration_text = form.cleaned_data['durationText']
-            # language = form.cleaned_data['language']
+        # date_text = date.strftime('%d.%m.%Y')
+        # duration_text = form.cleaned_data['durationText']
+        # language = form.cleaned_data['language']
 
-            semester = Semester.objects.get(pk=semester_id)
-            # exam_text = course.code + " - " + course.name
-            # teachers_text = get_course_teachers_string(course.teachers)
-            teachers = add_course_teachers_ldap(teacher_scipers)
+        semester = Semester.objects.get(pk=semester_id)
+        # exam_text = course.code + " - " + course.name
+        # teachers_text = get_course_teachers_string(course.teachers)
+        teachers = add_course_teachers_ldap(teacher_scipers)
 
-            # user = request.user
-            # if not user in teachers:
-            #     teachers.append(user)
+        # user = request.user
+        # if not user in teachers:
+        #     teachers.append(user)
 
-            exam = Exam()
-            exam.code = course_code
-            exam.name = course_name
-            exam.semester = semester
-            exam.year = year
-            exam.date = date
-            # exam.amc_option = True
-            exam.save()
+        exam = Exam()
+        exam.code = course_code
+        exam.name = course_name
+        exam.semester = semester
+        exam.year = year
+        exam.date = date
+        # exam.amc_option = True
+        exam.save()
 
-            for teacher in teachers:
-                exam_user = ExamUser()
-                exam_user.user = teacher
-                exam_user.exam = exam
-                exam_user.group_id = 2
-                exam_user.save()
+        for teacher in teachers:
+            exam_user = ExamUser()
+            exam_user.user = teacher
+            exam_user.exam = exam
+            exam_user.group_id = 2
+            exam_user.save()
 
-            return redirect("examInfo", exam_pk=exam.pk)
+        return redirect("examInfo", exam_pk=exam.pk)
 
-    # if a GET (or any other method), we'll create a blank form
+    # if form is invalid or a GET (or any other method) is received, we'll create a blank form
     return render(
         request,
         "exam/create_exam_project.html",
@@ -181,27 +211,6 @@ def exam_preparation_students_view(request, exam_pk):
             "is_exam_finalized": exam.is_finalized,
         },
     )
-
-@login_required
-@require_POST
-def exam_add_section(request, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-    section_num = 1
-    if exam.sections.all():
-        section_num += len(exam.sections.all())
-
-    # The file is only read: nothing is saved on disk
-    try:
-        students, warnings = load_students_file(uploaded_file.name, uploaded_file.read())
-    except StudentsFileError as error:
-        return JsonResponse({"errors": error.errors}, status=400)
-    except PersonDirectoryError:
-        logger.exception("EPFL directory unavailable during the students import of exam %s", exam.pk)
-        return JsonResponse({"errors": ["The EPFL directory could not be reached: please try again later."]},
-                            status=503)
-
-    result = replace_prep_students(exam, students, warnings)
-    return JsonResponse({"imported": result.imported, "replaced": result.replaced, "warnings": list(result.warnings)})
 
 
 @exam_permission_required(["manage"])
@@ -1087,7 +1096,7 @@ def delete_scoring_formula(request, exam_pk, pk):
     )
 
 @exam_permission_required(['manage'])
-def edit_latex_file(request,exam_pk):
+def edit_latex_file(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
 
     locked = ensure_exam_not_finalized(exam)
@@ -1101,9 +1110,10 @@ def edit_latex_file(request,exam_pk):
     else:
         filepath = Path(amc_project_path) / "commands.tex"
 
-    f = open(filepath, 'r')
-    file_contents = f.read()
-    f.close()
+    with open(filepath, 'r') as f:
+        file_contents = f.read()
+        f.close()
+
     return HttpResponse(json.dumps([os.path.relpath(filepath, amc_project_path), file_contents]))
 
 @exam_permission_required(['manage'])
@@ -1116,8 +1126,9 @@ def edit_latex_packages(request,exam_pk):
 
     amc_project_path = ensure_amc_project(exam)
     filepath= Path(amc_project_path) / "packages.tex"
-    f = open(filepath, 'r')
-    file_contents = f.read()
+
+    with open(filepath, 'r') as f:
+        file_contents = f.read()
 
     latex_packages_available = list_available_latex_packages()
     used_packages = extract_used_packages(file_contents)
@@ -1144,10 +1155,10 @@ def save_latex_edited_file(request,exam_pk):
     else:
         filepath = Path(amc_project_path) / "commands.tex"
 
-    f = open(filepath, 'r+', encoding="utf-8")
-    f.truncate(0)
-    f.write(data)
-    f.close()
+    with open(filepath, 'r+', encoding="utf-8") as f:
+        f.truncate(0)
+        f.write(data)
+
     return HttpResponse('ok')
 
 

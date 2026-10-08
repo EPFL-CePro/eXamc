@@ -1,9 +1,9 @@
 import json
-from django.contrib.auth.models import Group, User
 import re
 from datetime import datetime
 
 from dateutil.utils import today
+from django.contrib.auth.models import Group, User
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http.request import HttpRequest
@@ -14,13 +14,25 @@ from django.views.generic import CreateView, DetailView
 
 from examc_app.decorators import exam_permission_required
 from examc_app.mixins import ExamPermissionAndRedirectMixin
-from examc_app.models import *
+from examc_app.models import (
+    AcademicYear,
+    Exam,
+    ExamUser,
+    PagesGroup,
+    Question,
+    QuestionType,
+    Scale,
+    Semester,
+)
 from examc_app.tasks import generate_statistics
 from examc_app.utils.epflldap import ldap_search
-from examc_app.utils.global_functions import user_allowed, \
-    update_folders_paths
-from examc_app.utils.results_statistics_functions import update_common_exams_questions, \
-    update_common_exams_scales, update_common_exams_users
+from examc_app.utils.global_functions import update_folders_paths, user_allowed
+from examc_app.utils.results_statistics_functions import (
+    update_common_exams_questions,
+    update_common_exams_scales,
+    update_common_exams_users,
+)
+
 
 class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
     model = Exam
