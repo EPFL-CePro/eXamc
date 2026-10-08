@@ -5,15 +5,17 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.http import HttpResponseBadRequest, JsonResponse, Http404, FileResponse, HttpResponse
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST
 from docutils import DataError
 
-from examc_app.signing import make_token_for
-from examc_app.tasks import compile_exam_preview_task, generate_final_exam_files_task
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import (
     CreateExamProjectForm,
@@ -24,33 +26,59 @@ from examc_app.forms import (
 from examc_app.models import (
     AcademicYear,
     Exam,
+    ExamAMCJob,
     ExamUser,
     PrepQuestion,
     PrepQuestionAnswer,
     PrepScoringFormula,
     PrepSection,
-    Semester, ExamAMCJob
+    Semester,
 )
-from examc_app.services.oasis import OasisError, get_courses, get_teachers_names_by_course
+from examc_app.services.oasis import (
+    OasisError,
+    get_courses,
+    get_teachers_names_by_course,
+)
 from examc_app.services.person_directory import PersonDirectoryError
 from examc_app.services.student.prep_import import (
-    StudentsFileError, build_students_template, load_students_file, load_students_from_oasis, replace_prep_students,
+    StudentsFileError,
+    build_students_template,
+    load_students_from_oasis,
+    replace_prep_students,
 )
-from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
+from examc_app.signing import make_token_for
+from examc_app.tasks import compile_exam_preview_task, generate_final_exam_files_task
+from examc_app.utils.amc_functions import ensure_amc_project
 from examc_app.utils.global_functions import add_course_teachers_ldap
-from examc_app.utils.preparation_functions import build_sections_list_context, build_section_form, get_questions, \
-    renumber_sections, build_question_form, get_answers, renumber_questions, build_answer_form, renumber_answers, \
-    get_scoring_formula_scope, get_scoring_formula_queryset, create_prep_section, create_prep_question, \
-    create_prep_answer, compile_exam_preview, save_scoring_formulas, \
-    delete_exam_preview_job_files, ensure_exam_not_finalized, update_open_answers
+from examc_app.utils.preparation_functions import (
+    build_answer_form,
+    build_question_form,
+    build_section_form,
+    build_sections_list_context,
+    compile_exam_preview,
+    create_prep_answer,
+    create_prep_question,
+    create_prep_section,
+    delete_exam_preview_job_files,
+    ensure_exam_not_finalized,
+    get_answers,
+    get_questions,
+    get_scoring_formula_queryset,
+    get_scoring_formula_scope,
+    renumber_answers,
+    renumber_questions,
+    renumber_sections,
+    save_scoring_formulas,
+    update_open_answers,
+)
 from examc_app.utils.preparation_latex_functions import (
+    extract_used_packages,
+    get_exam_katex_macros,
+    list_available_latex_packages,
     render_first_page_tex_from_html,
-    update_exam_latex, list_available_latex_packages, extract_used_packages, get_exam_katex_macros,
+    update_exam_latex,
 )
 from examc_app.views import logger
-
-
-
 
 # -------------------------
 # Create exam project
@@ -181,27 +209,6 @@ def exam_preparation_students_view(request, exam_pk):
             "is_exam_finalized": exam.is_finalized,
         },
     )
-
-@login_required
-@require_POST
-def exam_add_section(request, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-    section_num = 1
-    if exam.sections.all():
-        section_num += len(exam.sections.all())
-
-    # The file is only read: nothing is saved on disk
-    try:
-        students, warnings = load_students_file(uploaded_file.name, uploaded_file.read())
-    except StudentsFileError as error:
-        return JsonResponse({"errors": error.errors}, status=400)
-    except PersonDirectoryError:
-        logger.exception("EPFL directory unavailable during the students import of exam %s", exam.pk)
-        return JsonResponse({"errors": ["The EPFL directory could not be reached: please try again later."]},
-                            status=503)
-
-    result = replace_prep_students(exam, students, warnings)
-    return JsonResponse({"imported": result.imported, "replaced": result.replaced, "warnings": list(result.warnings)})
 
 
 @exam_permission_required(["manage"])

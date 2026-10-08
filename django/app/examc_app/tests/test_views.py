@@ -1,14 +1,14 @@
-from django.contrib.auth.models import User, Permission, Group
+from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.datastructures import MultiValueDict
 
 from examc_app.forms import (
-    UploadScansForm,
+    ExportMarkedFilesForm,
     ManagePagesGroupsForm,
     ManageReviewersForm,
-    ExportMarkedFilesForm,
+    UploadScansForm,
 )
 from examc_app.models import (
     ExamUser,
@@ -16,10 +16,10 @@ from examc_app.models import (
     ReviewLock,
 )
 from examc_app.tests.helpers.models import (
-    create_mock_semester,
     create_mock_academic_year,
-    create_mock_user,
     create_mock_exam,
+    create_mock_semester,
+    create_mock_user,
 )
 
 
@@ -285,9 +285,6 @@ class TestReviewView(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-
-
-from django.contrib.auth.models import Group, User
 
 
 class TestReviewGroupView(TestCase):

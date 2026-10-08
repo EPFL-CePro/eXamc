@@ -22,8 +22,8 @@ from _sha2 import sha256
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from pypdf import PdfReader
 from django.db import transaction
+from pypdf import PdfReader
 
 from examc_app.models import (
     ExamBuild,
