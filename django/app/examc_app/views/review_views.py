@@ -6,13 +6,11 @@ import logging
 import math
 import os
 import pathlib
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import wraps
 from typing import Any
 
-from celery.result import AsyncResult
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
@@ -58,8 +56,8 @@ from examc_app.services.review.locks import cleanup_expired_review_locks
 from examc_app.services.review.unrecognized_scans import (
     build_unrecognized_review_scan_context,
 )
-from examc_app.services.review.upload import _get_upload_scan_pending_context
-from examc_app.signing import make_token_for, verify_and_get_path
+from examc_app.services.review.upload import get_upload_scan_pending_context
+from examc_app.signing import verify_and_get_path
 from examc_app.tasks import generate_marked_files_zip, import_exam_scans
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
@@ -70,7 +68,6 @@ from examc_app.utils.amc_functions import (
     get_amc_update_document_info,
 )
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.preparation_functions import get_questions
 from examc_app.utils.review_functions import (
     assign_unrecognized_review_scan_file,
     delete_unrecognized_review_scan_file,
@@ -90,7 +87,6 @@ from examc_app.utils.review_settings_guards import (
 )
 from examc_app.utils.review_upload_state import (
     get_pending_amc_import_upload_task_id,
-    has_pending_amc_import,
     set_pending_amc_import,
 )
 
@@ -379,22 +375,20 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
             ) as amc_layout_db_manager:
                 questions = amc_layout_db_manager.select_questions()
             questions_choices = [(q['name'], q['name']) for q in questions]
-            formset = PagesGroupsFormSet(self.request.POST, form_kwargs={"questions_choices": questions_choices})  # noqa: F821
+            formset = PagesGroupsFormSet(self.request.POST, form_kwargs={"questions_choices": questions_choices})
             if formset.is_valid():
                 for form in formset:
                     if form.is_valid() and form.cleaned_data:
                         pages_group = form.save(commit=False)
                         if form.cleaned_data["nb_pages"] > -1:
-                            existing_group = None
                             if pages_group.pk:
                                 existing_group = PagesGroup.objects.filter(pk=pages_group.pk, exam=exam).first()
-                                if existing_group and pages_group_has_review_activity(existing_group):
-                                    if pages_group_settings_changed(existing_group, pages_group):
-                                        error_messages.append(
-                                            f"Pages group '{existing_group.group_name}' is locked because review data already exists. "
-                                            f"Only grading help can still be edited."
-                                        )
-                                        continue
+                                if existing_group and pages_group_has_review_activity(existing_group) and pages_group_settings_changed(existing_group, pages_group):
+                                    error_messages.append(
+                                        f"Pages group '{existing_group.group_name}' is locked because review data already exists. "
+                                        f"Only grading help can still be edited."
+                                    )
+                                    continue
 
                             if not pages_group_name_available(
                                     exam,
@@ -720,7 +714,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
                 'message': '',
                 'amc_ok': amc_ok,
                 'nav_url': 'upload_scans',
-                **_get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
+                **get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
             }
         )
 
@@ -740,7 +734,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
             'amc_ok': amc_ok,
             'files': [],
             'nav_url': 'upload_scans',
-            **_get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
+            **get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
         }
     )
 
@@ -1591,18 +1585,24 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
                 questionGradingScheme=grading_scheme).exclude(name__in=('ZERO', 'ADJ'))
             for gsc in grading_scheme_checkboxes:
                 if not gsc.name in ('ADJ', 'ZERO'):
-                    PagesGroupGradingSchemeCheckedBox.objects.create(pages_group=pages_group,
-                                                                     gradingSchemeCheckBox=gsc, copy_nr=copy_nr,
-                                                                     adjustment=adjustment, user=request.user)
+                    PagesGroupGradingSchemeCheckedBox.objects.create(
+                        pages_group=pages_group,
+                        gradingSchemeCheckBox=gsc, copy_nr=copy_nr,
+                        adjustment=adjustment, user=request.user
+                    )
         else:
             if ref == "gsc":
-                pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group,
-                                                                                         copy_nr=copy_nr,
-                                                                                         gradingSchemeCheckBox_id=item_id)
+                pggscb, _create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(
+                    pages_group=pages_group,
+                    copy_nr=copy_nr,
+                    gradingSchemeCheckBox_id=item_id
+                )
             else:
-                pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(id=item_id,
-                                                                                         pages_group=pages_group,
-                                                                                         copy_nr=copy_nr)
+                pggscb, _create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(
+                    id=item_id,
+                    pages_group=pages_group,
+                    copy_nr=copy_nr
+                )
 
             pggscb.adjustment = adjustment
             pggscb.user = request.user
@@ -1610,19 +1610,25 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
 
         if not zero and checked:
             try:
-                PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr,
-                                                              gradingSchemeCheckBox__name='ZERO').delete()
+                PagesGroupGradingSchemeCheckedBox.objects.get(
+                    pages_group=pages_group, copy_nr=copy_nr,
+                    gradingSchemeCheckBox__name='ZERO'
+                ).delete()
             except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
                 pass
     else:
         try:
             if ref == "gsc":
-                PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr,
-                                                              gradingSchemeCheckBox_id=item_id).delete()
+                PagesGroupGradingSchemeCheckedBox.objects.get(
+                    pages_group=pages_group, copy_nr=copy_nr,
+                    gradingSchemeCheckBox_id=item_id
+                ).delete()
             else:
                 if not full:
-                    PagesGroupGradingSchemeCheckedBox.objects.get(id=item_id, pages_group=pages_group,
-                                                                  copy_nr=copy_nr).delete()
+                    PagesGroupGradingSchemeCheckedBox.objects.get(
+                        id=item_id, pages_group=pages_group,
+                        copy_nr=copy_nr
+                    ).delete()
         except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
             pass
 
