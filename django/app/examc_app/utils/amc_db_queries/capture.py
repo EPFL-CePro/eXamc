@@ -1,16 +1,27 @@
 import time
 from typing import Any, TypedDict
 
+from examc_app.utils.amc.exceptions import AmcDbManagerError
 from examc_app.utils.amc_db_queries import (
     AbstractAmcDbManager,
     AmcDbFile,
-    AmcDbManagerError,
 )
+
+ASSOC_TABLE = "association_association"
+
+#: capture_zone.type of answer boxes (AMC's ZONE_BOX).
+ZONE_BOX = 4
+
+#: capture_position.type of answer box corners (AMC's POSITION_BOX).
+POSITION_BOX = 1
+
+#: layout_box.role of answer boxes (AMC's BOX_ROLE_ANSWER).
+ROLE_ANSWER = 1
 
 
 class CapturePage(TypedDict):
-    student: str
-    page: str
+    student: int
+    page: int
     src: str
 
 
@@ -30,6 +41,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         :return: list of dictionaries with keys student, page, src
         """
         query_str = "SELECT student, page, src FROM capture_page ORDER BY student, page"
+
         cursor = self._execute(
             query_str,
             error="Couldn't select capture pages"
@@ -40,8 +52,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             for student, page, src in cursor.fetchall()
         ]
 
-
-    def update_capture_page_src(self, student: str, page, new_filename: str) -> int:
+    def update_capture_page_src(self, student: int, page, new_filename: str) -> int:
         """
         Update capture_page table with new_filename where student = :student and page = :page
         :param student: student id
@@ -60,7 +71,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
         return cursor.rowcount
 
-    def select_amc_scan_path(self, copy_no: str, page_no: str) -> str:
+    def select_amc_scan_path(self, copy_no, page_no) -> str:
         """
         Select the scan path of a page of a copy.
         :param copy_no: The copy (student) identifier.
@@ -86,18 +97,19 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         """
         query_str = (
             "SELECT COUNT(*) "
-            "FROM (SELECT student, copy "
+            "FROM (SELECT DISTINCT student, copy "
             "      FROM capture_page "
-            "      WHERE timestamp_auto > 0 OR timestamp_manual > 0) "
-            "GROUP BY student, copy"
+            "      WHERE timestamp_auto > 0 OR timestamp_manual > 0)"
         )
 
         cursor = self._execute(
             query_str,
             error="Failed to select number of copies with captured pages"
         )
-        
-        return len(cursor.fetchall())
+
+        row = cursor.fetchone()
+
+        return row[0] if row else 0
 
     def select_missing_pages(self) -> list[dict[str, Any]]:
         """
@@ -107,20 +119,21 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         query_str = (
             "SELECT enter.student AS student, enter.page AS page, capture_page.copy AS copy "
             "FROM (SELECT student, page "
-            "      FROM layout_box "
-            "      WHERE role = 1 "
+            "      FROM layout.layout_box "
+            "      WHERE role = :role "
             "      UNION "
             "      SELECT student, page "
-            "      FROM layout_zone) AS enter "
+            "      FROM layout.layout_zone) AS enter "
             "JOIN capture_page ON enter.student = capture_page.student "
             "EXCEPT SELECT student, page, copy FROM capture_page "
             "ORDER BY student, copy, page"
         )
+        query_params = {"role": ROLE_ANSWER}
 
         self._attach(AmcDbFile.LAYOUT)
 
         cursor = self._execute(
-            query_str,
+            query_str, query_params,
             error="Failed to select pages expected by layout but not captured"
         )
 
@@ -146,14 +159,14 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
     def get_count_missing_associations(self) -> int:
         """
-        Count the captured copies not associated with a student, automatically or manually.
+        Count the captured copies unassociated with a student, automatically or manually.
         :return: Number of copies without association.
         """
         query_str = (
-            "SELECT COUNT(*) AS count FROM "
-            "(SELECT student FROM capture_page "
-            " EXCEPT SELECT student FROM association_association "
-            " WHERE manual IS NOT NULL OR auto IS NOT NULL)"
+            f"SELECT COUNT(*) AS count FROM "
+            f"(SELECT student FROM capture_page "
+            f" EXCEPT SELECT student FROM {ASSOC_TABLE} "
+            f" WHERE manual IS NOT NULL OR auto IS NOT NULL)"
         )
 
         self._attach(AmcDbFile.ASSOCIATION)
@@ -170,56 +183,52 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
     # ------------------------------------------------------------------
     # capture_zone / capture_position
     # ------------------------------------------------------------------
-    def select_manual_datacapture_questions(self, copy: int, page: int) -> list[dict[str, Any]] | None:
+    def select_manual_datacapture_questions(self, copy, page) -> list[dict[str, Any]]:
         """
         Select the questions of a page of a copy, with the scoring explanation when available.
         Falls back to the layout when no capture zone exists for the page.
-        :return: Dicts with keys question_id, why ('' if unavailable). None if the page has no question.
+        :return: Dicts with keys question_id, why ('' if unavailable). Empty if the page has no question.
         """
-
-        zone_box = 4
+        with_scoring_query_str = (
+            "SELECT cz.id_a AS question_id, COALESCE(MAX(sc.why), '') AS why "
+            "FROM capture_zone cz "
+            "LEFT JOIN scoring.scoring_score sc ON sc.student = cz.student AND sc.question = cz.id_a "
+            "WHERE cz.type = :zone_type AND cz.student = :copy AND cz.page = :page "
+            "GROUP BY cz.id_a ORDER BY cz.id_a"
+        )
+        without_scoring_query_str = (
+            "SELECT DISTINCT cz.id_a AS question_id, '' AS why "
+            "FROM capture_zone cz "
+            "WHERE cz.type = :zone_type AND cz.student = :copy AND cz.page = :page "
+            "ORDER BY cz.id_a"
+        )
+        layout_query_str = (
+            "SELECT DISTINCT question AS question_id, '' AS why FROM layout.layout_box "
+            "WHERE student = :copy AND page = :page ORDER BY question"
+        )
+        shared_query_params = {"copy": copy, "page": page, "zone_type": ZONE_BOX}
 
         if self._has_db(AmcDbFile.SCORING):
             self._attach(AmcDbFile.SCORING)
-            query_str = (
-                "SELECT cz.id_a AS question_id, COALESCE(MAX(sc.why), '') AS why "
-                "FROM capture_zone cz "
-                "LEFT JOIN scoring.scoring_score sc ON sc.student = cz.student AND sc.question = cz.id_a "
-                "WHERE cz.type = :zone_type AND cz.student = :copy AND cz.page = :page "
-                "GROUP BY cz.id_a ORDER BY cz.id_a"
-            )
+            query_str = with_scoring_query_str
         else:
-            query_str = (
-                "SELECT DISTINCT cz.id_a AS question_id, '' AS why "
-                "FROM capture_zone cz "
-                "WHERE cz.type = :zone_type AND cz.student = :copy AND cz.page = :page "
-                "ORDER BY cz.id_a"
-            )
-
-        query_params = {"copy": copy, "page": page, "zone_type": zone_box}
+            query_str = without_scoring_query_str
 
         cursor = self._execute(
-            query_str, query_params,
+            query_str, shared_query_params,
             error=f"Failed to query capture zones (copy={copy}, page={page})"
         )
 
-
         questions = self._rows_as_dicts(cursor)
-
-        cursor.close()
 
         if questions:
             return questions
 
         # No capture zone for this page: take its questions from the layout
         self._attach(AmcDbFile.LAYOUT)
-        query_str_layout = (
-            "SELECT DISTINCT question AS question_id, '' AS why FROM layout.layout_box "
-            "WHERE student = :copy AND page = :page ORDER BY question"
-        )
 
         cursor = self._execute(
-            query_str_layout, query_params,
+            layout_query_str, shared_query_params,
             error=f"Failed to query layout (copy={copy}, page={page})",
         )
 
@@ -232,36 +241,35 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         :param page: The page number.
         :return: Dicts with keys zoneid, bvalue, corner, x, y, manual, black, and why when the marks are computed.
         """
-        query_params = {"copy": str(copy), "page": str(page)}
         scoring_exists = self._has_db(AmcDbFile.SCORING)
 
         query_str = (
             "SELECT cp.zoneid, "
-            "       CAST(cz.black AS REAL) / cz.total AS bvalue, "
+            "       CASE WHEN cz.total > 0 THEN CAST(cz.black AS REAL) / cz.total ELSE 0.0 END AS bvalue, "
             "       cp.corner, cp.x, cp.y, cz.manual, cz.black"
             + (", sc.why " if scoring_exists else " ")
             + "FROM capture_position cp "
               "INNER JOIN capture_zone cz ON cz.zoneid = cp.zoneid "
             + ("LEFT OUTER JOIN scoring.scoring_score sc ON sc.student = :copy AND sc.question = cz.id_a "
                if scoring_exists else "")
-            + "WHERE cp.zoneid IN "
-              "      (SELECT cz2.zoneid FROM capture_zone cz2 WHERE cz2.student = :copy AND cz2.page = :page) "
-              "  AND cp.type = 1 "
-              "  AND cz.type = 4 "
+            + "WHERE cz.student = :copy AND cz.page = :page "
+              "  AND cp.type = :position_type "
+              "  AND cz.type = :zone_type "
               "ORDER BY cz.id_b"
         )
+        query_params = {"copy": copy, "page": page, "position_type": POSITION_BOX, "zone_type": ZONE_BOX}
 
         if scoring_exists:
             self._attach(AmcDbFile.SCORING)
 
         cursor = self._execute(
             query_str, query_params,
-            error=f"Couldn't query data zones (copy={query_params['copy']}, page={query_params['page']})"
+            error=f"Couldn't query data zones (copy={copy}, page={page})"
         )
 
         return self._rows_as_dicts(cursor)
 
-    def select_data_zones(self, zoneid: int) -> list[dict[str, float | int]]:
+    def select_data_zones(self, zoneid: int) -> list[dict[str, float]]:
         """
         Select a capture zone's manual value and darkness ratio.
         :param zoneid: The zone id.
@@ -272,9 +280,10 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             "CASE WHEN total > 0 THEN CAST(black AS REAL) / total ELSE 0.0 END AS bvalue "
             "FROM capture_zone WHERE zoneid = :zoneid"
         )
+        query_params = {"zoneid": zoneid}
 
         cursor = self._execute(
-            query_str, {"zoneid": zoneid},
+            query_str, query_params,
             error=f"Couldn't query data zone (zoneid={zoneid})",
         )
 
@@ -294,8 +303,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
         return rows
 
-
-    def update_data_zone(self, manual, zoneid, copy, page):
+    def update_data_zone(self, manual, zoneid, copy, page) -> int:
         """
         Set the manual value of a capture zone, and mark its page as manually edited unless the value is reset.
         :param manual: Manual value, -1 to reset it to the automatic detection.
@@ -305,26 +313,29 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         :return: The number of rows affected.
         """
         update_manual_query_str = "UPDATE capture_zone SET manual = :manual WHERE zoneid = :zoneid"
-        update_manual_query_params = {"manual": manual, "zoneid": zoneid}
+        update_manual_query_params = {"manual": float(manual), "zoneid": zoneid}
 
-        update_timestamp_query_str = "UPDATE capture_page SET timestamp_manual = :timestamp WHERE student = :copy AND page = :page"
+        update_timestamp_query_str = (
+            "UPDATE capture_page SET timestamp_manual = :timestamp WHERE student = :copy AND page = :page"
+        )
         update_timestamp_query_params = {"timestamp": int(time.time()), "copy": copy, "page": page}
 
         update_count = 0
 
-        cursor = self._execute(
-            update_manual_query_str, update_manual_query_params,
-            error=f"Couldn't update manual value (zoneid={zoneid})"
-        )
-
-        update_count += cursor.rowcount
-
-        if float(manual) != -1.0:
+        # One transaction: the zone and its page's timestamp are updated together, or not at all.
+        with self._amc_db.transaction():
             cursor = self._execute(
-                update_timestamp_query_str, update_timestamp_query_params,
-                error=f"Couldn't update timestamp (copy={copy}, page={page})"
+                update_manual_query_str, update_manual_query_params,
+                error=f"Couldn't update manual value (zoneid={zoneid})"
             )
             update_count += cursor.rowcount
+
+            if float(manual) != -1.0:
+                cursor = self._execute(
+                    update_timestamp_query_str, update_timestamp_query_params,
+                    error=f"Couldn't update timestamp (copy={copy}, page={page})"
+                )
+                update_count += cursor.rowcount
 
         return update_count
 
@@ -337,12 +348,13 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         """
         query_str = (
             "SELECT zoneid, "
-            "       CAST(black AS REAL) / total AS bvalue, "
+            "       CASE WHEN total > 0 THEN CAST(black AS REAL) / total ELSE 0.0 END AS bvalue, "
             "       imagedata, black, manual "
             "FROM capture_zone "
-            "WHERE student = :copy AND page = :page AND type = 4"
+            "WHERE student = :copy AND page = :page AND type = :zone_type "
+            "ORDER BY zoneid"
         )
-        query_params = {"copy": copy, "page": page}
+        query_params = {"copy": copy, "page": page, "zone_type": ZONE_BOX}
 
         cursor = self._execute(
             query_str, query_params,
@@ -376,7 +388,8 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
         Select the scans that AMC could not recognize.
         :return: Dicts with keys filename (base name) and filepath (as stored by AMC).
         """
-        query_str = "SELECT filename FROM capture_failed"
+        query_str = "SELECT filename FROM capture_failed ORDER BY filename"
+
         cursor = self._execute(
             query_str,
             error="Couldn't select unrecognized pages"
@@ -391,12 +404,16 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
     def delete_unrecognized_page(self, img_filename: str) -> int:
         """
-        Delete all rows from capture_failed table where filename LIKE :img_filename
-        :param img_filename: filename to delete
+        Delete the capture_failed rows of a scan, matched by its file name.
+        :param img_filename: Base name of the scan file.
         :return: number of rows deleted
         """
-        query_str = "DELETE FROM capture_failed WHERE filename LIKE :img_filename"
-        query_params = {"img_filename": f"%{img_filename}"}
+        # Exact match on the base name: no LIKE, so "_" and "%" in file names aren't wildcards.
+        query_str = (
+            "DELETE FROM capture_failed "
+            "WHERE filename = :name OR substr(filename, -length(:name) - 1) = '/' || :name"
+        )
+        query_params = {"name": img_filename}
 
         cursor = self._execute(
             query_str, query_params,
