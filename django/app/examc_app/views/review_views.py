@@ -1642,7 +1642,9 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
         points = float(grading_scheme.max_points)
 
     exam = Exam.objects.get(pk=exam_pk)
-    _, max_points, amc_corr_boxes = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+    layout = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+    max_points = layout["max_points"]
+    amc_corr_boxes = layout["amc_corr_boxes"]
 
     if points > 0:
         nb_boxes = len(amc_corr_boxes) / 4 - 1

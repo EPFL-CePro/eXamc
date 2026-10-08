@@ -10,14 +10,14 @@ from examc_app.utils.review_functions import get_question_points
 
 
 def get_amc_question_layout_and_marks(exam : Exam, copy_nr, pages_group ) -> dict[str, Any]:
-    amc_data_path = get_amc_project_path(exam, True) or "" + "/data/"
+    amc_data_path = get_amc_project_path(exam, True) + "/data/"
     with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
         question_page = amc_layout_db_manager.select_copy_question_page(
             copy_nr, pages_group.group_name
         )
     with AmcScoringDbManager(amc_data_path) as amc_db:
             max_points = float(
-                amc_db.get_question_max_points(pages_group.group_name, None)
+                amc_db.get_question_max_points(pages_group.group_name, None) or 0
             )
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
         amc_corr_boxes = amc_capture_db_manager.select_marks_positions(
@@ -41,7 +41,9 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
 
     if points > 0:
         exam = pages_group.exam
-        _, max_points, amc_corr_boxes = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+        layout = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+        max_points = layout["max_points"]
+        amc_corr_boxes = layout["amc_corr_boxes"]
 
         nb_boxes = len(amc_corr_boxes) / 4 - 1
         if nb_boxes <= 0 or max_points <= 0:
