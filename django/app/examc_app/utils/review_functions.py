@@ -6,16 +6,15 @@ import time
 from functools import lru_cache
 
 import cv2
-import pyzbar.pyzbar as pyzbar
-from PIL import Image, ImageStat
-
 from django.db import transaction
 from django.db.models import Sum
 from fpdf import FPDF
+from PIL import Image, ImageStat
+from pyzbar import pyzbar
 
 from examc_app.models import *
 from examc_app.signing import make_token_for
-from examc_app.utils.amc_db_queries import get_question_start_page_by_student
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
@@ -587,7 +586,10 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
 
     @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
-        pages = get_question_start_page_by_student(str(amc_data_root) + "/", pages_group.group_name, copy_no_int)
+        with AmcLayoutDbManager(amc_data_path=str(amc_data_root) + "/") as amc_layout_db_manager:
+            pages = amc_layout_db_manager.get_question_start_page_by_student(
+                pages_group.group_name, copy_no_int
+            )
         if not pages:
             return None
         from_p = pages[0]["page"]

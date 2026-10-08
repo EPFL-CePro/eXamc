@@ -1,32 +1,26 @@
 """  REVIEW MODULE VIEWS
     This file contains all views used for the review module
 """
-import json
-import logging
-from django.utils import timezone
-from typing import Any
-
 import math
 from datetime import timedelta
 from functools import wraps
 
 from celery.result import AsyncResult
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect, Http404
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView
 
 from examc_app.decorators import exam_permission_required
 from examc_app.forms import *
 from examc_app.mixins import ExamPermissionAndRedirectMixin
-from examc_app.tasks import import_exam_scans, generate_marked_files_zip
-from examc_app.utils.amc_db_queries import get_question_max_points, get_questions, get_question_name_by_student_page, \
-    select_copy_question_page
+from examc_app.tasks import generate_marked_files_zip, import_exam_scans
+from examc_app.utils.amc_db_queries import get_question_max_points
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import *
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import *
@@ -43,10 +37,7 @@ from examc_app.utils.review_upload_state import (
     set_pending_amc_import,
 )
 
-logger = logging.getLogger(__name__)
-
 ACTIVE_CELERY_STATES = ("PENDING", "RECEIVED", "STARTED", "PROGRESS", "RETRY")
-
 
 def _page_number_as_int(page_no):
     try:
@@ -389,7 +380,11 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                 pages_groups = PagesGroup.objects.filter(exam=exam)
                 grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
                 locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
-                questions = get_questions(get_amc_project_path(exam, True) + "/data/")
+                amc_data_path = get_amc_project_path(exam, True) + "/data/"
+                with AmcLayoutDbManager(
+                    amc_data_path=amc_data_path
+                ) as amc_layout_db_manager:
+                    questions = amc_layout_db_manager.select_questions()
                 questions_choices = [(q['name'], q['name']) for q in questions]
                 formset_pages_groups = PagesGroupsFormSet(queryset=pages_groups, initial=[
                     {'id': None, 'group_name': 'Select', 'nb_pages': -1}],
@@ -453,7 +448,11 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                             form.save_m2m()
         else:
             curr_tab = "groups"
-            questions = get_questions(get_amc_project_path(exam, True) + "/data/")
+            amc_data_path = get_amc_project_path(exam, True) + "/data/"
+            with AmcLayoutDbManager(
+                amc_data_path=amc_data_path
+            ) as amc_layout_db_manager:
+                questions = amc_layout_db_manager.select_questions()
             questions_choices = [(q['name'], q['name']) for q in questions]
             formset = PagesGroupsFormSet(self.request.POST, form_kwargs={"questions_choices": questions_choices})
             if formset.is_valid():
@@ -492,7 +491,9 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
 
         formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam))
 
-        questions = get_questions(get_amc_project_path(exam, True) + "/data/")
+        amc_data_path = get_amc_project_path(exam, True) + "/data/"
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            questions = amc_layout_db_manager.select_questions()
         questions_choices = [(q['name'], q['name']) for q in questions]
         formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
             {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
@@ -943,8 +944,11 @@ def save_markers(request: HttpRequest, exam_pk: int):
     """
     exam = Exam.objects.get(pk=exam_pk)
     page_no = int(float(request.POST['page_no'].strip()))
-    question_name = get_question_name_by_student_page(get_amc_project_path(exam, True) + "/data/",
-                                                      int(request.POST['copy_no']), page_no)
+    amc_data_path = get_amc_project_path(exam, True) + "/data/"
+    with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+        question_name = amc_layout_db_manager.get_question_name_by_student_page(
+            int(request.POST["copy_no"]), page_no
+        )
     pages_group = PagesGroup.objects.get(exam=exam, group_name=question_name)
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
                                                               page_no=request.POST['page_no'], pages_group=pages_group,
@@ -1533,7 +1537,10 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
     if points > 0:
         exam = pages_group.exam
         amc_data_path = get_amc_project_path(exam, True) + "/data/"
-        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            question_page = amc_layout_db_manager.select_copy_question_page(
+                copy_nr, pages_group.group_name
+            )
         max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
         amc_corr_boxes = AmcCaptureDbManager.select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
 
@@ -1749,7 +1756,10 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
 
     exam = Exam.objects.get(pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
-    question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
+    with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+        question_page = amc_layout_db_manager.select_copy_question_page(
+            copy_nr, pages_group.group_name
+        )
     max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
     amc_corr_boxes = AmcCaptureDbManager.select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
 
