@@ -3,10 +3,17 @@ from decimal import Decimal
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.forms import modelformset_factory, BaseModelFormSet
+from django.forms import BaseModelFormSet, modelformset_factory
 
 from examc_app.forms.general import SwitchWidget
-from examc_app.models import PrepQuestionAnswer, QuestionType, PrepQuestion, PrepSection, Exam, PrepScoringFormula
+from examc_app.models import (
+    Exam,
+    PrepQuestion,
+    PrepQuestionAnswer,
+    PrepScoringFormula,
+    PrepSection,
+    QuestionType,
+)
 
 
 class ExamFirstPageForm(forms.ModelForm):
@@ -37,8 +44,11 @@ class PrepSectionForm(forms.ModelForm):
             "class": "form-control",
             "style": "min-width:300px",
         })
-        self.fields["random_questions"] = forms.BooleanField(label='Randomized questions', widget=SwitchWidget(),
-                                                             required=False)
+        self.fields["random_questions"] = forms.BooleanField(
+            label='Randomized questions',
+            widget=SwitchWidget(),
+            required=False
+        )
 
 
 class PrepQuestionForm(forms.ModelForm):

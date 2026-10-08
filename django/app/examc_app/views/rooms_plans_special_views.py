@@ -1,5 +1,6 @@
 from django.views.generic.edit import FormView
-from examc_app.forms import SeatingSpecialForm
+
+from examc_app.forms.misc import SeatingSpecialForm
 
 
 class GenerateRoomPlanSpecialView(FormView):

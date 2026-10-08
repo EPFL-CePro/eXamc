@@ -2,7 +2,7 @@ from django import forms
 from django.forms import modelformset_factory
 from django_summernote.widgets import SummernoteWidget
 
-from examc_app.forms import SwitchWidget
+from examc_app.forms.general import SwitchWidget
 from examc_app.models import (
     ExamUser,
     PagesGroup,

@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 
 from examc import settings
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import ExportResultsForm
+from examc_app.forms.results_statistics import ExportResultsForm
 from examc_app.models import Exam, Question, Scale, Student
 from examc_app.storage import private_storage, to_private_name
 
