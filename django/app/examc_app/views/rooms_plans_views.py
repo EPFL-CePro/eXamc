@@ -1,17 +1,17 @@
 import csv
 import math
+import os
+import secrets
 import zipfile
 from pathlib import Path
 
-from django.core.files.storage import FileSystemStorage
-from django.views.generic.edit import FormView
-from django.urls import reverse_lazy
-from django.http import FileResponse, HttpResponse
-from django.shortcuts import get_object_or_404, render
-import secrets
-
-from examc_app.utils.review_functions import *
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+from django.http import FileResponse, HttpResponse
+from django.shortcuts import render
+from django.urls import reverse_lazy
+from django.views.generic.edit import FormView
+
 from examc_app.forms import SeatingForm
 from examc_app.utils.rooms_plans_functions import generate_plan
 
@@ -213,7 +213,6 @@ class GenerateRoomPlanView(FormView):
         user_token = get_user_token(self.request)
 
         zip_filename = f'seat_map_{user_token}_export.zip'
-        zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
 
         for export_file in os.listdir(os.path.join(settings.ROOMS_PLANS_ROOT, "export")):
             file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
@@ -325,10 +324,9 @@ class GenerateRoomPlanView(FormView):
             zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
 
             if os.path.exists(zip_filepath):
-                f = open(zip_filepath, 'rb')
-                response = FileResponse(f)
-                response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
-                return response
+                return FileResponse(
+                    open(zip_filepath, "rb"), as_attachment=True, filename=zip_filename
+                )
             else:
                 return HttpResponse("No ZIP file found.", status=404)
         return None

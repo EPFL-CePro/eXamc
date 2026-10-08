@@ -1,20 +1,26 @@
-import os
-import re
 import shutil
 import subprocess
 import tempfile
 from decimal import Decimal
-from functools import lru_cache
 from pathlib import Path
 
-from django.db.models import Max, QuerySet, Model
+from django.db.models import Max
 from django.http import HttpResponseForbidden
 
 from examc import settings
-from examc_app.forms import PrepQuestionAnswerForm, PrepSectionForm, PrepQuestionForm
-from examc_app.models import PrepScoringFormula, PrepSection, PrepQuestionAnswer, PrepQuestion, Exam, Question
-from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
-from examc_app.utils.preparation_latex_functions import update_global_scoring_latex_file, update_exam_latex
+from examc_app.forms import PrepQuestionAnswerForm, PrepQuestionForm, PrepSectionForm
+from examc_app.models import (
+    Exam,
+    PrepQuestion,
+    PrepQuestionAnswer,
+    PrepScoringFormula,
+    PrepSection,
+)
+from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_path
+from examc_app.utils.preparation_latex_functions import (
+    update_exam_latex,
+    update_global_scoring_latex_file,
+)
 
 
 # -------------------------

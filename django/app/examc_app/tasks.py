@@ -1,5 +1,4 @@
 import csv
-import logging
 import os
 import pathlib
 import re
@@ -12,19 +11,31 @@ from datetime import datetime, timedelta
 
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
-from django.contrib.sessions.models import Session
 from django.conf import settings
+from django.contrib.sessions.models import Session
 from django.db.models import Sum
 from django.utils import timezone
 
-from examc_app.models import Student, StudentQuestionAnswer, Question, Exam, ReviewLock, PageMarkers, \
-    ExamAMCJob
+from examc_app.models import (
+    Exam,
+    ExamAMCJob,
+    PageMarkers,
+    Question,
+    ReviewLock,
+    Student,
+    StudentQuestionAnswer,
+)
 from examc_app.utils.amc.amc_build_functions import build_final_exam
-from examc_app.utils.amc.amc_layout_functions import extract_layout_from_xy, populate_subject_layout_pages, \
-    LayoutExtractionError, get_pdf_page_metrics, get_subject_copy_and_page_counts_from_xy
+from examc_app.utils.amc.amc_layout_functions import (
+    LayoutExtractionError,
+    extract_layout_from_xy,
+    get_pdf_page_metrics,
+    get_subject_copy_and_page_counts_from_xy,
+    populate_subject_layout_pages,
+)
 from examc_app.utils.amc_functions import (
-    amc_automatic_datacapture_subprocess,
     amc_annotate,
+    amc_automatic_datacapture_subprocess,
     get_amc_project_path,
 )
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
@@ -401,10 +412,10 @@ def generate_marked_files_zip(self,exam_pk: int,  export_type, with_comments):
 
         return export_subdir+'.zip'
 
-    except Exception as exception:
-        self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during export "+str(exception)})
-        print(exception)
-        raise exception
+    except Exception as e:
+        self.update_state(state='FAILURE', meta={'exc_type': type(e).__name__, 'exc_message': "Error during export "+str(e)})
+        print(e)
+        raise
 
 @shared_task(bind=True)
 def generate_statistics(self,exam_pk: int):
@@ -451,7 +462,7 @@ def generate_statistics(self,exam_pk: int):
     except Exception as exception:
         self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during stats generation "+str(exception)})
         print(exception)
-        raise exception
+        raise
 
 @shared_task
 def cleanup_review_locks():

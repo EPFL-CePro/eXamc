@@ -13,10 +13,10 @@ The goal is to limit storage growth without breaking scan, scoring, or audit
 workflows that still depend on older builds.
 """
 
+import logging
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-import shutil
-import logging
 
 from django.db import transaction
 

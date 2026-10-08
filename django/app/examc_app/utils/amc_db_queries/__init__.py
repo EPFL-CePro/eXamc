@@ -4,26 +4,26 @@ import sqlite3
 from abc import ABC
 from collections.abc import Callable
 from enum import StrEnum
-from pathlib import Path
 from typing import TypeVar
 
 from examc_app.services.amc.AmcDb import AmcDb
+from examc_app.utils.amc.exceptions import AmcDbManagerError
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
 
-class AmcDbManagerError(Exception):
-    """Raised when reading or writing the AMC association database fails."""
-
+# Value AMC stores to mark a sheet as explicitly not associated.
+NO_STUDENT = "NONE"
 
 
 class AmcDbFile(StrEnum):
     ASSOCIATION = "association.sqlite"
-    SCORING = "scoring.sqlite"
     CAPTURE = "capture.sqlite"
     LAYOUT = "layout.sqlite"
+    REPORT = "report.sqlite"
+    SCORING = "scoring.sqlite"
 
 
 class AbstractAmcDbManager(ABC):
@@ -98,196 +98,38 @@ class AbstractAmcDbManager(ABC):
 
     def _attach(self, amc_db_file: AmcDbFile, alias: str = "") -> None:
         """
-        Attach another AMC database of the same data folder to the connection using ATTACH DATABASE {db_file} AS {alias}.
-        :param amc_db_file: File name of the database, e.g. "scoring.sqlite".
-        :type amc_db_file: AmcDbFile
-        :param alias: Schema name to use in queries. If unspecified, the amc DB file name without extension is used.
+        Attach another AMC database of the same data folder to the connection, unless it's already attached.
+        :param amc_db_file: The database to attach, e.g., AmcDbFile.SCORING.
+        :param alias: Schema name to use in queries. Defaults to the file name without extension
+            (e.g. "scoring" for AmcDbFile.SCORING).
+        :raise AmcDbManagerError: If the connection isn't open or the database file doesn't exist
         """
-        # Default alias value
-        if alias == "":
-            alias = amc_db_file.value.split(".")[0]
+        alias = alias or os.path.splitext(amc_db_file.value)[0]
+        database = os.path.join(self._amc_data_path, amc_db_file.value)
 
-        database = self._amc_data_path + amc_db_file.value
-        logger.critical(f"Attaching database '{database}' as '{alias}'")
-        query_str = f"ATTACH DATABASE '{database}' AS :alias"
-        query_params = {"alias": alias}
+        conn = self._amc_db.conn
+        if conn is None:
+            raise AmcDbManagerError(f"No open connection to attach '{database}' to")
 
-        if self._amc_db.cursor is None or not self._amc_db.cursor:
-            raise AmcDbManagerError(f"SQLite cursor is None for file '{self._amc_data_path}/{self._amc_table_file}'")
+        check_query_str = "SELECT 1 FROM pragma_database_list WHERE name = :alias"
+        check_query_params = {"alias": alias}
 
-        self._amc_db.cursor.execute(query_str, query_params)
+        already_attached = conn.execute(check_query_str, check_query_params).fetchone()
+        if already_attached: return
+
+        # Make sure ATTACH doesn't silently create an empty file for a missing path.
+        if not os.path.isfile(database):
+            raise AmcDbManagerError(f"AMC database not found: {database}")
+
+        attach_query_str = f"ATTACH DATABASE '{database}' AS :alias"
+        attach_query_params = {"alias": alias}
+
+        logger.debug("Attaching database '%s' as '%s'", database, alias)
+        conn.execute(attach_query_str, attach_query_params)
 
 
     def _has_db(self, amc_db_file: AmcDbFile) -> bool:
-        """
-        True if a given db file name such as "scoring.sqlite" exists in the same amc_data_path and is not empty.
-        :rtype: bool
-        """
-        return Path(self._amc_data_path + amc_db_file.value).stat().st_size > 0
-
-
-
-
-
-
-
-
-
-
-
-################################################
-# SCORING
-################################################
-
-
-def get_mean(amc_data_path: str):
-    db = AmcDb(amc_data_path + "scoring.sqlite")
-
-    query_str = "SELECT AVG(mark) as mean FROM scoring_mark"
-
-    response = db.execute_query(query_str)
-    row = response.fetchone() if response else None
-    mean = 0
-    if row and row['mean'] is not None:
-        mean = round(row['mean'], 4)
-
-    db.close()
-
-    return mean
-
-
-def get_marks(amc_data_path):
-    db = AmcDb(amc_data_path + "scoring.sqlite")
-
-    query_str = "SELECT student, total, max, mark FROM scoring_mark"
-
-    response = db.execute_query(query_str)
-    colname_marks = [d[0] for d in response.description]
-    data_marks = [dict(zip(colname_marks, r)) for r in response.fetchall()]
-
-    db.close()
-
-    return data_marks
-
-
-def get_questions_scoring_details(amc_data_path):
-    db = AmcDb(amc_data_path + "scoring.sqlite")
-    # Attach layout db
-    db.cursor.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
-
-    query_str = (
-        "SELECT sm.student as copy,sm.total, sm.max as max_total, mark, lq.name as question, ss.score, ss.max as max_question "
-        "FROM scoring_score ss "
-        "INNER JOIN layout_question lq ON lq.question = ss.question "
-        "INNER JOIN scoring_mark sm ON sm.student = ss.student "
-        "ORDER BY sm.student, lq.name")
-
-    response = db.execute_query(query_str)
-    marking_details = []
-    if response:
-        colname_marking = [d[0] for d in response.description]
-        marking_details = [dict(zip(colname_marking, r)) for r in response.fetchall()]
-
-    db.close()
-
-    return marking_details
-
-
-
-def get_question_max_points(amc_data_path, question_name, copy_nr):
-    db = AmcDb(amc_data_path + "scoring.sqlite")
-    db.cursor.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
-    query_str = ("SELECT strategy FROM scoring_question sc"
-                 " INNER JOIN layout_question lq ON lq.question = sc.question"
-                 " WHERE lq.name = '" + str(question_name) + "'")
-
-    if copy_nr:
-        query_str += " AND sc.student = " + str(copy_nr)
-
-    response = db.execute_query(query_str)
-    strategy = response.fetchall()[0]['strategy']
-    max_points = strategy.split("=")[1]
-    return max_points
-
-
-
-
-################################################
-# REPORT
-################################################
-
-def select_students_report(amc_data_path):
-    db = AmcDb(amc_data_path + "report.sqlite")
-    db.cursor.execute("ATTACH DATABASE '" + amc_data_path + "association.sqlite' as association")
-    query_str = ("SELECT rs.student as id, coalesce(aa.auto,aa.manual) as copy, "
-                 "rs.mail_status as status, rs.mail_message as error, rs.mail_timestamp as date "
-                 "FROM report_student rs "
-                 "INNER JOIN association_association aa "
-                 "WHERE rs.student = aa.student")
-
-    response = db.execute_query(query_str)
-    colname_rep = [d[0] for d in response.description]
-    rep_details = [dict(zip(colname_rep, r)) for r in response.fetchall()]
-
-    db.close()
-
-    return rep_details
-
-
-def get_annotated_pdf_path(amc_data_path, student_id):
-    db = AmcDb(amc_data_path + "report.sqlite")
-    query_str = ("SELECT file FROM report_student WHERE student = " + student_id)
-
-    response = db.execute_query(query_str)
-    file = None
-    if response:
-        file = response.fetchall()[0]['file']
-
-    db.close()
-
-    return file
-
-
-def get_student_report_data(amc_data_path):
-    db = AmcDb(amc_data_path + "report.sqlite")
-    try:
-        db.cursor.execute("ATTACH DATABASE '" + amc_data_path + "association.sqlite' as association")
-        query_str = (
-            "SELECT rs.*, "
-            "aa.student AS amc_copy, "
-            "COALESCE(NULLIF(aa.manual, ''), NULLIF(aa.auto, '')) AS associated_student "
-            "FROM report_student rs "
-            "LEFT JOIN association.association_association aa ON aa.student = rs.student"
-        )
-        response = db.execute_query(query_str)
-    except sqlite3.Error:
-        response = None
-
-    if not response:
-        query_str = "SELECT rs.*, rs.student AS amc_copy, NULL AS associated_student FROM report_student rs"
-        response = db.execute_query(query_str)
-
-    colname_rep = [d[0] for d in response.description]
-    rep_details = [dict(zip(colname_rep, r)) for r in response.fetchall()]
-
-    db.close()
-
-    return rep_details
-
-
-def update_report_student(amc_data_path, student, mail_timestamp, mail_status, mail_message=''):
-    db = AmcDb(amc_data_path + "report.sqlite")
-    query_str = ("UPDATE report_student "
-                 "SET mail_status = " + str(mail_status) + ", "
-                                                           "mail_timestamp = " + str(int(mail_timestamp)) + ", "
-                                                                                                            "mail_message = '" + mail_message.replace(
-        "'", "''") + "' "
-                     "WHERE student = " + student)
-
-    response = db.execute_query(query_str)
-
-    db.close()
-
-    return response
-
+        """True if the given AMC database exists in the data folder and is not empty."""
+        path = os.path.join(self._amc_data_path, amc_db_file.value)
+        return os.path.isfile(path) and os.path.getsize(path) > 0
 

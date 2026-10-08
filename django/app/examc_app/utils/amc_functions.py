@@ -52,22 +52,16 @@ from examc_app.models import (
     Student,
 )
 from examc_app.signing import make_token_for, verify_and_get_path
-from examc_app.utils.amc_db_queries import (
-    get_annotated_pdf_path,
-    get_mean,
-    get_questions_scoring_details,
-    get_student_report_data,
-    select_students_report,
-    update_report_student,
-)
+from examc_app.utils.amc.exceptions import AmcProjectPathNotFoundError
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_db_queries.report import AmcReportDbManager
+from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.zip_security import safe_extract_zip
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
-
 
 # Folders AMC creates when opening a new project
 AMC_PROJECT_DIRS = ("cr/corrections/jpg", "cr/corrections/pdf", "cr/diagnostic", "cr/zooms", "data", "exports", "scans")
@@ -215,7 +209,7 @@ def latex_files_to_list(path, amc_project_path):
     return file_list
 
 
-def amc_update_documents(exam: Exam, nb_copies, scoring_only, preview: bool=False):
+def amc_update_documents(exam: Exam, nb_copies, scoring_only, preview: bool = False):
     amc_project_path = get_amc_project_path(exam, False)
 
     if preview:
@@ -300,7 +294,7 @@ def amc_automatic_datacapture_subprocess(request, exam: Exam, file_path, from_re
             logger.info("AMC datacapture upload extraction started exam=%s tmp_file=%s", exam.pk, tmp_file_path)
             with open(tmp_file_path, 'wb') as temp_file:
                 temp_file.writelines(file_path.chunks())
-                    # extract zip file in tmp dir
+                # extract zip file in tmp dir
             with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
                 # Security hardening: validated extraction (no traversal/symlink/oversized archive).
                 safe_extract_zip(zip_ref, tmp_extract_path)
@@ -451,7 +445,7 @@ def amc_automatic_data_capture(exam: Exam, file_path, from_review, file_list_pat
         tmp_file_path = tmp_dir_path + "/" + file_name
         with open(tmp_file_path, 'wb') as temp_file:
             temp_file.writelines(file_path.chunks())
-                # extract zip file in tmp dir
+            # extract zip file in tmp dir
         with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
             print("start extraction")
             # Security hardening: validated extraction (no traversal/symlink/oversized archive).
@@ -540,17 +534,18 @@ def get_amc_catalog_pdf_path(exam: Exam):
     return file_path
 
 
-def get_amc_project_path(exam: Exam, even_if_not_exist) -> str | None:
+def get_amc_project_path(exam: Exam, even_if_not_exist: bool = False) -> str:
     amc_project_path = f"{settings.AMC_PROJECTS_ROOT}/{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
 
     #print('****************** amc_project_path : ' + amc_project_path)
     if os.path.isdir(amc_project_path) or even_if_not_exist:
         return amc_project_path
     else:
-        return None
+        raise AmcProjectPathNotFoundError(f"Couldn't find the AMC project path for exam '{exam.code}'")
+
 
 def get_amc_project_url(exam: Exam) -> str:
-    amc_project_url = f"{settings.AMC_PROJECTS_URL}{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
+    return f"{settings.AMC_PROJECTS_URL}{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
 
 
 def ensure_amc_project(exam):
@@ -577,7 +572,7 @@ def ensure_amc_project(exam):
     return str(amc_project_path)
 
 
-def get_extra_pages(amc_extra_pages_path: str, amc_extra_pages_url: str | None = None, student = None):
+def get_extra_pages(amc_extra_pages_path: str, amc_extra_pages_url: str | None = None, student=None):
     extra_pages_data = []
 
     if not amc_extra_pages_url:
@@ -615,7 +610,6 @@ def get_amc_marks_positions_data(exam: Exam, copy, page):
         data_positions = amc_capture_db_manager.select_marks_positions(
             copy=copy, page=page
         )
-
 
         for idx, item in enumerate(data_positions):
             item["checked"] = False
@@ -658,9 +652,9 @@ def _is_valid_amc_options_xml(options_xml_path):
             first_line = options_file.readline().strip()
             second_line = options_file.readline().strip()
         return (
-            (
-                first_line == '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' and second_line == "<project>"
-            ) or second_line == "<projetAMC>"
+                (
+                        first_line == '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' and second_line == "<project>"
+                ) or second_line == "<projetAMC>"
         )
     except OSError:
         return False
@@ -765,7 +759,6 @@ def get_automatic_data_capture_summary(exam: Exam):
         data_overwritten_pages = amc_capture_db_manager.select_overwritten_pages()
 
         return [nb_copies, incomplete_copies, nb_unrecognized_pages, data_overwritten_pages]
-
 
 
 def get_copy_page_zooms(exam: Exam, copy, page):
@@ -932,50 +925,54 @@ def amc_mark_subprocess(request, exam: Exam, update_scoring_strategy):
 
 
 def get_amc_mean(exam: Exam):
-    amc_data_path = get_amc_project_path(exam, False)
-    if not amc_data_path: return None
+    amc_project_path = get_amc_project_path(exam, False)
+    if not amc_project_path: return None
 
-    return get_mean(amc_data_path + "/data/")
+    with AmcScoringDbManager(amc_data_path=f"{amc_project_path}/data") as amc_scoring_db_manager:
+        return amc_scoring_db_manager.get_mean()
+
 
 def get_questions_scoring_details_list(exam: Exam):
     questions_scoring_details_list = []
-    amc_data_path = get_amc_project_path(exam, False)
-    if amc_data_path:
-        data = get_questions_scoring_details(amc_data_path + "/data/")
+    amc_project_path = get_amc_project_path(exam, False)
+    if not amc_project_path: return []
 
-        last_copy = 0
-        q_scoring_details_copy = {}
-        q_question_scoring = {}
-        q_question_scoring_list = []
-        new_copy = False
-        for row in data:
-            for key, value in row.items():
-                if key == 'copy' and value != last_copy:
-                    if last_copy != 0:
-                        q_question_scoring_list.append(q_question_scoring)
-                        q_scoring_details_copy['questions'] = q_question_scoring_list
-                        q_question_scoring_list = []
-                        q_question_scoring = {}
-                        questions_scoring_details_list.append(q_scoring_details_copy)
-                    q_scoring_details_copy = {'copy': value}
-                    new_copy = True
-                    last_copy = value
+    with AmcScoringDbManager(amc_data_path=f"{amc_project_path}/data") as amc_scoring_db_manager:
+        data = amc_scoring_db_manager.get_questions_scoring_details()
 
-                if new_copy and key not in ['question', 'score', 'max_question', 'mark']:
-                    q_scoring_details_copy[key] = value
-                elif key == 'mark':
-                    new_copy = False
+    last_copy = 0
+    q_scoring_details_copy = {}
+    q_question_scoring = {}
+    q_question_scoring_list = []
+    new_copy = False
+    for row in data:
+        for key, value in row.items():
+            if key == 'copy' and value != last_copy:
+                if last_copy != 0:
+                    q_question_scoring_list.append(q_question_scoring)
+                    q_scoring_details_copy['questions'] = q_question_scoring_list
+                    q_question_scoring_list = []
+                    q_question_scoring = {}
+                    questions_scoring_details_list.append(q_scoring_details_copy)
+                q_scoring_details_copy = {'copy': value}
+                new_copy = True
+                last_copy = value
 
-                elif not new_copy and key in ['question', 'score', 'max_question']:
-                    if key == 'question' and q_question_scoring:
-                        q_question_scoring_list.append(q_question_scoring)
-                        q_question_scoring = {}
+            if new_copy and key not in ['question', 'score', 'max_question', 'mark']:
+                q_scoring_details_copy[key] = value
+            elif key == 'mark':
+                new_copy = False
 
-                    q_question_scoring[key] = value
+            elif not new_copy and key in ['question', 'score', 'max_question']:
+                if key == 'question' and q_question_scoring:
+                    q_question_scoring_list.append(q_question_scoring)
+                    q_question_scoring = {}
 
-        q_question_scoring_list.append(q_question_scoring)
-        q_scoring_details_copy['questions'] = q_question_scoring_list
-        questions_scoring_details_list.append(q_scoring_details_copy)
+                q_question_scoring[key] = value
+
+    q_question_scoring_list.append(q_question_scoring)
+    q_scoring_details_copy['questions'] = q_question_scoring_list
+    questions_scoring_details_list.append(q_scoring_details_copy)
 
     return questions_scoring_details_list
 
@@ -986,10 +983,10 @@ def amc_automatic_association(exam: Exam, assoc_primary_key: str):
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
     command = [
         "auto-multiple-choice", "association-auto",
-        "--data", f"{project_path}/data/",
-        "--pre-association",
-        "--liste", students_list,
-        "--liste-key", assoc_primary_key,
+            "--data", f"{project_path}/data/",
+            "--pre-association",
+            "--liste", students_list,
+            "--liste-key", assoc_primary_key,
     ]
     result = subprocess.run(command, check=False, capture_output=True, text=True)
 
@@ -1150,7 +1147,7 @@ def run_amc_annotate_command(command, exam: Exam, single_file, progress_callback
     return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
 
 
-def amc_annotate(exam: Exam, single_file, add_grading_scheme_report, progress_callback = None):
+def amc_annotate(exam: Exam, single_file, add_grading_scheme_report, progress_callback=None):
     project_path = get_amc_project_path(exam, False)
     assoc_primary_key = get_amc_option_by_key(exam, 'liste_key')
     students_list = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
@@ -1207,8 +1204,9 @@ def amc_annotate(exam: Exam, single_file, add_grading_scheme_report, progress_ca
         logger.error("AMC annotate command stderr exam=%s stderr=%s", exam.pk, result.stderr)
         return "ERR:" + result.stderr
     else:
+        with AmcReportDbManager(project_path + "/data/") as amc_report_db_manager:
+            student_report_data = amc_report_db_manager.get_student_report_data()
 
-        student_report_data = get_student_report_data(project_path + "/data/")
         report_type = 2 if single_file else 1
         generated_rows = [
             row for row in student_report_data
@@ -1484,15 +1482,19 @@ def find_student_for_amc_report(exam: Exam, report_row):
     return student
 
 
-def add_grading_schemes_reports(exam_pk: int,  single_file: bool = False, progress_callback=None):
+def add_grading_schemes_reports(exam_pk: int, single_file: bool = False, progress_callback=None):
     exam = Exam.objects.get(pk=exam_pk)
 
     project_path = Path(get_amc_project_path(exam, False))
-    amc_data_path = str(project_path / "data") + "/"
+    amc_data_path = f"{project_path}/data/"
     annotated_pdfs_dir = project_path / "cr" / "corrections" / "pdf"
     report_type = 2 if single_file else 1
+
+    with AmcReportDbManager(amc_data_path) as amc_report_db_manager:
+        student_report_data = amc_report_db_manager.get_student_report_data()
+
     report_rows = [
-        row for row in get_student_report_data(amc_data_path)
+        row for row in student_report_data
         if int(row.get("type") or 0) == report_type
     ]
     logger.info(
@@ -1636,7 +1638,8 @@ def create_annotated_zip(exam: Exam) -> bool | str:
     zip_path = get_annotated_zip_path(exam)
     # Creating the ZIP file
     archived = shutil.make_archive(str(zip_path.with_suffix("")), 'zip', str(corrections_path / "pdf"))
-    logger.info(f"Created annotated zip created for exam '{exam.code}' ({exam.pk}) in {time.time() - start_time:.2f} seconds")
+    logger.info(
+        f"Created annotated zip created for exam '{exam.code}' ({exam.pk}) in {time.time() - start_time:.2f} seconds")
 
     if zip_path.exists():
         return archived
@@ -1729,8 +1732,8 @@ def get_amc_manual_association_data(exam: Exam):
         cr_files = sorted(p for p in cr_dir.rglob("*") if p.is_file())
 
         for target, key in (
-            (rel_candidate.name, lambda p: p.name),
-            (rel_candidate.stem, lambda p: p.stem),
+                (rel_candidate.name, lambda p: p.name),
+                (rel_candidate.stem, lambda p: p.stem),
         ):
             if not target: continue
             target = target.casefold()
@@ -1759,7 +1762,7 @@ def get_amc_manual_association_data(exam: Exam):
 
         with open(students_list, "r", encoding='utf-8') as file:
             data_students = list(csv.reader(file, delimiter=","))
-            data_students.pop(0) # remove header
+            data_students.pop(0)  # remove header
 
             # signing images
             for assoc in data_assoc:
@@ -1778,30 +1781,27 @@ def get_amc_manual_association_data(exam: Exam):
 def get_amc_send_annotated_papers_data(exam: Exam):
     project_path = get_amc_project_path(exam, False)
 
-    if project_path:
-        amc_data_path = project_path + "/data/"
-        data = select_students_report(amc_data_path)
+    with AmcReportDbManager(amc_data_path=f"{project_path}/data/") as amc_report_db_manager:
+        data = amc_report_db_manager.select_students_report()
 
-        students_list_file = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
-        students_list = None
-        with open(students_list_file, 'r') as f:
-            dict_reader = csv.DictReader(f)
-            students_list = list(dict_reader)
+    students_list_file = get_amc_option_by_key(exam, 'listeetudiants').replace('%PROJET', project_path)
+    students_list = None
+    with open(students_list_file, 'r') as f:
+        dict_reader = csv.DictReader(f)
+        students_list = list(dict_reader)
 
-        students_data = []
-        assoc_key = get_amc_option_by_key(exam, 'liste_key')
-        for copy in data:
-            for student in students_list:
-                if student[assoc_key] == copy['copy']:
-                    merged_dict = copy.copy()
-                    for key, value in student.items():
-                        if key != assoc_key:
-                            merged_dict[key] = value
-                    students_data.append(merged_dict)
+    students_data = []
+    assoc_key = get_amc_option_by_key(exam, 'liste_key')
+    for copy in data:
+        for student in students_list:
+            if student[assoc_key] == copy['copy']:
+                merged_dict = copy.copy()
+                for key, value in student.items():
+                    if key != assoc_key:
+                        merged_dict[key] = value
+                students_data.append(merged_dict)
 
-        return students_data
-
-    return ''
+    return students_data
 
 
 def amc_send_annotated_papers(exam: Exam, selected_students, email_subject, email_body, email_column):
@@ -1813,41 +1813,43 @@ def amc_send_annotated_papers(exam: Exam, selected_students, email_subject, emai
     count_error = 0
     for student in selected_students:
         student_send_result = student["copy"] + " - " + student["email"] + " : "
-        try:
-            validate_email(student['email'])
-        except ValidationError as e:
-            student_send_result += "Failed to send email: " + repr(e)
-            logger.error(result)
-            count_error += 1
-            update_report_student(amc_data_path, student["id"], time.time(), 100, repr(e))
-            result_list.append(student_send_result)
-        else:
-            # Create EmailMessage object
-            email = EmailMessage(
-                email_subject,  # Subject
-                email_body,  # HTML content
-                'noreply-cepro-exams@epfl.ch',  # From email address
-                [student['email']]  # To email addresses
-            )
 
-            annotated_pdf_path = get_annotated_pdf_path(amc_data_path, student["id"])
-
-            # Set content type to HTML
-            email.content_subtype = "html"
-            email.attach_file(project_path + "/cr/corrections/pdf/" + annotated_pdf_path)
-
+        with AmcReportDbManager(amc_data_path=amc_data_path) as amc_report_db_manager:
             try:
-                # Send email
-                email.send()
-                student_send_result += "email sent !"
-                count_sent += 1
-                update_report_student(amc_data_path, student["id"], time.time(), 1, '')
-            except Exception as e:
+                validate_email(student['email'])
+            except ValidationError as e:
                 student_send_result += "Failed to send email: " + repr(e)
                 logger.error(result)
                 count_error += 1
-                update_report_student(amc_data_path, student["id"], time.time(), 100, repr(e))
+                amc_report_db_manager.update_report_student(student["id"], time.time(), 100, repr(e))
                 result_list.append(student_send_result)
+            else:
+                # Create EmailMessage object
+                email = EmailMessage(
+                    email_subject,  # Subject
+                    email_body,  # HTML content
+                    'noreply-cepro-exams@epfl.ch',  # From email address
+                    [student['email']]  # To email addresses
+                )
+
+                annotated_pdf_path = amc_report_db_manager.get_annotated_pdf_path(student["id"])
+
+                # Set content type to HTML
+                email.content_subtype = "html"
+                email.attach_file(project_path + "/cr/corrections/pdf/" + annotated_pdf_path)
+
+                try:
+                    # Send email
+                    email.send()
+                    student_send_result += "email sent !"
+                    count_sent += 1
+                    amc_report_db_manager.update_report_student(student["id"], time.time(), 1, '')
+                except Exception as e:
+                    student_send_result += "Failed to send email: " + repr(e)
+                    logger.error(result)
+                    count_error += 1
+                    amc_report_db_manager.update_report_student(student["id"], time.time(), 100, repr(e))
+                    result_list.append(student_send_result)
 
     return [count_sent, count_error, result_list]
 
@@ -1910,7 +1912,7 @@ def build_long_table(rows, col_widths, repeat_rows=1):
         return LongTable(rows, colWidths=col_widths, repeatRows=repeat_rows, splitByRow=1)
 
 
-def build_grading_report_pdf_bytes(exam_pk: int,  student_pk, amc_copy_nr=None, review_copy_nr=None) -> bytes:
+def build_grading_report_pdf_bytes(exam_pk: int, student_pk, amc_copy_nr=None, review_copy_nr=None) -> bytes:
     """
     Generate grading report and return the content in bytes.
     """

@@ -138,8 +138,6 @@ urlpatterns = [
 
     # RESULTS & STATISTICS
     path('catalogPdf/<int:exam_pk>', views.display_catalog, name="catalogPdf"),
-    path('catalogPdf/<int:exam_pk>/<slug:searchFor>', views.display_catalog, name="catalogPdf"),
-    #path('update_question', views.update_question, name="update_question"),
     path('update_questions/<int:exam_pk>', views.update_questions, name="update_questions"),
     path('update_student_present/<int:exam_pk>/<int:student_pk>/<int:value>', views.update_student_present, name="update_student_present"),
     path('generateStats/<int:exam_pk>', views.generate_stats, name="generate_stats"),

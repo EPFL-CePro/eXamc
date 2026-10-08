@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from examc_app.utils.amc.exceptions import AmcDbManagerError
 from examc_app.utils.amc_db_queries import AbstractAmcDbManager, AmcDbFile
 
 logger = logging.getLogger(__name__)
@@ -25,11 +26,12 @@ class AmcLayoutDbManager(AbstractAmcDbManager):
     # ------------------------------------------------------------------
     def select_count_layout_pages(self) -> int:
         """Number of pages in the layout."""
-        cursor = self._execute(
-            "SELECT COUNT(*) FROM layout_page",
-            error="Could not count the layout pages",
-        )
+        query_str = "SELECT COUNT(*) FROM layout_page"
+
+        cursor = self._execute(query_str, error="Could not count the layout pages")
+
         row = cursor.fetchone()
+
         return row[0] if row else 0
 
     # ------------------------------------------------------------------
@@ -37,22 +39,17 @@ class AmcLayoutDbManager(AbstractAmcDbManager):
     # ------------------------------------------------------------------
     def select_questions(self) -> list[dict[str, Any]]:
         """All the questions, with all their columns."""
-        cursor = self._execute(
-            "SELECT * FROM layout_question ORDER BY question",
-            error="Could not read the questions",
-        )
-        columns = [d[0] for d in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        query_str = "SELECT * FROM layout_question ORDER BY question"
 
-    def get_questions(self) -> list[dict[str, Any]]:
-        """Same as select_questions, kept for existing callers."""
-        return self.select_questions()
+        cursor = self._execute(query_str, error="Could not read the questions")
+
+        return self._rows_as_dicts(cursor)
 
     def get_question_number(self, copy_nr: int, question_name: str) -> int:
         """
         Position of a question in a copy, ordered by where its first answer box appears
         (page, then top to bottom, then left to right).
-        :raise ValueError: if the question isn't in this copy
+        :raise AmcDbManagerError: if the question isn't in this copy
         """
         query_str = """
             WITH firstpage AS (
@@ -77,73 +74,99 @@ class AmcLayoutDbManager(AbstractAmcDbManager):
             JOIN layout_question q ON q.question = o.question
             WHERE q.name = :name
         """
+        query_params = {"copy": copy_nr, "role": ROLE_ANSWER, "name": question_name}
+
         cursor = self._execute(
-            query_str, {"copy": copy_nr, "role": ROLE_ANSWER, "name": question_name},
+            query_str, query_params,
             error=f"Could not compute the number of question {question_name!r} (copy={copy_nr})",
         )
+
         row = cursor.fetchone()
+
         if row is None:
-            raise ValueError(f"Question name {question_name!r} not found for copy {copy_nr}")
+            raise AmcDbManagerError(f"Question name {question_name!r} not found for copy {copy_nr}")
+
         return row[0]
 
     # ------------------------------------------------------------------
     # layout_box
     # ------------------------------------------------------------------
-    def select_copy_question_page(self, copy: str, question: str) -> int | None:
+    def select_copy_question_page(self, copy, question: str) -> int | None:
         """First page of a copy on which a question appears, or None."""
-        cursor = self._execute(
+        query_str = (
             "SELECT MIN(lb.page) "
             "FROM layout_box lb "
             "INNER JOIN layout_question lq ON lq.question = lb.question "
-            "WHERE lb.student = :copy AND lq.name = :question",
-            {"copy": copy, "question": question},
+            "WHERE lb.student = :copy AND lq.name = :question"
+        )
+        query_params = {"copy": copy, "question": question}
+
+        cursor = self._execute(
+            query_str, query_params,
             error=f"Could not find the page of question {question!r} (copy={copy})",
         )
+
         row = cursor.fetchone()
+
         return row[0] if row else None
 
     def get_question_start_page_by_student(self, question_name: str, student_id: int) -> list[dict[str, Any]]:
         """Every page of a copy on which a question appears: dicts with keys student, question, name, page."""
-        cursor = self._execute(
+        query_str = (
             "SELECT DISTINCT b.student, q.question, q.name, b.page "
             "FROM layout_box b "
             "INNER JOIN layout_question q ON q.question = b.question "
             "WHERE q.name = :question_name AND b.student = :student "
-            "ORDER BY b.page",
-            {"question_name": question_name, "student": student_id},
+            "ORDER BY b.page"
+        )
+        query_params = {"question_name": question_name, "student": student_id}
+
+        cursor = self._execute(
+            query_str, query_params,
             error=f"Could not read the pages of question {question_name!r} (copy={student_id})",
         )
+
         return [
             {"student": student, "question": question, "name": name, "page": page}
             for student, question, name, page in cursor.fetchall()
         ]
 
-    def get_question_name_by_student_page(self, student_id: int, page_no: int) -> str | None:
+    def get_question_name_by_student_page(self, student_id: int, page_no) -> str | None:
         """
         Name of a question on a page of a copy. If the page has no box, the question
         continuing from the closest previous page. None if there is none.
         """
-        cursor = self._execute(
+        query_str = (
             "SELECT q.name "
             "FROM layout_box b "
             "INNER JOIN layout_question q ON q.question = b.question "
             "WHERE b.student = :student AND b.page <= :page "
             "ORDER BY b.page DESC, b.question "
-            "LIMIT 1",
-            {"student": student_id, "page": page_no},
+            "LIMIT 1"
+        )
+        query_params = {"student": student_id, "page": page_no}
+
+        cursor = self._execute(
+            query_str, query_params,
             error=f"Could not find the question of page {page_no} (copy={student_id})",
         )
+
         row = cursor.fetchone()
+
         return row[0] if row else None
 
-    def get_page_layout_boxes(self, student: int, page_nr: int) -> list[dict[str, Any]]:
+    def get_page_layout_boxes(self, student: int, page_nr) -> list[dict[str, Any]]:
         """All the boxes of a page of a copy, with all their columns."""
-        cursor = self._execute(
+        query_str = (
             "SELECT * FROM layout_box "
             "WHERE student = :student AND page = :page "
-            "ORDER BY question, answer",
-            {"student": student, "page": page_nr},
+            "ORDER BY question, answer"
+        )
+        query_params = {"student": student, "page": page_nr}
+
+        cursor = self._execute(
+            query_str, query_params,
             error=f"Could not read the layout boxes of page {page_nr} (copy={student})",
         )
-        columns = [d[0] for d in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        return self._rows_as_dicts(cursor)

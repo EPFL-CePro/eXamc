@@ -1,22 +1,13 @@
-import os
 from datetime import datetime
 from io import BytesIO, StringIO
-from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import pandas as pd
-import json
-
-from celery.result import AsyncResult
-from celery_progress.backend import Progress
-from django.views.decorators.cache import never_cache
-
 from django.contrib import messages
-from django.http import FileResponse, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import render
 
 from examc_app.utils.epflldap import ldap_search
-from django.conf import settings
 
 CSV_TYPE_AMC = "a"
 STUDENTS_LIST = None
@@ -66,29 +57,6 @@ def download_csvgen_templates(request):
     response["Content-Disposition"] = 'attachment; filename="csvgen_templates.zip"'
     return response
 
-
-# class of both files
-class raw_data:
-    id = 0
-    email = ""
-    sciper = ""
-    name = ""
-    first_name = ""
-    last_name = ""
-    seat = 0
-    class_name = ""
-    room = ""
-
-    def __init__(self, id, sciper, name, first_name, last_name, email, seat, class_name, room):
-        self.id = id
-        self.sciper = sciper
-        self.name = name
-        self.first_name = first_name
-        self.last_name = last_name
-        self.email = email
-        self.seat = seat
-        self.class_name = class_name
-        self.room = room
 
 
 # import both excel file from list of ans and amc function
