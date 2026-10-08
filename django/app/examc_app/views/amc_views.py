@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 import pathlib
@@ -23,8 +24,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
+from examc import settings
 from examc_app.decorators import exam_permission_required
-from examc_app.models import *
+from examc_app.models import Exam, PageMarkers, PagesGroup, UnrecognizedReviewScan
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.services.amc_jobs import AmcJobsManager
 from examc_app.signing import make_token_for
@@ -33,8 +35,8 @@ from examc_app.tasks import (
     amc_import_from_review_task,
     import_csv_data,
 )
+from examc_app.utils.amc.exceptions import AmcDbManagerError
 from examc_app.utils.amc.path import resolve_amc_path
-from examc_app.utils.amc_db_queries import AmcDbManagerError
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.amc_functions import (
@@ -986,8 +988,7 @@ def download_annotated_pdf(request: HttpRequest, exam_pk: int):
     zip_file_path = create_annotated_zip(exam)
 
     if zip_file_path:
-        with open(zip_file_path, 'rb') as zip_file:
-            return FileResponse(zip_file)
+        return FileResponse(open(zip_file_path, 'rb'))
     else:
         return HttpResponse('ZIP file not created !')
 
