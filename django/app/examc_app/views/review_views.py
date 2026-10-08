@@ -444,7 +444,6 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
             formset = ReviewersFormSet(self.request.POST)
             if formset.is_valid():
                 for form in formset:
-                    print(form)
                     if form.is_valid() and form.cleaned_data and form.cleaned_data["user"]:
                         examReviewer = form.save(commit=False)
                         examReviewer.exam = exam
@@ -486,7 +485,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                             pages_group.exam = exam
                             pages_group.save()
             else:
-                print(formset.errors)
+                logger.warning(formset.errors)
                 error_messages.append("Some pages groups are invalid. Please correct the form and retry.")
 
         error_msg = " ".join(dict.fromkeys(error_messages)) if error_messages else None
@@ -727,25 +726,6 @@ def download_marked_files(request: HttpRequest, filename, exam_pk: int):
 
     zip_file = open(file_path, 'rb')
     return FileResponse(zip_file)
-
-
-# TESTING
-# ------------------------------------------
-
-@login_required
-def testing(request):
-    user_info = request.user.__dict__
-    if request.user.is_authenticated:
-        user_info.update(request.user.__dict__)
-        return render(request, 'review/testing.html', {
-            'user': request.user,
-            'user_info': user_info,
-        })
-
-
-# ------------------------------------------------
-#
-
 
 @exam_permission_required(['manage'])
 def upload_scans(request: HttpRequest, exam_pk: int):
@@ -1155,7 +1135,7 @@ def update_page_group_markers(request: HttpRequest, exam_pk: int):
     else:
         return HttpResponse("Invalid request method", status=405)
 
-
+# TODO : Extract business logic in service
 def cleanup_expired_review_locks():
     timeout_seconds = max(1, int(getattr(settings, 'REVIEW_LOCK_TIMEOUT', settings.AUTO_LOGOUT_DELAY)))
     lock_threshold = timezone.now() - timedelta(seconds=timeout_seconds)
@@ -1378,7 +1358,7 @@ def grading_scheme_checkboxes(request: HttpRequest, exam_pk: int, grading_scheme
             formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[
                 {'id': None, 'name': 'new', 'points': 0}])
         else:
-            print(formset.errors)
+            logger.warning(formset.errors)
             error_msg = "Some grading scheme checkbox values are invalid."
     else:
         formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[
