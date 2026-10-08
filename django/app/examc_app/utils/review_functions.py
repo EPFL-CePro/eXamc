@@ -7,6 +7,7 @@ import time
 from functools import lru_cache
 
 import cv2
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
@@ -14,7 +15,6 @@ from fpdf import FPDF
 from PIL import Image, ImageStat
 from pyzbar import pyzbar
 
-from examc import settings
 from examc_app.models import (
     Exam,
     PageMarkers,
