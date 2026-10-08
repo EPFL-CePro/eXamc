@@ -138,12 +138,7 @@ def _job_response(status_url_name: str, exam_pk: int, job_id: str, existing: boo
 def upload_amc_project(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
 
-    exam_selected = exam
-    if exam.common_exams:
-        for common_exam in exam.common_exams.all():
-            if common_exam.is_overall():
-                exam = common_exam
-                break
+    exam_selected = exam.get_overall_exam_or_default()
 
     if request.method == 'POST':
         if 'amc_project_zip_file' not in request.FILES:
@@ -270,11 +265,7 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
 
         context['exam_selected'] = exam
 
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_overall_exam_or_default()
 
         context['exam'] = exam
         context['user_allowed'] = True
@@ -295,11 +286,7 @@ def amc_data_capture_manual(request: HttpRequest, exam_pk: int):
     if user_allowed(exam, request.user.id):
         context['exam_selected'] = exam
 
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_overall_exam_or_default()
 
         context['exam'] = exam
         context['user_allowed'] = True

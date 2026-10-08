@@ -41,7 +41,7 @@ def generate_marked_files(request: HttpRequest, exam_pk: int, task_id: str | Non
                 form = ExportMarkedFilesForm()
 
                 exam_selected = exam
-                exam = exam.get_common_exam_or_default()
+                exam = exam.get_overall_exam_or_default()
                 return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                                                                                   "form": form,
                                                                                   "exam_selected": exam_selected,
@@ -61,7 +61,7 @@ def generate_marked_files(request: HttpRequest, exam_pk: int, task_id: str | Non
         else:
             form = ExportMarkedFilesForm()
             exam_selected = exam
-            exam = exam.get_common_exam_or_default()
+            exam = exam.get_overall_exam_or_default()
             return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
                                                                               "form": form,
                                                                               "exam": exam,
@@ -69,7 +69,7 @@ def generate_marked_files(request: HttpRequest, exam_pk: int, task_id: str | Non
                                                                               "nav_url": "generate_marked_files"})
     else:
         exam_selected = exam
-        exam = exam.get_common_exam_or_default()
+        exam = exam.get_overall_exam_or_default()
         return render(request, 'review/export/export_marked_files.html', {"user_allowed": False,
                                                                           "form": None,
                                                                           "exam": exam,

@@ -70,11 +70,7 @@ class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
         years = AcademicYear.objects.all()
 
         exam_selected = exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_overall_exam_or_default()
 
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True

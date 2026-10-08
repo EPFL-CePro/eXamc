@@ -186,7 +186,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
         # message = start_upload_scans(request, exam.pk, temp_file_path)
 
         exam_selected = exam
-        exam = exam.get_common_exam_or_default()
+        exam = exam.get_overall_exam_or_default()
 
         return render(
             request,
@@ -203,7 +203,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
         )
 
     exam_selected = exam
-    exam = exam.get_common_exam_or_default()
+    exam = exam.get_overall_exam_or_default()
 
     return render(
         request,

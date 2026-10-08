@@ -33,7 +33,7 @@ class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMix
             context['nav_url'] = "reviewView"
             context['exam_pages_group_list'] = pages_groups
             context['exam_selected'] = exam
-            exam = exam.get_common_exam_or_default()
+            exam = exam.get_overall_exam_or_default()
 
             context['exam'] = exam
             return context
@@ -96,7 +96,7 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         })
 
         # manages common exams
-        exam = pages_group.exam.get_common_exam_or_default()
+        exam = pages_group.exam.get_overall_exam_or_default()
         context['exam'] = exam
 
         # grading scheme

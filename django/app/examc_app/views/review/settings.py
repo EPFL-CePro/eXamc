@@ -98,7 +98,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                 context['locked_pages_group_ids'] = []
 
             context['exam_selected'] = exam
-            exam = exam.get_common_exam_or_default()
+            exam = exam.get_overall_exam_or_default()
             context['exam'] = exam
             return context
         else:
@@ -195,7 +195,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
             context['user_allowed'] = True
             context['nav_url'] = "reviewSettingsView"
             context['exam_selected'] = exam
-            exam = exam.get_common_exam_or_default()
+            exam = exam.get_overall_exam_or_default()
             context['exam'] = exam
             context['exam_pages_groups_formset'] = formsetPagesGroups
             context['exam_reviewers_formset'] = formsetReviewers
@@ -207,7 +207,7 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
             context['user_allowed'] = False
             context['nav_url'] = "reviewSettingsView"
             context['exam_selected'] = exam
-            exam = exam.get_common_exam_or_default()
+            exam = exam.get_overall_exam_or_default()
             context['exam'] = exam
             return context
 
