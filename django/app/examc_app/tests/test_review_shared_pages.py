@@ -12,7 +12,7 @@ from PIL import Image
 
 from examc_app.models import AcademicYear, Exam, PageMarkers, PagesGroup, Semester
 from examc_app.signing import make_token_for
-from examc_app.utils.amc_db_queries import select_marks_positions
+from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.marker_rendering import build_marked_scan_path, render_marked_scan
 from examc_app.utils.review_functions import get_exam_scans_dir
 
@@ -20,7 +20,6 @@ from examc_app.utils.review_functions import get_exam_scans_dir
 def write_amc_data(data_dir):
     """An AMC project whose page 2 of copy 1 holds the boxes of OPEN-Q1 (question 1) and OPEN-Q2 (question 2)."""
     data_dir.mkdir(parents=True, exist_ok=True)
-    (data_dir / "scoring.sqlite").write_bytes(b"")
     with sqlite3.connect(data_dir / "layout.sqlite") as layout:
         layout.execute("CREATE TABLE layout_question (question INTEGER, name TEXT)")
         layout.executemany("INSERT INTO layout_question VALUES (?, ?)", [(1, "OPEN-Q1"), (2, "OPEN-Q2")])
@@ -46,11 +45,11 @@ class CorrectorBoxesOfTheQuestionTestCase(TestCase):
     def test_boxes_filtered_by_question(self):
         with TemporaryDirectory() as data_dir:
             write_amc_data(Path(data_dir))
-            path = f"{data_dir}/"
 
-            self.assertEqual(len(select_marks_positions(path, 1, 2, None)), 20)
-            self.assertEqual({p["zoneid"] for p in select_marks_positions(path, 1, 2, None, "OPEN-Q1")}, {1, 2})
-            self.assertEqual({p["zoneid"] for p in select_marks_positions(path, 1, 2, None, "OPEN-Q2")}, {3, 4, 5})
+            with AmcCaptureDbManager(amc_data_path=data_dir) as capture:
+                self.assertEqual(len(capture.select_marks_positions(1, 2)), 20)
+                self.assertEqual({p["zoneid"] for p in capture.select_marks_positions(1, 2, "OPEN-Q1")}, {1, 2})
+                self.assertEqual({p["zoneid"] for p in capture.select_marks_positions(1, 2, "OPEN-Q2")}, {3, 4, 5})
 
 
 class SharedPageTestCase(TestCase):

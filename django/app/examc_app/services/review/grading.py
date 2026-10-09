@@ -26,8 +26,9 @@ def get_amc_question_layout_and_marks(exam : Exam, copy_nr, pages_group ) -> dic
         )
 
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
+        # Only the boxes of the question of the group: the page may hold other questions
         amc_corr_boxes = amc_capture_db_manager.select_marks_positions(
-            amc_copy_nr, question_page
+            amc_copy_nr, question_page, pages_group.group_name
         )
 
     return {
