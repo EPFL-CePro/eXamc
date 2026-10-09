@@ -138,7 +138,7 @@ def build_url_name_to_func_name(urls_path: Path) -> dict[str, str]:
 
 def find_function(views_dir: Path, func_name: str) -> list[tuple[Path, ast.FunctionDef]]:
     matches = []
-    for py_file in sorted(views_dir.glob("*.py")):
+    for py_file in sorted(views_dir.rglob("*.py")):
         tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
         for node in tree.body:
             if isinstance(node, ast.FunctionDef) and node.name == func_name:
