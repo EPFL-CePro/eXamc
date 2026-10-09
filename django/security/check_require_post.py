@@ -89,7 +89,6 @@ TARGET_URL_NAMES = {
 # Hardening-critical views with no urls.py entry (dead code, not reachable
 # via HTTP) - tracked by function name directly since there is no URL name.
 ORPHANED_VIEWS = {
-    "update_exam",  # exam_views.py - superseded, no longer routed
     "old_call_amc_annotate",  # amc_views.py - superseded by call_amc_annotate
 }
 
