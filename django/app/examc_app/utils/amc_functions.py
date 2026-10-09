@@ -637,12 +637,14 @@ def get_extra_pages(amc_extra_pages_path,amc_extra_pages_url=None,student=None):
 
     return extra_pages_data
 
-def get_amc_marks_positions_data(exam,copy,page):
+def get_amc_marks_positions_data(exam,copy,page,question_name=None):
+    """The answer boxes of a page of a copy, only those of question `question_name` when given."""
     amc_data_path = get_amc_project_path(exam, False)
 
     if amc_data_path:
         amc_data_path += "/data/"
-        data_positions = select_marks_positions(amc_data_path,copy,page,float(get_amc_option_by_key(exam,"seuil")))
+        data_positions = select_marks_positions(amc_data_path,copy,page,float(get_amc_option_by_key(exam,"seuil")),
+                                                question_name)
 
         for idx, item in enumerate(data_positions):
             item["checked"] = False
