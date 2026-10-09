@@ -1,13 +1,20 @@
-from pathlib import Path
 from typing import Any, List, TypedDict
 
 from django.conf import settings
-from django.contrib.auth.models import User, AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 from django.db.models import QuerySet
 from django.urls import reverse
 
-from examc_app.models import Exam, ExamUser, PageMarkers, PagesGroupGradingSchemeCheckedBox, PagesGroup
+from examc_app.exceptions.exam import ExamFolderNameInvalidError
+from examc_app.models import (
+    Exam,
+    ExamUser,
+    PageMarkers,
+    PagesGroup,
+    PagesGroupGradingSchemeCheckedBox,
+)
 from examc_app.permissions import exam_group_names_allow
+from examc_app.services.exam.paths import get_exam_scans_dir
 
 DASHBOARD_TODO_LIMIT = 8
 
@@ -144,12 +151,8 @@ def _get_exam_review_scans_path(exam: Exam):
     if not exam.year_id or not exam.semester_id or not exam.date:
         return None
 
-    scans_path = (
-            Path(settings.SCANS_ROOT)
-            / str(exam.year.code)
-            / str(exam.semester.code)
-            / f"{exam.code}_{exam.date:%Y%m%d}"
-    )
+    scans_path = get_exam_scans_dir(exam)
+
     if not scans_path.is_dir():
         return None
 

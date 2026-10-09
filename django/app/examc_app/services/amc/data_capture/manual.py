@@ -4,11 +4,11 @@ from typing import Any, TypedDict
 
 from examc_app.models import Exam
 from examc_app.services.amc.AmcDb import AmcDb
+from examc_app.services.exam.paths import get_exam_amc_project_url
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import (
     get_amc_option_by_key,
     get_amc_project_path,
-    get_amc_project_url,
     get_extra_pages,
 )
 
@@ -153,7 +153,7 @@ def get_amc_data_capture_manual_data(exam: Exam) -> AmcDataCaptureManualData | N
         return None
 
     amc_data_path = f"{amc_project_path}/data/"
-    amc_project_url = get_amc_project_url(exam)
+    amc_project_url = get_exam_amc_project_url(exam)
     amc_threshold = get_amc_option_by_key(exam, "seuil")
 
     pages = select_manual_data_capture_pages(amc_data_path=amc_data_path, amc_threshold=amc_threshold)

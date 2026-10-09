@@ -1,13 +1,14 @@
 import json
 import re
-from datetime import datetime
+from datetime import date, datetime
 
 from dateutil.utils import today
 from django.contrib.auth.models import Group, User
+from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http.request import HttpRequest
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView
@@ -24,9 +25,10 @@ from examc_app.models import (
     Scale,
     Semester,
 )
+from examc_app.services.exam.paths import get_exam_subdir, update_exam_folders
 from examc_app.tasks import generate_statistics
 from examc_app.utils.epflldap import ldap_search
-from examc_app.utils.global_functions import update_folders_paths, user_allowed
+from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import (
     update_common_exams_questions,
     update_common_exams_scales,
@@ -139,7 +141,7 @@ def update_exam_users(request: HttpRequest, exam_pk: int):
         request: The HTTP request object.
         exam_pk: The primary key of the exam.
     """
-    exam = Exam.objects.get(pk=exam_pk)
+    exam = request.exam
     users_list = request.POST.getlist('users_list[]')
 
     #reviewer_group, created = Group.objects.get_or_create(name='Reviewer')
@@ -184,25 +186,23 @@ def update_exam_info(request, exam_pk: int):
         exam_pk: The primary key of the exam to be updated.
     """
 
-    exam = Exam.objects.get(pk=exam_pk)
+    exam = request.exam
 
-    if exam.date :
-        old_exam_date = exam.date.strftime("%Y-%m-%d")
-    else:
-        old_exam_date = today().strftime("%Y-%m-%d")
-    old_folder_path = f"/{exam.year.code}/{exam.semester.code}/{exam.code}_{old_exam_date}"
-    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + old_exam_date#.replace("-","")
-    exam.date = datetime.strptime(request.POST.get('date'),"%Y-%m-%d")
-    exam.code = request.POST.get('code')
-    exam.name = request.POST.get('name')
-    exam.semester_id = request.POST.get('semester_id')
-    exam.year_id = request.POST.get('year_id')
-    exam.save()
+    old_folder_path = get_exam_subdir(exam)
 
-    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.replace("-","")
+    exam.date = date.fromisoformat(request.POST.get("date"))
+    exam.code = request.POST.get("code")
+    exam.name = request.POST.get("name")
+    exam.semester_id = request.POST.get("semester_id")
+    exam.year_id = request.POST.get("year_id")
 
-    if old_folder_path != new_folder_path:
-        update_folders_paths(old_folder_path, new_folder_path)
+    new_folder_path = get_exam_subdir(exam)
+
+    with transaction.atomic():
+        if old_folder_path != new_folder_path:
+            update_exam_folders(old_folder_path, new_folder_path)
+
+        exam.save()
 
     return redirect('examInfo', exam_pk=exam.pk)
 
@@ -271,22 +271,6 @@ def delete_exam_scale(request, scale_pk, exam_pk: int):
 
 @exam_permission_required(['manage'])
 @require_POST
-def update_exam(request,exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-    field_name = request.POST['field']
-    value = request.POST['value']
-
-    setattr(exam, field_name, value)
-    exam.save()
-
-    global DATA_UPDATED
-    DATA_UPDATED = True
-
-    return HttpResponse(1)
-
-
-@exam_permission_required(['manage'])
-@require_POST
 def set_final_scale(request, scale_pk, exam_pk: int, all_common=0):
     final_scale = Scale.objects.get(id=scale_pk)
 
@@ -313,25 +297,22 @@ def set_final_scale(request, scale_pk, exam_pk: int, all_common=0):
 @exam_permission_required(['manage'])
 @require_POST
 def update_exam_options(request,exam_pk: int):
-    if request.method == 'POST':
-        exam = Exam.objects.get(pk=exam_pk)
-        exam.review_option = False
-        exam.amc_option = False
-        exam.res_and_stats_option = False
-        exam.prep_option = False
-        if 'review_option_'+str(exam_pk) in request.POST:
-            exam.review_option = True
-        if 'amc_option_'+str(exam_pk) in request.POST:
-            exam.amc_option = True
-        if 'res_and_stats_option_'+str(exam_pk) in request.POST:
-            exam.res_and_stats_option = True
-        if 'prep_option_'+str(exam_pk) in request.POST:
-            exam.prep_option = True
+    exam = request.exam
+    exam.review_option = False
+    exam.amc_option = False
+    exam.res_and_stats_option = False
+    exam.prep_option = False
+    if f"review_option_{exam_pk}" in request.POST:
+        exam.review_option = True
+    if f"amc_option_{exam_pk}" in request.POST:
+        exam.amc_option = True
+    if f"res_and_stats_option_{exam_pk}" in request.POST:
+        exam.res_and_stats_option = True
+    if f"prep_option_{exam_pk}" in request.POST:
+        exam.prep_option = True
 
-        exam.save()
-        return HttpResponse('ok')
-
-    return None
+    exam.save()
+    return HttpResponse('ok')
 
 
 # QUESTIONS MANAGEMENT
@@ -376,34 +357,36 @@ def update_questions(request,exam_pk: int):
 @exam_permission_required(['manage'])
 @require_POST
 def set_common_exam(request,exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
+    exam = request.exam
 
     # get or create overall exam if not from overall exam
-    if not exam.is_overall():
-        overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
-        month_year = exam.date.strftime("%m-%Y")
-        overall_code += "_" + month_year
-        overall_exam, created = Exam.objects.get_or_create(code=overall_code, semester=exam.semester,
-                                                           year=exam.year)
-        if created:
-            overall_exam.name = 'COMMON'
-            overall_exam.pdf_catalog_name = exam.pdf_catalog_name
-            overall_exam.date = exam.date
-            overall_exam.overall = True
-            overall_exam.res_and_stats_option = True
-            overall_exam.save()
+    if exam.is_overall():
+        return HttpResponseRedirect(reverse('examInfo', kwargs={ 'exam_pk': exam.pk }))
 
-        exam.common_exams.add(overall_exam)
-        exam.save()
+    overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
+    month_year = exam.date.strftime("%m-%Y")
+    overall_code += "_" + month_year
+    overall_exam, created = Exam.objects.get_or_create(code=overall_code, semester=exam.semester,
+                                                       year=exam.year)
+    if created:
+        overall_exam.name = 'COMMON'
+        overall_exam.pdf_catalog_name = exam.pdf_catalog_name
+        overall_exam.date = exam.date
+        overall_exam.overall = True
+        overall_exam.res_and_stats_option = True
+        overall_exam.save()
 
-        update_common_exams_questions(overall_exam.pk)
-        update_common_exams_scales(overall_exam.pk)
-        update_common_exams_users(overall_exam.pk)
+    exam.common_exams.add(overall_exam)
+    exam.save()
 
-        task = generate_statistics.delay(overall_exam.pk)
-        task_id = task.task_id
+    update_common_exams_questions(overall_exam.pk)
+    update_common_exams_scales(overall_exam.pk)
+    update_common_exams_users(overall_exam.pk)
 
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
+    task = generate_statistics.delay(overall_exam.pk)
+    task_id = task.task_id
+
+    return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
 
 
 # @exam_permission_required(['manage'])
@@ -436,7 +419,7 @@ def set_common_exam(request,exam_pk: int):
 @exam_permission_required(['manage'])
 @require_POST
 def validate_common_exams_settings(request,exam_pk: int):
-    overall_exam = Exam.objects.get(pk=exam_pk)
+    overall_exam = request.exam
     common_exams_ids = request.POST.getlist(str(exam_pk) + '_common_to[]')
     if common_exams_ids:
         common_exams = Exam.objects.filter(id__in=common_exams_ids)

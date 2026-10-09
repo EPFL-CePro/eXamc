@@ -36,6 +36,7 @@ from examc_app.models import (
     PagesGroupGradingSchemeCheckedBox,
     QuestionGradingScheme,
 )
+from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import (
@@ -70,44 +71,13 @@ def resolve_scan_path(page_markers: PageMarkers) -> Path:
     if resolved.exists():
         return resolved
 
-    project_subdir = (
-        f"{page_markers.exam.year.code}/"
-        f"{page_markers.exam.semester.code}/"
-        f"{page_markers.exam.code}_{page_markers.exam.date.strftime('%Y%m%d')}"
-    )
-    fallback = (
-        Path(settings.SCANS_ROOT)
-        / project_subdir
-        / str(page_markers.copie_no)
-        / raw_path.name
-    ).resolve()
-    return fallback
+    return (get_exam_scans_dir(page_markers.exam) / str(page_markers.copie_no) / raw_path.name).resolve()
 
 
 def build_marked_scan_path(page_markers: PageMarkers) -> Path:
     """Build the destination path for the derived marked scan image."""
     original_path = resolve_scan_path(page_markers)
-    project_subdir = (
-        f"{page_markers.exam.year.code}/"
-        f"{page_markers.exam.semester.code}/"
-        f"{page_markers.exam.code}_{page_markers.exam.date.strftime('%Y%m%d')}"
-    )
-    return (
-        Path(settings.MARKED_SCANS_ROOT)
-        / project_subdir
-        / str(page_markers.copie_no)
-        / f"marked_{original_path.stem}.png"
-    )
-
-
-def get_exam_marked_scans_dir(exam: Exam) -> Path:
-    """Return the root marked_scans directory for one exam."""
-    project_subdir = (
-        f"{exam.year.code}/"
-        f"{exam.semester.code}/"
-        f"{exam.code}_{exam.date.strftime('%Y%m%d')}"
-    )
-    return Path(settings.MARKED_SCANS_ROOT) / project_subdir
+    return get_exam_marked_scans_dir(page_markers.exam) / str(page_markers.copie_no) / f"marked_{original_path.stem}.png"
 
 
 def copy_number_variants(copy_nr: str) -> list[str]:
@@ -559,12 +529,7 @@ def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | No
 
 def build_scan_path_for_copy_page(exam: Exam, copy_nr, page_no) -> Path | None:
     """Find the original scan file for a copy/page under SCANS_ROOT."""
-    project_subdir = (
-        f"{exam.year.code}/"
-        f"{exam.semester.code}/"
-        f"{exam.code}_{exam.date.strftime('%Y%m%d')}"
-    )
-    copy_dir = Path(settings.SCANS_ROOT) / project_subdir / str(copy_nr).zfill(4)
+    copy_dir = get_exam_scans_dir(exam) / str(copy_nr).zfill(4)
     if not copy_dir.exists():
         return None
 
