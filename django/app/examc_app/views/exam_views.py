@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime
+from datetime import date, datetime
 
 from dateutil.utils import today
 from django.contrib.auth.models import Group, User
@@ -24,9 +24,10 @@ from examc_app.models import (
     Scale,
     Semester,
 )
+from examc_app.services.exam.paths import get_exam_subdir, rename_exam_folders
 from examc_app.tasks import generate_statistics
 from examc_app.utils.epflldap import ldap_search
-from examc_app.utils.global_functions import update_folders_paths, user_allowed
+from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import (
     update_common_exams_questions,
     update_common_exams_scales,
@@ -186,24 +187,22 @@ def update_exam_info(request, exam_pk: int):
 
     exam = Exam.objects.get(pk=exam_pk)
 
-    old_folder_path =  _exam_folder_path(exam)
-    exam.date = datetime.strptime(request.POST.get('date'),"%Y-%m-%d")
+    old_folder_path = get_exam_subdir(exam)
+
+    exam.date = date.fromisoformat(request.POST.get('date'))
     exam.code = request.POST.get('code')
     exam.name = request.POST.get('name')
     exam.semester_id = request.POST.get('semester_id')
     exam.year_id = request.POST.get('year_id')
     exam.save()
 
-    new_folder_path = _exam_folder_path(exam)
+    new_folder_path = get_exam_subdir(exam)
 
     if old_folder_path != new_folder_path:
-        update_folders_paths(old_folder_path, new_folder_path)
+        rename_exam_folders(old_folder_path, new_folder_path)
 
     return redirect('examInfo', exam_pk=exam.pk)
 
-
-def _exam_folder_path(exam: Exam) -> str:
-    return f"/{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
 
 class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
     template_name = 'exam/scale_create.html'
