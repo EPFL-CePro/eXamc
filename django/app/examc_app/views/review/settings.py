@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import (
+from examc_app.forms.review import (
     GradingSchemeCheckBoxForm,
     PagesGroupsFormSet,
     ReviewersFormSet,

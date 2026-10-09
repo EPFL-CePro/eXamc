@@ -190,6 +190,7 @@ def update_exam_info(request, exam_pk: int):
         old_exam_date = exam.date.strftime("%Y-%m-%d")
     else:
         old_exam_date = today().strftime("%Y-%m-%d")
+    old_folder_path = f"/{exam.year.code}/{exam.semester.code}/{exam.code}_{old_exam_date}"
     old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + old_exam_date#.replace("-","")
     exam.date = datetime.strptime(request.POST.get('date'),"%Y-%m-%d")
     exam.code = request.POST.get('code')

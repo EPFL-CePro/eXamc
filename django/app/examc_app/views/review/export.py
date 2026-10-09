@@ -6,7 +6,7 @@ from django.http import FileResponse, Http404, HttpRequest, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import ExportMarkedFilesForm
+from examc_app.forms.results_statistics import ExportMarkedFilesForm
 from examc_app.models import Exam
 from examc_app.tasks import generate_marked_files_zip
 from examc_app.utils.global_functions import user_allowed
