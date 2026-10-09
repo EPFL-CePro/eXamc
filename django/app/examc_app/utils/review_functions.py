@@ -20,7 +20,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from examc_app.signing import make_token_for
-from examc_app.utils.amc_db_queries import get_question_start_page_by_student
+from examc_app.utils.amc_db_queries import get_amc_copy_nr, get_question_start_page_by_student
 from examc_app.utils.amc_functions import get_amc_project_path
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
@@ -525,7 +525,8 @@ def get_scans_pathes_by_group(pagesGroup):
                     # get only two first char to prevent extra pages with a,b,c suffixes
                     page_no_int = int(page_no_real[0:2])
 
-                    amc_questions_pages = get_question_start_page_by_student(get_amc_project_path(pagesGroup.exam, True) + "/data/", pagesGroup.group_name, int(copy_no))
+                    amc_data_path = get_amc_project_path(pagesGroup.exam, True) + "/data/"
+                    amc_questions_pages = get_question_start_page_by_student(amc_data_path, pagesGroup.group_name, get_amc_copy_nr(amc_data_path, copy_no))
                     if amc_questions_pages:
                         from_p = amc_questions_pages[0]['page']
                         to_p = from_p+pagesGroup.nb_pages-1
@@ -643,7 +644,8 @@ def get_copies_pages_by_group(pagesGroup):
 
     @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
-        pages = get_question_start_page_by_student(str(amc_data_root) + "/", pagesGroup.group_name, copy_no_int)
+        pages = get_question_start_page_by_student(str(amc_data_root) + "/", pagesGroup.group_name,
+                                                   get_amc_copy_nr(amc_data_root, copy_no_int))
         if not pages:
             return None
         from_p = pages[0]["page"]
