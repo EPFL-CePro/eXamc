@@ -33,6 +33,7 @@ from examc_app.exceptions.amc import (
 from examc_app.models import Exam, PageMarkers, PagesGroup, UnrecognizedReviewScan
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.services.amc_jobs import AmcJobsManager
+from examc_app.services.exam.paths import get_exam_marked_scans_dir
 from examc_app.signing import make_token_for
 from examc_app.tasks import (
     amc_annotate_task,
@@ -78,7 +79,6 @@ from examc_app.utils.amc_functions import (
 )
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import (
-    get_exam_marked_scans_dir,
     iter_render_grading_only_marked_scans,
     render_key,
     render_marked_scan,

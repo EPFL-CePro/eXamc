@@ -38,9 +38,9 @@ from examc_app.utils.amc_functions import (
     amc_automatic_datacapture_subprocess,
     get_amc_project_path,
 )
+from examc_app.services.exam.paths import get_exam_marked_scans_dir
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.marker_rendering import (
-    get_exam_marked_scans_dir,
     iter_render_grading_only_marked_scans,
     regenerate_marked_scans_for_exam,
     render_key,
