@@ -3,6 +3,7 @@ import sqlite3
 import sys
 import time
 import traceback
+from functools import lru_cache
 from pathlib import Path
 
 class AMC_DB:
@@ -553,6 +554,51 @@ def get_questions(amc_data_path):
     question_details = [dict(zip(colname_question, r)) for r in response.fetchall()]
 
     return question_details
+
+def select_layout_associations(amc_data_path):
+    """
+    The pre-association of the copies (\\AMCassociation{<ID>} in the LaTeX source): {<ID>: <AMC copy number>}, empty
+    when the project has none or is not prepared yet (no layout.sqlite).
+    """
+    layout_path = Path(amc_data_path) / "layout.sqlite"
+    if not layout_path.is_file():
+        return {}
+    conn = sqlite3.connect(f"file:{layout_path}?mode=ro", uri=True)
+    try:
+        rows = conn.execute("SELECT student, id FROM layout_association").fetchall()
+    except sqlite3.Error:
+        return {}
+    finally:
+        conn.close()
+    return {str(row_id).strip(): student for student, row_id in rows if row_id is not None and str(row_id).strip()}
+
+def normalize_amc_id(value):
+    """'0032' and '32' are the same ID: a CSV read by pandas loses the leading zeros of the IDs printed in the QR codes."""
+    text = str(value).strip()
+    return str(int(text)) if text.isdigit() else text
+
+
+@lru_cache(maxsize=64)
+def _copy_numbers_by_id(layout_path, mtime):
+    # mtime: read again when AMC prepares the project again
+    associations = select_layout_associations(Path(layout_path).parent)
+    return {normalize_amc_id(row_id): copy_nr for row_id, copy_nr in associations.items()}
+
+
+def get_amc_copy_nr(amc_data_path, review_copy_nr):
+    """
+    The AMC copy number of a review copy. The review copies are numbered by the QR codes of the pages, which hold the
+    ID of the students list (\\ID), while AMC numbers its copies 1, 2, 3... in the order of the list: the pre-association
+    of the project (\\AMCassociation{<ID>}, available before any scan) gives the AMC copy of an ID. Without it, or for
+    an ID it does not know, the review copy number is the AMC one.
+    """
+    layout_path = Path(amc_data_path) / "layout.sqlite"
+    copy_numbers = {}
+    if layout_path.is_file():
+        copy_numbers = _copy_numbers_by_id(str(layout_path), layout_path.stat().st_mtime)
+    copy_nr = copy_numbers.get(normalize_amc_id(review_copy_nr))
+    return copy_nr if copy_nr is not None else int(str(review_copy_nr).strip())
+
 
 def get_question_start_page_by_student(amc_data_path,question_name,student_id):
     db = AMC_DB(amc_data_path + "layout.sqlite")

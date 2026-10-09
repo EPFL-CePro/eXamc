@@ -980,7 +980,8 @@ def saveMarkers(request, exam_pk):
     """
     exam = Exam.objects.get(pk=exam_pk)
     page_no = int(float(request.POST['page_no'].strip()))
-    question_name = get_question_name_by_student_page(get_amc_project_path(exam, True)+"/data/",int(request.POST['copy_no']),page_no)
+    amc_data_path = get_amc_project_path(exam, True) + "/data/"
+    question_name = get_question_name_by_student_page(amc_data_path, get_amc_copy_nr(amc_data_path, request.POST['copy_no']), page_no)
     pages_group = PagesGroup.objects.get(exam=exam,group_name=question_name)
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
                                                               page_no=request.POST['page_no'], pages_group=pages_group,
@@ -1081,7 +1082,8 @@ def getMarkersAndComments(request, exam_pk):
 
     corrbox_markers = []
     if not 'x' in page_no:
-        corrbox_markers = get_amc_marks_positions_data(exam,copy_no.lstrip("0"), float(page_no))
+        amc_copy_nr = get_amc_copy_nr(get_amc_project_path(exam, True) + "/data/", copy_no)
+        corrbox_markers = get_amc_marks_positions_data(exam, str(amc_copy_nr), float(page_no))
 
     data_dict["corrector_boxes"] = json.dumps(corrbox_markers)
 
@@ -1550,9 +1552,10 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
     if points > 0:
         exam = pages_group.exam
         amc_data_path = get_amc_project_path(exam, True) + "/data/"
-        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
-        max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-        amc_corr_boxes = select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
+        amc_copy_nr = get_amc_copy_nr(amc_data_path, copy_nr)
+        question_page = select_copy_question_page(amc_data_path, str(amc_copy_nr), pages_group.group_name)
+        max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, amc_copy_nr))
+        amc_corr_boxes = select_marks_positions(amc_data_path, amc_copy_nr, question_page, None)
 
         nb_boxes = len(amc_corr_boxes) / 4 - 1
         if nb_boxes <= 0 or max_points <= 0:
@@ -1755,9 +1758,10 @@ def update_pages_group_check_box(request,exam_pk):
 
     exam = Exam.objects.get(pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
-    question_page = select_copy_question_page(amc_data_path,copy_nr,pages_group.group_name)
-    max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-    amc_corr_boxes = select_marks_positions(amc_data_path,int(copy_nr),question_page,None)
+    amc_copy_nr = get_amc_copy_nr(amc_data_path, copy_nr)
+    question_page = select_copy_question_page(amc_data_path, str(amc_copy_nr), pages_group.group_name)
+    max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, amc_copy_nr))
+    amc_corr_boxes = select_marks_positions(amc_data_path, amc_copy_nr, question_page, None)
 
     if points > 0:
         nb_boxes = len(amc_corr_boxes) / 4 - 1
