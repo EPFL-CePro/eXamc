@@ -599,13 +599,14 @@ def get_extra_pages(amc_extra_pages_path: str, amc_extra_pages_url: str | None =
     return extra_pages_data
 
 
-def get_amc_marks_positions_data(exam: Exam, copy, page):
+def get_amc_marks_positions_data(exam: Exam, copy, page, question_name: str | None = None):
+    """The answer boxes of a page of a copy, only those of question `question_name` when given."""
     amc_project_path = get_amc_project_path(exam, False)
 
     amc_data_path = f"{amc_project_path}/data/"
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
         data_positions = amc_capture_db_manager.select_marks_positions(
-            copy=copy, page=page
+            copy=copy, page=page, question_name=question_name
         )
 
         for idx, item in enumerate(data_positions):

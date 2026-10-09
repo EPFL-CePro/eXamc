@@ -20,7 +20,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from examc import settings
+from django.conf import settings
 from examc_app.decorators import exam_permission_required
 from examc_app.forms.results_statistics import ExportMarkedFilesForm
 from examc_app.forms.review import (
@@ -52,7 +52,7 @@ from examc_app.services.review.unrecognized_scans import (
     build_unrecognized_review_scan_context,
 )
 from examc_app.services.review.upload import get_upload_scan_pending_context
-from examc_app.signing import verify_and_get_path
+from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.tasks import generate_marked_files_zip, import_exam_scans
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
@@ -63,6 +63,7 @@ from examc_app.utils.amc_functions import (
     get_amc_update_document_info,
 )
 from examc_app.utils.global_functions import user_allowed
+from examc_app.utils.marker_rendering import build_scan_path_for_copy_page, render_review_background
 from examc_app.utils.review_functions import (
     assign_unrecognized_review_scan_file,
     delete_unrecognized_review_scan_file,
@@ -347,13 +348,16 @@ def save_markers(request: HttpRequest, exam_pk: int):
     :return: An HTTP response indicating the success of the operation.
     """
     exam = Exam.objects.get(pk=exam_pk)
-    page_no = int(float(request.POST['page_no'].strip()))
-    amc_data_path = get_amc_project_path(exam, True) + "/data/"
-    with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-        question_name = amc_layout_db_manager.get_question_name_by_student_page(
-            get_amc_copy_nr(amc_data_path, request.POST["copy_no"]), page_no
-        )
-    pages_group = PagesGroup.objects.get(exam=exam, group_name=question_name)
+    # The group reviewed: a page can hold several questions, each one is graded in its own group
+    pages_group = PagesGroup.objects.filter(exam=exam, pk=request.POST.get('reviewGroup_pk') or None).first()
+    if pages_group is None:
+        page_no = int(float(request.POST['page_no'].strip()))
+        amc_data_path = get_amc_project_path(exam, True) + "/data/"
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            question_name = amc_layout_db_manager.get_question_name_by_student_page(
+                get_amc_copy_nr(amc_data_path, request.POST["copy_no"]), page_no
+            )
+        pages_group = PagesGroup.objects.get(exam=exam, group_name=question_name)
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
                                                               page_no=request.POST['page_no'], pages_group=pages_group,
                                                               exam=exam)
@@ -389,6 +393,9 @@ def save_markers(request: HttpRequest, exam_pk: int):
         scan_markers.markers = json.dumps(markers)
         fn = request.POST['filename'].replace("/protected/?token=", "").replace('%3A', ':')
         fn = verify_and_get_path(fn)
+        if not pathlib.Path(fn).resolve().is_relative_to(pathlib.Path(settings.SCANS_ROOT).resolve()):
+            # The page was shown with the markers of the other groups (render_review_background): keep the scan
+            fn = build_scan_path_for_copy_page(exam, request.POST['copy_no'], request.POST['page_no']) or fn
         fn = str(fn).replace(str(settings.BASE_DIR), "../..")
         scan_markers.filename = fn
 
@@ -437,25 +444,29 @@ def get_markers_and_comments(request: HttpRequest, exam_pk: int):
 
     copy_no = request.POST['copy_no']
     page_no = request.POST['page_no']
+    pages_group = get_object_or_404(PagesGroup, pk=request.POST['group_id'], exam=exam)
 
-    # get img signed url
-    scan_url = get_scan_url(exam, copy_no, page_no)
+    # get img signed url; with the markers of the other groups of the page burnt in, if any (read-only)
+    background_path = render_review_background(exam, copy_no, page_no, pages_group.pk)
+    if background_path:
+        scan_url = make_token_for(pathlib.Path(background_path).relative_to(settings.MARKED_SCANS_ROOT).as_posix(),
+                                  str(settings.MARKED_SCANS_ROOT))
+    else:
+        scan_url = get_scan_url(exam, copy_no, page_no)
     data_dict["copyPageUrl"] = scan_url
-    try:
-        scan_markers = PageMarkers.objects.get(copie_no=copy_no, page_no=page_no, exam=exam)
-        if scan_markers.markers:
-            data_dict["markers"] = scan_markers.markers
-            markers = json.loads(scan_markers.markers)
-            data_dict["markers"] = json.dumps(markers)
-        else:
-            data_dict["markers"] = None
-    except PageMarkers.DoesNotExist:
+    scan_markers = PageMarkers.objects.filter(copie_no=copy_no, page_no=page_no, exam=exam,
+                                              pages_group=pages_group).first()
+    if scan_markers and scan_markers.markers:
+        data_dict["markers"] = json.dumps(json.loads(scan_markers.markers))
+    else:
         data_dict["markers"] = None
 
     corrbox_markers = []
     if not 'x' in page_no:
+        # Only the boxes of the question of the group: the page may hold other questions
         amc_copy_nr = get_amc_copy_nr(get_amc_project_path(exam, True) + "/data/", copy_no)
-        corrbox_markers = get_amc_marks_positions_data(exam, str(amc_copy_nr), float(page_no))
+        corrbox_markers = get_amc_marks_positions_data(exam, str(amc_copy_nr), float(page_no),
+                                                       pages_group.group_name)
 
     data_dict["corrector_boxes"] = json.dumps(corrbox_markers)
 

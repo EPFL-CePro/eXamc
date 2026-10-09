@@ -502,9 +502,10 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
 
     # ---- DB: pull once, then do O(1) lookups in-memory ----------------------
     # Page markers -> (copy_no_z4, page_no_norm) -> marked_bool
+    # Markers of this group only: a page can hold several questions, graded in their own groups
     scans_markers = (
         PageMarkers.objects
-        .filter(exam=exam)
+        .filter(exam=exam, pages_group=pages_group)
         .values("copie_no", "page_no", "markers", "correctorBoxMarked")
     )
     markers_idx = {

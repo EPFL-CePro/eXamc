@@ -234,11 +234,13 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
         return self._rows_as_dicts(cursor)
 
-    def select_marks_positions(self, copy, page) -> list[dict[str, Any]]:
+    def select_marks_positions(self, copy, page, question_name: str | None = None) -> list[dict[str, Any]]:
         """
         Select the corner positions of the answer boxes of a page of a copy, with their darkness.
         :param copy: The copy (student) identifier.
         :param page: The page number.
+        :param question_name: Only the boxes of this question (layout_question.name, the pages group name): a page
+            can hold the boxes of several questions.
         :return: Dicts with keys zoneid, bvalue, corner, x, y, manual, black, and why when the marks are computed.
         """
         scoring_exists = self._has_db(AmcDbFile.SCORING)
@@ -255,12 +257,17 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             + "WHERE cz.student = :copy AND cz.page = :page "
               "  AND cp.type = :position_type "
               "  AND cz.type = :zone_type "
-              "ORDER BY cz.id_b"
+            + ("  AND cz.id_a IN (SELECT lq.question FROM layout.layout_question lq WHERE lq.name = :question_name) "
+               if question_name is not None else "")
+            + "ORDER BY cz.id_b"
         )
-        query_params = {"copy": copy, "page": page, "position_type": POSITION_BOX, "zone_type": ZONE_BOX}
+        query_params = {"copy": copy, "page": page, "position_type": POSITION_BOX, "zone_type": ZONE_BOX,
+                        "question_name": question_name}
 
         if scoring_exists:
             self._attach(AmcDbFile.SCORING)
+        if question_name is not None:
+            self._attach(AmcDbFile.LAYOUT)
 
         cursor = self._execute(
             query_str, query_params,
