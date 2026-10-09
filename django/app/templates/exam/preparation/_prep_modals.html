@@ -113,6 +113,18 @@
           </p>
         </div>
 
+        {# Problems of the exam content (see check_exam_content): errors block, warnings are confirmed #}
+        <div id="generate-final-checks" style="display:none;">
+          <div id="generate-final-checks-errors" class="alert alert-danger" style="display:none;">
+            <strong>Correct these problems before generating:</strong>
+            <ul class="mb-0 mt-2"></ul>
+          </div>
+          <div id="generate-final-checks-warnings" class="alert alert-warning" style="display:none;">
+            <strong>Check these points:</strong>
+            <ul class="mb-0 mt-2"></ul>
+          </div>
+        </div>
+
         <div id="generate_final_error" style="display:none;">
           <label for="generate_final_error_message" class="form-label">Generation error</label>
           <textarea
@@ -129,6 +141,10 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
           Close
+        </button>
+        <button type="button" class="btn btn-warning btn-sm" id="generate-final-anyway-button" style="display:none;"
+                onclick="generateFinalExamFiles(true);">
+          Generate anyway
         </button>
       </div>
     </div>

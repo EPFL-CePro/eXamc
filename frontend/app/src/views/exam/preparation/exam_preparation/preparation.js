@@ -95,6 +95,23 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         $("#generate_final_loading").hide();
         $("#generate_final_error").hide();
         $("#generate_final_success").hide().html("");
+        $("#generate-final-checks").hide();
+        $("#generate-final-anyway-button").hide();
+    }
+
+    // Problems of the exam content (see check_exam_content): the errors block, the warnings are confirmed with
+    // "Generate anyway"
+    function showGenFinalChecks(errors, warnings) {
+        [["#generate-final-checks-errors", errors], ["#generate-final-checks-warnings", warnings]].forEach(
+            function ([selector, items]) {
+                const $list = $(selector + " ul").empty();
+                // Texts set with .text(): they contain section and question titles
+                (items || []).forEach(item => $list.append($("<li>").text(item)));
+                $(selector).toggle(Boolean(items && items.length));
+            });
+        $("#generate_final_loading").hide();
+        $("#generate-final-checks").show();
+        $("#generate-final-anyway-button").toggle(!(errors && errors.length));
     }
 
     function setGenFinalLoading(isLoading) {
@@ -257,7 +274,7 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         });
     }
 
-    function generateFinalExamFiles() {
+    function generateFinalExamFiles(confirmWarnings = false) {
         if (!URLS.generateFinalStart) {
             console.warn("[preparation.js] Missing generateFinalStart URL");
             return;
@@ -272,9 +289,14 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         // Already running (this page loaded before, or another user): follow it
         if (finalTracking) return;
 
-        ajaxGet(URLS.generateFinalStart, {}, {
+        ajaxGet(URLS.generateFinalStart, confirmWarnings ? {confirm_warnings: 1} : {}, {
             ...WITHOUT_LOADING_MODAL,
             success: function (data) {
+                // Not started: warnings to confirm
+                if (data.warnings && data.warnings.length && !data.job_id) {
+                    showGenFinalChecks([], data.warnings);
+                    return;
+                }
                 if (!data.job_id || !data.task_id) {
                     showGenFinalError("Impossible to start final exam files generation.");
                     return;
@@ -289,6 +311,10 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
                 if (xhr.status === 409 && data.task_id) {
                     setFinalProgress(0, data.error || "A final generation is already running.");
                     trackFinalGeneration(data.task_id);
+                    return;
+                }
+                if (data.errors && data.errors.length) {
+                    showGenFinalChecks(data.errors, data.warnings);
                     return;
                 }
                 showGenFinalError(data.error || xhr.responseText || "Error starting final exam files generation.");
