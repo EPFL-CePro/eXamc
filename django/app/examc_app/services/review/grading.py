@@ -20,7 +20,7 @@ def get_amc_question_layout_and_marks(exam : Exam, copy_nr, pages_group ) -> dic
 
     with AmcScoringDbManager(amc_data_path=amc_data_path) as amc_scoring_db_manager:
         max_points = float(
-            amc_scoring_db_manager.get_question_max_points(pages_group.group_name, None)
+            amc_scoring_db_manager.get_question_max_points(pages_group.group_name, None) or 0
         )
 
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
@@ -46,7 +46,9 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
 
     if points > 0:
         exam = pages_group.exam
-        _, max_points, amc_corr_boxes = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+        layout = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+        max_points = layout["max_points"]
+        amc_corr_boxes = layout["amc_corr_boxes"]
 
         nb_boxes = len(amc_corr_boxes) / 4 - 1
         if nb_boxes <= 0 or max_points <= 0:

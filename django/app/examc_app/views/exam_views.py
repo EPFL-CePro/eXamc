@@ -70,11 +70,7 @@ class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
         years = AcademicYear.objects.all()
 
         exam_selected = exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_overall_exam_or_default()
 
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
@@ -194,6 +190,7 @@ def update_exam_info(request, exam_pk: int):
         old_exam_date = exam.date.strftime("%Y-%m-%d")
     else:
         old_exam_date = today().strftime("%Y-%m-%d")
+    old_folder_path = f"/{exam.year.code}/{exam.semester.code}/{exam.code}_{old_exam_date}"
     old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + old_exam_date#.replace("-","")
     exam.date = datetime.strptime(request.POST.get('date'),"%Y-%m-%d")
     exam.code = request.POST.get('code')
