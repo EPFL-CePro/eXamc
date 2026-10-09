@@ -1,4 +1,6 @@
-import { Modal } from "bootstrap";
+import type { Modal } from "bootstrap";
+
+import { getPageBootstrap } from "@examc/helpers/page-bootstrap.ts";
 
 /**
  * Retrieves or creates a Modal instance based on the provided options.
@@ -31,5 +33,5 @@ export function getModal(
     // the element is required, throw an error if it's not provided
     if (!element) throw new Error("No element found/passed to create new Modal.");
 
-    return new Modal(element, modalOptions);
+    return new (getPageBootstrap().Modal)(element, modalOptions);
 }

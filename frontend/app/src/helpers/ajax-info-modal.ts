@@ -1,5 +1,5 @@
-import { Collapse } from 'bootstrap';
 import { getModal } from '@examc/helpers/modals.ts';
+import { getPageBootstrap } from '@examc/helpers/page-bootstrap.ts';
 
 declare global {
     interface Window {
@@ -95,7 +95,7 @@ export function setAjaxInfoModalLocked(locked: boolean): void {
 
 // Hide submenus
 document.querySelectorAll<HTMLElement>('#body-row .collapse').forEach((element) => {
-    Collapse.getOrCreateInstance(element, { toggle: false }).hide();
+    getPageBootstrap().Collapse.getOrCreateInstance(element, { toggle: false }).hide();
 });
 
 // Collapse/Expand icon
