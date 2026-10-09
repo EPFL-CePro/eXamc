@@ -12,7 +12,7 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic.edit import FormView
 
-from examc_app.forms import SeatingForm
+from examc_app.forms.misc import SeatingForm
 from examc_app.utils.rooms_plans_functions import generate_plan
 
 # CSV_TO_JPG_MAP = {
@@ -236,8 +236,13 @@ class GenerateRoomPlanView(FormView):
             special_file = self.request.session.get('special_file_path')
 
         csv_file_paths = [str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file for csv_file in csv_files]
-        F, L = calculate_seat_numbers(csv_file_paths, first_seat_number, last_seat_number or sum([count_csv_lines(f)
-                                                                                                    for f in csv_file_paths]),count_csv_lines)
+        f, l = calculate_seat_numbers(
+            csv_files=csv_file_paths,
+            first_seat_number=first_seat_number,
+            last_seat_number=last_seat_number or sum([count_csv_lines(f) for f in csv_file_paths]),
+            count_csv_lines=count_csv_lines
+        )
+
         csv_data = []
         for i in range(len(csv_files)):
             image_file = image_files[i]
@@ -257,8 +262,8 @@ class GenerateRoomPlanView(FormView):
                             first_seat_number = last_seat_number + 1
                             last_seat_number = last_seat_number + total_seats - 1
                     else:
-                        first_seat_number = F[i]
-                        last_seat_number = L[i]
+                        first_seat_number = f[i]
+                        last_seat_number = l[i]
 
             elif numbering_option == 'special':
                 first_seat_number = 1
@@ -279,8 +284,8 @@ class GenerateRoomPlanView(FormView):
                     first_seat_number = current_seat_number
                     last_seat_number = current_seat_number + total_seats - 1
                 else:
-                    first_seat_number = F[i]
-                    last_seat_number = L[i]
+                    first_seat_number = f[i]
+                    last_seat_number = l[i]
 
             current_seat_number = last_seat_number + 1
             csv_data.append([

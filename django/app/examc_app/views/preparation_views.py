@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import (
     FileResponse,
     Http404,
+    HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
     JsonResponse,
@@ -17,8 +18,10 @@ from django.urls import reverse
 from docutils import DataError
 
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import (
+from examc_app.forms.general import (
     CreateExamProjectForm,
+)
+from examc_app.forms.preparation import (
     CreatePrepQuestionForm,
     ExamFirstPageForm,
     PrepScoringFormulaFormSet,
@@ -100,48 +103,47 @@ def create_exam_project(request):
         teacher_names_by_course=teacher_names_by_course
     )
 
-    if request.method == 'POST':
-        if form.is_valid():
-            course_code = form.cleaned_data['course']
-            course_name = form.courses_by_code[course_code]["coursNomFr"]
-            course_teachers = form.teachers_by_course.get(course_code, [])
-            teacher_scipers = [t["sciper"] for t in course_teachers]
+    if request.method == 'POST' and form.is_valid():
+        course_code = form.cleaned_data['course']
+        course_name = form.courses_by_code[course_code]["coursNomFr"]
+        course_teachers = form.teachers_by_course.get(course_code, [])
+        teacher_scipers = [t["sciper"] for t in course_teachers]
 
-            date = form.cleaned_data['date']
-            semester_id = form.cleaned_data['semester']
+        date = form.cleaned_data['date']
+        semester_id = form.cleaned_data['semester']
 
-            # date_text = date.strftime('%d.%m.%Y')
-            # duration_text = form.cleaned_data['durationText']
-            # language = form.cleaned_data['language']
+        # date_text = date.strftime('%d.%m.%Y')
+        # duration_text = form.cleaned_data['durationText']
+        # language = form.cleaned_data['language']
 
-            semester = Semester.objects.get(pk=semester_id)
-            # exam_text = course.code + " - " + course.name
-            # teachers_text = get_course_teachers_string(course.teachers)
-            teachers = add_course_teachers_ldap(teacher_scipers)
+        semester = Semester.objects.get(pk=semester_id)
+        # exam_text = course.code + " - " + course.name
+        # teachers_text = get_course_teachers_string(course.teachers)
+        teachers = add_course_teachers_ldap(teacher_scipers)
 
-            # user = request.user
-            # if not user in teachers:
-            #     teachers.append(user)
+        # user = request.user
+        # if not user in teachers:
+        #     teachers.append(user)
 
-            exam = Exam()
-            exam.code = course_code
-            exam.name = course_name
-            exam.semester = semester
-            exam.year = year
-            exam.date = date
-            # exam.amc_option = True
-            exam.save()
+        exam = Exam()
+        exam.code = course_code
+        exam.name = course_name
+        exam.semester = semester
+        exam.year = year
+        exam.date = date
+        # exam.amc_option = True
+        exam.save()
 
-            for teacher in teachers:
-                exam_user = ExamUser()
-                exam_user.user = teacher
-                exam_user.exam = exam
-                exam_user.group_id = 2
-                exam_user.save()
+        for teacher in teachers:
+            exam_user = ExamUser()
+            exam_user.user = teacher
+            exam_user.exam = exam
+            exam_user.group_id = 2
+            exam_user.save()
 
-            return redirect("examInfo", exam_pk=exam.pk)
+        return redirect("examInfo", exam_pk=exam.pk)
 
-    # if a GET (or any other method), we'll create a blank form
+    # if form is invalid or a GET (or any other method) is received, we'll create a blank form
     return render(
         request,
         "exam/create_exam_project.html",
@@ -1094,7 +1096,7 @@ def delete_scoring_formula(request, exam_pk, pk):
     )
 
 @exam_permission_required(['manage'])
-def edit_latex_file(request,exam_pk):
+def edit_latex_file(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
 
     locked = ensure_exam_not_finalized(exam)
@@ -1108,9 +1110,10 @@ def edit_latex_file(request,exam_pk):
     else:
         filepath = Path(amc_project_path) / "commands.tex"
 
-    f = open(filepath, 'r')
-    file_contents = f.read()
-    f.close()
+    with open(filepath, 'r') as f:
+        file_contents = f.read()
+        f.close()
+
     return HttpResponse(json.dumps([os.path.relpath(filepath, amc_project_path), file_contents]))
 
 @exam_permission_required(['manage'])
@@ -1123,8 +1126,9 @@ def edit_latex_packages(request,exam_pk):
 
     amc_project_path = ensure_amc_project(exam)
     filepath= Path(amc_project_path) / "packages.tex"
-    f = open(filepath, 'r')
-    file_contents = f.read()
+
+    with open(filepath, 'r') as f:
+        file_contents = f.read()
 
     latex_packages_available = list_available_latex_packages()
     used_packages = extract_used_packages(file_contents)
@@ -1151,10 +1155,10 @@ def save_latex_edited_file(request,exam_pk):
     else:
         filepath = Path(amc_project_path) / "commands.tex"
 
-    f = open(filepath, 'r+', encoding="utf-8")
-    f.truncate(0)
-    f.write(data)
-    f.close()
+    with open(filepath, 'r+', encoding="utf-8") as f:
+        f.truncate(0)
+        f.write(data)
+
     return HttpResponse('ok')
 
 

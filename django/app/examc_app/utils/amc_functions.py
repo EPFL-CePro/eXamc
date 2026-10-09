@@ -43,6 +43,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from examc_app.exceptions.amc import AmcProjectPathNotFoundError
 from examc_app.models import (
     Exam,
     PagesGroup,
@@ -52,7 +53,6 @@ from examc_app.models import (
     Student,
 )
 from examc_app.signing import make_token_for, verify_and_get_path
-from examc_app.utils.amc.exceptions import AmcProjectPathNotFoundError
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
@@ -98,16 +98,14 @@ def get_amc_update_document_info(exam: Exam):
 
 def get_amc_layout_detection_info(exam: Exam):
     info = ''
-    amc_data_path = get_amc_project_path(exam, False)
+    amc_project_path = get_amc_project_path(exam, False)
+    amc_data_path = f"{amc_project_path}/data/"
 
-    if amc_data_path:
-        amc_data_path += "/data/"
+    with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+        nb_pages_detected = amc_layout_db_manager.select_count_layout_pages()
 
-        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-            nb_pages_detected = amc_layout_db_manager.select_count_layout_pages()
-
-        if nb_pages_detected > 0:
-            info = "Processed " + str(nb_pages_detected) + " pages"
+    if nb_pages_detected > 0:
+        info = "Processed " + str(nb_pages_detected) + " pages"
 
     return info
 
@@ -401,9 +399,8 @@ def check_pages_recognition_consistency(exam: Exam):
     Check if page recognition is consistent with the database.
     """
     project_path = get_amc_project_path(exam, False)
-    if project_path is None: return
 
-    with AmcCaptureDbManager(amc_data_path=project_path + "/data/") as amc_capture_db_manager:
+    with AmcCaptureDbManager(amc_data_path=f"{project_path}/data/") as amc_capture_db_manager:
         capture_pages = amc_capture_db_manager.select_capture_pages()
 
         for capture_page in capture_pages:
@@ -541,7 +538,10 @@ def get_amc_project_path(exam: Exam, even_if_not_exist: bool = False) -> str:
     if os.path.isdir(amc_project_path) or even_if_not_exist:
         return amc_project_path
     else:
-        raise AmcProjectPathNotFoundError(f"Couldn't find the AMC project path for exam '{exam.code}'")
+        raise AmcProjectPathNotFoundError(
+            f"AMC project not found at {amc_project_path}",
+            context={"exam": exam},
+        )
 
 
 def get_amc_project_url(exam: Exam) -> str:
@@ -602,9 +602,6 @@ def get_extra_pages(amc_extra_pages_path: str, amc_extra_pages_url: str | None =
 def get_amc_marks_positions_data(exam: Exam, copy, page):
     amc_project_path = get_amc_project_path(exam, False)
 
-    if not amc_project_path:
-        return None
-
     amc_data_path = f"{amc_project_path}/data/"
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
         data_positions = amc_capture_db_manager.select_marks_positions(
@@ -623,27 +620,26 @@ def get_amc_marks_positions_data(exam: Exam, copy, page):
 
 
 def update_amc_mark_zone_data(exam: Exam, zoneid, copy, page):
-    amc_data_path = get_amc_project_path(exam, False)
+    amc_project_path = get_amc_project_path(exam, False)
 
-    if amc_data_path:
-        amc_data_path += "/data/"
+    amc_data_path = f"{amc_project_path}/data/"
 
-        with AmcCaptureDbManager(amc_data_path=os.path.join(amc_data_path, "data", "")) as amc_capture_db_manager:
-            data_zones = amc_capture_db_manager.select_data_zones(zoneid)
+    with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
+        data_zones = amc_capture_db_manager.select_data_zones(zoneid)
 
-            if not data_zones:
-                raise ValueError(f"Zone {zoneid} not found")
+        if not data_zones:
+            raise ValueError(f"Zone {zoneid} not found")
 
-            manual = data_zones[0]["manual"]
-            bvalue = data_zones[0]["bvalue"]
-            threshold = float(get_amc_option_by_key(exam, "seuil"))
+        manual = data_zones[0]["manual"]
+        bvalue = data_zones[0]["bvalue"]
+        threshold = float(get_amc_option_by_key(exam, "seuil"))
 
-            if (manual == -1.0 and bvalue >= threshold) or manual == 1.0:
-                new_manual = 0.0
-            else:
-                new_manual = 1.0
+        if (manual == -1.0 and bvalue >= threshold) or manual == 1.0:
+            new_manual = 0.0
+        else:
+            new_manual = 1.0
 
-            amc_capture_db_manager.update_data_zone(new_manual, zoneid, copy, page)
+        amc_capture_db_manager.update_data_zone(new_manual, zoneid, copy, page)
 
 
 def _is_valid_amc_options_xml(options_xml_path):
@@ -725,8 +721,6 @@ def create_amc_project_dir_from_zip(exam: Exam, zip_file):
 def get_automatic_data_capture_summary(exam: Exam):
     amc_project_path = get_amc_project_path(exam, False)
 
-    if not amc_project_path: return None
-
     amc_data_path = f"{amc_project_path}/data/"
 
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
@@ -784,8 +778,6 @@ def get_copy_page_zooms(exam: Exam, copy, page):
 
 def add_unrecognized_page_to_project(exam: Exam, copy, page, extra, img_filename):
     amc_project_path = get_amc_project_path(exam, False)
-
-    if not amc_project_path: return
 
     if extra:
         #page = select_copy_question_page(amc_data_path+'/data/', copy, question)
@@ -926,7 +918,6 @@ def amc_mark_subprocess(request, exam: Exam, update_scoring_strategy):
 
 def get_amc_mean(exam: Exam):
     amc_project_path = get_amc_project_path(exam, False)
-    if not amc_project_path: return None
 
     with AmcScoringDbManager(amc_data_path=f"{amc_project_path}/data") as amc_scoring_db_manager:
         return amc_scoring_db_manager.get_mean()
@@ -1490,7 +1481,7 @@ def add_grading_schemes_reports(exam_pk: int, single_file: bool = False, progres
     annotated_pdfs_dir = project_path / "cr" / "corrections" / "pdf"
     report_type = 2 if single_file else 1
 
-    with AmcReportDbManager(amc_data_path) as amc_report_db_manager:
+    with AmcReportDbManager(amc_data_path=amc_data_path) as amc_report_db_manager:
         student_report_data = amc_report_db_manager.get_student_report_data()
 
     report_rows = [
@@ -1917,12 +1908,9 @@ def build_grading_report_pdf_bytes(exam_pk: int, student_pk, amc_copy_nr=None, r
     Generate grading report and return the content in bytes.
     """
     exam = Exam.objects.get(pk=exam_pk)
-    amc_data_path = get_amc_project_path(exam, False)
+    amc_project_path = get_amc_project_path(exam, False)
+    amc_data_path = f"{amc_project_path}/data/"
 
-    if not amc_data_path:
-        return None
-
-    amc_data_path += "/data/"
     student = Student.objects.get(pk=student_pk)
     review_copy_nr = str(review_copy_nr if review_copy_nr is not None else student.copie_no)
     amc_copy_nr = str(amc_copy_nr if amc_copy_nr is not None else student_amc_copy_nr(student))

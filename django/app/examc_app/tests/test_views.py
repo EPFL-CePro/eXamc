@@ -4,17 +4,13 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.datastructures import MultiValueDict
 
-from examc_app.forms import (
-    ExportMarkedFilesForm,
+from examc_app.forms.results_statistics import ExportMarkedFilesForm
+from examc_app.forms.review import (
     ManagePagesGroupsForm,
     ManageReviewersForm,
     UploadScansForm,
 )
-from examc_app.models import (
-    ExamUser,
-    PagesGroup,
-    ReviewLock,
-)
+from examc_app.models import ExamUser, PagesGroup, ReviewLock
 from examc_app.tests.helpers.models import (
     create_mock_academic_year,
     create_mock_exam,

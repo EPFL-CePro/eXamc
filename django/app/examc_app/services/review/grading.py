@@ -10,19 +10,24 @@ from examc_app.utils.review_functions import get_question_points
 
 
 def get_amc_question_layout_and_marks(exam : Exam, copy_nr, pages_group ) -> dict[str, Any]:
-    amc_data_path = get_amc_project_path(exam, True) + "/data/"
+    amc_project_path = get_amc_project_path(exam, True)
+    amc_data_path = f"{amc_project_path}/data/"
+
     with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
         question_page = amc_layout_db_manager.select_copy_question_page(
             copy_nr, pages_group.group_name
         )
-    with AmcScoringDbManager(amc_data_path) as amc_db:
-            max_points = float(
-                amc_db.get_question_max_points(pages_group.group_name, None) or 0
-            )
+
+    with AmcScoringDbManager(amc_data_path=amc_data_path) as amc_scoring_db_manager:
+        max_points = float(
+            amc_scoring_db_manager.get_question_max_points(pages_group.group_name, None) or 0
+        )
+
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
         amc_corr_boxes = amc_capture_db_manager.select_marks_positions(
             int(copy_nr), question_page
         )
+
     return {
         "question_page" : question_page,
         "max_points": max_points,

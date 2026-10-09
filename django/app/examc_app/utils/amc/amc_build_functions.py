@@ -39,13 +39,13 @@ from examc_app.models import (
 )
 from examc_app.utils.amc.amc_helpers import (
     get_amc_answer_code,
-    get_amc_project_path,
     get_amc_question_id,
     get_exam_latex_main_file,
 )
 from examc_app.utils.amc.amc_layout_functions import (
     get_subject_copy_and_page_counts_from_xy,
 )
+from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from examc_app.utils.amc.exceptions import AmcDbManagerError
+from examc_app.exceptions.amc import AmcDbManagerError
 from examc_app.utils.amc_db_queries import AbstractAmcDbManager, AmcDbFile
 
 logger = logging.getLogger(__name__)

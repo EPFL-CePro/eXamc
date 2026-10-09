@@ -7,6 +7,7 @@ import time
 from functools import lru_cache
 
 import cv2
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
@@ -14,7 +15,6 @@ from fpdf import FPDF
 from PIL import Image, ImageStat
 from pyzbar import pyzbar
 
-from examc import settings
 from examc_app.models import (
     Exam,
     PageMarkers,
@@ -528,7 +528,7 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
 
     @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
-        with AmcLayoutDbManager(str(amc_data_root)) as amc_layout_db_manager:
+        with AmcLayoutDbManager(amc_data_path=str(amc_data_root)) as amc_layout_db_manager:
             pages = amc_layout_db_manager.get_question_start_page_by_student(pages_group.group_name, copy_no_int)
 
             if not pages: return None
