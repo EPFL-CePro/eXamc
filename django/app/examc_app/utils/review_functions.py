@@ -26,20 +26,13 @@ from examc_app.models import (
     Student,
     UnrecognizedReviewScan,
 )
+from examc_app.services.exam.paths import get_exam_scans_dir
 from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 UNRECOGNIZED_REVIEW_SCAN_DIR = "unrecognized"
-
-
-def get_exam_scans_subdir(exam: Exam) -> str:
-    return f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
-
-
-def get_exam_scans_dir(exam: Exam) -> pathlib.Path:
-    return pathlib.Path(settings.SCANS_ROOT) / get_exam_scans_subdir(exam)
 
 
 def get_scan_relative_path(path: str) -> str:

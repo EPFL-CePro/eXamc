@@ -17,11 +17,13 @@ from examc_app.models import (
     Semester,
     UnrecognizedReviewScan,
 )
-from examc_app.services.review.unrecognized_scans import build_unrecognized_review_scan_context
+from examc_app.services.exam.paths import get_exam_scans_dir
+from examc_app.services.review.unrecognized_scans import (
+    build_unrecognized_review_scan_context,
+)
 from examc_app.utils.review_functions import (
     assign_unrecognized_review_scan_file,
     delete_unrecognized_review_scan_file,
-    get_exam_scans_dir,
     get_scan_relative_path,
     split_scans_by_copy,
 )
