@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from django.test import SimpleTestCase, TestCase, override_settings
 
 from examc_app.models import AcademicYear, Exam, PagesGroup, Semester
-from examc_app.utils.amc_db_queries import get_amc_copy_nr
+from examc_app.utils.amc_db_queries.layout import get_amc_copy_nr
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.review_functions import get_copies_pages_by_group, get_exam_scans_dir
 

@@ -54,7 +54,7 @@ from examc_app.services.review.unrecognized_scans import (
 from examc_app.services.review.upload import get_upload_scan_pending_context
 from examc_app.signing import verify_and_get_path
 from examc_app.tasks import generate_marked_files_zip, import_exam_scans
-from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import (
     get_amc_layout_detection_info,
@@ -351,7 +351,7 @@ def save_markers(request: HttpRequest, exam_pk: int):
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
     with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
         question_name = amc_layout_db_manager.get_question_name_by_student_page(
-            int(request.POST["copy_no"]), page_no
+            get_amc_copy_nr(amc_data_path, request.POST["copy_no"]), page_no
         )
     pages_group = PagesGroup.objects.get(exam=exam, group_name=question_name)
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
@@ -454,7 +454,8 @@ def get_markers_and_comments(request: HttpRequest, exam_pk: int):
 
     corrbox_markers = []
     if not 'x' in page_no:
-        corrbox_markers = get_amc_marks_positions_data(exam, copy_no.lstrip("0"), float(page_no))
+        amc_copy_nr = get_amc_copy_nr(get_amc_project_path(exam, True) + "/data/", copy_no)
+        corrbox_markers = get_amc_marks_positions_data(exam, str(amc_copy_nr), float(page_no))
 
     data_dict["corrector_boxes"] = json.dumps(corrbox_markers)
 
