@@ -179,9 +179,9 @@ def update_exam_info(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
 
     if exam.date :
-        old_exam_date = exam.date.strftime("%Y-%m-%d")
+        old_exam_date = exam.date.strftime("%Y%m%d")
     else:
-        old_exam_date = today().strftime("%Y-%m-%d")
+        old_exam_date = today().strftime("%Y%m%d")
     old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + old_exam_date#.replace("-","")
     exam.date = datetime.strptime(request.POST.get('date'),"%Y-%m-%d")
     exam.code = request.POST.get('code')
@@ -190,7 +190,7 @@ def update_exam_info(request, exam_pk: int):
     exam.year_id = request.POST.get('year_id')
     exam.save()
 
-    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.replace("-","")
+    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
 
     if old_folder_path != new_folder_path:
         update_folders_paths(old_folder_path, new_folder_path)

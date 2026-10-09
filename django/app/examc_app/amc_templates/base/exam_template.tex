@@ -100,8 +100,15 @@
   \repeat
 }
 
+% The CSV values are read with the special characters below as plain characters (see \csvreader): restore their
+% LaTeX meaning before the files of the copy are read, else their % comments would be printed
+\newcommand{\examcRestoreCatcodes}{%
+  \catcode`\%=14 \catcode`\&=4 \catcode`\#=6 \catcode`\_=8 \catcode`\^=7 \catcode`\~=13 \catcode`\$=3 %
+}
+
 % One copy of the exam, for the current student of the CSV list
 \newcommand{\examcCopy}{%
+  \examcRestoreCatcodes
   \onecopy{1}{%
     \setcounter{equation}{0}%
     \input{./first_page.tex}
@@ -119,11 +126,14 @@
 %%% Sections (groups of questions)
 %SECTIONS%
 
-%%% One copy per student of the CSV list (a single anonymous copy without list)
+%%% One copy per student of the CSV list (a single anonymous copy without list).
+%%% The values may contain _ & # % $ ~ ^ (room CO_1...): printed as they are.
 \IfFileExists{\AMCStudentFile}{%
-  \csvreader[head to column names]{\AMCStudentFile}{}{\examcCopy}%
+  \csvreader[head to column names, respect underscore, respect and, respect sharp, respect percent,
+    respect dollar, respect tilde, respect circumflex]{\AMCStudentFile}{}{\examcCopy}%
 }{%
-  \def\ID{1}\def\SCIPER{000000}\def\NAME{}\def\SECTION{}\def\ROOM{}\def\SEAT{}%
+  \def\ID{1}\def\SCIPER{000000}\def\NAME{}\def\LASTNAME{}\def\FIRSTNAME{}\def\EMAIL{}%
+  \def\SECTION{}\def\ROOM{}\def\SEAT{}%
   \examcCopy
 }
 

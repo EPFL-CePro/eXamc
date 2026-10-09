@@ -24,7 +24,7 @@
                 <h5 class="modal-title">Scoring formulas</h5>
 
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
             </div>
 
@@ -40,7 +40,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Preview PDF</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </div>
 
       <div class="modal-body">
@@ -94,12 +94,23 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Generate final exam files</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </div>
 
       <div class="modal-body">
-        <div id="generate_final_loading" class="text-center py-4" style="display:none;">
-          <div class="mt-3">Generation in progress ...</div>
+        <div id="generate_final_loading" class="py-3" style="display:none;">
+          <div class="progress" style="height:22px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" id="generate-final-progress-bar"
+                 role="progressbar" style="width:0%;">0%</div>
+          </div>
+          <div class="d-flex justify-content-between mt-2">
+            <span id="generate-final-progress-message">Starting...</span>
+            <span class="text-muted small" id="generate-final-elapsed"></span>
+          </div>
+          <p class="text-muted small mt-3 mb-0">
+            The generation can take several minutes for a big exam. You can close this window: it continues on
+            the server, and this page shows its progress when you come back.
+          </p>
         </div>
 
         <div id="generate_final_error" style="display:none;">
@@ -129,7 +140,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Unlock editing</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </div>
       <div class="modal-body">
         <div class="alert alert-warning mb-3">
@@ -162,7 +173,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Edit LaTeX packages</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </div>
 
       <div class="modal-body">

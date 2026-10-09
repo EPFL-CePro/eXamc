@@ -3,16 +3,20 @@ import re
 import shutil
 import subprocess
 import tempfile
+from datetime import timedelta
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 
 from django.db.models import Max, QuerySet, Model
 from django.http import HttpResponseForbidden
+from django.utils import timezone
 
 from examc import settings
+from examc_app.services.student.prep_amc_csv import STUDENTS_CSV_NAME
 from examc_app.forms import PrepQuestionAnswerForm, PrepSectionForm, PrepQuestionForm
-from examc_app.models import PrepScoringFormula, PrepSection, PrepQuestionAnswer, PrepQuestion, Exam, Question
+from examc_app.models import PrepScoringFormula, PrepSection, PrepQuestionAnswer, PrepQuestion, Exam, Question, \
+    ExamAMCJob
 from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
 from examc_app.utils.preparation_latex_functions import update_global_scoring_latex_file, update_exam_latex
 
@@ -106,6 +110,36 @@ def renumber_answers(question):
 # -------------------------
 # Creation / mutation helpers
 # -------------------------
+
+# A final generation not finished after this time is considered interrupted (worker stopped...): far above the
+# compilation timeouts of build_final_exam for a big exam
+FINAL_BUILD_MAX_DURATION = timedelta(hours=4)
+
+
+def get_active_final_build_job(exam):
+    """
+    The final generation of the exam still running, whoever started it, or None. A job whose Celery task ended
+    without updating it (worker killed...) or older than FINAL_BUILD_MAX_DURATION is marked as failed.
+    """
+    from celery.result import AsyncResult
+
+    job = (ExamAMCJob.objects
+           .filter(exam=exam, job_type="final_build", status__in=["pending", "running"])
+           .order_by("-created_at")
+           .first())
+    if job is None:
+        return None
+
+    interrupted = job.created_at < timezone.now() - FINAL_BUILD_MAX_DURATION
+    if not interrupted and job.celery_task_id:
+        interrupted = AsyncResult(job.celery_task_id).state in ("FAILURE", "REVOKED")
+    if interrupted:
+        job.status = "error"
+        job.error_message = job.error_message or "The final generation was interrupted."
+        job.save(update_fields=["status", "error_message", "updated_at"])
+        return None
+    return job
+
 
 def ensure_exam_not_finalized(exam):
     if exam.is_finalized:
@@ -267,6 +301,9 @@ def compile_exam_preview(exam, job_id, timeout=30):
             tmp_path = Path(tmp_dir)
 
             for item in amc_project_path.iterdir():
+                # Without students list, the preview is a single anonymous copy (see exam_template.tex)
+                if item.name == STUDENTS_CSV_NAME:
+                    continue
                 src = item
                 dst = tmp_path / item.name
 

@@ -801,7 +801,7 @@ def generate_final_exam_files_task(self, job_id):
             ])
             raise Exception(job.error_message)
 
-        set_progress(60, "Resolving generated artifacts...")
+        set_progress(86, "Resolving generated artifacts...")
 
         project_path = pathlib.Path(build.project_path) if build.project_path else None
         exam_prefix = exam.code or f"exam-{exam.pk}"
@@ -829,7 +829,7 @@ def generate_final_exam_files_task(self, job_id):
         if not subject_xy_path:
             raise LayoutExtractionError("Subject XY path is missing; cannot extract subject layout.")
 
-        set_progress(68, "Reading subject XY structure...")
+        set_progress(88, "Reading subject XY structure...")
         counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
 
         warnings = []
@@ -840,7 +840,7 @@ def generate_final_exam_files_task(self, job_id):
                 f"For booklet printing, the total number of pages per copy should be a multiple of 4."
             )
 
-        set_progress(76, "Reading subject PDF metrics...")
+        set_progress(90, "Reading subject PDF metrics...")
         pdf_metrics = get_pdf_page_metrics(subject_pdf_path, dpi=300.0)
 
         if pdf_metrics["page_count"] != counts["total_pages"]:
@@ -848,7 +848,7 @@ def generate_final_exam_files_task(self, job_id):
                 f"PDF/XY page mismatch: PDF={pdf_metrics['page_count']} XY={counts['total_pages']}"
             )
 
-        set_progress(86, "Creating layout pages...")
+        set_progress(92, "Creating layout pages...")
         page_result = populate_subject_layout_pages(
             build,
             total_copies=counts["total_copies"],

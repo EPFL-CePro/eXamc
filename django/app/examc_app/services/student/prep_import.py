@@ -25,14 +25,29 @@ HEADER_FIELDS = {
     "ROOM": "room",
     "SEAT": "seat",
 }
+# Required columns. A row without seat is still imported, the seat is given later in the table
+# (the final files cannot be generated before, see generate_final_exam_files_start).
 REQUIRED_FIELDS = ("sciper", "seat")
+ROW_REQUIRED_FIELDS = ("sciper",)
 # Header -> (content, example), shown in the template file
 HEADER_HELP = {
     "SCIPER": ("SCIPER: 6 digits, unique in the exam", 123456),
     "ROOM": ("Room", "CO 1"),
-    "SEAT": ("Seat", "A12"),
+    "SEAT": ("Seat; a row without seat is imported, the seat is to give in eXamc before the generation", "A12"),
+    "LAST NAME": ("Last name, from the EPFL directory", "Lovelace"),
+    "FIRST NAME": ("First name, from the EPFL directory", "Ada"),
+    "EMAIL": ("Email, from the EPFL directory", "ada.lovelace@epfl.ch"),
+    "SECTION": ("Section, from the EPFL directory", "MX"),
 }
-TEXT_FIELDS = ("room", "seat")
+# Columns of the exported list (build_students_export) after HEADER_FIELDS. When read back, they are only used
+# for a SCIPER missing from the EPFL directory (a person added manually, see correct_prep_student).
+INFO_HEADER_FIELDS = {
+    "LAST NAME": "last_name",
+    "FIRST NAME": "first_name",
+    "EMAIL": "email",
+    "SECTION": "section",
+}
+TEXT_FIELDS = ("room", "seat", *INFO_HEADER_FIELDS.values())
 
 SCIPER_RE = re.compile(r"^\d{6}$")
 
@@ -97,7 +112,7 @@ def read_students_file(file_name: str, content: bytes) -> list[dict]:
         raise StudentsFileError(["The file is empty."])
 
     header_number, header = rows[0]
-    fields_by_header = {_normalize_header(h): field for h, field in HEADER_FIELDS.items()}
+    fields_by_header = {_normalize_header(h): field for h, field in {**HEADER_FIELDS, **INFO_HEADER_FIELDS}.items()}
     field_by_index = {}
     for index, value in enumerate(header):
         field = fields_by_header.get(_normalize_header(value))
@@ -118,7 +133,7 @@ def read_students_file(file_name: str, content: bytes) -> list[dict]:
 
     for number, row in rows[1:]:
         student = {field: _cell_text(row[index]) if index < len(row) else "" for index, field in field_by_index.items()}
-        row_errors = [f"{field.replace('_', ' ')} is empty" for field in REQUIRED_FIELDS if not student.get(field)]
+        row_errors = [f"{field.replace('_', ' ')} is empty" for field in ROW_REQUIRED_FIELDS if not student.get(field)]
 
         if student.get("sciper"):
             if not SCIPER_RE.match(student["sciper"]):
@@ -167,17 +182,27 @@ def _mark_to_correct(students: list[dict]) -> None:
         student.update(first_name="", last_name="", email=None, section=None, needs_correction=True)
 
 
+def _has_names(student: dict) -> bool:
+    return bool(student.get("last_name") and student.get("first_name"))
+
+
 def load_students_file(file_name: str, content: bytes) -> tuple[list[dict], list[str]]:
     """
     Students of an imported .xlsx file, completed from the EPFL directory, ready for replace_prep_students;
     and the warnings for the user. A SCIPER not found in the directory is imported to be corrected (see
-    _mark_to_correct).
+    _mark_to_correct), unless the file gives its last and first names (a person added manually, in an exported
+    list): these names are kept. A row without seat is imported, the seat is to give in the table.
     """
     students = read_students_file(file_name, content)
-    missing = complete_from_directory(students)
+    missing = [student for student in complete_from_directory(students) if not _has_names(student)]
     _mark_to_correct(missing)
     warnings = [f"Row {student['row']}: SCIPER {student['sciper']} not found in the EPFL directory, "
                 "correct it in the table." for student in missing]
+    without_seat = [str(student["row"]) for student in students if not student.get("seat")]
+    if without_seat:
+        shown = ", ".join(without_seat[:20]) + (", ..." if len(without_seat) > 20 else "")
+        warnings.append(f"{len(without_seat)} student(s) without seat (row {shown}): "
+                        "give them one in the table (in yellow).")
     return students, warnings
 
 
@@ -233,7 +258,7 @@ def replace_prep_students(exam: Exam, students: list[dict], warnings: list[str] 
                 email=student.get("email") or None,
                 section=student.get("section") or None,
                 room=student.get("room") or None,
-                seat=student["seat"],
+                seat=student.get("seat") or "",
                 needs_correction=student.get("needs_correction", False),
             )
             for student in students
@@ -241,10 +266,10 @@ def replace_prep_students(exam: Exam, students: list[dict], warnings: list[str] 
     return StudentsImportResult(imported=len(students), replaced=replaced, warnings=tuple(warnings))
 
 
-def build_students_template() -> bytes:
+def _students_workbook(headers: dict[str, str]) -> Workbook:
     """
-    Excel file to fill for read_students_file: a "Students" sheet with the headers (required ones marked with "*",
-    a comment on each) and a "Help" sheet describing the columns. Plain Arial, no styling.
+    Workbook for read_students_file: a "Students" sheet whose first row holds `headers` (required ones marked
+    with "*", a comment on each) and a "Help" sheet describing the columns. Plain Arial, no styling.
     """
     workbook = Workbook()
     # Default font of the cells (openpyxl has no public API for it): Arial instead of Calibri
@@ -255,7 +280,7 @@ def build_students_template() -> bytes:
     sheet = workbook.active
     sheet.title = "Students"
 
-    for column, (header, field) in enumerate(HEADER_FIELDS.items(), start=1):
+    for column, (header, field) in enumerate(headers.items(), start=1):
         required = field in REQUIRED_FIELDS
         content, _ = HEADER_HELP[header]
         # The "*" is ignored when reading the headers (see _normalize_header)
@@ -277,15 +302,40 @@ def build_students_template() -> bytes:
     help_sheet.append(["* = required column. Names, emails and sections are taken from the EPFL directory with the SCIPER."])
     help_sheet.append([])
     help_sheet.append(["Column", "Required", "Content", "Example"])
-    for header, field in HEADER_FIELDS.items():
+    for header, field in headers.items():
         content, example = HEADER_HELP[header]
         help_sheet.append([header, "Required" if field in REQUIRED_FIELDS else "Optional", content, example])
     for letter, width in zip("ABCD", (14, 12, 48, 24)):
         help_sheet.column_dimensions[letter].width = width
 
+    return workbook
+
+
+def _workbook_bytes(workbook: Workbook) -> bytes:
     buffer = io.BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
+
+
+def build_students_template() -> bytes:
+    """Empty Excel file to fill for read_students_file."""
+    return _workbook_bytes(_students_workbook(HEADER_FIELDS))
+
+
+def build_students_export(exam: Exam) -> bytes:
+    """
+    The students of the exam as an Excel file that read_students_file imports back, in the order of the copy
+    numbers: to reorder them and fill rooms and seats in Excel. The names, email and section (INFO_HEADER_FIELDS)
+    are for reading only, except for the people missing from the EPFL directory.
+    """
+    headers = {**HEADER_FIELDS, **INFO_HEADER_FIELDS}
+    workbook = _students_workbook(headers)
+    sheet = workbook["Students"]
+    for student in PrepStudent.objects.filter(exam=exam).order_by("copy_no", "pk"):
+        sheet.append([getattr(student, field) or None for field in headers.values()])
+    for letter in "DEF":
+        sheet.column_dimensions[letter].width = 28
+    return _workbook_bytes(workbook)
 
 
 def correct_prep_student(student: PrepStudent, data: dict) -> PrepStudent:

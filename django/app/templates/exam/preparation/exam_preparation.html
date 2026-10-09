@@ -18,6 +18,22 @@
                 This exam has been finalized. Editing is locked. Download the final files or unlock editing to modify the exam.
             </div>
         {% endif %}
+        {# Final generation running (see generateFinalExamFiles / trackFinalGeneration in preparation.js) #}
+        <div class="alert alert-info mt-3" id="final-generation-banner" role="status"
+             {% if not active_final_job %}hidden{% endif %}>
+            <div class="d-flex align-items-center justify-content-between flex-wrap">
+                <strong class="mr-3">Final generation in progress</strong>
+                <button type="button" class="btn btn-outline-dark btn-sm" id="final-generation-banner-show">
+                    Show details
+                </button>
+            </div>
+            <div class="progress mt-2" style="height:18px;">
+                <div class="progress-bar" id="final-generation-banner-bar" role="progressbar" style="width:0%;">0%</div>
+            </div>
+            <div class="small mt-1" id="final-generation-banner-message">
+                {% if active_final_job %}Started by {{ active_final_job.requested_by }} at {{ active_final_job.created_at|time:"H:i" }}.{% endif %}
+            </div>
+        </div>
         <div class="d-flex align-items-center justify-content-between w-100">
             <button
                 type="button"
@@ -60,7 +76,8 @@
             </button>
 
             {% if not is_exam_finalized %}
-                <button onclick="generateFinalExamFiles();" class="btn btn-dark btn-sm" type="button">
+                <button onclick="generateFinalExamFiles();" class="btn btn-dark btn-sm" type="button"
+                        id="generate-final-button" {% if active_final_job %}disabled{% endif %}>
                     <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Generate final
                 </button>
             {% else %}
@@ -108,6 +125,9 @@
         csrfToken: "{{ csrf_token }}",
         examPk: "{{ exam_selected.pk }}",
         isFinalized: {{ is_exam_finalized|yesno:"true,false" }},
+        // Celery task of a final generation still running when the page was loaded
+        activeFinalTaskId: "{{ active_final_job.celery_task_id|default:'' }}",
+        activeFinalStartedAt: "{{ active_final_job.created_at|date:'c' }}",
         urls: {
             previewStart: "{% url 'exam_preview_start' exam_selected.pk %}",
             previewStatus: "{% url 'exam_preview_status' exam_selected.pk 0 %}".replace("/0/", "/__JOB_ID__/"),

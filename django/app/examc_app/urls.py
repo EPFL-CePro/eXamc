@@ -59,7 +59,10 @@ urlpatterns = [
     path("exam_preparation_students/<int:exam_pk>", views.exam_preparation_students_view, name="exam_preparation_students"),
     path("exam_preparation_students/<int:exam_pk>/import_students_xlsx", views.import_prep_students_xlsx, name="import_prep_students_xlsx"),
     path("exam_preparation_students/<int:exam_pk>/students_template", views.download_prep_students_template, name="download_prep_students_template"),
+    path("exam_preparation_students/<int:exam_pk>/students_export", views.download_prep_students_export, name="download_prep_students_export"),
     path("exam_preparation_students/<int:exam_pk>/import_students_api", views.import_prep_students_api, name="import_prep_students_api"),
+    path("exam_preparation_students/<int:exam_pk>/reorder", views.reorder_prep_students_view, name="reorder_prep_students"),
+    path("exam_preparation_students/<int:exam_pk>/assign_seats", views.assign_prep_students_seats, name="assign_prep_students_seats"),
 
 
     # REVIEW SETTINGS

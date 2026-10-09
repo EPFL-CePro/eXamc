@@ -143,8 +143,9 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
                 <strong>Digits:</strong> ${summary.digits || 0}<br>
                 <strong>Unknown payloads:</strong> ${summary.unknown_payloads || 0}
             </div>
-            <div class="d-flex gap-2 flex-wrap">
-                You can now download files using the button "DOWNLOAD FINAL FILES" on the EXAM PREPARATION interface!
+            <div>
+                The page is refreshed when you close this dialog: the final files can then be downloaded with the
+                "Download final files" button.
             </div>
         `;
 
@@ -159,6 +160,103 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         }, 500);
     }
 
+    // ---- Final generation: a Celery task followed in the dialog and, when the dialog is closed or the page
+    // reloaded while it runs, in #final-generation-banner. The task goes on on the server in any case.
+    let finalTracking = null;      // {taskId, startedAt (ms)}
+    let finalElapsedTimer = null;
+
+    function setFinalProgress(percent, message) {
+        const value = Math.max(0, Math.min(100, Math.round(percent || 0)));
+        for (const id of ["generate-final-progress-bar", "final-generation-banner-bar"]) {
+            const bar = document.getElementById(id);
+            if (!bar) continue;
+            bar.style.width = value + "%";
+            bar.textContent = value + "%";
+        }
+        for (const id of ["generate-final-progress-message", "final-generation-banner-message"]) {
+            const element = document.getElementById(id);
+            if (element && message) element.textContent = message;
+        }
+    }
+
+    function showFinalBanner(show) {
+        const banner = document.getElementById("final-generation-banner");
+        if (banner) banner.hidden = !show;
+        const button = document.getElementById("generate-final-button");
+        if (button) button.disabled = !!finalTracking;
+    }
+
+    function isGenFinalDialogOpen() {
+        const dialog = document.getElementById("generate_final_exam_files_dialog");
+        return !!dialog && dialog.classList.contains("show");
+    }
+
+    function updateFinalElapsed() {
+        const element = document.getElementById("generate-final-elapsed");
+        if (!element || !finalTracking) return;
+        const seconds = Math.max(0, Math.round((Date.now() - finalTracking.startedAt) / 1000));
+        element.textContent = Math.floor(seconds / 60) + " min " + String(seconds % 60).padStart(2, "0") + " s";
+    }
+
+    function stopFinalTracking() {
+        finalTracking = null;
+        window.clearInterval(finalElapsedTimer);
+        finalElapsedTimer = null;
+        showFinalBanner(false);
+    }
+
+    // Shows the end of the generation: in the dialog when it is open, else the page is reloaded (success) or the
+    // dialog is opened with the error
+    function finishFinalGeneration(ok, payload) {
+        const dialogOpen = isGenFinalDialogOpen();
+        stopFinalTracking();
+        if (ok) {
+            if (!dialogOpen) {
+                window.location.reload();
+                return;
+            }
+            showGenFinalSuccess(normalizeGenFinalSuccessPayload(payload));
+        } else {
+            if (!dialogOpen) showModal("#generate_final_exam_files_dialog");
+            showGenFinalError(payload || "Generation failed.");
+        }
+    }
+
+    function trackFinalGeneration(taskId, startedAt) {
+        if (finalTracking && finalTracking.taskId === taskId) return;
+        if (typeof CeleryProgressBar === "undefined" || !URLS.celeryTaskStatusTemplate) {
+            showGenFinalError("The progress of the generation cannot be followed (Celery progress bar missing).");
+            return;
+        }
+
+        finalTracking = {taskId: taskId, startedAt: startedAt || Date.now()};
+        window.clearInterval(finalElapsedTimer);
+        finalElapsedTimer = window.setInterval(updateFinalElapsed, 1000);
+        updateFinalElapsed();
+        showFinalBanner(!isGenFinalDialogOpen());
+
+        CeleryProgressBar.initProgressBar(URLS.celeryTaskStatusTemplate.replace("__TASK_ID__", taskId), {
+            progressBarId: "generate-final-progress-bar",
+            progressBarMessageId: "generate-final-progress-message",
+            pollInterval: 2000,
+            onProgress: function (progressBarElement, progressBarMessageElement, progress) {
+                setFinalProgress(progress.percent, progress.description || "Processing...");
+            },
+            onSuccess: function () {
+                setFinalProgress(100, "Done.");
+            },
+            onResult: function (resultElement, result) {
+                finishFinalGeneration(true, result);
+            },
+            onTaskError: function (progressBarElement, progressBarMessageElement, excMessage) {
+                finishFinalGeneration(false, excMessage);
+            },
+            onError: function (progressBarElement, progressBarMessageElement, excMessage) {
+                finishFinalGeneration(false, "Error while following the generation: " + (excMessage || "unknown error"));
+            }
+        });
+    }
+
     function generateFinalExamFiles() {
         if (!URLS.generateFinalStart) {
             console.warn("[preparation.js] Missing generateFinalStart URL");
@@ -168,7 +266,11 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         genFinalWasSuccessful = false;
         resetGenFinalUi();
         setGenFinalLoading(true);
+        setFinalProgress(0, "Starting...");
         showModal("#generate_final_exam_files_dialog");
+
+        // Already running (this page loaded before, or another user): follow it
+        if (finalTracking) return;
 
         ajaxGet(URLS.generateFinalStart, {}, {
             ...WITHOUT_LOADING_MODAL,
@@ -177,94 +279,23 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
                     showGenFinalError("Impossible to start final exam files generation.");
                     return;
                 }
-
                 currentGenFinalJobId = data.job_id;
-
-                //use shared progress modal
-                if (typeof CeleryProgressBar !== "undefined") {
-                    if (!URLS.celeryTaskStatusTemplate) {
-                        showGenFinalError("Missing celery task status URL.");
-                        return;
-                    }
-
-                    const statusUrl = URLS.celeryTaskStatusTemplate.replace("__TASK_ID__", data.task_id);
-
-                    showSharedProgressBarModal();
-
-                    console.log("final build start response", data);
-                    console.log("celery status template", URLS.celeryTaskStatusTemplate);
-                    console.log("statusUrl", statusUrl);
-
-                    CeleryProgressBar.initProgressBar(statusUrl, {
-                        progressBarId: "progress-bar",
-                        progressBarMessageId: "progress-bar-message",
-                        pollInterval: 1000,
-
-                        onProgress: function (progressBarElement, progressBarMessageElement, progress) {
-                            const description = progress.description || "Processing...";
-                            progressBarElement.style.width = progress.percent + "%";
-                            progressBarElement.innerText = progress.percent + "%";
-                            progressBarMessageElement.innerHTML = description;
-                        },
-
-                        onResult: function (resultElement, result) {
-                            hideSharedProgressBarModal();
-
-                            const normalized = normalizeGenFinalSuccessPayload(result);
-                            showGenFinalSuccess(normalized);
-                        },
-
-                        onTaskError: function (progressBarElement, progressBarMessageElement, excMessage) {
-                            progressBarElement.style.backgroundColor = "#dc4f63";
-                            progressBarMessageElement.textContent = "Generation failed: " + (excMessage || "Unknown error");
-
-                            hideSharedProgressBarModal();
-                            showGenFinalError(excMessage || "Generation failed.");
-                        },
-
-                        onError: function (progressBarElement, progressBarMessageElement, excMessage) {
-                            progressBarElement.style.backgroundColor = "#dc4f63";
-                            progressBarMessageElement.textContent = "Error: " + (excMessage || "Unknown error");
-
-                            hideSharedProgressBarModal();
-                            showGenFinalError(excMessage || "Error while tracking generation progress.");
-                        }
-                    });
-                } else {
-                    showGenFinalError("Celery progress bar is not available.");
-                }
+                trackFinalGeneration(data.task_id);
             },
 
             error: function (xhr) {
-                let message = "Error starting final exam files generation.";
-                if (xhr.responseJSON && xhr.responseJSON.error) {
-                    message = xhr.responseJSON.error;
-                } else if (xhr.responseText) {
-                    message = xhr.responseText;
+                const data = xhr.responseJSON || {};
+                // 409: a generation of this exam is already running, followed instead of starting another one
+                if (xhr.status === 409 && data.task_id) {
+                    setFinalProgress(0, data.error || "A final generation is already running.");
+                    trackFinalGeneration(data.task_id);
+                    return;
                 }
-                showGenFinalError(message);
+                showGenFinalError(data.error || xhr.responseText || "Error starting final exam files generation.");
             }
         });
     }
 
-    function resetSharedProgressBarUi() {
-        $('#progress-bar').css('width', '0%');
-        $('#progress-bar').css('background-color', '#68a9ef');
-        $('#progress-bar-message').text('Starting...');
-    }
-
-    function showSharedProgressBarModal() {
-        resetSharedProgressBarUi();
-        $('#celeryProgressBarModal').modal('show');
-    }
-
-    function hideSharedProgressBarModal() {
-        $('#celeryProgressBarModal').modal('hide');
-    }
-
-    /**
-     * Normalize backend result into your existing success format
-     */
     function normalizeGenFinalSuccessPayload(result) {
         if (!result) return {};
 
@@ -1352,17 +1383,49 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
             });
     }
 
+    // The page changes once the exam is finalized (download button, "locked" banner, read-only editing):
+    // reloaded when the dialog of a successful final generation is closed, whatever the way (Close, ×, Escape,
+    // backdrop). The Bootstrap 5 "hidden" event does not always reach a document listener on this page
+    // (Bootstrap 4 is loaded too): listened on the dialog itself, natively and with jQuery, and the Close
+    // button reloads directly.
+    function reloadAfterFinalGeneration() {
+        currentGenFinalJobId = null;
+        if (genFinalWasSuccessful) {
+            genFinalWasSuccessful = false;
+            window.location.reload();
+        } else if (finalTracking) {
+            // Closed while running: followed in the banner
+            showFinalBanner(true);
+        }
+    }
+
+    // A generation running when the page was loaded (closed dialog, other user...)
+    if (CFG.activeFinalTaskId) {
+        const startedAt = Date.parse(CFG.activeFinalStartedAt);
+        trackFinalGeneration(CFG.activeFinalTaskId, Number.isNaN(startedAt) ? null : startedAt);
+    }
+    document.getElementById("final-generation-banner-show")?.addEventListener("click", function () {
+        resetGenFinalUi();
+        setGenFinalLoading(true);
+        showFinalBanner(false);
+        showModal("#generate_final_exam_files_dialog");
+    });
+
+    const genFinalDialog = document.getElementById("generate_final_exam_files_dialog");
+    if (genFinalDialog) {
+        genFinalDialog.addEventListener("hidden.bs.modal", reloadAfterFinalGeneration);
+        $(genFinalDialog).on("hidden.bs.modal", reloadAfterFinalGeneration);
+        genFinalDialog.querySelectorAll("[data-bs-dismiss='modal']").forEach(function (button) {
+            button.addEventListener("click", function () {
+                if (genFinalWasSuccessful) reloadAfterFinalGeneration();
+            });
+        });
+    }
+
     // Native listener: the dialogs are Bootstrap 5 modals, whose events do not reliably reach
     // jQuery handlers on this page (Bootstrap 4 is loaded too)
     document.addEventListener("hidden.bs.modal", function (event) {
-        if (event.target.id === "generate_final_exam_files_dialog") {
-            currentGenFinalJobId = null;
-
-            // The page changes once the exam is finalized (download button, read-only editing)
-            if (genFinalWasSuccessful) {
-                window.location.reload();
-            }
-        } else if (event.target.id === "exam_preview_dialog") {
+        if (event.target.id === "exam_preview_dialog") {
             stopPreviewPolling();
             currentPreviewJobId = null;
         }

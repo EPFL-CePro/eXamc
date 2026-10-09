@@ -11,7 +11,7 @@ type ImportResponse = {
 };
 
 
-function showResult(resultElement: HTMLElement, kind: "success" | "warning" | "danger", title: string,
+export function showResult(resultElement: HTMLElement, kind: "success" | "warning" | "danger", title: string,
                     details: string[] = []): void {
     resultElement.replaceChildren();
     resultElement.classList.remove("alert-success", "alert-warning", "alert-danger");
@@ -19,7 +19,7 @@ function showResult(resultElement: HTMLElement, kind: "success" | "warning" | "d
 
     // Texts are set with textContent: the errors quote the file content
     const heading = document.createElement("div");
-    heading.className = "fw-bold";
+    heading.className = "font-weight-bold";
     heading.textContent = title;
     resultElement.append(heading);
 
@@ -33,6 +33,15 @@ function showResult(resultElement: HTMLElement, kind: "success" | "warning" | "d
         }
         resultElement.append(list);
     }
+    // Dismissible: the result stays until closed or replaced
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "close";
+    close.setAttribute("aria-label", "Close");
+    close.innerHTML = '<span aria-hidden="true">&times;</span>';
+    close.addEventListener("click", () => { resultElement.hidden = true; });
+    resultElement.append(close);
+
     resultElement.hidden = false;
 }
 
@@ -96,32 +105,40 @@ async function runImport(options: {
 }
 
 /**
- * "Import from Excel" button: picks an .xlsx file, sent to the server, which replaces the exam students.
+ * "Import the file" buttons (in "Get the students" and "Arrange them"): pick an .xlsx file, sent to the server,
+ * which replaces the exam students.
  */
 export function initStudentsFileImport(options: {
-    button: HTMLButtonElement;
+    buttons: HTMLButtonElement[];
     fileInput: HTMLInputElement;
     resultElement: HTMLElement;
     table: Api;
 }): void {
-    const { button, fileInput, resultElement, table } = options;
+    const { buttons, fileInput, resultElement, table } = options;
+    // The button that opened the file picker, disabled during its import
+    let clickedButton: HTMLButtonElement | null = null;
 
-    button.addEventListener("click", () => fileInput.click());
+    for (const button of buttons) {
+        button.addEventListener("click", () => {
+            clickedButton = button;
+            fileInput.click();
+        });
+    }
 
     fileInput.addEventListener("change", () => {
         const file = fileInput.files?.[0];
         // Allows choosing the same file again after fixing it
         fileInput.value = "";
-        if (!file) return;
+        if (!file || !clickedButton) return;
 
         const body = new FormData();
         body.append("students_file", file);
-        void runImport({ button, resultElement, table, source: `"${file.name}"`, body });
+        void runImport({ button: clickedButton, resultElement, table, source: `"${file.name}"`, body });
     });
 }
 
 /**
- * "Import from API" button: the server replaces the exam students by those enrolled in the course in IS-Academia.
+ * "Import from IS-Academia" button: the server replaces the exam students by those enrolled in the course in IS-Academia.
  */
 export function initStudentsApiImport(options: {
     button: HTMLButtonElement;

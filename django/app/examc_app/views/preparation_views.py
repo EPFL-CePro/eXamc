@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 
 from django.conf import settings
@@ -9,7 +10,7 @@ from django.db import transaction
 from django.http import HttpResponseBadRequest, JsonResponse, Http404, FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST
+from django.utils import timezone
 from docutils import DataError
 
 from examc_app.signing import make_token_for
@@ -33,8 +34,12 @@ from examc_app.models import (
 )
 from examc_app.services.oasis import OasisError, get_courses, get_teachers_names_by_course
 from examc_app.services.person_directory import PersonDirectoryError
+from examc_app.services.student.prep_amc_csv import students_csv_problems
+from examc_app.services.student.prep_order import StudentsOrderError, reorder_prep_students
+from examc_app.services.student.prep_seats import SeatsAssignmentError, assign_rooms_and_seats
 from examc_app.services.student.prep_import import (
-    StudentsFileError, build_students_template, load_students_file, load_students_from_oasis, replace_prep_students,
+    StudentsFileError, build_students_export, build_students_template, load_students_file, load_students_from_oasis,
+    replace_prep_students,
 )
 from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
 from examc_app.utils.global_functions import add_course_teachers_ldap
@@ -42,7 +47,7 @@ from examc_app.utils.preparation_functions import build_sections_list_context, b
     renumber_sections, build_question_form, get_answers, renumber_questions, build_answer_form, renumber_answers, \
     get_scoring_formula_scope, get_scoring_formula_queryset, create_prep_section, create_prep_question, \
     create_prep_answer, compile_exam_preview, save_scoring_formulas, \
-    delete_exam_preview_job_files, ensure_exam_not_finalized, update_open_answers
+    delete_exam_preview_job_files, ensure_exam_not_finalized, update_open_answers, get_active_final_build_job
 from examc_app.utils.preparation_latex_functions import (
     render_first_page_tex_from_html,
     update_exam_latex, list_available_latex_packages, extract_used_packages, get_exam_katex_macros,
@@ -161,6 +166,7 @@ def exam_preparation_view(request, exam_pk):
             "fp_txt_form": first_page_form,
             "nav_url": "exam_preparation",
             "is_exam_finalized": exam.is_finalized,
+            "active_final_job": get_active_final_build_job(exam),
             "final_subject_pdf": final_subject_pdf,
             "final_catalog_pdf": final_catalog_pdf,
             "katex_macros": get_exam_katex_macros(exam),
@@ -182,28 +188,6 @@ def exam_preparation_students_view(request, exam_pk):
         },
     )
 
-@login_required
-@require_POST
-def exam_add_section(request, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-    section_num = 1
-    if exam.sections.all():
-        section_num += len(exam.sections.all())
-
-    # The file is only read: nothing is saved on disk
-    try:
-        students, warnings = load_students_file(uploaded_file.name, uploaded_file.read())
-    except StudentsFileError as error:
-        return JsonResponse({"errors": error.errors}, status=400)
-    except PersonDirectoryError:
-        logger.exception("EPFL directory unavailable during the students import of exam %s", exam.pk)
-        return JsonResponse({"errors": ["The EPFL directory could not be reached: please try again later."]},
-                            status=503)
-
-    result = replace_prep_students(exam, students, warnings)
-    return JsonResponse({"imported": result.imported, "replaced": result.replaced, "warnings": list(result.warnings)})
-
-
 @exam_permission_required(["manage"])
 def download_prep_students_template(request, exam_pk):
     response = HttpResponse(
@@ -211,6 +195,19 @@ def download_prep_students_template(request, exam_pk):
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
     response["Content-Disposition"] = 'attachment; filename="students_template.xlsx"'
+    return response
+
+
+@exam_permission_required(["manage"])
+def download_prep_students_export(request, exam_pk):
+    """The exam students as an Excel file to rearrange and import back (see build_students_export)."""
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    response = HttpResponse(
+        build_students_export(exam),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    file_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", f"students_{exam.code}_{exam.year.code}") + ".xlsx"
+    response["Content-Disposition"] = f'attachment; filename="{file_name}"'
     return response
 
 
@@ -230,6 +227,18 @@ def import_prep_students_xlsx(request, exam_pk):
     if not uploaded_file:
         return JsonResponse({"errors": ["No file selected."]}, status=400)
 
+    # The file is only read: nothing is saved on disk
+    try:
+        students, warnings = load_students_file(uploaded_file.name, uploaded_file.read())
+    except StudentsFileError as error:
+        return JsonResponse({"errors": error.errors}, status=400)
+    except PersonDirectoryError:
+        logger.exception("EPFL directory unavailable during the students import of exam %s", exam.pk)
+        return JsonResponse({"errors": ["The EPFL directory could not be reached: please try again later."]},
+                            status=503)
+
+    result = replace_prep_students(exam, students, warnings)
+    return JsonResponse({"imported": result.imported, "replaced": result.replaced, "warnings": list(result.warnings)})
 
 @exam_permission_required(["manage"])
 def import_prep_students_api(request, exam_pk):
@@ -258,6 +267,53 @@ def import_prep_students_api(request, exam_pk):
 
     result = replace_prep_students(exam, students, warnings)
     return JsonResponse({"imported": result.imported, "replaced": result.replaced, "warnings": list(result.warnings)})
+
+@exam_permission_required(["manage"])
+def reorder_prep_students_view(request, exam_pk):
+    """Renumbers the exam students in the chosen order (see services.student.prep_order)."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    exam = get_object_or_404(Exam, pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
+    try:
+        reordered = reorder_prep_students(exam, request.POST.get("order", ""))
+    except StudentsOrderError as error:
+        return JsonResponse({"errors": error.errors}, status=400)
+
+    return JsonResponse({"reordered": reordered})
+
+
+@exam_permission_required(["manage"])
+def assign_prep_students_seats(request, exam_pk):
+    """Gives a room and numbered seats to a range of exam students (see services.student.prep_seats)."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    exam = get_object_or_404(Exam, pk=exam_pk)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
+    try:
+        first_id, last_id, first_number = (int(request.POST.get(name, "")) for name in
+                                           ("first_id", "last_id", "first_number"))
+    except ValueError:
+        return JsonResponse({"errors": ["The IDs and the first seat number must be whole numbers."]}, status=400)
+
+    try:
+        result = assign_rooms_and_seats(exam, first_id, last_id, request.POST.get("room", ""),
+                                        request.POST.get("seat_pattern", ""), first_number)
+    except SeatsAssignmentError as error:
+        return JsonResponse({"errors": error.errors}, status=400)
+
+    return JsonResponse({"updated": result.updated, "first_seat": result.first_seat, "last_seat": result.last_seat})
+
 
 @exam_permission_required(["manage"])
 def unlock_exam_editing(request, exam_pk):
@@ -1197,22 +1253,20 @@ def save_latex_edited_packages(request,exam_pk):
 def generate_final_exam_files_start(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
-    to_correct = exam.prepStudents.filter(needs_correction=True).count()
-    if to_correct:
-        return JsonResponse({"error": f"{to_correct} student(s) of the Students page must be corrected first "
-                                      "(SCIPER not found in the EPFL directory)."}, status=400)
+    # The students list is written to the AMC project by build_final_exam
+    students_problems = students_csv_problems(exam)
+    if students_problems:
+        return JsonResponse({"error": " ".join(students_problems)}, status=400)
 
-    active_jobs = ExamAMCJob.objects.filter(
-        exam=exam,
-        requested_by=request.user,
-        job_type="final_build",
-        status__in=["pending", "running"],
-    )
-
-    for active_job in active_jobs:
-        active_job.status = "error"
-        active_job.error_message = "Replaced by a new final build request."
-        active_job.save(update_fields=["status", "error_message", "updated_at"])
+    # Two generations at once would write in the same AMC project: the page follows the running one instead
+    active_job = get_active_final_build_job(exam)
+    if active_job:
+        return JsonResponse({
+            "error": f"A final generation of this exam is already running (started by {active_job.requested_by} "
+                     f"at {timezone.localtime(active_job.created_at):%H:%M}).",
+            "job_id": active_job.pk,
+            "task_id": active_job.celery_task_id,
+        }, status=409)
 
     old_jobs = ExamAMCJob.objects.filter(
         exam=exam,

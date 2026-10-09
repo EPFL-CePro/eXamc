@@ -21,9 +21,13 @@ Important invariants:
 """
 
 import inspect
+import math
+import re
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 from hashlib import sha256
 from pathlib import Path
 
@@ -46,6 +50,7 @@ from examc_app.utils.amc.amc_helpers import (
 from examc_app.utils.amc.amc_helpers import get_amc_project_path
 from examc_app.utils.amc.amc_layout_functions import extract_layout_from_xy, get_subject_copy_and_page_counts_from_xy, \
     populate_subject_layout_pages, get_pdf_page_metrics, LayoutExtractionError
+from examc_app.services.student.prep_amc_csv import StudentsCsvError, write_students_csv
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 
 
@@ -131,6 +136,13 @@ def compute_exam_source_hash(exam: Exam) -> str:
                         f"answer_fix_position:{int(answer.fix_position)}",
                     ]
                 )
+
+    # The students list (students.csv): one copy per student
+    for student in exam.prepStudents.order_by("copy_no", "pk"):
+        chunks.append(
+            f"student:{student.copy_no}|{student.sciper}|{student.last_name}|{student.first_name}|"
+            f"{student.email or ''}|{student.section or ''}|{student.room or ''}|{student.seat}"
+        )
 
     payload = "\n".join(chunks)
     return sha256(payload.encode("utf-8")).hexdigest()
@@ -418,12 +430,77 @@ def _ensure_xy_output(workspace_path: Path) -> Path | None:
 
 
 
+# pdflatex prints "[<page number>" on its output when it ships a page out ("[2021/..." of the package
+# dates excluded). AMC numbers the pages of each copy from 1: the markers are counted, not read.
+PAGE_SHIPOUT_RE = re.compile(r"\[(\d+)(?=[\s\]{<]|$)")
+
+
+def _run_latex(cmd: list[str], cwd: Path, timeout: int, on_page=None) -> tuple[int | None, str]:
+    """
+    Runs a LaTeX command, reading its output while it compiles: `on_page(pages)` is called with the number of
+    pages shipped out so far. Returns (return code, output), the return code being None after `timeout` seconds
+    (the process is then killed).
+    """
+    process = subprocess.Popen(
+        cmd,
+        cwd=str(cwd),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        errors="replace",
+    )
+    timed_out = threading.Event()
+
+    def kill():
+        timed_out.set()
+        process.kill()
+
+    timer = threading.Timer(timeout, kill)
+    timer.start()
+    output = []
+    pages = 0
+    try:
+        for line in process.stdout:
+            output.append(line)
+            shipped = len(PAGE_SHIPOUT_RE.findall(line))
+            if shipped and on_page:
+                pages += shipped
+                on_page(pages)
+        process.wait()
+    finally:
+        timer.cancel()
+    return (None if timed_out.is_set() else process.returncode), "".join(output)
+
+
+# The qrcode package computes each QR code in TeX (~0.15 s each, one per page of each copy) and saves it in the
+# .aux file, where the next compilation reads it back. The QR codes are keyed by their text ("...,<ID>,<page>"):
+# when the students or the pages change, the missing ones are computed and the others are no longer written.
+QR_CACHE_LINE_PREFIXES = ("\\ifx\\qr@savematrix", "\\qr@savematrix{")
+
+
+def read_qr_cache(aux_path: Path) -> list[str]:
+    """The QR code lines of a LaTeX .aux file (and the line defining their macro), nothing else of it."""
+    try:
+        lines = aux_path.read_text(encoding="latin-1").splitlines()
+    except OSError:
+        return []
+    return [line for line in lines if line.startswith(QR_CACHE_LINE_PREFIXES)]
+
+
+def seed_qr_cache(workspace_path: Path, qr_cache: list[str]) -> None:
+    """Writes the .aux of the next compilation with only the QR codes of `qr_cache`."""
+    if qr_cache:
+        (workspace_path / "amc-compiled.aux").write_text("\\relax\n" + "\n".join(qr_cache) + "\n",
+                                                         encoding="latin-1")
+
+
 def compile_exam_in_workspace(
     workspace_path: Path,
     *,
     timeout: int = 60,
     latex_engine: str = "pdflatex",
     mode: str = "subject",
+    on_page=None,
 ) -> dict:
     """
     Compile an exam in a temporary workspace.
@@ -431,6 +508,8 @@ def compile_exam_in_workspace(
     Supported modes:
     - ``subject``: uses ``students.csv`` and produces canonical layout artifacts
     - ``catalog``: uses ``student_prev.csv`` and produces a one-copy catalog PDF
+
+    ``on_page(pages)`` is called while compiling with the number of pages produced so far.
 
     Returns:
         dict: Success flag, paths, logs, and error/status details.
@@ -475,20 +554,7 @@ def compile_exam_in_workspace(
     ]
 
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=str(workspace_path),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-    except subprocess.TimeoutExpired:
-        return {
-            "ok": False,
-            "error": "Compilation timeout",
-            "status": 500,
-            "build_log": "",
-        }
+        returncode, output = _run_latex(cmd, workspace_path, timeout, on_page)
     except FileNotFoundError:
         return {
             "ok": False,
@@ -504,8 +570,16 @@ def compile_exam_in_workspace(
 
     build_log = _read_log_file_if_exists(tex_log_path)
 
-    if result.returncode != 0 or not pdf_path.exists():
-        error_message = result.stdout or result.stderr or build_log or "LaTeX compilation failed"
+    if returncode is None:
+        return {
+            "ok": False,
+            "error": f"Compilation timeout ({timeout} s)",
+            "status": 500,
+            "build_log": build_log,
+        }
+
+    if returncode != 0 or not pdf_path.exists():
+        error_message = output or build_log or "LaTeX compilation failed"
         return {
             "ok": False,
             "error": error_message,
@@ -734,6 +808,37 @@ def _report_progress(progress_callback, percent, message):
     if progress_callback:
         progress_callback(percent=percent, message=message)
 
+
+# Seconds allowed to a compilation: ~0.3 s per page is measured (QR codes not cached), 1 s per page is allowed
+LATEX_BASE_TIMEOUT = 120
+LATEX_SECONDS_PER_PAGE = 1
+
+
+def _compile_timeout(timeout: int, expected_pages: int) -> int:
+    return max(timeout, LATEX_BASE_TIMEOUT + LATEX_SECONDS_PER_PAGE * expected_pages)
+
+
+def _page_progress(progress_callback, start: int, end: int, label: str, copies: int, pages_per_copy: int,
+                   min_interval: float = 2.0):
+    """
+    on_page callback of compile_exam_in_workspace: reports "<label>: copy X / N" with a percent from `start` to
+    `end`, at most every `min_interval` seconds. `pages_per_copy` may be an estimate (before the first subject
+    compilation): the percent then stops just before `end`.
+    """
+    expected_pages = max(1, copies * pages_per_copy)
+    last_report = [0.0]
+
+    def on_page(pages):
+        now = time.monotonic()
+        if now - last_report[0] < min_interval:
+            return
+        last_report[0] = now
+        done = min(1.0, pages / expected_pages)
+        copy = min(copies, math.ceil(pages / max(1, pages_per_copy)))
+        _report_progress(progress_callback, start + int((end - 1 - start) * done), f"{label}: copy {copy} / {copies}")
+
+    return on_page
+
 # ---------------------------------------------------------------------------
 # Main entrypoint
 # ---------------------------------------------------------------------------
@@ -758,6 +863,7 @@ def build_final_exam(
     1. Generate LaTeX once without a known ``pages_per_copy`` value.
     2. Create and lock an ``ExamBuild`` snapshot.
     3. Copy the persistent AMC project into a temporary workspace.
+    3b. Write the students list ``students.csv`` (PrepStudent) into the persistent project.
     4. Compile CATALOG first using ``student_prev.csv``.
        - This produces only the catalog PDF side artifact.
        - It must never become the canonical build state.
@@ -784,7 +890,7 @@ def build_final_exam(
             otherwise a build in ``error`` state.
     """
 
-    _report_progress(progress_callback, 10, "Preparing AMC workspace...")
+    _report_progress(progress_callback, 6, "Preparing AMC workspace...")
 
     persistent_project_path = get_amc_project_path(exam, False)
     exam_prefix = exam.code or f"exam-{exam.pk}"
@@ -792,9 +898,9 @@ def build_final_exam(
     # ------------------------------------------------------------------
     # INITIAL LATEX GENERATION (without final pages_per_copy yet)
     # ------------------------------------------------------------------
-    _report_progress(progress_callback, 12, "Generating LaTeX sources...")
+    _report_progress(progress_callback, 7, "Generating LaTeX sources...")
     update_exam_latex(exam, pages_per_copy=None)
-    _report_progress(progress_callback, 18, "LaTeX sources generated.")
+    _report_progress(progress_callback, 8, "LaTeX sources generated.")
 
     build = create_exam_build_snapshot(
         exam=exam,
@@ -807,6 +913,15 @@ def build_final_exam(
 
     try:
         mark_exam_build_building(build)
+
+        # The students list of the prep module, read by AMC: one copy per student
+        _report_progress(progress_callback, 9, "Writing the students list...")
+        try:
+            write_students_csv(exam, persistent_project_path)
+        except StudentsCsvError as error:
+            mark_exam_build_error(build, error_message=" ".join(error.errors))
+            return build
+
         Path(settings.AMC_TMP_ROOT).mkdir(parents=True, exist_ok=True)
 
         with tempfile.TemporaryDirectory(
@@ -816,6 +931,10 @@ def build_final_exam(
             workspace_path = Path(tmp_dir)
 
             copy_project_to_workspace(persistent_project_path, workspace_path)
+
+            # QR codes of the previous build (see read_qr_cache), given to each first compilation
+            qr_cache = read_qr_cache(Path(persistent_project_path) / "amc-compiled.aux")
+            copies = exam.prepStudents.count() or 1
 
             subject_build_log = ""
             subject_amc_log_path = ""
@@ -833,13 +952,17 @@ def build_final_exam(
             # - we want the final retained state in the workspace/project
             #   to be the SUBJECT state, because later features depend on it.
             # ==========================================================
-            _report_progress(progress_callback, 25, "Compiling catalog PDF...")
+            _report_progress(progress_callback, 10, "Compiling catalog PDF...")
 
+            # One anonymous copy (no student_prev.csv): its pages estimate the pages per copy
+            catalog_pages = [0]
+            seed_qr_cache(workspace_path, qr_cache)
             catalog_result = compile_exam_in_workspace(
                 workspace_path,
-                timeout=timeout,
+                timeout=_compile_timeout(timeout, 50),
                 latex_engine=latex_engine,
                 mode="catalog",
+                on_page=lambda pages: catalog_pages.__setitem__(0, pages),
             )
 
             if not catalog_result["ok"]:
@@ -855,7 +978,8 @@ def build_final_exam(
             if catalog_pdf.exists():
                 shutil.copy2(catalog_pdf, catalog_named_pdf)
 
-            _report_progress(progress_callback, 35, "Catalog PDF compiled.")
+            _report_progress(progress_callback, 12, "Catalog PDF compiled.")
+            estimated_pages_per_copy = max(1, catalog_pages[0])
 
             # ==========================================================
             # STEP 2 - SUBJECT BUILD PASS 1
@@ -866,13 +990,17 @@ def build_final_exam(
             # - extract subject XY
             # - determine the real pages_per_copy
             # ==========================================================
-            _report_progress(progress_callback, 42, "Compiling subject PDF...")
+            _report_progress(progress_callback, 12, "Compiling subject PDF (pass 1/2)...")
 
+            # The catalog compilation rewrote the .aux with its single copy
+            seed_qr_cache(workspace_path, qr_cache)
             subject_result = compile_exam_in_workspace(
                 workspace_path,
-                timeout=timeout,
+                timeout=_compile_timeout(timeout, copies * estimated_pages_per_copy * 2),
                 latex_engine=latex_engine,
                 mode="subject",
+                on_page=_page_progress(progress_callback, 12, 50, "Compiling subject PDF (pass 1/2)", copies,
+                                       estimated_pages_per_copy),
             )
 
             if not subject_result["ok"]:
@@ -920,12 +1048,12 @@ def build_final_exam(
             # ==========================================================
             # STEP 3 - REGENERATE LATEX WITH REAL PAGE COUNT
             # ==========================================================
-            _report_progress(progress_callback, 58, "Injecting final page count into LaTeX...")
+            _report_progress(progress_callback, 51, "Injecting final page count into LaTeX...")
             update_exam_latex(exam, pages_per_copy=pages_per_copy)
 
             # Refresh generated TeX files in workspace so the second subject
             # compilation uses the final page-aware sources.
-            _report_progress(progress_callback, 62, "Refreshing generated LaTeX files...")
+            _report_progress(progress_callback, 52, "Refreshing generated LaTeX files...")
             for src in Path(persistent_project_path).glob("*.tex"):
                 shutil.copy2(src, workspace_path / src.name)
 
@@ -939,17 +1067,16 @@ def build_final_exam(
             # - promotion back to the persistent project must preserve this
             # - ExamBuild canonical paths must point to subject artifacts only
             # ==========================================================
-            _report_progress(
-                progress_callback,
-                72,
-                "Recompiling subject PDF with final page count...",
-            )
+            _report_progress(progress_callback, 53, "Compiling subject PDF (pass 2/2)...")
 
+            # The .aux of pass 1 holds all the QR codes of this build
             subject_result = compile_exam_in_workspace(
                 workspace_path,
-                timeout=timeout,
+                timeout=_compile_timeout(timeout, copies * pages_per_copy),
                 latex_engine=latex_engine,
                 mode="subject",
+                on_page=_page_progress(progress_callback, 53, 84, "Compiling subject PDF (pass 2/2)", copies,
+                                       pages_per_copy),
             )
 
             if not subject_result["ok"]:
@@ -990,7 +1117,7 @@ def build_final_exam(
                 )
                 return build
 
-            _report_progress(progress_callback, 82, "Final subject PDF compiled.")
+            _report_progress(progress_callback, 84, "Final subject PDF compiled.")
 
             # ==========================================================
             # STEP 5 - PROMOTE WORKSPACE TO PERSISTENT PROJECT
@@ -1002,7 +1129,7 @@ def build_final_exam(
             # CATALOG is still kept as a side artifact PDF, but must never be
             # bound as the canonical build output.
             # ==========================================================
-            _report_progress(progress_callback, 88, "Saving generated artifacts...")
+            _report_progress(progress_callback, 85, "Saving generated artifacts...")
 
             promoted = promote_workspace_to_project(
                 workspace_path=workspace_path,

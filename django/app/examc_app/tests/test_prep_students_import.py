@@ -8,7 +8,7 @@ from examc_app.models import PrepStudent
 from examc_app.services.person_directory import DirectoryPerson, get_people_by_sciper
 from examc_app.services.oasis import OasisError, get_course_students_scipers
 from examc_app.services.student.prep_import import (
-    StudentsFileError, build_students_template, correct_prep_student, load_students_file, load_students_from_oasis,
+    StudentsFileError, build_students_export, build_students_template, correct_prep_student, load_students_file, load_students_from_oasis,
     read_students_file, replace_prep_students,
 )
 from django.urls import reverse
@@ -68,17 +68,19 @@ class ReadStudentsFileTestCase(SimpleTestCase):
             [123456, None, "A1"],
             [12345, None, None],
             [123456, None, "A3"],
+            [None, "CO 1", "A4"],
         ])
 
         with self.assertRaises(StudentsFileError) as context:
             read_students_file("students.xlsx", content)
 
         errors = context.exception.errors
-        self.assertEqual(len(errors), 2)
+        self.assertEqual(len(errors), 3)
         self.assertIn("Row 3", errors[0])
-        self.assertIn("seat is empty", errors[0])
+        self.assertNotIn("seat", errors[0])
         self.assertIn("SCIPER '12345' must have 6 digits", errors[0])
         self.assertIn("SCIPER 123456 already used in row 2", errors[1])
+        self.assertEqual(errors[2], "Row 5: sciper is empty.")
 
     def test_missing_required_columns(self):
         content = make_xlsx([["ID", "SCIPER", "NAME"], [1, 123456, "Ada Lovelace"]])
@@ -142,6 +144,28 @@ class LoadStudentsFileTestCase(SimpleTestCase):
         self.assertEqual([(s["copy_no"], s["sciper"], s["last_name"], s.get("needs_correction", False))
                           for s in students], [(1, "999999", "", True), (2, "123456", "Lovelace", False)])
         self.assertEqual(warnings, ["Row 2: SCIPER 999999 not found in the EPFL directory, correct it in the table."])
+
+    def test_rows_without_seat_are_imported_with_one_warning(self, _directory):
+        students, warnings = load_students_file("students.xlsx", make_xlsx([
+            HEADER, [123456, "CO 1", None], [234567, None, "A2"], [345678, None, ""],
+        ]))
+
+        self.assertEqual([s["seat"] for s in students], ["", "A2", ""])
+        self.assertEqual(warnings, ["2 student(s) without seat (row 2, 4): give them one in the table (in yellow)."])
+
+    def test_unknown_sciper_with_names_in_the_file_is_kept(self, _directory):
+        students, warnings = load_students_file("students.xlsx", make_xlsx([
+            HEADER + ["LAST NAME", "FIRST NAME", "EMAIL"],
+            [999999, None, "A1", "Hopper", "Grace", "grace@example.com"],
+            [123456, None, "A2", "Wrong", "Name", None],
+        ]))
+
+        self.assertEqual(warnings, [])
+        self.assertEqual(
+            [(s["last_name"], s["first_name"], s["email"], s.get("needs_correction", False)) for s in students],
+            # The directory wins when it knows the SCIPER
+            [("Hopper", "Grace", "grace@example.com", False), ("Lovelace", "Ada", "ada.lovelace@epfl.ch", False)],
+        )
 
 
 class FakeExam:
@@ -245,6 +269,51 @@ class ReplacePrepStudentsTestCase(TestCase):
         self.assertEqual(PrepStudent.history.filter(exam_id=exam.pk, history_type="+").count(), 3)
 
 
+class StudentsExportTestCase(TestCase):
+    def setUp(self):
+        self.exam = create_mock_exam()
+        PrepStudent.objects.create(exam=self.exam, copy_no=2, sciper=123456, first_name="Ada", last_name="Lovelace",
+                                   email="ada.lovelace@epfl.ch", section="MX", room="CO 1", seat="A2")
+        PrepStudent.objects.create(exam=self.exam, copy_no=1, sciper=999999, first_name="Grace", last_name="Hopper",
+                                   seat="A1")
+        PrepStudent.objects.create(exam=create_mock_exam(code="OTHER"), copy_no=1, sciper=111111, first_name="F",
+                                   last_name="Other", seat="B")
+
+    def test_rows_in_copy_order(self):
+        sheet = load_workbook(io.BytesIO(build_students_export(self.exam)))["Students"]
+
+        self.assertEqual(list(sheet.iter_rows(values_only=True)), [
+            ("SCIPER *", "ROOM", "SEAT *", "LAST NAME", "FIRST NAME", "EMAIL", "SECTION"),
+            (999999, None, "A1", "Hopper", "Grace", None, None),
+            (123456, "CO 1", "A2", "Lovelace", "Ada", "ada.lovelace@epfl.ch", "MX"),
+        ])
+
+    @patch("examc_app.services.student.prep_import.get_people_by_sciper", side_effect=fake_directory)
+    def test_imported_back_unchanged(self, _directory):
+        before = list(self.exam.prepStudents.order_by("copy_no").values_list(
+            "copy_no", "sciper", "last_name", "first_name", "email", "section", "room", "seat", "needs_correction"))
+
+        students, warnings = load_students_file("students.xlsx", build_students_export(self.exam))
+        replace_prep_students(self.exam, students, warnings)
+
+        self.assertEqual(warnings, [])
+        self.assertEqual(list(self.exam.prepStudents.order_by("copy_no").values_list(
+            "copy_no", "sciper", "last_name", "first_name", "email", "section", "room", "seat", "needs_correction")),
+            before)
+
+    def test_download(self):
+        user = create_mock_user()
+        user.is_superuser = True
+        user.save()
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("download_prep_students_export", kwargs={"exam_pk": self.exam.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(f'filename="students_{self.exam.code}_', response["Content-Disposition"])
+        self.assertEqual(len(read_students_file("students.xlsx", response.content)), 2)
+
+
 class PrepStudentApiTestCase(TestCase):
     def test_lists_all_the_exam_students_by_copy_number(self):
         exam = create_mock_exam()
@@ -334,4 +403,14 @@ class PrepStudentPatchApiTestCase(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("1 student(s) of the Students page must be corrected", response.json()["error"])
+
+    def test_final_generation_blocked_while_students_without_seat(self):
+        self.student.needs_correction = False
+        self.student.seat = ""
+        self.student.save()
+
+        response = self.client.get(reverse("generate_final_exam_files_start", kwargs={"exam_pk": self.exam.pk}))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("1 student(s) of the Students page have no seat", response.json()["error"])
 

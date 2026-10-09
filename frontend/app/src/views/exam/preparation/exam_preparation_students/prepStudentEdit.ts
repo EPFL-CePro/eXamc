@@ -4,7 +4,7 @@ import { getPageBootstrap } from '@examc/helpers/page-bootstrap';
 
 import type { PrepStudentRow } from "./prepStudentsTable.ts";
 
-const FIELDS = ["sciper", "last_name", "first_name", "email", "section", "room", "seat"] as const;
+const FIELDS = ["copy_no", "sciper", "last_name", "first_name", "email", "section", "room", "seat"] as const;
 
 type ErrorResponse = {
     errors?: string[];
