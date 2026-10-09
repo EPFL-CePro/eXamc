@@ -34,7 +34,7 @@ dependencies = [
     "pandocfilters==1.5.1",
     "pillow==12.3.0",
     "pypandoc==1.15",
-    "pypdf==6.16.2",
+    "pypdf==6.19.0",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.2",
     "pytz==2025.2",
