@@ -19,6 +19,18 @@
                 <span>{{ section.title }}</span>
             </div>
         </div>
+        <div class="d-flex align-items-center">
+        <button
+            type="button"
+            class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
+            data-exam-pk="{{ exam_selected.pk }}"
+            data-prep-section="{{ section.id }}"
+            data-prep-question=""
+            data-prep-answer=""
+            title="Scoring of the questions of this section"
+            {% if is_exam_finalized %}disabled{% endif %}
+        ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
+        </button>
         {% if not is_exam_finalized %}
         <button
             class="btn btn-sm btn-light float-end"
@@ -28,6 +40,7 @@
             <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
         </button>
         {% endif %}
+        </div>
     </div>
 
     <div id="prep-section-body-{{ section.id }}" class="collapse{% if saved %} show{% endif %}">

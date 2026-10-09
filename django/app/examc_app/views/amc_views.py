@@ -235,7 +235,9 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
 
                 exam_nb_pages = 1
                 if data_capture_manual is not None:
-                    exam_nb_pages = max(data_capture_manual["pages"], key=lambda x: float(x['page']))['page']
+                    exam_nb_pages = 0
+                    if data_capture_manual["pages"]:
+                        exam_nb_pages = max(data_capture_manual["pages"], key=lambda x: float(x['page']))['page']
                     context['data_pages'] = data_capture_manual["pages"]
                     context['data_questions'] = data_capture_manual["questions"]
                     context['data_copies'] = data_capture_manual["copies"]

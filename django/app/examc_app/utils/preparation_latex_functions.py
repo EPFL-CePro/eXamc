@@ -139,6 +139,9 @@ def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
     exam_template = Path(template_exam_latex_path).read_text(encoding="utf-8")
     exam_tex = exam_template
     write_exam_generated_vars(exam, amc_project_path, pages_per_copy)
+    exam_formulas = scoring_formulas_by_type(exam.prepExamScoringFormulas.filter(
+        prep_section__isnull=True, prep_question__isnull=True, prep_answer__isnull=True))
+    write_global_scoring_file(exam_formulas, amc_project_path)
 
     #first update first page
     template_first_page_latex_path = amc_project_template_path + "/first_page_template.tex"
@@ -158,13 +161,17 @@ def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
         section_latex_file_path = render_section_tex_from_html(section, template_section_latex_path,
                                                                section_latex_path_output)
 
+        section_formulas = scoring_formulas_by_type(section.prepSectionScoringFormulas.filter(
+            prep_question__isnull=True, prep_answer__isnull=True))
         for question in section.prepQuestions.order_by("position").all():
             if question.question_type.code != 'OPEN':
                 template_question_latex_path = amc_project_template_path + "/scq_mcq_tf_template.tex"
             else:
                 template_question_latex_path = amc_project_template_path + "/open_template.tex"
 
-            render_question_tex_from_html(question, section_latex_file_path, template_question_latex_path)
+            render_question_tex_from_html(question, section_latex_file_path, template_question_latex_path,
+                                          section_formulas=section_formulas,
+                                          exam_tf_formula="TF" in exam_formulas)
 
         exam_tex = (
             exam_tex
@@ -261,7 +268,30 @@ def render_section_tex_from_html(section: PrepSection, template_path: str, outpu
     return output_path
 
 
-def render_question_tex_from_html(question: PrepQuestion, section_path: str, template_path: str) -> str:
+def question_scoring_tex(question: PrepQuestion, section_formulas: dict[str, str] | None = None,
+                         exam_tf_formula: bool = False) -> str:
+    """
+    The \\bareme of a choice question, from the most specific level that has a formula for it: the question, its
+    section (formula of its question type), the exam for a true/false question (\\baremeDefautTF of
+    global_scoring.tex). Empty otherwise: AMC then applies the exam default of simple or multiple questions
+    (\\baremeDefautS / \\baremeDefautM of global_scoring.tex).
+    AMC keeps a single default per question type for the whole exam (the last \\baremeDefautS read): the section
+    formulas are therefore written on each question of the section, not as section defaults.
+    """
+    question_scoring = question.prepQuestionScoringFormulas.filter(prep_answer__isnull=True).first()
+    if question_scoring:
+        return f'\\bareme{{{question_scoring.formula}}}'
+    code = question.question_type.code
+    if section_formulas and code in section_formulas:
+        return f'\\bareme{{{section_formulas[code]}}}'
+    if code == "TF" and exam_tf_formula:
+        return '\\bareme{\\baremeDefautTF}'
+    return ''
+
+
+def render_question_tex_from_html(question: PrepQuestion, section_path: str, template_path: str,
+                                  section_formulas: dict[str, str] | None = None,
+                                  exam_tf_formula: bool = False) -> str:
     template = Path(template_path).read_text(encoding="utf-8")
     section = Path(section_path).read_text(encoding="utf-8")
     latex_fragment_text = markdown_to_latex_pandoc(question.question_text)
@@ -311,12 +341,11 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
             .replace(PH_CORR_POINTS, corr_box_number_to_text(float(question.max_points), float(question.point_increment)))
         )
     else:
-        question_scoring = question.prepQuestionScoringFormulas.first()
         question_tex = (
             question_tex
             .replace(PH_ANSWER_TYPE, f'{answer_type_text}')
             .replace(PH_QUESTION_TYPE, question_type_text)
-            .replace(PH_QUESTION_SCORING, f'\\bareme{{{question_scoring.formula}}}' if question_scoring else '')
+            .replace(PH_QUESTION_SCORING, question_scoring_tex(question, section_formulas, exam_tf_formula))
         )
 
     if question.question_type.code == 'TF':
@@ -368,28 +397,28 @@ def render_answer_tex_from_html(answer: PrepQuestionAnswer, question_tex: str) -
     return question_tex
 
 ## scoring formulas
-def update_global_scoring_latex_file(scoring_formulas,exam_pk):
-    exam = Exam.objects.get(pk=exam_pk)
-    amc_project_path = Path(ensure_amc_project(exam))
-    filepath = amc_project_path / "global_scoring.tex"
+def scoring_formulas_by_type(scoring_formulas) -> dict[str, str]:
+    """Question type code -> formula, for the formulas of a level (exam or section) that have a question type."""
+    return {f.question_type.code: f.formula for f in scoring_formulas.select_related("question_type").order_by("pk")
+            if f.question_type and f.formula}
 
-    lines = []
 
-    for scoring_formula in scoring_formulas:
-        if scoring_formula.question_type.code == 'SCQ':
-            lines.append(f"\\baremeDefautS{{{scoring_formula.formula}}}")
-        elif scoring_formula.question_type.code == 'MCQ':
-            lines.append(f"\\baremeDefautM{{{scoring_formula.formula}}}")
-        elif scoring_formula.question_type.code == 'TF':
-            lines.append(f"\\newcommand{{\\baremeDefautTF}}{{{scoring_formula.formula}}}")
-
-    content = "% Auto-generated scoring formulas\n"
-    if lines:
-        content += "\n".join(lines) + "\n"
-
-    filepath.write_text(content, encoding="utf-8")
-
-    return True
+def write_global_scoring_file(exam_formulas: dict[str, str], amc_project_path) -> Path:
+    """
+    global_scoring.tex, input in the preamble of exam.tex: the exam formulas (see scoring_formulas_by_type) as AMC
+    defaults of the simple (SCQ) and multiple (MCQ) questions. AMC has no default for the true/false questions:
+    \\baremeDefautTF is given to each of them (see question_scoring_tex).
+    """
+    lines = ["% Auto-generated scoring formulas of the exam - do not edit"]
+    if "SCQ" in exam_formulas:
+        lines.append(f"\\baremeDefautS{{{exam_formulas['SCQ']}}}")
+    if "MCQ" in exam_formulas:
+        lines.append(f"\\baremeDefautM{{{exam_formulas['MCQ']}}}")
+    if "TF" in exam_formulas:
+        lines.append(f"\\newcommand{{\\baremeDefautTF}}{{{exam_formulas['TF']}}}")
+    filepath = Path(amc_project_path) / "global_scoring.tex"
+    filepath.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return filepath
 
 # functions to get LaTeX package installed on server
 INTERNAL_PATTERNS = [

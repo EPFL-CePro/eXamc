@@ -177,6 +177,11 @@ def get_existing_question_type_ids(exam_pk, scope, prep_section=None, prep_quest
     return list(qs.values_list("question_type_id", flat=True))
 
 
+# Question types (QuestionType.code) that a scoring formula can be given to
+SCORED_QUESTION_TYPES = ("SCQ", "MCQ", "TF")
+FORMULA_FORBIDDEN_CHARACTERS = "%\\{}#"
+
+
 class PrepScoringFormulaForm(forms.ModelForm):
     class Meta:
         model = PrepScoringFormula
@@ -206,7 +211,8 @@ class PrepScoringFormulaForm(forms.ModelForm):
         self._filter_question_type_choices()
 
     def _filter_question_type_choices(self):
-        qs = QuestionType.objects.exclude(code="OPEN")
+        # The open questions are scored by their corrector boxes, not by a formula
+        qs = QuestionType.objects.filter(code__in=SCORED_QUESTION_TYPES)
 
         existing_qt_ids = get_existing_question_type_ids(
             exam_pk=self.exam_pk,
@@ -222,7 +228,16 @@ class PrepScoringFormulaForm(forms.ModelForm):
         if self.instance and self.instance.pk and self.instance.question_type_id:
             qs = (QuestionType.objects.filter(pk=self.instance.question_type_id) | qs).distinct()
 
-        self.fields["question_type"].queryset = qs.distinct()
+        self.fields["question_type"].queryset = qs.distinct().order_by("pk")
+        self.fields["question_type"].empty_label = "Choose a question type"
+
+    def clean_formula(self):
+        formula = (self.cleaned_data.get("formula") or "").strip()
+        # Written as is in \bareme{...} (see preparation_latex_functions): these characters would break the LaTeX
+        forbidden = sorted({c for c in formula if c in FORMULA_FORBIDDEN_CHARACTERS})
+        if forbidden:
+            raise forms.ValidationError(f"These characters are not allowed: {' '.join(forbidden)}")
+        return formula
 
     def clean(self):
         cleaned_data = super().clean()

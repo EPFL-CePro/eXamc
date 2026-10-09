@@ -27,7 +27,6 @@ from examc_app.services.student.prep_amc_csv import STUDENTS_CSV_NAME
 from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_path
 from examc_app.utils.preparation_latex_functions import (
     update_exam_latex,
-    update_global_scoring_latex_file,
 )
 
 
@@ -463,12 +462,8 @@ def save_scoring_formulas(
         else:
             instance.save()
 
-    if scope == "exam":
-        exam_scoring_formulas = PrepScoringFormula.objects.filter(exam_id=exam_pk,prep_section_id=None,prep_question_id=None,prep_answer_id=None)
-        update_global_scoring_latex_file(exam_scoring_formulas, exam_pk)
-    else:
-        # Question and answer formulas are written inline by the LaTeX generation
-        update_exam_latex(Exam.objects.get(pk=exam_pk))
+    # Exam formulas in global_scoring.tex, the others on the questions and answers (see question_scoring_tex)
+    update_exam_latex(Exam.objects.get(pk=exam_pk))
 
     return instances
 

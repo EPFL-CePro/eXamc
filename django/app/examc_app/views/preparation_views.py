@@ -1153,12 +1153,6 @@ def scoring_formulas_modal(request, exam_pk):
 @exam_permission_required(["manage"])
 def delete_scoring_formula(request, exam_pk, pk):
     if request.method != "POST":
-        exam = Exam.objects.get(pk=exam_pk)
-
-        locked = ensure_exam_not_finalized(exam)
-        if locked:
-            return locked
-
         return JsonResponse(
             {
                 "success": False,
@@ -1167,8 +1161,15 @@ def delete_scoring_formula(request, exam_pk, pk):
             status=405,
         )
 
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
     obj = get_object_or_404(PrepScoringFormula, pk=pk, exam_id=exam_pk)
     obj.delete()
+    # The formula is removed from global_scoring.tex or from its questions and answers
+    update_exam_latex(exam)
 
     return JsonResponse(
         {
