@@ -33,7 +33,7 @@ from examc_app.exceptions.amc import (
 from examc_app.models import Exam, PageMarkers, PagesGroup, UnrecognizedReviewScan
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.services.amc_jobs import AmcJobsManager
-from examc_app.services.exam.paths import get_exam_marked_scans_dir
+from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
 from examc_app.signing import make_token_for
 from examc_app.tasks import (
     amc_annotate_task,
@@ -681,11 +681,9 @@ def stream_import_scans_from_review(request: HttpRequest, exam):
     if os.path.exists(file_list_path):
         os.remove(file_list_path)
 
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir = str(get_exam_scans_dir(exam))
     logger.info("AMC full review import scans_dir exam=%s path=%s", exam.pk, scans_dir)
-    marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    marked_dir = str(get_exam_marked_scans_dir(exam))
 
     yield "Generating marked scans from review annotations ...\n"
     logger.info("AMC full review import marked scan generation started exam=%s", exam.pk)

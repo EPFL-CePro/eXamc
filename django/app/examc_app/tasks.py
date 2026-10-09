@@ -25,6 +25,7 @@ from examc_app.models import (
     Student,
     StudentQuestionAnswer,
 )
+from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
 from examc_app.utils.amc.amc_build_functions import build_final_exam
 from examc_app.utils.amc.amc_layout_functions import (
     LayoutExtractionError,
@@ -38,7 +39,6 @@ from examc_app.utils.amc_functions import (
     amc_automatic_datacapture_subprocess,
     get_amc_project_path,
 )
-from examc_app.services.exam.paths import get_exam_marked_scans_dir
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
 from examc_app.utils.marker_rendering import (
     iter_render_grading_only_marked_scans,
@@ -326,7 +326,6 @@ def import_exam_scans(self, zip_file_path, exam_pk: int, delete_old):
             process_count) + ' - AMC Automatic datacapture...')
         print('*********** start amc datacapture')
 
-        # scans_folder_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
         # file_list_path = scans_folder_path + "/list-file"
         # tmp_file_list = open(file_list_path, "a+")
         #
@@ -351,8 +350,8 @@ def import_exam_scans(self, zip_file_path, exam_pk: int, delete_old):
 def generate_marked_files_zip(self,exam_pk: int,  export_type, with_comments):
     try:
         exam = Exam.objects.get(pk=exam_pk)
-        scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
-        marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code+"_"+exam.date.strftime("%Y%m%d")
+        scans_dir = str(get_exam_scans_dir(exam))
+        marked_dir = str(get_exam_marked_scans_dir(exam))
         task_token = str(self.request.id or uuid.uuid4()).replace("-", "")
         export_subdir = 'marked_'+str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f') + "_" + task_token[:12]
         export_subdir = export_subdir.replace(" ","_")
@@ -571,17 +570,7 @@ def _write_review_import_file_list(exam, scans_list=None):
         os.remove(file_list_path)
 
     if scans_list is None:
-        scans_dir = (
-            str(settings.SCANS_ROOT)
-            + "/"
-            + str(exam.year.code)
-            + "/"
-            + str(exam.semester.code)
-            + "/"
-            + exam.code
-            + "_"
-            + exam.date.strftime("%Y%m%d")
-        )
+        scans_dir = get_exam_scans_dir(exam)
         scans_list = [str(path) for path in iter_review_scan_files(scans_dir)]
 
     count = 0
