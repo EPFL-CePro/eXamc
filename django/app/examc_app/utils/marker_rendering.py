@@ -36,7 +36,7 @@ from examc_app.models import (
     PagesGroupGradingSchemeCheckedBox,
     QuestionGradingScheme,
 )
-from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import (
     get_amc_marks_positions_data,
@@ -440,18 +440,19 @@ def get_review_corr_box_index_for_page(page_markers: PageMarkers) -> int | None:
         amc_project_path = get_amc_project_path(pages_group.exam, True)
         if not amc_project_path: return None
         amc_data_path = amc_project_path + "/data/"
+        amc_copy_nr = get_amc_copy_nr(amc_data_path, copy_nr)
 
         with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-            question_page = amc_layout_db_manager.select_copy_question_page(copy_nr, pages_group.group_name)
+            question_page = amc_layout_db_manager.select_copy_question_page(amc_copy_nr, pages_group.group_name)
 
         # Only the page that owns the corr boxes should render the grading overlay.
         if str(question_page) not in copy_number_variants(page_markers.page_no):
             return -1
 
         with AmcScoringDbManager(amc_data_path=amc_data_path) as amc_scoring_db_manager:
-            max_points = float(amc_scoring_db_manager.get_question_max_points(pages_group.group_name, copy_nr))
+            max_points = float(amc_scoring_db_manager.get_question_max_points(pages_group.group_name, amc_copy_nr))
 
-        amc_corr_boxes = get_amc_marks_positions_data(pages_group.exam, copy_nr.lstrip("0"), float(question_page)) or []
+        amc_corr_boxes = get_amc_marks_positions_data(pages_group.exam, str(amc_copy_nr), float(question_page)) or []
         nb_boxes = len(amc_corr_boxes) / 4 - 1
         if nb_boxes <= 0 or max_points <= 0:
             return -1
@@ -481,7 +482,8 @@ def build_grading_corr_box_marker(page_markers: PageMarkers, state: dict, image_
         return None
 
     page_no = float(str(page_markers.page_no))
-    corr_boxes = get_amc_marks_positions_data(page_markers.exam, str(page_markers.copie_no).lstrip("0"), page_no) or []
+    amc_copy_nr = get_amc_copy_nr(get_amc_project_path(page_markers.exam, True) + "/data/", page_markers.copie_no)
+    corr_boxes = get_amc_marks_positions_data(page_markers.exam, str(amc_copy_nr), page_no) or []
     start = corr_box_index * 4
     selected_box = corr_boxes[start:start + 4]
     if len(selected_box) != 4:
@@ -614,7 +616,9 @@ def build_synthetic_page_markers_for_grading(pages_group: PagesGroup, copy_nr: s
 
     try:
         with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-            question_page = amc_layout_db_manager.select_copy_question_page(copy_nr, pages_group.group_name)
+            question_page = amc_layout_db_manager.select_copy_question_page(
+                get_amc_copy_nr(amc_data_path, copy_nr), pages_group.group_name
+            )
     except (IndexError, TypeError, ValueError, AttributeError):
         logger.warning(
             "Skipping grading-only render: no AMC question page for pages_group=%s copy_nr=%s",

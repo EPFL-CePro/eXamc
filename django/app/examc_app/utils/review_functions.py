@@ -27,7 +27,7 @@ from examc_app.models import (
     UnrecognizedReviewScan,
 )
 from examc_app.signing import make_token_for
-from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.examc_qr import ScanQr, parse_scan_qr, scan_exams, scan_qr_exam_problem
 
@@ -535,7 +535,9 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
     @lru_cache(maxsize=4096)
     def get_from_to(copy_no_int: int):
         with AmcLayoutDbManager(amc_data_path=str(amc_data_root)) as amc_layout_db_manager:
-            pages = amc_layout_db_manager.get_question_start_page_by_student(pages_group.group_name, copy_no_int)
+            pages = amc_layout_db_manager.get_question_start_page_by_student(
+                pages_group.group_name, get_amc_copy_nr(amc_data_root, copy_no_int)
+            )
 
             if not pages: return None
             from_p = pages[0]["page"]

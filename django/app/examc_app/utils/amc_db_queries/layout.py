@@ -1,4 +1,6 @@
 import logging
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from examc_app.exceptions.amc import AmcDbManagerError
@@ -170,3 +172,51 @@ class AmcLayoutDbManager(AbstractAmcDbManager):
         )
 
         return self._rows_as_dicts(cursor)
+
+    # ------------------------------------------------------------------
+    # layout_association
+    # ------------------------------------------------------------------
+    def select_associations(self) -> dict[str, int]:
+        """
+        The pre-association of the copies (\\AMCassociation{<ID>} in the LaTeX source, written when AMC prepares the
+        project, before any scan): {<ID>: <copy number>}, empty when the project has none.
+        """
+        query_str = "SELECT student, id FROM layout_association"
+
+        cursor = self._execute(query_str, error="Could not read the pre-association of the copies")
+
+        return {str(row_id).strip(): student for student, row_id in cursor.fetchall()
+                if row_id is not None and str(row_id).strip()}
+
+
+def normalize_amc_id(value) -> str:
+    """'0032' and '32' are the same ID: a CSV read by pandas loses the leading zeros of the IDs printed in the QR codes."""
+    text = str(value).strip()
+    return str(int(text)) if text.isdigit() else text
+
+
+@lru_cache(maxsize=64)
+def _copy_numbers_by_id(amc_data_path: str, mtime: float) -> dict[str, int]:
+    # mtime: read again when AMC prepares the project again
+    try:
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            associations = amc_layout_db_manager.select_associations()
+    except AmcDbManagerError:
+        logger.exception("Could not read the pre-association of the AMC project %s", amc_data_path)
+        return {}
+    return {normalize_amc_id(row_id): copy_nr for row_id, copy_nr in associations.items()}
+
+
+def get_amc_copy_nr(amc_data_path, review_copy_nr) -> int:
+    """
+    The AMC copy number of a review copy. The review copies are numbered by the QR codes of the pages, which hold the
+    ID of the students list (\\ID), while AMC numbers its copies 1, 2, 3... in the order of the list: the
+    pre-association of the project (see select_associations) gives the AMC copy of an ID. Without it, or for an ID it
+    does not know, the review copy number is the AMC one.
+    """
+    layout_path = Path(amc_data_path) / AmcDbFile.LAYOUT.value
+    copy_numbers = {}
+    if layout_path.is_file():
+        copy_numbers = _copy_numbers_by_id(str(Path(amc_data_path)), layout_path.stat().st_mtime)
+    copy_nr = copy_numbers.get(normalize_amc_id(review_copy_nr))
+    return copy_nr if copy_nr is not None else int(str(review_copy_nr).strip())
