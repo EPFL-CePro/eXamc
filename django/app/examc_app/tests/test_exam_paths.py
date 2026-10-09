@@ -17,7 +17,7 @@ from examc_app.services.exam.paths import (
     get_exam_marked_scans_dir,
     get_exam_scans_dir,
     get_exam_subdir,
-    rename_exam_folders,
+    update_exam_folders,
 )
 
 
@@ -81,7 +81,7 @@ class RenameExamFoldersTests(SimpleTestCase):
         self.make("SCANS_ROOT", "2025-2026/1/A_20260109")
         self.make("CATALOG_ROOT", "2025-2026/1/A_20260109")
 
-        moved = rename_exam_folders("2025-2026/1/A_20260109", "2026-2027/2/B_20260210")
+        moved = update_exam_folders("2025-2026/1/A_20260109", "2026-2027/2/B_20260210")
 
         self.assertEqual(len(moved), 2)
         self.assertTrue((self.roots["SCANS_ROOT"] / "2026-2027/2/B_20260210/f.txt").exists())  # new year dir created
@@ -89,11 +89,11 @@ class RenameExamFoldersTests(SimpleTestCase):
         self.assertFalse((self.roots["SCANS_ROOT"] / "2025-2026/1/A_20260109").exists())
 
     def test_nothing_to_move_is_not_an_error(self):
-        self.assertEqual(rename_exam_folders("2025-2026/1/A_20260109", "2025-2026/1/A_20260110"), [])
+        self.assertEqual(update_exam_folders("2025-2026/1/A_20260109", "2025-2026/1/A_20260110"), [])
 
     def test_same_subdir_does_nothing(self):
         self.make("SCANS_ROOT", "2025-2026/1/A_20260109")
-        self.assertEqual(rename_exam_folders("2025-2026/1/A_20260109", "2025-2026/1/A_20260109"), [])
+        self.assertEqual(update_exam_folders("2025-2026/1/A_20260109", "2025-2026/1/A_20260109"), [])
         self.assertTrue((self.roots["SCANS_ROOT"] / "2025-2026/1/A_20260109").exists())
 
     def test_conflict_moves_nothing_and_never_nests(self):
@@ -102,7 +102,7 @@ class RenameExamFoldersTests(SimpleTestCase):
         self.make("AMC_PROJECTS_ROOT", "2025-2026/1/B_20260109", "other.txt")  # another exam
 
         with self.assertRaises(ExamFolderConflictError):
-            rename_exam_folders("2025-2026/1/A_20260109", "2025-2026/1/B_20260109")
+            update_exam_folders("2025-2026/1/A_20260109", "2025-2026/1/B_20260109")
 
         self.assertTrue((self.roots["SCANS_ROOT"] / "2025-2026/1/A_20260109/f.txt").exists())  # untouched
         self.assertFalse((self.roots["AMC_PROJECTS_ROOT"] / "2025-2026/1/B_20260109/A_20260109").exists())

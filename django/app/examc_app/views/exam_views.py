@@ -24,7 +24,7 @@ from examc_app.models import (
     Scale,
     Semester,
 )
-from examc_app.services.exam.paths import get_exam_subdir, rename_exam_folders
+from examc_app.services.exam.paths import get_exam_subdir, update_exam_folders
 from examc_app.tasks import generate_statistics
 from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import user_allowed
@@ -199,7 +199,7 @@ def update_exam_info(request, exam_pk: int):
     new_folder_path = get_exam_subdir(exam)
 
     if old_folder_path != new_folder_path:
-        rename_exam_folders(old_folder_path, new_folder_path)
+        update_exam_folders(old_folder_path, new_folder_path)
 
     return redirect('examInfo', exam_pk=exam.pk)
 

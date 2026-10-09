@@ -71,7 +71,7 @@ def get_exam_amc_project_url(exam: Exam) -> str:
     return f"{settings.AMC_PROJECTS_URL}{get_exam_subdir(exam)}"
 
 
-def rename_exam_folders(old_subdir: str, new_subdir: str) -> list[Path]:
+def update_exam_folders(old_subdir: str, new_subdir: str) -> list[Path]:
     """
     Move the folders of an exam from one subdir to another, in every storage root where it exists.
 
