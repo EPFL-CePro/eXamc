@@ -16,6 +16,7 @@ from examc_app.models import (
     PrepSection,
 )
 from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_path
+from examc_app.utils.examc_qr import qr_exam_fields
 
 #PLACEHOLDERS FOR TEMPLATES
 PH_NEW_PAGE = '%NEW-PAGE%'
@@ -114,7 +115,7 @@ def markdown_to_latex_pandoc(markdown: str) -> str:
     )
     return postprocess_latex(latex)
 
-def write_exam_generated_vars(project_path: str, pages_per_copy: int | None) -> str:
+def write_exam_generated_vars(exam: Exam, project_path: str, pages_per_copy: int | None) -> str:
     if pages_per_copy is None:
         pages_value = "2"
     else:
@@ -123,7 +124,9 @@ def write_exam_generated_vars(project_path: str, pages_per_copy: int | None) -> 
     vars_tex_path = Path(project_path) / "examc_generated_vars.tex"
     vars_tex_path.write_text(
         "% Auto-generated file - do not edit\n"
-        f"\\newcommand{{\\TotalPagesPerCopy}}{{{pages_value}}}\n",
+        f"\\newcommand{{\\TotalPagesPerCopy}}{{{pages_value}}}\n"
+        # Start of the QR code of each page, see examc_qr.py
+        f"\\newcommand{{\\ExamcQRExam}}{{{qr_exam_fields(exam)}}}\n",
         encoding="utf-8",
     )
     return str(vars_tex_path)
@@ -135,7 +138,7 @@ def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
     exam_latex_path_output = amc_project_path + "/exam.tex"
     exam_template = Path(template_exam_latex_path).read_text(encoding="utf-8")
     exam_tex = exam_template
-    write_exam_generated_vars(amc_project_path, pages_per_copy)
+    write_exam_generated_vars(exam, amc_project_path, pages_per_copy)
 
     #first update first page
     template_first_page_latex_path = amc_project_template_path + "/first_page_template.tex"

@@ -190,6 +190,8 @@ class UnrecognizedReviewScan(models.Model):
     filename = models.CharField(max_length=255)
     original_filename = models.CharField(max_length=255, blank=True)
     upload_order = models.PositiveIntegerField()
+    # Why the scan was not placed, for the user ("" when it has no eXamc QR code)
+    reason = models.CharField(max_length=255, blank=True)
 
     previous_copy_no = models.CharField(max_length=10, blank=True)
     previous_page_no = models.CharField(max_length=10, blank=True)

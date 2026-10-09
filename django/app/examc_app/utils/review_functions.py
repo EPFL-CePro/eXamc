@@ -29,6 +29,7 @@ from examc_app.models import (
 from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
+from examc_app.utils.examc_qr import ScanQr, parse_scan_qr, scan_exams, scan_qr_exam_problem
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 UNRECOGNIZED_REVIEW_SCAN_DIR = "unrecognized"
@@ -67,18 +68,17 @@ def iter_review_scan_files(scans_dir):
                 yield pathlib.Path(file_entry.path)
 
 
-def get_expected_review_qr_data(decoded_objects):
+def get_expected_review_qr_data(decoded_objects) -> ScanQr | None:
+    """The eXamc QR code among the decoded ones of a scanned page (see parse_scan_qr)."""
     for obj in decoded_objects:
         if str(obj.type) != "QRCODE":
             continue
-        if "CePROExamsQRC" not in str(obj.data) and "eXamcQRC" not in str(obj.data):
-            continue
         try:
-            data = obj.data.decode("utf-8").split(",")
+            qr = parse_scan_qr(obj.data.decode("utf-8"))
         except UnicodeDecodeError:
             continue
-        if len(data) >= 3 and data[1] and data[2]:
-            return data[1], data[2]
+        if qr:
+            return qr
     return None
 
 
@@ -291,6 +291,7 @@ def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count
     last_copy_nr = 0
     last_recognized_scan = None
     pending_unrecognized_ids = []
+    exams = scan_exams(exam)
     scans_files = sorted(os.listdir(tmp_extract_path))
 
     for upload_order, filename in enumerate(scans_files, start=1):
@@ -313,8 +314,12 @@ def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count
             im = cv2.imread(f)
             decodedObjects = pyzbar.decode(im)
             qr_data = get_expected_review_qr_data(decodedObjects)
+            # A page of another exam is left to the user like a page without QR code
+            exam_problem = scan_qr_exam_problem(qr_data, exams) if qr_data else None
+            if exam_problem:
+                print(f' -- {filename}: {exam_problem}')
 
-            if not qr_data:
+            if not qr_data or exam_problem:
                 os.makedirs(unrecognized_dir, exist_ok=True)
                 destination = get_unrecognized_scan_path(unrecognized_dir, upload_order, pathlib.Path(filename).suffix)
                 os.rename(f, destination)
@@ -326,6 +331,7 @@ def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count
                     filename=destination.name,
                     original_filename=filename,
                     upload_order=upload_order,
+                    reason=exam_problem or "",
                     previous_copy_no=previous.get("copy_no", ""),
                     previous_page_no=previous.get("page_no", ""),
                     previous_relative_path=previous.get("relative_path", ""),
@@ -333,7 +339,7 @@ def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count
                 pending_unrecognized_ids.append(unrecognized_scan.pk)
                 continue
 
-            copy_nr, page_nr = qr_data
+            copy_nr, page_nr = qr_data.copy_no, qr_data.page_no
             copy_nr_dir = str(copy_nr).zfill(4)
             page_nr_normalized = str(page_nr).zfill(2)
 

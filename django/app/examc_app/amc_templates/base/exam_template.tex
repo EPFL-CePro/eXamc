@@ -65,6 +65,12 @@
 \InputIfFileExists{./examc_generated_vars.tex}{}{}
 \providecommand{\TotalPagesPerCopy}{2}
 
+% QR code of each page, read when the scans are imported (examc_qr.py): "<exam fields>,<ID>,<page>", the exam
+% fields ("eXamcQRC2,<exam pk>,<exam code>,<date>") being written in examc_generated_vars.tex. Defined here and not
+% in style_extra.tex, which is only copied once into the project (older copies print the QR code without exam).
+\providecommand{\ExamcQRExam}{eXamcQRC2,,,}
+\renewcommand\AMCIDBoxesABC{\hbox{\vbox{\noindent\AMCIDBoxesA\\\noindent\AMCIDBoxesB\AMCIDBoxesC}\vspace{-.5cm}\qrcode[height=15mm]{\ExamcQRExam,\ID,\thepage}}}%
+
 % Exam-level scoring formulas, written by update_global_scoring_latex_file()
 \InputIfFileExists{./global_scoring.tex}{}{}
 \providecommand{\baremeDefautTF}{}
