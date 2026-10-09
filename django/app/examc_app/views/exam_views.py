@@ -186,12 +186,7 @@ def update_exam_info(request, exam_pk: int):
 
     exam = Exam.objects.get(pk=exam_pk)
 
-    if exam.date :
-        old_exam_date = exam.date.strftime("%Y-%m-%d")
-    else:
-        old_exam_date = today().strftime("%Y-%m-%d")
-    old_folder_path = f"/{exam.year.code}/{exam.semester.code}/{exam.code}_{old_exam_date}"
-    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + old_exam_date#.replace("-","")
+    old_folder_path =  _exam_folder_path(exam)
     exam.date = datetime.strptime(request.POST.get('date'),"%Y-%m-%d")
     exam.code = request.POST.get('code')
     exam.name = request.POST.get('name')
@@ -199,13 +194,16 @@ def update_exam_info(request, exam_pk: int):
     exam.year_id = request.POST.get('year_id')
     exam.save()
 
-    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.replace("-","")
+    new_folder_path = _exam_folder_path(exam)
 
     if old_folder_path != new_folder_path:
         update_folders_paths(old_folder_path, new_folder_path)
 
     return redirect('examInfo', exam_pk=exam.pk)
 
+
+def _exam_folder_path(exam: Exam) -> str:
+    return f"/{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
 
 class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
     template_name = 'exam/scale_create.html'
