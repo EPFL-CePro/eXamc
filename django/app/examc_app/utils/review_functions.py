@@ -511,7 +511,7 @@ def get_scans_pathes_by_group(pagesGroup):
 
     scans_pathes = []
 
-    scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam)
+    scans_markers_qs = PageMarkers.objects.filter(exam=pagesGroup.exam, pages_group=pagesGroup)
 
     if os.path.exists(scans_dir):
         for dir in sorted(os.listdir(scans_dir)):
@@ -612,9 +612,10 @@ def get_copies_pages_by_group(pagesGroup):
 
     # ---- DB: pull once, then do O(1) lookups in-memory ----------------------
     # Page markers -> (copy_no_z4, page_no_norm) -> marked_bool
+    # Markers of this group only: a page can hold several questions, graded in their own groups
     scans_markers = (
         PageMarkers.objects
-        .filter(exam=exam)
+        .filter(exam=exam, pages_group=pagesGroup)
         .values("copie_no", "page_no", "markers", "correctorBoxMarked")
     )
     markers_idx = {

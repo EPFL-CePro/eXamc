@@ -146,7 +146,11 @@ def select_questions(amc_data_path):
 
     return data_questions
 
-def select_marks_positions(amc_data_path,copy,page,seuil):
+def select_marks_positions(amc_data_path,copy,page,seuil,question_name=None):
+    """
+    The corner positions of the answer boxes of a page of a copy. With `question_name` (layout_question.name, the
+    pages group name), only the boxes of this question: a page can hold the boxes of several questions.
+    """
 
     scoring_exists = False
     if Path(amc_data_path + 'scoring.sqlite').stat().st_size > 0:
@@ -194,8 +198,14 @@ def select_marks_positions(amc_data_path,copy,page,seuil):
              " WHERE cp.zoneid in "
              "   (SELECT cz2.zoneid from capture_zone cz2 WHERE cz2.student = " + str(copy) + " AND cz2.page = " + str(page) + ") "
              "AND cp.type = 1 "
-             "AND cz.type = 4 "
-             "ORDER BY cz.id_b")#zk.y_key DESC, zk.x_key DESC, cp.corner ASC")
+             "AND cz.type = 4 ")
+
+    if question_name is not None:
+        db.cur.execute("ATTACH DATABASE '" + amc_data_path + "layout.sqlite' as layout")
+        query_str += ("AND cz.id_a IN (SELECT lq.question FROM layout.layout_question lq "
+                      "WHERE lq.name = '" + str(question_name).replace("'", "''") + "') ")
+
+    query_str += "ORDER BY cz.id_b"  # zk.y_key DESC, zk.x_key DESC, cp.corner ASC
 
     response = db.execute_query(query_str)
     data_positions = []
