@@ -5,8 +5,7 @@
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from examc import settings
-from examc_app.models import QuestionType, Exam
+from examc_app.models.exam import Exam, QuestionType
 
 AUTH_USER_MODEL = "auth.User"
 BOX_TYPE_CHOICES = [("grid","Grid"),("blank","Blank")]

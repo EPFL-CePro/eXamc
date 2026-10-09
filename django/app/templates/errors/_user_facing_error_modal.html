@@ -1,0 +1,55 @@
+{# Modal showing UserFacingError messages, from a redirect (Django messages) or an AJAX response. #}
+<div class="modal fade" id="user-error-modal" tabindex="-1" aria-labelledby="user-error-modal-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="user-error-modal-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="user-error-modal-message" style="white-space: pre-line"></p>
+      </div>
+      <div class="modal-footer">
+        <a id="user-error-modal-action" class="btn btn-primary d-none"></a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="user-error-messages" hidden>
+  {% for message in messages %}
+    {% if "error-modal" in message.extra_tags %}<span data-error="{{ message }}"></span>{% endif %}
+  {% endfor %}
+</div>
+
+<script>
+  const DEFAULT_USER_ERROR = { title: "Something went wrong", detail: "Please try again or contact support." };
+
+  function showUserError(error) {
+    error = { ...DEFAULT_USER_ERROR, ...error };
+    document.getElementById("user-error-modal-title").textContent = error.title;
+
+    const messageElement = document.getElementById("user-error-modal-message");
+    if (error.detail_html) {
+      // Rendered server-side from a template written in code, with escaped variables.
+      messageElement.innerHTML = error.detail_html;
+    } else {
+      messageElement.textContent = error.detail;
+    }
+
+    const action = document.getElementById("user-error-modal-action");
+    action.classList.toggle("d-none", !error.action_url);
+    if (error.action_url) {
+      action.href = error.action_url;
+      action.textContent = error.action_label || "Continue";
+    }
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("user-error-modal")).show();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const pending = document.querySelector("#user-error-messages [data-error]");
+    if (pending) showUserError(JSON.parse(pending.dataset.error));
+  });
+</script>

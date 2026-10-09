@@ -1,7 +1,16 @@
+from django import forms
 from django.test import TestCase
 
-from examc_app.forms import *
-from examc_app.models import *
+from examc_app.forms.general import (
+    LoginForm,
+)
+from examc_app.forms.results_statistics import ExportMarkedFilesForm, ExportResultsForm
+from examc_app.forms.review import (
+    ManagePagesGroupsForm,
+    ManageReviewersForm,
+    UploadScansForm,
+)
+from examc_app.models import ExamUser, PagesGroup
 
 
 class FormsTestCase(TestCase):

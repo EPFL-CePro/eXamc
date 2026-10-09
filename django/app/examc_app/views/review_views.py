@@ -3,31 +3,76 @@
 """
 import json
 import logging
-from django.utils import timezone
+import math
+import os
+import pathlib
+from datetime import datetime
+from functools import wraps
 from typing import Any
 
-import math
-from datetime import timedelta
-from functools import wraps
-
-from celery.result import AsyncResult
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError
-from django.http import HttpResponse, FileResponse, HttpResponseRedirect, Http404
+from django.db import IntegrityError, transaction
+from django.db.models import Sum
+from django.http import HttpResponse
 from django.http.request import HttpRequest
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST, require_GET
-from django.views.generic import DetailView
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_POST
 
+from examc import settings
 from examc_app.decorators import exam_permission_required
-from examc_app.forms import *
-from examc_app.mixins import ExamPermissionAndRedirectMixin
-from examc_app.tasks import import_exam_scans, generate_marked_files_zip
-from examc_app.utils.amc_functions import *
+from examc_app.forms.results_statistics import ExportMarkedFilesForm
+from examc_app.forms.review import (
+    DeleteUnrecognizedReviewScansForm,
+    GradingSchemeCheckboxFormSet,
+    GradingSchemeForm,
+)
+from examc_app.models import (
+    Exam,
+    PageMarkers,
+    PageMarkersUser,
+    PagesGroup,
+    PagesGroupComment,
+    PagesGroupGradingSchemeCheckedBox,
+    PagesGroupStudentReportNote,
+    QuestionGradingScheme,
+    QuestionGradingSchemeCheckBox,
+    ReviewLock,
+    Student,
+    UnrecognizedReviewScan,
+)
+from examc_app.services.celery_tasks import is_celery_task_active
+from examc_app.services.review.grading import (
+    get_amc_question_layout_and_marks,
+    get_review_corr_box_index,
+)
+from examc_app.services.review.locks import cleanup_expired_review_locks
+from examc_app.services.review.unrecognized_scans import (
+    build_unrecognized_review_scan_context,
+)
+from examc_app.services.review.upload import get_upload_scan_pending_context
+from examc_app.signing import verify_and_get_path
+from examc_app.tasks import generate_marked_files_zip, import_exam_scans
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
+from examc_app.utils.amc_functions import (
+    get_amc_layout_detection_info,
+    get_amc_marks_positions_data,
+    get_amc_project_path,
+    get_amc_update_document_info,
+)
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import *
+from examc_app.utils.review_functions import (
+    assign_unrecognized_review_scan_file,
+    delete_unrecognized_review_scan_file,
+    get_copies_pages_by_group,
+    get_grading_scheme_checkboxes,
+    get_question_points,
+    get_scan_url,
+    get_scans_list_by_copy,
+    other_grading_scheme_used,
+)
 from examc_app.utils.review_settings_guards import (
     decimal_value_changed,
     grading_scheme_has_usage,
@@ -37,146 +82,10 @@ from examc_app.utils.review_settings_guards import (
 )
 from examc_app.utils.review_upload_state import (
     get_pending_amc_import_upload_task_id,
-    has_pending_amc_import,
     set_pending_amc_import,
 )
 
 logger = logging.getLogger(__name__)
-
-ACTIVE_CELERY_STATES = ("PENDING", "RECEIVED", "STARTED", "PROGRESS", "RETRY")
-
-
-def _page_number_as_int(page_no):
-    try:
-        return int(str(page_no).split(".", 1)[0])
-    except (TypeError, ValueError):
-        return None
-
-
-def _format_unrecognized_scan_suggestion(scan):
-    if scan.previous_copy_no and scan.next_copy_no and scan.previous_copy_no == scan.next_copy_no:
-        previous_page = _page_number_as_int(scan.previous_page_no)
-        next_page = _page_number_as_int(scan.next_page_no)
-        if previous_page is not None and next_page is not None and next_page - previous_page == 2:
-            page_width = max(len(scan.previous_page_no), len(scan.next_page_no), 2)
-            return f"Copy {scan.previous_copy_no}, missing page {previous_page + 1:0{page_width}d}"
-        return f"Copy {scan.previous_copy_no}, between pages {scan.previous_page_no} and {scan.next_page_no}"
-    if scan.previous_copy_no:
-        return f"After copy {scan.previous_copy_no}, page {scan.previous_page_no}"
-    if scan.next_copy_no:
-        return f"Before copy {scan.next_copy_no}, page {scan.next_page_no}"
-    return "No recognized neighbor"
-
-
-def _format_page_number_like(value, reference):
-    page_number = _page_number_as_int(value)
-    if page_number is None:
-        return ""
-    return f"{page_number:0{max(len(str(reference or '')), 2)}d}"
-
-
-def _get_unrecognized_scan_assignment_defaults(scan: UnrecognizedReviewScan):
-    if scan.previous_copy_no and scan.next_copy_no and scan.previous_copy_no == scan.next_copy_no:
-        previous_page = _page_number_as_int(scan.previous_page_no)
-        next_page = _page_number_as_int(scan.next_page_no)
-        if previous_page is not None and next_page is not None and next_page - previous_page == 2:
-            page_width = max(len(scan.previous_page_no), len(scan.next_page_no), 2)
-            return {
-                "copy_no": scan.previous_copy_no,
-                "page_no": f"{previous_page + 1:0{page_width}d}",
-                "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_NORMAL,
-            }
-        return {
-            "copy_no": scan.previous_copy_no,
-            "page_no": scan.previous_page_no,
-            "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_EXTRA,
-        }
-    if scan.previous_copy_no:
-        return {
-            "copy_no": scan.previous_copy_no,
-            "page_no": scan.previous_page_no,
-            "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_EXTRA,
-        }
-    if scan.next_copy_no:
-        next_page = _page_number_as_int(scan.next_page_no)
-        if next_page and next_page > 1:
-            return {
-                "copy_no": scan.next_copy_no,
-                "page_no": _format_page_number_like(next_page - 1, scan.next_page_no),
-                "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_NORMAL,
-            }
-        return {
-            "copy_no": scan.next_copy_no,
-            "page_no": scan.next_page_no,
-            "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_EXTRA,
-        }
-    return {
-        "copy_no": "",
-        "page_no": "",
-        "mode": UnrecognizedReviewScan.ASSIGNMENT_MODE_NORMAL,
-    }
-
-
-def _build_unrecognized_review_scan_context(exam: Exam) -> list:
-    rows = []
-    scans = UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).order_by("upload_order", "pk")
-
-    for scan in scans:
-        assignment_defaults = _get_unrecognized_scan_assignment_defaults(scan)
-        rows.append({
-            "id": scan.pk,
-            "filename": scan.filename,
-            "original_filename": scan.original_filename,
-            "upload_order": scan.upload_order,
-            "scan_url": make_token_for(scan.relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False),
-            "previous_url": (
-                make_token_for(scan.previous_relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False)
-                if scan.previous_relative_path else ""
-            ),
-            "previous_label": (
-                f"Copy {scan.previous_copy_no}, page {scan.previous_page_no}"
-                if scan.previous_copy_no else ""
-            ),
-            "next_url": (
-                make_token_for(scan.next_relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False)
-                if scan.next_relative_path else ""
-            ),
-            "next_label": (
-                f"Copy {scan.next_copy_no}, page {scan.next_page_no}"
-                if scan.next_copy_no else ""
-            ),
-            "suggestion": _format_unrecognized_scan_suggestion(scan),
-            "assignment_copy_no": assignment_defaults["copy_no"],
-            "assignment_page_no": assignment_defaults["page_no"],
-            "assignment_mode": assignment_defaults["mode"],
-        })
-
-    return rows
-
-
-def _is_celery_task_active(task_id: str | None) -> bool:
-    if not task_id:
-        return False
-    try:
-        return AsyncResult(task_id).state in ACTIVE_CELERY_STATES
-    except Exception:
-        logger.warning("Unable to read celery task state task_id=%s", task_id, exc_info=True)
-        return False
-
-
-def _get_upload_scan_pending_context(request: HttpRequest, exam_pk: int, task_id: str | None = None) -> dict[str, Any]:
-    active_task_id = task_id
-    if not active_task_id:
-        pending_task_id = get_pending_amc_import_upload_task_id(request, exam_pk)
-        if _is_celery_task_active(pending_task_id):
-            active_task_id = pending_task_id
-
-    return {
-        "task_id": active_task_id,
-        "pending_amc_import": has_pending_amc_import(request, exam_pk),
-        "upload_task_active": bool(active_task_id),
-    }
-
 
 def _get_unrecognized_review_block_response(request: HttpRequest, exam: Exam):
     unresolved_count = UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).count()
@@ -184,7 +93,7 @@ def _get_unrecognized_review_block_response(request: HttpRequest, exam: Exam):
         return None
 
     pending_task_id = get_pending_amc_import_upload_task_id(request, exam.pk)
-    if _is_celery_task_active(pending_task_id):
+    if is_celery_task_active(pending_task_id):
         return None
 
     message = (
@@ -231,520 +140,6 @@ def get_locked_pages_group_ids_for_exam(exam):
     ]
 
 
-class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
-    model = Exam
-    template_name = 'review/review.html'
-    pk_url_kwarg = 'exam_pk'
-    perm_codenames = ['manage', 'review']
-
-    def get_context_data(self, **kwargs):
-        context = super(ReviewView, self).get_context_data(**kwargs)
-        exam = Exam.objects.get(pk=context.get("object").id)
-
-        if user_allowed(exam, self.request.user.id):
-            pages_groups = None
-            if self.request.user.is_superuser:
-                pages_groups = exam.pagesGroup.all()
-            else:
-                user_exam = ExamUser.objects.filter(exam=exam, user=self.request.user)
-                if user_exam:
-                    pages_groups = user_exam.first().pages_groups.all()
-
-            context['user_allowed'] = True
-            context['nav_url'] = "reviewView"
-            context['exam_pages_group_list'] = pages_groups
-            context['exam_selected'] = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
-            context['exam'] = exam
-            return context
-        else:
-            context['user_allowed'] = False
-            context['nav_url'] = "reviewView"
-            context['exam'] = exam
-            return context
-
-
-class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
-    """
-    View for managing review groups for a specific exam.
-
-    This class-based view handles the display and management of review group settings for a particular exam. It allows
-    administrators to configure page groups for the exam.
-
-    :param model (Exam): The model class associated with the view.
-    :param template_name : The name of the template used for rendering the view.
-
-    Methods:
-        get_context_data: Overrides the base class method to provide additional context data for rendering the view.
-        post: Handles POST requests for updating review settings.
-    """
-    model = Exam
-    template_name = 'review/review_group.html'
-    pk_url_kwarg = 'exam_pk'
-    perm_codenames = ['manage', 'review']
-
-    def get_context_data(self, **kwargs) -> dict[str, Any]:
-        context = super(ReviewGroupView, self).get_context_data(**kwargs)
-
-        pages_group = PagesGroup.objects.get(pk=self.kwargs.get('group_pk'))
-
-        current_page = self.kwargs['currpage']
-
-        # Get scans file path dict by pages groups
-        copies_pages_list = get_copies_pages_by_group(pages_group)
-
-        # user is not allowed
-        if not user_allowed(pages_group.exam, self.request.user.id):
-            context.update({
-                'user_allowed': False,
-                'nav_url': "reviewGroup",
-                'exam': pages_group.exam,
-                'pages_group': pages_group
-            })
-
-            return context
-
-        # user is allowed
-        context.update({
-            'user_allowed': True,
-            'nav_url': "reviewGroup",
-            'pages_group': pages_group,
-            'copies_pages_list': copies_pages_list,
-            'json_copies_pages_list': json.dumps(copies_pages_list),
-            'currpage': current_page,
-            'exam_selected': pages_group.exam,
-        })
-
-        # manages common exams
-        exam = pages_group.exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
-        context['exam'] = exam
-
-        # grading scheme
-        grading_schemes = None
-        if pages_group.use_grading_scheme:
-            grading_schemes = pages_group.gradingSchemes.all()
-
-        current_grading_scheme = self.kwargs['current_grading_scheme']
-        if grading_schemes and not current_grading_scheme:
-            if grading_schemes:
-                current_grading_scheme = grading_schemes.first()
-            else:
-                current_grading_scheme = 0
-
-        context.update({
-            'grading_schemes': grading_schemes,
-            'current_grading_scheme': current_grading_scheme
-        })
-
-        return context
-
-
-class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
-    """
-    View for managing review settings for a specific exam.
-
-    This class-based view handles the display and management of review settings for a particular exam. It allows
-    administrators to configure reviewers and page groups for the exam.
-
-    Methods:
-        get_context_data: Overrides the base class method to provide additional context data for rendering the view.
-    """
-    model = Exam
-    template_name = 'review/settings/reviewSettings.html'
-    error_msg = None
-    pk_url_kwarg = 'exam_pk'
-    perm_codenames = ['manage']
-
-    def get_context_data(self, **kwargs):
-        """
-        Retrieves additional context data for rendering the view.
-
-        This method overrides the base class method to include context data such as formsets and current tab.
-
-        :return: dict: A dictionary containing context data for rendering the view.
-        """
-        context = super(ReviewSettingsView, self).get_context_data(**kwargs)
-
-        exam = Exam.objects.get(pk=context.get("object").id)
-
-        if user_allowed(exam, self.request.user.id):
-            curr_tab = "groups"
-            if self.kwargs.get("curr_tab") != '':
-                curr_tab = self.kwargs.get("curr_tab")
-            formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam, group__pk__in=[2, 3, 4]))
-
-            amc_project_path = get_amc_project_path(exam, False)
-            if amc_project_path:
-                pages_groups = PagesGroup.objects.filter(exam=exam)
-                grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
-                locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
-                questions = get_questions(get_amc_project_path(exam, True) + "/data/")
-                questions_choices = [(q['name'], q['name']) for q in questions]
-                formset_pages_groups = PagesGroupsFormSet(queryset=pages_groups, initial=[
-                    {'id': None, 'group_name': 'Select', 'nb_pages': -1}],
-                                                          form_kwargs={"questions_choices": questions_choices})
-
-                summernote_media_form = GradingSchemeCheckBoxForm()  # empty instance, just for .media
-
-                context['user_allowed'] = True
-                context['nav_url'] = "reviewSettingsView"
-                context['exam_reviewers_formset'] = formsetReviewers
-                context['exam_pages_groups_formset'] = formset_pages_groups
-                context['curr_tab'] = curr_tab
-                context['summernote_media_form'] = summernote_media_form
-                context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
-                context['locked_pages_group_ids'] = locked_pages_group_ids
-            else:
-
-                context['user_allowed'] = True
-                context['nav_url'] = "reviewSettingsView"
-                context['curr_tab'] = curr_tab
-                context['locked_pages_group_ids'] = []
-
-            context['exam_selected'] = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
-            context['exam'] = exam
-            return context
-        else:
-            context['user_allowed'] = False
-            context['nav_url'] = "reviewSettingsView"
-            context['exam'] = exam
-            return context
-
-    # Define method to handle POST request
-    def post(self, *args, **kwargs):
-        """
-        Handles POST requests for updating review settings.
-
-        This method processes the form submissions for updating reviewers and page groups for the exam.
-
-        :return: HttpResponse: A response containing the updated view or an error message.
-        """
-        self.object = self.get_object()
-        exam = Exam.objects.get(pk=self.kwargs['exam_pk'])
-        error_messages = []
-
-        if "submit-reviewers" in self.request.POST:
-            curr_tab = "reviewers"
-            formset = ReviewersFormSet(self.request.POST)
-            if formset.is_valid():
-                for form in formset:
-                    print(form)
-                    if form.is_valid() and form.cleaned_data and form.cleaned_data["user"]:
-                        examReviewer = form.save(commit=False)
-                        examReviewer.exam = exam
-                        if "pages_groups" in form.cleaned_data:
-                            examReviewer.pages_groups.set(form.cleaned_data["pages_groups"])
-                            examReviewer.save()
-                            form.save_m2m()
-        else:
-            curr_tab = "groups"
-            questions = get_questions(get_amc_project_path(exam, True) + "/data/")
-            questions_choices = [(q['name'], q['name']) for q in questions]
-            formset = PagesGroupsFormSet(self.request.POST, form_kwargs={"questions_choices": questions_choices})
-            if formset.is_valid():
-                for form in formset:
-                    if form.is_valid() and form.cleaned_data:
-                        pages_group = form.save(commit=False)
-                        if form.cleaned_data["nb_pages"] > -1:
-                            existing_group = None
-                            if pages_group.pk:
-                                existing_group = PagesGroup.objects.filter(pk=pages_group.pk, exam=exam).first()
-                                if existing_group and pages_group_has_review_activity(existing_group):
-                                    if pages_group_settings_changed(existing_group, pages_group):
-                                        error_messages.append(
-                                            f"Pages group '{existing_group.group_name}' is locked because review data already exists. "
-                                            f"Only grading help can still be edited."
-                                        )
-                                        continue
-
-                            if not pages_group_name_available(
-                                    exam,
-                                    pages_group.group_name,
-                                    exclude_pages_group_id=pages_group.pk,
-                            ):
-                                error_messages.append(
-                                    f"Question '{pages_group.group_name}' is already used by another pages group."
-                                )
-                                continue
-
-                            pages_group.exam = exam
-                            pages_group.save()
-            else:
-                print(formset.errors)
-                error_messages.append("Some pages groups are invalid. Please correct the form and retry.")
-
-        error_msg = " ".join(dict.fromkeys(error_messages)) if error_messages else None
-
-        formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam))
-
-        questions = get_questions(get_amc_project_path(exam, True) + "/data/")
-        questions_choices = [(q['name'], q['name']) for q in questions]
-        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-            {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
-
-        grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
-        locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
-
-        context = super(ReviewSettingsView, self).get_context_data(**kwargs)
-        if user_allowed(exam, self.request.user.id):
-            context['user_allowed'] = True
-            context['nav_url'] = "reviewSettingsView"
-            context['exam_selected'] = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
-            context['exam'] = exam
-            context['exam_pages_groups_formset'] = formsetPagesGroups
-            context['exam_reviewers_formset'] = formsetReviewers
-            context['curr_tab'] = curr_tab
-            context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
-            context['error_msg'] = error_msg
-            context['locked_pages_group_ids'] = locked_pages_group_ids
-        else:
-            context['user_allowed'] = False
-            context['nav_url'] = "reviewSettingsView"
-            context['exam_selected'] = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
-            context['exam'] = exam
-            return context
-
-        return self.render_to_response(context=context)
-
-
-@exam_permission_required(['manage'])
-@block_review_until_unrecognized_scans_assigned
-@require_POST
-def add_new_pages_group(request: HttpRequest, exam_pk: int):
-    """
-    Add a new pages group for an exam.
-
-    This view function creates a new pages group for a specific exam. It saves the new group with default values and
-    redirects the user back to the review settings page.
-
-    :param request: The HTTP request object.
-    :param exam_pk: The primary key of the exam.
-
-    :return: HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
-
-    """
-    exam = Exam.objects.get(pk=exam_pk)
-    new_group = PagesGroup()
-    new_group.exam = exam
-    new_group.group_name = 'Select...'
-    new_group.nb_pages = -1
-    new_group.save()
-
-    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
-
-
-@exam_permission_required(['manage'])
-@block_review_until_unrecognized_scans_assigned
-@require_POST
-def delete_pages_group(request: HttpRequest, group_pk: int, exam_pk: int):
-    """
-    Delete a pages group.
-
-    This view function deletes a pages group identified by its primary key. When finished, it redirects the user
-    back to the review settings page.
-
-    :param request: The HTTP request object.
-    :param group_pk: The primary key of the pages group to delete.
-    :param exam_pk: The primary key of the exam associated with the pages group.
-
-    :return: HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
-    """
-    pages_group = get_object_or_404(PagesGroup, pk=group_pk, exam_id=exam_pk)
-    if pages_group_has_review_activity(pages_group):
-        messages.error(
-            request,
-            f"Pages group '{pages_group.group_name}' is locked and cannot be deleted because review data already exists.",
-        )
-        return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
-
-    pages_group.delete()
-
-    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
-
-
-@exam_permission_required(['manage'])
-@block_review_until_unrecognized_scans_assigned
-@require_POST
-def edit_pages_group_grading_help(request: HttpRequest, exam_pk: int):
-    """
-    Edit the grading help.
-
-    This view function edits the grading help comment. When finished, it redirects the user back to the review settings page.
-
-
-    :arg request: The HTTP request object.
-    :arg exam_pk: The primary key of the exam associated with the pages group.
-
-    :return: HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
-    """
-    pages_group = get_object_or_404(PagesGroup, pk=request.POST.get('group_pk'), exam_id=exam_pk)
-    pages_group.grading_help = request.POST['grading_help']
-    pages_group.save()
-
-    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
-
-
-@exam_permission_required(['manage', 'review'])
-@block_review_until_unrecognized_scans_assigned
-@require_POST
-def get_pages_group_grading_help(request: HttpRequest, exam_pk: int):
-    """
-    Get the grading help.
-
-    This view function retrieves the grading help for a pages group identified by its primary key. It returns
-    the grading help as an HTTP response.
-
-
-    :arg request: The HTTP request object containing the primary key 'pk' of the pages group.
-    :arg exam_pk: The primary key of the exam associated with the pages group.
-
-    :return: HttpResponse: An HTTP response containing the grading help for the pages group.
-    """
-
-    pages_group = get_object_or_404(PagesGroup, pk=request.POST.get('group_pk'), exam_id=exam_pk)
-    # grading_help_group_form = ckeditorForm()
-    # grading_help_group_form.initial['ckeditor_txt'] = pages_group.grading_help
-
-    return HttpResponse(pages_group.grading_help)
-
-
-
-@exam_permission_required(['manage'])
-@block_review_until_unrecognized_scans_assigned
-def generate_marked_files(request: HttpRequest, exam_pk: int, task_id: str | None = None):
-    """
-    Export all the marked files.
-
-    :arg request: TThe HTTP request object.
-    :arg exam_pk: The primary key of the exam.
-    :arg task_id: The task id of the export marked files task.
-
-    :return: A rendered HTML page and the zipped folder if the user is allowed to export the file.
-    """
-    exam = Exam.objects.get(pk=exam_pk)
-
-    if user_allowed(exam, request.user.id):
-
-        if request.method == 'POST':
-            form = ExportMarkedFilesForm(request.POST, exam=exam)
-
-            if form.is_valid():
-                task = generate_marked_files_zip.delay(exam.pk, request.POST['export_type'],
-                                                       request.POST['with_comments'])
-                task_id = task.task_id
-
-                form = ExportMarkedFilesForm()
-
-                exam_selected = exam
-                if exam.common_exams:
-                    for common_exam in exam.common_exams.all():
-                        if common_exam.is_overall():
-                            exam = common_exam
-                            break
-                return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
-                                                                                  "form": form,
-                                                                                  "exam_selected": exam_selected,
-                                                                                  "exam": exam,
-                                                                                  "nav_url": "generate_marked_files",
-                                                                                  "task_id": task_id})
-
-                # zip_file = open(generated_marked_files_zip_path, 'rb')
-                # return FileResponse(zip_file)
-
-            else:
-                logger.info("INVALID")
-                logger.info(form.errors)
-                return HttpResponseRedirect(request.path_info)
-
-        # if a GET (or any other method) we'll create a blank form
-        else:
-            form = ExportMarkedFilesForm()
-            exam_selected = exam
-            if exam.common_exams:
-                for common_exam in exam.common_exams.all():
-                    if common_exam.is_overall():
-                        exam = common_exam
-                        break
-            return render(request, 'review/export/export_marked_files.html', {"user_allowed": True,
-                                                                              "form": form,
-                                                                              "exam": exam,
-                                                                              "exam_selected": exam_selected,
-                                                                              "nav_url": "generate_marked_files"})
-    else:
-        exam_selected = exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
-        return render(request, 'review/export/export_marked_files.html', {"user_allowed": False,
-                                                                          "form": None,
-                                                                          "exam": exam,
-                                                                          "exam_selected": exam_selected,
-                                                                          "nav_url": "generate_marked_files"})
-
-
-@exam_permission_required(['manage'])
-def download_marked_files(request: HttpRequest, filename, exam_pk: int):
-    exam = get_object_or_404(Exam, pk=exam_pk)
-    if os.path.basename(filename) != filename or not filename.endswith(".zip"):
-        raise Http404("Invalid filename")
-
-    expected_prefix = f"marked_{exam.year.code}_{exam.semester.code}_{exam.code}_"
-    if not filename.startswith(expected_prefix):
-        raise Http404("Invalid export file")
-
-    export_root = os.path.realpath(str(settings.EXPORT_TMP_ROOT))
-    file_path = os.path.realpath(os.path.join(export_root, filename))
-    if not file_path.startswith(export_root + os.sep) or not os.path.isfile(file_path):
-        raise Http404("Export file not found")
-
-    zip_file = open(file_path, 'rb')
-    return FileResponse(zip_file)
-
-
-# TESTING
-# ------------------------------------------
-
-@login_required
-def testing(request):
-    user_info = request.user.__dict__
-    if request.user.is_authenticated:
-        user_info.update(request.user.__dict__)
-        return render(request, 'review/testing.html', {
-            'user': request.user,
-            'user_info': user_info,
-        })
-
-
-# ------------------------------------------------
-#
-
-
 @exam_permission_required(['manage'])
 def upload_scans(request: HttpRequest, exam_pk: int):
     """
@@ -776,7 +171,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
 
     if request.method == 'POST':
         delete_old_data = False
-        if 'delete_old_data' in request.POST.keys() and request.POST['delete_old_data'] == 'on':
+        if 'delete_old_data' in request.POST and request.POST['delete_old_data'] == 'on':
             delete_old_data = True
         if 'exams_zip_file' not in request.FILES:
             messages.error(request, "No zip file provided.")
@@ -789,7 +184,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
         os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
 
         with open(temp_file_path, 'wb') as temp_file:
-            for chunk in zip_file.chunks(): temp_file.write(chunk)
+            temp_file.writelines(zip_file.chunks())
 
         task = import_exam_scans.delay(temp_file_path, exam_pk, delete_old_data)
         task_id = task.task_id
@@ -797,11 +192,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
         # message = start_upload_scans(request, exam.pk, temp_file_path)
 
         exam_selected = exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_overall_exam_or_default()
 
         return render(
             request,
@@ -813,16 +204,12 @@ def upload_scans(request: HttpRequest, exam_pk: int):
                 'message': '',
                 'amc_ok': amc_ok,
                 'nav_url': 'upload_scans',
-                **_get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
+                **get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
             }
         )
 
     exam_selected = exam
-    if exam.common_exams:
-        for common_exam in exam.common_exams.all():
-            if common_exam.is_overall():
-                exam = common_exam
-                break
+    exam = exam.get_overall_exam_or_default()
 
     return render(
         request,
@@ -833,7 +220,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
             'amc_ok': amc_ok,
             'files': [],
             'nav_url': 'upload_scans',
-            **_get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
+            **get_upload_scan_pending_context(request, exam_selected.pk, task_id=task_id),
         }
     )
 
@@ -844,7 +231,7 @@ def unrecognized_review_scans_table(request: HttpRequest, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
     return render(request, 'review/import/_unrecognized_review_scans_table.html', {
         'exam_selected': exam,
-        'unrecognized_review_scans': _build_unrecognized_review_scan_context(exam),
+        'unrecognized_review_scans': build_unrecognized_review_scan_context(exam),
     })
 
 
@@ -961,8 +348,11 @@ def save_markers(request: HttpRequest, exam_pk: int):
     """
     exam = Exam.objects.get(pk=exam_pk)
     page_no = int(float(request.POST['page_no'].strip()))
-    question_name = get_question_name_by_student_page(get_amc_project_path(exam, True) + "/data/",
-                                                      int(request.POST['copy_no']), page_no)
+    amc_data_path = get_amc_project_path(exam, True) + "/data/"
+    with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+        question_name = amc_layout_db_manager.get_question_name_by_student_page(
+            int(request.POST["copy_no"]), page_no
+        )
     pages_group = PagesGroup.objects.get(exam=exam, group_name=question_name)
     scan_markers, created = PageMarkers.objects.get_or_create(copie_no=request.POST['copy_no'],
                                                               page_no=request.POST['page_no'], pages_group=pages_group,
@@ -1152,12 +542,6 @@ def update_page_group_markers(request: HttpRequest, exam_pk: int):
         return HttpResponse("Markers updated successfully")
     else:
         return HttpResponse("Invalid request method", status=405)
-
-
-def cleanup_expired_review_locks():
-    timeout_seconds = max(1, int(getattr(settings, 'REVIEW_LOCK_TIMEOUT', settings.AUTO_LOGOUT_DELAY)))
-    lock_threshold = timezone.now() - timedelta(seconds=timeout_seconds)
-    ReviewLock.objects.filter(updated_at__lt=lock_threshold).delete()
 
 
 @exam_permission_required(['manage', 'review'])
@@ -1376,7 +760,7 @@ def grading_scheme_checkboxes(request: HttpRequest, exam_pk: int, grading_scheme
             formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[
                 {'id': None, 'name': 'new', 'points': 0}])
         else:
-            print(formset.errors)
+            logger.warning(formset.errors)
             error_msg = "Some grading scheme checkbox values are invalid."
     else:
         formset = GradingSchemeCheckboxFormSet(queryset=grading_scheme_checkboxes.all(), initial=[
@@ -1486,7 +870,8 @@ def add_new_grading_scheme(request: HttpRequest, exam_pk: int, pages_group_id):
     pages_group = get_object_or_404(PagesGroup, pk=pages_group_id, exam_id=exam_pk)
     exam = get_object_or_404(Exam, pk=exam_pk)
     amc_data_path = get_amc_project_path(exam, True) + "/data/"
-    max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, None))
+    with AmcScoringDbManager(amc_data_path=amc_data_path) as amc_db:
+        max_points = float(amc_db.get_question_max_points(pages_group.group_name, None))
 
     grading_scheme = QuestionGradingScheme.objects.create(
         pages_group=pages_group,
@@ -1537,37 +922,7 @@ def delete_grading_scheme(request: HttpRequest, exam_pk: int, grading_scheme_id)
                   )
 
 
-########### Grading Scheme Review Group
-def get_review_corr_box_index(grading_scheme, copy_nr):
-    if not copy_nr or str(copy_nr) in ('0', 'None', ''):
-        return -1
 
-    pages_group = grading_scheme.pages_group
-    points = float(get_question_points(grading_scheme, copy_nr))
-
-    if points > grading_scheme.max_points:
-        points = float(grading_scheme.max_points)
-
-    if points > 0:
-        exam = pages_group.exam
-        amc_data_path = get_amc_project_path(exam, True) + "/data/"
-        question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
-        max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-        amc_corr_boxes = select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
-
-        nb_boxes = len(amc_corr_boxes) / 4 - 1
-        if nb_boxes <= 0 or max_points <= 0:
-            return -1
-
-        points_per_box = max_points / nb_boxes
-        return math.floor(points / points_per_box + 0.5)
-
-    zero_checked = PagesGroupGradingSchemeCheckedBox.objects.filter(
-        pages_group=pages_group,
-        copy_nr=copy_nr,
-        gradingSchemeCheckBox__name='ZERO'
-    ).exists()
-    return 0 if zero_checked else -1
 
 
 @exam_permission_required(['manage', 'review'])
@@ -1716,18 +1071,24 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
                 questionGradingScheme=grading_scheme).exclude(name__in=('ZERO', 'ADJ'))
             for gsc in grading_scheme_checkboxes:
                 if not gsc.name in ('ADJ', 'ZERO'):
-                    PagesGroupGradingSchemeCheckedBox.objects.create(pages_group=pages_group,
-                                                                     gradingSchemeCheckBox=gsc, copy_nr=copy_nr,
-                                                                     adjustment=adjustment, user=request.user)
+                    PagesGroupGradingSchemeCheckedBox.objects.create(
+                        pages_group=pages_group,
+                        gradingSchemeCheckBox=gsc, copy_nr=copy_nr,
+                        adjustment=adjustment, user=request.user
+                    )
         else:
             if ref == "gsc":
-                pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(pages_group=pages_group,
-                                                                                         copy_nr=copy_nr,
-                                                                                         gradingSchemeCheckBox_id=item_id)
+                pggscb, _create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(
+                    pages_group=pages_group,
+                    copy_nr=copy_nr,
+                    gradingSchemeCheckBox_id=item_id
+                )
             else:
-                pggscb, create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(id=item_id,
-                                                                                         pages_group=pages_group,
-                                                                                         copy_nr=copy_nr)
+                pggscb, _create = PagesGroupGradingSchemeCheckedBox.objects.get_or_create(
+                    id=item_id,
+                    pages_group=pages_group,
+                    copy_nr=copy_nr
+                )
 
             pggscb.adjustment = adjustment
             pggscb.user = request.user
@@ -1735,19 +1096,25 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
 
         if not zero and checked:
             try:
-                PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr,
-                                                              gradingSchemeCheckBox__name='ZERO').delete()
+                PagesGroupGradingSchemeCheckedBox.objects.get(
+                    pages_group=pages_group, copy_nr=copy_nr,
+                    gradingSchemeCheckBox__name='ZERO'
+                ).delete()
             except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
                 pass
     else:
         try:
             if ref == "gsc":
-                PagesGroupGradingSchemeCheckedBox.objects.get(pages_group=pages_group, copy_nr=copy_nr,
-                                                              gradingSchemeCheckBox_id=item_id).delete()
+                PagesGroupGradingSchemeCheckedBox.objects.get(
+                    pages_group=pages_group, copy_nr=copy_nr,
+                    gradingSchemeCheckBox_id=item_id
+                ).delete()
             else:
                 if not full:
-                    PagesGroupGradingSchemeCheckedBox.objects.get(id=item_id, pages_group=pages_group,
-                                                                  copy_nr=copy_nr).delete()
+                    PagesGroupGradingSchemeCheckedBox.objects.get(
+                        id=item_id, pages_group=pages_group,
+                        copy_nr=copy_nr
+                    ).delete()
         except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
             pass
 
@@ -1766,10 +1133,9 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
         points = float(grading_scheme.max_points)
 
     exam = Exam.objects.get(pk=exam_pk)
-    amc_data_path = get_amc_project_path(exam, True) + "/data/"
-    question_page = select_copy_question_page(amc_data_path, copy_nr, pages_group.group_name)
-    max_points = float(get_question_max_points(amc_data_path, pages_group.group_name, copy_nr))
-    amc_corr_boxes = select_marks_positions(amc_data_path, int(copy_nr), question_page, None)
+    layout = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+    max_points = layout["max_points"]
+    amc_corr_boxes = layout["amc_corr_boxes"]
 
     if points > 0:
         nb_boxes = len(amc_corr_boxes) / 4 - 1

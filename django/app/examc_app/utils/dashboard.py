@@ -11,6 +11,7 @@ from examc_app.permissions import exam_group_names_allow
 
 DASHBOARD_TODO_LIMIT = 8
 
+
 class DashboardTodo(TypedDict):
     title: str
     description: str
@@ -144,10 +145,10 @@ def _get_exam_review_scans_path(exam: Exam):
         return None
 
     scans_path = (
-        Path(settings.SCANS_ROOT)
-        / str(exam.year.code)
-        / str(exam.semester.code)
-        / f"{exam.code}_{exam.date:%Y%m%d}"
+            Path(settings.SCANS_ROOT)
+            / str(exam.year.code)
+            / str(exam.semester.code)
+            / f"{exam.code}_{exam.date:%Y%m%d}"
     )
     if not scans_path.is_dir():
         return None
@@ -176,7 +177,6 @@ def _exam_has_review_scan_files(exam: Exam):
         if any(scan_path.is_file() for scan_path in copy_path.iterdir()):
             return True
     return False
-
 
 
 class PagesGroupProgress(TypedDict):
@@ -404,7 +404,7 @@ def _add_review_todos(todos: List[DashboardTodo], user: User, exam: Exam, exam_u
                 )
 
 
-def get_dashboard_context(user): #-> dict[str, Any]:
+def get_dashboard_context(user):  #-> dict[str, Any]:
     if user.is_superuser:
         exams = Exam.objects.filter(overall=False)
     else:
@@ -472,8 +472,7 @@ def get_dashboard_context(user): #-> dict[str, Any]:
     }
 
 
-
-def get_dashboard_exam_queryset(user: User | AnonymousUser) -> QuerySet[Exam, Exam]:
+def get_dashboard_exam_queryset(user: User | AnonymousUser) -> QuerySet[Exam]:
     if user.is_superuser:
         exams = Exam.objects.filter(overall=False)
     else:
@@ -486,3 +485,10 @@ def get_dashboard_exam_queryset(user: User | AnonymousUser) -> QuerySet[Exam, Ex
         "scales",
         "scaleStatistics",
     ).order_by("-date", "code")
+
+
+def get_dashboard_connected_users_queryset(user: User | AnonymousUser) -> QuerySet[User]:
+    if not user.is_superuser:
+        return User.objects.none()
+
+    return User.objects.exclude(last_login=None).order_by('-last_login')

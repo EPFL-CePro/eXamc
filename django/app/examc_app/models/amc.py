@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from examc_app.models import Exam, PrepQuestion, PrepQuestionAnswer, AUTH_USER_MODEL
+from examc_app.models import Exam, PrepQuestion, PrepQuestionAnswer
 
 
 class ExamBuild(models.Model):

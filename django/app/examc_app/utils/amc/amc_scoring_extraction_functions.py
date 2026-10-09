@@ -18,7 +18,6 @@ from dataclasses import dataclass, field
 
 from examc_app.models import ExamBuild, ExamBuildQuestion
 
-
 AMC_MESSAGE_PATTERNS = {
     "student": re.compile(r"\\message\{ETU=([0-9]+)\}"),
     "alias": re.compile(r"\\message\{BR=([0-9]+)\}"),

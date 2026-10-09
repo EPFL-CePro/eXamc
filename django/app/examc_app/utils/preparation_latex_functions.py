@@ -1,14 +1,21 @@
 import os
+import re
 import shutil
 import subprocess
 from functools import lru_cache
 from pathlib import Path
-import re
+
 import pypandoc
 
 from examc import settings
-from examc_app.models import PrepSection, PrepQuestion, PrepQuestionAnswer, BOX_TYPE_CHOICES, Exam, ScoringStrategy
-from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
+from examc_app.models import (
+    BOX_TYPE_CHOICES,
+    Exam,
+    PrepQuestion,
+    PrepQuestionAnswer,
+    PrepSection,
+)
+from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_path
 
 #PLACEHOLDERS FOR TEMPLATES
 PH_NEW_PAGE = '%NEW-PAGE%'

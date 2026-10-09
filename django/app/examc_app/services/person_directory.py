@@ -43,7 +43,7 @@ def get_institutional_email(sciper) -> str | None:
     if entry is None:
         return None
 
-    # The existing utility may return an exception instead of raising one.
+    # The existing utility may return an user_facing_exception instead of raising one.
     if not isinstance(entry, dict):
         raise PersonDirectoryError("Invalid LDAP response.")
 

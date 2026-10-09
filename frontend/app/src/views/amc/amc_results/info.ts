@@ -7,8 +7,8 @@ import { getModal } from '@examc/helpers/modals.ts';
  * @param {...(Node | string)} content - The new content.
  */
 export function showInfo(...content: (Node | string)[]): void {
-    byId('ajax_info_modal_msg').replaceChildren(...content);
-    getModal({ type: 'local', element: byId('ajax_info_modal') }).show();
+    byId('ajax-info-modal-msg').replaceChildren(...content);
+    getModal({ type: 'local', element: byId('ajax-info-modal') }).show();
 }
 
 /**
@@ -17,5 +17,5 @@ export function showInfo(...content: (Node | string)[]): void {
  * @param {string} text - The new text.
  */
 export function setInfoText(text: string): void {
-    byId('ajax_info_modal_msg').textContent = text;
+    byId('ajax-info-modal-msg').textContent = text;
 }

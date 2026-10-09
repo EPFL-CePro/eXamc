@@ -20,7 +20,6 @@ Important invariants:
 - frozen snapshot data must reflect the exact question/answer state at build time
 """
 
-import inspect
 import math
 import re
 import shutil
@@ -47,12 +46,12 @@ from examc_app.utils.amc.amc_helpers import (
     get_amc_question_id,
     get_exam_latex_main_file,
 )
-from examc_app.utils.amc.amc_helpers import get_amc_project_path
-from examc_app.utils.amc.amc_layout_functions import extract_layout_from_xy, get_subject_copy_and_page_counts_from_xy, \
-    populate_subject_layout_pages, get_pdf_page_metrics, LayoutExtractionError
 from examc_app.services.student.prep_amc_csv import StudentsCsvError, write_students_csv
+from examc_app.utils.amc.amc_layout_functions import (
+    get_subject_copy_and_page_counts_from_xy,
+)
+from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.preparation_latex_functions import update_exam_latex
-
 
 # ---------------------------------------------------------------------------
 # Snapshot helpers

@@ -1,16 +1,23 @@
 from datetime import date
 from pathlib import Path
-from types import SimpleNamespace
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from PIL import Image
 from django.contrib.auth.models import Group, User
 from django.contrib.messages import get_messages
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
-from examc_app.models import AcademicYear, Exam, ExamUser, Semester, UnrecognizedReviewScan
+from examc_app.models import (
+    AcademicYear,
+    Exam,
+    ExamUser,
+    Semester,
+    UnrecognizedReviewScan,
+)
+from examc_app.services.review.unrecognized_scans import build_unrecognized_review_scan_context
 from examc_app.utils.review_functions import (
     assign_unrecognized_review_scan_file,
     delete_unrecognized_review_scan_file,
@@ -18,7 +25,6 @@ from examc_app.utils.review_functions import (
     get_scan_relative_path,
     split_scans_by_copy,
 )
-from examc_app.views.review_views import _build_unrecognized_review_scan_context
 
 
 class DummyProgressRecorder:
@@ -124,7 +130,7 @@ class UnrecognizedReviewScansTestCase(TestCase):
     def test_unrecognized_scan_context_uses_canonical_protected_url(self):
         scan = self.create_unrecognized_scan()
 
-        rows = _build_unrecognized_review_scan_context(self.exam)
+        rows = build_unrecognized_review_scan_context(self.exam)
 
         self.assertEqual(rows[0]["id"], scan.pk)
         self.assertTrue(rows[0]["scan_url"].startswith("/protected/?token="))
@@ -207,7 +213,7 @@ class UnrecognizedReviewScansTestCase(TestCase):
         self.assertEqual(deleted_scan.deleted_at, deleted_scan.resolved_at)
         self.assertEqual(deleted_scan.assigned_mode, "")
         self.assertEqual(deleted_scan.filename, scan.filename)
-        self.assertEqual(_build_unrecognized_review_scan_context(self.exam), [])
+        self.assertEqual(build_unrecognized_review_scan_context(self.exam), [])
 
     def test_delete_leaves_other_unrecognized_files(self):
         scan = self.create_unrecognized_scan()
@@ -216,7 +222,7 @@ class UnrecognizedReviewScansTestCase(TestCase):
         delete_unrecognized_review_scan_file(scan, resolved_by=self.user)
 
         self.assertTrue((Path(self.scans_root.name) / other_scan.relative_path).exists())
-        self.assertEqual([row["id"] for row in _build_unrecognized_review_scan_context(self.exam)], [other_scan.pk])
+        self.assertEqual([row["id"] for row in build_unrecognized_review_scan_context(self.exam)], [other_scan.pk])
 
     def test_delete_can_resolve_an_already_missing_file(self):
         scan = self.create_unrecognized_scan()
@@ -385,7 +391,8 @@ class UnrecognizedReviewScansTestCase(TestCase):
         scan = self.create_unrecognized_scan()
 
         with patch.object(Path, "unlink", side_effect=PermissionError("Access denied")):
-            with self.assertLogs("examc_app.views.review_views", level="ERROR"):
+            # Parent logger: catches the error whether the view or the review service logs it.
+            with self.assertLogs("examc_app", level="ERROR"):
                 response = self.client.post(
                     reverse("delete_unrecognized_review_scan", args=[self.exam.pk]), {"scan_id": scan.pk},
                 )
@@ -479,7 +486,8 @@ class UnrecognizedReviewScansTestCase(TestCase):
             return original_unlink(path, *args, **kwargs)
 
         with patch.object(Path, "unlink", new=unlink):
-            with self.assertLogs("examc_app.views.review_views", level="ERROR"):
+            # Parent logger: catches the error whether the view or the review service logs it.
+            with self.assertLogs("examc_app", level="ERROR"):
                 response = self.client.post(
                     reverse("delete_unrecognized_review_scans", args=[self.exam.pk]),
                     {"scan_ids": [scan.pk for scan in scans]},

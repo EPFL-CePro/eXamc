@@ -1,16 +1,20 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-import pytz
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import Q
-from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404, FileResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpResponseForbidden,
+    HttpResponseRedirect,
+)
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
@@ -60,23 +64,10 @@ def home(request):
 
     user_info = user.__dict__
     user_info.update(user.__dict__)
-    last_connection_users = []
-
-    if user.is_superuser:
-        for u in User.objects.all().order_by('-last_login'):
-            if u.last_login:
-                datetime_zone = u.last_login.astimezone(pytz.timezone(settings.TIME_ZONE))
-                last_connection_users.append(
-                    {
-                        "username": u.get_username(),
-                        "last_login": datetime_zone.strftime('%Y-%m-%d %H:%M:%S')
-                    }
-                )
 
     context: dict[str, Any] = {
         'user': user,
         'user_info': user_info,
-        'last_connection_users': last_connection_users,
     }
 
     if user.is_authenticated:
@@ -185,10 +176,7 @@ def documentation_view(request, path: str ="index.html"):
 def user_allowed(exam, user_id):
     exam_users = User.objects.filter(Q(exam=exam) | Q(exam__in=exam.common_exams.all()))
     user = User.objects.get(pk=user_id)
-    if user in exam_users or user.is_superuser:
-        return True
-    else:
-        return False
+    return bool(user in exam_users or user.is_superuser)
 
 
 @require_GET
@@ -198,7 +186,7 @@ def serve_signed_file(request, file_hint=None):
         rooms_plans = request.GET.get("rooms_plans")
         if rooms_plans:
             relative_rooms_plan = rooms_plans.lstrip("/")
-            if not (relative_rooms_plan.startswith("export/") or relative_rooms_plan.startswith("map/")):
+            if not (relative_rooms_plan.startswith(("export/", "map/"))):
                 raise Http404("Invalid room plan path")
 
             rooms_root = Path(settings.ROOMS_PLANS_ROOT).resolve()
@@ -228,8 +216,3 @@ def force_oidc_logout(request):
     if request.user.is_authenticated:
         logout(request)
     return render(request, 'oidc_auto_logout.html')
-
-
-def test(request):
-    #detect_layout()
-    return render(request, 'index.html')

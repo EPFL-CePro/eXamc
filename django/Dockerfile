@@ -1,5 +1,5 @@
 # Base Docker images
-ARG PYTHON_IMAGE="python:3.12-slim-bookworm"
+ARG PYTHON_IMAGE="python:3.14-slim-bookworm"
 FROM ghcr.io/astral-sh/uv:0.12 AS uv
 
 
@@ -93,7 +93,7 @@ RUN set -eux; \
 RUN groupadd --gid ${GID} examc \
     && useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash examc \
     && mkdir -p /static /media /private_media \
-    && chown examc:examc /static /media /private_media
+    && chown -R examc:examc /static /media /private_media
 
 
 # =========================
@@ -126,7 +126,7 @@ FROM runtime-base AS tooling
 ENV PATH="/opt/venv-tooling/bin:$PATH" \
     UV_PROJECT_ENVIRONMENT=/opt/venv-tooling
 
-RUN chown examc:examc /app
+RUN chown -R examc:examc /app
 
 COPY --from=uv-base /bin/uv /bin/uvx /bin/
 COPY ./sphinx-autobuild.py /opt/sphinx-autobuild.py
@@ -135,3 +135,15 @@ COPY --from=builder-tooling --chown=examc:examc /opt/venv-tooling /opt/venv-tool
 USER examc
 
 COPY --chown=examc:examc --exclude=app/docs ./app /app
+
+
+# =========================
+# DEV (same as tooling, with build deps installed
+# =========================
+FROM tooling AS dev
+
+# Install build deps, then revert to examc user
+USER root
+COPY --from=uv-base /opt/install-build-deps.sh /opt/
+RUN /opt/install-build-deps.sh
+user examc

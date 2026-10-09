@@ -84,7 +84,7 @@ build: ensure-env
 	$(DC) up -d --build
 
 tests:
-	$(DC) run --rm django pytest
+	docker compose -f compose/test.yml --env-file .env.test run --rm django
 
 down:
 	$(DC) down

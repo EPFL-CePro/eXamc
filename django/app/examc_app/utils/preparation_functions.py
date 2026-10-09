@@ -1,24 +1,34 @@
-import os
-import re
 import shutil
 import subprocess
 import tempfile
 from datetime import timedelta
 from decimal import Decimal
-from functools import lru_cache
 from pathlib import Path
 
-from django.db.models import Max, QuerySet, Model
+from django.db.models import Max
 from django.http import HttpResponseForbidden
 from django.utils import timezone
 
 from examc import settings
+from examc_app.forms.preparation import (
+    PrepQuestionAnswerForm,
+    PrepQuestionForm,
+    PrepSectionForm,
+)
+from examc_app.models import (
+    Exam,
+    ExamAMCJob,
+    PrepQuestion,
+    PrepQuestionAnswer,
+    PrepScoringFormula,
+    PrepSection,
+)
 from examc_app.services.student.prep_amc_csv import STUDENTS_CSV_NAME
-from examc_app.forms import PrepQuestionAnswerForm, PrepSectionForm, PrepQuestionForm
-from examc_app.models import PrepScoringFormula, PrepSection, PrepQuestionAnswer, PrepQuestion, Exam, Question, \
-    ExamAMCJob
-from examc_app.utils.amc_functions import get_amc_project_path, ensure_amc_project
-from examc_app.utils.preparation_latex_functions import update_global_scoring_latex_file, update_exam_latex
+from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_path
+from examc_app.utils.preparation_latex_functions import (
+    update_exam_latex,
+    update_global_scoring_latex_file,
+)
 
 
 # -------------------------
@@ -148,7 +158,7 @@ def ensure_exam_not_finalized(exam):
         )
     return None
 
-def create_prep_section(exam, title="New section", section_text=""):
+def create_prep_section(exam: Exam, title="New section", section_text=""):
     next_position = (
         exam.prepSections.aggregate(max_pos=Max("position"))["max_pos"] or 0
     ) + 1
@@ -279,13 +289,13 @@ def get_exam_preview_pdf_path(exam):
     return amc_project_path / "exam.pdf"
 
 
-def get_exam_preview_job_dir(exam, job_id):
+def get_exam_preview_job_dir(exam: Exam, job_id):
     preview_dir = Path(settings.PRIVATE_MEDIA_ROOT) / "exam_previews" / str(exam.pk) / str(job_id)
     preview_dir.mkdir(parents=True, exist_ok=True)
     return preview_dir
 
 
-def compile_exam_preview(exam, job_id, timeout=30):
+def compile_exam_preview(exam: Exam, job_id, timeout: int = 30):
     amc_project_path = Path(ensure_amc_project(exam))
     root_latex_file_path = amc_project_path / "exam.tex"
 
@@ -322,7 +332,7 @@ def compile_exam_preview(exam, job_id, timeout=30):
                     "-halt-on-error",
                     root_latex_file_path.name,
                 ],
-                cwd=str(tmp_path),
+                check=False, cwd=str(tmp_path),
                 capture_output=True,
                 text=True,
                 timeout=timeout,

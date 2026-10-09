@@ -1,16 +1,29 @@
 # FUNCTIONS AND CLASSES FOR GENERATING STATISTICS
 #------------------------------------------
-import datetime
 import logging
 import math
-from statistics import *
+from decimal import ROUND_HALF_UP, Decimal
+from statistics import mean, median, stdev
 
+import numpy as np
 from django.db import IntegrityError, transaction
-from django.db.models import Max, Q, FloatField
+from django.db.models import Count, FloatField, Max, Q, Sum
 from scipy import stats
 
-from examc_app.utils.results_statistics_functions import *
 from examc_app.utils.safe_math import safe_eval_decimal_expression
+
+from ..models import (
+    AnswerStatistic,
+    ComVsIndStatistic,
+    Exam,
+    Question,
+    ScaleDistribution,
+    ScaleStatistic,
+    Student,
+    StudentQuestionAnswer,
+    StudentScaleGrade,
+)
+from .results_statistics_functions import clamp
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -20,97 +33,8 @@ logger = logging.getLogger(__name__)
 COLORS = ['lightblue','orange', 'lightgreen', 'red', 'lightgray']
 DISCRIMINATORY_FACTOR = 27
 
-from ..models import *
 
-# GENERATE STATISTICS
-#-------------------------------------------------
-# def generate_statistics(exam):
-#
-#     logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : Start generating statistics ---> ")
-#
-#     # update/init overall and common exams if common
-#     if exam.common_exams.all():
-#         overall_exam=update_overall_common_exam(exam)
-#         generate_exam_stats(overall_exam)
-#     else:
-#         #overall_exam=update_overall_common_exam(exam)
-#         generate_exam_stats(exam)
-#
-#     logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  -- > End generating stats !")
-#
-#     return True
-
-# def update_overall_common_exam(exam):
-#     if not exam.overall:
-#         overall_code = '000_'+re.sub(r"\(.*?\)", "", exam.code).strip()
-#         month_year = exam.date.strftime("%m-%Y")
-#         overall_code += "_"+month_year
-#         overall_exam, created = Exam.objects.get_or_create(code = overall_code,semester = exam.semester,year = exam.year)
-#         if created:
-#             overall_exam.name = 'COMMON'
-#             overall_exam.pdf_catalog_name = exam.pdf_catalog_name
-#             overall_exam.overall = True
-#             overall_exam.date = exam.date
-#             overall_exam.save()
-#
-#         # delete existing stats and questions
-#         Question.objects.filter(exam__pk=overall_exam.pk).delete()
-#         AnswerStatistic.objects.filter(question__exam=overall_exam).delete()
-#         ScaleStatistic.objects.filter(exam=overall_exam).delete()
-#         ScaleDistribution.objects.filter(scale_statistic__exam=overall_exam).delete()
-#
-#
-#         # copy common questions
-#         for question in exam.questions.all().filter(common=True):
-#             question.pk = None
-#             question.exam = overall_exam
-#             question.save()
-#     else:
-#         overall_exam = exam
-#
-#     # init common exams
-#     overall_exam = update_common_exams(overall_exam.pk)
-#     # logger.info(overall_exam.questions.all())
-#     # update overall present students
-#     overall_exam.present_students = int(Student.objects.filter(exam__in=overall_exam.common_exams.all(), present=True).count())
-#     overall_exam.save()
-#
-#
-#     # copy scales from other commons
-#     for comex in overall_exam.common_exams.all():
-#         for scale in comex.scales.all():
-#             if not Exam.objects.filter(pk=overall_exam.pk, scales__name=scale.name).exists():
-#                 overall_exam.scales.add(scale)
-#                 overall_exam.save()
-#          # copy scales to other commons
-#         for scale in overall_exam.scales.all():
-#             scale_comex, created = Scale.objects.get_or_create(exam=comex,name = scale.name,total_points=scale.total_points)
-#             if created:
-#                 scale_comex.total_points = scale.total_points
-#                 scale_comex.points_to_add = scale.points_to_add
-#                 scale_comex.min_grade = scale.min_grade
-#                 scale_comex.max_grade = scale.max_grade
-#                 scale_comex.rounding = scale.rounding
-#                 scale_comex.formula = scale.formula
-#                 scale_comex.save()
-#         # update common questions to other commons
-#         for question in comex.questions.all():
-#             overall_question = Question.objects.filter(code=question.code, exam=overall_exam).first()
-#             if overall_question :
-#                 # logger.info(comex)
-#                 # logger.info(question.code)
-#                 # logger.info(comex.pk)
-#                 question.common = True
-#                 question.question_type = overall_question.question_type
-#                 question.nb_answers = overall_question.nb_answers
-#                 question.max_points = overall_question.max_points
-#             else:
-#                 question.common = False
-#             question.save()
-#
-#     return overall_exam
-
-def generate_exam_stats(exam,progress_recorder,process_number,process_count):
+def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_count):
     logger.info("GEN STATS for "+exam.code)
     # reset statistic
     reset_statistics(exam)
@@ -222,19 +146,16 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
                                     "CP": com_max_points,
                                 },
                             )
-                            if indiv_points>ind_max_points:
-                                indiv_points=ind_max_points
+                            indiv_points = min(indiv_points, ind_max_points)
                             print(indiv_formula)
                             print(indiv_points)
 
-                            grade = Decimal(((indiv_points+common_points+scale.points_to_add) / scale.total_points * (scale.max_grade-scale.min_grade) + scale.min_grade)*roundint).quantize(Decimal('1'),rounding=ROUND_HALF_UP) / roundint
+                            grade = Decimal(((indiv_points+common_points+scale.points_to_add) / scale.total_points * (scale.max_grade-scale.min_grade) + scale.min_grade)*roundint).quantize(Decimal(1),rounding=ROUND_HALF_UP) / roundint
 
 
 
-                        if grade > scale.max_grade:
-                            grade = scale.max_grade
-                        if grade < scale.min_grade:
-                            grade = scale.min_grade
+                        grade = min(grade, scale.max_grade)
+                        grade = max(grade, scale.min_grade)
 
                         all_grades.append(grade)
 
@@ -267,10 +188,6 @@ def generate_exam_stats(exam,progress_recorder,process_number,process_count):
                 scale_statistic.median = med
                 scale_statistic.section = 'global'
                 scale_statistic.save()
-
-                # if exam.overall:
-                #     logger.info(distribution_list)
-                #     logger.info(scale_statistic)
 
                 i = 1
                 for dist in distribution_list:
@@ -528,8 +445,7 @@ def create_stats_comVsInd(overall_exam):
                             "CP": com_max_points,
                         },
                     )
-                    if stud_ind_points>ind_max_points:
-                        stud_ind_points=ind_max_points
+                    stud_ind_points = min(stud_ind_points, ind_max_points)
 
                     ind_pts += stud_ind_points
 
@@ -622,6 +538,6 @@ def get_comVsInd_correlation(overall_exam):
             df = 2*sample_size-2
             tscore = r*np.sqrt(288)/np.sqrt(1-r**2)
             pvalue = stats.t.sf(abs(tscore), df=df)*2
-            correlation_list.append([comex,r,tscore,"{0:.10E}".format(pvalue),graph_data])
+            correlation_list.append([comex,r,tscore, f"{pvalue:.10E}",graph_data])
 
     return correlation_list

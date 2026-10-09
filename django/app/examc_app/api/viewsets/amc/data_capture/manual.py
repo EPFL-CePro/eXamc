@@ -14,13 +14,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from examc import settings
-from examc_app.api.decorators import exam_permission_required, ExamScopedViewMixin
+from examc_app.api.decorators import ExamScopedViewMixin, exam_permission_required
 from examc_app.api.serializers.amc.data_capture.manual import ScanUrlQuerySerializer
 from examc_app.models import Exam
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.signing import make_token_for
 from examc_app.utils.amc.path import resolve_amc_path
-from examc_app.utils.amc_db_queries import select_amc_scan_path
+from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.global_functions import user_allowed
 
@@ -86,7 +86,10 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
 
     GET /api/exams/<exam_pk>/amc-data-capture-manual/
     """
-    permission_classes = [IsAuthenticated]
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
+
+        self.permission_classes = [IsAuthenticated]
 
     @exam_permission_required(["manage"])
     def list(self, request: Request, exam_pk: str) -> Response:
@@ -156,16 +159,15 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
         exam = get_object_or_404(Exam, pk=exam_pk)
         project_path = get_amc_project_path(exam, False)
 
-        if not project_path:
-            raise NotFound('No AMC project was found for this exam.')
-
         if '.' in page_nr:  # extra page
             c = copy_nr.zfill(4)
             scan_path = Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
         else:
-            raw = select_amc_scan_path(f'{project_path}/data/', copy_nr, page_nr)
-            if not raw:
-                raise NotFound('No scan was found for this page.')
+            with AmcCaptureDbManager(amc_data_path=f'{project_path}/data/') as amc_capture_db_manager:
+                raw = amc_capture_db_manager.select_amc_scan_path(copy_nr, page_nr)
+                if not raw:
+                    raise NotFound('No scan was found for this page.')
+
             scan_path = resolve_amc_path(raw, project_path)
 
         roots = [Path(settings.MARKED_SCANS_ROOT), Path(settings.SCANS_ROOT), Path(project_path, 'scans', 'extra')]

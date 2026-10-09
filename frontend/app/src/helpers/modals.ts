@@ -24,6 +24,7 @@ export function getModal(
     }
 ): Modal {
     const { type, modalOptions } = options;
+    
     let { element } = options;
 
     if (type == "loading") {
@@ -37,10 +38,13 @@ export function getModal(
 
     // try to retrieve the existing modal from the map
     const existingModal = modals.get(element);
+
     if (existingModal) return existingModal;
 
-    // if not yet initialized, return a new Modal
-    return new Modal(element, modalOptions);
+    // if not yet initialized, creates a new Modal and store it in the map
+    const modal = new Modal(element, modalOptions);
+    modals.set(element, modal);
+    return modal;
 }
 
 /**

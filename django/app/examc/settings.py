@@ -127,9 +127,9 @@ MIDDLEWARE = [
     'maintenance_mode.middleware.MaintenanceModeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'examc_app.middleware.auto_logout.AutoLogoutMiddleware',
+    'examc_app.middleware.user_facing_errors.UserFacingErrorMiddleware',
 ]
 
 AUTO_LOGOUT_DELAY = 1800 # seconds
@@ -312,7 +312,7 @@ LOGIN_REQUIRED_IGNORE_PATHS = [
 ]
 
 # Email configuration
-EMAIL_BACKEND = 'examc_app.email_backend.py'
+EMAIL_BACKEND = 'examc_app.email_backend.ConstanceEmailBackend'
 
 # Pandoc filters
 PANDOC_UTILS_DIR = BASE_DIR / 'examc_app/utils/pandoc'
