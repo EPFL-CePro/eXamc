@@ -26,6 +26,11 @@ from examc_app.models import (
     Student,
     UnrecognizedReviewScan,
 )
+from examc_app.services.exam.paths import (
+    get_exam_marked_scans_dir,
+    get_exam_scans_dir,
+    get_exam_subdir,
+)
 from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_functions import get_amc_project_path
@@ -33,14 +38,6 @@ from examc_app.utils.examc_qr import ScanQr, parse_scan_qr, scan_exams, scan_qr_
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 UNRECOGNIZED_REVIEW_SCAN_DIR = "unrecognized"
-
-
-def get_exam_scans_subdir(exam: Exam) -> str:
-    return f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
-
-
-def get_exam_scans_dir(exam: Exam) -> pathlib.Path:
-    return pathlib.Path(settings.SCANS_ROOT) / get_exam_scans_subdir(exam)
 
 
 def get_scan_relative_path(path: str) -> str:
@@ -383,8 +380,7 @@ def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count
 
 def import_scans(exam, path, delete_old, progress_recorder, process_count, process_number):
     print("* Start importing scans")
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir = str(get_exam_scans_dir(exam))
     os.makedirs(scans_dir, exist_ok=True)
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Deleting old scans...')
@@ -445,8 +441,7 @@ def create_students_from_amc(exam):
 
 
 def delete_old_scans(exam):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir = str(get_exam_scans_dir(exam))
     for filename in os.listdir(scans_dir):
         file_path = os.path.join(scans_dir, filename)
         try:
@@ -457,8 +452,7 @@ def delete_old_scans(exam):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-    marked_scans_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    marked_scans_dir = str(get_exam_marked_scans_dir(exam))
     if os.path.exists(marked_scans_dir):
         for filename in os.listdir(marked_scans_dir):
             file_path = os.path.join(scans_dir, filename)
@@ -473,10 +467,8 @@ def delete_old_scans(exam):
 
 #### TESTING DISPLAYING FULL COPIE JPGS ####
 def get_scans_pathes_by_exam(exam):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
-    scans_url = "../../scans/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir = str(get_exam_scans_dir(exam))
+    scans_url = "../../scans/" + get_exam_subdir(exam)
 
     #scans_markers_qs = PageMarkers.objects.filter(exam=exam,copy_no=copy_nr)
     scans_pathes = []
@@ -496,8 +488,7 @@ def get_scans_pathes_by_exam(exam):
 def get_copies_pages_by_group(pages_group: PagesGroup):
     print('********************* START GET COPIES')
     exam = pages_group.exam
-    project_subdir = f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date:%Y%m%d}"
-    scans_dir = pathlib.Path(settings.SCANS_ROOT) / project_subdir
+    scans_dir = get_exam_scans_dir(exam)
     print(scans_dir)
 
     # ---- DB: pull once, then do O(1) lookups in-memory ----------------------
@@ -734,16 +725,14 @@ def updateCorrectorBoxMarked(pageMarkers):
 
 
 def get_exam_copies_from_to(exam):
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir = str(get_exam_scans_dir(exam))
     copies_folders = [entry.name for entry in iter_review_copy_dirs(scans_dir)]
     copies = [copy.lstrip('0') for copy in copies_folders]
     return copies
 
 
 def get_scans_list(exam):
-    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir_path = str(get_exam_scans_dir(exam))
     scans_dir_path = scans_dir_path.replace(' ', '_')
     result = []
     if os.path.exists(scans_dir_path):
@@ -767,8 +756,7 @@ def get_scans_list(exam):
 
 
 def get_scans_list_by_copy(exam, copy_nr):
-    scans_dir_path = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir_path = str(get_exam_scans_dir(exam))
     scans_dir_path = scans_dir_path.replace(' ', '_')
     scans_dir_path += "/" + copy_nr
     result = []
@@ -782,11 +770,11 @@ def get_scans_list_by_copy(exam, copy_nr):
 
 
 def get_scan_url(exam: Exam, copy_nr, page_nr) -> str:
-    scans_dir_path = f"{settings.SCANS_ROOT}/{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
+    scans_dir_path = str(get_exam_scans_dir(exam))
 
     scans_dir_path = scans_dir_path.replace(' ', '_')
     scans_dir_path += f"/{copy_nr}"
-    scans_url = f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
+    scans_url = get_exam_subdir(exam)
     scans_url += f"/{copy_nr}/"
 
     scan_url = ''

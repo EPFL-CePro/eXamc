@@ -52,6 +52,10 @@ from examc_app.models import (
     QuestionGradingSchemeCheckBox,
     Student,
 )
+from examc_app.services.exam.paths import (
+    get_exam_amc_project_dir,
+    get_exam_amc_project_url,
+)
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
@@ -521,7 +525,7 @@ def get_amc_exam_pdf_path(exam: Exam):
 
 def get_amc_exam_pdf_url(exam: Exam):
     file_name = get_amc_option_by_key(exam, 'doc_question')
-    file_url = get_amc_project_url(exam) + "/" + file_name
+    file_url = get_exam_amc_project_url(exam) + "/" + file_name
     return file_url
 
 
@@ -532,9 +536,8 @@ def get_amc_catalog_pdf_path(exam: Exam):
 
 
 def get_amc_project_path(exam: Exam, even_if_not_exist: bool = False) -> str:
-    amc_project_path = f"{settings.AMC_PROJECTS_ROOT}/{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
+    amc_project_path = str(get_exam_amc_project_dir(exam))
 
-    #print('****************** amc_project_path : ' + amc_project_path)
     if os.path.isdir(amc_project_path) or even_if_not_exist:
         return amc_project_path
     else:
@@ -542,10 +545,6 @@ def get_amc_project_path(exam: Exam, even_if_not_exist: bool = False) -> str:
             f"AMC project not found at {amc_project_path}",
             context={"exam": exam},
         )
-
-
-def get_amc_project_url(exam: Exam) -> str:
-    return f"{settings.AMC_PROJECTS_URL}{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
 
 
 def ensure_amc_project(exam):

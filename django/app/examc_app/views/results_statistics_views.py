@@ -16,6 +16,7 @@ from examc import settings
 from examc_app.decorators import exam_permission_required
 from examc_app.forms.results_statistics import ExportResultsForm
 from examc_app.models import Exam, Question, Scale, Student
+from examc_app.services.exam.paths import get_exam_catalog_dir
 from examc_app.storage import private_storage, to_private_name
 
 ## testing
@@ -121,8 +122,7 @@ def upload_catalog_pdf(request, exam_pk: int):
     catalog = request.FILES["catalog_pdf_file"]
 
     filename = exam.code+'_'+str(exam.year.code)+'_'+str(exam.semester.code)+'_catalog.pdf'
-    dest = str(settings.CATALOG_ROOT)+'/'+str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'_'+exam.date.strftime("%Y%m%d") +'/'
-    dest += filename
+    dest = str(get_exam_catalog_dir(exam) / filename)
     name = to_private_name(dest)
     private_storage.delete(name)
     private_storage.save(name,ContentFile(catalog.read()))
@@ -417,8 +417,7 @@ def display_catalog(request: HttpRequest, exam_pk: int):
     if exam.is_overall():
         exam = exam.common_exams.all().first()
     cat_name = exam.code + '_' + str(exam.year.code) + '_' + str(exam.semester.code) + '_catalog.pdf'
-    cat_url = str(exam.year.code)+"/"+str(exam.semester.code)+'/'+exam.code+'_'+exam.date.strftime("%Y%m%d") +'/'+cat_name
-    cat_path = str(settings.CATALOG_ROOT)+'/'+cat_url
+    cat_path = str(get_exam_catalog_dir(exam) / cat_name)
     if not os.path.exists(cat_path):
       #try to find it in amc dir
       cat_path = get_amc_catalog_pdf_path(exam)

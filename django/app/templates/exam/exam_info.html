@@ -663,22 +663,18 @@ function updateExamInfo(exam_id){
     $.ajax({
         url: "/update_exam_info/"+exam_id,
         type: "POST",
-        dataType: "json",
         data : {
             'csrfmiddlewaretoken' : "{{ csrf_token }}",
             'date' : date,
             'code' : code,
-            'name' : name, 
+            'name' : name,
             'year_id' : year_id,
             'semester_id' : semester_id,
         },
-        complete: function () {
+        success: () => location.reload(),
+        error: (xhr) => {
             $('#loadingModal').modal('hide');
-            location.reload();
-            //$("#exam_date_column-"+exam_id).load(location.href + " #exam_date_column-"+exam_id );
-        },
-        error: (error) => {
-            console.log(error);
+            showUserError(xhr.responseJSON);
         }
     });
 }
