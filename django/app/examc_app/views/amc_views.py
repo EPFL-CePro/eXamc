@@ -139,9 +139,8 @@ def _job_response(status_url_name: str, exam_pk: int, job_id: str, existing: boo
 
 @exam_permission_required(['manage'])
 def upload_amc_project(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-
-    exam_selected = exam.get_overall_exam_or_default()
+    exam_selected = Exam.objects.get(pk=exam_pk)
+    exam = exam_selected.get_overall_exam_or_default()
 
     if request.method == 'POST':
         if 'amc_project_zip_file' not in request.FILES:
@@ -151,6 +150,7 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
                 'amc/upload_amc_project.html',
                 {
                     'exam': exam,
+                    'exam_selected': exam_selected,
                     'message': message,
                     "nav_url": "upload_amc_project"
                 }
@@ -158,8 +158,7 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
 
         zip_file = request.FILES['amc_project_zip_file']
 
-        message = create_amc_project_dir_from_zip(exam, zip_file)
-
+        create_amc_project_dir_from_zip(exam, zip_file)
         create_students_from_amc(exam)
 
         return render(
@@ -169,7 +168,7 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
                 'exam': exam,
                 'exam_selected': exam_selected,
                 'nav_url': "upload_amc_project",
-                'message': message
+                'message': 'AMC project folder uploaded !'
             }
         )
 
