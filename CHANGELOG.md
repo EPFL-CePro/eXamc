@@ -6,6 +6,10 @@ The format follows [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 - 
 
+## [2.0.2] - 2026-10-12
+### Security
+- Dependencies: pypdf 6.16.2 -> 6.19.0 and urllib3 2.7.0 -> 2.8.0 (known vulnerabilities reported by the security check).
+
 ## [2.0.1] - 2026-10-09
 ### Fixed
 - AMC pages: the dropdown menus open again (the pages loaded a second Bootstrap).
