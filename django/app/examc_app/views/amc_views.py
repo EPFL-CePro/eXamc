@@ -158,9 +158,10 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
 
         zip_file = request.FILES['amc_project_zip_file']
 
-        message = create_amc_project_dir_from_zip(exam, zip_file)
+        uploaded, message = create_amc_project_dir_from_zip(exam, zip_file)
 
-        create_students_from_amc(exam)
+        if uploaded:
+            create_students_from_amc(exam)
 
         return render(
             request,
