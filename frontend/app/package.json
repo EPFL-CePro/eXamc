@@ -34,7 +34,7 @@
     "jquery-comments": "^1.0.1",
     "jspdf": "^4.2.1",
     "latex.js": "^0.12.6",
-    "tinymce": "^6.8.6",
+    "tinymce": "^7.9.3",
     "vite-plugin-static-copy": "^4.1.1"
   }
 }
