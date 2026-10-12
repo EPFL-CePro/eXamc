@@ -43,7 +43,11 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from examc_app.exceptions.amc import AmcProjectPathNotFoundError
+from examc_app.exceptions.amc import (
+    AmcProjectNotInZipError,
+    AmcProjectPathNotFoundError,
+    AmcProjectZipInvalidError,
+)
 from examc_app.models import (
     Exam,
     PagesGroup,
@@ -677,10 +681,7 @@ def _find_amc_project_dir(extracted_root_path):
     return candidates[0][1]
 
 
-def create_amc_project_dir_from_zip(exam: Exam, zip_file) -> tuple[bool, str]:
-    """
-    :return: (success, message)
-    """
+def create_amc_project_dir_from_zip(exam: Exam, zip_file) -> None:
     work_dir = get_exam_auto_upload_dir(exam)
     zip_path = work_dir / "amc_project.zip"
     tmp_extract_path = work_dir / "tmp_extract"
@@ -699,12 +700,15 @@ def create_amc_project_dir_from_zip(exam: Exam, zip_file) -> tuple[bool, str]:
                 # Security hardening: validated extraction (no traversal/symlink/oversized archive).
                 safe_extract_zip(zip_ref, tmp_extract_path)
         except (zipfile.BadZipFile, UnsafeZipArchiveError) as exc:
-            logger.warning("Invalid AMC project zip for exam pk=%s: %s", exam.pk, exc)
-            return False, f'The uploaded file is not a valid zip archive: {exc}'
+            raise AmcProjectZipInvalidError(
+                f"Invalid AMC project zip for exam pk={exam.pk}: {exc}", context={"exam": exam}
+            )
 
         project_dir_path = _find_amc_project_dir(tmp_extract_path)
         if not project_dir_path:
-            return False, 'The zip file does not contain a valid AMC project folder with an options.xml starting with <project>!'
+            raise AmcProjectNotInZipError(
+                f"No valid options.xml in the AMC project zip of exam pk={exam.pk}", context={"exam": exam}
+            )
 
         # move to destination amc_projects, replacing the previous project
         amc_project_path = Path(get_amc_project_path(exam, True))
@@ -712,8 +716,6 @@ def create_amc_project_dir_from_zip(exam: Exam, zip_file) -> tuple[bool, str]:
             shutil.rmtree(amc_project_path)
         amc_project_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(project_dir_path, amc_project_path)
-
-        return True, 'AMC project folder uploaded !'
     finally:
         # remaining extracted files
         shutil.rmtree(tmp_extract_path, ignore_errors=True)
