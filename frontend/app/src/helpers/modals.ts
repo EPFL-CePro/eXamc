@@ -1,4 +1,6 @@
-import { Modal } from "bootstrap";
+import type { Modal } from "bootstrap";
+
+import { getPageBootstrap } from "@examc/helpers/page-bootstrap.ts";
 
 // store the initialized modals
 const modals = new WeakMap<HTMLElement, Modal>();
@@ -42,7 +44,7 @@ export function getModal(
     if (existingModal) return existingModal;
 
     // if not yet initialized, creates a new Modal and store it in the map
-    const modal = new Modal(element, modalOptions);
+    const modal = new (getPageBootstrap().Modal)(element, modalOptions);
     modals.set(element, modal);
     return modal;
 }
