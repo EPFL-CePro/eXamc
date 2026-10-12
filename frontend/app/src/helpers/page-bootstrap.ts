@@ -1,6 +1,6 @@
-import type { Collapse, Modal } from "bootstrap";
+import type { Collapse, Dropdown, Modal } from "bootstrap";
 
-type PageBootstrap = { Collapse: typeof Collapse; Modal: typeof Modal };
+type PageBootstrap = { Collapse: typeof Collapse; Dropdown: typeof Dropdown; Modal: typeof Modal };
 
 /**
  * Bootstrap 5 of the page (legacy/bootstrap-cdn.html), not the npm package: importing the package bundles a

@@ -1,4 +1,4 @@
-import { Dropdown } from 'bootstrap';
+import { getPageBootstrap } from '@examc/helpers/page-bootstrap.ts';
 
 import './main.scss';
 
@@ -103,7 +103,7 @@ export function createSearchableDropdown(options: SearchableDropdownOptions): Se
     // No data-bs-toggle attribute: clicks, outside clicks and keys are handled below, so the dropdown
     // doesn't depend on Bootstrap's document-wide data API (which a second Bootstrap copy on the page,
     // e.g. a <script> bundle, would also run, opening and closing the menu on the same click).
-    const dropdown = new Dropdown(toggle, {
+    const dropdown = new (getPageBootstrap().Dropdown)(toggle, {
         autoClose: false, // closing is handled below: outside clicks, Escape, focus leaving
         // Fixed positioning keeps the menu from being clipped by scrolling containers such as modals.
         popperConfig: (config) => ({ ...config, strategy: 'fixed' }),
