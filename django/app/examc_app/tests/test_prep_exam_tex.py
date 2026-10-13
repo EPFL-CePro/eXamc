@@ -101,6 +101,21 @@ class ExamTexSectionsTestCase(ExamTexTestCase):
         self.assertEqual(self.group_order(), [1, 2])
         self.assertIn("B", (self.exam_tex().parent / "section_header_1.tex").read_text(encoding="utf-8"))
 
+    def test_section_starts_on_a_new_page_only_when_asked(self):
+        continued = create_prep_section(self.exam, title="Continued")
+        new_page = create_prep_section(self.exam, title="New page")
+        new_page.start_on_new_page = True
+        new_page.save()
+        for section in (continued, new_page):
+            create_prep_question(section, self.open_type)
+
+        update_exam_latex(self.exam)
+
+        project = self.exam_tex().parent
+        self.assertFalse(continued.start_on_new_page)
+        self.assertNotIn("\\clearpage", (project / f"section_header_{continued.position}.tex").read_text(encoding="utf-8"))
+        self.assertIn("\\clearpage", (project / f"section_header_{new_page.position}.tex").read_text(encoding="utf-8"))
+
     def group_order(self):
         import re
         return [int(n) for n in re.findall(r"\\insertgroup\{SECTION-(\d+)\}", self.exam_tex().read_text(encoding="utf-8"))]

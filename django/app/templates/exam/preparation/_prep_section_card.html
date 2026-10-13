@@ -60,8 +60,16 @@
                 <label>Title</label>
                 {{ section_form.title }}
 
-                <label class="mt-3">Randomized questions</label>
-                {{ section_form.random_questions }}
+                <div class="question-top-left mt-3">
+                    <div class="field-block">
+                        <label>Start on a new page</label>
+                        {{ section_form.start_on_new_page }}
+                    </div>
+                    <div class="field-block">
+                        <label>Randomized questions</label>
+                        {{ section_form.random_questions }}
+                    </div>
+                </div>
 
                 <label class="mt-2">Text</label>
                 {{ section_form.section_text }}

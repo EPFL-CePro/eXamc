@@ -29,6 +29,7 @@ PH_EXAM_DATE = '%EXAM-DATE%'
 PH_EXAM_TIME = '%EXAM-TIME%'
 PH_SECTION_TITLE = '%SECTION-TITLE%'
 PH_SECTION_TEXT = '%SECTION-TEXT%'
+PH_SECTION_NEW_PAGE = '%SECTION-NEW-PAGE%'
 PH_SECTION_ID = '%SECTION-ID%'
 PH_SECTION_RANDOM = '%SECTION-RANDOM%'
 PH_SECTION_QUESTIONS = '%QUESTIONS%'
@@ -267,9 +268,12 @@ def render_section_header_tex_from_html(section: PrepSection, template_path: str
         raise ValueError(f"Placeholder {PH_SECTION_TITLE!r} not found in template")
     elif PH_SECTION_TEXT not in template:
         raise ValueError(f"Placeholder {PH_SECTION_TEXT!r} not found in template")
+    elif PH_SECTION_NEW_PAGE not in template:
+        raise ValueError(f"Placeholder {PH_SECTION_NEW_PAGE!r} not found in template")
 
     final_tex = (
         template
+        .replace(PH_SECTION_NEW_PAGE, r"\clearpage" if section.start_on_new_page else "")
         .replace(PH_SECTION_TITLE, latex_fragment_title)
         .replace(PH_SECTION_TEXT, latex_fragment_text)
     )

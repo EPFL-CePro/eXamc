@@ -17,6 +17,7 @@ class PrepSection(models.Model):
     section_text = models.TextField(default='')
     position = models.IntegerField(default=0)
     random_questions = models.BooleanField(default=False)
+    start_on_new_page = models.BooleanField(default=False)
     history = HistoricalRecords()
 
 class PrepQuestion(models.Model):

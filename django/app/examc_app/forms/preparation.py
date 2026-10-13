@@ -32,7 +32,7 @@ class ExamFirstPageForm(forms.ModelForm):
 class PrepSectionForm(forms.ModelForm):
     class Meta:
         model = PrepSection
-        fields = ["title", "section_text", "position", "random_questions"]
+        fields = ["title", "section_text", "position", "random_questions", "start_on_new_page"]
         widgets = {
             "section_text": forms.Textarea(attrs={"class": "markdown-editor","rows":5}),
             "position": forms.HiddenInput(),
@@ -46,6 +46,11 @@ class PrepSectionForm(forms.ModelForm):
         })
         self.fields["random_questions"] = forms.BooleanField(
             label='Randomized questions',
+            widget=SwitchWidget(),
+            required=False
+        )
+        self.fields["start_on_new_page"] = forms.BooleanField(
+            label='Start on a new page',
             widget=SwitchWidget(),
             required=False
         )

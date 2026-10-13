@@ -99,6 +99,7 @@ def compute_exam_source_hash(exam: Exam) -> str:
                 f"section_title:{section.title or ''}",
                 f"section_text:{section.section_text or ''}",
                 f"section_random_questions:{int(section.random_questions)}",
+                f"section_start_on_new_page:{int(section.start_on_new_page)}",
             ]
         )
 
