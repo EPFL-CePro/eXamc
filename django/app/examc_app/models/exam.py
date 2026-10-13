@@ -152,6 +152,9 @@ class Exam(models.Model):
 
     def get_overall_exam_or_default(self):
         """ The overall exam among the common exams if there is one, otherwise this exam """
+        if self.is_overall():
+            return self
+
         return self.common_exams.filter(overall=True).first() or self
 
 

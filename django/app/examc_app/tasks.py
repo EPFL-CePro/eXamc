@@ -25,7 +25,6 @@ from examc_app.models import (
     Student,
     StudentQuestionAnswer,
 )
-from examc_app.services.exam.common import build_overall_exam_code
 from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
 from examc_app.utils.amc.amc_build_functions import build_final_exam
 from examc_app.utils.amc.amc_layout_functions import (
@@ -427,13 +426,7 @@ def generate_statistics(self,exam_pk: int):
 
         # update/init overall and common exams if common
         if exam.common_exams.all():
-
-
-            if not exam.overall:
-                overall_code = build_overall_exam_code(exam)
-                overall_exam = Exam.objects.get(code=overall_code, semester=exam.semester, year=exam.year)
-            else:
-                overall_exam = exam
+            overall_exam = exam.get_overall_exam_or_default()
             nb_common = len(overall_exam.common_exams.all())+1
             process_count = nb_common*5-nb_common
             process_number = 0
