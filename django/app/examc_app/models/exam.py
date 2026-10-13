@@ -134,14 +134,11 @@ class Exam(models.Model):
         return exam_list
 
     def get_available_common_exams(self):
-
         exam = self
         if self.is_overall():
-            code_split = self.code.split('_')
-            code = code_split[1]
-            semester = self.semester
-            year = self.year
-            exam = Exam.objects.filter(code__startswith=code,semester=semester, year=year).exclude(code=self.code).first()
+            exam = self.common_exams.filter(overall=False).first()
+        if exam is None:
+            return []
 
         available_exams = []
         if exam.questions.all():

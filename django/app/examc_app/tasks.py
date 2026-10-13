@@ -25,6 +25,7 @@ from examc_app.models import (
     Student,
     StudentQuestionAnswer,
 )
+from examc_app.services.exam.common import build_overall_exam_code
 from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
 from examc_app.utils.amc.amc_build_functions import build_final_exam
 from examc_app.utils.amc.amc_layout_functions import (
@@ -429,9 +430,7 @@ def generate_statistics(self,exam_pk: int):
 
 
             if not exam.overall:
-                overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
-                month_year = exam.date.strftime("%m-%Y")
-                overall_code += "_" + month_year
+                overall_code = build_overall_exam_code(exam)
                 overall_exam = Exam.objects.get(code=overall_code, semester=exam.semester, year=exam.year)
             else:
                 overall_exam = exam
