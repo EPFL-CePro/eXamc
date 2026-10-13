@@ -1,12 +1,8 @@
-from __future__ import absolute_import, unicode_literals
-
+import os
 from pathlib import Path
 
 from celery import Celery
-
 from django.conf import settings
-import os
-from dotenv import load_dotenv
 
 if os.getenv("DJANGO_DOTENV", "0") == "1":
     try:
