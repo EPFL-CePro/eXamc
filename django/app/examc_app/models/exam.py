@@ -4,9 +4,10 @@
 import json
 
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
-from django.db.models import Count
+
 
 class AcademicYear(models.Model):
     """ Stores academic year data """
@@ -110,18 +111,11 @@ class Exam(models.Model):
 
     def get_common_exams_yc_common(self):
         """ Return all common exams including the common (000-) """
-        exam_list = [self]
-        for comex in self.common_exams.all():
-            exam_list.append(comex)
-
-        return exam_list
+        return [self, *self.common_exams.all()]
 
     def get_common_exams_without_common(self):
         """ Return all common exams without the common (000-) """
-        exam_list = Exam.objects.filter(common_exams=self,overall=False)
-        for exam in exam_list.all():
-            print( exam)
-        return exam_list
+        return Exam.objects.filter(common_exams=self,overall=False)
 
 
     def get_students_results_exams(self):
