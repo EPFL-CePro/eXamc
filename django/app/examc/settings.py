@@ -32,7 +32,7 @@ def env_list(key, default=""):
     return [value.strip() for value in env(key, default).split(",") if value.strip()]
 
 # load .env only for test and dev environments (outside Docker)
-TESTING_MODE_ENABLED = os.getenv("TESTING_MODE_ENABLED", "0") == "1" or not os.getenv("TESTING_MODE_ENABLED")
+TESTING_MODE_ENABLED = os.getenv("TESTING_MODE_ENABLED", "0") == "1"
 
 if os.getenv("DJANGO_DOTENV", "0") == "1" or not os.getenv("SECRET_KEY"):
     # allows manage.py runserver or migrate, ... locally without Compose
