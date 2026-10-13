@@ -9,10 +9,11 @@ from django.db.models.functions import Cast
 from django.templatetags.static import static
 from shapely import Polygon
 
-from django.conf import settings
 from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser, \
     PagesGroupGradingSchemeCheckedBox
 from examc_app.models import ScaleStatistic, Student, AnswerStatistic
+from examc_app.exceptions import UserFacingError
+from examc_app.services.exam.paths import get_exam_scans_dir
 from examc_app.views import logger
 
 register = template.Library()
@@ -200,7 +201,10 @@ def get_pages_group_graded_count_txt(pages_group_id,user_id=None):
         count_graded = PageMarkers.objects.filter(pages_group=pages_group, correctorBoxMarked=True,pageMarkers_users__user__id=user_id).count()
     else:
         count_graded = PageMarkers.objects.filter(pages_group=pages_group,correctorBoxMarked=True).count()
-    scans_path =  str(settings.SCANS_ROOT) + "/" + str(pages_group.exam.year.code) + "/" + str(pages_group.exam.semester.code) + "/" + pages_group.exam.code+"_"+pages_group.exam.date.strftime("%Y%m%d")
+    try:
+        scans_path = get_exam_scans_dir(pages_group.exam)
+    except UserFacingError:
+        return 0
     if os.path.exists(scans_path):
         scans_folders = [x for x in os.listdir(scans_path) if x != '0000']
         count_copies = len(scans_folders)

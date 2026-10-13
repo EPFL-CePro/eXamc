@@ -43,7 +43,11 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from examc_app.exceptions.amc import AmcProjectPathNotFoundError
+from examc_app.exceptions.amc import (
+    AmcProjectNotInZipError,
+    AmcProjectPathNotFoundError,
+    AmcProjectZipInvalidError,
+)
 from examc_app.models import (
     Exam,
     PagesGroup,
@@ -52,13 +56,18 @@ from examc_app.models import (
     QuestionGradingSchemeCheckBox,
     Student,
 )
+from examc_app.services.exam.paths import (
+    get_exam_amc_project_dir,
+    get_exam_amc_project_url,
+    get_exam_auto_upload_dir,
+)
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_db_queries.report import AmcReportDbManager
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
-from examc_app.utils.zip_security import safe_extract_zip
+from examc_app.utils.zip_security import UnsafeZipArchiveError, safe_extract_zip
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -521,7 +530,7 @@ def get_amc_exam_pdf_path(exam: Exam):
 
 def get_amc_exam_pdf_url(exam: Exam):
     file_name = get_amc_option_by_key(exam, 'doc_question')
-    file_url = get_amc_project_url(exam) + "/" + file_name
+    file_url = get_exam_amc_project_url(exam) + "/" + file_name
     return file_url
 
 
@@ -532,9 +541,8 @@ def get_amc_catalog_pdf_path(exam: Exam):
 
 
 def get_amc_project_path(exam: Exam, even_if_not_exist: bool = False) -> str:
-    amc_project_path = f"{settings.AMC_PROJECTS_ROOT}/{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
+    amc_project_path = str(get_exam_amc_project_dir(exam))
 
-    #print('****************** amc_project_path : ' + amc_project_path)
     if os.path.isdir(amc_project_path) or even_if_not_exist:
         return amc_project_path
     else:
@@ -542,10 +550,6 @@ def get_amc_project_path(exam: Exam, even_if_not_exist: bool = False) -> str:
             f"AMC project not found at {amc_project_path}",
             context={"exam": exam},
         )
-
-
-def get_amc_project_url(exam: Exam) -> str:
-    return f"{settings.AMC_PROJECTS_URL}{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime("%Y%m%d")}"
 
 
 def ensure_amc_project(exam):
@@ -599,13 +603,14 @@ def get_extra_pages(amc_extra_pages_path: str, amc_extra_pages_url: str | None =
     return extra_pages_data
 
 
-def get_amc_marks_positions_data(exam: Exam, copy, page):
+def get_amc_marks_positions_data(exam: Exam, copy, page, question_name: str | None = None):
+    """The answer boxes of a page of a copy, only those of question `question_name` when given."""
     amc_project_path = get_amc_project_path(exam, False)
 
     amc_data_path = f"{amc_project_path}/data/"
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
         data_positions = amc_capture_db_manager.select_marks_positions(
-            copy=copy, page=page
+            copy=copy, page=page, question_name=question_name
         )
 
         for idx, item in enumerate(data_positions):
@@ -676,46 +681,45 @@ def _find_amc_project_dir(extracted_root_path):
     return candidates[0][1]
 
 
-def create_amc_project_dir_from_zip(exam: Exam, zip_file):
-    file_name = f"exam_{exam.pk}_amc_project.zip"
-    temp_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, file_name)
+def create_amc_project_dir_from_zip(exam: Exam, zip_file) -> None:
+    work_dir = get_exam_auto_upload_dir(exam)
+    zip_path = work_dir / "amc_project.zip"
+    tmp_extract_path = work_dir / "tmp_extract"
 
-    os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
+    work_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(zip_path, 'wb') as temp_file:
+            temp_file.writelines(zip_file.chunks())
 
-    with open(temp_file_path, 'wb') as temp_file:
-        temp_file.writelines(zip_file.chunks())
-
-    zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(
-        exam.semester.code) + "_" + exam.code
-    tmp_extract_path = zip_path + "/tmp_extract"
-
-    os.makedirs(zip_path, exist_ok=True)
-    if os.path.exists(tmp_extract_path):
-        shutil.rmtree(tmp_extract_path)
-
-    # extract zip file in tmp dir
-    with zipfile.ZipFile(temp_file_path, 'r') as zip_ref:
-        print("start extraction")
-        # Security hardening: validated extraction (no traversal/symlink/oversized archive).
-        safe_extract_zip(zip_ref, tmp_extract_path)
-
-    project_dir_path = _find_amc_project_dir(tmp_extract_path)
-    if not project_dir_path:
         shutil.rmtree(tmp_extract_path, ignore_errors=True)
-        return 'The zip file does not contain a valid AMC project folder with an options.xml starting with <project>!'
 
-    # move to destination amc_projects
-    amc_project_path = get_amc_project_path(exam, True)
-    # Remove destination folder if it exists
-    if amc_project_path is not None and os.path.exists(amc_project_path):
-        shutil.rmtree(amc_project_path)
+        # extract zip file in tmp dir
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                logger.info("Extracting AMC project zip of exam pk=%s", exam.pk)
+                # Security hardening: validated extraction (no traversal/symlink/oversized archive).
+                safe_extract_zip(zip_ref, tmp_extract_path)
+        except (zipfile.BadZipFile, UnsafeZipArchiveError) as exc:
+            raise AmcProjectZipInvalidError(
+                f"Invalid AMC project zip for exam pk={exam.pk}: {exc}", context={"exam": exam}
+            )
+
+        project_dir_path = _find_amc_project_dir(tmp_extract_path)
+        if not project_dir_path:
+            raise AmcProjectNotInZipError(
+                f"No valid options.xml in the AMC project zip of exam pk={exam.pk}", context={"exam": exam}
+            )
+
+        # move to destination amc_projects, replacing the previous project
+        amc_project_path = Path(get_amc_project_path(exam, True))
+        if amc_project_path.exists():
+            shutil.rmtree(amc_project_path)
+        amc_project_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(project_dir_path, amc_project_path)
-
-    # Remove remaining extracted files (wrapper folders, etc.).
-    if os.path.exists(tmp_extract_path):
+    finally:
+        # remaining extracted files
         shutil.rmtree(tmp_extract_path, ignore_errors=True)
-
-    return 'AMC project folder uploaded !'
+        zip_path.unlink(missing_ok=True)
 
 
 def get_automatic_data_capture_summary(exam: Exam):

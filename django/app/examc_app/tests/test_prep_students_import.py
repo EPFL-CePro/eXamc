@@ -2,17 +2,21 @@ import io
 from unittest.mock import patch
 
 from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 
 from examc_app.models import PrepStudent
-from examc_app.services.person_directory import DirectoryPerson, get_people_by_sciper
 from examc_app.services.oasis import OasisError, get_course_students_scipers
+from examc_app.services.person_directory import DirectoryPerson, get_people_by_sciper
 from examc_app.services.student.prep_import import (
-    StudentsFileError, build_students_template, correct_prep_student, load_students_file, load_students_from_oasis,
-    read_students_file, replace_prep_students,
+    StudentsFileError,
+    build_students_template,
+    correct_prep_student,
+    load_students_file,
+    load_students_from_oasis,
+    read_students_file,
+    replace_prep_students,
 )
-from django.urls import reverse
-
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 
 HEADER = ["SCIPER", "ROOM", "SEAT"]

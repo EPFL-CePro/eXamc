@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 
-from examc_app.models import Semester, AcademicYear, Exam, Scale
+from examc_app.models import AcademicYear, Exam, Scale, Semester
 
 
 def create_mock_semester(code: int = 20212022, name: str = "Semester test") -> Semester:

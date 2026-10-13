@@ -33,6 +33,7 @@ from examc_app.exceptions.amc import (
 from examc_app.models import Exam, PageMarkers, PagesGroup, UnrecognizedReviewScan
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.services.amc_jobs import AmcJobsManager
+from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
 from examc_app.signing import make_token_for
 from examc_app.tasks import (
     amc_annotate_task,
@@ -78,7 +79,6 @@ from examc_app.utils.amc_functions import (
 )
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import (
-    get_exam_marked_scans_dir,
     iter_render_grading_only_marked_scans,
     render_key,
     render_marked_scan,
@@ -139,14 +139,8 @@ def _job_response(status_url_name: str, exam_pk: int, job_id: str, existing: boo
 
 @exam_permission_required(['manage'])
 def upload_amc_project(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-
-    exam_selected = exam
-    if exam.common_exams:
-        for common_exam in exam.common_exams.all():
-            if common_exam.is_overall():
-                exam = common_exam
-                break
+    exam_selected = Exam.objects.get(pk=exam_pk)
+    exam = exam_selected.get_overall_exam_or_default()
 
     if request.method == 'POST':
         if 'amc_project_zip_file' not in request.FILES:
@@ -156,6 +150,7 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
                 'amc/upload_amc_project.html',
                 {
                     'exam': exam,
+                    'exam_selected': exam_selected,
                     'message': message,
                     "nav_url": "upload_amc_project"
                 }
@@ -163,8 +158,7 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
 
         zip_file = request.FILES['amc_project_zip_file']
 
-        message = create_amc_project_dir_from_zip(exam, zip_file)
-
+        create_amc_project_dir_from_zip(exam, zip_file)
         create_students_from_amc(exam)
 
         return render(
@@ -174,7 +168,7 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
                 'exam': exam,
                 'exam_selected': exam_selected,
                 'nav_url': "upload_amc_project",
-                'message': message
+                'message': 'AMC project folder uploaded !'
             }
         )
 
@@ -281,11 +275,7 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
 
         context['exam_selected'] = exam
 
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_overall_exam_or_default()
 
         context['exam'] = exam
         context['user_allowed'] = True
@@ -306,11 +296,7 @@ def amc_data_capture_manual(request: HttpRequest, exam_pk: int):
     if user_allowed(exam, request.user.id):
         context['exam_selected'] = exam
 
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        exam = exam.get_overall_exam_or_default()
 
         context['exam'] = exam
         context['user_allowed'] = True
@@ -702,11 +688,9 @@ def stream_import_scans_from_review(request: HttpRequest, exam):
     if os.path.exists(file_list_path):
         os.remove(file_list_path)
 
-    scans_dir = str(settings.SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    scans_dir = str(get_exam_scans_dir(exam))
     logger.info("AMC full review import scans_dir exam=%s path=%s", exam.pk, scans_dir)
-    marked_dir = str(settings.MARKED_SCANS_ROOT) + "/" + str(exam.year.code) + "/" + str(
-        exam.semester.code) + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d")
+    marked_dir = str(get_exam_marked_scans_dir(exam))
 
     yield "Generating marked scans from review annotations ...\n"
     logger.info("AMC full review import marked scan generation started exam=%s", exam.pk)

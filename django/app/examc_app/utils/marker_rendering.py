@@ -36,7 +36,8 @@ from examc_app.models import (
     PagesGroupGradingSchemeCheckedBox,
     QuestionGradingScheme,
 )
-from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import (
     get_amc_marks_positions_data,
@@ -70,44 +71,13 @@ def resolve_scan_path(page_markers: PageMarkers) -> Path:
     if resolved.exists():
         return resolved
 
-    project_subdir = (
-        f"{page_markers.exam.year.code}/"
-        f"{page_markers.exam.semester.code}/"
-        f"{page_markers.exam.code}_{page_markers.exam.date.strftime('%Y%m%d')}"
-    )
-    fallback = (
-        Path(settings.SCANS_ROOT)
-        / project_subdir
-        / str(page_markers.copie_no)
-        / raw_path.name
-    ).resolve()
-    return fallback
+    return (get_exam_scans_dir(page_markers.exam) / str(page_markers.copie_no) / raw_path.name).resolve()
 
 
 def build_marked_scan_path(page_markers: PageMarkers) -> Path:
     """Build the destination path for the derived marked scan image."""
     original_path = resolve_scan_path(page_markers)
-    project_subdir = (
-        f"{page_markers.exam.year.code}/"
-        f"{page_markers.exam.semester.code}/"
-        f"{page_markers.exam.code}_{page_markers.exam.date.strftime('%Y%m%d')}"
-    )
-    return (
-        Path(settings.MARKED_SCANS_ROOT)
-        / project_subdir
-        / str(page_markers.copie_no)
-        / f"marked_{original_path.stem}.png"
-    )
-
-
-def get_exam_marked_scans_dir(exam: Exam) -> Path:
-    """Return the root marked_scans directory for one exam."""
-    project_subdir = (
-        f"{exam.year.code}/"
-        f"{exam.semester.code}/"
-        f"{exam.code}_{exam.date.strftime('%Y%m%d')}"
-    )
-    return Path(settings.MARKED_SCANS_ROOT) / project_subdir
+    return get_exam_marked_scans_dir(page_markers.exam) / str(page_markers.copie_no) / f"marked_{original_path.stem}.png"
 
 
 def copy_number_variants(copy_nr: str) -> list[str]:
@@ -440,18 +410,20 @@ def get_review_corr_box_index_for_page(page_markers: PageMarkers) -> int | None:
         amc_project_path = get_amc_project_path(pages_group.exam, True)
         if not amc_project_path: return None
         amc_data_path = amc_project_path + "/data/"
+        amc_copy_nr = get_amc_copy_nr(amc_data_path, copy_nr)
 
         with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-            question_page = amc_layout_db_manager.select_copy_question_page(copy_nr, pages_group.group_name)
+            question_page = amc_layout_db_manager.select_copy_question_page(amc_copy_nr, pages_group.group_name)
 
         # Only the page that owns the corr boxes should render the grading overlay.
         if str(question_page) not in copy_number_variants(page_markers.page_no):
             return -1
 
         with AmcScoringDbManager(amc_data_path=amc_data_path) as amc_scoring_db_manager:
-            max_points = float(amc_scoring_db_manager.get_question_max_points(pages_group.group_name, copy_nr))
+            max_points = float(amc_scoring_db_manager.get_question_max_points(pages_group.group_name, amc_copy_nr))
 
-        amc_corr_boxes = get_amc_marks_positions_data(pages_group.exam, copy_nr.lstrip("0"), float(question_page)) or []
+        amc_corr_boxes = get_amc_marks_positions_data(pages_group.exam, str(amc_copy_nr), float(question_page),
+                                                      pages_group.group_name) or []
         nb_boxes = len(amc_corr_boxes) / 4 - 1
         if nb_boxes <= 0 or max_points <= 0:
             return -1
@@ -481,7 +453,9 @@ def build_grading_corr_box_marker(page_markers: PageMarkers, state: dict, image_
         return None
 
     page_no = float(str(page_markers.page_no))
-    corr_boxes = get_amc_marks_positions_data(page_markers.exam, str(page_markers.copie_no).lstrip("0"), page_no) or []
+    amc_copy_nr = get_amc_copy_nr(get_amc_project_path(page_markers.exam, True) + "/data/", page_markers.copie_no)
+    corr_boxes = get_amc_marks_positions_data(page_markers.exam, str(amc_copy_nr), page_no,
+                                              page_markers.pages_group.group_name) or []
     start = corr_box_index * 4
     selected_box = corr_boxes[start:start + 4]
     if len(selected_box) != 4:
@@ -507,27 +481,14 @@ def build_grading_corr_box_marker(page_markers: PageMarkers, state: dict, image_
     }
 
 
-def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | None = None, require_grading_marker: bool = False) -> Path | None:
-    """Render one marked scan image from a ``PageMarkers`` database row.
-
-    :arg page_markers: `PageMarkers` instance containing persisted marker JSON.
-    :arg extra_markers: Optional additional marker definitions rendered on top of the persisted state.
-        This is intended for future derived overlays, such as grading-driven correction box highlights.
-    :arg require_grading_marker: If True, raise an error if no grading marker is found in the page markers.
-
-
-    :return: Filesystem path to the generated PNG file under `MARKED_SCANS_ROOT`.
-    :rtype: Path
+def render_page_markers_layer(base_img: Image.Image, page_markers: PageMarkers, extra_markers: list[dict] | None = None,
+                              require_grading_marker: bool = False) -> bool:
     """
-    if not page_markers.markers:
-        raise ValueError("Page markers do not contain marker state")
-
-    original_path = resolve_scan_path(page_markers)
-    if not original_path.exists():
-        raise FileNotFoundError(f"Original scan not found: {original_path}")
-
+    Render the markers of one ``PageMarkers`` row (one pages group) on ``base_img``: its persisted markers, then
+    the corrector box derived from its grading scheme. Returns False when ``require_grading_marker`` is set and
+    there is no grading marker to render (nothing is rendered then).
+    """
     state = json.loads(page_markers.markers)
-    base_img = Image.open(original_path).convert("RGBA")
     canvas_width = max(1, float(state.get("width", base_img.width)))
     canvas_height = max(1, float(state.get("height", base_img.height)))
     scale_x = base_img.width / canvas_width
@@ -539,7 +500,7 @@ def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | No
         markers_to_render = [marker for marker in markers_to_render if marker.get("typeName") != "HighlightMarker"]
         derived_grading_marker = build_grading_corr_box_marker(page_markers, state, base_img.width, base_img.height)
         if require_grading_marker and not derived_grading_marker:
-            return None
+            return False
 
     for marker in markers_to_render:
         render_marker(base_img, marker, scale_x, scale_y)
@@ -550,6 +511,75 @@ def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | No
 
     if derived_grading_marker:
         render_marker(base_img, derived_grading_marker, scale_x, scale_y)
+    return True
+
+
+def get_other_groups_page_markers(exam: Exam, copy_nr, page_no, pages_group_id) -> list:
+    """
+    The markers of the other pages groups on the same page of a copy (several questions on one page): their
+    ``PageMarkers`` rows, and for the groups graded with a grading scheme without row, a synthetic one (see
+    build_synthetic_page_markers_for_grading).
+    """
+    copy_variants = copy_number_variants(copy_nr)
+    page_variants = copy_number_variants(page_no)
+    others = list(
+        PageMarkers.objects
+        .filter(exam=exam, copie_no__in=copy_variants, page_no__in=page_variants)
+        .exclude(pages_group_id=pages_group_id)
+        .exclude(pages_group__isnull=True)
+        .exclude(markers__isnull=True)
+        .exclude(markers="")
+        .select_related("pages_group")
+    )
+    groups_with_markers = {page_markers.pages_group_id for page_markers in others}
+
+    graded_groups = (
+        PagesGroupGradingSchemeCheckedBox.objects
+        .filter(pages_group__exam=exam, pages_group__use_grading_scheme=True, copy_nr__in=copy_variants)
+        .exclude(pages_group_id=pages_group_id)
+        .exclude(pages_group_id__in=groups_with_markers)
+        .exclude(gradingSchemeCheckBox__isnull=True)
+        .values_list("pages_group_id", flat=True)
+        .distinct()
+    )
+    for pages_group in exam.pagesGroup.filter(pk__in=list(graded_groups)):
+        synthetic = build_synthetic_page_markers_for_grading(pages_group, copy_nr)
+        if synthetic and synthetic.page_no in page_variants:
+            others.append(synthetic)
+    return others
+
+
+def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | None = None, require_grading_marker: bool = False) -> Path | None:
+    """Render one marked scan image from a ``PageMarkers`` database row.
+
+    The image of a page is shared by the pages groups of the questions it holds: the markers of the other groups
+    of the page are rendered too, so that every question keeps its grading whichever group renders the page last.
+
+    Args:
+        page_markers: ``PageMarkers`` instance containing persisted marker JSON.
+        extra_markers: Optional additional marker definitions rendered on top of
+            the persisted state. This is intended for future derived overlays,
+            such as grading-driven correction box highlights.
+
+    Returns:
+        Filesystem path to the generated PNG file under ``MARKED_SCANS_ROOT``.
+    """
+    if not page_markers.markers:
+        raise ValueError("Page markers do not contain marker state")
+
+    original_path = resolve_scan_path(page_markers)
+    if not original_path.exists():
+        raise FileNotFoundError(f"Original scan not found: {original_path}")
+
+    base_img = Image.open(original_path).convert("RGBA")
+    if not render_page_markers_layer(base_img, page_markers, extra_markers, require_grading_marker):
+        return None
+
+    # Synthetic rows (build_synthetic_page_markers_for_grading) have no pages_group_id
+    for other_page_markers in get_other_groups_page_markers(
+        page_markers.exam, page_markers.copie_no, page_markers.page_no, page_markers.pages_group.id
+    ):
+        render_page_markers_layer(base_img, other_page_markers)
 
     output_path = build_marked_scan_path(page_markers)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -557,14 +587,42 @@ def render_marked_scan(page_markers: PageMarkers, extra_markers: list[dict] | No
     return output_path
 
 
+def build_review_background_path(exam: Exam, copy_nr, page_no) -> Path:
+    """
+    Image of a scanned page with the markers of the other pages groups, shown in the review of a group (see
+    render_review_background). Outside the marked scans of the exam: never imported into AMC.
+    """
+    project_subdir = f"{exam.year.code}/{exam.semester.code}/{exam.code}_{exam.date.strftime('%Y%m%d')}"
+    copy_dir = str(copy_nr).zfill(4)
+    return (Path(settings.MARKED_SCANS_ROOT) / "_review_backgrounds" / project_subdir / copy_dir
+            / f"copy_{copy_dir}_{page_no}.jpg")
+
+
+def render_review_background(exam: Exam, copy_nr, page_no, pages_group_id) -> Path | None:
+    """
+    For the review of a pages group: the scanned page with the markers of the other groups of the page burnt in,
+    so that they are shown but cannot be edited or saved with this group. None when no other group has markers.
+    """
+    others = get_other_groups_page_markers(exam, copy_nr, page_no, pages_group_id)
+    if not others:
+        return None
+    original_path = build_scan_path_for_copy_page(exam, copy_nr, page_no)
+    if not original_path:
+        return None
+
+    base_img = Image.open(original_path).convert("RGBA")
+    for other_page_markers in others:
+        render_page_markers_layer(base_img, other_page_markers)
+
+    output_path = build_review_background_path(exam, copy_nr, page_no)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    base_img.convert("RGB").save(output_path, format="JPEG", quality=92)
+    return output_path
+
+
 def build_scan_path_for_copy_page(exam: Exam, copy_nr, page_no) -> Path | None:
     """Find the original scan file for a copy/page under SCANS_ROOT."""
-    project_subdir = (
-        f"{exam.year.code}/"
-        f"{exam.semester.code}/"
-        f"{exam.code}_{exam.date.strftime('%Y%m%d')}"
-    )
-    copy_dir = Path(settings.SCANS_ROOT) / project_subdir / str(copy_nr).zfill(4)
+    copy_dir = get_exam_scans_dir(exam) / str(copy_nr).zfill(4)
     if not copy_dir.exists():
         return None
 
@@ -614,7 +672,9 @@ def build_synthetic_page_markers_for_grading(pages_group: PagesGroup, copy_nr: s
 
     try:
         with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-            question_page = amc_layout_db_manager.select_copy_question_page(copy_nr, pages_group.group_name)
+            question_page = amc_layout_db_manager.select_copy_question_page(
+                get_amc_copy_nr(amc_data_path, copy_nr), pages_group.group_name
+            )
     except (IndexError, TypeError, ValueError, AttributeError):
         logger.warning(
             "Skipping grading-only render: no AMC question page for pages_group=%s copy_nr=%s",

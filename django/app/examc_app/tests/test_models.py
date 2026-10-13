@@ -3,22 +3,24 @@ from django.test import TestCase
 from examc_app.models import (
     AcademicYear,
     ComVsIndStatistic,
+    PageMarkers,
     PagesGroup,
     PagesGroupComment,
-    PageMarkers,
     Question,
     QuestionType,
     Scale,
     ScaleDistribution,
+    ScaleStatistic,
     Semester,
     Student,
     StudentQuestionAnswer,
-    StudentScaleGrade, ScaleStatistic,
+    StudentScaleGrade,
 )
 from examc_app.tests.helpers.models import (
     create_mock_exam,
+    create_mock_scale,
     create_mock_semester,
-    create_mock_user, create_mock_scale,
+    create_mock_user,
 )
 
 

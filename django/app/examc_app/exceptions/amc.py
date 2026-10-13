@@ -19,3 +19,23 @@ class AmcDbManagerError(UserFacingError):
     message = "The AMC data of this exam could not be read. Please contact support if this persists."
     status_code = 500
     log_level = logging.ERROR
+
+
+class AmcProjectZipInvalidError(UserFacingError):
+    """Raised when the uploaded AMC project is not a readable and safe zip archive."""
+    title = "Invalid zip file"
+    message = (
+        "The uploaded file is not a valid zip archive, or it contains files that are not allowed. "
+        "Please upload the .zip of your AMC project folder."
+    )
+    status_code = 400
+
+
+class AmcProjectNotInZipError(UserFacingError):
+    """Raised when the uploaded zip does not contain an AMC project."""
+    title = "No AMC project in the zip file"
+    message = (
+        "The zip file does not contain a valid AMC project folder. "
+        "Please make sure it includes the options.xml file of the project."
+    )
+    status_code = 400

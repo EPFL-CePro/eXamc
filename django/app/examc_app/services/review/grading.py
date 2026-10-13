@@ -3,7 +3,7 @@ from typing import Any
 
 from examc_app.models import Exam, PagesGroupGradingSchemeCheckedBox
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
-from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.review_functions import get_question_points
@@ -12,20 +12,23 @@ from examc_app.utils.review_functions import get_question_points
 def get_amc_question_layout_and_marks(exam : Exam, copy_nr, pages_group ) -> dict[str, Any]:
     amc_project_path = get_amc_project_path(exam, True)
     amc_data_path = f"{amc_project_path}/data/"
+    # copy_nr is a review copy (ID of the QR codes)
+    amc_copy_nr = get_amc_copy_nr(amc_data_path, copy_nr)
 
     with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
         question_page = amc_layout_db_manager.select_copy_question_page(
-            copy_nr, pages_group.group_name
+            amc_copy_nr, pages_group.group_name
         )
 
     with AmcScoringDbManager(amc_data_path=amc_data_path) as amc_scoring_db_manager:
         max_points = float(
-            amc_scoring_db_manager.get_question_max_points(pages_group.group_name, None)
+            amc_scoring_db_manager.get_question_max_points(pages_group.group_name, None) or 0
         )
 
     with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
+        # Only the boxes of the question of the group: the page may hold other questions
         amc_corr_boxes = amc_capture_db_manager.select_marks_positions(
-            int(copy_nr), question_page
+            amc_copy_nr, question_page, pages_group.group_name
         )
 
     return {
@@ -46,7 +49,9 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
 
     if points > 0:
         exam = pages_group.exam
-        _, max_points, amc_corr_boxes = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+        layout = get_amc_question_layout_and_marks(exam, copy_nr, pages_group)
+        max_points = layout["max_points"]
+        amc_corr_boxes = layout["amc_corr_boxes"]
 
         nb_boxes = len(amc_corr_boxes) / 4 - 1
         if nb_boxes <= 0 or max_points <= 0:

@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -176,10 +176,7 @@ def documentation_view(request, path: str ="index.html"):
 def user_allowed(exam, user_id):
     exam_users = User.objects.filter(Q(exam=exam) | Q(exam__in=exam.common_exams.all()))
     user = User.objects.get(pk=user_id)
-    if user in exam_users or user.is_superuser:
-        return True
-    else:
-        return False
+    return bool(user in exam_users or user.is_superuser)
 
 
 @require_GET
@@ -189,7 +186,7 @@ def serve_signed_file(request, file_hint=None):
         rooms_plans = request.GET.get("rooms_plans")
         if rooms_plans:
             relative_rooms_plan = rooms_plans.lstrip("/")
-            if not (relative_rooms_plan.startswith("export/") or relative_rooms_plan.startswith("map/")):
+            if not (relative_rooms_plan.startswith(("export/", "map/"))):
                 raise Http404("Invalid room plan path")
 
             rooms_root = Path(settings.ROOMS_PLANS_ROOT).resolve()
@@ -219,8 +216,3 @@ def force_oidc_logout(request):
     if request.user.is_authenticated:
         logout(request)
     return render(request, 'oidc_auto_logout.html')
-
-
-def test(request):
-    #detect_layout()
-    return render(request, 'index.html')

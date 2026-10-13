@@ -89,7 +89,6 @@ TARGET_URL_NAMES = {
 # Hardening-critical views with no urls.py entry (dead code, not reachable
 # via HTTP) - tracked by function name directly since there is no URL name.
 ORPHANED_VIEWS = {
-    "update_exam",  # exam_views.py - superseded, no longer routed
     "old_call_amc_annotate",  # amc_views.py - superseded by call_amc_annotate
 }
 
@@ -138,7 +137,7 @@ def build_url_name_to_func_name(urls_path: Path) -> dict[str, str]:
 
 def find_function(views_dir: Path, func_name: str) -> list[tuple[Path, ast.FunctionDef]]:
     matches = []
-    for py_file in sorted(views_dir.glob("*.py")):
+    for py_file in sorted(views_dir.rglob("*.py")):
         tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
         for node in tree.body:
             if isinstance(node, ast.FunctionDef) and node.name == func_name:
