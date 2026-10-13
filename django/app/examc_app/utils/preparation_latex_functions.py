@@ -196,10 +196,16 @@ def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
                                           section_formulas=section_formulas,
                                           exam_tf_formula="TF" in exam_formulas)
 
+        exam_tex = exam_tex.replace(
+            PH_SECTIONS_INSERT, f"\\input{{./{section_header_filename}}} \n" + f"{PH_SECTIONS_INSERT}")
+
+        # AMC fails on a group without any question
+        if not section.prepQuestions.exists():
+            continue
+
         exam_tex = (
             exam_tex
             .replace(PH_SECTIONS, f"\\input{{./{section_filename}}} \n" + f"{PH_SECTIONS}")
-            .replace(PH_SECTIONS_INSERT, f"\\input{{./{section_header_filename}}} \n" + f"{PH_SECTIONS_INSERT}")
             .replace(PH_SECTIONS_INSERT, f"\\insertgroup{{{section_grp_name}}} \n" + f"{PH_SECTIONS_INSERT}")
         )
 

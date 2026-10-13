@@ -7,9 +7,12 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from examc_app.models import QuestionType
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 from examc_app.utils.amc_functions import ensure_amc_project
-from examc_app.utils.preparation_functions import compile_exam_preview
+from examc_app.utils.preparation_functions import (
+    compile_exam_preview, create_prep_question, create_prep_section)
+from examc_app.utils.preparation_latex_functions import update_exam_latex
 
 
 class ExamTexTestCase(TestCase):
@@ -55,3 +58,49 @@ class ExamTexTestCase(TestCase):
         self.assertTrue(self.exam_tex().exists())
         # The compilation itself is mocked: the error is the one of LaTeX, not the one of the missing file
         self.assertEqual(result["error"], "LaTeX failed")
+
+
+class ExamTexSectionsTestCase(ExamTexTestCase):
+    def setUp(self):
+        super().setUp()
+        self.open_type = QuestionType.objects.create(code="OPEN", name="Open")
+
+    def test_section_without_question_is_not_inserted(self):
+        empty = create_prep_section(self.exam, title="Empty")
+        filled = create_prep_section(self.exam, title="Filled")
+        create_prep_question(filled, self.open_type)
+
+        update_exam_latex(self.exam)
+
+        exam_tex = self.exam_tex().read_text(encoding="utf-8")
+        self.assertNotIn(f"\\insertgroup{{SECTION-{empty.position}}}", exam_tex)
+        self.assertNotIn(f"section_{empty.position}.tex", exam_tex)
+        self.assertIn(f"\\insertgroup{{SECTION-{filled.position}}}", exam_tex)
+        self.assertIn(f"section_{filled.position}.tex", exam_tex)
+
+    def test_reordering_the_sections_regenerates_exam_tex(self):
+        user = create_mock_user()
+        user.is_superuser = True
+        user.save()
+        self.client.force_login(user)
+        first = create_prep_section(self.exam, title="A")
+        second = create_prep_section(self.exam, title="B")
+        create_prep_question(first, self.open_type)
+        create_prep_question(second, self.open_type)
+        update_exam_latex(self.exam)
+        self.assertEqual(self.group_order(), [1, 2])
+
+        response = self.client.post(
+            reverse("reorder_prep_sections", kwargs={"exam_pk": self.exam.pk}),
+            {"sections": [{"id": second.pk, "position": 1}, {"id": first.pk, "position": 2}]},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        # The group of a section is named after its position: B is now SECTION-1
+        self.assertEqual(self.group_order(), [1, 2])
+        self.assertIn("B", (self.exam_tex().parent / "section_header_1.tex").read_text(encoding="utf-8"))
+
+    def group_order(self):
+        import re
+        return [int(n) for n in re.findall(r"\\insertgroup\{SECTION-(\d+)\}", self.exam_tex().read_text(encoding="utf-8"))]

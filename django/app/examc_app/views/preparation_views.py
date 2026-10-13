@@ -503,6 +503,8 @@ def reorder_prep_sections(request, exam_pk):
             section.position = position
             section.save(update_fields=["position"])
 
+    update_exam_latex(exam)
+
     return render(
         request,
         "exam/preparation/_prep_sections_list.html",
