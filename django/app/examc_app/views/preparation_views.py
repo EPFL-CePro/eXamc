@@ -87,7 +87,6 @@ from examc_app.utils.preparation_latex_functions import (
     extract_used_packages,
     get_exam_katex_macros,
     list_available_latex_packages,
-    render_first_page_tex_from_html,
     update_exam_latex,
 )
 from examc_app.views import logger
@@ -149,6 +148,9 @@ def create_exam_project(request):
             exam_user.exam = exam
             exam_user.group_id = 2
             exam_user.save()
+
+        # The AMC project (base files, exam.tex) exists from the creation of the exam
+        update_exam_latex(exam)
 
         return redirect("examInfo", exam_pk=exam.pk)
 
@@ -396,17 +398,8 @@ def prep_first_page_panel(request, exam_pk):
             form.save()
             exam.refresh_from_db()
 
-            amc_project_path = ensure_amc_project(exam)
-            amc_project_template_path = f"{settings.AMC_TEMPLATES_DIR}/base"
-            template_first_page_latex_path = f"{amc_project_template_path}/first_page_template.tex"
-            first_page_latex_path_output = f"{amc_project_path}/first_page.tex"
-
-            render_first_page_tex_from_html(
-                exam,
-                exam.first_page_text,
-                template_first_page_latex_path,
-                first_page_latex_path_output,
-            )
+            # Creates the AMC project if needed, and renders first_page.tex along with exam.tex
+            update_exam_latex(exam)
     else:
         form = ExamFirstPageForm(instance=exam)
         saved = False
