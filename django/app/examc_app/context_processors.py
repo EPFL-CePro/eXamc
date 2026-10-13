@@ -1,9 +1,8 @@
 from datetime import datetime
 
-from django.utils import timezone
 from constance import config as cc
-
-from examc import settings
+from django.conf import settings
+from django.utils import timezone
 
 
 def maintenance_notice(request):

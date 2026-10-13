@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from django.conf import settings
 from django.http import QueryDict
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -13,7 +14,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from examc import settings
 from examc_app.api.decorators import ExamScopedViewMixin, exam_permission_required
 from examc_app.api.serializers.amc.data_capture.manual import ScanUrlQuerySerializer
 from examc_app.models import Exam

@@ -10,6 +10,7 @@ from datetime import datetime
 from functools import wraps
 from typing import Any
 
+from django.conf import settings
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
@@ -21,7 +22,6 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView
 
-from examc import settings
 from examc_app.decorators import exam_permission_required
 from examc_app.forms.results_statistics import ExportMarkedFilesForm
 from examc_app.forms.review import (

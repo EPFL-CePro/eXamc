@@ -14,7 +14,7 @@ from fpdf import FPDF
 from PIL import Image, ImageStat
 from pyzbar import pyzbar
 
-from examc import settings
+from django.conf import settings
 from examc_app.models import (
     Exam,
     PageMarkers,

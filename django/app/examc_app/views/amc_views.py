@@ -8,6 +8,7 @@ from typing import Any, Final
 
 import celery
 from celery.result import AsyncResult
+from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import UploadedFile
 from django.http import (
@@ -24,7 +25,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
-from examc import settings
 from examc_app.decorators import exam_permission_required
 from examc_app.exceptions.amc import (
     AmcDbManagerError,
