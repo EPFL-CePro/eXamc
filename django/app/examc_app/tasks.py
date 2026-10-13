@@ -426,15 +426,7 @@ def generate_statistics(self,exam_pk: int):
 
         # update/init overall and common exams if common
         if exam.common_exams.all():
-
-
-            if not exam.overall:
-                overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
-                month_year = exam.date.strftime("%m-%Y")
-                overall_code += "_" + month_year
-                overall_exam = Exam.objects.get(code=overall_code, semester=exam.semester, year=exam.year)
-            else:
-                overall_exam = exam
+            overall_exam = exam.get_overall_exam_or_default()
             nb_common = len(overall_exam.common_exams.all())+1
             process_count = nb_common*5-nb_common
             process_number = 0

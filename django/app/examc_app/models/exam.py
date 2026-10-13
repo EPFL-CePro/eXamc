@@ -4,9 +4,10 @@
 import json
 
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
-from django.db.models import Count
+
 
 class AcademicYear(models.Model):
     """ Stores academic year data """
@@ -110,18 +111,11 @@ class Exam(models.Model):
 
     def get_common_exams_yc_common(self):
         """ Return all common exams including the common (000-) """
-        exam_list = [self]
-        for comex in self.common_exams.all():
-            exam_list.append(comex)
-
-        return exam_list
+        return [self, *self.common_exams.all()]
 
     def get_common_exams_without_common(self):
         """ Return all common exams without the common (000-) """
-        exam_list = Exam.objects.filter(common_exams=self,overall=False)
-        for exam in exam_list.all():
-            print( exam)
-        return exam_list
+        return Exam.objects.filter(common_exams=self,overall=False)
 
 
     def get_students_results_exams(self):
@@ -134,14 +128,11 @@ class Exam(models.Model):
         return exam_list
 
     def get_available_common_exams(self):
-
         exam = self
         if self.is_overall():
-            code_split = self.code.split('_')
-            code = code_split[1]
-            semester = self.semester
-            year = self.year
-            exam = Exam.objects.filter(code__startswith=code,semester=semester, year=year).exclude(code=self.code).first()
+            exam = self.common_exams.filter(overall=False).first()
+        if exam is None:
+            return []
 
         available_exams = []
         if exam.questions.all():
@@ -161,6 +152,9 @@ class Exam(models.Model):
 
     def get_overall_exam_or_default(self):
         """ The overall exam among the common exams if there is one, otherwise this exam """
+        if self.is_overall():
+            return self
+
         return self.common_exams.filter(overall=True).first() or self
 
 
