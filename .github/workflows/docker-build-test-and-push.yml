@@ -165,26 +165,12 @@ jobs:
           cache-from: type=gha,scope=django-production
           cache-to: type=gha,mode=max,scope=django-production
 
-      # The test target shares the runtime base and dependencies with production.
-      - name: Build test image
-        uses: docker/build-push-action@v7
-        with:
-          context: ./django
-          target: tooling
-          load: true
-          platforms: linux/amd64
-          tags: localhost/examc-django-test:latest
-          cache-from: |
-            type=gha,scope=django-test
-            type=gha,scope=django-production
-          cache-to: type=gha,mode=max,scope=django-test
-
-      - name: Run tests
+      - name: Run tests with build for tooling target
         env:
           TEST_IMAGE: localhost/examc-django-test
           IMAGE_TAG: latest
           FE_ARTIFACTS_IMAGE_TAG: ${{ needs.meta.outputs.tag }}
-        run: docker compose -f compose/test-image.yml --env-file .env.test run --rm django
+        run: docker compose -f compose/test.yml --env-file .env.test run --rm django
 
       - name: Build and push production image
         uses: docker/build-push-action@v7
