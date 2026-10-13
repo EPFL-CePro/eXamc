@@ -106,9 +106,32 @@ def latex_escape(text) -> str:
     """Escape plain text (not markdown) inserted as is in a LaTeX template."""
     return "".join(LATEX_SPECIAL_CHARS.get(c, c) for c in clean_pasted_text(str(text or "")))
 
+CODE_FENCE_RE = re.compile(r"^ {0,3}(```|~~~)")
+LATEX_COMMENT_RE = re.compile(r"^ {0,3}%")
+
+def protect_latex_comments(markdown: str) -> str:
+    """Pandoc escapes a line starting with % (or drops it at the top of the text, as a title block). Keeps these
+    lines, outside of the code blocks, as raw LaTeX comments."""
+    lines = []
+    in_fence = False
+    in_comment = False
+    for line in markdown.split("\n"):
+        if CODE_FENCE_RE.match(line):
+            in_fence = not in_fence
+        is_comment = not in_fence and bool(LATEX_COMMENT_RE.match(line))
+        if is_comment and not in_comment:
+            lines += ["", "```{=latex}"]
+        elif in_comment and not is_comment:
+            lines += ["```", ""]
+        in_comment = is_comment
+        lines.append(line)
+    if in_comment:
+        lines.append("```")
+    return "\n".join(lines)
+
 def markdown_to_latex_pandoc(markdown: str) -> str:
     latex = pypandoc.convert_text(
-        clean_pasted_text(markdown or ""),
+        protect_latex_comments(clean_pasted_text(markdown or "")),
         to="latex",
         format="markdown+tex_math_dollars",
         extra_args=["--wrap=none"],
