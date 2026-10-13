@@ -1,6 +1,6 @@
 import logging
 
-from examc import settings
+from django.conf import settings
 from examc_app.models import Exam, UnrecognizedReviewScan
 from examc_app.signing import make_token_for
 

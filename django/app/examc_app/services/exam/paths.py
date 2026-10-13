@@ -55,6 +55,10 @@ def get_exam_scans_dir(exam: Exam) -> Path:
     return Path(settings.SCANS_ROOT) / get_exam_subdir(exam)
 
 
+def get_exam_auto_upload_dir(exam: Exam) -> Path:
+    return Path(settings.AUTOUPLOAD_ROOT) / f"{exam.year.code}_{exam.semester.code}_{exam.code}"
+
+
 def get_exam_marked_scans_dir(exam: Exam) -> Path:
     return Path(settings.MARKED_SCANS_ROOT) / get_exam_subdir(exam)
 

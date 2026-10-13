@@ -9,7 +9,7 @@ from django.db.models import Max
 from django.http import HttpResponseForbidden
 from django.utils import timezone
 
-from examc import settings
+from django.conf import settings
 from examc_app.forms.preparation import (
     PrepQuestionAnswerForm,
     PrepQuestionForm,

@@ -3,13 +3,13 @@
 """
 import json
 import logging
-import math
 import os
 import pathlib
 from datetime import datetime
 from functools import wraps
-from typing import Any
 
+import math
+from django.conf import settings
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
@@ -20,9 +20,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from django.conf import settings
 from examc_app.decorators import exam_permission_required
-from examc_app.forms.results_statistics import ExportMarkedFilesForm
 from examc_app.forms.review import (
     DeleteUnrecognizedReviewScansForm,
     GradingSchemeCheckboxFormSet,
@@ -53,7 +51,7 @@ from examc_app.services.review.unrecognized_scans import (
 )
 from examc_app.services.review.upload import get_upload_scan_pending_context
 from examc_app.signing import make_token_for, verify_and_get_path
-from examc_app.tasks import generate_marked_files_zip, import_exam_scans
+from examc_app.tasks import import_exam_scans
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import (
@@ -62,12 +60,10 @@ from examc_app.utils.amc_functions import (
     get_amc_project_path,
     get_amc_update_document_info,
 )
-from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.marker_rendering import build_scan_path_for_copy_page, render_review_background
 from examc_app.utils.review_functions import (
     assign_unrecognized_review_scan_file,
     delete_unrecognized_review_scan_file,
-    get_copies_pages_by_group,
     get_grading_scheme_checkboxes,
     get_question_points,
     get_scan_url,
@@ -78,8 +74,6 @@ from examc_app.utils.review_settings_guards import (
     decimal_value_changed,
     grading_scheme_has_usage,
     pages_group_has_review_activity,
-    pages_group_name_available,
-    pages_group_settings_changed,
 )
 from examc_app.utils.review_upload_state import (
     get_pending_amc_import_upload_task_id,

@@ -30,11 +30,11 @@ import time
 from hashlib import sha256
 from pathlib import Path
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from examc import settings
 from examc_app.models import (
     Exam,
     ExamBuild,

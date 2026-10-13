@@ -1,8 +1,7 @@
 import os
 
 from django import forms
-
-from examc import settings
+from django.conf import settings
 
 CSV_DIR = str(settings.ROOMS_PLANS_ROOT) + "/csv/"
 JPG_DIR = str(settings.ROOMS_PLANS_ROOT) + "/map/"

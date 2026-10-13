@@ -1,18 +1,23 @@
 {% extends 'base.html' %}
+{% load django_vite %}
 {% load static %}
 {% load custom_tags %}
 {% block title %}Upload AMC project{% endblock %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/amc/amc_upload_project/index.ts' %}
+{% endblock %}
 
 {% block content %}
 <div id="uploadAMCProjectDiv" style="padding:10px;width:100%;margin-top:100px;color:#000;">
     <h3>Upload AMC projects .zip file</h3>
 
-    <form id="uploadAMCProjectForm" method="post" action="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}" enctype="multipart/form-data">
+    <form id="upload-amc-project-form" method="post" action="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-group">
             <div class="col-md-8">
-                <input type="file" name="amc_project_zip_file" id="amc_project_zip_file" accept=".zip" required class="custom-file-input form-control">
-                <label class="custom-file-label" for="amc_project_zip_file">Choose .zip file</label>
+                <input type="file" name="amc_project_zip_file" id="amc-project-zip-file" accept=".zip" required class="custom-file-input form-control">
+                <label id="amc-project-zip-file-label" class="custom-file-label" for="amc-project-zip-file">Choose .zip file</label>
             </div>
         </div>
         <div class="form-group">
@@ -23,23 +28,5 @@
     </form>
     <h6>{{ message }}</h6>
 </div>
-
-<script>
-$("#amc_project_zip_file").on("change", function () {
-    var fileName = $(this).val().split("\\").pop();
-    $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
-});
-
-let uploadAMCProjectFrm = document.getElementById('uploadAMCProjectForm');
-
-uploadAMCProjectFrm.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const loadingModal = $("#loadingModal");
-    loadingModal.modal('show');
-    uploadAMCProjectFrm.submit();
-    loadingModal.modal('hide');
-});
-</script>
 {% endblock %}
 

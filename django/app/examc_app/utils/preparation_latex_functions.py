@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pypandoc
 
-from examc import settings
+from django.conf import settings
 from examc_app.models import (
     BOX_TYPE_CHOICES,
     Exam,
