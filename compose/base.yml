@@ -104,9 +104,6 @@ services:
       EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES: "${EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES:-Teacher,Assistant,Results,Statistics}"
       COMMON_EXAM_GROUP_NAMES: "${COMMON_EXAM_GROUP_NAMES:-Teacher,Results,Statistics}"
       EXAM_REVIEWER_GROUP_NAMES: "${EXAM_REVIEWER_GROUP_NAMES:-Reviewer}"
-    depends_on:
-      redis:
-        condition: service_healthy
     volumes:
       - static_volume:/static # collectstatic writes hashed assets here
       # ../django/app is only mounted in dev.yml

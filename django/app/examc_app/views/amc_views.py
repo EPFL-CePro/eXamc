@@ -8,6 +8,7 @@ from typing import Any, Final
 
 import celery
 from celery.result import AsyncResult
+from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import UploadedFile
 from django.http import (
@@ -24,7 +25,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
-from examc import settings
 from examc_app.decorators import exam_permission_required
 from examc_app.exceptions.amc import (
     AmcDbManagerError,
@@ -234,10 +234,18 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
 
                 exam_nb_pages = 1
                 if data_capture_manual is not None:
-                    exam_nb_pages = max(data_capture_manual["pages"], key=lambda x: float(x['page']))['page']
-                    context['data_pages'] = data_capture_manual["pages"]
-                    context['data_questions'] = data_capture_manual["questions"]
-                    context['data_copies'] = data_capture_manual["copies"]
+                    pages = data_capture_manual.get("pages") or []
+
+                    # No pages yet (e.g. layout not detected): keep the default of 1 page.
+                    exam_nb_pages = max(
+                        (float(page["page"]) for page in pages), default=exam_nb_pages
+                    )
+
+                    context["data_pages"] = pages
+                    context["data_questions"] = (
+                        data_capture_manual.get("questions") or []
+                    )
+                    context["data_copies"] = data_capture_manual.get("copies") or []
 
                 context['number_of_copies_param'] = amc_option_nb_copies
                 context['copy_count'] = number_of_copies

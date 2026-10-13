@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from examc import settings
+from django.conf import settings
 
 
 def resolve_amc_path(raw: str, project_path: str) -> Path:

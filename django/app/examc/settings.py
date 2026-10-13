@@ -32,10 +32,12 @@ def env_list(key, default=""):
     return [value.strip() for value in env(key, default).split(",") if value.strip()]
 
 # load .env only for test and dev environments (outside Docker)
+TESTING_MODE_ENABLED = os.getenv("TESTING_MODE_ENABLED", "0") == "1" or not os.getenv("TESTING_MODE_ENABLED")
+
 if os.getenv("DJANGO_DOTENV", "0") == "1" or not os.getenv("SECRET_KEY"):
     # allows manage.py runserver or migrate, ... locally without Compose
     load_dotenv(BASE_DIR / ".env.dev", override=False)
-elif os.getenv("TESTING_MODE_ENABLED", "0") == "1" or not os.getenv("TESTING_MODE_ENABLED"):
+elif TESTING_MODE_ENABLED:
     load_dotenv(BASE_DIR / ".env.test", override=True)
 else:
     # Otherwise (prod/test) set port forwarding
@@ -62,7 +64,7 @@ APP_OWNER = "EPFL - CePro"
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = os.getenv(
     "DEBUG",
-    "1" if os.path.exists(BASE_DIR / ".env.dev") or os.getenv("TESTING_MODE_ENABLED") else "0"
+    "1" if os.path.exists(BASE_DIR / ".env.dev") or TESTING_MODE_ENABLED else "0"
 ) in ("1","true","yes","on")
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", "*").split(",")
@@ -173,21 +175,30 @@ DJANGO_VITE = {
   }
 }
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": env("MYSQL_DATABASE", "examc"),
-        "USER": env("MYSQL_USER", "appuser"),
-        "PASSWORD": env("MYSQL_PASSWORD", ""),
-        "HOST": env("DB_HOST", "mysql"),
-        "PORT": env("DB_PORT", "3306"),
-        "OPTIONS": {
-            "autocommit": True,
-            "charset": "utf8mb4",
-        },
-        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", "60"),
+if TESTING_MODE_ENABLED:
+    # Use SQlite for testing (faster in CI/CD)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": env("SQLITE_PATH", "/tmp/examc-test.sqlite3"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": env("MYSQL_DATABASE", "examc"),
+            "USER": env("MYSQL_USER", "appuser"),
+            "PASSWORD": env("MYSQL_PASSWORD", ""),
+            "HOST": env("DB_HOST", "mysql"),
+            "PORT": env("DB_PORT", "3306"),
+            "OPTIONS": {
+                "autocommit": True,
+                "charset": "utf8mb4",
+            },
+            "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", "60"),
+        }
+    }
 
 WSGI_APPLICATION = 'examc.wsgi.application'
 
@@ -358,10 +369,15 @@ LOGGING = {
     },
 }
 
-# Celery & Redis
-
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://redis:6379/0")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+# Celery
+if TESTING_MODE_ENABLED:
+    # Use in-memory cache for testing (faster in CI/CD)
+    CELERY_BROKER_URL = "memory://"
+    CELERY_RESULT_BACKEND = "cache+memory://"
+else:
+    CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://redis:6379/0")
+    CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+    
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", "0")
 CELERY_BEAT_SCHEDULER = env("CELERY_BEAT_SCHEDULER", "django_celery_beat.schedulers:DatabaseScheduler")
@@ -412,17 +428,23 @@ MAINTENANCE_MODE_IGNORE_URLS = (
     r"^/oidc/callback/?$",       # OIDC callback (mozilla-django-oidc default)
 )
 
-### CONSTANCE FOR MAINTENANCE
-CONSTANCE_REDIS_URL = env("CONSTANCE_REDIS_CONNECTION", default="redis://redis:6379/0")
-parsed = urlparse(CONSTANCE_REDIS_URL)
+### CONSTANCE FOR MAINTENANCE AND OTHER CONSTANTS
+if TESTING_MODE_ENABLED:
+    # Use in-memory cache for testing (faster in CI/CD)
+    CONSTANCE_BACKEND = "constance.backends.memory.MemoryBackend"
+    CONSTANCE_REDIS_URL = "memory://"
+else:
+    CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
 
-REDIS_CONNECTION = {
-    "host": parsed.hostname or "redis",
-    "port": parsed.port or 6379,
-    "db": int((parsed.path or "/0").lstrip("/")),
-}
-CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
-CONSTANCE_REDIS_CONNECTION = REDIS_CONNECTION
+    CONSTANCE_REDIS_URL = env("CONSTANCE_REDIS_CONNECTION", default="redis://redis:6379/0")
+    redis_parsed = urlparse(CONSTANCE_REDIS_URL)
+    
+    REDIS_CONNECTION = {
+        "host": redis_parsed.hostname or "redis",
+        "port": redis_parsed.port or 6379,
+        "db": int((redis_parsed.path or "/0").lstrip("/")),
+    }
+    CONSTANCE_REDIS_CONNECTION = REDIS_CONNECTION
 
 # Admin widgets/fields for Constance
 CONSTANCE_ADDITIONAL_FIELDS = {
@@ -474,13 +496,26 @@ CONSTANCE_CONFIG_FIELDSETS = {
     )
 }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("DJANGO_CACHE_URL", default="redis://redis:6379/1"),
-    },
-    "maintenance_mode": {  # dedicated cache for the flag (optional but nice)
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("DJANGO_MAINTENANCE_CACHE_URL", default="redis://redis:6379/2"),
-    },
-}
+if TESTING_MODE_ENABLED:
+    # In-process caches: no Redis needed, and each test process starts empty.
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "default",
+        },
+        "maintenance_mode": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "maintenance_mode",
+        },
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": env("DJANGO_CACHE_URL", default="redis://redis:6379/1"),
+        },
+        "maintenance_mode": {  # dedicated cache for the flag (optional but nice)
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": env("DJANGO_MAINTENANCE_CACHE_URL", default="redis://redis:6379/2"),
+        },
+    }
