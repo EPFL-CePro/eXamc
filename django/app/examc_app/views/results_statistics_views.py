@@ -257,7 +257,7 @@ def generate_stats(request, exam_pk: int):
     task = generate_statistics.delay(exam.pk)
     task_id = task.task_id
 
-    return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
+    return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
 
 
 @exam_permission_required(['manage','see_results'])

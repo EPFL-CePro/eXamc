@@ -1,10 +1,10 @@
-from django.urls import path, include
+from django.urls import include, path
 
 from examc_app import views
 from examc_app.api.router import examc_router
-
-from examc_app.views.rooms_plans_views import GenerateRoomPlanView
 from examc_app.views.rooms_plans_special_views import GenerateRoomPlanSpecialView
+from examc_app.views.rooms_plans_views import GenerateRoomPlanView
+
 
 urlpatterns = [
     # DRF
@@ -18,8 +18,8 @@ urlpatterns = [
     # EXAM INFO
     path('update_exam_users/<int:exam_pk>', views.update_exam_users, name="update_exam_users"),
     path('update_exam_info/<int:exam_pk>', views.update_exam_info, name="update_exam_info"),
-    path('examInfo/<int:exam_pk>', views.ExamInfoView.as_view(), name="examInfo"),
-    path('examInfo/<int:exam_pk>/<str:task_id>', views.ExamInfoView.as_view(), name="examInfo"),
+    path('exam_info/<int:exam_pk>', views.ExamInfoView.as_view(), name="exam_info"),
+    path('exam_info/<int:exam_pk>/<str:task_id>', views.ExamInfoView.as_view(), name="exam_info_with_task"),
     path('update_exam_options/<int:exam_pk>', views.update_exam_options, name='update_exam_options'),
     path('create_scale/<int:exam_pk>', views.ScaleCreateView.as_view(), name="create_scale"),
     path('delete_exam_scale/<int:scale_pk>/<int:exam_pk>', views.delete_exam_scale, name="delete_exam_scale"),
@@ -30,7 +30,7 @@ urlpatterns = [
     # PREPARATION
     path('create_exam_project', views.create_exam_project, name="create_exam_project"),
     path("exam_preparation/<int:exam_pk>/", views.exam_preparation_view, name="exam_preparation"),
-    path("exam_preparation/<int:exam_pk>/first-page/", views.prep_first_page_panel, name="prep_first_page_panel"),
+    path("exam_preparation/<int:exam_pk>/first_page/", views.prep_first_page_panel, name="prep_first_page_panel"),
     path("exam_preparation/<int:exam_pk>/sections/", views.prep_sections_list, name="prep_sections_list"),
     path("exam_preparation/<int:exam_pk>/sections/add/", views.add_prep_section, name="add_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/", views.prep_section_panel,name="prep_section_panel"),
@@ -85,7 +85,7 @@ urlpatterns = [
 
     # REVIEW
     path('review/<int:exam_pk>', views.ReviewView.as_view(), name="reviewView"),
-    path('reviewGroup/<int:exam_pk>/<int:group_pk>/<str:currpage>/<int:current_grading_scheme>', views.ReviewGroupView.as_view(), name="reviewGroup"),
+    path('review_group/<int:exam_pk>/<int:group_pk>/<str:currpage>/<int:current_grading_scheme>', views.ReviewGroupView.as_view(), name="review_group"),
     path('save_markers/<int:exam_pk>', views.save_markers, name="save_markers"),
     path('get_markers_and_comments/<int:exam_pk>', views.get_markers_and_comments, name="get_markers_and_comments"),
     path('save_comment/<int:exam_pk>', views.save_comment, name="save_comment"),

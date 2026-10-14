@@ -77,7 +77,7 @@ class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
         if user_allowed(exam,self.request.user.id):
             context['user_allowed'] = True
             context['common_list'] = None
-            context['nav_url'] = "examInfo"
+            context['nav_url'] = "exam_info"
             context['exam'] = exam
             context['exam_selected'] = exam_selected
             context['question_types'] = QuestionType.objects.all()
@@ -170,7 +170,7 @@ def update_exam_users(request: HttpRequest, exam_pk: int):
                 exam_user.pages_groups.set(PagesGroup.objects.filter(exam=exam).all())
             exam_user.save()
 
-    return redirect('examInfo', exam_pk=exam.pk)
+    return redirect('exam_info', exam_pk=exam.pk)
 
 
 @exam_permission_required(['manage'])
@@ -204,7 +204,7 @@ def update_exam_info(request, exam_pk: int):
 
         exam.save()
 
-    return redirect('examInfo', exam_pk=exam.pk)
+    return redirect('exam_info', exam_pk=exam.pk)
 
 
 class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
@@ -235,7 +235,7 @@ class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
         task = generate_statistics.delay(exam.pk)
         task_id = task.task_id
 
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam.pk, 'task_id': task_id}))
+        return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': exam.pk, 'task_id': task_id}))
 
     def get_context_data(self, **kwargs):
         context = super(ScaleCreateView, self).get_context_data(**kwargs)
@@ -265,7 +265,7 @@ def delete_exam_scale(request, scale_pk, exam_pk: int):
     task = generate_statistics.delay(exam_pk)
     task_id = task.task_id
 
-    return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
+    return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
 
 
 
@@ -290,7 +290,7 @@ def set_final_scale(request, scale_pk, exam_pk: int, all_common=0):
                     comex_scale.final = False
                 comex_scale.save()
 
-    return redirect(reverse('examInfo', kwargs={'exam_pk': str(final_scale.exam.pk)}))
+    return redirect(reverse('exam_info', kwargs={'exam_pk': str(final_scale.exam.pk)}))
 
 
 
@@ -361,7 +361,7 @@ def set_common_exam(request,exam_pk: int):
 
     # get or create overall exam if not from overall exam
     if exam.is_overall():
-        return HttpResponseRedirect(reverse('examInfo', kwargs={ 'exam_pk': exam.pk }))
+        return HttpResponseRedirect(reverse('exam_info', kwargs={ 'exam_pk': exam.pk }))
 
     overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
     month_year = exam.date.strftime("%m-%Y")
@@ -386,7 +386,7 @@ def set_common_exam(request,exam_pk: int):
     task = generate_statistics.delay(overall_exam.pk)
     task_id = task.task_id
 
-    return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
+    return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
 
 
 # @exam_permission_required(['manage'])
@@ -415,7 +415,7 @@ def set_common_exam(request,exam_pk: int):
     #
     #
     #
-    # return redirect('../examInfo/' + str(exam.pk))
+    # return redirect('../exam_info/' + str(exam.pk))
 @exam_permission_required(['manage'])
 @require_POST
 def validate_common_exams_settings(request,exam_pk: int):
@@ -433,10 +433,10 @@ def validate_common_exams_settings(request,exam_pk: int):
         task = generate_statistics.delay(overall_exam.pk)
         task_id = task.task_id
 
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
+        return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
     else:
         redirect_exam = overall_exam.common_exams.first()
         for exam in overall_exam.common_exams.all():
             exam.common_exams.clear()
         overall_exam.delete()
-        return redirect('../examInfo/' + str(redirect_exam.pk))
+        return redirect('../exam-info/' + str(redirect_exam.pk))

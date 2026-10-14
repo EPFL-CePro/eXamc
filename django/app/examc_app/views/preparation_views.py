@@ -141,7 +141,7 @@ def create_exam_project(request):
             exam_user.group_id = 2
             exam_user.save()
 
-        return redirect("examInfo", exam_pk=exam.pk)
+        return redirect("exam_info", exam_pk=exam.pk)
 
     # if form is invalid or a GET (or any other method) is received, we'll create a blank form
     return render(
