@@ -2,7 +2,7 @@ import { byId } from '@examc/helpers/dom.ts';
 import { parseJson, postText } from '@examc/helpers/http.ts';
 
 import type { PagePosition, Zoom } from './types.ts';
-import {getModal} from "@examc/helpers/modals.ts";
+import { LocalModal } from '@examc/modals/local.ts';
 
 interface ZoomsConfig {
     zoomsUrl: string;
@@ -53,7 +53,7 @@ export async function openZooms(position: PagePosition): Promise<void> {
     current = position;
     elements.header.replaceChildren('Boxes zooms for', document.createElement('br'), `Copy ${position.copy} / Page ${position.page}`);
     
-    getModal({ type: "local", element: elements.dialog }).show();
+    new LocalModal(elements.dialog).show();
 
     await loadZooms();
 }

@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         zipImportUrl: requireData(root, 'zipImportUrl'),
         importAllUrl: requireData(root, 'importAllUrl'),
         importPagesUrl: requireData(root, 'importPagesUrl'),
-        scans: readJsonArray<ReviewScanCopy>('json_scans_list'),
+        scans: readJsonArray<ReviewScanCopy>('json-scans-list'),
     });
 
     initReports({
