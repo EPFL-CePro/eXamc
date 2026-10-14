@@ -889,7 +889,7 @@ function updateQuestions(exam_pk){
                 sessionStorage.setItem("exam_pk", exam_pk);
                 sessionStorage.setItem("regen_stats", "true");
                 sessionStorage.setItem("scrolly",document.documentElement.scrollTop);
-                window.location.href = "{% url 'examInfo' exam.pk %}?dataUpdated=true";
+                window.location.href = "{% url 'exam_info' exam.pk %}?dataUpdated=true";
             },
             error: (error) => {
                 console.log(error);
@@ -907,7 +907,7 @@ function updateExamOptions(exam_pk){
                 $('#loadingModal').modal('show');
             },
             complete: function () {
-                location.replace("/examInfo/"+exam_pk);
+                location.replace("/exam-info/"+exam_pk);
             },
             success: (data) => {
                 $('#loadingModal').modal('hide');
