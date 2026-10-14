@@ -1,6 +1,6 @@
 import 'vite/modulepreload-polyfill';
 import {byId} from "@examc/helpers/dom.ts";
-import {getPageBootstrap} from "@examc/helpers/page-bootstrap.ts";
+import { Modal } from 'bootstrap';
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = byId<HTMLFormElement>("upload-amc-project-form");
@@ -16,6 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     form.addEventListener("submit", () => {
         const modalElement = byId("loadingModal");
-        getPageBootstrap().Modal.getOrCreateInstance(modalElement, { backdrop: "static", keyboard: false }).show();
+        Modal.getOrCreateInstance(modalElement, { backdrop: "static", keyboard: false }).show();
     });
 });

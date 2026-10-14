@@ -1,6 +1,6 @@
 // TODO implement ExamcModal version of this
 
-import { getPageBootstrap } from "@examc/helpers/page-bootstrap";
+import { Modal } from "bootstrap";
 
 interface ConfirmDialogOptions {
     title: string;
@@ -64,8 +64,7 @@ export function confirmDialog({
     const stacked = document.querySelector(".modal.show") !== null;
 
     document.body.append(element);
-    const BootstrapModal = getPageBootstrap().Modal;
-    const modal = new BootstrapModal(element);
+    const modal = new Modal(element);
 
     if (stacked) {
         element.style.zIndex = "1065";

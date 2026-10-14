@@ -3,9 +3,9 @@ import './main.scss';
 import { byId, requireData } from '@examc/helpers/dom.ts';
 
 import { readJsonArray } from './data.ts';
-import { initDiagnosis, navigateZooms } from './table.ts';
 import { initAutomaticImport } from './import.ts';
 import { initReports } from './reports.ts';
+import { initDiagnosis, navigateZooms } from './table.ts';
 import type { MissingPagesCopy, OverwrittenPage, ReviewScanCopy } from './types.ts';
 import { initZooms } from './zooms.ts';
 
@@ -33,6 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // The diagnosis table is only rendered when there is captured data.
-    const table = byId<HTMLTableElement>('table-copies-pages');
-    initDiagnosis(table);
+    const table = document.getElementById('table-copies-pages');
+    if (table instanceof HTMLTableElement) initDiagnosis(table);
 });

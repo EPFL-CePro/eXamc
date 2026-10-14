@@ -12,7 +12,7 @@ export function initExamSelectTable(options: {
     new DataTable(tableElement, {
         serverSide: true,
         processing: true,
-        scrollY: "45.5dvh",
+        scrollY: "40dvh",
         ajax: {
             url: apiUrl,
             type: "GET",

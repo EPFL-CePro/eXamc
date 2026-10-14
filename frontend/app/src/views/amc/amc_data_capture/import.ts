@@ -1,9 +1,9 @@
 import { byId } from '@examc/helpers/dom.ts';
 import { postJson } from '@examc/helpers/http.ts';
+import { LocalModal, type LogModal } from '@examc/modals';
 
-import { appendOutput, openProcess, pollJob, setOutput, showProcessError, streamPost } from './process.ts';
+import { openProcess, pollJob, showProcessError, streamPost } from './process.ts';
 import type { JobStarted, ReviewScanCopy } from './types.ts';
-import { LocalModal } from '@examc/modals/local.ts';
 
 interface AutomaticImportConfig {
     examPk: string;
@@ -28,19 +28,21 @@ export function initAutomaticImport(config: AutomaticImportConfig): void {
     const toSelect = byId<HTMLSelectElement>('scans_to_import_multiselect_to');
     const importSelectedButton = byId<HTMLButtonElement>('importSelectedPagesBt');
 
-    /** Closes the dialog and opens the process output. */
-    function startProcess(): void {
+    /**
+     * Closes the dialog and opens a process output.
+     *
+     * @return {LogModal} The process output.
+     */
+    function startProcess(): LogModal {
         modal.hide();
-        openProcess(PROCESS_TITLE);
+        return openProcess(PROCESS_TITLE);
     }
 
     // -----------------------------------------------------------------------
     // Import sources
     // -----------------------------------------------------------------------
 
-    byId('open-automatic-capture-btn').addEventListener('click', () => {
-        modal.show();
-    });
+    byId('open-automatic-capture-btn').addEventListener('click', () => modal.show());
 
     // Show the chosen file name in the custom file input's label
     zipInput.addEventListener('change', () => {
@@ -52,24 +54,24 @@ export function initAutomaticImport(config: AutomaticImportConfig): void {
 
     localForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        startProcess();
+        const log = startProcess();
 
         const formData = new FormData(localForm); // includes the form's CSRF token
         formData.append('exam_pk', config.examPk);
-        streamPost(config.zipImportUrl, formData)
-            .then(() => appendOutput('** AUTOMATIC DATACAPTURE COMPLETED! **'))
-            .catch(showProcessError);
+        streamPost(log, config.zipImportUrl, formData)
+            .then(() => log.appendToOutput('** AUTOMATIC DATACAPTURE COMPLETED! **'))
+            .catch((error: unknown) => showProcessError(log, error));
     });
 
     /** Starts a review import job and follows it. */
     async function runReviewImport(url: string, fields: Record<string, string[]> = {}): Promise<void> {
-        startProcess();
+        const log = startProcess();
         try {
             const job = await postJson<JobStarted>(url, fields);
-            setOutput('AMC import job started ...\n');
-            await pollJob(job.status_url);
+            log.setOutput('AMC import job started ...\n');
+            await pollJob(log, job.status_url);
         } catch (error) {
-            showProcessError(error);
+            showProcessError(log, error);
         }
     }
 

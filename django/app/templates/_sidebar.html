@@ -1,0 +1,178 @@
+{% load custom_tags %}
+{% load static %}
+
+<div id="sidebar-container" class="d-none d-md-flex flex-column bg-dark min-vh-100" data-bs-theme="dark">
+    <nav class="list-group list-group-flush" aria-label="Main menu">
+
+        <div class="list-group-item border-0 rounded-0 bg-black p-3">
+            <img src="{% get_logo_url %}" alt="eXamc" class="img-fluid d-block" style="height: 4rem">
+        </div>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'home' %}"
+               class="list-group-item list-group-item-action border-0 rounded-0 bg-black d-flex align-items-center gap-2">
+                <span class="fa-solid fa-table-columns fa-fw" aria-hidden="true"></span>
+                DASHBOARD
+            </a>
+
+            {% if exam_selected %}
+                {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
+                    <a href="{% url 'exam_info' exam_selected.pk %}" title="{{ exam_selected.code }}"
+                       class="list-group-item list-group-item-action border-0 rounded-0 bg-body-tertiary fw-bold mt-3 d-flex align-items-center gap-2">
+                        <span class="fa-solid fa-book-open fa-fw" aria-hidden="true"></span>
+                        {% if exam_selected.is_overall %}{{ exam_selected.name }}{% else %}{{ exam_selected.code }}{% endif %}
+                    </a>
+                {% else %}
+                    <div title="{{ exam_selected.code }}"
+                         class="list-group-item border-0 rounded-0 bg-body-tertiary fw-bold mt-3 d-flex align-items-center gap-2">
+                        <span class="fa-solid fa-book-open fa-fw" aria-hidden="true"></span>
+                        {% if exam_selected.is_overall %}{{ exam_selected.name }}{% else %}{{ exam_selected.code }}{% endif %}
+                    </div>
+                {% endif %}
+
+                {# Preparation #}
+                {% if exam_selected.has_prep_option and user|more_arg:exam_selected|is_allowed:'preparation' %}
+                    <div class="dropend">
+                        <button type="button" id="sidebar-preparation-menu" data-bs-toggle="dropdown" aria-expanded="false"
+                                class="list-group-item list-group-item-action border-0 rounded-0 w-auto d-flex align-items-center gap-2 dropdown-toggle">
+                            <span class="fa-solid fa-pen-to-square fa-fw" aria-hidden="true"></span>
+                            Preparation
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="sidebar-preparation-menu">
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'exam_preparation' exam_selected.pk %}">
+                                <span class="fa-solid fa-glasses fa-fw" aria-hidden="true"></span>Exam</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'exam_preparation_students' exam_selected.pk %}">
+                                <span class="fa-solid fa-gears fa-fw" aria-hidden="true"></span>Students</a></li>
+                        </ul>
+                    </div>
+                    <hr class="my-2">
+                {% endif %}
+
+                {# Review #}
+                {% if exam_selected.has_review_option and user|more_arg:exam_selected|is_allowed:'review' %}
+                    <div class="dropend">
+                        <button type="button" id="sidebar-review-menu" data-bs-toggle="dropdown" aria-expanded="false"
+                                class="list-group-item list-group-item-action border-0 rounded-0 w-auto d-flex align-items-center gap-2 dropdown-toggle">
+                            <span class="fa-solid fa-glasses fa-fw" aria-hidden="true"></span>
+                            Review
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="sidebar-review-menu">
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'reviewView' exam_selected.pk %}">
+                                <span class="fa-solid fa-glasses fa-fw" aria-hidden="true"></span>Review</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'reviewSettingsView' exam_selected.pk 'groups' %}">
+                                <span class="fa-solid fa-gears fa-fw" aria-hidden="true"></span>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'upload_scans' exam_selected.pk %}">
+                                <span class="fa-solid fa-cloud-arrow-up fa-fw" aria-hidden="true"></span>Upload scans</a></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'generate_marked_files' exam_selected.pk %}">
+                                <span class="fa-solid fa-cloud-arrow-down fa-fw" aria-hidden="true"></span>Export marked scans</a></li>
+                        </ul>
+                    </div>
+                    <hr class="my-2">
+                {% endif %}
+
+                {# AMC #}
+                {% if exam_selected.has_amc_option and user|more_arg:exam_selected|is_allowed:'amc' %}
+                    <div class="dropend">
+                        <button type="button" id="sidebar-amc-menu" data-bs-toggle="dropdown" aria-expanded="false"
+                                class="list-group-item list-group-item-action border-0 rounded-0 w-auto d-flex align-items-center gap-2 dropdown-toggle">
+                            <img src="{% static 'img/amc_icons/amc.ico' %}" alt="" width="16" height="16">
+                            AMC
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="sidebar-amc-menu">
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'amc_view' exam_pk=exam_selected.pk %}">
+                                <img src="{% static 'img/amc_icons/amc.ico' %}" alt="" width="16" height="16">AMC</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'upload_amc_project' exam_selected.pk %}">
+                                <span class="fa-solid fa-cloud-arrow-up fa-fw" aria-hidden="true"></span>Import data</a></li>
+                        </ul>
+                    </div>
+                    <hr class="my-2">
+                {% endif %}
+
+                {# Results and statistics #}
+                {% if exam_selected.has_res_and_stats_option and user|more_arg:exam_selected|is_allowed:'res_and_stats' %}
+                    <a href="{% url 'studentsResults' exam_selected.pk %}"
+                       class="list-group-item list-group-item-action border-0 rounded-0 d-flex align-items-center gap-2">
+                        <span class="fa-solid fa-table-list fa-fw" aria-hidden="true"></span>
+                        Results
+                    </a>
+                    {% if exam_selected.scales.exists %}
+                        <div class="dropend">
+                            <button type="button" id="sidebar-statistics-menu" data-bs-toggle="dropdown" aria-expanded="false"
+                                    class="list-group-item list-group-item-action border-0 rounded-0 w-auto d-flex align-items-center gap-2 dropdown-toggle">
+                                <span class="fa-solid fa-chart-column fa-fw" aria-hidden="true"></span>
+                                Statistics
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="sidebar-statistics-menu">
+                                <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'generalStats' exam_selected.pk %}">
+                                    <span class="fa-solid fa-chart-line fa-fw" aria-hidden="true"></span>Global</a></li>
+                                <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'questionsStats' exam_selected.pk %}">
+                                    <span class="fa-solid fa-chart-area fa-fw" aria-hidden="true"></span>Questions</a></li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                    <a href="{% url 'import_data_4_stats' exam_selected.pk %}"
+                       class="list-group-item list-group-item-action border-0 rounded-0 d-flex align-items-center gap-2">
+                        <span class="fa-solid fa-cloud-arrow-up fa-fw" aria-hidden="true"></span>
+                        Import data
+                    </a>
+                    <a href="{% url 'export_data' exam_selected.pk %}"
+                       class="list-group-item list-group-item-action border-0 rounded-0 d-flex align-items-center gap-2">
+                        <span class="fa-solid fa-cloud-arrow-down fa-fw" aria-hidden="true"></span>
+                        Export results
+                    </a>
+                    <hr class="my-2">
+                {% endif %}
+            {% endif %}
+
+            {# Info #}
+            <div class="dropend">
+                <button type="button" id="sidebar-info-menu" data-bs-toggle="dropdown" aria-expanded="false"
+                        class="list-group-item list-group-item-action border-0 rounded-0 w-auto text-warning d-flex align-items-center gap-2 dropdown-toggle">
+                    <span class="fa-regular fa-circle-question fa-fw" aria-hidden="true"></span>
+                    Info
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="sidebar-info-menu">
+                    <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'documentation' %}">
+                        <span class="fa-solid fa-circle-question fa-fw" aria-hidden="true"></span>Documentation</a></li>
+                    <li><button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2"
+                                data-bs-toggle="modal" data-bs-target="#aboutModal">
+                        <span class="fa-solid fa-circle-info fa-fw" aria-hidden="true"></span>About</button></li>
+                </ul>
+            </div>
+            <hr class="my-2">
+
+            {# Administration #}
+            {% if user|is_admin %}
+                <a href="{% url 'impersonate_select' %}?next={{ request.get_full_path|urlencode }}"
+                   class="list-group-item list-group-item-action border-0 rounded-0 text-info d-flex align-items-center gap-2">
+                    <span class="fa-solid fa-user-secret fa-fw" aria-hidden="true"></span>
+                    Impersonate
+                </a>
+                <a href="{% url 'admin:index' %}" target="_blank" rel="noopener"
+                   class="list-group-item list-group-item-action border-0 rounded-0 text-info d-flex align-items-center gap-2">
+                    <span class="fa-solid fa-carrot fa-spin fa-fw" aria-hidden="true"></span>
+                    Admin
+                </a>
+                <hr class="my-2">
+            {% endif %}
+
+            {# User and logout #}
+            <div class="list-group-item border-0 rounded-0 text-success d-flex align-items-center gap-2">
+                <span class="fa-solid fa-face-grimace fa-fw" aria-hidden="true"></span>
+                {{ user }}
+            </div>
+            <form action="{% url 'oidc_logout' %}" method="post" class="m-0">
+                {% csrf_token %}
+                <button type="submit"
+                        class="list-group-item list-group-item-action border-0 rounded-0 text-danger d-flex align-items-center gap-2">
+                    <span class="fa-solid fa-right-from-bracket fa-fw" aria-hidden="true"></span>
+                    Logout
+                </button>
+            </form>
+        {% endif %}
+    </nav>
+</div>

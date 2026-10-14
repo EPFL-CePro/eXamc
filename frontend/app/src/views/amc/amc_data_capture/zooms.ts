@@ -1,8 +1,7 @@
-import { byId } from '@examc/helpers/dom.ts';
 import { parseJson, postText } from '@examc/helpers/http.ts';
 
 import type { PagePosition, Zoom } from './types.ts';
-import { LocalModal } from '@examc/modals/local.ts';
+import { ZoomsModal } from './zooms-modal.ts';
 
 interface ZoomsConfig {
     zoomsUrl: string;
@@ -12,35 +11,18 @@ interface ZoomsConfig {
 }
 
 let config: ZoomsConfig | null = null;
-let elements: {
-    dialog: HTMLElement;
-    header: HTMLElement;
-    unchecked: HTMLElement;
-    checked: HTMLElement;
-} | null = null;
 
+/** The dialog, while it's open. */
+let modal: ZoomsModal | null = null;
 let current: PagePosition | null = null;
 /** Set once a zone was toggled: closing the dialog then reloads the page, so its summaries are up to date. */
 let changed = false;
 /** Incremented on every load, so responses for a page the user already left are ignored. */
 let loadToken = 0;
 
-/** Wires the zooms dialog. */
+/** Sets the endpoints and the navigation. Called by index.ts once the DOM has loaded. */
 export function initZooms(zoomsConfig: ZoomsConfig): void {
     config = zoomsConfig;
-
-    elements = {
-        dialog: byId('zoom-data-capture-diagnosis-dialog'),
-        header: byId('zoom-data-capture-diagnosis-dialog-header'),
-        unchecked: byId('zoom-unchecked-boxes'),
-        checked: byId('zoom-checked-boxes'),
-    };
-
-    byId('zoomDataCapturePreviousBt').addEventListener('click', () => zoomsConfig.onNavigate(-1));
-    byId('zoomDataCaptureNextBt').addEventListener('click', () => zoomsConfig.onNavigate(1));
-    byId('zoom-dialog-close-btn').addEventListener('click', () => {
-        if (changed) window.location.reload();
-    });
 }
 
 /**
@@ -49,11 +31,20 @@ export function initZooms(zoomsConfig: ZoomsConfig): void {
  * @param {PagePosition} position - The copy and page.
  */
 export async function openZooms(position: PagePosition): Promise<void> {
-    if (!elements) return;
+    if (!config) return;
     current = position;
-    elements.header.replaceChildren('Boxes zooms for', document.createElement('br'), `Copy ${position.copy} / Page ${position.page}`);
-    
-    new LocalModal(elements.dialog).show();
+
+    if (!modal) {
+        modal = new ZoomsModal({
+            onNavigate: config.onNavigate,
+            onHidden: () => {
+                modal = null;
+                if (changed) window.location.reload();
+            },
+        });
+        modal.show();
+    }
+    modal.setPosition(position);
 
     await loadZooms();
 }
@@ -65,16 +56,15 @@ async function loadZooms(): Promise<void> {
 
     try {
         const zooms = parseJson<Zoom[]>(await postText(config.zoomsUrl, { copy, page })) ?? [];
-        if (token === loadToken) renderZooms(zooms);
+        // The dialog may have been closed, or moved to another page, while loading.
+        if (token !== loadToken || !modal) return;
+        modal.setZooms(
+            zooms.filter((zoom) => !zoom.checked).map(zoomItem),
+            zooms.filter((zoom) => zoom.checked).map(zoomItem),
+        );
     } catch (error) {
         if (token === loadToken) console.error(error);
     }
-}
-
-function renderZooms(zooms: Zoom[]): void {
-    if (!elements) return;
-    elements.unchecked.replaceChildren(...zooms.filter((z) => !z.checked).map(zoomItem));
-    elements.checked.replaceChildren(...zooms.filter((z) => z.checked).map(zoomItem));
 }
 
 /** One zoom: the box image and its black value; clicking toggles the box. */

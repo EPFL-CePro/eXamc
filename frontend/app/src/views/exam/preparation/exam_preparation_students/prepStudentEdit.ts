@@ -1,8 +1,7 @@
 import type { Api } from 'datatables.net-dt';
 
-import { getPageBootstrap } from '@examc/helpers/page-bootstrap';
-
 import type { PrepStudentRow } from "./prepStudentsTable.ts";
+import { Modal } from 'bootstrap';
 
 const FIELDS = ["sciper", "last_name", "first_name", "email", "section", "room", "seat"] as const;
 
@@ -39,7 +38,7 @@ export function initPrepStudentEdit(options: {
     const errorsElement = modalElement.querySelector<HTMLElement>("#prepStudentEditErrors")!;
     const notFoundElement = modalElement.querySelector<HTMLElement>("#prepStudentEditNotFound")!;
     const saveButton = modalElement.querySelector<HTMLButtonElement>("#prepStudentEditSave")!;
-    const modal = getPageBootstrap().Modal.getOrCreateInstance(modalElement);
+    const modal = Modal.getOrCreateInstance(modalElement);
     let editedId: number | null = null;
 
     const input = (field: typeof FIELDS[number]) => form.elements.namedItem(field) as HTMLInputElement;
