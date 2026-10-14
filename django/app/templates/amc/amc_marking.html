@@ -77,7 +77,7 @@
         {% endif %}
     </div>
 
-    <div class="modal" id="marking-details-modal" tabindex="-1" role="dialog">
+    <div class="modal fade" id="marking-details-modal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -113,54 +113,6 @@
                             </tr>
                             {% endfor %}
                         </tbody>
-                    </table>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="edit-students-list-modal" class="modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="edit-students-list-modal-title"></h5>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                </div>
-                <div class="modal-body">
-                    <div id="students-list-table-container"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" id="btn-add-students-list-row" class="btn btn-outline-dark btn-sm me-auto"><i class="fas fa-plus"></i>Add student</button>
-                    <button type="button" id="btn-save-students-list" class="btn btn-dark btn-sm">Save changes</button>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="manual-association-modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h6 class="modal-title">Manual association</h6>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-danger" id="manual-association-error" role="alert" hidden></div>
-                    <table id="manual-association-table" class="table table-sm table-striped">
-                        <thead>
-                        <tr>
-                            <th>Copy Nr.</th>
-                            <th>Automatic</th>
-                            <th>Manual</th>
-                            <th>img</th>
-                            <th>Student</th>
-                        </tr>
-                        </thead>
-                        <tbody id="manual-association-table-tbody"></tbody>
                     </table>
                 </div>
                 <div class="modal-footer">

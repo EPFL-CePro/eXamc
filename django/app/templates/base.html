@@ -483,7 +483,7 @@
         {% include "errors/_user_facing_error_modal.html" %}
     </div>
 </div>
-<div class="modal" id="loadingModal" tabindex="-1" role="dialog"
+<div class="modal fade" id="loadingModal" tabindex="-1" role="dialog"
      style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content" style="background-color:transparent;border:none;">
@@ -520,14 +520,15 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="amc-process-modal-title">Process info</h5>
+                <h5 class="modal-title" id="amc-process-modal-title">
+                    <label for="amc-process-modal-body">Process info</label>
+                </h5>
                 <button type="button" class="close" onclick="$('#amc-process-modal').modal('hide');" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body text-monospace" id="amc-process-modal-body"
-                 style="margin:10px;white-space: pre-line;height:500px;overflow-y: scroll;background-color: black;color:white;">
-            </div>
+            <textarea class="modal-body text-monospace" id="amc-process-modal-body" readonly
+                 style="margin:10px;white-space: pre-line;height:76vh;overflow-y: scroll;background-color: black;color:white;"></textarea>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="$('#amc-process-modal').modal('hide');">Close
                 </button>

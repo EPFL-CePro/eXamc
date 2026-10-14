@@ -9,10 +9,9 @@
 {% block content %}
     <div class="d-flex justify-content-start align-items-center mb-4">
         <h3 style="margin: 0;">Manual Data Capture</h3>
-        <a href="{% url 'amc_view' exam_selected.pk %}"
+        <a href="{% url 'amc_view' exam_selected.pk %}#data-capture-tab"
            class="btn btn-outline-dark btn-sm ml-4">
-            <i class="fas fa-arrow-left fa-lg" style="margin-right: 10px;"></i>Back to AMC Data Capture
-        </a>
+            <i class="fas fa-arrow-left fa-lg" style="margin-right: 10px;"></i>Back to AMC Data Capture</a>
     </div>
 
     <div id="amc-data-capture" tabindex="0"

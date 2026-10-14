@@ -1,8 +1,9 @@
 import { byId } from '@examc/helpers/dom.ts';
 import { parseJson, postText } from '@examc/helpers/http.ts';
-import { getModal, withLoading } from '@examc/helpers/modals.ts';
 import { createSearchableDropdown, type SearchableDropdownChoice } from '@examc/helpers/searchable-dropdown/index.ts';
+import { LoadingModal, LocalModal } from '@examc/modals';
 import { ModuleUninitialized } from './errors.ts';
+import { ManualAssociationModal } from './manual-association-modal.ts';
 import { state } from './state.ts';
 import type {
     AssociationRow,
@@ -21,6 +22,9 @@ const NO_STUDENT_CHOICE = '0';
 
 let urls: AssociationUrls | null = null;
 
+/** The manual association dialog, while it's open. */
+let manualAssociationModal: ManualAssociationModal | null = null;
+
 /** Sets the API endpoints. Called by index.ts once the DOM has loaded. */
 export function initAssociation(endpoints: AssociationUrls): void {
     urls = endpoints;
@@ -33,7 +37,7 @@ export function initAssociation(endpoints: AssociationUrls): void {
  */
 function showInfo(message: string): void {
     byId('ajax-info-modal-msg').innerText = message;
-    getModal({ type: 'local', element: byId('ajax-info-modal') }).show();
+    new LocalModal(byId('ajax-info-modal')).show();
 }
 
 /**
@@ -63,7 +67,7 @@ export async function runAutomaticAssociation(): Promise<void> {
     const url = urls.automatic;
     try {
         const data = parseJson<AutoAssociationResponse>(
-            await withLoading(() => postText(url, { assoc_primary_key: primaryKey })),
+            await new LoadingModal(() => postText(url, { assoc_primary_key: primaryKey })).result
         );
         if (data?.ok && data.redirect) {
             window.location.href = withTab(data.redirect, 'marking-tab');
@@ -106,17 +110,6 @@ function effectiveStudent(data: AssociationRow): string {
 }
 
 /**
- * Shows an error in the manual association dialog, or hides it.
- *
- * @param {string | null} message - The error, or null to hide it.
- */
-function showAssociationError(message: string | null): void {
-    const box = byId('manual-association-error');
-    box.hidden = message === null;
-    box.textContent = message ?? '';
-}
-
-/**
  * Creates a text cell.
  *
  * @param {string} text - The cell's text.
@@ -127,6 +120,25 @@ function textCell(text: string, className?: string): HTMLTableCellElement {
     const td = document.createElement('td');
     td.textContent = text;
     if (className) td.className = className;
+    return td;
+}
+
+/**
+ * Creates the status cell of a sheet.
+ *
+ * @param {boolean} associated - Whether the sheet has a student.
+ * @return {HTMLTableCellElement} The cell.
+ */
+function statusCell(associated: boolean): HTMLTableCellElement {
+    const badge = document.createElement('span');
+    badge.className = associated ? 'badge bg-success' : 'badge bg-danger';
+    badge.innerHTML = associated
+        ? '<span class="fa-solid fa-check"></span>' 
+        : '<span class="fa-solid fa-xmark"></span>';
+
+    const td = document.createElement('td');
+    td.className = "text-center";
+    td.append(badge);
     return td;
 }
 
@@ -147,18 +159,24 @@ async function setManualAssociation(sheet: AssociationRow, studentId: string): P
             copy: toText(sheet.copy ?? 0),
             student_id: studentId,
         }));
-        showAssociationError(response?.ok ? null : (response?.error ?? 'The association could not be saved.'));
+        manualAssociationModal?.showError(response?.ok ? null : (response?.error ?? 'The association could not be saved.'));
     } catch (error) {
         console.error(error);
-        showAssociationError('The association could not be saved.');
+        manualAssociationModal?.showError('The association could not be saved.');
     }
 
     try {
-        await rebuildManualAssociationRows({ refreshImages: false });
-        focusSheetPicker(sheetKey(sheet));
+        const payload = await loadManualAssociationData();
+
+        // The dialog may have been closed while the data was loading.
+        const modal = manualAssociationModal;
+        if (!modal) return;
+
+        renderManualAssociationRows(modal, payload, { refreshImages: false });
+        focusSheetPicker(modal, sheetKey(sheet));
     } catch (error) {
         console.error(error);
-        showAssociationError('The associations could not be reloaded. Close and reopen the dialog.');
+        manualAssociationModal?.showError('The associations could not be reloaded. Close and reopen the dialog.');
     }
 }
 
@@ -185,12 +203,15 @@ function buildRow(
         textCell(toText(data.student)),
         textCell(auto),
         manual === NO_STUDENT ? textCell('None', 'text-muted fst-italic') : textCell(manual),
+        statusCell(student !== ''),
     );
 
     const imageCell = document.createElement('td');
     const reused = images.get(sheetKey(data));
-    const image = reused?.getAttribute('src') === data.image_path ? reused : document.createElement('img');
-    image.src = data.image_path;
+    const reusedUrl = reused?.getAttribute('src') ?? reused?.dataset['src'];
+    const image = reused && reusedUrl === data.image_path ? reused : document.createElement('img');
+    if (image !== reused) image.dataset['src'] = data.image_path; // loaded once its row is shown
+    image.loading = 'lazy';
     image.alt = `Sheet ${toText(data.student)}`;
     imageCell.append(image);
     row.append(imageCell);
@@ -236,12 +257,12 @@ function studentChoices(students: StudentRow[]): SearchableDropdownChoice[] {
 /**
  * Collects the scan images currently shown, by sheet.
  *
- * @param {HTMLTableSectionElement} tbody - The table body.
+ * @param {HTMLTableRowElement[]} rows - The table's rows, all pages included.
  * @return {Map<string, HTMLImageElement>} The images.
  */
-function currentImages(tbody: HTMLTableSectionElement): Map<string, HTMLImageElement> {
+function currentImages(rows: HTMLTableRowElement[]): Map<string, HTMLImageElement> {
     const images = new Map<string, HTMLImageElement>();
-    for (const row of Array.from(tbody.rows)) {
+    for (const row of rows) {
         const image = row.querySelector('img');
         if (image && row.dataset['sheet']) images.set(row.dataset['sheet'], image);
     }
@@ -251,44 +272,63 @@ function currentImages(tbody: HTMLTableSectionElement): Map<string, HTMLImageEle
 /**
  * Focuses a sheet's picker after a redraw, so keyboard users stay where they were.
  *
+ * @param {ManualAssociationModal} modal - The dialog.
  * @param {string} key - The sheet key.
  */
-function focusSheetPicker(key: string): void {
-    byId('manual-association-table-tbody')
-        .querySelector<HTMLElement>(`tr[data-sheet="${CSS.escape(key)}"] .dropdown-toggle`)
-        ?.focus();
+function focusSheetPicker(modal: ManualAssociationModal, key: string): void {
+    const row = modal.rowNodes().find((candidate) => candidate.dataset['sheet'] === key);
+    if (!row) return;
+
+    modal.showRow(row);
+    row.querySelector<HTMLElement>('.dropdown-toggle')?.focus();
 }
 
 /**
- * Loads the associations and students from the server and redraws the table from them.
- * The current rows stay in place if loading fails.
+ * Loads the associations and students from the server.
  *
- * @param {{ refreshImages?: boolean }} [options] - refreshImages: false keeps the scan images already loaded.
+ * @return {Promise<ManualAssociationPayload>} The answer sheets and students.
  */
-async function rebuildManualAssociationRows(options?: { refreshImages?: boolean }): Promise<void> {
+async function loadManualAssociationData(): Promise<ManualAssociationPayload> {
     if (!urls) throw new ModuleUninitialized('association.ts', 'initAssociation');
-    const { refreshImages = true } = options ?? {};
 
     const payload = parseJson<ManualAssociationPayload>(await postText(urls.manualData, {}));
     if (!payload) throw new Error('amc_manual_association_data returned no data');
+    return payload;
+}
 
-    const rows = payload.data_assoc ?? [];
-    const students = payload.data_students ?? [];
-
-    const tbody = byId<HTMLTableSectionElement>('manual-association-table-tbody');
-    const images = refreshImages ? new Map<string, HTMLImageElement>() : currentImages(tbody);
-    const choices = studentChoices(students);
+/**
+ * Redraws the dialog's rows from the loaded data.
+ *
+ * @param {ManualAssociationModal} modal - The dialog.
+ * @param {ManualAssociationPayload} payload - The answer sheets and students.
+ * @param {{ refreshImages?: boolean }} [options] - refreshImages: false keeps the scan images already loaded.
+ */
+function renderManualAssociationRows(
+    modal: ManualAssociationModal,
+    payload: ManualAssociationPayload,
+    options?: { refreshImages?: boolean },
+): void {
+    const { refreshImages = true } = options ?? {};
+    const images = refreshImages ? new Map<string, HTMLImageElement>() : currentImages(modal.rowNodes());
+    const choices = studentChoices(payload.data_students ?? []);
 
     disposeStudentPickers();
-    tbody.replaceChildren(...rows.map((data) => buildRow(data, choices, images)));
+    modal.setRows((payload.data_assoc ?? []).map((data) => buildRow(data, choices, images)));
 }
 
 /** Loads the answer sheets and students, then opens the manual association dialog. */
 export async function openManualAssociationDialog(): Promise<void> {
     try {
-        await rebuildManualAssociationRows();
-        showAssociationError(null);
-        getModal({ type: 'local', element: byId('manual-association-modal') }).show();
+        const payload = await loadManualAssociationData();
+
+        const modal = new ManualAssociationModal(() => {
+            disposeStudentPickers();
+            manualAssociationModal = null;
+        });
+        manualAssociationModal = modal;
+
+        renderManualAssociationRows(modal, payload);
+        modal.show();
     } catch (error) {
         console.error(error);
         showInfo('The manual association data could not be loaded.');

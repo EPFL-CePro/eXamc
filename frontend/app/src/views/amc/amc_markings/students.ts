@@ -1,13 +1,17 @@
 import { byId } from '@examc/helpers/dom.ts';
 import { parseJson, postText } from '@examc/helpers/http.ts';
-import { getModal, withLoading } from '@examc/helpers/modals.ts';
-import { CsvError, readCsv, writeCsv } from './students-table/csv.ts';
+import { LoadingModal } from '@examc/modals/loading.ts';
 import { ModuleUninitialized } from './errors.ts';
 import { state } from './state.ts';
+import { StudentsListModal } from './students-list-modal.ts';
+import { CsvError, readCsv, writeCsv } from './students-table/csv.ts';
 import { buildStudentsTable, studentsTableRows } from './students-table/index.ts';
 import type { EditFileResponse, StudentsUrls } from './types.ts';
 
 let urls: StudentsUrls | null = null;
+
+/** The students list dialog, while it's open. */
+let studentsListModal: StudentsListModal | null = null;
 
 /** Sets the API endpoints. Called by index.ts once the DOM has loaded. */
 export function initStudents(endpoints: StudentsUrls): void {
@@ -53,11 +57,11 @@ export async function uploadStudentsFile(form: HTMLFormElement): Promise<void> {
 
     try {
         // Multipart upload; the form already contains the CSRF token.
-        const result = await withLoading(async () => {
+        const result = await new LoadingModal(async () => {
             const response = await fetch(url, { method: 'POST', body: new FormData(form), credentials: 'same-origin' });
             if (!response.ok) throw new Error(`Students file upload failed: ${response.status}`);
             return response.text();
-        });
+        }).result;
         applyResult(result);
     } catch (error) {
         console.error(error);
@@ -80,9 +84,14 @@ export async function openEditStudentsListModal(): Promise<void> {
         state.studentsList = { filepath, header, format };
 
         showStudentsListError(null);
+
+        // The dialog first: the table is built in its container.
+        studentsListModal = new StudentsListModal(
+            `Edit ${filepath.split('/').pop() ?? ''}`,
+            () => void saveStudentsListFile(),
+        );
         buildStudentsTable(header, rows);
-        byId('edit-students-list-modal-title').textContent = `Edit ${filepath.split('/').pop() ?? ''}`;
-        getModal({ type: 'local', element: byId('edit-students-list-modal') }).show();
+        studentsListModal.show();
     } catch (error) {
         if (error instanceof CsvError) {
             showStudentsListError(`The students list can't be edited, it is not a valid CSV file. ${error.message}`);
@@ -93,7 +102,7 @@ export async function openEditStudentsListModal(): Promise<void> {
 }
 
 /** Saves the students list edited in the dialog, written back as CSV in its original format. */
-export async function saveStudentsListFile(): Promise<void> {
+async function saveStudentsListFile(): Promise<void> {
     if (!urls) throw new ModuleUninitialized('students.ts', 'initStudents');
     const list = state.studentsList;
     if (!list) return;
@@ -106,8 +115,9 @@ export async function saveStudentsListFile(): Promise<void> {
     };
 
     try {
-        const result = await withLoading(() => postText(url, payload));
-        getModal({ type: 'local', element: byId('edit-students-list-modal') }).hide();
+        const result = await new LoadingModal(() => postText(url, payload)).result;
+        studentsListModal?.hide();
+        studentsListModal = null;
         applyResult(result);
     } catch (error) {
         console.error(error);
