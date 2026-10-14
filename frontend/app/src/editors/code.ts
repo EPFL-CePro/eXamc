@@ -1,5 +1,3 @@
-import '@fontsource-variable/jetbrains-mono';
-
 import { markdown } from '@codemirror/lang-markdown';
 import { StreamLanguage } from '@codemirror/language';
 import { stex } from '@codemirror/legacy-modes/mode/stex';
@@ -11,10 +9,7 @@ import { githubDark, githubLight } from '@uiw/codemirror-theme-github';
 import { basicSetup } from 'codemirror';
 
 import { BaseEditor } from './base.ts';
-
-/** Font of the code editors: JetBrains Mono, then the usual monospace fallbacks. */
-export const CODE_FONT_FAMILY =
-    "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+import { getCodeFontFamily } from '@examc/helpers/fonts.ts';
 
 /** A choice offered to the user: its label, and the CodeMirror extension it enables. */
 interface CodeChoice {
@@ -135,7 +130,7 @@ export class CodeEditor extends BaseEditor {
                         '&': { height, border: '1px solid var(--bs-border-color, #dee2e6)', borderRadius: '0.375rem' },
                         '.cm-scroller': {
                             overflow: 'auto',
-                            fontFamily: CODE_FONT_FAMILY,
+                            fontFamily: getCodeFontFamily(),
                             fontWeight: 200,
                             fontSize: '.9rem',
                             lineHeight: '1.5',
