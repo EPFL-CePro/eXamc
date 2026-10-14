@@ -1,5 +1,6 @@
-import { getModal } from '@examc/helpers/modals.ts';
 import { getPageBootstrap } from '@examc/helpers/page-bootstrap.ts';
+import { LocalModal } from '@examc/modals';
+import { byId } from '@examc/helpers/dom';
 
 declare global {
     interface Window {
@@ -9,7 +10,7 @@ declare global {
     }
 }
 
-const progressModalElement = document.getElementById('celeryProgressBarModal');
+const progressModalElement = byId<HTMLElement>('celeryProgressBarModal');
 
 /**
  * Updates the progress bar element and its message from the task's progress data.
@@ -39,14 +40,14 @@ function showDownloadLink(fileName: string): void {
 
 function processResult(_resultElement: HTMLElement | null, result: unknown): void {
     if (typeof result !== 'string') return;
-    const progressModal = getModal({ type: 'local', element: progressModalElement });
+    const modalWrapper = new LocalModal(progressModalElement);
 
     if (result.includes('Process finished')) {
-        setTimeout(() => progressModal.hide(), 1000);
+        setTimeout(() => modalWrapper.hide(), 1000);
     } else if (result.startsWith('marked_') && result.endsWith('.zip')) {
         showDownloadLink(result);
     } else if (result === 'upload_scans_ok') {
-        progressModal.hide();
+        modalWrapper.hide();
         
         if (window.onUploadScansComplete) {
             window.onUploadScansComplete();
@@ -58,7 +59,7 @@ function processResult(_resultElement: HTMLElement | null, result: unknown): voi
 
 const progressUrl = progressModalElement?.dataset.progressUrl;
 if (progressModalElement && progressUrl) {
-    getModal({ type: 'local', element: progressModalElement }).show();
+    new LocalModal(progressModalElement).show();
 
     CeleryProgressBar.initProgressBar(progressUrl, {
         onProgress: processProgress,
@@ -81,11 +82,7 @@ export function setAjaxInfoModalLocked(locked: boolean): void {
         xBtn.style.opacity = locked ? '0.5' : '1';
     }
 
-    getModal({
-        type: 'local',
-        element: document.getElementById('ajax-info-modal'),
-        modalOptions: { backdrop: 'static', keyboard: false },
-    }).show();
+    new LocalModal(byId<HTMLElement>('ajax-info-modal'), { backdrop: 'static', keyboard: false }).show();
 }
 
 // Hide submenus
