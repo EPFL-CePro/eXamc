@@ -13,7 +13,6 @@ class ExamRowSerializer(serializers.Serializer):
     exam = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
-    modules = serializers.SerializerMethodField()
     review = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
     DT_RowAttr = serializers.SerializerMethodField()
@@ -43,19 +42,6 @@ class ExamRowSerializer(serializers.Serializer):
         if card is None: return None
 
         return card["role"]
-
-    def get_modules(self, exam):
-        card = self._card(exam)
-        if card is None: return None
-
-        value = card["module_badges"]
-
-        if not value:
-            return None
-        return format_html(
-            '<div class="d-flex flex-wrap gap-1">{}</div>',
-            format_html_join("", '<span class="badge rounded-pill text-bg-info">{}</span>', ((b,) for b in value)),
-        )
 
     def get_review(self, exam):
         card = self._card(exam)
