@@ -1,19 +1,20 @@
-{% load custom_tags %}
 {% load static %}
 
-<div id="sidebar-container" class="d-none d-md-flex flex-column bg-dark min-vh-100" data-bs-theme="dark">
-    <nav class="list-group list-group-flush" aria-label="Main menu">
+<div id="sidebar-container"
+     class="d-none d-md-flex flex-column bg-dark flex-shrink-0 flex-grow-0 position-sticky top-0 align-self-start z-2"
+     style="flex-basis: 14rem; height: 100dvh"
+     data-bs-theme="dark">
 
-        <div class="list-group-item border-0 rounded-0 bg-black p-3">
+    {# Main menu #}
+    <nav class="list-group list-group-flush" aria-label="Main menu">
+        <div class="list-group-item border-0 rounded-0 p-3">
             <img src="{% get_logo_url %}" alt="eXamc" class="img-fluid d-block" style="height: 4rem">
         </div>
 
         {% if user.is_authenticated %}
             <a href="{% url 'home' %}"
-               class="list-group-item list-group-item-action border-0 rounded-0 bg-black d-flex align-items-center gap-2">
-                <span class="fa-solid fa-table-columns fa-fw" aria-hidden="true"></span>
-                DASHBOARD
-            </a>
+               class="list-group-item list-group-item-action border-0 rounded-0 d-flex align-items-center gap-2">
+                <span class="fa-solid fa-table-columns fa-fw" aria-hidden="true"></span>Dashboard</a>
 
             {% if exam_selected %}
                 {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
@@ -138,15 +139,18 @@
                 <ul class="dropdown-menu" aria-labelledby="sidebar-info-menu">
                     <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'documentation' %}">
                         <span class="fa-solid fa-circle-question fa-fw" aria-hidden="true"></span>Documentation</a></li>
-                    <li><button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2"
-                                data-bs-toggle="modal" data-bs-target="#aboutModal">
-                        <span class="fa-solid fa-circle-info fa-fw" aria-hidden="true"></span>About</button></li>
+                    <li>
+                        <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2"
+                                data-bs-toggle="modal" data-bs-target="#about-modal">
+                            <span class="fa-solid fa-circle-info fa-fw" aria-hidden="true"></span>About
+                        </button>
+                    </li>
                 </ul>
             </div>
-            <hr class="my-2">
 
             {# Administration #}
             {% if user|is_admin %}
+                <hr class="my-2">
                 <a href="{% url 'impersonate_select' %}?next={{ request.get_full_path|urlencode }}"
                    class="list-group-item list-group-item-action border-0 rounded-0 text-info d-flex align-items-center gap-2">
                     <span class="fa-solid fa-user-secret fa-fw" aria-hidden="true"></span>
@@ -157,22 +161,42 @@
                     <span class="fa-solid fa-carrot fa-spin fa-fw" aria-hidden="true"></span>
                     Admin
                 </a>
-                <hr class="my-2">
             {% endif %}
+        {% endif %}
+    </nav>
 
-            {# User and logout #}
-            <div class="list-group-item border-0 rounded-0 text-success d-flex align-items-center gap-2">
-                <span class="fa-solid fa-face-grimace fa-fw" aria-hidden="true"></span>
-                {{ user }}
+    {# Account #}
+    <div class="mt-auto border-top p-3 d-flex flex-column gap-2">
+        {# User info #}
+        <div class="d-flex align-items-center gap-2" title="{{ user }}">
+            <span class="d-flex align-items-center justify-content-center flex-shrink-0 rounded-circle bg-success-subtle text-success-emphasis"
+                  style="width: 2.25rem; height: 2.25rem">
+                <span class="fa-solid {% if user.is_authenticated %}fa-user{% else %}fa-question{% endif %}" aria-hidden="true"></span>
+            </span>
+            <div class="lh-sm" style="min-width: 0">
+                <div class="fw-semibold text-body-emphasis text-truncate">
+                    <span>{% if user.is_authenticated %}{{ user }}{% else %}Anonymous{% endif %}</span>
+                </div>
             </div>
+        </div>
+
+        {# Login/logout buttons #}
+        {% if user.is_authenticated %}
             <form action="{% url 'oidc_logout' %}" method="post" class="m-0">
                 {% csrf_token %}
-                <button type="submit"
-                        class="list-group-item list-group-item-action border-0 rounded-0 text-danger d-flex align-items-center gap-2">
-                    <span class="fa-solid fa-right-from-bracket fa-fw" aria-hidden="true"></span>
+                <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2">
+                    <span class="fa-solid fa-right-from-bracket" aria-hidden="true"></span>
                     Logout
                 </button>
             </form>
+        {% else %}
+            <form action="{% url 'oidc_authentication_init' %}" method="get" class="m-0">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2">
+                    <span class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></span>
+                    Login
+                </button>
+            </form>
         {% endif %}
-    </nav>
+    </div>
 </div>

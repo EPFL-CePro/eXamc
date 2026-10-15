@@ -84,7 +84,7 @@ class Exam(models.Model):
         return value
 
     def __str__(self):
-        return self.code + "-" + self.name + " " + self.year.code + " " + str(self.semester.code)
+        return f"{self.code} {self.name} (S{self.semester.code} {self.year.code})"
 
     def get_max_points(self):
         """ Return the max points for an exam. """
