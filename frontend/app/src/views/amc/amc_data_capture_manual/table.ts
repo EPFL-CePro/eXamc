@@ -1,8 +1,8 @@
-import DataTable, { type Api } from 'datatables.net-dt';
-import 'datatables.net-dt/css/dataTables.dataTables.css';
+import DataTable, { type Api } from 'datatables.net-bs5';
+import 'datatables.net-bs5/css';
 
-import 'datatables.net-columncontrol-dt';
-import 'datatables.net-columncontrol-dt/css/columnControl.dataTables.css';
+import 'datatables.net-columncontrol-bs5';
+import 'datatables.net-columncontrol-bs5/css';
 
 import { clearPage, loadPage } from './scan.ts';
 import { state } from './state.ts';
@@ -19,6 +19,11 @@ let tableElement: HTMLTableElement | null = null;
 
 /** Filter-related parts of the last request, to detect when the filters changed. */
 let lastFilterKey: string | null = null;
+
+const STATE_LABELS: Record<QuestionState, { label: string; class: string }> = { 
+    invalid: { label: 'Invalid', class: "text-bg-danger"},
+    empty: { label: 'Empty', class: "text-bg-warning"}
+};
 
 /**
  * Serializes the filter-related request parameters (global search, type, ColumnControl selections).
@@ -57,53 +62,48 @@ export function initTable(element: HTMLTableElement): Api<unknown> {
             handler: false
         },
         ajax: apiUrl,
-        columns: [
-            { data: 'copy' },
-            { data: 'page' },
-            { data: 'mse', render: (v: number | null) => (v == null ? '' : v.toFixed(2)) },
+                columns: [
+            { data: 'copy', className: 'text-nowrap', width: '1%' },
+            { data: 'page', className: 'text-nowrap', width: '1%' },
+            { data: 'mse', className: 'text-nowrap', width: '1%', render: (v: number | null) => (v == null ? '' : v.toFixed(2)) },
             {
                 data: 'sensitivity',
+                className: 'text-nowrap',
+                width: '1%',
                 render: (v: number | null) => (v ? String(v) : '-'),
                 createdCell: (cell: HTMLTableCellElement, v: number | null) => {
-                    if ((v ?? 0) > 0) {
-                        (cell as HTMLTableCellElement).classList.add("sensitive");
-                    }
+                    if ((v ?? 0) > 0) cell.classList.add('text-danger');
                 },
             },
             {
                 data: 'timestamp_manual',
-                className: 'text-center',
-                render: (v: number | null) => (v ? '<i class="fas fa-user-pen fa-sm" style="color: #0d72bf;"></i>' : ''),
+                className: 'text-center text-nowrap',
+                width: '1%',
+                render: (v: number | null) => (v ? '<i class="fa-solid fa-user-pen fa-sm text-primary"></i>' : ''),
             },
             {
                 data: 'states',
-                className: 'text-center',
+                className: 'text-nowrap',
+                width: '1%',
                 columnControl: [['searchList']],
-                render: (states: QuestionState[]) => {
-                    const state_labels: Record<QuestionState, string> = { invalid: 'Invalid', empty: 'Empty' };
-                    return states
-                        .map((s) => `<span class="badge badge-secondary ${s}">${state_labels[s]}</span>`)
-                        .join('');
-                }
+                render: (states: QuestionState[]) => states
+                    .map((s) => `<span class="badge rounded-pill ${STATE_LABELS[s].class}">${STATE_LABELS[s].label}</span>`)
+                    .join(' '),
             },
             {
                 data: 'page_questions',
                 orderable: false,
-                width: "60rem",
-                columnControl: [['searchList']], // nested array = dropdown; options come from the server
+                // No width class: it gets whatever the other columns leave
+                columnControl: [['searchList']],
                 render: (questions: PageQuestion[] | undefined) => {
-                    let html = `<div class="question-badges">`;
-                    html += (questions ?? [])
-                        .map((q) => {
-                            const stateClass = q.state ? ` badge badge-secondary ${q.state}` : '';
-                            const title = q.state ? ` title="${q.state}"` : '';
-                            const name = DataTable.util.escapeHtml(q.name);
-                            return `<span class="badge badge-secondary ${stateClass}"${title}>${name}</span>`;
-                        }).join('');
-                    html += "</div>";
-
-                    return html;
-                }
+                    const badges = (questions ?? []).map((q) => {
+                        const stateClass = q.state ? STATE_LABELS[q.state].class : 'text-bg-light';
+                        const title = q.state ? ` title="${q.state}"` : '';
+                        const name = DataTable.util.escapeHtml(q.name);
+                        return `<span class="badge rounded-pill ${stateClass}"${title}>${name}</span>`;
+                    });
+                    return `<div class="d-flex flex-wrap gap-2">${badges.join('')}</div>`;
+                },
             },
         ],
         layout: {
@@ -112,6 +112,7 @@ export function initTable(element: HTMLTableElement): Api<unknown> {
             bottomEnd: null,
             bottom: "paging"
         },
+        scrollX: true,
         scrollY: '79vh',
     });
 

@@ -70,10 +70,3 @@ export interface CsvFormat {
     /** Comment lines (starting with #) before the header, kept as they were. */
     preamble: string[];
 }
-
-/** The students list open in the edit dialog. */
-export interface StudentsListFile {
-    filepath: string;
-    header: string[];
-    format: CsvFormat;
-}

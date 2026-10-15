@@ -1,7 +1,8 @@
 import { byId, requireData } from '@examc/helpers/dom.ts';
+
 import { annotate, initAnnotate } from './annotate.ts';
 import { generateResults, initResults } from './results.ts';
-import { initSend, onSendDialogShown, openSendDialog, sendAnnotatedPapers } from './send.ts';
+import { initSend, openSendDialog } from './send.ts';
 
 document.addEventListener('DOMContentLoaded', () => {
     const root = byId('amc-results');
@@ -26,6 +27,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Send annotated papers (the open button is only rendered when papers can be sent)
     document.getElementById('open-send-dialog-btn')?.addEventListener('click', () => void openSendDialog());
-    byId('send-annotated-papers-dialog').addEventListener('shown.bs.modal', () => void onSendDialogShown());
-    byId('send-annotated-papers-btn').addEventListener('click', () => void sendAnnotatedPapers());
 });

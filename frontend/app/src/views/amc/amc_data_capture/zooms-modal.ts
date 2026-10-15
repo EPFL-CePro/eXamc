@@ -28,7 +28,7 @@ export class ZoomsModal extends ExamcModal {
             footerContent: `
                 <div class="me-auto">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-step="-1">
-                        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Previous page
+                        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i><span> Previous page</span>
                     </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-step="1">
                         Next page <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
@@ -41,11 +41,27 @@ export class ZoomsModal extends ExamcModal {
         this.unchecked = this.element.querySelector<HTMLElement>('[data-unchecked]')!;
         this.checked = this.element.querySelector<HTMLElement>('[data-checked]')!;
 
+        // keys event listeners
+        function handleArrowKeys(event: KeyboardEvent): void {
+            if (event.key === 'ArrowLeft') {
+                onNavigate(-1);
+            } else if (event.key === 'ArrowRight') {
+                onNavigate(1);
+            }
+        }
+
+        document.addEventListener('keydown', handleArrowKeys);
+        // button event listeners
         for (const button of this.element.querySelectorAll<HTMLButtonElement>('[data-step]')) {
             const step = button.dataset['step'] === '1' ? 1 : -1;
             button.addEventListener('click', () => onNavigate(step));
         }
-        this.element.addEventListener('hidden.bs.modal', onHidden);
+
+        // cleanup
+        this.element.addEventListener('hidden.bs.modal', () => {
+            onHidden();
+            document.removeEventListener('keydown', handleArrowKeys);
+        });
     }
 
     /** Shows which page the zooms belong to. */

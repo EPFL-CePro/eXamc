@@ -1,17 +1,13 @@
 import { byId } from '@examc/helpers/dom.ts';
 import { parseJson, postText } from '@examc/helpers/http.ts';
 import { LoadingModal } from '@examc/modals/loading.ts';
+
 import { ModuleUninitialized } from './errors.ts';
-import { state } from './state.ts';
 import { StudentsListModal } from './students-list-modal.ts';
-import { CsvError, readCsv, writeCsv } from './students-table/csv.ts';
-import { buildStudentsTable, studentsTableRows } from './students-table/index.ts';
-import type { EditFileResponse, StudentsUrls } from './types.ts';
+import { CsvError, readCsv, writeCsv } from './student-table-csv.ts';
+import type { CsvFormat, EditFileResponse, StudentsListRow, StudentsUrls } from './types.ts';
 
 let urls: StudentsUrls | null = null;
-
-/** The students list dialog, while it's open. */
-let studentsListModal: StudentsListModal | null = null;
 
 /** Sets the API endpoints. Called by index.ts once the DOM has loaded. */
 export function initStudents(endpoints: StudentsUrls): void {
@@ -30,24 +26,8 @@ function showStudentsListError(message: string | null): void {
 }
 
 /**
- * Handles the answer of the views that change the students list: 'ok', or an error message.
- *
- * @param {string} result - The response text.
- */
-function applyResult(result: string): void {
-    if (!urls) throw new ModuleUninitialized('students.ts', 'initStudents');
-
-    if (result === 'ok') {
-        showStudentsListError(null);
-        window.location.reload();
-        return;
-    }
-
-    showStudentsListError(result);
-}
-
-/**
- * Uploads the CSV file selected in the students list form.
+ * Uploads the CSV file selected in the students list form, then reloads the page,
+ * or shows the server's error in the page.
  *
  * @param {HTMLFormElement} form - The form holding the file input and CSRF token.
  */
@@ -62,64 +42,85 @@ export async function uploadStudentsFile(form: HTMLFormElement): Promise<void> {
             if (!response.ok) throw new Error(`Students file upload failed: ${response.status}`);
             return response.text();
         }).result;
-        applyResult(result);
+
+        if (result === 'ok') window.location.reload();
+        else showStudentsListError(result);
     } catch (error) {
         console.error(error);
+        showStudentsListError('The students list could not be uploaded. Please try again.');
     }
 }
 
 /**
- * Loads the students list and opens it in the edit dialog's table.
- * If the file is not a valid CSV, the error is shown in the page instead.
+ * Loads the students list and opens it in the edit dialog.
+ * If the file can't be loaded or isn't a valid CSV, the error is shown in the page instead.
  */
 export async function openEditStudentsListModal(): Promise<void> {
     if (!urls) throw new ModuleUninitialized('students.ts', 'initStudents');
+    const url = urls.editFile;
 
+    let file: EditFileResponse | null;
     try {
-        const file = parseJson<EditFileResponse>(await postText(urls.editFile, { filepath: 'students_list' }));
-        if (!file) throw new Error('edit_amc_file returned no data');
-
-        const [filepath, content] = file;
-        const { header, rows, format } = readCsv(content); // throws CsvError if the file isn't a valid CSV
-        state.studentsList = { filepath, header, format };
-
-        showStudentsListError(null);
-
-        // The dialog first: the table is built in its container.
-        studentsListModal = new StudentsListModal(
-            `Edit ${filepath.split('/').pop() ?? ''}`,
-            () => void saveStudentsListFile(),
+        file = parseJson<EditFileResponse>(
+            await new LoadingModal(() => postText(url, { filepath: 'students_list' })).result,
         );
-        buildStudentsTable(header, rows);
-        studentsListModal.show();
+        if (!file) throw new Error('edit_amc_file returned no data');
     } catch (error) {
-        if (error instanceof CsvError) {
-            showStudentsListError(`The students list can't be edited, it is not a valid CSV file. ${error.message}`);
-            return;
-        }
         console.error(error);
+        showStudentsListError('The students list could not be loaded. Please try again.');
+        return;
     }
+
+    const [filepath, content] = file;
+    let csv: ReturnType<typeof readCsv>;
+    try {
+        csv = readCsv(content);
+    } catch (error) {
+        if (!(error instanceof CsvError)) throw error;
+        showStudentsListError(`The students list can't be edited, it is not a valid CSV file. ${error.message}`);
+        return;
+    }
+
+    showStudentsListError(null);
+
+    new StudentsListModal({
+        title: `Edit ${filepath.split('/').pop() ?? ''}`,
+        header: csv.header,
+        rows: csv.rows,
+        onSave: (rows) => saveStudentsList(filepath, csv.header, csv.format, rows),
+    }).show();
 }
 
-/** Saves the students list edited in the dialog, written back as CSV in its original format. */
-async function saveStudentsListFile(): Promise<void> {
+/**
+ * Saves the edited students list, written back as CSV in its original format, then reloads the page.
+ *
+ * @param {string} filepath - The file's path in the AMC project.
+ * @param {string[]} header - The CSV header.
+ * @param {CsvFormat} format - The format the file was read with.
+ * @param {StudentsListRow[]} rows - The edited rows.
+ * @throws {Error} With a message for the user, if the list could not be saved.
+ */
+async function saveStudentsList(
+    filepath: string,
+    header: string[],
+    format: CsvFormat,
+    rows: StudentsListRow[],
+): Promise<void> {
     if (!urls) throw new ModuleUninitialized('students.ts', 'initStudents');
-    const list = state.studentsList;
-    if (!list) return;
 
-    const url = urls.saveFile;
-    const payload = {
-        data: writeCsv(list.header, studentsTableRows(), list.format),
-        filepath: list.filepath,
-        is_students_list: 'true',
-    };
-
+    let result: string;
     try {
-        const result = await new LoadingModal(() => postText(url, payload)).result;
-        studentsListModal?.hide();
-        studentsListModal = null;
-        applyResult(result);
+        result = await postText(urls.saveFile, {
+            data: writeCsv(header, rows, format),
+            filepath,
+            is_students_list: 'true',
+        });
     } catch (error) {
         console.error(error);
+        throw new Error('The students list could not be saved. Please try again.', { cause: error });
     }
+
+    // The view answers 'ok', or an error message for the user.
+    if (result !== 'ok') throw new Error(result);
+    window.location.reload();
 }

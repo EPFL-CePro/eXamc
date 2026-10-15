@@ -7,6 +7,8 @@ import '@milkdown/crepe/theme/frame.css';
 
 import { BaseEditor } from './base.ts';
 
+import "./simple.scss";
+
 const DEFAULT_EDITOR_OPTIONS: CrepeConfig = {
     features: {
         [Crepe.Feature.BlockEdit]: false, // no drag handle, "+" button or slash menu

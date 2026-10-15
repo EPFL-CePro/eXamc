@@ -48,14 +48,10 @@
     #marking-details-dialog .modal-body {
         overflow: auto;
     }
-
-    #manual-association-table {
-        tr.missing-association {
-            background-color: #ff00009e;
-        }
-    }
 }
 
-.manual-association-table tr.missing-association {
-    background-color: rgba(255, 0, 0, 0.12);
+#manual-association-table {
+    tr.missing-association td {
+        background-color: #ff000013;
+    }
 }

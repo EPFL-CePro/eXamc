@@ -1,4 +1,4 @@
-import type { CsvFormat, StudentsListRow } from '../types.ts';
+import type { CsvFormat, StudentsListRow } from './types.ts';
 
 /** Delimiters AMC accepts for the students list. */
 const DELIMITERS = [',', ';', '\t'] as const;

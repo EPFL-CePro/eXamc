@@ -2,7 +2,8 @@ import { byId } from '@examc/helpers/dom.ts';
 import { ModuleUninitialized } from './errors.ts';
 import { state } from './state.ts';
 import type { MarkingConfig } from './types.ts';
-import { LocalModal } from '@examc/modals/local.ts';
+import { LogModal } from '@examc/modals/log.ts';
+import { readTextStream } from '@examc/helpers/http.ts';
 
 let config: MarkingConfig | null = null;
 
@@ -11,41 +12,14 @@ export function initMarking(settings: MarkingConfig): void {
     config = settings;
 }
 
-/**
- * Appends a streamed response body to an element as it arrives.
- *
- * @param {Response} response - The streamed response.
- * @param {HTMLElement} target - The element receiving the text.
- */
-async function streamInto(response: Response, target: HTMLElement): Promise<void> {
-    if (!response.body) {
-        target.textContent += await response.text();
-        return;
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    
-    for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        target.textContent += decoder.decode(value, { stream: true });
-        target.scrollTop = target.scrollHeight;
-    }
-    target.textContent += decoder.decode();
-}
-
 /** Runs AMC marking and shows its output live in the process modal. */
 export async function runMarking(): Promise<void> {
     if (!config) throw new ModuleUninitialized('marking.ts', 'initMarking');
     if (state.markingRunning) return;
 
-    byId('amc-process-modal-title').textContent = 'Marking';
-    const output = byId('amc-process-modal-body');
-    output.textContent = '';
-    output.style.whiteSpace = 'pre-wrap';
-
-    new LocalModal(byId('amc-process-modal')).show();
+    const logModal = new LogModal();
+    logModal.setTitle('Marking');
+    logModal.show();
 
     const body = new FormData();
     body.append('csrfmiddlewaretoken', config.csrfToken);
@@ -58,12 +32,12 @@ export async function runMarking(): Promise<void> {
         const response = await fetch(config.mark, { method: 'POST', body, credentials: 'same-origin' });
         if (!response.ok) throw new Error(`Marking request failed: ${response.status}`);
 
-        await streamInto(response, output);
-        output.textContent += '\n** MARKING COMPLETED! **';
-        output.scrollTop = output.scrollHeight;
+        await readTextStream(response, (text) => logModal.appendToOutput(text));
+        logModal.appendToOutput('\n** MARKING COMPLETED! **');
     } catch (error) {
         console.error(error);
-        output.textContent = 'Error occurred';
+        logModal.appendToOutput('\n** ERROR OCCURED! **');
+        if (typeof error === "string") logModal.appendToOutput(error);
     } finally {
         state.markingRunning = false;
     }
