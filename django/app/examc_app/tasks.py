@@ -836,7 +836,8 @@ def generate_final_exam_files_task(self, job_id):
         set_progress(88, "Reading subject XY structure...")
         counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
 
-        warnings = []
+        # The copies padded after a second compilation (see build_final_exam)
+        warnings = list(getattr(build, "build_warnings", []))
 
         # Only a booklet needs a multiple of 4: the final build pads the copies with blank pages up to it
         if exam.print_format == Exam.PRINT_FORMAT_BOOKLET and counts["pages_per_copy"] % 4 != 0:

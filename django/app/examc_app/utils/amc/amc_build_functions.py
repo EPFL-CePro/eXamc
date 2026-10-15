@@ -49,6 +49,7 @@ from examc_app.utils.amc.amc_helpers import (
 )
 from examc_app.services.student.prep_amc_csv import StudentsCsvError, write_students_csv
 from examc_app.utils.amc.amc_layout_functions import (
+    get_pages_by_copy_from_xy,
     get_subject_copy_and_page_counts_from_xy,
 )
 from examc_app.utils.amc_functions import get_amc_project_path
@@ -411,8 +412,11 @@ def _ensure_xy_output(workspace_path: Path) -> Path | None:
     Normalize the expected XY output file name.
 
     Preference order:
-    - use ``calage.xy`` if it already exists
-    - otherwise copy ``amc-compiled.xy`` to ``calage.xy``
+    - copy ``amc-compiled.xy`` (written by the compilation just done) to ``calage.xy``
+    - otherwise use ``calage.xy`` if it already exists
+
+    The ``calage.xy`` of an earlier compilation of the same build must not be kept: its pages would not be those
+    of the PDF ("PDF/XY page mismatch").
 
     Returns:
         Path | None: Normalized ``calage.xy`` path when available.
@@ -420,11 +424,11 @@ def _ensure_xy_output(workspace_path: Path) -> Path | None:
     calage_xy = workspace_path / "calage.xy"
     compiled_xy = workspace_path / "amc-compiled.xy"
 
-    if calage_xy.exists():
-        return calage_xy
-
     if compiled_xy.exists():
         shutil.copy2(compiled_xy, calage_xy)
+        return calage_xy
+
+    if calage_xy.exists():
         return calage_xy
 
     return None
@@ -728,8 +732,8 @@ def promote_workspace_to_project(
     with the following expected compile order:
 
     1. CATALOG
-    2. SUBJECT pass 1
-    3. SUBJECT pass 2 (final canonical state)
+    2. SUBJECT (final canonical state, unless some copies are longer)
+    3. SUBJECT again when some copies are longer (final canonical state)
 
     Because SUBJECT is compiled last, the workspace already contains the
     final AMC config/data/log state that later features depend on.
@@ -888,6 +892,44 @@ def _page_progress(progress_callback, start: int, end: int, label: str, copies: 
 # SUBJECT must remain the canonical retained AMC project state because
 # later features (layout extraction, scan processing, downstream data usage)
 # depend on subject files/config remaining in place after the build.
+# Written in the LaTeX log for each copy by \\examcPadPages (exam_template.tex): the pages of its content
+COPY_PAGES_RE = re.compile(r"^EXAMC-COPY-PAGES=(\d+)", re.MULTILINE)
+
+
+def read_copy_pages_from_log(log: str) -> list[int]:
+    """The pages of the content of each copy (before the blank pages), in the order of the copies."""
+    return [int(pages) for pages in COPY_PAGES_RE.findall(log or "")]
+
+
+def round_pages_per_copy(pages: int, booklet: bool) -> int:
+    """The pages of a copy: a multiple of 4 for a booklet (A3 folded), see \\examcPadPages."""
+    return math.ceil(pages / 4) * 4 if booklet else pages
+
+
+def exam_has_shuffling(exam: Exam) -> bool:
+    """True when the questions or the answers of some copies are in random order (their length then varies)."""
+    return (exam.prepSections.filter(random_questions=True).exists()
+            or exam.prepSections.filter(prepQuestions__random_answers=True).exists())
+
+
+def longer_copies_warning(copy_pages: list[int], estimated: int, final: int, shuffled: bool,
+                          booklet: bool, max_listed: int = 10) -> str:
+    """Why all the copies were padded to `final` pages instead of `estimated` (the pages of the catalog copy).
+    `copy_pages` are the pages of the content of each copy (see read_copy_pages_from_log)."""
+    longer = [copy for copy, pages in enumerate(copy_pages, start=1) if pages > estimated]
+    listed = ", ".join(str(copy) for copy in longer[:max_listed])
+    if len(longer) > max_listed:
+        listed += f" and {len(longer) - max_listed} others"
+    reason = ("the questions or the answers are in random order, so the length of the copies varies"
+              if shuffled else "their content is longer than the one of the catalog copy")
+    pages_text = f"{final} pages" + (" (a multiple of 4 for the booklet)" if booklet else "")
+    return (
+        f"{len(longer)} {'copy has' if len(longer) == 1 else 'copies have'} more than {estimated} pages "
+        f"(copy {listed}) because {reason}. All the copies were padded with blank pages to {pages_text}, "
+        f"which needed a second compilation of the subject."
+    )
+
+
 def build_final_exam(
     exam: Exam,
     user=None,
@@ -909,18 +951,17 @@ def build_final_exam(
     2. Create and lock an ``ExamBuild`` snapshot.
     3. Copy the persistent AMC project into a temporary workspace.
     3b. Write the students list ``students.csv`` (PrepStudent) into the persistent project.
-    4. Compile CATALOG first using ``student_prev.csv``.
+    4. Compile CATALOG first using ``student_prev.csv`` (one anonymous copy).
        - This produces only the catalog PDF side artifact.
        - It must never become the canonical build state.
-    5. Compile SUBJECT (pass 1) using ``students.csv``.
-       - Read the generated subject XY file to determine the real
-         ``pages_per_copy``.
-    6. Regenerate LaTeX with the final ``pages_per_copy`` injected.
-    7. Refresh generated ``.tex`` files inside the temporary workspace.
-    8. Recompile SUBJECT (pass 2).
-       - This final subject compilation is the canonical build output.
-    9. Promote successful workspace artifacts back to the persistent project.
-    10. Bind canonical ``ExamBuild`` paths to SUBJECT artifacts only.
+       - Its number of pages estimates ``pages_per_copy`` (multiple of 4 for a booklet).
+    5. Regenerate LaTeX with the estimated ``pages_per_copy`` and compile SUBJECT using ``students.csv``: the
+       copies are padded to this number of pages, and their first page shows it.
+    6. Read the subject XY file: when no copy is longer than the estimate (the usual case), this compilation is
+       the canonical build output. Otherwise (shuffled questions or answers...), LaTeX is regenerated with the
+       real ``pages_per_copy`` and SUBJECT is compiled again, and a warning tells it (``build.build_warnings``).
+    7. Promote successful workspace artifacts back to the persistent project.
+    8. Bind canonical ``ExamBuild`` paths to SUBJECT artifacts only.
 
     Important invariants:
     - SUBJECT is always the canonical final build state.
@@ -963,6 +1004,8 @@ def _build_final_exam(exam, user, timeout, latex_engine, progress_callback) -> E
         project_path=persistent_project_path,
         latex_main_path=str(Path(persistent_project_path) / "exam.tex"),
     )
+    # Shown to the user at the end of the generation (not saved)
+    build.build_warnings = []
 
     try:
         mark_exam_build_building(build)
@@ -1032,143 +1075,99 @@ def _build_final_exam(exam, user, timeout, latex_engine, progress_callback) -> E
                 shutil.copy2(catalog_pdf, catalog_named_pdf)
 
             _report_progress(progress_callback, 12, "Catalog PDF compiled.")
-            estimated_pages_per_copy = max(1, catalog_pages[0])
+            booklet = exam.print_format == Exam.PRINT_FORMAT_BOOKLET
+            # The pages of the content of the catalog copy (pages shipped out with an older exam_template.tex)
+            catalog_copy_pages = read_copy_pages_from_log(catalog_result.get("build_log", "")) or catalog_pages
+            estimated_pages_per_copy = round_pages_per_copy(max(1, catalog_copy_pages[0]), booklet)
+
+            def refresh_latex(pages_per_copy):
+                # The copies are padded up to `pages_per_copy` (\\examcPadPages), shown on their first page
+                update_exam_latex(exam, pages_per_copy=pages_per_copy)
+                for src in Path(persistent_project_path).glob("*.tex"):
+                    shutil.copy2(src, workspace_path / src.name)
+
+            def compile_subject(pages_per_copy, start, end, label):
+                """Compiles the subject; returns (build log, AMC log path, XY path), or None when it failed (the
+                build is then marked as failed)."""
+                _report_progress(progress_callback, start, label + "...")
+                result = compile_exam_in_workspace(
+                    workspace_path,
+                    timeout=_compile_timeout(timeout, copies * pages_per_copy * 2),
+                    latex_engine=latex_engine,
+                    mode="subject",
+                    on_page=_page_progress(progress_callback, start, end, label, copies, pages_per_copy),
+                )
+                if not result["ok"]:
+                    mark_exam_build_error(
+                        build,
+                        error_message=result["error"],
+                        build_log=result.get("build_log", "") or subject_build_log,
+                    )
+                    return None
+
+                subject_pdf = workspace_path / "amc-compiled.pdf"
+                if subject_pdf.exists():
+                    shutil.copy2(subject_pdf, workspace_path / f"{exam_prefix}-sujet.pdf")
+                subject_xy = workspace_path / "calage.xy"
+                subject_named_xy = workspace_path / f"{exam_prefix}-calage.xy"
+                if subject_xy.exists():
+                    shutil.copy2(subject_xy, subject_named_xy)
+
+                xy_path = str(subject_named_xy) if subject_named_xy.exists() else result.get("xy_path", "")
+                if not xy_path:
+                    mark_exam_build_error(
+                        build,
+                        error_message="Subject XY path is missing after subject compilation.",
+                        build_log=result.get("build_log", ""),
+                    )
+                    return None
+                return (
+                    result.get("build_log", ""),
+                    result.get("renamed_amc_path", "") or result.get("amc_log_path", ""),
+                    xy_path,
+                )
 
             # ==========================================================
-            # STEP 2 - SUBJECT BUILD PASS 1
+            # STEP 2 - SUBJECT BUILD, PADDED TO THE ESTIMATED PAGES
             # ==========================================================
             #
-            # Goal:
-            # - compile subject once
-            # - extract subject XY
-            # - determine the real pages_per_copy
+            # Usually the canonical final state: the copies have the pages of the catalog copy. Only when some
+            # copies are longer is the subject compiled again (STEP 3).
             # ==========================================================
-            _report_progress(progress_callback, 12, "Compiling subject PDF (pass 1/2)...")
-
+            refresh_latex(estimated_pages_per_copy)
             # The catalog compilation rewrote the .aux with its single copy
             seed_qr_cache(workspace_path, qr_cache)
-            subject_result = compile_exam_in_workspace(
-                workspace_path,
-                timeout=_compile_timeout(timeout, copies * estimated_pages_per_copy * 2),
-                latex_engine=latex_engine,
-                mode="subject",
-                on_page=_page_progress(progress_callback, 12, 50, "Compiling subject PDF (pass 1/2)", copies,
-                                       estimated_pages_per_copy),
-            )
-
-            if not subject_result["ok"]:
-                mark_exam_build_error(
-                    build,
-                    error_message=subject_result["error"],
-                    build_log=subject_result.get("build_log", ""),
-                )
+            compiled = compile_subject(estimated_pages_per_copy, 12, 80, "Compiling subject PDF")
+            if compiled is None:
                 return build
+            subject_build_log, subject_amc_log_path, subject_xy_path = compiled
 
-            subject_pdf = workspace_path / "amc-compiled.pdf"
-            subject_named_pdf = workspace_path / f"{exam_prefix}-sujet.pdf"
-            if subject_pdf.exists():
-                shutil.copy2(subject_pdf, subject_named_pdf)
-
-            subject_xy = workspace_path / "calage.xy"
-            subject_named_xy = workspace_path / f"{exam_prefix}-calage.xy"
-            if subject_xy.exists():
-                shutil.copy2(subject_xy, subject_named_xy)
-
-            subject_build_log = subject_result.get("build_log", "")
-            subject_amc_log_path = (
-                subject_result.get("renamed_amc_path", "")
-                or subject_result.get("amc_log_path", "")
-            )
-            subject_xy_path = (
-                str(subject_named_xy)
-                if subject_named_xy.exists()
-                else subject_result.get("xy_path", "")
-            )
-
-            if not subject_xy_path:
-                mark_exam_build_error(
-                    build,
-                    error_message="Subject XY path is missing after subject compilation.",
-                    build_log=subject_build_log,
-                )
-                return build
-
-            _report_progress(progress_callback, 50, "Reading subject page structure...")
-
-            counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
-            pages_per_copy = counts["pages_per_copy"]
+            _report_progress(progress_callback, 80, "Reading subject page structure...")
+            # The pages of the content of each copy, before the blank pages (with an older exam_template.tex:
+            # the pages of each copy in the XY file)
+            copy_pages = (read_copy_pages_from_log(subject_build_log)
+                          or [pages for _, pages in sorted(get_pages_by_copy_from_xy(subject_xy_path).items())])
+            pages_per_copy = round_pages_per_copy(max(copy_pages, default=1), booklet)
 
             # ==========================================================
-            # STEP 3 - REGENERATE LATEX WITH REAL PAGE COUNT
-            # ==========================================================
-            _report_progress(progress_callback, 51, "Injecting final page count into LaTeX...")
-            update_exam_latex(exam, pages_per_copy=pages_per_copy)
-
-            # Refresh generated TeX files in workspace so the second subject
-            # compilation uses the final page-aware sources.
-            _report_progress(progress_callback, 52, "Refreshing generated LaTeX files...")
-            for src in Path(persistent_project_path).glob("*.tex"):
-                shutil.copy2(src, workspace_path / src.name)
-
-            # ==========================================================
-            # STEP 4 - SUBJECT BUILD PASS 2 (CANONICAL FINAL STATE)
+            # STEP 3 - PAGES PER COPY DIFFERENT FROM THE ESTIMATE
             # ==========================================================
             #
-            # This is the most important compilation of the pipeline.
-            # After this step:
-            # - the workspace contains the final canonical subject state
-            # - promotion back to the persistent project must preserve this
-            # - ExamBuild canonical paths must point to subject artifacts only
+            # Some copies are longer than the catalog copy (shuffled questions or answers...): all the copies are
+            # padded to the longest one, which the user is told. Or all are shorter (the catalog shows the keys
+            # of the questions): the copies would have useless blank pages.
             # ==========================================================
-            _report_progress(progress_callback, 53, "Compiling subject PDF (pass 2/2)...")
-
-            # The .aux of pass 1 holds all the QR codes of this build
-            subject_result = compile_exam_in_workspace(
-                workspace_path,
-                timeout=_compile_timeout(timeout, copies * pages_per_copy),
-                latex_engine=latex_engine,
-                mode="subject",
-                on_page=_page_progress(progress_callback, 53, 84, "Compiling subject PDF (pass 2/2)", copies,
-                                       pages_per_copy),
-            )
-
-            if not subject_result["ok"]:
-                mark_exam_build_error(
-                    build,
-                    error_message=subject_result["error"],
-                    build_log=subject_result.get("build_log", "") or subject_build_log,
-                )
-                return build
-
-            subject_pdf = workspace_path / "amc-compiled.pdf"
-            subject_named_pdf = workspace_path / f"{exam_prefix}-sujet.pdf"
-            if subject_pdf.exists():
-                shutil.copy2(subject_pdf, subject_named_pdf)
-
-            subject_xy = workspace_path / "calage.xy"
-            subject_named_xy = workspace_path / f"{exam_prefix}-calage.xy"
-            if subject_xy.exists():
-                shutil.copy2(subject_xy, subject_named_xy)
-
-            subject_build_log = subject_result.get("build_log", "") or subject_build_log
-            subject_amc_log_path = (
-                subject_result.get("renamed_amc_path", "")
-                or subject_result.get("amc_log_path", "")
-                or subject_amc_log_path
-            )
-            subject_xy_path = (
-                str(subject_named_xy)
-                if subject_named_xy.exists()
-                else subject_result.get("xy_path", "")
-            )
-
-            if not subject_xy_path:
-                mark_exam_build_error(
-                    build,
-                    error_message="Final subject XY path is missing after recompilation.",
-                    build_log=subject_build_log,
-                )
-                return build
+            if pages_per_copy != estimated_pages_per_copy:
+                if pages_per_copy > estimated_pages_per_copy:
+                    build.build_warnings.append(longer_copies_warning(
+                        copy_pages, estimated_pages_per_copy, pages_per_copy, exam_has_shuffling(exam), booklet))
+                refresh_latex(pages_per_copy)
+                # The .aux of the first compilation holds all the QR codes of this build
+                compiled = compile_subject(
+                    pages_per_copy, 81, 84, f"Compiling subject PDF again with {pages_per_copy} pages per copy")
+                if compiled is None:
+                    return build
+                subject_build_log, subject_amc_log_path, subject_xy_path = compiled
 
             _report_progress(progress_callback, 84, "Final subject PDF compiled.")
 
@@ -1192,7 +1191,7 @@ def _build_final_exam(exam, user, timeout, latex_engine, progress_callback) -> E
 
             final_subject_pdf_path = (
                 promoted.get("subject_pdf_path", "")
-                or str(subject_named_pdf)
+                or str(workspace_path / f"{exam_prefix}-sujet.pdf")
                 or promoted.get("compiled_pdf_path", "")
             )
             final_subject_amc_path = (

@@ -706,6 +706,18 @@ def populate_subject_layout_pages(
 
 
 
+def get_pages_by_copy_from_xy(xy_path) -> dict[int, int]:
+    """The number of pages of each copy of the subject XY file: {copy number: pages}."""
+    pages, _ = parse_amc_layout_source(xy_path)
+
+    pages_by_copy = {}
+    for parsed_page in pages:
+        copy_number, page_number = get_epc_from_page_or_cases(parsed_page)
+        if copy_number:
+            pages_by_copy[copy_number] = max(pages_by_copy.get(copy_number, 0), page_number)
+    return pages_by_copy
+
+
 def get_subject_copy_and_page_counts_from_xy(xy_path):
     """
     Derive subject copy and page counts from the subject XY file.
