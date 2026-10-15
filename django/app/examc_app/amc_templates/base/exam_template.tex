@@ -99,11 +99,37 @@
 \geometry{includeheadfoot,hmargin=2.25cm,headheight=2cm,headsep=0.2cm}
 \geometry{footskip=.8cm,top=.5cm,bottom=1.1cm,paper=a4paper}
 
-% Pad the current copy with blank pages up to \TotalPagesPerCopy
+% Booklet printing (A3 folded and stapled): 1 when the pages of a copy must be a multiple of 4,
+% written by write_exam_generated_vars()
+\providecommand{\ExamcBooklet}{0}
+\newcount\examcCopyPages
+\newcount\examcPadCount
+
+% Number of pages of the current copy so far (the page counter restarts at each copy): the current page only
+% counts when something is on it (\pagegoal is \maxdimen on an empty page, e.g. after a \clearpage)
+\newcommand{\examcCountPages}{%
+  \par
+  \examcCopyPages=\value{page}%
+  \ifdim\pagegoal=\maxdimen\advance\examcCopyPages by -1\relax\fi
+}
+\newcommand{\examcBlankPage}{\clearpage\mbox{}\examcCountPages}
+
+% Pad the current copy with blank pages up to \TotalPagesPerCopy, then for a booklet up to a multiple of 4.
+% The pages of its content are written in the log ("EXAMC-COPY-PAGES=<n>", one line per copy): the final
+% generation reads them to know the pages per copy (see build_final_exam)
 \newcommand{\examcPadPages}{%
-  \loop\ifnum\value{page}<\TotalPagesPerCopy\relax
-    \clearpage\mbox{}%
+  \examcCountPages
+  \typeout{EXAMC-COPY-PAGES=\the\examcCopyPages}%
+  \loop\ifnum\examcCopyPages<\TotalPagesPerCopy\relax
+    \examcBlankPage
   \repeat
+  \ifnum\ExamcBooklet=1\relax
+    \loop
+      \examcPadCount=\examcCopyPages\divide\examcPadCount by 4\multiply\examcPadCount by 4
+    \ifnum\examcPadCount<\examcCopyPages\relax
+      \examcBlankPage
+    \repeat
+  \fi
 }
 
 % The CSV values are read with the special characters below as plain characters (see \csvreader): restore their

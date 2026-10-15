@@ -36,6 +36,7 @@ urlpatterns = [
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/", views.prep_section_panel,name="prep_section_panel"),
     path("exam_preparation/<int:exam_pk>/sections/reorder/", views.reorder_prep_sections,name="reorder_prep_sections"),
     path("reorder_prep_questions/<int:exam_pk>/<int:section_id>", views.reorder_prep_questions, name="reorder_prep_questions"),
+    path("exam_preparation/<int:exam_pk>/print_settings/", views.prep_print_settings, name="prep_print_settings"),
     path("reorder_prep_answers/<int:exam_pk>/<int:question_id>", views.reorder_prep_answers, name="reorder_prep_answers"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/delete/", views.delete_prep_section,name="delete_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/questions/add/", views.add_prep_question,name="add_prep_question"),

@@ -72,6 +72,7 @@ class ScanQrExamTestCase(TestCase):
             self.assertEqual(Path(path).read_text(), (
                 "% Auto-generated file - do not edit\n"
                 "\\newcommand{\\TotalPagesPerCopy}{3}\n"
+        "\\newcommand{\\ExamcBooklet}{0}\n"
                 f"\\newcommand{{\\ExamcQRExam}}{{eXamcQRC2,{self.exam.pk},MATH-101,20260115}}\n"
             ))
         self.assertEqual(qr_exam_fields(self.common), f"eXamcQRC2,{self.common.pk},PHYS-101,")

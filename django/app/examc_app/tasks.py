@@ -834,7 +834,8 @@ def generate_final_exam_files_task(self, job_id):
 
         warnings = []
 
-        if counts["pages_per_copy"] % 4 != 0:
+        # Only a booklet needs a multiple of 4: the final build pads the copies with blank pages up to it
+        if exam.print_format == Exam.PRINT_FORMAT_BOOKLET and counts["pages_per_copy"] % 4 != 0:
             warnings.append(
                 f"This exam has {counts['pages_per_copy']} pages per copy. "
                 f"For booklet printing, the total number of pages per copy should be a multiple of 4."

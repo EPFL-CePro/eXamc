@@ -149,6 +149,8 @@ def write_exam_generated_vars(exam: Exam, project_path: str, pages_per_copy: int
     vars_tex_path.write_text(
         "% Auto-generated file - do not edit\n"
         f"\\newcommand{{\\TotalPagesPerCopy}}{{{pages_value}}}\n"
+        # 1 for a booklet: the copies are padded up to a multiple of 4 pages (see \\examcPadPages), preview included
+        f"\\newcommand{{\\ExamcBooklet}}{{{int(exam.print_format == Exam.PRINT_FORMAT_BOOKLET)}}}\n"
         # Start of the QR code of each page, see examc_qr.py
         f"\\newcommand{{\\ExamcQRExam}}{{{qr_exam_fields(exam)}}}\n",
         encoding="utf-8",

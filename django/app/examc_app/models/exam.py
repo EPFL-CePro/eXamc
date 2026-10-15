@@ -36,6 +36,11 @@ class Exam(models.Model):
     indiv_formula = models.CharField(max_length=100, blank=True,null=True)
     pages_by_copy = models.CharField(max_length=10000, blank=True,null=True)
     first_page_text = models.TextField(default='', null=True, blank=True)
+    # Booklet: A3 folded and stapled, the number of pages of a copy must be a multiple of 4
+    PRINT_FORMAT_STANDARD = "standard"
+    PRINT_FORMAT_BOOKLET = "booklet"
+    PRINT_FORMAT_CHOICES = [(PRINT_FORMAT_STANDARD, "Standard"), (PRINT_FORMAT_BOOKLET, "Booklet")]
+    print_format = models.CharField(max_length=20, choices=PRINT_FORMAT_CHOICES, default=PRINT_FORMAT_STANDARD)
     review_option = models.BooleanField(default=0)
     amc_option = models.BooleanField(default=0)
     res_and_stats_option = models.BooleanField(default=0)

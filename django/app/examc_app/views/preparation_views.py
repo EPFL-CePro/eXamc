@@ -383,6 +383,33 @@ def with_save_feedback(request, response, saved):
     return response
 
 # -------------------------
+# Print settings
+# -------------------------
+
+@exam_permission_required(["manage"])
+def prep_print_settings(request, exam_pk):
+    """Print format of the exam (standard or booklet), used by the final generation to pad the copies."""
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    form_template = "exam/preparation/_prep_print_settings_form.html"
+
+    if request.method == "POST":
+        locked = ensure_exam_not_finalized(exam)
+        if locked:
+            return locked
+        print_format = request.POST.get("print_format")
+        if print_format not in dict(Exam.PRINT_FORMAT_CHOICES):
+            return HttpResponseBadRequest("Unknown print format.")
+        exam.print_format = print_format
+        exam.save(update_fields=["print_format"])
+        # The preview compiles the files of the project: \ExamcBooklet is written in examc_generated_vars.tex
+        update_exam_latex(exam)
+        # The button of the page shows the format
+        return render(request, form_template, {"exam_selected": exam, "oob": True})
+
+    return render(request, form_template, {"exam_selected": exam})
+
+
+# -------------------------
 # First page
 # -------------------------
 
