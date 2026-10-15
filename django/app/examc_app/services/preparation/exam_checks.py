@@ -82,12 +82,8 @@ def check_exam_content(exam: Exam) -> ExamChecks:
 
     questions_count = 0
     for section in sections:
-        questions = list(section.prepQuestions.all())
-        if not questions:
-            checks.warnings.append(f"{_section_label(section)}: no question.")
-            continue
-
-        for number, question in enumerate(questions, start=1):
+        # A section without question is allowed: it can be only a text (grading rules, ...)
+        for number, question in enumerate(section.prepQuestions.all(), start=1):
             questions_count += 1
             label = _question_label(question, number)
             if question.question_type is None:

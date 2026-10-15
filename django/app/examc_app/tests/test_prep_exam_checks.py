@@ -46,7 +46,7 @@ class ExamChecksTestCase(ExamContentMixin, TestCase):
         checks = check_exam_content(self.exam)
 
         self.assertEqual(checks.errors, ["The exam has no questions."])
-        self.assertEqual(checks.warnings, ['Section "Algebra": no question.'])
+        self.assertEqual(checks.warnings, [])
 
     def test_single_answer_questions_need_exactly_one_correct_answer(self):
         self.question("SCQ", correct=[])
@@ -87,7 +87,6 @@ class ExamChecksTestCase(ExamContentMixin, TestCase):
             'Section "Algebra", question 2 "Q2" (SCQ): no question text.',
             'Section "Algebra", question 2 "Q2" (SCQ): answer 2, 3 without text.',
             'Section "Algebra", question 3 "Q3" (OPEN): no answer zone (no space to write on the copy).',
-            'Section "Empty": no question.',
         ])
 
 
