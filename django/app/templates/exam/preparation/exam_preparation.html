@@ -71,6 +71,11 @@
                 </button>
             </div>
 
+            <a class="btn btn-outline-dark btn-sm" title="Students of the exam"
+               href="{% url 'exam_preparation_students' exam_selected.pk %}">
+                <i class="fa-solid fa-users" style="margin-right:5px;"></i>Students
+            </a>
+
             <button onclick="previewExam();" class="btn btn-dark btn-sm" type="button" {% if is_exam_finalized %}disabled{% endif %}>
                 <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Preview
             </button>
