@@ -1516,8 +1516,6 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
             }, 350);
         }
 
-        SidebarCollapse();
-
         // Keyboard navigation:
         // Left/Right = previous/next page
         // Up/Down = previous/next student (copy)
