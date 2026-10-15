@@ -9,7 +9,7 @@
 
 {% block content %}
     {% if user_allowed %}
-        <div id="amc-page"
+        <div id="amc-page" style="max-width: 800px"
              data-current-tab="{{ curr_tab|default:'' }}"
              data-log-file-url="{% url 'view_amc_log_file' exam_selected.pk %}"
              data-csrf-token="{{ csrf_token }}">
