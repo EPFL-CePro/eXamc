@@ -7,7 +7,7 @@ class AmcProjectPathNotFoundError(UserFacingError):
     """Raised when the AMC project path is not found."""
     title = "AMC project not found"
     message = (
-        "This exam has no AMC project yet. Please "
+        'The selected exam "{{ exam.pk|get_exam_name }}" has no AMC project yet. Please '
         "<a href=\"{% url 'upload_amc_project' exam.pk %}\">import</a> one first."
     )
     status_code = 404
