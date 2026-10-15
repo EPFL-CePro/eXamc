@@ -1,7 +1,7 @@
-import DataTable, { type Api } from 'datatables.net-dt';
+import DataTable, { type Api } from 'datatables.net-bs5';
 import type {DataTableColumn} from "@examc/types/datatables.ts";
 
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import 'datatables.net-bs5/css';
 
 export type PrepStudentRow = {
     id: number;

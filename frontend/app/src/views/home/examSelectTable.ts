@@ -1,4 +1,4 @@
-import DataTable from 'datatables.net-dt';
+import DataTable from 'datatables.net-bs5';
 import {getLayoutElementsSeparator, setupDatatables} from "@examc/helpers/datatables.ts";
 
 export function initExamSelectTable(options: {

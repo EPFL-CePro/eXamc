@@ -1,4 +1,4 @@
-import type { Api } from 'datatables.net-dt';
+import type { Api } from 'datatables.net-bs5';
 
 import { confirmDialog } from '@examc/helpers/confirm-dialog';
 import { LoadingModal } from '@examc/modals';

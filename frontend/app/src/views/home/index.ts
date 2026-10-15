@@ -1,10 +1,9 @@
 import 'vite/modulepreload-polyfill';
 
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import 'datatables.net-bs5/css';
 
 import {initExamSelectTable} from "./examSelectTable";
 import {lastConnectedUsersTable} from "./lastConnectedUsersTable.ts";
-import "./dashboard.scss";
 import {byId} from "@examc/helpers/dom.ts";
 
 

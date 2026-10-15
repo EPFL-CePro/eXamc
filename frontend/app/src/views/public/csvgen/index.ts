@@ -1,8 +1,6 @@
-import 'vite/modulepreload-polyfill';
+import 'datatables.net-bs5/css';
 
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
-
-import DataTable from "datatables.net-dt";
+import DataTable from 'datatables.net-bs5';
 
 /**
  * Initializes the exam select table and last user connected after the DOM has loaded.

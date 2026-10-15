@@ -1,4 +1,4 @@
-import type { Api } from 'datatables.net-dt';
+import type { Api } from 'datatables.net-bs5';
 
 import type { PrepStudentRow } from "./prepStudentsTable.ts";
 import { Modal } from 'bootstrap';

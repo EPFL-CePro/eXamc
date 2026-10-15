@@ -1,5 +1,5 @@
-import DataTable from 'datatables.net-dt';
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import DataTable from 'datatables.net-bs5';
+import 'datatables.net-bs5/css';
 import {setupDatatables} from "@examc/helpers/datatables.ts";
 
 export function initUserSelectTable(options: {
