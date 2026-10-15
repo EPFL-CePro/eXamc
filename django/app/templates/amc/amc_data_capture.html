@@ -1,4 +1,3 @@
-{% load custom_tags %}
 {% load static %}
 {% load django_vite %}
 
@@ -72,7 +71,8 @@
     <div class="mb-3">
         {% if data_pages %}
             <div class="mb-3" style="width:100%;">
-                <table id="table-copies-pages" class="display"
+                <table id="table-copies-pages"
+                       class="table table-striped"
                        data-api-url="{% url 'api-amc-data-capture-manual-list' exam_pk=exam_selected.pk %}">
                     <thead>
                         <tr>

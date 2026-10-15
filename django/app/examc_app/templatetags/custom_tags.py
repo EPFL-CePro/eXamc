@@ -9,10 +9,19 @@ from django.db.models.functions import Cast
 from django.templatetags.static import static
 from shapely import Polygon
 
-from examc_app.models import ScaleDistribution, ComVsIndStatistic, Exam, PagesGroup, PageMarkers, ExamUser, \
-    PagesGroupGradingSchemeCheckedBox
-from examc_app.models import ScaleStatistic, Student, AnswerStatistic
 from examc_app.exceptions import UserFacingError
+from examc_app.models import (
+    AnswerStatistic,
+    ComVsIndStatistic,
+    Exam,
+    ExamUser,
+    PageMarkers,
+    PagesGroup,
+    PagesGroupGradingSchemeCheckedBox,
+    ScaleDistribution,
+    ScaleStatistic,
+    Student,
+)
 from examc_app.services.exam.paths import get_exam_scans_dir
 from examc_app.views import logger
 
@@ -46,10 +55,7 @@ def is_allowed(_user_exam,option):
     if option == 'preparation':
         group_ids_allowed = [2,4]
     elif option == 'creation':
-        if user.groups.filter(pk__in=[1,2,4,5]).exists():
-            return True
-        else:
-            return False
+        return bool(user.groups.filter(pk__in=[1, 2, 4, 5]).exists())
     elif option == 'amc':
         group_ids_allowed = [2,4]
     elif option =='res_and_stats':
@@ -65,21 +71,17 @@ def is_allowed(_user_exam,option):
             if exam_user:
                 break
 
-    if exam_user:
-        return True
-    else:
-        return False
+    return bool(exam_user)
 
 
 @register.filter
-def is_admin(user):
+def is_admin(user: User):
     auth_user = User.objects.get(username=user.username)
 
-    if auth_user.is_superuser:
-        return True
+    return auth_user.is_superuser
 
 @register.filter
-def get_scale_stats(exam_pk: int,  scale_name):
+def get_scale_stats(exam_pk: int, scale_name):
     result = ScaleStatistic.objects.get(exam__pk=exam_pk, scale__name=scale_name)
     return result
 
@@ -113,11 +115,18 @@ def get_item(dictionary, key):
     return dictionary.get(key)
 
 @register.filter
+def get_exam_name(exam_pk: int | str) -> str:
+    """The name of an exam, from its primary key; '' if there's no such exam."""
+    exam = Exam.objects.filter(pk=exam_pk).first()
+    return str(exam) if exam else ""
+
+@register.filter
 def get_sections_scaleStats_by_examScale(exam,scale):
     results = ScaleStatistic.objects.filter(exam=exam, scale=scale).exclude(section__isnull=True).exclude(section__exact='').exclude(section__exact='GLOBAL').order_by('scale__pk')
     return results
+
 @register.filter
-def get_section_students_count(exam,section):
+def get_section_students_count(exam, section):
     print(exam)
     stud_count = Student.objects.filter(exam=exam, section=section).count()
     print(stud_count)
