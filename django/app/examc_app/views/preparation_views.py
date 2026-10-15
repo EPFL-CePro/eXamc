@@ -46,6 +46,9 @@ from examc_app.services.oasis import (
 )
 from examc_app.services.person_directory import PersonDirectoryError
 from examc_app.services.preparation.exam_checks import check_exam_content
+from examc_app.services.preparation.questions_import import (
+    QuestionsImportError, TEMPLATE_PATH as QUESTIONS_TEMPLATE_PATH, decode_questions_file, import_questions,
+    parse_questions_tex)
 from examc_app.services.student.prep_amc_csv import students_csv_problems
 from examc_app.services.student.prep_order import StudentsOrderError, reorder_prep_students
 from examc_app.services.student.prep_seats import SeatsAssignmentError, assign_rooms_and_seats
@@ -760,6 +763,59 @@ def add_prep_question(request, exam_pk, section_id):
             "exam_selected": exam,
             "form": form,
             "section": section,
+        },
+    )
+
+
+@exam_permission_required(["manage"])
+def download_prep_questions_template(request, exam_pk):
+    response = HttpResponse(QUESTIONS_TEMPLATE_PATH.read_text(encoding="utf-8"), content_type="application/x-tex")
+    response["Content-Disposition"] = 'attachment; filename="questions_import_template.tex"'
+    return response
+
+
+@exam_permission_required(["manage"])
+def import_prep_questions(request, exam_pk, section_id):
+    """Adds the questions of an uploaded .tex file at the end of a section (see services.preparation.questions_import).
+    Nothing is created when the file has a problem: the form is shown again with them."""
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    section = get_object_or_404(PrepSection, pk=section_id, exam=exam)
+    form_template = "exam/preparation/_prep_import_questions_form.html"
+    form_context = {"exam_selected": exam, "section": section}
+
+    if request.method != "POST":
+        return render(request, form_template, form_context)
+
+    locked = ensure_exam_not_finalized(exam)
+    if locked:
+        return locked
+
+    def show_errors(errors):
+        # The errors replace the form in the modal, not the list of the questions
+        response = render(request, form_template, {**form_context, "errors": errors})
+        response["HX-Retarget"] = "#modalImportQuestionsBody"
+        response["HX-Reswap"] = "innerHTML"
+        return response
+
+    uploaded_file = request.FILES.get("questions_file")
+    if not uploaded_file:
+        return show_errors(["No file selected."])
+
+    try:
+        parsed_questions = parse_questions_tex(decode_questions_file(uploaded_file.read()))
+        import_questions(section, parsed_questions)
+    except QuestionsImportError as error:
+        return show_errors(error.errors)
+
+    update_exam_latex(exam)
+
+    return render(
+        request,
+        "exam/preparation/_prep_questions_list.html",
+        {
+            "exam_selected": exam,
+            "section": section,
+            "questions": get_questions(section),
         },
     )
 

@@ -91,6 +91,14 @@
                         data-bs-target="#modalAddQuestion">
                     <i class="fa-solid fa-circle-plus fa-xl" style="margin-right:5px;color:green;"></i>Add question
                 </button>
+                <button style="margin-top:20px;" class="btn btn-light" title="Import questions from a file"
+                        hx-get="{% url 'import_prep_questions' exam_selected.pk section.id %}"
+                        hx-target="#modalImportQuestionsBody"
+                        hx-swap="innerHTML"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalImportQuestions">
+                    <i class="fa-solid fa-file-import fa-xl" style="margin-right:5px;"></i>Import questions
+                </button>
             {% endif %}
 
         </div>
