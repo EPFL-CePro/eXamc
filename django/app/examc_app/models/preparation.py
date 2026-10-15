@@ -89,6 +89,7 @@ class ExamAMCJob(models.Model):
         ("running", "Running"),
         ("success", "Success"),
         ("error", "Error"),
+        ("cancelled", "Cancelled"),
     ]
 
     exam = models.ForeignKey("Exam", on_delete=models.CASCADE)
@@ -109,6 +110,8 @@ class ExamAMCJob(models.Model):
     result_json = models.JSONField(blank=True, null=True)
     error_message = models.TextField(blank=True, default="")
     celery_task_id = models.CharField(max_length=255, blank=True, default="")
+    # Asked by the user: the running task stops at its next check (see BuildCancelled)
+    cancel_requested = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -26,7 +26,7 @@ from examc_app.models import (
     StudentQuestionAnswer,
 )
 from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
-from examc_app.utils.amc.amc_build_functions import build_final_exam
+from examc_app.utils.amc.amc_build_functions import BuildCancelled, build_final_exam
 from examc_app.utils.amc.amc_layout_functions import (
     LayoutExtractionError,
     extract_layout_from_xy,
@@ -782,11 +782,15 @@ def generate_final_exam_files_task(self, job_id):
 
         progress_callback = make_amc_progress_callback(progress_recorder)
 
+        def cancel_requested():
+            return ExamAMCJob.objects.filter(pk=job.pk, cancel_requested=True).exists()
+
         build = build_final_exam(
             exam,
             user=job.requested_by,
             timeout=60,
             progress_callback=progress_callback,
+            should_cancel=cancel_requested,
         )
 
         if build.status != "ready":
@@ -911,6 +915,11 @@ def generate_final_exam_files_task(self, job_id):
         set_progress(100, "Final build complete.")
         return result
 
+    except BuildCancelled as exc:
+        job.status = "cancelled"
+        job.error_message = str(exc)
+        job.save(update_fields=["status", "error_message", "updated_at"])
+        raise
     except Exception as exc:
         job.status = "error"
         job.error_message = str(exc)

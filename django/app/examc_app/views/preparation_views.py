@@ -75,6 +75,7 @@ from examc_app.utils.preparation_functions import (
     create_prep_section,
     delete_exam_preview_job_files,
     ensure_exam_not_finalized,
+    is_exam_locked,
     get_active_final_build_job,
     get_answers,
     get_questions,
@@ -205,6 +206,7 @@ def exam_preparation_view(request, exam_pk):
             "fp_txt_form": first_page_form,
             "nav_url": "exam_preparation",
             "is_exam_finalized": exam.is_finalized,
+            "is_exam_locked": is_exam_locked(exam),
             "active_final_job": get_active_final_build_job(exam),
             "final_subject_pdf": final_subject_pdf,
             "final_catalog_pdf": final_catalog_pdf,
@@ -224,6 +226,7 @@ def exam_preparation_students_view(request, exam_pk):
             "exam_selected": exam,
             "nav_url": "exam_preparation_students",
             "is_exam_finalized": exam.is_finalized,
+            "is_exam_locked": is_exam_locked(exam),
         },
     )
 
@@ -441,7 +444,7 @@ def prep_first_page_panel(request, exam_pk):
             "exam_selected": exam,
             "fp_txt_form": form,
             "saved": saved,
-            "is_exam_finalized": exam.is_finalized,
+            "is_exam_locked": is_exam_locked(exam),
         },
     )
     return with_save_feedback(request, response, saved)
@@ -496,7 +499,7 @@ def prep_section_panel(request, exam_pk, section_id):
             "questions": questions,
             "expanded": True,
             "saved": saved,
-            "is_exam_finalized": section.exam.is_finalized,
+            "is_exam_locked": is_exam_locked(section.exam),
         },
     )
     return with_save_feedback(request, response, saved)
@@ -551,8 +554,9 @@ def reorder_prep_questions(request, exam_pk, section_id):
 
     section = get_object_or_404(PrepSection, pk=section_id, exam_id=exam_pk)
 
-    if section.exam.is_finalized:
-        return HttpResponseBadRequest("Exam is finalized")
+    locked = ensure_exam_not_finalized(section.exam)
+    if locked:
+        return locked
 
     try:
         payload = json.loads(request.body)
@@ -583,7 +587,7 @@ def reorder_prep_questions(request, exam_pk, section_id):
             "exam_selected": section.exam,
             "section": section,
             "questions": get_questions(section),
-            "is_exam_finalized": section.exam.is_finalized,
+            "is_exam_locked": is_exam_locked(section.exam),
         },
     )
 
@@ -599,8 +603,9 @@ def reorder_prep_answers(request, exam_pk, question_id):
         prep_section__exam_id=exam_pk,
     )
 
-    if question.prep_section.exam.is_finalized:
-        return HttpResponseBadRequest("Exam is finalized")
+    locked = ensure_exam_not_finalized(question.prep_section.exam)
+    if locked:
+        return locked
 
     try:
         payload = json.loads(request.body)
@@ -631,7 +636,7 @@ def reorder_prep_answers(request, exam_pk, question_id):
             "exam_selected": question.prep_section.exam,
             "question": question,
             "answers": get_answers(question),
-            "is_exam_finalized": question.prep_section.exam.is_finalized,
+            "is_exam_locked": is_exam_locked(question.prep_section.exam),
         },
     )
 
@@ -729,7 +734,7 @@ def prep_question_panel(request, exam_pk, question_id):
             "question_form": form,
             "answers": answers,
             "saved": saved,
-            "is_exam_finalized": question.prep_section.exam.is_finalized,
+            "is_exam_locked": is_exam_locked(question.prep_section.exam),
         },
     )
     return with_save_feedback(request, response, saved)
@@ -896,7 +901,7 @@ def prep_answers_block(request, exam_pk, question_id):
             "exam_selected": question.prep_section.exam,
             "question": question,
             "answers": get_answers(question),
-            "is_exam_finalized": question.prep_section.exam.is_finalized,
+            "is_exam_locked": is_exam_locked(question.prep_section.exam),
         },
     )
 
@@ -934,7 +939,7 @@ def prep_answer_panel(request, exam_pk, answer_id):
             "answer": answer,
             "answer_form": form,
             "saved": saved,
-            "is_exam_finalized": answer.prep_question.prep_section.exam.is_finalized,
+            "is_exam_locked": is_exam_locked(answer.prep_question.prep_section.exam),
         },
     )
     return with_save_feedback(request, response, saved)
@@ -1418,3 +1423,30 @@ def generate_final_exam_files_start(request, exam_pk):
         "status": job.status,
         "reused": False,
     })
+
+
+@exam_permission_required(["manage"])
+def cancel_final_exam_files(request, exam_pk):
+    """Asks the running final generation to stop: the task stops at its next check, within a few seconds (see
+    BuildCancelled). The exam is editable again once it has stopped."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    job = get_active_final_build_job(exam)
+    if job is None:
+        return JsonResponse({"error": "No final generation is running for this exam."}, status=404)
+
+    job.cancel_requested = True
+    job.save(update_fields=["cancel_requested", "updated_at"])
+
+    if job.status == "pending":
+        # Not started yet (waiting for a worker): it must never start
+        if job.celery_task_id:
+            from examc.celery import app as celery_app
+            celery_app.control.revoke(job.celery_task_id)
+        job.status = "cancelled"
+        job.error_message = "The generation was cancelled."
+        job.save(update_fields=["status", "error_message", "updated_at"])
+
+    return JsonResponse({"cancelling": True, "job_id": job.pk, "status": job.status})

@@ -150,11 +150,24 @@ def get_active_final_build_job(exam):
     return job
 
 
-def ensure_exam_not_finalized(exam):
+def exam_lock_reason(exam):
+    """Why the exam (content and students) cannot be modified: finalized, or a final generation is running."""
     if exam.is_finalized:
-        return HttpResponseForbidden(
-            "This exam is finalized. Unlock editing before making changes."
-        )
+        return "This exam is finalized. Unlock editing before making changes."
+    if get_active_final_build_job(exam):
+        return "The final generation of this exam is running. Wait for its end, or cancel it, before making changes."
+    return None
+
+
+def is_exam_locked(exam) -> bool:
+    return exam_lock_reason(exam) is not None
+
+
+def ensure_exam_not_finalized(exam):
+    """A 403 response when the exam cannot be modified (see exam_lock_reason), else None."""
+    reason = exam_lock_reason(exam)
+    if reason:
+        return HttpResponseForbidden(reason)
     return None
 
 def create_prep_section(exam: Exam, title="New section", section_text=""):

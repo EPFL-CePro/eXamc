@@ -10,7 +10,8 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
     const EXAM_PK = CFG.examPk || "";
 
     function isExamFinalized() {
-        return !!(window.EXAM_PREP_CONFIG && window.EXAM_PREP_CONFIG.isFinalized);
+        // Finalized, or a final generation is running: read-only
+        return !!(window.EXAM_PREP_CONFIG && (window.EXAM_PREP_CONFIG.isFinalized || window.EXAM_PREP_CONFIG.isLocked));
     }
 
     const Selectors = {
@@ -181,12 +182,13 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
     // reloaded while it runs, in #final-generation-banner. The task goes on on the server in any case.
     let finalTracking = null;      // {taskId, startedAt (ms)}
     let finalElapsedTimer = null;
+    let reloadWhenFinalDialogClosed = false;
 
     function setFinalProgress(percent, message) {
         const value = Math.max(0, Math.min(100, Math.round(percent || 0)));
         for (const id of ["generate-final-progress-bar", "final-generation-banner-bar"]) {
             const bar = document.getElementById(id);
-            if (!bar) continue;
+            if (!bar || percent === null) continue;
             bar.style.width = value + "%";
             bar.textContent = value + "%";
         }
@@ -215,7 +217,42 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         element.textContent = Math.floor(seconds / 60) + " min " + String(seconds % 60).padStart(2, "0") + " s";
     }
 
+    function showCancelFinalButtons(show) {
+        for (const id of ["generate-final-cancel-button", "final-generation-banner-cancel"]) {
+            const button = document.getElementById(id);
+            if (!button) continue;
+            button.disabled = false;
+            if (id === "generate-final-cancel-button") button.style.display = show ? "" : "none";
+        }
+    }
+
+    // Stops the running generation (it stops within a few seconds, the exam is then editable again)
+    function cancelFinalGeneration() {
+        if (!URLS.cancelFinal || !finalTracking) return;
+        if (!window.confirm("Cancel the final generation? Nothing will be generated.")) return;
+
+        for (const id of ["generate-final-cancel-button", "final-generation-banner-cancel"]) {
+            const button = document.getElementById(id);
+            if (button) button.disabled = true;
+        }
+        setFinalProgress(null, "Cancelling...");
+        ajaxPost(URLS.cancelFinal, {}, {
+            ...WITHOUT_LOADING_MODAL,
+            success: function (data) {
+                // Still waiting for a worker: nothing runs, so no task will report its end
+                if (data.status === "cancelled") finishFinalGeneration(false, "The generation was cancelled.");
+            },
+            error: function (xhr) {
+                const data = xhr.responseJSON || {};
+                // 404: it ended in the meantime, its end is shown by the tracking
+                if (xhr.status !== 404) showGenFinalError(data.error || "Impossible to cancel the generation.");
+                showCancelFinalButtons(true);
+            }
+        });
+    }
+
     function stopFinalTracking() {
+        showCancelFinalButtons(false);
         finalTracking = null;
         window.clearInterval(finalElapsedTimer);
         finalElapsedTimer = null;
@@ -234,6 +271,8 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
             }
             showGenFinalSuccess(normalizeGenFinalSuccessPayload(payload));
         } else {
+            // The exam was locked by the generation (see isLocked): the page is reloaded when the dialog is closed
+            if (CFG.isLocked && !CFG.isFinalized) reloadWhenFinalDialogClosed = true;
             if (!dialogOpen) showModal("#generate_final_exam_files_dialog");
             showGenFinalError(payload || "Generation failed.");
         }
@@ -251,6 +290,7 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         finalElapsedTimer = window.setInterval(updateFinalElapsed, 1000);
         updateFinalElapsed();
         showFinalBanner(!isGenFinalDialogOpen());
+        showCancelFinalButtons(true);
 
         CeleryProgressBar.initProgressBar(URLS.celeryTaskStatusTemplate.replace("__TASK_ID__", taskId), {
             progressBarId: "generate-final-progress-bar",
@@ -1419,9 +1459,16 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         if (genFinalWasSuccessful) {
             genFinalWasSuccessful = false;
             window.location.reload();
+        } else if (reloadWhenFinalDialogClosed) {
+            window.location.reload();
         } else if (finalTracking) {
-            // Closed while running: followed in the banner
-            showFinalBanner(true);
+            // Closed while running: the page is reloaded to lock the exam (the generation is then followed in the
+            // banner, see activeFinalTaskId), or followed in the banner when it is already locked
+            if (!CFG.isLocked) {
+                window.location.reload();
+            } else {
+                showFinalBanner(true);
+            }
         }
     }
 
@@ -1430,6 +1477,8 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
         const startedAt = Date.parse(CFG.activeFinalStartedAt);
         trackFinalGeneration(CFG.activeFinalTaskId, Number.isNaN(startedAt) ? null : startedAt);
     }
+    document.getElementById("final-generation-banner-cancel")?.addEventListener("click", cancelFinalGeneration);
+    document.getElementById("generate-final-cancel-button")?.addEventListener("click", cancelFinalGeneration);
     document.getElementById("final-generation-banner-show")?.addEventListener("click", function () {
         resetGenFinalUi();
         setGenFinalLoading(true);

@@ -58,6 +58,7 @@ urlpatterns = [
     path('edit_latex_packages/<int:exam_pk>', views.edit_latex_packages, name="edit_latex_packages"),
     path('save_latex_edited_packages/<int:exam_pk>', views.save_latex_edited_packages, name="save_latex_edited_packages"),
     path('generate_final_exam_files/start/<int:exam_pk>',views.generate_final_exam_files_start,name="generate_final_exam_files_start"),
+    path('generate_final_exam_files/cancel/<int:exam_pk>',views.cancel_final_exam_files,name="cancel_final_exam_files"),
     path("unlock_exam_editing/<int:exam_pk>", views.unlock_exam_editing, name="unlock_exam_editing"),
     path("exam_preparation_students/<int:exam_pk>", views.exam_preparation_students_view, name="exam_preparation_students"),
     path("exam_preparation_students/<int:exam_pk>/import_students_xlsx", views.import_prep_students_xlsx, name="import_prep_students_xlsx"),

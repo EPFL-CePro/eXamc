@@ -20,6 +20,7 @@ Important invariants:
 - frozen snapshot data must reflect the exact question/answer state at build time
 """
 
+import contextvars
 import math
 import re
 import shutil
@@ -31,7 +32,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from django.conf import settings
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Max
 from django.utils import timezone
 
@@ -435,11 +436,27 @@ def _ensure_xy_output(workspace_path: Path) -> Path | None:
 PAGE_SHIPOUT_RE = re.compile(r"\[(\d+)(?=[\s\]{<]|$)")
 
 
+class BuildCancelled(Exception):
+    """The user asked to stop the final generation."""
+
+
+# Set by build_final_exam: returns True when the user asked to stop the generation. Checked between the steps
+# (_report_progress) and, while LaTeX compiles, every CANCEL_POLL_SECONDS (the compilation is then killed).
+_should_cancel = contextvars.ContextVar("examc_should_cancel", default=None)
+CANCEL_POLL_SECONDS = 1.0
+
+
+def _raise_if_cancelled():
+    should_cancel = _should_cancel.get()
+    if should_cancel and should_cancel():
+        raise BuildCancelled("The generation was cancelled.")
+
+
 def _run_latex(cmd: list[str], cwd: Path, timeout: int, on_page=None) -> tuple[int | None, str]:
     """
     Runs a LaTeX command, reading its output while it compiles: `on_page(pages)` is called with the number of
     pages shipped out so far. Returns (return code, output), the return code being None after `timeout` seconds
-    (the process is then killed).
+    (the process is then killed). Raises BuildCancelled (process killed) when the user asked to stop.
     """
     process = subprocess.Popen(
         cmd,
@@ -457,6 +474,24 @@ def _run_latex(cmd: list[str], cwd: Path, timeout: int, on_page=None) -> tuple[i
 
     timer = threading.Timer(timeout, kill)
     timer.start()
+    should_cancel = _should_cancel.get()
+    cancelled = threading.Event()
+    finished = threading.Event()
+
+    def watch_cancel():
+        try:
+            while not finished.wait(CANCEL_POLL_SECONDS):
+                if should_cancel():
+                    cancelled.set()
+                    process.kill()
+                    return
+        finally:
+            # should_cancel reads the database: the connection of this thread is not left open
+            connection.close()
+
+    watcher = threading.Thread(target=watch_cancel, daemon=True) if should_cancel else None
+    if watcher:
+        watcher.start()
     output = []
     pages = 0
     try:
@@ -468,7 +503,12 @@ def _run_latex(cmd: list[str], cwd: Path, timeout: int, on_page=None) -> tuple[i
                 on_page(pages)
         process.wait()
     finally:
+        finished.set()
         timer.cancel()
+        if process.poll() is None:
+            process.kill()
+    if cancelled.is_set():
+        raise BuildCancelled("The generation was cancelled.")
     return (None if timed_out.is_set() else process.returncode), "".join(output)
 
 
@@ -805,6 +845,7 @@ def promote_workspace_to_project(
 # Progress helper
 # --------------------------------------------------------------------------
 def _report_progress(progress_callback, percent, message):
+    _raise_if_cancelled()
     if progress_callback:
         progress_callback(percent=percent, message=message)
 
@@ -854,9 +895,13 @@ def build_final_exam(
     timeout: int = 60,
     latex_engine: str = "pdflatex",
     progress_callback=None,
+    should_cancel=None,
 ) -> ExamBuild:
     """
     Build the final AMC project for one exam.
+
+    `should_cancel()` returns True when the user asked to stop: BuildCancelled is raised (the build is then marked
+    as failed, and the compilation running is killed).
 
     This pipeline intentionally compiles the two AMC modes in the following order:
 
@@ -890,6 +935,14 @@ def build_final_exam(
             otherwise a build in ``error`` state.
     """
 
+    token = _should_cancel.set(should_cancel)
+    try:
+        return _build_final_exam(exam, user, timeout, latex_engine, progress_callback)
+    finally:
+        _should_cancel.reset(token)
+
+
+def _build_final_exam(exam, user, timeout, latex_engine, progress_callback) -> ExamBuild:
     _report_progress(progress_callback, 6, "Preparing AMC workspace...")
 
     persistent_project_path = get_amc_project_path(exam, False)
@@ -1167,6 +1220,9 @@ def build_final_exam(
 
             return build
 
+    except BuildCancelled as exc:
+        mark_exam_build_error(build, str(exc))
+        raise
     except Exception as exc:
         mark_exam_build_error(build, str(exc))
         return build

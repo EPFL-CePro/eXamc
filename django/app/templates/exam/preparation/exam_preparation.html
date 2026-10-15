@@ -22,10 +22,15 @@
         <div class="alert alert-info mt-3" id="final-generation-banner" role="status"
              {% if not active_final_job %}hidden{% endif %}>
             <div class="d-flex align-items-center justify-content-between flex-wrap">
-                <strong class="mr-3">Final generation in progress</strong>
-                <button type="button" class="btn btn-outline-dark btn-sm" id="final-generation-banner-show">
-                    Show details
-                </button>
+                <strong class="mr-3">Final generation in progress: the exam and its students cannot be modified until it ends.</strong>
+                <span>
+                    <button type="button" class="btn btn-outline-danger btn-sm" id="final-generation-banner-cancel">
+                        Cancel generation
+                    </button>
+                    <button type="button" class="btn btn-outline-dark btn-sm" id="final-generation-banner-show">
+                        Show details
+                    </button>
+                </span>
             </div>
             <div class="progress mt-2" style="height:18px;">
                 <div class="progress-bar" id="final-generation-banner-bar" role="progressbar" style="width:0%;">0%</div>
@@ -43,7 +48,7 @@
                 data-prep-section=""
                 data-prep-question=""
                 data-prep-answer=""
-                {% if is_exam_finalized %}disabled{% endif %}
+                {% if is_exam_locked %}disabled{% endif %}
             >
                 <i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>
                 Default questions scorings
@@ -54,7 +59,7 @@
                     class="btn btn-outline-dark btn-sm latex-btn me-2"
                     type="button"
                     onclick="openEditLaTeXFileDialog('commands');"
-                    {% if is_exam_finalized %}disabled{% endif %}
+                    {% if is_exam_locked %}disabled{% endif %}
                 >
                     <img src="{% static 'img/LaTeX/latex-original.png' %}" style="height:12px;margin:0px;">
                     <span class="latex-text ms-1">commands</span>
@@ -64,7 +69,7 @@
                     class="btn btn-outline-dark btn-sm latex-btn"
                     type="button"
                     onclick="openEditLaTeXPackagesDialog('packages');"
-                    {% if is_exam_finalized %}disabled{% endif %}
+                    {% if is_exam_locked %}disabled{% endif %}
                 >
                     <img src="{% static 'img/LaTeX/latex-original.png' %}" style="height:12px;margin:0px;">
                     <span class="latex-text ms-1">packages</span>
@@ -82,11 +87,11 @@
                     hx-swap="innerHTML"
                     data-bs-toggle="modal"
                     data-bs-target="#modalPrintSettings"
-                    {% if is_exam_finalized %}disabled{% endif %}>
+                    {% if is_exam_locked %}disabled{% endif %}>
                 <i class="fa-solid fa-print" style="margin-right:5px;"></i>Print settings{% include "./_prep_print_badge.html" %}
             </button>
 
-            <button onclick="previewExam();" class="btn btn-dark btn-sm" type="button" {% if is_exam_finalized %}disabled{% endif %}>
+            <button onclick="previewExam();" class="btn btn-dark btn-sm" type="button" {% if is_exam_locked %}disabled{% endif %}>
                 <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Preview
             </button>
 
@@ -125,7 +130,7 @@
 
         {% include "./_prep_first_page_card.html" %}
         {% include "./_prep_sections_list.html" %}
-        {% if not is_exam_finalized %}
+        {% if not is_exam_locked %}
             <button style="margin-top:20px;" class="btn btn-light" title="Add Section"
                         hx-post="{% url 'add_prep_section' exam_selected.pk %}"
                         hx-target="#prep-sections-list"
@@ -174,6 +179,8 @@
         csrfToken: "{{ csrf_token }}",
         examPk: "{{ exam_selected.pk }}",
         isFinalized: {{ is_exam_finalized|yesno:"true,false" }},
+        // Finalized, or a final generation is running: nothing can be modified
+        isLocked: {{ is_exam_locked|yesno:"true,false" }},
         // Celery task of a final generation still running when the page was loaded
         activeFinalTaskId: "{{ active_final_job.celery_task_id|default:'' }}",
         activeFinalStartedAt: "{{ active_final_job.created_at|date:'c' }}",
@@ -189,6 +196,7 @@
             editLatexPackages: "{% url 'edit_latex_packages' exam_selected.pk %}",
             saveLatexPackages: "{% url 'save_latex_edited_packages' exam_selected.pk %}",
             generateFinalStart: "{% url 'generate_final_exam_files_start' exam_selected.pk %}",
+            cancelFinal: "{% url 'cancel_final_exam_files' exam_selected.pk %}",
             celeryTaskStatusTemplate: "{% url 'celery_progress:task_status' 'TASK_ID_PLACEHOLDER' %}".replace("TASK_ID_PLACEHOLDER", "__TASK_ID__"),
         }
       };

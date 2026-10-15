@@ -3,7 +3,7 @@
     <div class="card-header d-flex justify-content-between align-items-center">
 
         <div class="d-flex align-items-center gap-2">
-            {% if not is_exam_finalized %}
+            {% if not is_exam_locked %}
                 <span class="drag-handle" style="cursor:move;margin-right:10px;">
                     <i class="fa-solid fa-grip-vertical"></i>
                 </span>
@@ -28,10 +28,10 @@
             data-prep-question=""
             data-prep-answer=""
             title="Scoring of the questions of this section"
-            {% if is_exam_finalized %}disabled{% endif %}
+            {% if is_exam_locked %}disabled{% endif %}
         ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
         </button>
-        {% if not is_exam_finalized %}
+        {% if not is_exam_locked %}
         <button
             class="btn btn-sm btn-light float-end"
             hx-post="{% url 'delete_prep_section' exam_selected.pk section.id %}"
@@ -73,7 +73,7 @@
 
                 <label class="mt-2">Text</label>
                 {{ section_form.section_text }}
-                {% if not is_exam_finalized %}
+                {% if not is_exam_locked %}
                     <button class="btn btn-dark btn-sm mt-2">Save</button>
                 {% endif %}
             </form>
@@ -82,7 +82,7 @@
             <div id="prep-questions-list-{{ section.id }}">
                 {% include "./_prep_questions_list.html" with section=section questions=questions exam_selected=exam_selected %}
             </div>
-            {% if not is_exam_finalized %}
+            {% if not is_exam_locked %}
                 <button style="margin-top:20px;" class="btn btn-light" title="Add Question"
                         hx-get="{% url 'add_prep_question' exam_selected.pk section.id %}"
                         hx-target="#modalAddQuestionBody"

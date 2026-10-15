@@ -11,6 +11,7 @@ from examc_app.api.serializers.prep_student import (
     PrepStudentUpdateSerializer,
 )
 from examc_app.models import Exam, PrepStudent
+from examc_app.utils.preparation_functions import exam_lock_reason
 from examc_app.services.person_directory import PersonDirectoryError
 from examc_app.services.student.prep_import import (
     StudentsFileError,
@@ -35,8 +36,9 @@ class PrepStudentViewSet(viewsets.ViewSet):
 
     @exam_permission_required(["manage"])
     def partial_update(self, request: Request, exam_pk: str, pk: str) -> Response:
-        if get_object_or_404(Exam, pk=exam_pk).is_finalized:
-            raise PermissionDenied("This exam is finalized. Unlock editing before making changes.")
+        lock_reason = exam_lock_reason(get_object_or_404(Exam, pk=exam_pk))
+        if lock_reason:
+            raise PermissionDenied(lock_reason)
 
         student = get_object_or_404(PrepStudent, pk=pk, exam_id=exam_pk)
         serializer = PrepStudentUpdateSerializer(student, data=request.data, partial=True)
