@@ -2,9 +2,7 @@ from django.urls import include, path
 
 from examc_app import views
 from examc_app.api.router import examc_router
-from examc_app.views.rooms_plans_special_views import GenerateRoomPlanSpecialView
-from examc_app.views.rooms_plans_views import GenerateRoomPlanView
-
+from examc_app.views.rooms_plans_views import GenerateRoomPlanView, room_plan_file
 
 urlpatterns = [
     # DRF
@@ -150,14 +148,13 @@ urlpatterns = [
 
     # ROOM PLAN
     path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
-    path('generate_room_plan/special', GenerateRoomPlanSpecialView.as_view(), name='generate_room_plan_special'),
+    path("rooms_plans/<str:folder>/<str:filename>", room_plan_file, name="room_plan_file"),
 
     # CSVGEN
     path('csvgen/', views.csvgen, name="csvgen"),
     path('csvgen/templates.zip', views.download_csvgen_templates, name="download_csvgen_templates"),
     # path('export_csv/', views.export_csv, name="export_csv"),
     path('import_students_excel/', views.import_students_excel, name="import_students_excel"),
-    path('change_csv_type/<str:choice>', views.change_csv_type, name="change_csv_type"),
 
     # SEARCH LDAP
     path('search/', views.upload_excel_generate_csv, name='search_people'),

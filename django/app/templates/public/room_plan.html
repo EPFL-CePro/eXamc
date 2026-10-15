@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load django_vite %}
+
+{% block title %}Room plan generator{% endblock %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/public/room_plan/index.ts' %}
+{% endblock %}
+
+{% block content %}
+    <div id="rooms-plans-page" style="max-width: 64rem"
+         data-current-tab="{{ curr_tab|default:'default' }}"
+         data-map-url="{% url 'room_plan_file' 'map' '__file__' %}"
+         data-file-name="{{ file_name|default:'plan' }}">
+        <h4 class="mb-3 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-chair" aria-hidden="true"></i> Room plan generator
+        </h4>
+        <p>
+            This page is under development, please contact
+            <a href="mailto:lucile.pinard@epfl.ch">lucile.pinard@epfl.ch</a> in case of issue.
+        </p>
+
+        <ul class="nav nav-pills nav-fill flex-column flex-sm-row border rounded p-1 mb-3"
+            id="rooms-plans-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link w-100" id="default-tab" role="tab"
+                        data-bs-toggle="pill" data-bs-target="#pills-default"
+                        aria-controls="pills-default" aria-selected="false">Default</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link w-100" id="special-tab" role="tab"
+                        data-bs-toggle="pill" data-bs-target="#pills-special"
+                        aria-controls="pills-special" aria-selected="false">Special</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="rooms-plans-tab-content">
+            {% for tab, tab_form in tabs %}
+                <div class="tab-pane fade" id="pills-{{ tab }}" role="tabpanel"
+                     aria-labelledby="{{ tab }}-tab" tabindex="0">
+
+                    {% if tab == 'default' %}
+                        <form id="seat-map-form" method="post" action="/generate_room_plan/" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {% for error in tab_form.non_field_errors %}
+                                <div class="alert alert-danger py-2" role="alert">{{ error }}</div>
+                            {% endfor %}
+                    {% endif %}
+
+                    {# One row per field, id="DIV-<field name>" so the script can show/hide it #}
+                    {% for field in tab_form %}
+                        <div class="row mb-3{% if field.name == 'special_file' and not tab_form.initial.special_file %} d-none{% endif %}"
+                             id="DIV-{{ field.html_name }}"
+                             {% if field.widget_type == 'radioselect' %}role="radiogroup" aria-labelledby="{{ field.auto_id }}_label"{% endif %}>
+                            <div class="col-sm-2 col-form-label">
+                                {% if field.widget_type == 'radioselect' %}
+                                    <span id="{{ field.auto_id }}_label">{{ field.label }}</span>
+                                {% else %}
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {% endif %}
+                                {% if field.help_text %}
+                                    <button type="button" class="btn btn-link link-primary p-0 ms-1 align-baseline"
+                                            data-bs-toggle="tooltip" data-bs-placement="top"
+                                            data-bs-title="{{ field.help_text }}" aria-label="Help: {{ field.label }}">
+                                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                                    </button>
+                                    <span class="visually-hidden" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-sm-4">
+                                {% if field.widget_type == 'radioselect' %}
+                                    {% for radio in field %}
+                                        <div class="form-check form-check-inline">
+                                            {{ radio.tag }}
+                                            <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                                        </div>
+                                    {% endfor %}
+                                {% elif field.widget_type == 'checkbox' %}
+                                    <div class="form-check">{{ field }}</div>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+
+                                {% if tab == 'special' and field.name == 'numbering_option' %}
+                                    <input type="text" id="prefix-input" class="form-control form-control-sm mt-2 d-none"
+                                           placeholder="Prefix, e.g. MyPrefix-" aria-label="Label prefix">
+                                {% endif %}
+
+                                {% for error in field.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    {% if tab == 'default' %}
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-dark btn-sm" name="action" value="download">
+                                    <i class="fa-solid fa-download me-1" aria-hidden="true"></i>Download seat map
+                                </button>
+                            </div>
+                        </form>
+
+                        <h5 class="mt-4">Selected rooms</h5>
+                        <p class="room-plans-empty text-body-secondary mb-0">Select one or more rooms to preview their plans.</p>
+                        <div class="room-plans d-flex flex-wrap gap-3" aria-live="polite"></div>
+
+                        {% if export_files %}
+                            <h5 class="mt-4">Generated seat maps</h5>
+                            <div class="row g-3">
+                                {% for export_file in export_files %}
+                                    <div class="col-md-4">
+                                        <a href="{{ export_file }}" target="_blank" rel="noopener">
+                                            <img src="{{ export_file }}" class="img-fluid border rounded"
+                                                 alt="Seating map {{ forloop.counter }}">
+                                        </a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="d-flex flex-wrap gap-2" role="toolbar" aria-label="Seat labels">
+                            <button type="button" class="btn btn-dark btn-sm" id="btn-download-plans">
+                                <i class="fa-solid fa-download me-1" aria-hidden="true"></i>Download
+                            </button>
+                            <button type="button" class="btn btn-outline-dark btn-sm" id="btn-undo-label">
+                                <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>Undo
+                            </button>
+                        </div>
+
+                        <p class="room-plans-empty text-body-secondary mt-4 mb-0">
+                            Select one or more rooms, then click on a plan to place seat numbers.
+                        </p>
+                        <div class="room-plans d-flex flex-column gap-4 mt-4" aria-live="polite"></div>
+
+                        <div id="export-layout" aria-hidden="true"></div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        {# Copied once per selected room, on both tabs #}
+        <template id="room-plan-template">
+            <section class="room-plan">
+                <h6 class="room-plan-title mb-2"></h6>
+                <div class="room-plan-error alert alert-danger py-2 d-none" role="alert">
+                    This room plan could not be loaded.
+                </div>
+                <div class="room-plan-frame">
+                    <img class="d-none" alt="">
+                </div>
+            </section>
+        </template>
+    </div>
+{% endblock %}

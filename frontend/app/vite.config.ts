@@ -23,9 +23,7 @@ export default defineConfig({
         // Shared entries used by multiple views
         "examc": resolve(import.meta.dirname, 'src/styles/examc.scss'),
 
-        // Entries used by single views
-        "_sidebar": resolve(import.meta.dirname, 'src/views/_sidebar/index.ts'),
-        
+        // Entries used by single views        
         "amc/amc": resolve(import.meta.dirname, 'src/views/amc/amc/index.ts'),
         "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
         "amc/amc_data_capture_manual": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture_manual/index.ts'),
@@ -34,8 +32,12 @@ export default defineConfig({
         "amc/amc_project": resolve(import.meta.dirname, 'src/views/amc/amc_project/index.ts'),
         "amc/amc_upload_project": resolve(import.meta.dirname, 'src/views/amc/amc_upload_project/index.ts'),
         
-        "csvgen/csvgen": resolve(import.meta.dirname, 'src/views/csvgen/csvgen/index.ts'),
-        
+        "public/csvgen": resolve(import.meta.dirname, 'src/views/public/csvgen/index.ts'),
+        "public/room_plan": resolve(import.meta.dirname, 'src/views/public/room_plan/index.ts'),
+
+        "errors/_user_facing_error_modal": resolve(import.meta.dirname, 'src/views/errors/_user_facing_error_modal/index.ts'),
+
+        "exam/exam_info": resolve(import.meta.dirname, 'src/views/exam/exam_info/index.ts'),
         "exam/preparation/exam_preparation": resolve(import.meta.dirname, 'src/views/exam/preparation/exam_preparation/index.ts'),
         "exam/preparation/exam_preparation_students": resolve(import.meta.dirname, 'src/views/exam/preparation/exam_preparation_students/index.ts'),
         

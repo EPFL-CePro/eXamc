@@ -1,0 +1,38 @@
+.room-plan-frame {
+    position: relative;
+    display: inline-block;
+
+    img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        cursor: crosshair;
+    }
+}
+
+.print-label {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    padding: 2px 5px;
+    border-radius: var(--bs-border-radius-sm);
+    background: rgba(0, 0, 0, .6);
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* Off-screen copy rendered by html2canvas for the download */
+#export-layout {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    width: 1000px;
+
+    .room-plan-frame img {
+        width: 100%;
+    }
+}

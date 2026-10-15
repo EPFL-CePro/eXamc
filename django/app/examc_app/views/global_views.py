@@ -181,6 +181,7 @@ def user_allowed(exam, user_id):
 @require_GET
 def serve_signed_file(request, file_hint=None):
     token = request.GET.get("token")
+
     if not token:
         rooms_plans = request.GET.get("rooms_plans")
         if rooms_plans:

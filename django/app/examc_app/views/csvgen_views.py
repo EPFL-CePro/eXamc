@@ -1,313 +1,285 @@
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
-from io import BytesIO, StringIO
+from io import BytesIO
+from typing import Any, Final, TypedDict
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import pandas as pd
 from django.contrib import messages
-from django.http import HttpResponse
+from django.core.files.uploadedfile import UploadedFile
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
 from examc_app.utils.epflldap import ldap_search
 
-CSV_TYPE_AMC = "a"
-STUDENTS_LIST = None
-column_name = False
-column_number = False
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+LdapEntry = Mapping[str, Sequence[str]]
+StudentRow = dict[str, Any]
+StudentsFile = UploadedFile | list[dict[str, Any]]
+ColumnCheck = bool | None
 
 
-def csvgen(request):
-    return render(request, "csvgen/csvgen.html", {"csv_type_AMC": CSV_TYPE_AMC})
+class Person(TypedDict):
+    first_name: str
+    last_name: str
+    email: str
 
 
-def download_csvgen_templates(request):
-    template_definitions = {
-        "amc_students_template.xlsx": pd.DataFrame(
-            [
-                {
-                    "name": "Doe John",
-                    "sciper": 123456,
-                    "email": "john.doe@example.com",
-                    "seat": 1,
-                    "room": "CO 1",
-                }
-            ],
-            columns=["name", "sciper", "email", "seat", "room"],
-        ),
-        "ans_students_template.xlsx": pd.DataFrame(
-            [
-                {
-                    "class name": "Section A",
-                    "email": "john.doe@example.com",
-                    "sciper": 123456,
-                    "name": "Doe John",
-                }
-            ],
-            columns=["class name", "email", "sciper", "name"],
-        ),
+RowBuilder = Callable[[pd.Series, int, Person, str], StudentRow]
+
+
+class CsvTypeConfig(TypedDict):
+    template_name: str
+    input_columns: list[str]
+    example: dict[str, Any]
+    output_columns: list[str]
+    build_row: RowBuilder
+
+
+class ImportResult(TypedDict):
+    students: list[StudentRow]
+    column_number: ColumnCheck
+    column_name: ColumnCheck
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _value_or[T](row: pd.Series, key: str, default: T) -> Any | T:
+    """Return row[key] if it holds a real value, otherwise default (handles NaN)."""
+    value = row.get(key)
+    return value if pd.notna(value) and value != "" else default
+
+
+def _ldap_identity(entry: LdapEntry) -> Person:
+    """Extract first name (first word only), last name and email from an LDAP entry."""
+
+    def first(attr: str) -> str:
+        return (entry.get(attr) or [""])[0]
+
+    return Person(
+        first_name=first("givenName").split(" ")[0],
+        last_name=first("sn"),
+        email=first("mail"),
+    )
+
+
+def _amc_row(row: pd.Series, index: int, person: Person, sciper: str) -> StudentRow:
+    return {
+        "id": index,
+        "Sciper": sciper,
+        "Name": f"{person['first_name']} {person['last_name']}",
+        "email": person["email"],
+        "Seat": _value_or(row, "seat", index),
+        "Room": _value_or(row, "room", ""),
     }
 
+
+def _ans_row(row: pd.Series, index: int, person: Person, sciper: str) -> StudentRow:
+    return {
+        "class name": _value_or(row, "class name", None),
+        "email": person["email"],
+        "student number": sciper,
+        "last name": person["last_name"],
+        "first name": person["first_name"],
+    }
+
+
+# One entry per export format: everything that differs between AMC and ANS lives here.
+CSV_TYPES: Final[dict[str, CsvTypeConfig]] = {
+    "amc": {
+        "template_name": "amc_students_template.xlsx",
+        "input_columns": ["name", "sciper", "email", "seat", "room"],
+        "example": {
+            "name": "Doe John",
+            "sciper": 123456,
+            "email": "john.doe@example.com",
+            "seat": 1,
+            "room": "CO 1",
+        },
+        "output_columns": ["id", "Sciper", "Name", "email", "Seat", "Room"],
+        "build_row": _amc_row,
+    },
+    "ans": {
+        "template_name": "ans_students_template.xlsx",
+        "input_columns": ["class name", "email", "sciper", "name"],
+        "example": {
+            "class name": "Section A",
+            "email": "john.doe@example.com",
+            "sciper": 123456,
+            "name": "Doe John",
+        },
+        "output_columns": ["class name", "email", "student number", "last name", "first name"],
+        "build_row": _ans_row,
+    },
+}
+
+
+DEFAULT_CSV_TYPE: Final[str] = "amc"
+
+
+def _get_config(choice: str) -> CsvTypeConfig:
+    """Config for "amc" or "ans"; anything unknown falls back to AMC."""
+    return CSV_TYPES.get(choice, CSV_TYPES[DEFAULT_CSV_TYPE])
+
+
+def _report(request: HttpRequest, ok: bool | None, label: str) -> None:
+    if ok:
+        messages.success(request, f"{label}: OK", extra_tags="safe")
+    else:
+        messages.error(request, f"{label}: Not Ok", extra_tags="safe")
+
+
+def _normalize_headers(columns: pd.Index) -> list[str]:
+    """Lowercase (and trim) headers so 'Sciper', 'SCIPER ' and 'sciper' all match."""
+    return [str(col).strip().lower() for col in columns]
+
+
+def _load_dataframe(
+    request: HttpRequest,
+    students_file: StudentsFile,
+    expected_columns: list[str],
+) -> tuple[pd.DataFrame | None, ColumnCheck, ColumnCheck]:
+    """
+    Read the uploaded file (or an in-memory list), normalize headers and validate them.
+    Returns (df or None if invalid, column_number, column_name).
+    """
+    column_number: ColumnCheck = None
+    column_name: ColumnCheck = None
+
+    if isinstance(students_file, list):
+        df = pd.DataFrame(students_file)
+        df.columns = _normalize_headers(df.columns)
+    else:
+        df = pd.read_excel(students_file)
+        df.columns = _normalize_headers(df.columns)
+
+        column_number = len(df.columns) == len(expected_columns)
+        _report(request, column_number, "Number of columns")
+        if not column_number:
+            return None, column_number, column_name
+
+        column_name = list(df.columns) == expected_columns
+        _report(request, column_name, "Column name")
+        if not column_name:
+            return None, column_number, column_name
+
+    # Normalize sciper to avoid ".0"
+    if "sciper" in df.columns:
+        df["sciper"] = pd.to_numeric(df["sciper"], errors="coerce").astype("Int64")
+
+    return df, column_number, column_name
+
+
+def import_students(
+    request: HttpRequest,
+    students_file: StudentsFile,
+    choice: str,
+) -> ImportResult:
+    """Shared import logic for AMC and ANS."""
+    config = _get_config(choice)
+    df, column_number, column_name = _load_dataframe(
+        request, students_file, config["input_columns"]
+    )
+
+    students: list[StudentRow] = []
+    if df is not None:
+        for index, (_, row) in enumerate(df.iterrows(), start=1):
+            if pd.isna(row.get("sciper")):
+                messages.error(request, "Missing sciper value in file.", extra_tags="safe")
+                continue
+
+            sciper = int(row["sciper"])
+            entry: LdapEntry | None = ldap_search.get_entry(sciper, "uniqueIdentifier")
+            if not entry:
+                messages.error(
+                    request,
+                    f"Student with sciper {sciper} not found in LDAP.",
+                    extra_tags="safe",
+                )
+                continue
+
+            students.append(config["build_row"](row, index, _ldap_identity(entry), str(sciper)))
+
+    return ImportResult(
+        students=students,
+        column_number=column_number,
+        column_name=column_name,
+    )
+
+
+def build_csv_response(choice: str, students_list: list[StudentRow]) -> HttpResponse:
+    config = _get_config(choice)
+    df = pd.DataFrame(students_list, columns=config["output_columns"])
+
+    filename = f"students_list_{datetime.now().strftime('%d%m%y_%H%M%S')}.csv"
+    response = HttpResponse(df.to_csv(index=False), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Views
+# ---------------------------------------------------------------------------
+
+def download_csvgen_templates(request: HttpRequest) -> HttpResponse:
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, "w", ZIP_DEFLATED) as archive:
-        for filename, dataframe in template_definitions.items():
+        for config in CSV_TYPES.values():
             excel_buffer = BytesIO()
-            dataframe.to_excel(excel_buffer, index=False)
-            archive.writestr(filename, excel_buffer.getvalue())
+            pd.DataFrame([config["example"]], columns=config["input_columns"]).to_excel(
+                excel_buffer, index=False
+            )
+            archive.writestr(config["template_name"], excel_buffer.getvalue())
 
     response = HttpResponse(zip_buffer.getvalue(), content_type="application/zip")
     response["Content-Disposition"] = 'attachment; filename="csvgen_templates.zip"'
     return response
 
 
-
-# import both excel file from list of ans and amc function
-def import_students_excel(request):
-    global STUDENTS_LIST, CSV_TYPE_AMC, column_number, column_name
-
-    auto_export = request.POST.get("auto_export") == "1"  # ou "on" selon ton HTML
-
-    if CSV_TYPE_AMC == "a":
-        students_list, column_number, column_name = import_students_excel_AMC(
-            request, request.FILES["students_excel_file"]
-        )
-    else:
-        students_list, column_number, column_name = import_students_excel_ANS(
-            request, request.FILES["students_excel_file"]
-        )
-
-    STUDENTS_LIST = students_list
-
-    if STUDENTS_LIST:
-        return build_csv_response(CSV_TYPE_AMC, STUDENTS_LIST)
-
+def _render_page(request: HttpRequest, csv_type: str, **context: Any) -> HttpResponse:
     return render(
         request,
-        "csvgen/csvgen.html",
+        "public/csvgen.html",
         {
-            "csv_type_AMC": CSV_TYPE_AMC,
-            "students_list": STUDENTS_LIST,
-            "column_number": column_number,
-            "column_name": column_name,
-        },
+            "csv_type": csv_type,
+            **context
+        }
     )
 
-# function used to choice between AMC and ANS
-def change_csv_type(request, choice):
-    global STUDENTS_LIST, CSV_TYPE_AMC, column_number, column_name
-    CSV_TYPE_AMC = choice
-    return render(request, "csvgen/csvgen.html", {"csv_type_AMC": CSV_TYPE_AMC})
+
+def csvgen(request: HttpRequest) -> HttpResponse:
+    """GET shows the page; POST converts the uploaded file, so the URL never changes."""
+    if request.method == "POST":
+        return import_students_excel(request)
+    return _render_page(request, DEFAULT_CSV_TYPE)
 
 
-def import_students_excel_AMC(request, students_file):
-    amc_students_list = []
-    column_number = None
-    column_name = None
+def import_students_excel(request: HttpRequest) -> HttpResponse:
+    # The file type comes with the upload: no global state shared between users
+    csv_type = request.POST.get("csv_type", DEFAULT_CSV_TYPE)
+    if csv_type not in CSV_TYPES:
+        csv_type = DEFAULT_CSV_TYPE
 
-    if isinstance(students_file, list):
-        df = pd.DataFrame(students_file)
-    else:
-        list_of_column_names = []
-        list_names = ["name", "sciper", "email", "seat", "room"]
-        df = pd.DataFrame(pd.read_excel(students_file))
-        cols = len(df.axes[1])
+    students_file = request.FILES.get("students_excel_file")
+    if not isinstance(students_file, UploadedFile):
+        messages.error(request, "No file uploaded.")
+        return _render_page(request, csv_type)
 
-        for col in df.columns:
-            list_of_column_names.append(str(col).lower())
+    result = import_students(request, students_file, csv_type)
+    if result["students"]:
+        return build_csv_response(csv_type, result["students"])
 
-        # check number of column
-        if cols == len(list_names):
-            column_number = True
-            messages.success(request, "Column number: OK", extra_tags="safe")
-        else:
-            column_number = False
-            messages.error(request, "Column number: Not Ok", extra_tags="safe")
-            return [[], column_number, column_name]
-
-        # check headers of the file
-        if list_of_column_names == list_names:
-            column_name = True
-            messages.success(request, "Column name: OK", extra_tags="safe")
-        else:
-            column_name = False
-            messages.error(request, "Column name: Not Ok", extra_tags="safe")
-            return [[], column_number, column_name]
-
-        # Normalize sciper to avoid ".0"
-        df["sciper"] = pd.to_numeric(df["sciper"], errors="coerce").astype("Int64")
-
-    id_counter = 0
-    for _, row in df.iterrows():
-        id_counter += 1
-
-        if "sciper" not in row or pd.isna(row["sciper"]):
-            messages.error(request, "Missing sciper value in file.", extra_tags="safe")
-            continue
-
-        sciper_int = int(row["sciper"])
-        sciper_str = str(sciper_int)
-
-        ldap_student_entry = ldap_search.get_entry(sciper_int, "uniqueidentifier")
-
-        print("********* " + sciper_str + " ******")
-        print(ldap_student_entry)
-        print("***********************")
-
-        if ldap_student_entry:
-            first_name = ldap_student_entry.get("givenName", [""])[0]
-            first_name = first_name.split(" ")[0]
-            full_name = first_name + " " + ldap_student_entry.get("sn", [""])[0]
-            email = ldap_student_entry.get("mail", [""])[0]
-
-            seat_value = row["seat"] if "seat" in row and row["seat"] else id_counter
-            room_value = row["room"] if "room" in row and row["room"] else ""
-
-            student_row = [
-                id_counter,
-                sciper_str,      # <= plus de .0
-                full_name,
-                None,
-                None,
-                email,
-                seat_value,
-                None,
-                room_value,
-            ]
-            amc_students_list.append(student_row)
-        else:
-            messages.error(request, f"Student with sciper {sciper_str} not found in LDAP.", extra_tags="safe")
-
-    return [amc_students_list, column_number, column_name]
-
-
-def import_students_excel_ANS(request, students_file):
-    ans_students_list = []
-    column_number = None
-    column_name = None
-
-    if isinstance(students_file, list):
-        df = pd.DataFrame(students_file)
-    else:
-        list_of_column_names = []
-        list_names = ["class name", "email", "sciper", "name"]
-        df = pd.DataFrame(pd.read_excel(students_file))
-        cols = len(df.axes[1])
-
-        for col in df.columns:
-            list_of_column_names.append(str(col).lower())
-
-        if cols == len(list_names):
-            column_number = True
-            messages.success(request, "Column number: OK", extra_tags="safe")
-        else:
-            column_number = False
-            messages.error(request, "Column number: Not Ok", extra_tags="safe")
-            return [[], column_number, column_name]
-
-        if list_of_column_names == list_names:
-            column_name = True
-            messages.success(request, "Column name: OK", extra_tags="safe")
-        else:
-            column_name = False
-            messages.error(request, "Column name: Not Ok", extra_tags="safe")
-            return [[], column_number, column_name]
-
-        # Normalize sciper to avoid ".0"
-        df["sciper"] = pd.to_numeric(df["sciper"], errors="coerce").astype("Int64")
-
-    for _, row in df.iterrows():
-        if "sciper" not in row or pd.isna(row["sciper"]):
-            messages.error(request, "Missing sciper value in file.", extra_tags="safe")
-            continue
-
-        sciper_int = int(row["sciper"])
-        sciper_str = str(sciper_int)
-
-        # NOTE: in your original code you used 'uniqueIdentifier' (capital I) here.
-        # Keep the one that matches your LDAP helper.
-        ldap_student_entry = ldap_search.get_entry(sciper_int, "uniqueIdentifier")
-
-        if ldap_student_entry:
-            first_name = ldap_student_entry.get("givenName", [""])[0].split(" ")[0]
-            last_name = ldap_student_entry.get("sn", [""])[0]
-            email = ldap_student_entry.get("mail", [""])[0]
-
-            class_name_value = row["class name"] if "class name" in row else None
-
-            student_row = [None, sciper_str, None, last_name, first_name, email, None, class_name_value, None]
-            ans_students_list.append(student_row)
-        else:
-            messages.error(request, f"Student with sciper {sciper_str} not found in LDAP.", extra_tags="safe")
-
-    return [ans_students_list, column_number, column_name]
-
-
-# json to csv
-# def export_csv(request):
-#     try:
-#         choice = request.POST.get("choice")
-#         students_list_raw = request.POST.get("students_list")
-#         if not students_list_raw:
-#             return HttpResponse("Missing students_list", status=400)
-#
-#         students_list = json.loads(students_list_raw)
-#
-#         if choice == "a":
-#             df = pd.DataFrame(
-#                 students_list,
-#                 columns=["id", "Sciper", "Name", "col4", "col5", "email", "Seat", "col8", "Room"],
-#             )
-#             df = df[["id", "Sciper", "Name", "email", "Seat", "Room"]]
-#         else:
-#             df = pd.DataFrame(
-#                 students_list,
-#                 columns=["col1", "student number", "col3", "last name", "first name", "email", "col7", "class name", "col9"],
-#             )
-#             df = df[["class name", "email", "student number", "last name", "first name"]]
-#
-#         export_file_name = "students_list_" + datetime.now().strftime("%d%m%y_%H%M%S") + ".csv"
-#
-#         export_root = Path(settings.PRIVATE_MEDIA_ROOT)
-#         export_dir = export_root / "csv_exports"  # sous-dossier dédié
-#         export_dir.mkdir(parents=True, exist_ok=True)
-#
-#         file_full_path = export_dir / export_file_name
-#         df.to_csv(file_full_path, encoding="utf-8", index=False)
-#
-#         # Ouvre et force le téléchargement avec un nom propre
-#         f = open(file_full_path, "rb")
-#         return FileResponse(
-#             f,
-#             as_attachment=True,
-#             filename=export_file_name,
-#             content_type="text/csv",
-#         )
-#
-#     except Exception as e:
-#         # Pratique pour voir l’erreur côté UI (à enlever en prod)
-#         return HttpResponse(f"Export error: {type(e).__name__}: {e}", status=500)
-
-def build_csv_response(choice: str, students_list: list) -> HttpResponse:
-    if choice == "a":
-        # ton format AMC: [id, sciper, full_name, None, None, email, seat, None, room]
-        df = pd.DataFrame(
-            students_list,
-            columns=["id", "Sciper", "Name", "col4", "col5", "email", "Seat", "col8", "Room"],
-        )
-        df = df[["id", "Sciper", "Name", "email", "Seat", "Room"]]
-    else:
-        # ton format ANS: [None, sciper, None, last, first, email, None, class_name, None]
-        df = pd.DataFrame(
-            students_list,
-            columns=["col1", "student number", "col3", "last name", "first name", "email", "col7", "class name", "col9"],
-        )
-        df = df[["class name", "email", "student number", "last name", "first name"]]
-
-    filename = f"students_list_{datetime.now().strftime('%d%m%y_%H%M%S')}.csv"
-
-    buf = StringIO()
-    df.to_csv(buf, index=False, encoding="utf-8")
-    csv_text = buf.getvalue()
-    buf.close()
-
-    response = HttpResponse(csv_text, content_type="text/csv; charset=utf-8")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
+    return _render_page(
+        request,
+        csv_type,
+        students_list=result["students"],
+        COLUMN_NUMBER=result["column_number"],
+        COLUMN_NAME=result["column_name"],
+    )
