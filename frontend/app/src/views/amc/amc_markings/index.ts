@@ -3,8 +3,7 @@ import './main.scss';
 import { byId, requireData } from '@examc/helpers/dom.ts';
 import { initAssociation, openManualAssociationDialog, runAutomaticAssociation } from './association.ts';
 import { initMarking, runMarking } from './marking.ts';
-import { initStudents, openEditStudentsListModal, saveStudentsListFile, uploadStudentsFile } from './students.ts';
-import { addStudentsTableRow, adjustStudentsTable } from './students-table/index.ts';
+import { initStudents, openEditStudentsListModal, uploadStudentsFile } from './students.ts';
 
 document.addEventListener('DOMContentLoaded', () => {
     const root = byId('amc-marking');
@@ -30,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Marking
     byId('btn-mark').addEventListener('click', () => void runMarking());
 
-    // Students list
+    // Students list (the edit dialog wires its own buttons)
     byId('btn-set-students-file').addEventListener('click', () => csvInput.click());
     csvInput.addEventListener('change', () => {
         if (csvInput.files?.length !== 1) return;
@@ -39,9 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     byId('btn-edit-students-list').addEventListener('click', () => void openEditStudentsListModal());
-    byId('btn-add-students-list-row').addEventListener('click', addStudentsTableRow);
-    byId('btn-save-students-list').addEventListener('click', () => void saveStudentsListFile());
-    byId('edit-students-list-modal').addEventListener('shown.bs.modal', adjustStudentsTable);
 
     // Association
     byId('btn-automatic-association').addEventListener('click', () => void runAutomaticAssociation());

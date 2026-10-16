@@ -2,7 +2,7 @@ import { byId } from '@examc/helpers/dom.ts';
 import { getJson, HttpError } from '@examc/helpers/http.ts';
 
 import type { JobStatus } from './types.ts';
-import {getModal} from "@examc/helpers/modals.ts";
+import { LocalModal } from '@examc/modals/local.ts';
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -20,7 +20,7 @@ export function openProcess(titleText: string): void {
     titleEl().textContent = titleText;
     setOutput('');
 
-    getModal({ type: "local", element: processModalEl() }).show();
+    new LocalModal(processModalEl()).show();
 }
 
 /** Replaces the whole output, keeping it scrolled to the bottom. */

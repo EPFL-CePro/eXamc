@@ -1,7 +1,7 @@
 import type { Api } from 'datatables.net-dt';
 
 import { confirmDialog } from '@examc/helpers/confirm-dialog';
-import { withLoadingModal } from '@examc/helpers/loading-modal';
+import { LoadingModal } from '@examc/modals';
 
 type ImportResponse = {
     imported?: number;
@@ -77,7 +77,7 @@ async function runImport(options: {
 
     button.disabled = true;
     try {
-        const { response, data } = await withLoadingModal(async () => {
+        const { response, data } = await new LoadingModal(async () => {
             const response = await fetch(importUrl, {
                 method: "POST",
                 headers: { "X-CSRFToken": csrfToken },
@@ -85,7 +85,7 @@ async function runImport(options: {
             });
             const data: ImportResponse = await response.json().catch(() => ({}));
             return { response, data };
-        });
+        }).result;
 
         if (response.ok) {
             const warnings = data.warnings ?? [];

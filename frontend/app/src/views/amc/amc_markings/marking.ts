@@ -1,8 +1,8 @@
 import { byId } from '@examc/helpers/dom.ts';
-import { getModal } from '@examc/helpers/modals.ts';
 import { ModuleUninitialized } from './errors.ts';
 import { state } from './state.ts';
 import type { MarkingConfig } from './types.ts';
+import { LocalModal } from '@examc/modals/local.ts';
 
 let config: MarkingConfig | null = null;
 
@@ -25,6 +25,7 @@ async function streamInto(response: Response, target: HTMLElement): Promise<void
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    
     for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -44,13 +45,14 @@ export async function runMarking(): Promise<void> {
     output.textContent = '';
     output.style.whiteSpace = 'pre-wrap';
 
-    getModal({ type: 'local', element: byId('amc-process-modal') }).show();
+    new LocalModal(byId('amc-process-modal')).show();
 
     const body = new FormData();
     body.append('csrfmiddlewaretoken', config.csrfToken);
     body.append('update_scoring_strategy', String(byId<HTMLInputElement>('update-marking-scale').checked));
 
     state.markingRunning = true;
+
     try {
         // Plain fetch rather than postText: the output must be read while it streams.
         const response = await fetch(config.mark, { method: 'POST', body, credentials: 'same-origin' });

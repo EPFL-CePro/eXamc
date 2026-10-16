@@ -1,5 +1,5 @@
 import { byId } from '@examc/helpers/dom.ts';
-import { getModal } from '@examc/helpers/modals.ts';
+import { LocalModal } from '@examc/modals';
 
 /**
  * Replaces the info modal's content and shows it.
@@ -8,7 +8,7 @@ import { getModal } from '@examc/helpers/modals.ts';
  */
 export function showInfo(...content: (Node | string)[]): void {
     byId('ajax-info-modal-msg').replaceChildren(...content);
-    getModal({ type: 'local', element: byId('ajax-info-modal') }).show();
+    new LocalModal(byId('ajax-info-modal')).show();
 }
 
 /**

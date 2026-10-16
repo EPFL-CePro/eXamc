@@ -15,6 +15,12 @@
      data-zooms-url="{% url 'get_amc_zooms' exam_selected.pk %}"
      data-update-zone-url="{% url 'update_amc_mark_zone' exam_selected.pk %}">
 
+    {# Data for the scripts #}
+    {{ scans_list_json|json_script:"json-scans-list" }}
+    {{ missing_pages|default_if_none:""|json_script:"json-missing-pages" }}
+    {{ overwritten_pages|default_if_none:""|json_script:"json-overwritten-pages" }}
+
+
     <h6>Data capture after examination</h6>
     <div class="mb-3" style="text-align: center;padding:10px;">
         <button id="open-automatic-capture-btn" type="button" class="btn btn-dark btn-sm" style="margin:0 50% 0 0;">
@@ -256,7 +262,3 @@
     </div>
 </div>
 
-{# ---------------------------------------------------------------- Data for the scripts #}
-{{ scans_list_json|json_script:"json_scans_list" }}
-{{ missing_pages|default_if_none:""|json_script:"json-missing-pages" }}
-{{ overwritten_pages|default_if_none:""|json_script:"json-overwritten-pages" }}

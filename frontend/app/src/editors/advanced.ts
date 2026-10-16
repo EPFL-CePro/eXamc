@@ -11,6 +11,20 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
 
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame.css';
+import type { AdvancedEditor, AdvancedEditorMode } from '@examc/types/editors';
+
+
+interface InitAdvancedEditorOptions {
+    target: HTMLElement;
+    initialValue?: string;
+    readonly?: boolean;
+    // Forces the initial mode. By default, it is chosen by the user for an empty text, and from the text otherwise
+    mode?: AdvancedEditorMode;
+    // Initial mode of an empty text, instead of asking the user to choose
+    emptyMode?: AdvancedEditorMode;
+    onChange?: (markdown: string) => void;
+}
+
 
 // KaTeX API used by its extensions (mhchem...), not in its public types
 const katexWithMacros = katex as typeof katex & { __defineMacro(name: string, body: string): void };
@@ -35,25 +49,6 @@ export function registerKatexMacros(macros: Record<string, string>): void {
     }
 }
 
-export type MilkdownEditorMode = 'wysiwyg' | 'source';
-
-interface InitMilkdownEditorOptions {
-    target: HTMLElement;
-    initialValue?: string;
-    readonly?: boolean;
-    // Forces the initial mode. By default, it is chosen by the user for an empty text, and from the text otherwise
-    mode?: MilkdownEditorMode;
-    // Initial mode of an empty text, instead of asking the user to choose
-    emptyMode?: MilkdownEditorMode;
-    onChange?: (markdown: string) => void;
-}
-
-export interface MilkdownEditor {
-    getMarkdown(): string;
-    getMode(): MilkdownEditorMode;
-    setMode(mode: MilkdownEditorMode): void;
-    destroy(): void;
-}
 
 
 // Math ($...$, $$...$$) and code spans, where LaTeX commands are rendered or kept by the visual editor
@@ -99,19 +94,19 @@ function createElement<K extends keyof HTMLElementTagNameMap>(
  * An empty text first shows a choice between the two modes, with their description, unless `emptyMode` is given.
  * Without edition in Milkdown, `getMarkdown()` returns the original text, not its serialization by Milkdown.
  */
-export function initMilkdownEditor({
+export function initAdvancedEditor({
     target,
     initialValue = '',
     readonly = false,
     mode,
     emptyMode,
     onChange,
-}: InitMilkdownEditorOptions): MilkdownEditor {
+}: InitAdvancedEditorOptions): AdvancedEditor {
     const isEmpty = initialValue.trim() === '';
     const initialMode = mode ?? (isEmpty ? emptyMode : undefined);
 
     let lastMarkdown = initialValue;
-    let currentMode: MilkdownEditorMode = 'source';
+    let currentMode: AdvancedEditorMode = 'source';
     // The mode is chosen once Crepe has checked the text, or by the user for an empty text
     let modeChosen = initialMode !== undefined;
     let ready = false;
@@ -149,7 +144,7 @@ export function initMilkdownEditor({
 
     const buttonGroup = createElement('div', 'milkdown-mode-buttons');
     buttonGroup.setAttribute('role', 'group');
-    const buttons: Record<MilkdownEditorMode, HTMLButtonElement> = {
+    const buttons: Record<AdvancedEditorMode, HTMLButtonElement> = {
         wysiwyg: createToggleButton('eye', 'Visual', 'wysiwyg'),
         source: createToggleButton('code', 'Source', 'source'),
     };
@@ -196,7 +191,7 @@ export function initMilkdownEditor({
     target.append(chooser, shell);
 
     function createChooserCard(
-        icon: string, title: string, text: string, cardMode: MilkdownEditorMode,
+        icon: string, title: string, text: string, cardMode: AdvancedEditorMode,
     ): HTMLButtonElement {
         const card = createElement('button', 'milkdown-mode-chooser-card');
         card.type = 'button';
@@ -211,7 +206,7 @@ export function initMilkdownEditor({
         return card;
     }
 
-    function createToggleButton(icon: string, label: string, buttonMode: MilkdownEditorMode): HTMLButtonElement {
+    function createToggleButton(icon: string, label: string, buttonMode: AdvancedEditorMode): HTMLButtonElement {
         const button = createElement('button', 'milkdown-mode-button');
         button.type = 'button';
         button.append(createIcon(icon), ` ${label}`);
@@ -347,7 +342,7 @@ export function initMilkdownEditor({
         return visualBaseline && markdown === visualBaseline.serialized ? visualBaseline.source : markdown;
     }
 
-    function setMode(newMode: MilkdownEditorMode): void {
+    function setMode(newMode: AdvancedEditorMode): void {
         if (destroyed) return;
 
         if (newMode !== currentMode || (newMode === 'source' && !sourceView)) {

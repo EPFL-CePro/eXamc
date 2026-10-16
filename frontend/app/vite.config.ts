@@ -25,16 +25,24 @@ export default defineConfig({
 
         // Entries used by single views
         "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
+
+        "amc/amc": resolve(import.meta.dirname, 'src/views/amc/amc/index.ts'),
         "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
         "amc/amc_data_capture_manual": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture_manual/index.ts'),
         "amc/amc_data_capture": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture/index.ts'),
         "amc/amc_markings": resolve(import.meta.dirname, 'src/views/amc/amc_markings/index.ts'),
+        "amc/amc_project": resolve(import.meta.dirname, 'src/views/amc/amc_project/index.ts'),
         "amc/amc_upload_project": resolve(import.meta.dirname, 'src/views/amc/amc_upload_project/index.ts'),
+
         "csvgen/csvgen": resolve(import.meta.dirname, 'src/views/csvgen/csvgen/index.ts'),
+
         "exam/preparation/exam_preparation": resolve(import.meta.dirname, 'src/views/exam/preparation/exam_preparation/index.ts'),
         "exam/preparation/exam_preparation_students": resolve(import.meta.dirname, 'src/views/exam/preparation/exam_preparation_students/index.ts'),
+
         "impersonation/select_user": resolve(import.meta.dirname, 'src/views/impersonation/select_user/index.ts'),
+
         "res_and_stats/students_results": resolve(import.meta.dirname, 'src/views/res_and_stats/students_results/index.ts'),
+        
         "review/review_group": resolve(import.meta.dirname, 'src/views/review/review_group/index.ts'),
       },
     },

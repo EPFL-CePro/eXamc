@@ -1,4 +1,4 @@
-import { initMilkdownEditor, registerKatexMacros } from '@examc/helpers/milkdown';
+import { initAdvancedEditor, registerKatexMacros } from '@examc/editors';
 import { confirmDialog } from '@examc/helpers/confirm-dialog';
 
 (function () {
@@ -794,7 +794,7 @@ import { confirmDialog } from '@examc/helpers/confirm-dialog';
             textarea.parentNode.insertBefore(container, textarea.nextSibling);
             textarea.style.display = "none";
 
-            const editor = initMilkdownEditor({
+            const editor = initAdvancedEditor({
                 target: container,
                 initialValue: textarea.value || "",
                 readonly: isExamFinalized(),

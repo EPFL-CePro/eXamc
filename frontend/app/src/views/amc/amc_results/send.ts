@@ -1,12 +1,12 @@
-import { initEditor, getEditorContent } from '@examc/editor/index.ts';
 import { byId } from '@examc/helpers/dom.ts';
 import { parseJson, postText } from '@examc/helpers/http.ts';
-import { getModal } from '@examc/helpers/modals.ts';
 import { ModuleUninitialized } from './errors.ts';
 import { showInfo } from './info.ts';
 import { state } from './state.ts';
 import { adjustSendTable, buildSendTable, selectedStudents } from './table.ts';
 import type { SendDataResponse, SendResultResponse, SendUrls } from './types.ts';
+import { LocalModal } from '@examc/modals/local.ts';
+import { SimpleEditor } from '@examc/editors/simple.ts';
 
 let urls: SendUrls | null = null;
 
@@ -15,7 +15,7 @@ export function initSend(endpoints: SendUrls): void {
     urls = endpoints;
 }
 
-const sendDialog = () => getModal({ type: 'local', element: byId('send-annotated-papers-dialog') });
+const sendDialog = () => new LocalModal(byId('send-annotated-papers-dialog'));
 
 /** Loads the students list and default email, then opens the send dialog. */
 export async function openSendDialog(): Promise<void> {
@@ -46,7 +46,7 @@ export async function onSendDialogShown(): Promise<void> {
             bodyField.value = state.pendingEmail.body; // initial editor content
             state.pendingEmail = null;
         }
-        state.emailEditor = await initEditor({ target: bodyField });
+        state.emailEditor = await SimpleEditor.create({ target: bodyField});
     }
 
     adjustSendTable();
@@ -72,7 +72,7 @@ export async function sendAnnotatedPapers(): Promise<void> {
 
     const alert = byId('send_annotated_alert');
     const subject = byId<HTMLInputElement>('email-subject').value.trim();
-    const body = getEditorContent({ editor: state.emailEditor, format: 'markdown' });
+    const body = state.emailEditor.getContent("html");
 
     if (subject === '' || body.trim() === '') {
         alert.style.visibility = 'visible';

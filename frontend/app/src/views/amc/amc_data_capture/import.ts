@@ -3,7 +3,7 @@ import { postJson } from '@examc/helpers/http.ts';
 
 import { appendOutput, openProcess, pollJob, setOutput, showProcessError, streamPost } from './process.ts';
 import type { JobStarted, ReviewScanCopy } from './types.ts';
-import {getModal} from "@examc/helpers/modals.ts";
+import { LocalModal } from '@examc/modals/local.ts';
 
 interface AutomaticImportConfig {
     examPk: string;
@@ -20,7 +20,7 @@ const PROCESS_TITLE = 'Automatic data capture processing';
  * (all pages, or pages picked in the two lists).
  */
 export function initAutomaticImport(config: AutomaticImportConfig): void {
-    const dialog = byId('confirmAutomaticDataCaptureModal');
+    const modal = new LocalModal(byId('confirmAutomaticDataCaptureModal'));
     const localForm = byId<HTMLFormElement>('amcScansFromLocalFrm');
     const zipInput = byId<HTMLInputElement>('amc_scans_zip_file');
     const copiesSelect = byId<HTMLSelectElement>('scans-copies-list');
@@ -30,8 +30,7 @@ export function initAutomaticImport(config: AutomaticImportConfig): void {
 
     /** Closes the dialog and opens the process output. */
     function startProcess(): void {
-        getModal({ type: "local", element: dialog }).hide();
-
+        modal.hide();
         openProcess(PROCESS_TITLE);
     }
 
@@ -40,7 +39,7 @@ export function initAutomaticImport(config: AutomaticImportConfig): void {
     // -----------------------------------------------------------------------
 
     byId('open-automatic-capture-btn').addEventListener('click', () => {
-        getModal({ type: "local", element: dialog }).show();
+        modal.show();
     });
 
     // Show the chosen file name in the custom file input's label

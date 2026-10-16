@@ -155,7 +155,6 @@ export function draw(options?: { error?: ExamcError }): void {
         const placeholder_text = error ? error.messages : ['Please select a page in the right panel'];
         
         state.zones = [];
-        console.log(ctx, canvas, width, height, placeholder_text, !!error);
         
         drawPlaceholder(ctx, canvas, width, height, placeholder_text, !!error);
         return;

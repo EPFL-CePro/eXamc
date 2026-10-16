@@ -1,0 +1,63 @@
+{% load django_vite %}
+{% load custom_tags %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/amc/amc_project/index.ts' %}
+{% endblock %}
+
+<div id="amc-project" style="padding:10px;width:800px;"
+     data-edit-file-url="{% url 'edit_amc_file' exam_selected.pk %}"
+     data-save-file-url="{% url 'save_amc_edited_file' exam_selected.pk %}"
+     data-update-documents-url="{% url 'call_amc_update_documents' exam_selected.pk %}"
+     data-layout-detection-url="{% url 'call_amc_layout_detection' exam_selected.pk %}"
+     data-log-file-url="{% url 'view_amc_log_file' exam_selected.pk %}"
+     data-csrf-token="{{ csrf_token }}">
+
+    {# Data for the scripts #}
+    {{ project_dir_dict|json_script:"amc-project-dir" }}
+    {{ project_dir_files_list|json_script:"amc-project-dir-files" }}
+    <div class="mb-3">
+        <button type="button" id="btn-edit-source-files" class="btn btn-dark btn-sm">
+            <i class="fas fa-pencil-alt"></i> Edit source files
+        </button>
+    </div>
+    <hr/>
+    <div class="mb-3">
+        <label for="number-of-copies" class="form-label">Number of copies:</label>
+        <input type="number" class="form-control" id="number-of-copies" style="width:200px;"
+               value="{{ number_of_copies_param }}">
+    </div>
+    <hr/>
+    <div class="mb-3">
+        <button type="button" id="btn-update-documents" class="btn btn-dark btn-sm">
+            <i class="fas fa-sync-alt"></i> Update documents
+        </button>
+        <div class="mb-3" style="text-align:right;">
+            <a href="{% url 'open_amc_exam_pdf' exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm"
+               style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
+            <a href="{% url 'open_amc_catalog_pdf' exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm">
+                <i class="fas fa-file-pdf"></i> Catalog</a>
+        </div>
+        {% if update_documents_msg %}
+            <div class="alert alert-success" id="update-documents-msg" role="alert"
+                 style="margin-top:20px;text-align:center;overflow-y: auto;max-height:200px;">{{ update_documents_msg }}</div>
+        {% else %}
+            <div class="alert alert-warning" id="update-documents-msg" role="alert"
+                 style="margin-top:20px;text-align:center;">Please Update documents !</div>
+        {% endif %}
+    </div>
+    <hr/>
+    <div class="mb-3">
+        <button type="button" id="btn-layout-detection" class="btn btn-dark btn-sm">
+            <i class="fas fa-ruler-combined"></i> Layout detection
+        </button>
+        <br>
+        {% if layout_detection_msg %}
+            <div class="alert alert-success" id="layout-detection-msg" role="alert"
+                 style="margin-top:20px;text-align:center;">{{ layout_detection_msg }}</div>
+        {% else %}
+            <div class="alert alert-danger" id="layout-detection-msg" role="alert"
+                 style="margin-top:20px;text-align:center;">No Layout</div>
+        {% endif %}
+    </div>
+</div>

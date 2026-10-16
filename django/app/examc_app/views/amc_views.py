@@ -1002,8 +1002,8 @@ def call_amc_generate_results(request: HttpRequest, exam_pk: int):
         task = import_csv_data.delay(results_csv_path, exam.pk)
         task_id = task.task_id
 
-        url = reverse('amc_view_tab', kwargs={'exam_pk': exam.pk, 'curr_tab': 'results-tab'})
-        return redirect(f"{url}?task_id={task_id}")
+        url = reverse('amc_view', kwargs={'exam_pk': exam.pk})
+        return redirect(f"{url}?task_id={task_id}#results-tab")
     else:
         return HttpResponse(result)
 
