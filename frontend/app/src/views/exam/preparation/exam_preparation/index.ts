@@ -1,4 +1,4 @@
-import "./preparation.css";
+import "./main.scss";
 
 import { initActions } from "./actions.ts";
 import { initFinalGeneration } from "./final-generation.ts";
