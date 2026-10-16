@@ -16,8 +16,6 @@ declare global {
         attr(name: string, value: string): LegacyJQuery;
         css(name: string, value: string): LegacyJQuery;
         append(content: LegacyJQuery): LegacyJQuery;
-        on(event: string, handler: () => void): LegacyJQuery;
-        modal(action: "show" | "hide"): LegacyJQuery;
         serialize(): string;
     }
 
@@ -26,7 +24,6 @@ declare global {
         type: string;
         data: object | string;
         headers: Record<string, string>;
-        beforeSend?: () => void;
         complete?: () => void;
         success?: (data: never) => void;
         error?: (xhr: unknown) => void;

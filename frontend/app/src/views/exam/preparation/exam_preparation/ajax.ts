@@ -1,33 +1,19 @@
-import { getPageBootstrap } from "@examc/helpers/page-bootstrap";
+import { LoadingModal, LocalModal } from "@examc/modals";
 
-import { CSRF, Selectors } from "./config.ts";
+import { CSRF } from "./config.ts";
 
 export function getElement<T extends HTMLElement = HTMLElement>(selector: string): T | null {
     return document.querySelector<T>(selector);
 }
 
-function getModalInstance(selector: string) {
-    const element = getElement(selector);
-    if (!element) return null;
-    return getPageBootstrap().Modal.getOrCreateInstance(element);
-}
-
 export function showModal(selector: string): void {
-    getModalInstance(selector)?.show();
+    const element = getElement(selector);
+    if (element) new LocalModal(element).show();
 }
 
 export function hideModal(selector: string): void {
     const element = getElement(selector);
-    if (!element) return;
-    getPageBootstrap().Modal.getInstance(element)?.hide();
-}
-
-function showLoading(show: boolean): void {
-    const modal = getModalInstance(Selectors.loadingModal);
-    if (!modal) return;
-
-    if (show) modal.show();
-    else modal.hide();
+    if (element) new LocalModal(element).hide();
 }
 
 /** What the callbacks of a failed request get (the jqXHR of jQuery). */
@@ -38,31 +24,32 @@ export interface AjaxError {
 }
 
 export interface AjaxCallbacks<T> {
-    beforeSend?: () => void;
-    complete?: () => void;
+    /** Show the loading spinner while the request runs (default), not when the dialog shows its own progress. */
+    spinner?: boolean;
     success?: (data: T) => void;
     error?: (xhr: AjaxError) => void;
 }
 
 function ajaxRequest<T>(method: "GET" | "POST", url: string, data: object | string | undefined, callbacks: AjaxCallbacks<T> = {}) {
-    const { beforeSend, complete, success, error } = callbacks;
+    const { spinner = true, success, error } = callbacks;
+
+    // The spinner stays until the request is done (LoadingModal hides it when its task ends)
+    let requestDone: () => void = () => undefined;
+    if (spinner) void new LoadingModal(() => new Promise<void>((resolve) => { requestDone = resolve; })).result;
+
     return $.ajax({
         url,
         type: method,
         data: data ?? {},
         headers: CSRF ? { "X-CSRFToken": CSRF } : {},
-        beforeSend: beforeSend ?? (() => showLoading(true)),
-        complete: complete ?? (() => showLoading(false)),
+        complete: () => requestDone(),
         ...(success ? { success: success as (data: never) => void } : {}),
         error: (xhr) => (error ?? ((e: AjaxError) => console.error("[preparation] AJAX error:", e)))(xhr as AjaxError),
     });
 }
 
 /** For requests whose dialog shows its own progress (preview, final files generation). */
-export const WITHOUT_LOADING_MODAL = {
-    beforeSend: () => undefined,
-    complete: () => undefined,
-};
+export const WITHOUT_LOADING_MODAL = { spinner: false };
 
 export function ajaxGet<T = unknown>(url: string, data?: object, callbacks?: AjaxCallbacks<T>) {
     return ajaxRequest("GET", url, data, callbacks);

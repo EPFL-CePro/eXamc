@@ -2,6 +2,7 @@ import { CSRF } from "./config.ts";
 import { destroyMarkdownEditors, getEditorValues, initMarkdownEditors, syncMarkdownEditors } from "./markdown-editors.ts";
 import { initPreparationUI } from "./question-fields.ts";
 import { applyFinalizedReadOnlyState } from "./read-only.ts";
+import { showSaveToast } from "./save-toast.ts";
 import { initAnswerSortable, initQuestionSortable, initSectionSortable } from "./sortable.ts";
 
 // The panels are saved with htmx: the markdown editors are synchronised before a request, destroyed before a swap
@@ -18,29 +19,6 @@ interface HtmxDetail {
 }
 
 type HtmxEvent = CustomEvent<HtmxDetail>;
-
-// Save feedback: the panel views send a "prepSaveFeedback" HX-Trigger after a POST
-let saveToastTimer: number | null = null;
-
-function showSaveToast(message: string, isError: boolean): void {
-    let toast = document.getElementById("prep-save-toast");
-    if (!toast) {
-        toast = document.createElement("div");
-        toast.id = "prep-save-toast";
-        toast.setAttribute("role", "status");
-        toast.setAttribute("aria-live", "polite");
-        document.body.appendChild(toast);
-    }
-
-    toast.textContent = message;
-    toast.classList.toggle("is-error", isError);
-    toast.classList.add("is-visible");
-
-    if (saveToastTimer !== null) clearTimeout(saveToastTimer);
-    saveToastTimer = window.setTimeout(() => {
-        toast.classList.remove("is-visible");
-    }, isError ? 6000 : 2500);
-}
 
 export function initHtmx(): void {
     document.body.addEventListener("htmx:configRequest", (e) => {

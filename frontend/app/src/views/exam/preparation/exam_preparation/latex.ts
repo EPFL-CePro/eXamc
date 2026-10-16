@@ -1,5 +1,5 @@
 import { URLS } from "./config.ts";
-import { ajaxGet, ajaxPost } from "./ajax.ts";
+import { ajaxGet, ajaxPost, hideModal, showModal } from "./ajax.ts";
 
 // Edit LaTeX file management
 
@@ -15,7 +15,7 @@ export function openEditLaTeXFileDialog(type: string): void {
             byIdOrThrow<HTMLTextAreaElement>("latex_source_text").value = (JSON.parse(data) as string[])[1] ?? "";
             byIdOrThrow("edit_latex_file_modal_title").innerText = "Edit " + type;
             byIdOrThrow("edit_latex_file_type").innerText = type;
-            $("#edit_latex_file_modal").modal("show");
+            showModal("#edit_latex_file_modal");
         },
         error: (error) => {
             console.log(error);
@@ -31,7 +31,7 @@ export function saveEditedLaTeXFile(): void {
 
     ajaxPost(URLS.saveLatexFile, data, {
         success: () => {
-            $("#edit_latex_file_modal").modal("hide");
+            hideModal("#edit_latex_file_modal");
         },
         error: (error) => {
             console.log(error);
@@ -183,7 +183,7 @@ export function openEditLaTeXPackagesDialog(type: string): void {
             renderUsedPackages();
             renderPackageSearchResults("");
 
-            $("#edit_latex_packages_modal").modal("show");
+            showModal("#edit_latex_packages_modal");
         },
         error: (error) => {
             console.log(error);
@@ -198,7 +198,7 @@ export function saveEditedLaTeXPackages(): void {
 
     ajaxPost(URLS.saveLatexPackages, data, {
         success: () => {
-            $("#edit_latex_packages_modal").modal("hide");
+            hideModal("#edit_latex_packages_modal");
         },
         error: (error) => {
             console.log(error);

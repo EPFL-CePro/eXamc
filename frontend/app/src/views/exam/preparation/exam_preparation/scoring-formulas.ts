@@ -1,6 +1,7 @@
-import { confirmDialog } from "@examc/helpers/confirm-dialog";
+import { ConfirmModal } from "@examc/modals";
 
 import { EXAM_PK, Selectors, URLS } from "./config.ts";
+import { showSaveToast } from "./save-toast.ts";
 import { ajaxGet, ajaxPost, getElement, hideModal, showModal } from "./ajax.ts";
 
 interface ScoringParams {
@@ -74,7 +75,7 @@ function submit(form: HTMLFormElement): void {
                 hideModal(Selectors.scoringModal);
 
                 if (response.message) {
-                    window.alert(response.message);
+                    showSaveToast(response.message, false);
                 }
                 return;
             }
@@ -193,7 +194,7 @@ function reloadFromCurrentForm(): void {
 async function deleteSavedRow(deleteUrl: string | undefined): Promise<void> {
     if (!deleteUrl) return;
 
-    const confirmed = await confirmDialog({
+    const confirmed = await ConfirmModal.confirm({
         title: "Delete scoring formula",
         message: "Delete this scoring formula? This cannot be undone.",
         confirmLabel: "Yes, delete",

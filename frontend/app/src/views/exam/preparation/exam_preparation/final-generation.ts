@@ -1,3 +1,5 @@
+import { ConfirmModal } from "@examc/modals";
+
 import { CFG, URLS } from "./config.ts";
 import { ajaxGet, ajaxPost, showModal, WITHOUT_LOADING_MODAL } from "./ajax.ts";
 
@@ -93,6 +95,12 @@ function showGenFinalError(message?: string): void {
     $("#generate_final_loading").hide();
 }
 
+function escapeHtml(text: string): string {
+    const element = document.createElement("div");
+    element.textContent = text;
+    return element.innerHTML;
+}
+
 function showGenFinalSuccess(data: FinalSuccess): void {
     const $success = $(`${DIALOG} #generate_final_success`);
 
@@ -106,7 +114,7 @@ function showGenFinalSuccess(data: FinalSuccess): void {
 
     if (data.warnings.length > 0) {
         warningsHtml = data.warnings
-            .map((w) => `<div class="alert alert-warning">${w}</div>`)
+            .map((w) => `<div class="alert alert-warning">${escapeHtml(w)}</div>`)
             .join("");
     }
 
@@ -114,7 +122,7 @@ function showGenFinalSuccess(data: FinalSuccess): void {
             <div class="alert alert-success">Final exam generated successfully.</div>
             ${warningsHtml}
             <div class="mb-3">
-                <strong>Build ID:</strong> ${data.build_id || "-"}<br>
+                <strong>Build ID:</strong> ${escapeHtml(data.build_id || "-")}<br>
                 <strong>Pages:</strong> ${summary.pages || 0}<br>
                 <strong>Boxes:</strong> ${summary.boxes || 0}<br>
                 <strong>Marks:</strong> ${summary.marks || 0}<br>
@@ -175,9 +183,16 @@ function showCancelFinalButtons(show: boolean): void {
 }
 
 // Stops the running generation (it stops within a few seconds, the exam is then editable again)
-function cancelFinalGeneration(): void {
+async function cancelFinalGeneration(): Promise<void> {
     if (!URLS.cancelFinal || !finalTracking) return;
-    if (!window.confirm("Cancel the final generation? Nothing will be generated.")) return;
+    const confirmed = await ConfirmModal.confirm({
+        title: "Cancel the final generation",
+        message: "Cancel the final generation? Nothing will be generated.",
+        confirmLabel: "Yes, cancel it",
+        confirmClass: "btn-danger",
+    });
+    // The generation may have ended while the question was open
+    if (!confirmed || !finalTracking) return;
 
     for (const id of ["generate-final-cancel-button", "final-generation-banner-cancel"]) {
         const button = document.getElementById(id) as HTMLButtonElement | null;
@@ -357,8 +372,8 @@ export function initFinalGeneration(): void {
         const startedAt = Date.parse(CFG.activeFinalStartedAt);
         trackFinalGeneration(CFG.activeFinalTaskId, Number.isNaN(startedAt) ? null : startedAt);
     }
-    document.getElementById("final-generation-banner-cancel")?.addEventListener("click", cancelFinalGeneration);
-    document.getElementById("generate-final-cancel-button")?.addEventListener("click", cancelFinalGeneration);
+    document.getElementById("final-generation-banner-cancel")?.addEventListener("click", () => void cancelFinalGeneration());
+    document.getElementById("generate-final-cancel-button")?.addEventListener("click", () => void cancelFinalGeneration());
     document.getElementById("final-generation-banner-show")?.addEventListener("click", () => {
         resetGenFinalUi();
         setGenFinalLoading(true);
@@ -369,7 +384,6 @@ export function initFinalGeneration(): void {
     const genFinalDialog = document.getElementById("generate_final_exam_files_dialog");
     if (genFinalDialog) {
         genFinalDialog.addEventListener("hidden.bs.modal", reloadAfterFinalGeneration);
-        $(genFinalDialog).on("hidden.bs.modal", reloadAfterFinalGeneration);
         genFinalDialog.querySelectorAll("[data-bs-dismiss='modal']").forEach((button) => {
             button.addEventListener("click", () => {
                 if (genFinalWasSuccessful) reloadAfterFinalGeneration();
