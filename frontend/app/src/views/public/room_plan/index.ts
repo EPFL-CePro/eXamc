@@ -2,12 +2,14 @@ import { Tab, Tooltip } from "bootstrap";
 import { zipSync } from "fflate";
 import html2canvas from "html2canvas";
 
-
-import "./main.scss";
+import "./room-plan.scss";
 
 type NumberingMode = "numbers" | "letters" | "prefix";
 
 const EXPORT_WIDTH = "1000px";
+
+/** Zoom steps of the Manual tab, 1 = plan fits the width. */
+const ZOOM_LEVELS = [1, 1.5, 2, 3, 4];
 
 function toNumberingMode(value: string | undefined): NumberingMode {
     return value === "letters" || value === "prefix" ? value : "numbers";
@@ -45,7 +47,7 @@ function saveBlob(blob: Blob, fileName: string): void {
 
 interface RoomPreviewOptions {
     /** Called once per room block, when it is created (e.g. to make the plan clickable). */
-    onCreate?: (frame: HTMLElement, img: HTMLImageElement) => void;
+    onCreate?: (block: HTMLElement, frame: HTMLElement, img: HTMLImageElement) => void;
     /** Called after the list of rooms changed. */
     onChange?: () => void;
 }
@@ -87,7 +89,7 @@ function initRoomPreviews(
         img.addEventListener("error", () => error?.classList.remove("d-none"));
         img.src = mapUrl.replace("__file__", encodeURIComponent(name));
 
-        onCreate?.(frame, img);
+        onCreate?.(block, frame, img);
         return block;
     };
 
@@ -125,14 +127,14 @@ function initRoomPreviews(
 function initDefaultTab(pane: HTMLElement, template: HTMLTemplateElement, mapUrl: string): void {
     initRoomPreviews(pane, template, mapUrl);
 
-    const form = pane.querySelector<HTMLFormElement>("#seat-map-form");
+    const form = pane.querySelector<HTMLFormElement>("#default-form");
     if (!form) return;
 
     const checkedValue = (name: string): string | undefined =>
         form.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value;
 
     const toggleRow = (fieldName: string, show: boolean): void => {
-        form.querySelector(`#DIV-${fieldName}`)?.classList.toggle("d-none", !show);
+        form.querySelector(`#div-${fieldName}`)?.classList.toggle("d-none", !show);
     };
 
     /** The special file is needed when skipping seats or using special numbering. */
@@ -176,7 +178,7 @@ function initSpecialTab(pane: HTMLElement, template: HTMLTemplateElement, mapUrl
     // The special form is rendered with prefix="special", so its fields are "special-<name>"
     const numberingName = "special-numbering_option";
 
-    const exportLayout = pane.querySelector<HTMLDivElement>("#export-layout");
+    const exportLayout = document.querySelector<HTMLDivElement>("#export-layout");
     const prefixInput = pane.querySelector<HTMLInputElement>("#prefix-input");
     const downloadButton = pane.querySelector<HTMLButtonElement>("#btn-download-plans");
     const undoButton = pane.querySelector<HTMLButtonElement>("#btn-undo-label");
@@ -184,6 +186,9 @@ function initSpecialTab(pane: HTMLElement, template: HTMLTemplateElement, mapUrl
         console.error("Room plan (special tab): an element of the page is missing.");
         return;
     }
+
+    // Nothing is sent to the server from this tab: pressing Enter in the prefix field must not reload the page
+    pane.querySelector<HTMLFormElement>("form")?.addEventListener("submit", (event) => event.preventDefault());
 
     /** Labels in the order they were placed, for Undo. */
     let placed: HTMLDivElement[] = [];
@@ -234,8 +239,59 @@ function initSpecialTab(pane: HTMLElement, template: HTMLTemplateElement, mapUrl
         relabelAll();
     };
 
+    /** Zoom buttons of one room: the frame gets wider and the viewport scrolls. */
+    const setupZoom = (block: HTMLElement, frame: HTMLElement): void => {
+        const controls = block.querySelector<HTMLElement>(".room-plan-zoom");
+        const viewport = block.querySelector<HTMLElement>(".room-plan-viewport");
+        const levelText = block.querySelector<HTMLElement>(".room-plan-zoom-level");
+        const zoomOut = block.querySelector<HTMLButtonElement>('[data-zoom="out"]');
+        const zoomIn = block.querySelector<HTMLButtonElement>('[data-zoom="in"]');
+        if (!controls || !viewport) return;
+
+        controls.classList.remove("d-none");
+        let level = 0;
+
+        const applyZoom = (nextLevel: number): void => {
+            level = Math.min(Math.max(nextLevel, 0), ZOOM_LEVELS.length - 1);
+            const zoom = ZOOM_LEVELS[level] ?? 1;
+
+            // Keep the point in the middle of the view where it is
+            const centerX = (viewport.scrollLeft + viewport.clientWidth / 2) / (viewport.scrollWidth || 1);
+            const centerY = (viewport.scrollTop + viewport.clientHeight / 2) / (viewport.scrollHeight || 1);
+
+            frame.style.width = `${zoom * 100}%`;
+
+            viewport.scrollLeft = centerX * viewport.scrollWidth - viewport.clientWidth / 2;
+            viewport.scrollTop = centerY * viewport.scrollHeight - viewport.clientHeight / 2;
+
+            if (levelText) levelText.textContent = `${Math.round(zoom * 100)}%`;
+            if (zoomOut) zoomOut.disabled = level === 0;
+            if (zoomIn) zoomIn.disabled = level === ZOOM_LEVELS.length - 1;
+        };
+
+        controls.addEventListener("click", (event) => {
+            const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("[data-zoom]") : null;
+            switch (button?.dataset.zoom) {
+                case "in":
+                    applyZoom(level + 1);
+                    break;
+                case "out":
+                    applyZoom(level - 1);
+                    break;
+                case "reset":
+                    applyZoom(0);
+                    break;
+            }
+        });
+
+        applyZoom(0);
+    };
+
     const list = initRoomPreviews(pane, template, mapUrl, {
-        onCreate: (frame, img) => img.addEventListener("click", (event) => placeLabel(frame, img, event)),
+        onCreate: (block, frame, img) => {
+            img.addEventListener("click", (event) => placeLabel(frame, img, event));
+            setupZoom(block, frame);
+        },
         onChange: () => {
             // Labels of deselected rooms are gone with their block
             placed = placed.filter((label) => label.isConnected);

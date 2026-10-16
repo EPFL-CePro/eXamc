@@ -15,7 +15,11 @@ from django.urls import reverse
 from django.views.generic.edit import FormView
 
 from examc_app.forms.misc import SeatingForm, SeatingSpecialForm
-from examc_app.utils.rooms_plans_functions import generate_plan
+from examc_app.utils.rooms_plans_functions import (
+    RoomPlan,
+    RoomPlanError,
+    generate_plans,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +191,7 @@ class GenerateRoomPlanView(FormView):
     GenerateRoomPlanView.as_view(extra_context={"curr_tab": "special"}).
     """
 
-    template_name = "public/room_plan.html"
+    template_name = "public/rooms_plans.html"
     form_class = SeatingForm
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -231,6 +235,17 @@ class GenerateRoomPlanView(FormView):
         special_path = self._special_file_path(data["special_file"], token)
         special_count = count_csv_lines(Path(special_path)) if special_path else None
 
+        # Special numbering reads its numbers from the file, whatever the skip option.
+        # (Skipping without a file just skips nothing.)
+        if numbering_option == "special" and special_path is None:
+            return HttpResponse(
+                "Special numbering needs a special numbering CSV file. Upload one and try again.", status=400
+            )
+
+        # generate_plans builds the path itself from csv_special_numbers/ + this name,
+        # and treats an empty string as "no file"
+        special_name = Path(special_path).name if special_path else ""
+
         try:
             ranges = seat_ranges(
                 seat_counts,
@@ -244,34 +259,32 @@ class GenerateRoomPlanView(FormView):
         except ValueError as error:
             return HttpResponse(str(error), status=400)
 
-        csv_data = [
-            [
-                image_file, csv_file, export_file_name(image_file, token),
-                numbering_option, skipping_option, first, last, str(special_path), shape_to_draw,
-            ]
+        rooms = [
+            RoomPlan(
+                image_file=image_file,
+                csv_file=csv_file,
+                export_file=export_file_name(image_file, token),
+                first_seat=first,
+                last_seat=last,
+            )
             for image_file, csv_file, (first, last) in zip(image_files, csv_files, ranges)
         ]
 
         # Only remove this user's previous exports, not everyone's
         remove_files(EXPORT_DIR, f"*_{token}_export.*")
 
-        # The original code passed the last room's range to every call; kept as is
-        last_first, last_last = ranges[-1]
-        export_paths: list[Path] = []
-
-        for image_file, csv_file in zip(image_files, csv_files):
-            export_file = export_file_name(image_file, token)
-            result = generate_plan(
-                csv_data, image_file, csv_file, export_file, numbering_option, skipping_option,
-                str(last_first), str(last_last), special_path, shape_to_draw,
+        try:
+            generate_plans(
+                rooms,
+                numbering_option=numbering_option,
+                skipping_option=skipping_option,
+                special_file=special_name,
+                shape=shape_to_draw,
             )
-            if result != "ok":
-                return HttpResponse(f"Error during plan generation: {result}", status=500)
+        except RoomPlanError as error:
+            return HttpResponse(f"Error during plan generation: {error}", status=500)
 
-            export_path = EXPORT_DIR / export_file
-            if not export_path.is_file():
-                return HttpResponse(f"No export file found for {export_file}.", status=404)
-            export_paths.append(export_path)
+        export_paths = [EXPORT_DIR / room.export_file for room in rooms]
 
         if self.request.POST.get("action") == "download":
             zip_path = EXPORT_DIR / f"seat_map_{token}_export.zip"
