@@ -39,6 +39,66 @@ $z-mini-dialog: 999999;
     }
 }
 
+
+// Shortcut hints above the editor
+.review-shortcuts-hint-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 4px;
+
+    @media (max-width: $hide-hints-below) {
+        display: none;
+    }
+
+    .review-shortcuts-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: $hint-bg;
+        color: $hint-fg;
+        font-size: 0.78rem;
+        line-height: 1.1;
+        white-space: nowrap;
+
+        &.review-shortcuts-hint-top {
+            border: 1px solid $hint-top-border;
+            background: $hint-top-bg;
+            color: $hint-top-fg;
+
+            .hint-icons {
+                color: #373737;
+            }
+        }
+
+        .hint-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .hint-icons {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.72rem;
+        }
+    }
+}
+
+// Icon-only buttons (toolbar, list toggle, discussion): no border or focus ring.
+// Keyboard users still get a focus indicator, drawn only when focusing with the keyboard.
+.btn-icon {
+    --bs-btn-border-width: 0;
+    --bs-btn-focus-box-shadow: none;
+
+    &:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: -4px;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -54,53 +114,6 @@ $z-mini-dialog: 999999;
     // -----------------------------------------------------------------------
 
     #review-center-div {
-        // Shortcut hints above the editor
-        .review-shortcuts-hint-row {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 4px;
-
-            @media (max-width: $hide-hints-below) {
-                display: none;
-            }
-
-            .review-shortcuts-hint {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 4px 8px;
-                border-radius: 6px;
-                background: $hint-bg;
-                color: $hint-fg;
-                font-size: 0.78rem;
-                line-height: 1.1;
-                white-space: nowrap;
-
-                &.review-shortcuts-hint-top {
-                    border: 1px solid $hint-top-border;
-                    background: $hint-top-bg;
-                    color: $hint-top-fg;
-
-                    .hint-icons {
-                        color: #373737;
-                    }
-                }
-
-                .hint-item {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                }
-
-                .hint-icons {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    font-size: 0.72rem;
-                }
-            }
-        }
-
         // -------------------------------------------------------------------
         // Editor: toolbar / marker area / bottom bar
         // -------------------------------------------------------------------

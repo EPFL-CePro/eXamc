@@ -23,27 +23,56 @@
             You are currently blocked for Review!<br><br>Please contact the teacher to be unblocked.
         </div>
     {% elif copies_pages_list %}
-        <div class="d-flex align-items-center gap-5 mb-2 ms-3">
-            <a class="btn btn-dark btn-sm" href="{% url 'reviewView' exam_selected.pk %}">
-                <i class="fa-solid fa-arrow-left fa-lg me-2" aria-hidden="true"></i>Back to Summary
-            </a>
-            <h3 class="mb-0">
-                <i class="fa-solid fa-glasses me-2" aria-hidden="true"></i>Review {{ pages_group.group_name }}
-            </h3>
+        <div class="d-flex justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-5">
+                <h3 class="mb-0">
+                    <i class="fa-solid fa-glasses me-2"></i> Review {{ pages_group.group_name }}
+                </h3>
+                <a class="btn btn-icon btn-dark btn-sm" href="{% url 'reviewView' exam_selected.pk %}">
+                    <i class="fa-solid fa-arrow-left fa-lg me-2"></i> Back to Summary
+                </a>
+
+                <div class="d-flex justify-content-end me-3">
+                    <button type="button" class="btn btn-dark btn-sm js-toggle-comments"
+                            data-bs-toggle="modal" data-bs-target="#commentsModal"
+                            title="Discussion" aria-label="Discussion">
+                        <i class="fa-solid fa-comments fa-lg me-2"></i> See comments
+                    </button>
+                </div>
+            </div>
+
+            <div class="review-shortcuts-hint-row">
+                <div class="review-shortcuts-hint review-shortcuts-hint-top" id="navigation-shortcuts-help"
+                     role="note" aria-label="Navigation shortcuts">
+                    <span class="hint-item">
+                        <span class="hint-icons" aria-hidden="true">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </span>
+                        <span>page</span>
+                    </span>
+                    <span class="hint-item">
+                        <span class="hint-icons" aria-hidden="true">
+                            <i class="fa-solid fa-arrow-up"></i>
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </span>
+                        <span>student</span>
+                    </span>
+                </div>
+            </div>
         </div>
 
-        <div class="d-flex" id="reviewGroup_div" style="height:92vh;" tabindex="0">
+        <div class="d-flex gap-3" id="reviewGroup_div" style="height:92vh;" tabindex="0">
             {# Left: list of copies and pages #}
             <div id="pages_group_list" class="bg-body-tertiary">
-                <button type="button" class="btn btn-link text-secondary float-end m-1 p-0"
+                                <button type="button" class="btn btn-icon btn-link text-secondary float-end m-1 p-0"
                         id="expandCollapseGroupListBt"
-                        data-bs-toggle="collapse" data-bs-target="#pages_group_list_table_div"
                         aria-controls="pages_group_list_table_div" aria-expanded="true"
                         aria-label="Show or hide the list of pages">
-                    <i class="fa-lg" id="expand-group-list-icon" aria-hidden="true"></i>
+                    <i class="fa-solid fa-table-list fa-lg d-none" id="expand-group-list-icon" aria-hidden="true"></i>
                     <i class="fa-solid fa-angle-double-left me-3" id="collapse-group-list-icon" aria-hidden="true"></i>
                 </button>
-                <div class="collapse collapse-horizontal show" id="pages_group_list_table_div">
+                <div id="pages_group_list_table_div">
                     <table class="table table-striped table-sm" id="table-copies-pages">
                         <thead>
                             <tr>
@@ -51,7 +80,7 @@
                                     <i class="fa-solid fa-lock fa-xs" aria-hidden="true"></i>
                                     <span class="visually-hidden">Locked</span>
                                 </th>
-                                <th scope="col">id</th>
+                                <th scope="col">ID</th>
                                 <th scope="col">Copy</th>
                                 <th scope="col">Page</th>
                                 <th scope="col">Graded</th>
@@ -95,49 +124,30 @@
 
             {# Center: page viewer and annotation tools #}
             <div class="d-flex flex-column position-relative h-100 ms-1" id="review-center-div" style="width:60vw;">
-                <div class="review-shortcuts-hint-row">
-                    <div class="review-shortcuts-hint review-shortcuts-hint-top" id="navigation-shortcuts-help"
-                         role="note" aria-label="Navigation shortcuts">
-                        <span class="hint-item">
-                            <span class="hint-icons" aria-hidden="true">
-                                <i class="fa-solid fa-arrow-left"></i>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </span>
-                            <span>page</span>
-                        </span>
-                        <span class="hint-item">
-                            <span class="hint-icons" aria-hidden="true">
-                                <i class="fa-solid fa-arrow-up"></i>
-                                <i class="fa-solid fa-arrow-down"></i>
-                            </span>
-                            <span>student</span>
-                        </span>
-                    </div>
-                </div>
                 <div class="list-group list-group-horizontal" id="pagination"></div>
                 <div id="copy_page_select" class="position-absolute" style="z-index:99;margin-top:100px;right:20px;"></div>
                 <div id="markerjs_div">
                     <div class="markerjs-toolbar d-flex" id="mjs-toolbar">
                         <div class="toolbar-left d-flex">
-                            <button type="button" class="btn btn-light" id="btn-clear"
+                            <button type="button" class="btn btn-icon btn-light" id="btn-clear"
                                     title="Clear all markers" aria-label="Clear all markers">
                                 <i class="fa-solid fa-broom fa-lg" aria-hidden="true"></i>
                             </button>
                         </div>
                         <div class="toolbar-center d-flex" id="mjs-toolbar-center">
-                            <button type="button" class="btn btn-light" id="btn-pointer"
+                            <button type="button" class="btn btn-icon" id="btn-pointer"
                                     title="Select (Shift+V)" aria-label="Select (Shift+V)">
                                 <i class="fa-solid fa-arrow-pointer fa-lg" aria-hidden="true"></i>
                             </button>
-                            <button type="button" class="btn btn-light" id="btn-text-marker"
+                            <button type="button" class="btn btn-icon btn-light" id="btn-text-marker"
                                     title="Text marker (Shift+T)" aria-label="Text marker (Shift+T)">
                                 <i class="fa-solid fa-t fa-lg" aria-hidden="true"></i>
                             </button>
-                            <button type="button" class="btn btn-light" id="btn-frame-marker"
+                            <button type="button" class="btn btn-icon btn-light" id="btn-frame-marker"
                                     title="Rectangle marker (Shift+R)" aria-label="Rectangle marker (Shift+R)">
                                 <i class="fa-regular fa-square fa-lg" aria-hidden="true"></i>
                             </button>
-                            <button type="button" class="btn btn-light" id="btn-freehand-marker"
+                            <button type="button" class="btn btn-icon btn-light" id="btn-freehand-marker"
                                     title="Freehand marker (Shift+F)" aria-label="Freehand marker (Shift+F)">
                                 <i class="fa-solid fa-s fa-lg" aria-hidden="true"
                                    style="margin-top:10px;transform:scaleY(-1) rotate(55deg);"></i>
@@ -145,12 +155,12 @@
                             </button>
                         </div>
                         <div class="toolbar-right d-flex">
-                            <p class="text-muted small d-none" id="magnify-help">
+                            <p class="text-body-secondary small d-none" id="magnify-help">
                                 Tip: click outside the image to stop magnifying.
                             </p>
-                            <button type="button" class="btn btn-light" id="btn-magnify"
+                            <button type="button" class="btn btn-icon btn-light" id="btn-magnify"
                                     title="Magnify" aria-label="Magnify">
-                                <i class="fa-solid fa-magnifying-glass-plus fa-lg" aria-hidden="true"></i>
+                                <i class="fa-solid fa-magnifying-glass fa-lg" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
@@ -161,7 +171,7 @@
                     </div>
                     <div class="markerjs-bottom-bar" id="mjs-bottom-bar">
                         <div class="color-picker-wrapper">
-                            <button type="button" class="btn btn-light" id="btn-color"
+                            <button type="button" class="btn btn-icon btn-light" id="btn-color"
                                     title="Marker color" aria-label="Marker color">
                                 <i class="fa-solid fa-palette fa-lg" aria-hidden="true"></i>
                             </button>
@@ -176,16 +186,8 @@
 
             {# Right: discussion button and grading schemes #}
             <div class="h-100">
-                <div class="d-flex justify-content-end me-3" style="margin-top:-35px;">
-                    <button type="button" class="btn btn-link link-dark p-0 js-toggle-comments"
-                            data-bs-toggle="modal" data-bs-target="#commentsModal"
-                            title="Discussion" aria-label="Discussion">
-                        <i class="fa-solid fa-comments fa-2x ms-2" id="comment-icon" aria-hidden="true"></i>
-                    </button>
-                </div>
                 {% if pages_group.use_grading_scheme %}
-                    <div id="grading-scheme-div" class="position-relative h-100 bg-body-tertiary p-1 pt-2"
-                         style="margin-top:35px;">
+                    <div id="grading-scheme-div" class="position-relative h-100 bg-body-tertiary p-1 pt-2">
                         <h6>Grading Schemes</h6>
 
                         <ul class="nav nav-pills flex-column flex-md-row border" id="review-scheme-pills" role="tablist">
@@ -229,7 +231,7 @@
                         <div id="comments-container" class="p-1"></div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-icon btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>

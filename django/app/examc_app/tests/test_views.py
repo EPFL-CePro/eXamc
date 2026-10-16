@@ -393,7 +393,7 @@ class TestReviewSettingsView(TestCase):
 
         response = self.client.get(
             reverse(
-                "reviewSettingsView",
+                "review_settings_view",
                 kwargs={
                     "exam_pk": self.exam.pk,
                     "curr_tab": "groups",

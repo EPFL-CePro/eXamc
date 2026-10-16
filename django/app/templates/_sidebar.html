@@ -62,7 +62,7 @@
                             <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'reviewView' exam_selected.pk %}">
                                 <span class="fa-solid fa-glasses fa-fw" aria-hidden="true"></span>Review</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'reviewSettingsView' exam_selected.pk 'groups' %}">
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'review_settings_view' exam_selected.pk %}">
                                 <span class="fa-solid fa-gears fa-fw" aria-hidden="true"></span>Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'upload_scans' exam_selected.pk %}">

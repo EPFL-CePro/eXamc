@@ -1,65 +1,79 @@
-</br>
+{% if grading_schemes_pages_groups %}
+    <div class="d-flex gap-2 mb-3">
+        <h4 class="m-0">
+            1. Select a pages group
+        </h4>
+    </div>
 
-<h6>GRADING SCHEMES</h6>
-<ul class="nav nav-pills flex-column flex-md-row border"
-    id="gs-pages-groups-pills"
-    role="tablist">
-  {% for group in grading_schemes_pages_groups %}
-    <li class="nav-item" role="presentation">
-      <a type="button"
-              class="flex-sm-fill text-sm-center nav-link {% if forloop.first %}active{% endif %}"
-              id="gs-pages-group-{{ group.id }}-tab"
-              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
-              hx-get="{% url 'grading_scheme_pages_group' exam_selected.id group.id %}"
-              hx-target="#grading-scheme-panel"
-              hx-swap="innerHTML"
-              hx-on:click="
-                const list = this.closest('#gs-pages-groups-pills');
-                list.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected','false'); });
-                this.classList.add('active'); this.setAttribute('aria-selected','true');
-              "
-             {% if forloop.first %}hx-trigger="load once, click"{% endif %}>
-        {{ group.group_name }}
-      </a>
-    </li>
-  {% endfor %}
-</ul>
+    <div class="d-inline-flex flex-column flex-sm-row align-items-sm-center gap-2 border rounded p-1 mb-5"
+         style="width: fit-content">
+        <ul class="nav nav-pills nav-fill flex-column flex-sm-row"
+            id="gs-pages-groups-pills"
+            role="tablist">
+            {% for group in grading_schemes_pages_groups %}
+                <li class="nav-item" role="presentation">
+                    <a type="button"
+                       class="flex-sm-fill text-sm-center nav-link {% if forloop.first %}active{% endif %}"
+                       id="gs-pages-group-{{ group.id }}-tab"
+                       aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                       hx-get="{% url 'grading_scheme_pages_group' exam_selected.id group.id %}"
+                       hx-target="#grading-scheme-panel"
+                       hx-swap="innerHTML"
+                       hx-on:click="
+                    const list = this.closest('#gs-pages-groups-pills');
+                    list.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected','false'); });
+                    this.classList.add('active'); this.setAttribute('aria-selected','true');
+                  "
+                       {% if forloop.first %}hx-trigger="load once, click"{% endif %}>
+                        {{ group.group_name }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
 
-<div id="grading-scheme-panel" class="tab-content"></div>
+    <div id="grading-scheme-panel" class="tab-content"></div>
 
-<script>
-  (function(){
-    const first = document.querySelector('#gs-pages-groups-pills .nav-link');
-    if (first) first.click();
-  }());
 
-  function initSortableIn(root) {
-    $(root).find("tbody[data-sortable='checkboxes']").each(function () {
-      const $tbody = $(this);
+    <script>
+        (function () {
+            const first = document.querySelector('#gs-pages-groups-pills .nav-link');
+            if (first) first.click();
+        }());
 
-      if ($tbody.data("sortable-initialized")) return;
-      $tbody.data("sortable-initialized", true);
+        // TODO fix, this no longer works, probably as old bootstrap js was removed
+        function initSortableIn(root) {
+            $(root).find("tbody[data-sortable='checkboxes']").each(function () {
+                const $tbody = $(this);
 
-      $tbody.sortable({
-        handle: ".drag-handle",
-        items: "tr.sortable-row",
-        update: function () {
-          $tbody.find("tr.sortable-row").each(function (newPos) {
-            // Find the hidden position input inside this row
-            const $pos = $(this).find("input[name$='-position']");
-            $pos.val(newPos); // or newPos + 1 if you prefer 1-based positions
-          });
+                if ($tbody.data("sortable-initialized")) return;
+                $tbody.data("sortable-initialized", true);
+
+                $tbody.sortable({
+                    handle: ".drag-handle",
+                    items: "tr.sortable-row",
+                    update: function () {
+                        $tbody.find("tr.sortable-row").each(function (newPos) {
+                            // Find the hidden position input inside this row
+                            const $pos = $(this).find("input[name$='-position']");
+                            $pos.val(newPos); // or newPos + 1 if you prefer 1-based positions
+                        });
+                    }
+                });
+            });
         }
-      });
-    });
-  }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    initSortableIn(document);
-  });
+        document.addEventListener("DOMContentLoaded", function () {
+            initSortableIn(document);
+        });
 
-  document.body.addEventListener("htmx:afterSwap", function (evt) {
-    initSortableIn(evt.target);
-  });
-
-</script>
+        document.body.addEventListener("htmx:afterSwap", function (evt) {
+            initSortableIn(evt.target);
+        });
+    </script>
+{% else %}
+    <div class="alert alert-info" role="alert" style="width: fit-content">
+        <p>You need to have a page group with a grading scheme enabled to manage grading schemes.</p>
+        <p class="mb-0">Access the pages group options to manage this.</p>
+    </div>
+{% endif %}

@@ -1,13 +1,15 @@
-</br>
-<h6>REVIEWERS</h6>
-{% load crispy_forms_tags %}
-
 <form id="form-reviewer" method="POST">
     {% csrf_token %}
     {{ exam_reviewers_formset.management_form }}
 
-    <button type="submit" title="save reviewers" name="submit-reviewers" style="margin:20px;" class="btn btn-dark btn-sm"><i class="fas fa-floppy-disk fa-2xl" style="margin-right:10px;"></i>Save</button>
-    <table class="table" style="max-width:500px">
+    <div class="d-flex gap-3 mb-3" style="max-width: var(--form-max-width)">
+        <h4 class="m-0">Exam reviewers</h4>
+        <button type="submit" title="Save exam reviewers changes" name="submit-reviewers" class="btn btn-primary btn-sm">
+            <i class="fas fa-floppy-disk"></i> Save changes
+        </button>
+    </div>
+
+    <table class="table" style="max-width: var(--form-max-width)">
       <thead>
         <tr>
             {% for field in exam_reviewers_formset.initial_forms.0 %}
@@ -19,23 +21,19 @@
       </thead>
       <tbody id="group-tbody">
         {% for form in exam_reviewers_formset.initial_forms %}
-        <tr>
-            {% for hidden in form.hidden_fields %}
-                {{ hidden }}
-            {% endfor %}
-            {% for field in form.visible_fields %}
-            {% if field.label == 'Delete' %}
-                <td style="text-align:center;padding-top:35px">{{ field }}</td>
-            {% else %}
-                <td>{{ field }}</td>
-            {% endif %}
-            {% endfor %}</tr>
+            <tr>
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+                {% for field in form.visible_fields %}
+                {% if field.label == 'Delete' %}
+                    <td style="text-align:center;padding-top:35px">{{ field }}</td>
+                {% else %}
+                    <td>{{ field }}</td>
+                {% endif %}
+                {% endfor %}
+            </tr>
         {% endfor %}
-        </tr>
       </tbody>
     </table>
 </form>
-
-<script type="text/javascript">
-
-</script>

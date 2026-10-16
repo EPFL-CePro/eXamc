@@ -1338,6 +1338,7 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
         } else {
             new DataTable(tableCopiesPages, {
                 scrollY: '83.5vh',
+                scrollX: false,
                 layout: {
                     topStart: null,
                     topEnd: null,
@@ -1594,21 +1595,11 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
     });
 
     // Expand/collapse left group list panel
-    document.getElementById("expandCollapseGroupListBt").addEventListener("click", _=> {
-        const expandIcon = $("#expand-group-list-icon");
-        const collapseIcon = $("#collapse-group-list-icon");
-
-        if (collapseIcon.hasClass('fa-angle-double-left')) {
-            collapseIcon.removeClass('fa-angle-double-left');
-            expandIcon.addClass("fa-solid fa-table-list");
-            expandIcon.show();
-            collapseIcon.hide();
-        } else {
-            expandIcon.removeClass('fa-solid fa-table-list');
-            collapseIcon.addClass("fa-angle-double-left");
-            collapseIcon.show();
-            expandIcon.hide();
-        }
+    document.getElementById("expandCollapseGroupListBt").addEventListener("click", (event) => {
+        const collapsed = document.getElementById("pages_group_list_table_div").classList.toggle("d-none");
+        event.currentTarget.setAttribute("aria-expanded", String(!collapsed));
+        document.getElementById("expand-group-list-icon").classList.toggle("d-none", !collapsed);
+        document.getElementById("collapse-group-list-icon").classList.toggle("d-none", collapsed);
     });
 
     // ---------------------------------------------------------------------------

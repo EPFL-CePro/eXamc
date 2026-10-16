@@ -31,7 +31,10 @@ from examc_app.views.review_views import (
 
 logger = logging.getLogger(__name__)
 
-class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
+
+class ReviewSettingsView(
+    ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView
+):
     """
     View for managing review settings for a specific exam.
 
@@ -41,11 +44,12 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
     Methods:
         get_context_data: Overrides the base class method to provide additional context data for rendering the view.
     """
+
     model = Exam
-    template_name = 'review/settings/reviewSettings.html'
+    template_name = "review/settings/review_settings.html"
     error_msg = None
-    pk_url_kwarg = 'exam_pk'
-    perm_codenames = ['manage']
+    pk_url_kwarg = "exam_pk"
+    perm_codenames = ["manage"]
 
     def get_context_data(self, **kwargs):
         """
@@ -55,56 +59,66 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
 
         :return: dict: A dictionary containing context data for rendering the view.
         """
-        context = super(ReviewSettingsView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
+
+        context["nav_url"] = "review_settings_view"
 
         exam = Exam.objects.get(pk=context.get("object").id)
 
         if user_allowed(exam, self.request.user.id):
-            curr_tab = "groups"
-            if self.kwargs.get("curr_tab") != '':
-                curr_tab = self.kwargs.get("curr_tab")
-            formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam, group__pk__in=[2, 3, 4]))
+            curr_tab = self.kwargs.get("curr_tab")
+            if not curr_tab:
+                curr_tab = "pages-groups-tab"
+
+            formset_reviewers = ReviewersFormSet(
+                queryset=ExamUser.objects.filter(exam=exam, group__pk__in=[2, 3, 4])
+            )
 
             amc_project_path = get_amc_project_path(exam, False)
+
             if amc_project_path:
                 pages_groups = PagesGroup.objects.filter(exam=exam)
-                grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
+                grading_schemes_pages_groups = PagesGroup.objects.filter(
+                    exam=exam, use_grading_scheme=True
+                )
                 locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
                 amc_data_path = get_amc_project_path(exam, True) + "/data/"
                 with AmcLayoutDbManager(
                     amc_data_path=amc_data_path
                 ) as amc_layout_db_manager:
                     questions = amc_layout_db_manager.select_questions()
-                questions_choices = [(q['name'], q['name']) for q in questions]
-                formset_pages_groups = PagesGroupsFormSet(queryset=pages_groups, initial=[
-                    {'id': None, 'group_name': 'Select', 'nb_pages': -1}],
-                                                          form_kwargs={"questions_choices": questions_choices})
+                questions_choices = [(q["name"], q["name"]) for q in questions]
+                formset_pages_groups = PagesGroupsFormSet(
+                    queryset=pages_groups,
+                    initial=[{"id": None, "group_name": "Select", "nb_pages": -1}],
+                    form_kwargs={"questions_choices": questions_choices},
+                )
 
-                summernote_media_form = GradingSchemeCheckBoxForm()  # empty instance, just for .media
+                summernote_media_form = (
+                    GradingSchemeCheckBoxForm()
+                )  # empty instance, just for .media
 
-                context['user_allowed'] = True
-                context['nav_url'] = "reviewSettingsView"
-                context['exam_reviewers_formset'] = formsetReviewers
-                context['exam_pages_groups_formset'] = formset_pages_groups
-                context['curr_tab'] = curr_tab
-                context['summernote_media_form'] = summernote_media_form
-                context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
-                context['locked_pages_group_ids'] = locked_pages_group_ids
+                context["user_allowed"] = True
+                context["exam_reviewers_formset"] = formset_reviewers
+                context["exam_pages_groups_formset"] = formset_pages_groups
+                context["nav_url"] = "review_settings_view"
+                context["curr_tab"] = curr_tab
+                context["summernote_media_form"] = summernote_media_form
+                context["grading_schemes_pages_groups"] = grading_schemes_pages_groups
+                context["locked_pages_group_ids"] = locked_pages_group_ids
             else:
+                context["user_allowed"] = True
+                context["nav_url"] = "review_settings_view"
+                context["curr_tab"] = curr_tab
+                context["locked_pages_group_ids"] = []
 
-                context['user_allowed'] = True
-                context['nav_url'] = "reviewSettingsView"
-                context['curr_tab'] = curr_tab
-                context['locked_pages_group_ids'] = []
-
-            context['exam_selected'] = exam
+            context["exam_selected"] = exam
             exam = exam.get_overall_exam_or_default()
-            context['exam'] = exam
+            context["exam"] = exam
             return context
         else:
-            context['user_allowed'] = False
-            context['nav_url'] = "reviewSettingsView"
-            context['exam'] = exam
+            context["user_allowed"] = False
+            context["exam"] = exam
             return context
 
     # Define method to handle POST request
@@ -117,41 +131,57 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
         :return: HttpResponse: A response containing the updated view or an error message.
         """
         self.object = self.get_object()
-        exam = Exam.objects.get(pk=self.kwargs['exam_pk'])
+        exam = Exam.objects.get(pk=self.kwargs["exam_pk"])
         error_messages = []
 
         if "submit-reviewers" in self.request.POST:
-            curr_tab = "reviewers"
+            curr_tab = "reviewers-tab"
             formset = ReviewersFormSet(self.request.POST)
             if formset.is_valid():
                 for form in formset:
-                    if form.is_valid() and form.cleaned_data and form.cleaned_data["user"]:
-                        examReviewer = form.save(commit=False)
-                        examReviewer.exam = exam
+                    if (
+                        form.is_valid()
+                        and form.cleaned_data
+                        and form.cleaned_data["user"]
+                    ):
+                        exam_reviewer = form.save(commit=False)
+                        exam_reviewer.exam = exam
                         if "pages_groups" in form.cleaned_data:
-                            examReviewer.pages_groups.set(form.cleaned_data["pages_groups"])
-                            examReviewer.save()
+                            exam_reviewer.pages_groups.set(
+                                form.cleaned_data["pages_groups"]
+                            )
+                            exam_reviewer.save()
                             form.save_m2m()
         else:
-            curr_tab = "groups"
+            curr_tab = "pages-groups-tab"
             amc_data_path = get_amc_project_path(exam, True) + "/data/"
             with AmcLayoutDbManager(
                 amc_data_path=amc_data_path
             ) as amc_layout_db_manager:
                 questions = amc_layout_db_manager.select_questions()
-            questions_choices = [(q['name'], q['name']) for q in questions]
-            formset = PagesGroupsFormSet(self.request.POST, form_kwargs={"questions_choices": questions_choices})
+            questions_choices = [(q["name"], q["name"]) for q in questions]
+            formset = PagesGroupsFormSet(
+                self.request.POST, form_kwargs={"questions_choices": questions_choices}
+            )
             if formset.is_valid():
                 for form in formset:
                     if form.is_valid() and form.cleaned_data:
                         pages_group = form.save(commit=False)
                         if form.cleaned_data["nb_pages"] > -1:
-                            existing_group = None
                             if pages_group.pk:
-                                existing_group = PagesGroup.objects.filter(pk=pages_group.pk, exam=exam).first()
-                                if not existing_group or not pages_group_has_review_activity(existing_group):
+                                existing_group = PagesGroup.objects.filter(
+                                    pk=pages_group.pk, exam=exam
+                                ).first()
+                                if (
+                                    not existing_group
+                                    or not pages_group_has_review_activity(
+                                        existing_group
+                                    )
+                                ):
                                     continue
-                                if not pages_group_settings_changed(existing_group, pages_group):
+                                if not pages_group_settings_changed(
+                                    existing_group, pages_group
+                                ):
                                     pass
                                 else:
                                     error_messages.append(
@@ -161,9 +191,9 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                                     continue
 
                             if not pages_group_name_available(
-                                    exam,
-                                    pages_group.group_name,
-                                    exclude_pages_group_id=pages_group.pk,
+                                exam,
+                                pages_group.group_name,
+                                exclude_pages_group_id=pages_group.pk,
                             ):
                                 error_messages.append(
                                     f"Question '{pages_group.group_name}' is already used by another pages group."
@@ -174,7 +204,9 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
                             pages_group.save()
             else:
                 logger.warning(formset.errors)
-                error_messages.append("Some pages groups are invalid. Please correct the form and retry.")
+                error_messages.append(
+                    "Some pages groups are invalid. Please correct the form and retry."
+                )
 
         error_msg = " ".join(dict.fromkeys(error_messages)) if error_messages else None
 
@@ -183,38 +215,42 @@ class ReviewSettingsView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScans
         amc_data_path = get_amc_project_path(exam, True) + "/data/"
         with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
             questions = amc_layout_db_manager.select_questions()
-        questions_choices = [(q['name'], q['name']) for q in questions]
-        formsetPagesGroups = PagesGroupsFormSet(queryset=PagesGroup.objects.filter(exam=exam), initial=[
-            {'id': None, 'group_name': 'Select', 'nb_pages': -1}], form_kwargs={"questions_choices": questions_choices})
+        questions_choices = [(q["name"], q["name"]) for q in questions]
+        formsetPagesGroups = PagesGroupsFormSet(
+            queryset=PagesGroup.objects.filter(exam=exam),
+            initial=[{"id": None, "group_name": "Select", "nb_pages": -1}],
+            form_kwargs={"questions_choices": questions_choices},
+        )
 
-        grading_schemes_pages_groups = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True)
+        grading_schemes_pages_groups = PagesGroup.objects.filter(
+            exam=exam, use_grading_scheme=True
+        )
         locked_pages_group_ids = get_locked_pages_group_ids_for_exam(exam)
 
-        context = super(ReviewSettingsView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
+        context["nav_url"] = "review_settings_view"
+        context["exam_selected"] = exam
+        exam = exam.get_overall_exam_or_default()
+        context["exam"] = exam
+
         if user_allowed(exam, self.request.user.id):
-            context['user_allowed'] = True
-            context['nav_url'] = "reviewSettingsView"
-            context['exam_selected'] = exam
-            exam = exam.get_overall_exam_or_default()
-            context['exam'] = exam
-            context['exam_pages_groups_formset'] = formsetPagesGroups
-            context['exam_reviewers_formset'] = formsetReviewers
-            context['curr_tab'] = curr_tab
-            context['grading_schemes_pages_groups'] = grading_schemes_pages_groups
-            context['error_msg'] = error_msg
-            context['locked_pages_group_ids'] = locked_pages_group_ids
+            context["user_allowed"] = True
+
+            context["exam_pages_groups_formset"] = formsetPagesGroups
+            context["exam_reviewers_formset"] = formsetReviewers
+            context["curr_tab"] = curr_tab
+            context["grading_schemes_pages_groups"] = grading_schemes_pages_groups
+            context["error_msg"] = error_msg
+            context["locked_pages_group_ids"] = locked_pages_group_ids
         else:
-            context['user_allowed'] = False
-            context['nav_url'] = "reviewSettingsView"
-            context['exam_selected'] = exam
-            exam = exam.get_overall_exam_or_default()
-            context['exam'] = exam
+            context["user_allowed"] = False
+
             return context
 
         return self.render_to_response(context=context)
 
 
-@exam_permission_required(['manage'])
+@exam_permission_required(["manage"])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
 def add_new_pages_group(request: HttpRequest, exam_pk: int):
@@ -233,14 +269,19 @@ def add_new_pages_group(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     new_group = PagesGroup()
     new_group.exam = exam
-    new_group.group_name = 'Select...'
+    new_group.group_name = "Select..."
     new_group.nb_pages = -1
     new_group.save()
 
-    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
+    return redirect(
+        reverse(
+            "review_settings_view",
+            kwargs={"exam_pk": exam_pk, "curr_tab": "pages-groups-tab"},
+        )
+    )
 
 
-@exam_permission_required(['manage'])
+@exam_permission_required(["manage"])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
 def delete_pages_group(request: HttpRequest, group_pk: int, exam_pk: int):
@@ -262,14 +303,24 @@ def delete_pages_group(request: HttpRequest, group_pk: int, exam_pk: int):
             request,
             f"Pages group '{pages_group.group_name}' is locked and cannot be deleted because review data already exists.",
         )
-        return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
+        return redirect(
+            reverse(
+                "review_settings_view",
+                kwargs={"exam_pk": exam_pk, "curr_tab": "pages-groups-tab"},
+            )
+        )
 
     pages_group.delete()
 
-    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
+    return redirect(
+        reverse(
+            "review_settings_view",
+            kwargs={"exam_pk": exam_pk, "curr_tab": "pages-groups-tab"},
+        )
+    )
 
 
-@exam_permission_required(['manage'])
+@exam_permission_required(["manage"])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
 def edit_pages_group_grading_help(request: HttpRequest, exam_pk: int):
@@ -284,14 +335,21 @@ def edit_pages_group_grading_help(request: HttpRequest, exam_pk: int):
 
     :return: HttpResponseRedirect: A redirect response to the review settings page for the specified exam.
     """
-    pages_group = get_object_or_404(PagesGroup, pk=request.POST.get('group_pk'), exam_id=exam_pk)
-    pages_group.grading_help = request.POST['grading_help']
+    pages_group = get_object_or_404(
+        PagesGroup, pk=request.POST.get("group_pk"), exam_id=exam_pk
+    )
+    pages_group.grading_help = request.POST["grading_help"]
     pages_group.save()
 
-    return redirect(reverse('reviewSettingsView', kwargs={'exam_pk': exam_pk, 'curr_tab': "groups"}))
+    return redirect(
+        reverse(
+            "review_settings_view",
+            kwargs={"exam_pk": exam_pk, "curr_tab": "pages-groups-tab"},
+        )
+    )
 
 
-@exam_permission_required(['manage', 'review'])
+@exam_permission_required(["manage", "review"])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
 def get_pages_group_grading_help(request: HttpRequest, exam_pk: int):
@@ -308,7 +366,9 @@ def get_pages_group_grading_help(request: HttpRequest, exam_pk: int):
     :return: HttpResponse: An HTTP response containing the grading help for the pages group.
     """
 
-    pages_group = get_object_or_404(PagesGroup, pk=request.POST.get('group_pk'), exam_id=exam_pk)
+    pages_group = get_object_or_404(
+        PagesGroup, pk=request.POST.get("group_pk"), exam_id=exam_pk
+    )
     # grading_help_group_form = ckeditorForm()
     # grading_help_group_form.initial['ckeditor_txt'] = pages_group.grading_help
 

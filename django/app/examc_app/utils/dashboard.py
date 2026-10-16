@@ -304,7 +304,7 @@ def _add_manage_todos(todos: list[DashboardTodo], exam: Exam):
                 todos,
                 f"{exam.code}: configure review groups",
                 "No page group exists for online review.",
-                reverse("reviewSettingsView", kwargs={"exam_pk": exam.pk, "curr_tab": "groups"}),
+                reverse("review_settings_view", kwargs={"exam_pk": exam.pk, "curr_tab": "pages-groups-tab"}),
                 "fa-cogs",
             )
         else:
@@ -313,7 +313,7 @@ def _add_manage_todos(todos: list[DashboardTodo], exam: Exam):
                     todos,
                     f"{exam.code}: assign reviewers",
                     "No dedicated reviewer is assigned to this exam.",
-                    reverse("reviewSettingsView", kwargs={"exam_pk": exam.pk, "curr_tab": "reviewers"}),
+                    reverse("review_settings_view", kwargs={"exam_pk": exam.pk, "curr_tab": "reviewers-tab"}),
                     "fa-user-plus",
                 )
             if not _exam_has_review_scan_files(exam):
