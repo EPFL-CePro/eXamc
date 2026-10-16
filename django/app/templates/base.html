@@ -117,12 +117,9 @@
             {# Impersonation banner #}
             {% if request.impersonator %}
                 <div class="alert alert-warning d-flex justify-content-between align-items-center" role="alert">
-                    <div>
-                        <i class="fa-solid fa-user-secret"></i>
-                        Impersonating {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
-                        as {{ request.impersonator.first_name }} {{ request.impersonator.last_name }}
-                        ({{ request.impersonator.username }})
-                    </div>
+                    <span>
+                        <i class="fa-solid fa-user-secret"></i> Impersonating {{ user.first_name }} {{ user.last_name }} (<code>{{ user.username }}</code>)
+                    </span>
                     <form method="post" action="{% url 'impersonate_stop' %}" class="impersonation-stop-form">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">

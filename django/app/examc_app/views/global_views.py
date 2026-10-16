@@ -213,6 +213,5 @@ def serve_signed_file(request, file_hint=None):
 
 
 def force_oidc_logout(request):
-    if request.user.is_authenticated:
-        logout(request)
+    if request.user.is_authenticated: logout(request)
     return render(request, 'oidc_auto_logout.html')

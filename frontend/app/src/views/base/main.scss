@@ -1,1 +1,4 @@
-@use "bootstrap/scss/bootstrap";
+@use "bootstrap/scss/bootstrap" with (
+    // Colors
+    $primary: #212529,
+);
