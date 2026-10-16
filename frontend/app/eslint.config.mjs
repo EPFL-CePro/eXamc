@@ -22,6 +22,8 @@ export default defineConfig([
         languageOptions: {
       globals: {
         ...globals.browser,
+        $: "readonly", // jQuery, still used by the preparation page
+        Sortable: "readonly", // loaded by a <script> of the preparation page; typed in src/types/definitions/sortable.d.ts
         CeleryProgressBar: "readonly", // loaded by celery-progress's script; typed in src/types/definitions/celery-progress.d.ts
       },
     },
