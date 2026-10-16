@@ -1,5 +1,7 @@
+import { getText, parseJson, postText } from "@examc/helpers/http.ts";
+
 import { URLS } from "./config.ts";
-import { ajaxGet, ajaxPost, hideModal, showModal } from "./ajax.ts";
+import { hideModal, showModal, withQuery, withSpinner } from "./ajax.ts";
 
 // Edit LaTeX file management
 
@@ -9,34 +11,31 @@ function byIdOrThrow<T extends HTMLElement = HTMLElement>(id: string): T {
     return element as T;
 }
 
-export function openEditLaTeXFileDialog(type: string): void {
-    ajaxGet<string>(URLS.editLatexFile, { type }, {
-        success: (data) => {
-            byIdOrThrow<HTMLTextAreaElement>("latex_source_text").value = (JSON.parse(data) as string[])[1] ?? "";
-            byIdOrThrow("edit_latex_file_modal_title").innerText = "Edit " + type;
-            byIdOrThrow("edit_latex_file_type").innerText = type;
-            showModal("#edit_latex_file_modal");
-        },
-        error: (error) => {
-            console.log(error);
-        },
-    });
+export async function openEditLaTeXFileDialog(type: string): Promise<void> {
+    try {
+        // The server answers [path, contents]
+        const text = await withSpinner(true, () => getText(withQuery(URLS.editLatexFile, { type })));
+        byIdOrThrow<HTMLTextAreaElement>("latex_source_text").value = parseJson<string[]>(text)?.[1] ?? "";
+        byIdOrThrow("edit_latex_file_modal_title").innerText = "Edit " + type;
+        byIdOrThrow("edit_latex_file_type").innerText = type;
+        showModal("#edit_latex_file_modal");
+    } catch (error) {
+        console.log(error);
+    }
 }
 
-export function saveEditedLaTeXFile(): void {
+export async function saveEditedLaTeXFile(): Promise<void> {
     const data = {
         source: byIdOrThrow<HTMLTextAreaElement>("latex_source_text").value,
         type: byIdOrThrow("edit_latex_file_type").innerText,
     };
 
-    ajaxPost(URLS.saveLatexFile, data, {
-        success: () => {
-            hideModal("#edit_latex_file_modal");
-        },
-        error: (error) => {
-            console.log(error);
-        },
-    });
+    try {
+        await withSpinner(true, () => postText(URLS.saveLatexFile, data));
+        hideModal("#edit_latex_file_modal");
+    } catch (error) {
+        console.log(error);
+    }
 }
 
 // LaTeX packages management
@@ -171,37 +170,29 @@ function bindLatexPackageSearch(): void {
     });
 }
 
-export function openEditLaTeXPackagesDialog(type: string): void {
-    ajaxGet<string | PackagesResponse>(URLS.editLatexPackages, { type }, {
-        success: (response) => {
-            const data: PackagesResponse = typeof response === "string" ? (JSON.parse(response) as PackagesResponse) : response;
+export async function openEditLaTeXPackagesDialog(type: string): Promise<void> {
+    try {
+        const text = await withSpinner(true, () => getText(withQuery(URLS.editLatexPackages, { type })));
+        const data = parseJson<PackagesResponse>(text) ?? {};
 
-            latexAvailablePackages = normalizeAvailablePackages(data.latex_available_packages);
-            currentUsedPackages = normalizeUsedPackages(data.used_packages);
+        latexAvailablePackages = normalizeAvailablePackages(data.latex_available_packages);
+        currentUsedPackages = normalizeUsedPackages(data.used_packages);
 
-            bindLatexPackageSearch();
-            renderUsedPackages();
-            renderPackageSearchResults("");
+        bindLatexPackageSearch();
+        renderUsedPackages();
+        renderPackageSearchResults("");
 
-            showModal("#edit_latex_packages_modal");
-        },
-        error: (error) => {
-            console.log(error);
-        },
-    });
+        showModal("#edit_latex_packages_modal");
+    } catch (error) {
+        console.log(error);
+    }
 }
 
-export function saveEditedLaTeXPackages(): void {
-    const data = {
-        new_used_packages: currentUsedPackages,
-    };
-
-    ajaxPost(URLS.saveLatexPackages, data, {
-        success: () => {
-            hideModal("#edit_latex_packages_modal");
-        },
-        error: (error) => {
-            console.log(error);
-        },
-    });
+export async function saveEditedLaTeXPackages(): Promise<void> {
+    try {
+        await withSpinner(true, () => postText(URLS.saveLatexPackages, { "new_used_packages[]": currentUsedPackages }));
+        hideModal("#edit_latex_packages_modal");
+    } catch (error) {
+        console.log(error);
+    }
 }

@@ -1,12 +1,14 @@
+import { getJson, postJson } from "@examc/helpers/http.ts";
 import { ConfirmModal } from "@examc/modals";
 
 import { CFG, URLS } from "./config.ts";
-import { ajaxGet, ajaxPost, showModal, WITHOUT_LOADING_MODAL } from "./ajax.ts";
+import { describeFailure, failureJson, getElement, hideElement, showElement, showModal, toggleElement, withQuery } from "./ajax.ts";
 
 // Final generation: a Celery task followed in the dialog and, when the dialog is closed or the page
 // reloaded while it runs, in #final-generation-banner. The task goes on on the server in any case.
 
 const DIALOG = "#generate_final_exam_files_dialog";
+const SUCCESS = `${DIALOG} #generate_final_success`;
 
 interface Summary {
     pages?: number;
@@ -56,11 +58,13 @@ let finalElapsedTimer: number | null = null;
 let reloadWhenFinalDialogClosed = false;
 
 function resetGenFinalUi(): void {
-    $("#generate_final_loading").hide();
-    $("#generate_final_error").hide();
-    $("#generate_final_success").hide().html("");
-    $("#generate-final-checks").hide();
-    $("#generate-final-anyway-button").hide();
+    hideElement("#generate_final_loading");
+    hideElement("#generate_final_error");
+    hideElement(SUCCESS);
+    const success = getElement(SUCCESS);
+    if (success) success.innerHTML = "";
+    hideElement("#generate-final-checks");
+    hideElement("#generate-final-anyway-button");
 }
 
 // Problems of the exam content (see check_exam_content): the errors block, the warnings are confirmed with
@@ -71,28 +75,29 @@ function showGenFinalChecks(errors: string[] | undefined, warnings: string[] | u
         ["#generate-final-checks-warnings", warnings],
     ];
     for (const [selector, items] of blocks) {
-        const $list = $(selector + " ul").empty();
-        // Texts set with .text(): they contain section and question titles
-        (items ?? []).forEach((item) => $list.append($("<li>").text(item)));
-        $(selector).toggle(Boolean(items && items.length));
+        const list = getElement(selector + " ul");
+        list?.replaceChildren(...(items ?? []).map((item) => {
+            // Texts set with textContent: they contain section and question titles
+            const li = document.createElement("li");
+            li.textContent = item;
+            return li;
+        }));
+        toggleElement(selector, Boolean(items && items.length));
     }
-    $("#generate_final_loading").hide();
-    $("#generate-final-checks").show();
-    $("#generate-final-anyway-button").toggle(!(errors && errors.length));
+    hideElement("#generate_final_loading");
+    showElement("#generate-final-checks");
+    toggleElement("#generate-final-anyway-button", !(errors && errors.length));
 }
 
 function setGenFinalLoading(isLoading: boolean): void {
-    if (isLoading) {
-        $("#generate_final_loading").show();
-    } else {
-        $("#generate_final_loading").hide();
-    }
+    toggleElement("#generate_final_loading", isLoading);
 }
 
 function showGenFinalError(message?: string): void {
-    $("#generate_final_error_message").val(message || "Error during final files generation.");
-    $("#generate_final_error").show();
-    $("#generate_final_loading").hide();
+    const field = getElement<HTMLTextAreaElement>("#generate_final_error_message");
+    if (field) field.value = message || "Error during final files generation.";
+    showElement("#generate_final_error");
+    hideElement("#generate_final_loading");
 }
 
 function escapeHtml(text: string): string {
@@ -102,12 +107,10 @@ function escapeHtml(text: string): string {
 }
 
 function showGenFinalSuccess(data: FinalSuccess): void {
-    const $success = $(`${DIALOG} #generate_final_success`);
-
     genFinalWasSuccessful = true;
 
-    $("#generate_final_loading").hide();
-    $("#generate_final_error").hide();
+    hideElement("#generate_final_loading");
+    hideElement("#generate_final_error");
 
     const summary = data.summary;
     let warningsHtml = "";
@@ -136,8 +139,11 @@ function showGenFinalSuccess(data: FinalSuccess): void {
             </div>
         `;
 
-    $("#generate_final_success").html(resultHtml).show();
-    $success.html(resultHtml).css("display", "block");
+    const success = getElement(SUCCESS);
+    if (success) {
+        success.innerHTML = resultHtml;
+        success.style.display = "block";
+    }
 }
 
 function setFinalProgress(percent: number | null, message?: string): void {
@@ -199,19 +205,16 @@ async function cancelFinalGeneration(): Promise<void> {
         if (button) button.disabled = true;
     }
     setFinalProgress(null, "Cancelling...");
-    ajaxPost<ErrorResponse>(URLS.cancelFinal, {}, {
-        ...WITHOUT_LOADING_MODAL,
-        success: (data) => {
-            // Still waiting for a worker: nothing runs, so no task will report its end
-            if (data.status === "cancelled") finishFinalGeneration(false, "The generation was cancelled.");
-        },
-        error: (xhr) => {
-            const data = (xhr.responseJSON ?? {}) as ErrorResponse;
-            // 404: it ended in the meantime, its end is shown by the tracking
-            if (xhr.status !== 404) showGenFinalError(data.error || "Impossible to cancel the generation.");
-            showCancelFinalButtons(true);
-        },
-    });
+    try {
+        const data = await postJson<ErrorResponse>(URLS.cancelFinal);
+        // Still waiting for a worker: nothing runs, so no task will report its end
+        if (data.status === "cancelled") finishFinalGeneration(false, "The generation was cancelled.");
+    } catch (error) {
+        const failure = describeFailure(error);
+        // 404: it ended in the meantime, its end is shown by the tracking
+        if (failure.status !== 404) showGenFinalError(failureJson<ErrorResponse>(failure).error || "Impossible to cancel the generation.");
+        showCancelFinalButtons(true);
+    }
 }
 
 function stopFinalTracking(): void {
@@ -277,7 +280,7 @@ function trackFinalGeneration(taskId: string, startedAt?: number | null): void {
     });
 }
 
-export function generateFinalExamFiles(confirmWarnings = false): void {
+export async function generateFinalExamFiles(confirmWarnings = false): Promise<void> {
     if (!URLS.generateFinalStart) {
         console.warn("[preparation] Missing generateFinalStart URL");
         return;
@@ -292,36 +295,36 @@ export function generateFinalExamFiles(confirmWarnings = false): void {
     // Already running (this page loaded before, or another user): follow it
     if (finalTracking) return;
 
-    ajaxGet<StartResponse>(URLS.generateFinalStart, confirmWarnings ? { confirm_warnings: 1 } : {}, {
-        ...WITHOUT_LOADING_MODAL,
-        success: (data) => {
-            // Not started: warnings to confirm
-            if (data.warnings && data.warnings.length && !data.job_id) {
-                showGenFinalChecks([], data.warnings);
-                return;
-            }
-            if (!data.job_id || !data.task_id) {
-                showGenFinalError("Impossible to start final exam files generation.");
-                return;
-            }
-            trackFinalGeneration(data.task_id);
-        },
+    let data: StartResponse;
+    try {
+        data = await getJson<StartResponse>(withQuery(URLS.generateFinalStart, confirmWarnings ? { confirm_warnings: 1 } : {}));
+    } catch (error) {
+        const failure = describeFailure(error);
+        const body = failureJson<ErrorResponse>(failure);
+        // 409: a generation of this exam is already running, followed instead of starting another one
+        if (failure.status === 409 && body.task_id) {
+            setFinalProgress(0, body.error || "A final generation is already running.");
+            trackFinalGeneration(body.task_id);
+            return;
+        }
+        if (body.errors && body.errors.length) {
+            showGenFinalChecks(body.errors, body.warnings);
+            return;
+        }
+        showGenFinalError(body.error || failure.text || "Error starting final exam files generation.");
+        return;
+    }
 
-        error: (xhr) => {
-            const data = (xhr.responseJSON ?? {}) as ErrorResponse;
-            // 409: a generation of this exam is already running, followed instead of starting another one
-            if (xhr.status === 409 && data.task_id) {
-                setFinalProgress(0, data.error || "A final generation is already running.");
-                trackFinalGeneration(data.task_id);
-                return;
-            }
-            if (data.errors && data.errors.length) {
-                showGenFinalChecks(data.errors, data.warnings);
-                return;
-            }
-            showGenFinalError(data.error || xhr.responseText || "Error starting final exam files generation.");
-        },
-    });
+    // Not started: warnings to confirm
+    if (data.warnings && data.warnings.length && !data.job_id) {
+        showGenFinalChecks([], data.warnings);
+        return;
+    }
+    if (!data.job_id || !data.task_id) {
+        showGenFinalError("Impossible to start final exam files generation.");
+        return;
+    }
+    trackFinalGeneration(data.task_id);
 }
 
 function normalizeGenFinalSuccessPayload(result: RawFinalResult | undefined): FinalSuccess {

@@ -1,15 +1,16 @@
+import { getText, postForm, postJson } from "@examc/helpers/http.ts";
 import { ConfirmModal } from "@examc/modals";
 
 import { EXAM_PK, Selectors, URLS } from "./config.ts";
 import { showSaveToast } from "./save-toast.ts";
-import { type AjaxCallbacks, ajaxGet, ajaxPost, getElement, hideModal, showModal } from "./ajax.ts";
+import { describeFailure, failureJson, getElement, hideModal, showModal, type Spinner, withQuery, withSpinner } from "./ajax.ts";
 
-interface ScoringParams {
+type ScoringParams = {
     exam_pk: string;
     prep_section: string;
     prep_question: string;
     prep_answer: string;
-}
+};
 
 interface ScoringResponse {
     success?: boolean;
@@ -35,7 +36,7 @@ function buildParams(button: HTMLElement): ScoringParams {
     };
 }
 
-function open(params: ScoringParams, spinner: AjaxCallbacks<string>["spinner"] = true): void {
+async function open(params: ScoringParams, spinner: Spinner = true): Promise<void> {
     if (!URLS.scoringFormulasModal) {
         console.warn("[preparation] Missing scoringFormulasModal URL");
         renderError("Configuration error: missing modal URL.");
@@ -49,53 +50,49 @@ function open(params: ScoringParams, spinner: AjaxCallbacks<string>["spinner"] =
         return;
     }
 
-    ajaxGet<string>(URLS.scoringFormulasModal, params, {
-        spinner,
-        success: (html) => {
-            setBody(html);
-            showModal(Selectors.scoringModal);
-        },
-        error: (xhr) => {
-            console.error("[preparation] open scoring formulas modal failed:", xhr);
-            renderError("Unable to load formulas.");
-            showModal(Selectors.scoringModal);
-        },
-    });
+    try {
+        setBody(await withSpinner(spinner, () => getText(withQuery(URLS.scoringFormulasModal, params))));
+    } catch (error) {
+        console.error("[preparation] open scoring formulas modal failed:", error);
+        renderError("Unable to load formulas.");
+    }
+    showModal(Selectors.scoringModal);
 }
 
-function submit(form: HTMLFormElement): void {
-    // Saving rewrites the LaTeX files: the saving overlay shows it above the dialog, which stays open until the answer
-    ajaxPost<ScoringResponse>(form.action, $(form).serialize(), {
-        spinner: "saving",
-        success: (response) => {
-            if (response.success) {
-                hideModal(Selectors.scoringModal);
+// Saving rewrites the LaTeX files: the saving overlay shows it above the dialog, which stays open until the answer
+async function submit(form: HTMLFormElement): Promise<void> {
+    let response: ScoringResponse;
+    try {
+        // The form's own CSRF token is sent with its fields
+        response = await withSpinner("saving", async () => (await postForm(form.action, {}, new FormData(form))).json() as Promise<ScoringResponse>);
+    } catch (error) {
+        console.error("[preparation] save scoring formulas failed:", error);
 
-                if (response.message) {
-                    showSaveToast(response.message, false);
-                }
-                return;
-            }
+        const body = failureJson<ScoringResponse>(describeFailure(error));
+        if (body.html) {
+            setBody(body.html);
+            return;
+        }
 
-            if (response.html) {
-                setBody(response.html);
-                return;
-            }
+        renderError("An error occurred while saving formulas.");
+        return;
+    }
 
-            renderError(response.message || "Unable to save formulas.");
-        },
-        error: (xhr) => {
-            console.error("[preparation] save scoring formulas failed:", xhr);
+    if (response.success) {
+        hideModal(Selectors.scoringModal);
 
-            const response = xhr.responseJSON as ScoringResponse | undefined;
-            if (response && response.html) {
-                setBody(response.html);
-                return;
-            }
+        if (response.message) {
+            showSaveToast(response.message, false);
+        }
+        return;
+    }
 
-            renderError("An error occurred while saving formulas.");
-        },
-    });
+    if (response.html) {
+        setBody(response.html);
+        return;
+    }
+
+    renderError(response.message || "Unable to save formulas.");
 }
 
 function updateRowIndexes(): void {
@@ -181,7 +178,7 @@ function reloadFromCurrentForm(): void {
     const value = (name: string) => form.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.value || "";
 
     // The dialog is already open: no spinner behind it
-    open({
+    void open({
         exam_pk: EXAM_PK || "",
         prep_section: value("prep_section"),
         prep_question: value("prep_question"),
@@ -200,21 +197,21 @@ async function deleteSavedRow(deleteUrl: string | undefined): Promise<void> {
     });
     if (!confirmed) return;
 
-    ajaxPost<ScoringResponse>(deleteUrl, {}, {
-        spinner: "saving",
-        success: (response) => {
-            if (response.success) {
-                reloadFromCurrentForm();
-                return;
-            }
+    let response: ScoringResponse;
+    try {
+        response = await withSpinner("saving", () => postJson<ScoringResponse>(deleteUrl));
+    } catch (error) {
+        console.error("[preparation] delete scoring formula failed:", error);
+        renderError("An error occurred while deleting formula.");
+        return;
+    }
 
-            renderError(response.message || "Unable to delete formula.");
-        },
-        error: (xhr) => {
-            console.error("[preparation] delete scoring formula failed:", xhr);
-            renderError("An error occurred while deleting formula.");
-        },
-    });
+    if (response.success) {
+        reloadFromCurrentForm();
+        return;
+    }
+
+    renderError(response.message || "Unable to delete formula.");
 }
 
 export function initScoringFormulas(): void {
@@ -246,7 +243,7 @@ export function initScoringFormulas(): void {
         if (!button) return;
 
         event.preventDefault();
-        open(buildParams(button));
+        void open(buildParams(button));
     });
 
     document.addEventListener("submit", (event) => {
@@ -254,6 +251,6 @@ export function initScoringFormulas(): void {
         if (!form) return;
 
         event.preventDefault();
-        submit(form);
+        void submit(form);
     });
 }
