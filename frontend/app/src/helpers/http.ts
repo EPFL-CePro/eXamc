@@ -78,6 +78,19 @@ export async function getJson<T>(url: string): Promise<T> {
 }
 
 /**
+ * Sends a GET request and returns the response text.
+ *
+ * @param {string} url - The URL to fetch.
+ * @return {Promise<string>} The response text.
+ * @throws {HttpError} If the response status is not OK.
+ */
+export async function getText(url: string): Promise<string> {
+    const response = await fetch(url, { credentials: 'same-origin' });
+    if (!response.ok) throw new HttpError(response.status, url, await response.text());
+    return response.text();
+}
+
+/**
  * Parses a JSON string, also unwrapping JSON that was encoded twice (a JSON string containing JSON).
  *
  * @param {string} text - The JSON string to parse. Empty or whitespace-only input returns `null`.
