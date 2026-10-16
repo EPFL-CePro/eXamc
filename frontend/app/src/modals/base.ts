@@ -1,5 +1,6 @@
 import type { ExamcModalOptions } from "@examc/types/modals";
-import { Modal } from "bootstrap";
+import type { Modal } from "bootstrap";
+import { getPageBootstrap } from "@examc/helpers/page-bootstrap";
 
 /** The parts of a modal built on the fly. */
 interface GeneratedModalParts {
@@ -31,7 +32,7 @@ export abstract class ExamcModal {
     protected constructor(element: HTMLElement, modalOptions?: ExamcModalOptions) {
         this.element = element;
         this.titleEl = element.querySelector<HTMLElement>(".modal-title");
-        this.modal = Modal.getOrCreateInstance(element, modalOptions);
+        this.modal = getPageBootstrap().Modal.getOrCreateInstance(element, modalOptions);
     }
 
     public show(): void {
@@ -111,7 +112,7 @@ export abstract class ExamcModal {
 
         // remove the el when done
         modalEl.addEventListener("hidden.bs.modal", () => {
-            Modal.getInstance(modalEl)?.dispose();
+            getPageBootstrap().Modal.getInstance(modalEl)?.dispose();
             modalEl.remove();
             // Bootstrap unlocks the page scroll on close, even when another dialog is still open
             if (document.querySelector(".modal.show")) document.body.classList.add("modal-open");
