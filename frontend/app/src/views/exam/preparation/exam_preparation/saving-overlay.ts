@@ -36,11 +36,7 @@ export async function withSavingOverlay<T>(task: () => Promise<T>): Promise<T> {
     }
 }
 
-interface HtmxRequestEvent extends Event {
-    detail: { requestConfig?: { verb?: string } };
-}
-
-const isSaving = (event: Event): boolean => ((event as HtmxRequestEvent).detail.requestConfig?.verb || "get") !== "get";
+const isSaving = (event: CustomEvent<{ requestConfig: { verb: string } }>): boolean => (event.detail.requestConfig.verb || "get") !== "get";
 
 export function initSavingOverlay(): void {
     document.body.addEventListener("htmx:beforeRequest", (event) => {

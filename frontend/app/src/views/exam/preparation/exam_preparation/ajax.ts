@@ -66,7 +66,7 @@ export function failureJson<T extends object>(failure: RequestFailure): Partial<
 
 /** Makes htmx set up the hx-* attributes of HTML inserted by a script (htmx only does it for its own swaps). */
 export function processHtmx(element: Element): void {
-    (window as unknown as { htmx?: { process(element: Element): void } }).htmx?.process(element);
+    if (typeof htmx !== "undefined") htmx.process(element);
 }
 
 /** Shows an element hidden by an inline `display: none`. */

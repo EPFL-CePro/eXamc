@@ -1,40 +1,38 @@
+import { byId } from "@examc/helpers/dom.ts";
 import { getText, parseJson, postText } from "@examc/helpers/http.ts";
 
 import { URLS } from "./config.ts";
 import { hideModal, showModal, withQuery, withSpinner } from "./ajax.ts";
+import { showSaveToast } from "./save-toast.ts";
 
 // Edit LaTeX file management
-
-function byIdOrThrow<T extends HTMLElement = HTMLElement>(id: string): T {
-    const element = document.getElementById(id);
-    if (!element) throw new Error(`#${id} not found`);
-    return element as T;
-}
 
 export async function openEditLaTeXFileDialog(type: string): Promise<void> {
     try {
         // The server answers [path, contents]
         const text = await withSpinner(true, () => getText(withQuery(URLS.editLatexFile, { type })));
-        byIdOrThrow<HTMLTextAreaElement>("latex_source_text").value = parseJson<string[]>(text)?.[1] ?? "";
-        byIdOrThrow("edit_latex_file_modal_title").innerText = "Edit " + type;
-        byIdOrThrow("edit_latex_file_type").innerText = type;
+        byId<HTMLTextAreaElement>("latex_source_text").value = parseJson<string[]>(text)?.[1] ?? "";
+        byId("edit_latex_file_modal_title").innerText = "Edit " + type;
+        byId("edit_latex_file_type").innerText = type;
         showModal("#edit_latex_file_modal");
     } catch (error) {
-        console.log(error);
+        console.error("[preparation] LaTeX request failed:", error);
+        showSaveToast("Unable to load the LaTeX file.", true);
     }
 }
 
 export async function saveEditedLaTeXFile(): Promise<void> {
     const data = {
-        source: byIdOrThrow<HTMLTextAreaElement>("latex_source_text").value,
-        type: byIdOrThrow("edit_latex_file_type").innerText,
+        source: byId<HTMLTextAreaElement>("latex_source_text").value,
+        type: byId("edit_latex_file_type").innerText,
     };
 
     try {
         await withSpinner(true, () => postText(URLS.saveLatexFile, data));
         hideModal("#edit_latex_file_modal");
     } catch (error) {
-        console.log(error);
+        console.error("[preparation] LaTeX request failed:", error);
+        showSaveToast("Not saved: the LaTeX file could not be saved.", true);
     }
 }
 
@@ -69,7 +67,7 @@ function normalizeUsedPackages(rawPackages: string[] | undefined): string[] {
 }
 
 function renderUsedPackages(): void {
-    const container = byIdOrThrow("used_latex_packages_list");
+    const container = byId("used_latex_packages_list");
     container.innerHTML = "";
 
     if (!currentUsedPackages.length) {
@@ -111,7 +109,7 @@ function getFilteredAvailablePackages(searchText = ""): string[] {
 }
 
 function renderPackageSearchResults(searchText = ""): void {
-    const container = byIdOrThrow("latex_package_search_results");
+    const container = byId("latex_package_search_results");
     const results = getFilteredAvailablePackages(searchText);
 
     if (!results.length) {
@@ -128,7 +126,7 @@ function renderPackageSearchResults(searchText = ""): void {
         item.textContent = pkg;
         item.onclick = () => {
             addUsedPackage(pkg);
-            byIdOrThrow<HTMLInputElement>("latex_package_search").value = "";
+            byId<HTMLInputElement>("latex_package_search").value = "";
             renderPackageSearchResults("");
         };
         container.appendChild(item);
@@ -147,12 +145,12 @@ function addUsedPackage(pkg: string): void {
 function removeUsedPackage(pkg: string): void {
     currentUsedPackages = currentUsedPackages.filter((p) => p !== pkg);
     renderUsedPackages();
-    renderPackageSearchResults(byIdOrThrow<HTMLInputElement>("latex_package_search").value);
+    renderPackageSearchResults(byId<HTMLInputElement>("latex_package_search").value);
 }
 
 function bindLatexPackageSearch(): void {
-    const input = byIdOrThrow<HTMLInputElement>("latex_package_search");
-    const results = byIdOrThrow("latex_package_search_results");
+    const input = byId<HTMLInputElement>("latex_package_search");
+    const results = byId("latex_package_search_results");
 
     input.oninput = () => {
         renderPackageSearchResults(input.value);
@@ -184,7 +182,8 @@ export async function openEditLaTeXPackagesDialog(type: string): Promise<void> {
 
         showModal("#edit_latex_packages_modal");
     } catch (error) {
-        console.log(error);
+        console.error("[preparation] LaTeX request failed:", error);
+        showSaveToast("Unable to load the LaTeX packages.", true);
     }
 }
 
@@ -193,6 +192,7 @@ export async function saveEditedLaTeXPackages(): Promise<void> {
         await withSpinner(true, () => postText(URLS.saveLatexPackages, { "new_used_packages[]": currentUsedPackages }));
         hideModal("#edit_latex_packages_modal");
     } catch (error) {
-        console.log(error);
+        console.error("[preparation] LaTeX request failed:", error);
+        showSaveToast("Not saved: the LaTeX packages could not be saved.", true);
     }
 }
