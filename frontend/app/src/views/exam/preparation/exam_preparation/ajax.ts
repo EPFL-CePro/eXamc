@@ -1,6 +1,7 @@
 import { LoadingModal, LocalModal } from "@examc/modals";
 
 import { CSRF } from "./config.ts";
+import { withSavingOverlay } from "./saving-overlay.ts";
 
 export function getElement<T extends HTMLElement = HTMLElement>(selector: string): T | null {
     return document.querySelector<T>(selector);
@@ -24,8 +25,12 @@ export interface AjaxError {
 }
 
 export interface AjaxCallbacks<T> {
-    /** Show the loading spinner while the request runs (default), not when the dialog shows its own progress. */
-    spinner?: boolean;
+    /**
+     * What shows that the request is running: the loading spinner (default), the saving overlay of the page
+     * ("saving": shown above any open dialog, for the requests that rewrite the LaTeX files), or nothing (false,
+     * when the dialog shows its own progress).
+     */
+    spinner?: boolean | "saving";
     success?: (data: T) => void;
     error?: (xhr: AjaxError) => void;
 }
@@ -35,7 +40,9 @@ function ajaxRequest<T>(method: "GET" | "POST", url: string, data: object | stri
 
     // The spinner stays until the request is done (LoadingModal hides it when its task ends)
     let requestDone: () => void = () => undefined;
-    if (spinner) void new LoadingModal(() => new Promise<void>((resolve) => { requestDone = resolve; })).result;
+    const untilDone = () => new Promise<void>((resolve) => { requestDone = resolve; });
+    if (spinner === "saving") void withSavingOverlay(untilDone);
+    else if (spinner) void new LoadingModal(untilDone).result;
 
     return $.ajax({
         url,

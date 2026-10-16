@@ -2,7 +2,7 @@ import { ConfirmModal } from "@examc/modals";
 
 import { EXAM_PK, Selectors, URLS } from "./config.ts";
 import { showSaveToast } from "./save-toast.ts";
-import { ajaxGet, ajaxPost, getElement, hideModal, showModal } from "./ajax.ts";
+import { type AjaxCallbacks, ajaxGet, ajaxPost, getElement, hideModal, showModal } from "./ajax.ts";
 
 interface ScoringParams {
     exam_pk: string;
@@ -16,9 +16,6 @@ interface ScoringResponse {
     message?: string;
     html?: string;
 }
-
-const HELP_ICON = '<i class="fa-solid fa-circle-question fa-2x" style="color: rgb(0, 62, 173);"></i>';
-const CLOSE_ICON = '<i class="fa-solid fa-circle-xmark fa-2x" style="color: rgb(0, 62, 173);"></i>';
 
 function setBody(html: string): void {
     const body = getElement(Selectors.scoringModalBody);
@@ -38,7 +35,7 @@ function buildParams(button: HTMLElement): ScoringParams {
     };
 }
 
-function open(params: ScoringParams): void {
+function open(params: ScoringParams, spinner: AjaxCallbacks<string>["spinner"] = true): void {
     if (!URLS.scoringFormulasModal) {
         console.warn("[preparation] Missing scoringFormulasModal URL");
         renderError("Configuration error: missing modal URL.");
@@ -53,11 +50,9 @@ function open(params: ScoringParams): void {
     }
 
     ajaxGet<string>(URLS.scoringFormulasModal, params, {
+        spinner,
         success: (html) => {
             setBody(html);
-
-            const toggleBtn = document.getElementById("toggleScoringHelp");
-            if (toggleBtn) toggleBtn.innerHTML = HELP_ICON;
             showModal(Selectors.scoringModal);
         },
         error: (xhr) => {
@@ -69,7 +64,9 @@ function open(params: ScoringParams): void {
 }
 
 function submit(form: HTMLFormElement): void {
+    // Saving rewrites the LaTeX files: the saving overlay shows it above the dialog, which stays open until the answer
     ajaxPost<ScoringResponse>(form.action, $(form).serialize(), {
+        spinner: "saving",
         success: (response) => {
             if (response.success) {
                 hideModal(Selectors.scoringModal);
@@ -183,12 +180,13 @@ function reloadFromCurrentForm(): void {
 
     const value = (name: string) => form.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.value || "";
 
+    // The dialog is already open: no spinner behind it
     open({
         exam_pk: EXAM_PK || "",
         prep_section: value("prep_section"),
         prep_question: value("prep_question"),
         prep_answer: value("prep_answer"),
-    });
+    }, false);
 }
 
 async function deleteSavedRow(deleteUrl: string | undefined): Promise<void> {
@@ -203,6 +201,7 @@ async function deleteSavedRow(deleteUrl: string | undefined): Promise<void> {
     if (!confirmed) return;
 
     ajaxPost<ScoringResponse>(deleteUrl, {}, {
+        spinner: "saving",
         success: (response) => {
             if (response.success) {
                 reloadFromCurrentForm();
@@ -240,18 +239,6 @@ export function initScoringFormulas(): void {
         if (deleteSavedButton) {
             event.preventDefault();
             void deleteSavedRow(deleteSavedButton.dataset["deleteUrl"]);
-            return;
-        }
-
-        const toggleHelpButton = target.closest("#toggleScoringHelp");
-        if (toggleHelpButton) {
-            event.preventDefault();
-
-            const helpPanel = document.getElementById("scoringHelpPanel");
-            if (!helpPanel) return;
-
-            helpPanel.classList.toggle("open");
-            toggleHelpButton.innerHTML = helpPanel.classList.contains("open") ? CLOSE_ICON : HELP_ICON;
             return;
         }
 

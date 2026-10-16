@@ -20,30 +20,12 @@
             min-height: 0;
         }
 
-        .scoring-help-toggle {
-            align-self: flex-start;
-            padding: 5px 5px;
-        }
-
-        .scoring-help-toggle button {
-            white-space: nowrap;
-            padding: 0;
-            margin: 25px -10px 0 5px;
-        }
-
         .scoring-help-panel {
-            width: 0;
-            min-width: 0;
-            overflow: hidden;
+            width: min(500px, 40vw);
+            min-width: min(500px, 40vw);
             border-right: 1px solid #dee2e6;
             background: #f8f9fa;
-            transition: width 0.25s ease;
             flex-shrink: 0;
-        }
-
-        .scoring-help-panel.open {
-            width: 500px;
-            min-width: 500px;
         }
 
         .scoring-help-inner {
@@ -156,10 +138,6 @@ Score capped at 2</pre>
 
         </div>
     </aside>
-    <div class="scoring-help-toggle">
-        <button type="button" class="btn btn-sm btn-light" id="toggleScoringHelp">
-        </button>
-    </div>
 
     <section class="scoring-main-panel" id="scoringMainPanel">
         {% if error %}
