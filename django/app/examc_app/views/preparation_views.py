@@ -18,10 +18,8 @@ from django.urls import reverse
 from docutils import DataError
 
 from examc_app.decorators import exam_permission_required
-from examc_app.forms.general import (
-    CreateExamProjectForm,
-)
 from examc_app.forms.preparation import (
+    CreateExamProjectForm,
     CreatePrepQuestionForm,
     ExamFirstPageForm,
     PrepScoringFormulaFormSet,
