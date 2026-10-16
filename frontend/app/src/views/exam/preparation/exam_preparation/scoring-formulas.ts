@@ -37,13 +37,6 @@ function buildParams(button: HTMLElement): ScoringParams {
 }
 
 async function open(params: ScoringParams, spinner: Spinner = true): Promise<void> {
-    if (!URLS.scoringFormulasModal) {
-        console.warn("[preparation] Missing scoringFormulasModal URL");
-        renderError("Configuration error: missing modal URL.");
-        showModal(Selectors.scoringModal);
-        return;
-    }
-
     if (!params.exam_pk) {
         renderError("Missing exam_pk.");
         showModal(Selectors.scoringModal);

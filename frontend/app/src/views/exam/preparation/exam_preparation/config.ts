@@ -1,10 +1,9 @@
-/** URLs given by the template (exam_preparation.html); the `__X__` ones are templates to fill with `.replace`. */
+import { requireData } from "@examc/helpers/dom.ts";
+
+/** URLs given by the template (exam_preparation.html). Use the functions below for those with an id. */
 export interface ExamPrepUrls {
     previewStart: string;
-    previewStatus: string;
     reorderSections: string;
-    reorderQuestionsTemplate: string;
-    reorderAnswersTemplate: string;
     scoringFormulasModal: string;
     editLatexFile: string;
     saveLatexFile: string;
@@ -12,7 +11,6 @@ export interface ExamPrepUrls {
     saveLatexPackages: string;
     generateFinalStart: string;
     cancelFinal: string;
-    celeryTaskStatusTemplate: string;
 }
 
 export interface ExamPrepConfig {
@@ -27,37 +25,54 @@ export interface ExamPrepConfig {
     urls: ExamPrepUrls;
 }
 
-/** Functions called by the onclick attributes of the template. */
-interface ExamPrepGlobals {
-    previewExam: () => void;
-    openEditLaTeXFileDialog: (type: string) => void;
-    saveEditedLaTeXFile: () => void;
-    openEditLaTeXPackagesDialog: (type: string) => void;
-    saveEditedLaTeXPackages: () => void;
-    generateFinalExamFiles: (confirmWarnings?: boolean) => void;
-    openUnlockEditingModal: () => void;
+/** The configuration of the page is in the data attributes of #prep-root. */
+const root = document.getElementById("prep-root");
+if (!root) throw new Error("#prep-root not found");
+
+function readConfig(root: HTMLElement): ExamPrepConfig {
+    return {
+        csrfToken: requireData(root, "csrfToken"),
+        examPk: requireData(root, "examPk"),
+        isFinalized: requireData(root, "isFinalized") === "true",
+        isLocked: requireData(root, "isLocked") === "true",
+        // Empty when no generation is running
+        activeFinalTaskId: root.dataset["activeFinalTaskId"] ?? "",
+        activeFinalStartedAt: root.dataset["activeFinalStartedAt"] ?? "",
+        urls: {
+            previewStart: requireData(root, "previewStartUrl"),
+            reorderSections: requireData(root, "reorderSectionsUrl"),
+            scoringFormulasModal: requireData(root, "scoringFormulasModalUrl"),
+            editLatexFile: requireData(root, "editLatexFileUrl"),
+            saveLatexFile: requireData(root, "saveLatexFileUrl"),
+            editLatexPackages: requireData(root, "editLatexPackagesUrl"),
+            saveLatexPackages: requireData(root, "saveLatexPackagesUrl"),
+            generateFinalStart: requireData(root, "generateFinalStartUrl"),
+            cancelFinal: requireData(root, "cancelFinalUrl"),
+        },
+    };
 }
 
-declare global {
-    interface Window extends Partial<ExamPrepGlobals> {
-        EXAM_PREP_CONFIG?: ExamPrepConfig;
-    }
-}
-
-const EMPTY_CONFIG: ExamPrepConfig = {
-    csrfToken: "",
-    examPk: "",
-    isFinalized: false,
-    isLocked: false,
-    activeFinalTaskId: "",
-    activeFinalStartedAt: "",
-    urls: {} as ExamPrepUrls,
-};
-
-export const CFG: ExamPrepConfig = window.EXAM_PREP_CONFIG ?? EMPTY_CONFIG;
+export const CFG: ExamPrepConfig = readConfig(root);
 export const URLS: ExamPrepUrls = CFG.urls;
 export const CSRF: string = CFG.csrfToken;
 export const EXAM_PK: string = CFG.examPk;
+
+/** The URLs of the template, given with the id 0 at their end. */
+const ID_URLS = {
+    previewStatus: requireData(root, "previewStatusUrl"),
+    reorderQuestions: requireData(root, "reorderQuestionsUrl"),
+    reorderAnswers: requireData(root, "reorderAnswersUrl"),
+    celeryTaskStatus: requireData(root, "celeryTaskStatusUrl"),
+};
+
+function withId(url: string, id: string): string {
+    return url.replace(/\/0\/?$/, (end) => `/${id}${end.endsWith("/") ? "/" : ""}`);
+}
+
+export const previewStatusUrl = (jobId: string): string => withId(ID_URLS.previewStatus, jobId);
+export const reorderQuestionsUrl = (sectionId: string): string => withId(ID_URLS.reorderQuestions, sectionId);
+export const reorderAnswersUrl = (questionId: string): string => withId(ID_URLS.reorderAnswers, questionId);
+export const celeryTaskStatusUrl = (taskId: string): string => ID_URLS.celeryTaskStatus.replace("TASK_ID_PLACEHOLDER", taskId);
 
 export const Selectors = {
     loadingModal: "#loadingModal",
@@ -71,5 +86,5 @@ export const Selectors = {
 
 /** Finalized, or a final generation is running: read-only. */
 export function isExamFinalized(): boolean {
-    return Boolean(window.EXAM_PREP_CONFIG && (window.EXAM_PREP_CONFIG.isFinalized || window.EXAM_PREP_CONFIG.isLocked));
+    return CFG.isFinalized || CFG.isLocked;
 }

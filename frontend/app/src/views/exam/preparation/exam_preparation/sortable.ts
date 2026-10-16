@@ -1,6 +1,6 @@
 import type { SortableInstance, SortableOptions } from "@examc/types/definitions/sortable";
 
-import { CSRF, isExamFinalized, Selectors, URLS } from "./config.ts";
+import { CSRF, isExamFinalized, reorderAnswersUrl, reorderQuestionsUrl, Selectors, URLS } from "./config.ts";
 import { getElement, processHtmx } from "./ajax.ts";
 import { initMarkdownEditors } from "./markdown-editors.ts";
 import { initPreparationUI } from "./question-fields.ts";
@@ -51,7 +51,7 @@ function reinitAll(): void {
 export function initSectionSortable(): void {
     const list = getElement(Selectors.sectionList);
 
-    if (!list || !URLS.reorderSections || typeof Sortable === "undefined" || isExamFinalized()) {
+    if (!list || typeof Sortable === "undefined" || isExamFinalized()) {
         return;
     }
 
@@ -98,7 +98,7 @@ export function initQuestionSortable(): void {
     document.querySelectorAll<HTMLElement>('[id^="prep-questions-list-"]').forEach((list) => {
         const sectionCard = list.closest<HTMLElement>(".sortable-section");
         const sectionId = sectionCard ? sectionCard.dataset["sectionId"] : null;
-        if (!sectionId || !URLS.reorderQuestionsTemplate) return;
+        if (!sectionId) return;
 
         replaceInstance(list, {
             handle: Selectors.dragHandle,
@@ -111,7 +111,7 @@ export function initQuestionSortable(): void {
                     orderedQuestions.push({ id: card.dataset["questionId"], position: index + 1 });
                 });
 
-                const url = URLS.reorderQuestionsTemplate.replace("__SECTION_ID__", sectionId);
+                const url = reorderQuestionsUrl(sectionId);
 
                 postOrder(url, "questions", orderedQuestions, "Failed to reorder questions")
                     .then((html) => {
@@ -135,7 +135,7 @@ export function initAnswerSortable(): void {
 
     document.querySelectorAll<HTMLElement>('[id^="prep-answers-list-"]').forEach((list) => {
         const questionId = list.dataset["questionId"];
-        if (!questionId || !URLS.reorderAnswersTemplate) return;
+        if (!questionId) return;
 
         replaceInstance(list, {
             handle: Selectors.dragHandle,
@@ -148,7 +148,7 @@ export function initAnswerSortable(): void {
                     orderedAnswers.push({ id: card.dataset["answerId"], position: index + 1 });
                 });
 
-                const url = URLS.reorderAnswersTemplate.replace("__QUESTION_ID__", questionId);
+                const url = reorderAnswersUrl(questionId);
 
                 postOrder(url, "answers", orderedAnswers, "Failed to reorder answers")
                     .then((html) => {

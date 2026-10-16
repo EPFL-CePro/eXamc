@@ -116,7 +116,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <a type="button" class="btn btn-dark btn-sm" onclick="saveEditedLaTeXFile();">Save changes</a>
+        <a type="button" class="btn btn-dark btn-sm" data-prep-action="save-latex-file">Save changes</a>
         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
@@ -180,7 +180,7 @@
           Cancel generation
         </button>
         <button type="button" class="btn btn-warning btn-sm" id="generate-final-anyway-button" style="display:none;"
-                onclick="generateFinalExamFiles(true);">
+                data-prep-action="generate-final-confirmed">
           Generate anyway
         </button>
       </div>
@@ -248,7 +248,7 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="saveEditedLaTeXPackages()">
+        <button type="button" class="btn btn-primary btn-sm" data-prep-action="save-latex-packages">
           Save changes
         </button>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">

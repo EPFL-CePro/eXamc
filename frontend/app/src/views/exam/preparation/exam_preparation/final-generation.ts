@@ -1,7 +1,7 @@
 import { getJson, postJson } from "@examc/helpers/http.ts";
 import { ConfirmModal } from "@examc/modals";
 
-import { CFG, URLS } from "./config.ts";
+import { celeryTaskStatusUrl, CFG, URLS } from "./config.ts";
 import { describeFailure, failureJson, getElement, hideElement, showElement, showModal, toggleElement, withQuery } from "./ajax.ts";
 
 // Final generation: a Celery task followed in the dialog and, when the dialog is closed or the page
@@ -190,7 +190,7 @@ function showCancelFinalButtons(show: boolean): void {
 
 // Stops the running generation (it stops within a few seconds, the exam is then editable again)
 async function cancelFinalGeneration(): Promise<void> {
-    if (!URLS.cancelFinal || !finalTracking) return;
+    if (!finalTracking) return;
     const confirmed = await ConfirmModal.confirm({
         title: "Cancel the final generation",
         message: "Cancel the final generation? Nothing will be generated.",
@@ -246,7 +246,7 @@ function finishFinalGeneration(ok: boolean, payload?: unknown): void {
 
 function trackFinalGeneration(taskId: string, startedAt?: number | null): void {
     if (finalTracking && finalTracking.taskId === taskId) return;
-    if (typeof CeleryProgressBar === "undefined" || !URLS.celeryTaskStatusTemplate) {
+    if (typeof CeleryProgressBar === "undefined") {
         showGenFinalError("The progress of the generation cannot be followed (Celery progress bar missing).");
         return;
     }
@@ -258,7 +258,7 @@ function trackFinalGeneration(taskId: string, startedAt?: number | null): void {
     showFinalBanner(!isGenFinalDialogOpen());
     showCancelFinalButtons(true);
 
-    CeleryProgressBar.initProgressBar(URLS.celeryTaskStatusTemplate.replace("__TASK_ID__", taskId), {
+    CeleryProgressBar.initProgressBar(celeryTaskStatusUrl(taskId), {
         progressBarId: "generate-final-progress-bar",
         progressBarMessageId: "generate-final-progress-message",
         pollInterval: 2000,
@@ -281,11 +281,6 @@ function trackFinalGeneration(taskId: string, startedAt?: number | null): void {
 }
 
 export async function generateFinalExamFiles(confirmWarnings = false): Promise<void> {
-    if (!URLS.generateFinalStart) {
-        console.warn("[preparation] Missing generateFinalStart URL");
-        return;
-    }
-
     genFinalWasSuccessful = false;
     resetGenFinalUi();
     setGenFinalLoading(true);

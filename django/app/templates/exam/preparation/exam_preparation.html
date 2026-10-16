@@ -12,13 +12,35 @@
 {% block content %}
 
 <h4><i class="fas fa-edit"></i> Exam Preparation</h4>
-    <div id="prep-root" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    {# The data attributes are the configuration of the page (see config.ts) #}
+    <div id="prep-root" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+         data-csrf-token="{{ csrf_token }}"
+         data-exam-pk="{{ exam_selected.pk }}"
+         data-is-finalized="{{ is_exam_finalized|yesno:'true,false' }}"
+         {# Finalized, or a final generation is running: nothing can be modified #}
+         data-is-locked="{{ is_exam_locked|yesno:'true,false' }}"
+         {# Celery task of a final generation still running when the page was loaded #}
+         data-active-final-task-id="{{ active_final_job.celery_task_id|default:'' }}"
+         data-active-final-started-at="{{ active_final_job.created_at|date:'c' }}"
+         data-preview-start-url="{% url 'exam_preview_start' exam_selected.pk %}"
+         data-preview-status-url="{% url 'exam_preview_status' exam_selected.pk 0 %}"
+         data-reorder-sections-url="{% url 'reorder_prep_sections' exam_selected.pk %}"
+         data-reorder-questions-url="{% url 'reorder_prep_questions' exam_selected.pk 0 %}"
+         data-reorder-answers-url="{% url 'reorder_prep_answers' exam_selected.pk 0 %}"
+         data-scoring-formulas-modal-url="{% url 'scoring_formulas_modal' exam_selected.pk %}"
+         data-edit-latex-file-url="{% url 'edit_latex_file' exam_selected.pk %}"
+         data-save-latex-file-url="{% url 'save_latex_edited_file' exam_selected.pk %}"
+         data-edit-latex-packages-url="{% url 'edit_latex_packages' exam_selected.pk %}"
+         data-save-latex-packages-url="{% url 'save_latex_edited_packages' exam_selected.pk %}"
+         data-generate-final-start-url="{% url 'generate_final_exam_files_start' exam_selected.pk %}"
+         data-cancel-final-url="{% url 'cancel_final_exam_files' exam_selected.pk %}"
+         data-celery-task-status-url="{% url 'celery_progress:task_status' 'TASK_ID_PLACEHOLDER' %}">
         {% if is_exam_finalized %}
             <div class="alert alert-warning mt-3">
                 This exam has been finalized. Editing is locked. Download the final files or unlock editing to modify the exam.
             </div>
         {% endif %}
-        {# Final generation running (see generateFinalExamFiles / trackFinalGeneration in preparation.js) #}
+        {# Final generation running (see generateFinalExamFiles / trackFinalGeneration in final-generation.ts) #}
         <div class="alert alert-info mt-3" id="final-generation-banner" role="status"
              {% if not active_final_job %}hidden{% endif %}>
             <div class="d-flex align-items-center justify-content-between flex-wrap">
@@ -58,7 +80,7 @@
                 <button
                     class="btn btn-outline-dark btn-sm latex-btn me-2"
                     type="button"
-                    onclick="openEditLaTeXFileDialog('commands');"
+                    data-prep-action="edit-latex-file" data-prep-arg="commands"
                     {% if is_exam_locked %}disabled{% endif %}
                 >
                     <img src="{% static 'img/LaTeX/latex-original.png' %}" style="height:12px;margin:0px;">
@@ -68,7 +90,7 @@
                 <button
                     class="btn btn-outline-dark btn-sm latex-btn"
                     type="button"
-                    onclick="openEditLaTeXPackagesDialog('packages');"
+                    data-prep-action="edit-latex-packages" data-prep-arg="packages"
                     {% if is_exam_locked %}disabled{% endif %}
                 >
                     <img src="{% static 'img/LaTeX/latex-original.png' %}" style="height:12px;margin:0px;">
@@ -91,12 +113,12 @@
                 <i class="fa-solid fa-print" style="margin-right:5px;"></i>Print settings{% include "./_prep_print_badge.html" %}
             </button>
 
-            <button onclick="previewExam();" class="btn btn-dark btn-sm" type="button" {% if is_exam_locked %}disabled{% endif %}>
+            <button data-prep-action="preview" class="btn btn-dark btn-sm" type="button" {% if is_exam_locked %}disabled{% endif %}>
                 <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Preview
             </button>
 
             {% if not is_exam_finalized %}
-                <button onclick="generateFinalExamFiles();" class="btn btn-dark btn-sm" type="button"
+                <button data-prep-action="generate-final" class="btn btn-dark btn-sm" type="button"
                         id="generate-final-button" {% if active_final_job %}disabled{% endif %}>
                     <i class="fa-regular fa-file-pdf" style="margin-right:10px;"></i>Generate final
                 </button>
@@ -120,7 +142,7 @@
                     <button
                         type="button"
                         class="btn btn-outline-danger btn-sm"
-                        onclick="openUnlockEditingModal();"
+                        data-prep-action="unlock-editing"
                     >
                         Unlock editing
                     </button>
@@ -150,32 +172,5 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     {{ katex_macros|json_script:"prep-katex-macros" }}
-    <script>
-      window.EXAM_PREP_CONFIG = {
-        csrfToken: "{{ csrf_token }}",
-        examPk: "{{ exam_selected.pk }}",
-        isFinalized: {{ is_exam_finalized|yesno:"true,false" }},
-        // Finalized, or a final generation is running: nothing can be modified
-        isLocked: {{ is_exam_locked|yesno:"true,false" }},
-        // Celery task of a final generation still running when the page was loaded
-        activeFinalTaskId: "{{ active_final_job.celery_task_id|default:'' }}",
-        activeFinalStartedAt: "{{ active_final_job.created_at|date:'c' }}",
-        urls: {
-            previewStart: "{% url 'exam_preview_start' exam_selected.pk %}",
-            previewStatus: "{% url 'exam_preview_status' exam_selected.pk 0 %}".replace("/0/", "/__JOB_ID__/"),
-            reorderSections: "{% url 'reorder_prep_sections' exam_selected.pk %}",
-            reorderQuestionsTemplate: "{% url 'reorder_prep_questions' exam_selected.pk 0 %}".replace("/0", "/__SECTION_ID__"),
-            reorderAnswersTemplate: "{% url 'reorder_prep_answers' exam_selected.pk 0 %}".replace("/0", "/__QUESTION_ID__"),
-            scoringFormulasModal: "{% url 'scoring_formulas_modal' exam_selected.pk %}",
-            editLatexFile: "{% url 'edit_latex_file' exam_selected.pk %}",
-            saveLatexFile: "{% url 'save_latex_edited_file' exam_selected.pk %}",
-            editLatexPackages: "{% url 'edit_latex_packages' exam_selected.pk %}",
-            saveLatexPackages: "{% url 'save_latex_edited_packages' exam_selected.pk %}",
-            generateFinalStart: "{% url 'generate_final_exam_files_start' exam_selected.pk %}",
-            cancelFinal: "{% url 'cancel_final_exam_files' exam_selected.pk %}",
-            celeryTaskStatusTemplate: "{% url 'celery_progress:task_status' 'TASK_ID_PLACEHOLDER' %}".replace("TASK_ID_PLACEHOLDER", "__TASK_ID__"),
-        }
-      };
-    </script>
 
 {% endblock %}

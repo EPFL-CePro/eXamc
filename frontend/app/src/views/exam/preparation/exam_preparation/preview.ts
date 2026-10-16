@@ -1,6 +1,6 @@
 import { getJson } from "@examc/helpers/http.ts";
 
-import { URLS } from "./config.ts";
+import { previewStatusUrl, URLS } from "./config.ts";
 import { describeFailure, failureJson, getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
 
 interface PreviewStartResponse {
@@ -50,11 +50,6 @@ export function stopPreviewPolling(): void {
 }
 
 export async function previewExam(): Promise<void> {
-    if (!URLS.previewStart) {
-        console.warn("[preparation] Missing previewStart URL");
-        return;
-    }
-
     stopPreviewPolling();
     resetPreviewUi();
     setPreviewLoading(true);
@@ -79,7 +74,7 @@ export async function previewExam(): Promise<void> {
 
 async function pollPreviewStatus(jobId: string, attempt = 0): Promise<void> {
     const maxAttempts = 60;
-    const url = URLS.previewStatus.replace("__JOB_ID__", jobId);
+    const url = previewStatusUrl(jobId);
 
     if (attempt >= maxAttempts) {
         showPreviewError("Le preview prend trop de temps ou le worker est bloqué.");
