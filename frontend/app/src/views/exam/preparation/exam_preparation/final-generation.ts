@@ -349,8 +349,8 @@ function normalizeGenFinalSuccessPayload(result: RawFinalResult | undefined): Fi
 
 // The page changes once the exam is finalized (download button, "locked" banner, read-only editing):
 // reloaded when the dialog of a successful final generation is closed, whatever the way (Close, ×, Escape,
-// (Bootstrap 4 is loaded too): listened on the dialog itself, and the Close
-// button reloads directly.
+// backdrop). The Bootstrap 5 "hidden" event does not always reach a document listener on this page
+// (Bootstrap 4 is loaded too): listened on the dialog itself, and the Close button reloads directly.
 function reloadAfterFinalGeneration(): void {
     if (genFinalWasSuccessful) {
         genFinalWasSuccessful = false;
