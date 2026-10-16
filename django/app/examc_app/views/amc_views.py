@@ -184,7 +184,7 @@ def upload_amc_project(request: HttpRequest, exam_pk: int):
 
 
 @exam_permission_required(['manage'])
-def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, task_id: str | None = None):
+def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str = 'project-tab', task_id: str | None = None):
     exam = Exam.objects.get(pk=exam_pk)
 
     amc_project_path = get_amc_project_path(exam, False)
@@ -192,6 +192,14 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
     context = {}
 
     if user_allowed(exam, request.user.id):
+        context['exam_selected'] = exam
+
+        exam = exam.get_overall_exam_or_default()
+
+        context['exam'] = exam
+        context['user_allowed'] = True
+        context['nav_url'] = 'amc_view'
+        
         if amc_project_path:
             # capture db mgt
             with AmcCaptureDbManager(amc_data_path=f"{amc_project_path}/data/") as amc_capture_db_manager:
@@ -269,17 +277,10 @@ def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str | None = None, ta
                 context['has_results'] = has_results
                 context['has_grading_schemes'] = has_grading_schemes
                 context['task_id'] = task_id
+                context['nav_url'] = "amc_view"
                 context['curr_tab'] = curr_tab
                 context['scans_list_json'] = json.loads(scans_list_json_string)
                 context['exam_nb_pages'] = range(1, int(float(exam_nb_pages)) + 1, 1)
-
-        context['exam_selected'] = exam
-
-        exam = exam.get_overall_exam_or_default()
-
-        context['exam'] = exam
-        context['user_allowed'] = True
-        context['nav_url'] = 'amc_view'
 
     else:
         context['user_allowed'] = False
