@@ -431,7 +431,7 @@ def clear_build_layout_objects(build):
 
 
 @transaction.atomic
-def extract_layout_from_xy(build: ExamBuild, xy_path=None, clear_existing=True, strict=False):
+def extract_layout_from_xy(build: ExamBuild, xy_path=None, clear_existing=True, strict=False, before_page=None):
     """
     Parse a subject XY file and persist geometry-driven layout objects.
 
@@ -447,6 +447,9 @@ def extract_layout_from_xy(build: ExamBuild, xy_path=None, clear_existing=True, 
         xy_path: Optional override path. Defaults to ``build.xy_path``.
         clear_existing: Whether existing layout objects should be deleted first.
         strict: Whether unknown question references should raise errors.
+        before_page: Optional function called before each page and before the question flags. It may raise to stop
+            the extraction (e.g. the user cancelled the generation): everything is then rolled back, the whole
+            function being one transaction.
 
     Returns:
         dict: Counts of inserted objects and samples of unknown payloads.
@@ -475,6 +478,9 @@ def extract_layout_from_xy(build: ExamBuild, xy_path=None, clear_existing=True, 
     inserted_answer_box_ids: dict[tuple[int | None, int], list[int]] = {}
 
     for parsed_page in pages:
+        if before_page:
+            before_page()
+
         copy_number, page_number = get_epc_from_page_or_cases(parsed_page)
 
         layout_page = get_or_create_layout_page(
@@ -616,6 +622,9 @@ def extract_layout_from_xy(build: ExamBuild, xy_path=None, clear_existing=True, 
             counts["marks"] += 1
 
     # Phase 2: apply AMC question-level flags to answer boxes only.
+    if before_page:
+        before_page()
+
     for key, flags in question_flags.items():
         box_ids = inserted_answer_box_ids.get(key, [])
         if not box_ids:

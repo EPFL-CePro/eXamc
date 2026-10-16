@@ -3,16 +3,18 @@ import os
 import pathlib
 import re
 import shutil
+import threading
 import time
 import uuid
 import zipfile
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import datetime, timedelta
 
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
 from django.conf import settings
 from django.contrib.sessions.models import Session
+from django.db import connection
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -26,9 +28,10 @@ from examc_app.models import (
     StudentQuestionAnswer,
 )
 from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
-from examc_app.utils.amc.amc_build_functions import BuildCancelled, build_final_exam
+from examc_app.utils.amc.amc_build_functions import BuildCancelled, build_final_exam, mark_exam_build_error
 from examc_app.utils.amc.amc_layout_functions import (
     LayoutExtractionError,
+    clear_build_layout_objects,
     extract_layout_from_xy,
     get_pdf_page_metrics,
     get_subject_copy_and_page_counts_from_xy,
@@ -739,6 +742,38 @@ def compile_exam_preview_task(self, job_id):
     job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
     print(f"[preview-task] end job={job_id} status={job.status}")
 
+CANCEL_POLL_SECONDS = 1.0
+
+
+@contextmanager
+def watch_cancel(should_cancel):
+    """
+    Yields an Event set as soon as `should_cancel()` is true, polled every second by a thread.
+
+    For the steps run in a transaction: the connection of the caller (REPEATABLE READ) would never see the request
+    to cancel, written meanwhile by another process; the thread reads it with a connection of its own.
+    """
+    cancelled = threading.Event()
+    finished = threading.Event()
+
+    def poll():
+        try:
+            while not finished.wait(CANCEL_POLL_SECONDS):
+                if should_cancel():
+                    cancelled.set()
+                    return
+        finally:
+            # should_cancel reads the database: the connection of this thread is not left open
+            connection.close()
+
+    watcher = threading.Thread(target=poll, daemon=True)
+    watcher.start()
+    try:
+        yield cancelled
+    finally:
+        finished.set()
+
+
 @shared_task(bind=True)
 def generate_final_exam_files_task(self, job_id):
     progress_recorder = ProgressRecorder(self)
@@ -753,6 +788,8 @@ def generate_final_exam_files_task(self, job_id):
         def _callback(*, percent, message):
             progress_recorder.set_progress(percent, 100, description=message)
         return _callback
+
+    build = None
 
     try:
         job.status = "running"
@@ -777,6 +814,11 @@ def generate_final_exam_files_task(self, job_id):
         def cancel_requested():
             return ExamAMCJob.objects.filter(pk=job.pk, cancel_requested=True).exists()
 
+        def raise_if_cancelled():
+            # build_final_exam checks it itself while it runs; this is for the steps after it
+            if cancel_requested():
+                raise BuildCancelled("The generation was cancelled.")
+
         build = build_final_exam(
             exam,
             user=job.requested_by,
@@ -797,6 +839,7 @@ def generate_final_exam_files_task(self, job_id):
             ])
             raise Exception(job.error_message)
 
+        raise_if_cancelled()
         set_progress(86, "Resolving generated artifacts...")
 
         project_path = pathlib.Path(build.project_path) if build.project_path else None
@@ -846,6 +889,7 @@ def generate_final_exam_files_task(self, job_id):
                 f"PDF/XY page mismatch: PDF={pdf_metrics['page_count']} XY={counts['total_pages']}"
             )
 
+        raise_if_cancelled()
         set_progress(92, "Creating layout pages...")
         page_result = populate_subject_layout_pages(
             build,
@@ -856,12 +900,24 @@ def generate_final_exam_files_task(self, job_id):
             height=pdf_metrics["height"],
         )
 
+        raise_if_cancelled()
         set_progress(96, "Extracting layout boxes, digits, zones, and marks...")
-        layout_result = extract_layout_from_xy(
-            build,
-            xy_path=subject_xy_path,
-            clear_existing=False,
-        )
+
+        def raise_if_watched_cancelled():
+            if cancelled.is_set():
+                raise BuildCancelled("The generation was cancelled.")
+
+        # The extraction is one transaction: it can't see the request to cancel itself, see watch_cancel
+        with watch_cancel(cancel_requested) as cancelled:
+            layout_result = extract_layout_from_xy(
+                build,
+                xy_path=subject_xy_path,
+                clear_existing=False,
+                before_page=raise_if_watched_cancelled,
+            )
+
+        # Last chance to stop: the exam is finalized below
+        raise_if_cancelled()
 
         result = {
             "ok": True,
@@ -912,6 +968,10 @@ def generate_final_exam_files_task(self, job_id):
         job.status = "cancelled"
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message", "updated_at"])
+        # Cancelled after the build (build_final_exam marks its own build): the build and its layout are dropped
+        if build is not None:
+            clear_build_layout_objects(build)
+            mark_exam_build_error(build, str(exc))
         raise
     except Exception as exc:
         job.status = "error"
