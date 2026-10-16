@@ -148,30 +148,6 @@
             </div>
         </div>
     </div>
-    <script>
-      // Overlay while a saving request is running; only shown if it lasts more than 400 ms (no flash on fast ones)
-      (function () {
-        const overlay = document.getElementById("prep-saving-overlay");
-        const SHOW_DELAY_MS = 400;
-        let pending = 0;
-        let timer = null;
-        const isSaving = (event) => (event.detail.requestConfig?.verb || "get") !== "get";
-        const start = (event) => {
-          if (!isSaving(event)) return;
-          pending++;
-          if (!timer) timer = setTimeout(() => { overlay.style.display = "block"; }, SHOW_DELAY_MS);
-        };
-        const end = (event) => {
-          if (!isSaving(event) || pending === 0) return;
-          if (--pending > 0) return;
-          clearTimeout(timer);
-          timer = null;
-          overlay.style.display = "none";
-        };
-        document.body.addEventListener("htmx:beforeRequest", start);
-        document.body.addEventListener("htmx:afterRequest", end);
-      })();
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     {{ katex_macros|json_script:"prep-katex-macros" }}
     <script>

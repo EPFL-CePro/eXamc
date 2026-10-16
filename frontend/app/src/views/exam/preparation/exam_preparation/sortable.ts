@@ -1,9 +1,10 @@
 import type { SortableInstance, SortableOptions } from "@examc/types/definitions/sortable";
 
 import { CSRF, isExamFinalized, Selectors, URLS } from "./config.ts";
-import { getElement } from "./ajax.ts";
+import { getElement, processHtmx } from "./ajax.ts";
 import { initMarkdownEditors } from "./markdown-editors.ts";
 import { initPreparationUI } from "./question-fields.ts";
+import { withSavingOverlay } from "./saving-overlay.ts";
 
 type OrderedItem = { id: string | undefined; position: number };
 
@@ -15,20 +16,27 @@ function replaceInstance(list: HTMLElement, options: SortableOptions): void {
     instances.set(list, Sortable.create(list, options));
 }
 
-/** POSTs the new order and returns the HTML the server sends back (the re-rendered list). */
-async function postOrder(url: string, key: string, items: OrderedItem[], errorMessage: string): Promise<Element | null> {
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": CSRF,
-        },
-        body: JSON.stringify({ [key]: items }),
-    });
-    if (!response.ok) throw new Error(errorMessage);
+/** POSTs the new order behind the saving overlay and returns the HTML the server sends back (the re-rendered list). */
+async function postOrder(url: string, key: string, items: OrderedItem[], errorMessage: string): Promise<string> {
+    return withSavingOverlay(async () => {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": CSRF,
+            },
+            body: JSON.stringify({ [key]: items }),
+        });
+        if (!response.ok) throw new Error(errorMessage);
 
+        return (await response.text()).trim();
+    });
+}
+
+/** The first element of an HTML snippet. */
+function firstElement(html: string): Element | null {
     const wrapper = document.createElement("div");
-    wrapper.innerHTML = (await response.text()).trim();
+    wrapper.innerHTML = html;
     return wrapper.firstElementChild;
 }
 
@@ -65,9 +73,11 @@ export function initSectionSortable(): void {
             });
 
             postOrder(URLS.reorderSections, "sections", orderedSections, "Failed to reorder sections")
-                .then((newList) => {
+                .then((html) => {
+                    const newList = firstElement(html);
                     if (newList) {
                         list.replaceWith(newList);
+                        processHtmx(newList);
                         initSectionSortable();
                         initPreparationUI(newList);
                         initMarkdownEditors(newList);
@@ -104,11 +114,11 @@ export function initQuestionSortable(): void {
                 const url = URLS.reorderQuestionsTemplate.replace("__SECTION_ID__", sectionId);
 
                 postOrder(url, "questions", orderedQuestions, "Failed to reorder questions")
-                    .then((newList) => {
-                        if (newList) {
-                            list.replaceWith(newList);
-                            reinitAll();
-                        }
+                    .then((html) => {
+                        // The response is the content of the list: a placeholder by question, that htmx loads
+                        list.innerHTML = html;
+                        processHtmx(list);
+                        reinitAll();
                     })
                     .catch((error: unknown) => {
                         console.error("[preparation] reorderQuestions failed:", error);
@@ -141,10 +151,12 @@ export function initAnswerSortable(): void {
                 const url = URLS.reorderAnswersTemplate.replace("__QUESTION_ID__", questionId);
 
                 postOrder(url, "answers", orderedAnswers, "Failed to reorder answers")
-                    .then((newBlock) => {
+                    .then((html) => {
+                        const newBlock = firstElement(html);
                         const target = document.getElementById(`answers-containers-${questionId}`);
                         if (newBlock && target) {
                             target.replaceWith(newBlock);
+                            processHtmx(newBlock);
                             reinitAll();
                         }
                     })

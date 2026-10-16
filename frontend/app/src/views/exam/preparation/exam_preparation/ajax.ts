@@ -71,3 +71,8 @@ export function ajaxGet<T = unknown>(url: string, data?: object, callbacks?: Aja
 export function ajaxPost<T = unknown>(url: string, data?: object | string, callbacks?: AjaxCallbacks<T>) {
     return ajaxRequest("POST", url, data, callbacks);
 }
+
+/** Makes htmx set up the hx-* attributes of HTML inserted by a script (htmx only does it for its own swaps). */
+export function processHtmx(element: Element): void {
+    (window as unknown as { htmx?: { process(element: Element): void } }).htmx?.process(element);
+}
