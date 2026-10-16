@@ -12,6 +12,11 @@
 }
 
 /*LaTex packages */
+/* The search results are a list positioned under the field: the body needs room for it (the dialog scrolls) */
+#edit_latex_packages_modal .modal-body {
+    min-height: 450px;
+}
+
 .latex-search-results {
     position: absolute;
     top: 100%;
