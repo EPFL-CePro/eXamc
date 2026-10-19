@@ -35,6 +35,10 @@ function updateQuestionFields(questionBar: HTMLElement): void {
 
     const selectedCode = getSelectedQuestionCode(typeSelect);
 
+    // An open question is scored by its corrector boxes: no scoring formula
+    const scoring = questionBar.closest('[id^="prep-question-"]')?.querySelector<HTMLElement>(".js-question-scoring");
+    if (scoring) scoring.style.display = selectedCode === "OPEN" ? "none" : "";
+
     const randomField = questionBar.querySelector<HTMLElement>(".js-field-random");
     const maxPointsField = questionBar.querySelector<HTMLElement>(".js-field-maxpoints");
     const incrementField = questionBar.querySelector<HTMLElement>(".js-field-increment");
@@ -58,6 +62,9 @@ function updateQuestionFields(questionBar: HTMLElement): void {
 function updateAnswerForm(answerForm: HTMLElement): void {
     const typeSelect = getQuestionTypeSelectFromElement(answerForm);
     const selectedCode = getSelectedQuestionCode(typeSelect);
+
+    const scoring = answerForm.closest('[id^="prep-answer-"]')?.querySelector<HTMLElement>(".js-answer-scoring");
+    if (scoring) scoring.style.display = selectedCode === "OPEN" ? "none" : "";
 
     const fixPositionField = answerForm.querySelector<HTMLElement>(".js-answer-fix-position");
     const correctField = answerForm.querySelector<HTMLElement>(".js-answer-correct");

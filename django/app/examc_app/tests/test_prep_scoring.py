@@ -255,3 +255,26 @@ class ScoringInfoPagesTestCase(ScoringTestCase):
         self.assertEqual(infos["questions"][str(scq.pk)], 'Question : "b=2"')
         self.assertEqual(infos["questions"][str(open_question.pk)], "")
         self.assertEqual({infos["answers"][str(answer.pk)] for answer in scq.prepAnswers.all()}, {'Question : "b=2"'})
+
+    def panels(self, question):
+        answer = question.prepAnswers.order_by("position").first()
+        question_html = self.client.get(
+            reverse("prep_question_panel", kwargs={"exam_pk": self.exam.pk, "question_id": question.pk})
+        ).content.decode()
+        answer_html = self.client.get(
+            reverse("prep_answer_panel", kwargs={"exam_pk": self.exam.pk, "answer_id": answer.pk})
+        ).content.decode()
+        return question_html, answer_html
+
+    def test_scoring_button_is_hidden_for_an_open_question_and_its_answers(self):
+        question_html, answer_html = self.panels(self.question("OPEN"))
+
+        self.assertIn('class="js-question-scoring" style="display: none"', question_html)
+        self.assertIn('class="js-answer-scoring" style="display: none"', answer_html)
+
+    def test_scoring_button_is_shown_for_the_choice_questions(self):
+        for position, code in enumerate(("SCQ", "MCQ", "TF"), start=1):
+            question_html, answer_html = self.panels(self.question(code, position))
+
+            self.assertIn('class="js-question-scoring">', question_html)
+            self.assertIn('class="js-answer-scoring">', answer_html)

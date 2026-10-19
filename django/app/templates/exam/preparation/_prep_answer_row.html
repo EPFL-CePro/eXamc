@@ -1,16 +1,19 @@
 {% load prep_tags %}<div id="prep-answer-{{ answer.id }}" class="border p-2 mt-2 sortable-answer" data-answer-id="{{ answer.id }}">
-    <div class="d-flex align-items-center" style="margin-bottom: 10px;">
-        <button
-            type="button"
-            class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
-            id="openScoringFormulasModal"
-            data-exam-pk="{{ exam_selected.pk }}"
-            data-prep-section=""
-            data-prep-question=""
-            data-prep-answer="{{ answer.id }}"
-        ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
-        </button>
-        {% prep_scoring_info exam_selected "answer" answer.id %}
+    {# The answers of an open question are corrector boxes: no formula, see question-fields.ts #}
+    <div class="js-answer-scoring"{% if question.question_type.code == "OPEN" %} style="display: none"{% endif %}>
+        <div class="d-flex align-items-center" style="margin-bottom: 10px;">
+            <button
+                type="button"
+                class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
+                id="openScoringFormulasModal"
+                data-exam-pk="{{ exam_selected.pk }}"
+                data-prep-section=""
+                data-prep-question=""
+                data-prep-answer="{{ answer.id }}"
+            ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
+            </button>
+            {% prep_scoring_info exam_selected "answer" answer.id %}
+        </div>
     </div>
     <form
         novalidate

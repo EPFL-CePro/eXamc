@@ -32,18 +32,21 @@
 
     <div id="prep-question-body-{{ question.id }}" class="collapse{% if saved %} show{% endif %}">
         <div class="card-body">
-            <div class="d-flex align-items-center" style="margin-bottom: 10px;">
-                <button
-                    type="button"
-                    class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
-                    id="openScoringFormulasModal"
-                    data-exam-pk="{{ exam_selected.pk }}"
-                    data-prep-section=""
-                    data-prep-question="{{ question.id }}"
-                    data-prep-answer=""
-                ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
-                </button>
-                {% prep_scoring_info exam_selected "question" question.id %}
+            {# No formula for an open question (corrector boxes): shown according to the type, see question-fields.ts #}
+            <div class="js-question-scoring"{% if question.question_type.code == "OPEN" %} style="display: none"{% endif %}>
+                <div class="d-flex align-items-center" style="margin-bottom: 10px;">
+                    <button
+                        type="button"
+                        class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
+                        id="openScoringFormulasModal"
+                        data-exam-pk="{{ exam_selected.pk }}"
+                        data-prep-section=""
+                        data-prep-question="{{ question.id }}"
+                        data-prep-answer=""
+                    ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
+                    </button>
+                    {% prep_scoring_info exam_selected "question" question.id %}
+                </div>
             </div>
             <form
                     novalidate
