@@ -700,8 +700,9 @@ def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_
 
 @shared_task(bind=True)
 def compile_exam_preview_task(self, job_id):
-    print(f"[preview-task] entered task job_id={job_id}")
     job = ExamAMCJob.objects.get(pk=job_id)
+    # Read by the error handling below, whatever fails first
+    result = None
 
     try:
         job.status = "running"
@@ -710,7 +711,6 @@ def compile_exam_preview_task(self, job_id):
         job.save(update_fields=["status", "error_message", "pdf_path", "updated_at"])
 
         result = compile_exam_preview(job.exam, job_id=job.pk)
-        print(f"[preview-task] result for job={job_id}: {result}")
 
         if result["ok"]:
             job.status = "success"
@@ -740,7 +740,7 @@ def compile_exam_preview_task(self, job_id):
         }
 
     job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
-    print(f"[preview-task] end job={job_id} status={job.status}")
+    logger.info("Exam preview finished | job_id=%s | status=%s", job_id, job.status)
 
 
 @shared_task(bind=True)
