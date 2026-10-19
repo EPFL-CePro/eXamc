@@ -93,7 +93,7 @@ def save_latex_edited_packages(request,exam_pk):
     if locked:
         return locked
 
-    new_used_packages = request.POST.getlist("new_used_packages[]", "[]")
+    new_used_packages = request.POST.getlist("new_used_packages[]")
 
     cleaned_packages = []
     seen = set()
