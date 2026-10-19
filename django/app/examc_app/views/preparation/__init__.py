@@ -3,7 +3,7 @@
 from .answers import add_prep_answer, delete_prep_answer, prep_answer_panel, reorder_prep_answers
 from .final_generation import cancel_final_exam_files, generate_final_exam_files_start
 from .latex import edit_latex_file, edit_latex_packages, save_latex_edited_file, save_latex_edited_packages
-from .preview import exam_preview_pdf, exam_preview_pdf_file, exam_preview_start, exam_preview_status
+from .preview import exam_preview_pdf_file, exam_preview_start, exam_preview_status
 from .project import (
     create_exam_project,
     exam_preparation_view,
@@ -49,7 +49,6 @@ __all__ = [
     "edit_latex_packages",
     "exam_preparation_students_view",
     "exam_preparation_view",
-    "exam_preview_pdf",
     "exam_preview_pdf_file",
     "exam_preview_start",
     "exam_preview_status",

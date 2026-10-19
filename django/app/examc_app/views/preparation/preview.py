@@ -10,21 +10,7 @@ from django.views.decorators.http import require_POST
 from examc_app.decorators import exam_permission_required
 from examc_app.models import Exam, ExamAMCJob
 from examc_app.tasks import compile_exam_preview_task
-from examc_app.utils.preparation_functions import compile_exam_preview, delete_exam_preview_job_files
-
-
-@exam_permission_required(["manage"])
-def exam_preview_pdf(request, exam_pk):
-    exam = get_object_or_404(Exam, pk=exam_pk)
-
-    result = compile_exam_preview(exam)
-
-    if not result["ok"]:
-        return JsonResponse({"error": result["error"]}, status=result["status"])
-
-    return JsonResponse({
-        "pdf_url": reverse("exam_preview_pdf_file", kwargs={"exam_pk": exam.pk})
-    })
+from examc_app.utils.preparation_functions import delete_exam_preview_job_files
 
 
 @exam_permission_required(["manage"])
