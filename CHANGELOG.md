@@ -16,6 +16,11 @@ The format follows [Semantic Versioning](https://semver.org/).
   be cancelled), and AMC reads the layout and the scoring strategy of the subject itself (layout.sqlite and
   scoring.sqlite of the project), reporting its errors and warnings.
 
+### Changed
+- Preparation module: **Randomized questions** (sections) and **Randomized answers** (questions) are on by default, and
+  now decide the order on the copies: the answers of a question whose switch is off are kept in the order of the page
+  (the switch was not used before: AMC always shuffled them, and the existing questions keep it on).
+
 ### Fixed
 - Preparation module: the views that change the exam only accept POST (a link or an image on another page could delete
   a section or start a generation).
@@ -26,6 +31,8 @@ The format follows [Semantic Versioning](https://semver.org/).
   steps of 1) is refused with a message, instead of ending on an error page after being saved.
 
 ### Removed
+- Preparation module: the options **Cancel question** and **Fixed** (of a question and of an answer), which cannot be
+  honoured in the copies. A question that started on a new page with **Fixed** no longer does: use the section option.
 - Unused tables of the preparation module (layout, scan pages, capture boxes, exam copies and score results): the
   layout and the scores are kept by AMC.
 

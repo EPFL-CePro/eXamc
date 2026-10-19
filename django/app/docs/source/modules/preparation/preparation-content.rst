@@ -16,7 +16,7 @@ Sections
 Use **Add section** to create a section, and the red button of its card to delete it. Each section has:
 
 - a **title** and a **section text**, printed before its questions (it can be only a text, such as grading rules);
-- **Randomized questions**: the questions of the section are in a different order on each copy;
+- **Randomized questions**, on by default: the questions of the section are in a different order on each copy. Switch it off to keep the order of the page;
 - **Start on a new page**: the section starts on a new page.
 
 Drag the handle of a card to change the order of the sections, and the same for the questions of a section and the answers of a question. The positions are renumbered after a deletion.
@@ -41,13 +41,11 @@ Use **Add question** in a section and choose the **title**, the **question type*
    * - **OPEN**
      - Open question, corrected by hand in the **Review** module (see below).
 
-Each question has a **title**, a **question text** and a **Fixed** switch: a question marked **Fixed** starts on a new page.
+Each question has a **title** and a **question text**. A single or multiple choice question also has **Randomized answers**, on by default: the answers are in a different order on each copy. Switch it off to keep the answers in the order of the page. The answers of a true/false question are always TRUE then FALSE.
 
 The answers of a choice question have a **Correct** switch and an **Answer text**.
 
-.. note::
-
-   The switches **Randomized answers** and **Cancel question** of a question, and **Fixed** of an answer, are saved with the exam but are not used yet when the LaTeX files are written: they have no effect on the copies. The order of the answers on a copy is the one decided by AMC.
+To start a question on a new page, put it in a section that **starts on a new page**. A question cannot be kept at the same place in a section whose questions are randomized.
 
 Open questions
 ^^^^^^^^^^^^^^
