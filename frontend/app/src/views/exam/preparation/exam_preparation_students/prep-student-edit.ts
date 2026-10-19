@@ -1,9 +1,8 @@
 import type { Api } from 'datatables.net-bs5';
 
-import type { PrepStudentRow } from "./prepStudentsTable.ts";
-import { Modal } from 'bootstrap';
+import type { PrepStudentRow } from "./prep-students-table.ts";
 
-const FIELDS = ["sciper", "last_name", "first_name", "email", "section", "room", "seat"] as const;
+const FIELDS = ["copy_no", "sciper", "last_name", "first_name", "email", "section", "room", "seat"] as const;
 
 type ErrorResponse = {
     errors?: string[];
@@ -33,12 +32,11 @@ export function initPrepStudentEdit(options: {
     modalElement: HTMLElement;
 }): void {
     const { table, tableElement, apiUrl, modalElement } = options;
-    const csrfToken = tableElement.dataset.csrfToken ?? "";
     const form = modalElement.querySelector<HTMLFormElement>("form")!;
     const errorsElement = modalElement.querySelector<HTMLElement>("#prepStudentEditErrors")!;
     const notFoundElement = modalElement.querySelector<HTMLElement>("#prepStudentEditNotFound")!;
     const saveButton = modalElement.querySelector<HTMLButtonElement>("#prepStudentEditSave")!;
-    const modal = Modal.getOrCreateInstance(modalElement);
+    const modal = new LocalModal(modalElement);
     let editedId: number | null = null;
 
     const input = (field: typeof FIELDS[number]) => form.elements.namedItem(field) as HTMLInputElement;
@@ -75,22 +73,17 @@ export function initPrepStudentEdit(options: {
 
         saveButton.disabled = true;
         try {
-            const response = await fetch(`${apiUrl}${editedId}/`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
-                body: JSON.stringify(body),
-            });
-
-            if (response.ok) {
-                modal.hide();
-                table.ajax.reload();
-            } else {
-                const data: ErrorResponse = await response.json().catch(() => ({}));
-                showErrors(errorMessages(data, response.status));
-            }
+            await sendJson("PATCH", `${apiUrl}${editedId}/`, body);
+            modal.hide();
+            table.ajax.reload();
         } catch (error) {
-            console.error("Student update failed", error);
-            showErrors(["The request could not be sent: please check your connection and try again."]);
+            const failure = describeFailure(error);
+            if (failure.status === 0) {
+                console.error("Student update failed", error);
+                showErrors(["The request could not be sent: please check your connection and try again."]);
+            } else {
+                showErrors(errorMessages(failureJson<ErrorResponse>(failure), failure.status));
+            }
         } finally {
             saveButton.disabled = false;
         }

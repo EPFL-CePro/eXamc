@@ -1,14 +1,13 @@
 import json
 import re
-from datetime import date, datetime
+from datetime import date
 
-from dateutil.utils import today
 from django.contrib.auth.models import Group, User
 from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http.request import HttpRequest
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView
@@ -25,6 +24,7 @@ from examc_app.models import (
     Scale,
     Semester,
 )
+from examc_app.services.exam.common import build_overall_exam_code
 from examc_app.services.exam.paths import get_exam_subdir, update_exam_folders
 from examc_app.tasks import generate_statistics
 from examc_app.utils.epflldap import ldap_search
@@ -363,9 +363,7 @@ def set_common_exam(request,exam_pk: int):
     if exam.is_overall():
         return HttpResponseRedirect(reverse('exam_info', kwargs={ 'exam_pk': exam.pk }))
 
-    overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
-    month_year = exam.date.strftime("%m-%Y")
-    overall_code += "_" + month_year
+    overall_code = build_overall_exam_code(exam)
     overall_exam, created = Exam.objects.get_or_create(code=overall_code, semester=exam.semester,
                                                        year=exam.year)
     if created:

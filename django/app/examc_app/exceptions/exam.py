@@ -26,3 +26,11 @@ class ExamFolderConflictError(UserFacingError):
         "Nothing was moved, please choose different information."
     )
     status_code = 409
+
+
+class NoAcademicYearError(UserFacingError):
+    """Raised when an exam is created while no academic year exists."""
+    title = "No academic year"
+    message = "No academic year is configured yet. Please ask an administrator to create one."
+    status_code = 400
+

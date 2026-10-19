@@ -2,54 +2,56 @@
 AMC exam build pipeline.
 
 This module is the orchestration layer for converting the current Django exam
-preparation state into persistent AMC artifacts and a frozen ``ExamBuild``
-snapshot.
+preparation state into persistent AMC artifacts, recorded by an ``ExamBuild``.
 
 Main responsibilities:
 - compute a stable hash of the preparation source content
-- create immutable build snapshot rows for questions and answers
+- create the ``ExamBuild`` of a generation
 - compile AMC artifacts in an isolated temporary workspace
 - promote successful outputs back into the persistent project folder
-- keep SUBJECT artifacts as the canonical source for layout/scoring extraction
-- trigger subject-only layout page population and XY extraction
+- keep SUBJECT artifacts as the canonical output of the build
+- have AMC read the layout and the scoring strategy of the subject (register_exam_in_amc)
 
 Important invariants:
-- subject compilation is canonical for database-related paths and extraction
-- catalog compilation is only a convenience artifact and must not drive DB state
+- subject compilation is canonical for the paths of the build
+- catalog compilation is only a convenience artifact
 - temporary workspace files should not be stored on the build after promotion
-- frozen snapshot data must reflect the exact question/answer state at build time
 """
 
+import contextvars
+import math
+import re
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 from hashlib import sha256
 from pathlib import Path
 
 from django.conf import settings
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Max
 from django.utils import timezone
 
 from examc_app.models import (
     Exam,
     ExamBuild,
-    ExamBuildAnswer,
-    ExamBuildQuestion,
 )
 from examc_app.utils.amc.amc_helpers import (
     get_amc_answer_code,
     get_amc_question_id,
     get_exam_latex_main_file,
 )
-from examc_app.utils.amc.amc_layout_functions import (
-    get_subject_copy_and_page_counts_from_xy,
-)
+from examc_app.services.student.prep_amc_csv import StudentsCsvError, write_students_csv
+from examc_app.utils.amc.amc_layout_functions import get_pages_by_copy_from_xy
+from examc_app.exceptions.amc import AmcDbManagerError
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 
 # ---------------------------------------------------------------------------
-# Snapshot helpers
+# Build helpers
 # ---------------------------------------------------------------------------
 
 def get_next_exam_build_version(exam: Exam) -> int:
@@ -94,6 +96,7 @@ def compute_exam_source_hash(exam: Exam) -> str:
                 f"section_title:{section.title or ''}",
                 f"section_text:{section.section_text or ''}",
                 f"section_random_questions:{int(section.random_questions)}",
+                f"section_start_on_new_page:{int(section.start_on_new_page)}",
             ]
         )
 
@@ -111,8 +114,6 @@ def compute_exam_source_hash(exam: Exam) -> str:
                     f"question_random_answers:{int(question.random_answers)}",
                     f"question_max_points:{question.max_points}",
                     f"question_point_increment:{question.point_increment or ''}",
-                    f"question_canceled:{int(question.canceled)}",
-                    f"question_new_page:{int(question.new_page)}",
                 ]
             )
 
@@ -127,16 +128,22 @@ def compute_exam_source_hash(exam: Exam) -> str:
                         f"answer_is_correct:{int(answer.is_correct)}",
                         f"answer_box_type:{answer.box_type or ''}",
                         f"answer_box_height_mm:{answer.box_height_mm if answer.box_height_mm is not None else ''}",
-                        f"answer_fix_position:{int(answer.fix_position)}",
                     ]
                 )
+
+    # The students list (students.csv): one copy per student
+    for student in exam.prepStudents.order_by("copy_no", "pk"):
+        chunks.append(
+            f"student:{student.copy_no}|{student.sciper}|{student.last_name}|{student.first_name}|"
+            f"{student.email or ''}|{student.section or ''}|{student.room or ''}|{student.seat}"
+        )
 
     payload = "\n".join(chunks)
     return sha256(payload.encode("utf-8")).hexdigest()
 
 
 @transaction.atomic
-def create_exam_build_snapshot(
+def create_exam_build(
     exam: Exam,
     user=None,
     *,
@@ -146,80 +153,23 @@ def create_exam_build_snapshot(
     latex_main_path: str = "",
 ) -> ExamBuild:
     """
-    Create a frozen ``ExamBuild`` snapshot from the current preparation state.
-
-    The snapshot duplicates the question/answer information needed later for
-    layout extraction, scan mapping, and scoring, so future edits to the exam do
-    not retroactively change an older build.
+    Create the ``ExamBuild`` of a generation, with the hash of the preparation content it starts from.
 
     Returns:
         ExamBuild: Newly created build in ``draft`` status.
     """
-    version = get_next_exam_build_version(exam)
-    source_hash = compute_exam_source_hash(exam)
-    locked_at = timezone.now() if lock_build else None
-
-    build = ExamBuild.objects.create(
+    return ExamBuild.objects.create(
         exam=exam,
-        version=version,
+        version=get_next_exam_build_version(exam),
         status="draft",
         is_locked=lock_build,
-        locked_at=locked_at,
+        locked_at=timezone.now() if lock_build else None,
         requested_by=user,
-        source_hash=source_hash,
+        source_hash=compute_exam_source_hash(exam),
         latex_engine=latex_engine,
         project_path=project_path or "",
         latex_main_path=latex_main_path or "",
     )
-
-    sections = exam.prepSections.order_by("position", "pk").prefetch_related(
-        "prepQuestions__prepAnswers",
-        "prepQuestions__question_type",
-    )
-    global_index = 1
-    for section in sections:
-        for question in section.prepQuestions.order_by("position", "pk"):
-            question_type_code = question.question_type.code if question.question_type else ""
-            rendered_id = get_amc_question_id(question)
-
-            build_question = ExamBuildQuestion.objects.create(
-                build=build,
-                prep_question=question,
-                rendered_id=rendered_id,
-                amc_question_number=global_index,
-                rendered_code=rendered_id,
-                rendered_position=question.position,
-                section_position=section.position,
-                question_type_code=question_type_code,
-                prep_question_id_snapshot=question.pk,
-                title_snapshot=question.title or "",
-                text_snapshot=question.question_text or "",
-                max_points_snapshot=question.max_points or 0,
-                point_increment_snapshot=question.point_increment or "",
-                random_answers_snapshot=question.random_answers,
-                new_page_snapshot=question.new_page,
-                canceled_snapshot=question.canceled,
-            )
-            global_index += 1
-
-            for answer in question.prepAnswers.order_by("position", "pk"):
-                if not answer.box_type:
-                    ExamBuildAnswer.objects.create(
-                        build_question=build_question,
-                        prep_answer=answer,
-                        rendered_answer_number=answer.position,
-                        rendered_position=answer.position,
-                        rendered_code=get_amc_answer_code(question, answer),
-                        prep_answer_id_snapshot=answer.pk,
-                        title_snapshot=answer.title or "",
-                        answer_text_snapshot=answer.answer_text or "",
-                        is_correct_snapshot=answer.is_correct,
-                        box_type_snapshot=answer.box_type or "",
-                        box_height_mm_snapshot=answer.box_height_mm,
-                        fix_position_snapshot=answer.fix_position,
-                    )
-
-    return build
 
 
 @transaction.atomic
@@ -397,8 +347,11 @@ def _ensure_xy_output(workspace_path: Path) -> Path | None:
     Normalize the expected XY output file name.
 
     Preference order:
-    - use ``calage.xy`` if it already exists
-    - otherwise copy ``amc-compiled.xy`` to ``calage.xy``
+    - copy ``amc-compiled.xy`` (written by the compilation just done) to ``calage.xy``
+    - otherwise use ``calage.xy`` if it already exists
+
+    The ``calage.xy`` of an earlier compilation of the same build must not be kept: its pages would not be those
+    of the PDF ("PDF/XY page mismatch").
 
     Returns:
         Path | None: Normalized ``calage.xy`` path when available.
@@ -406,15 +359,118 @@ def _ensure_xy_output(workspace_path: Path) -> Path | None:
     calage_xy = workspace_path / "calage.xy"
     compiled_xy = workspace_path / "amc-compiled.xy"
 
-    if calage_xy.exists():
-        return calage_xy
-
     if compiled_xy.exists():
         shutil.copy2(compiled_xy, calage_xy)
         return calage_xy
 
+    if calage_xy.exists():
+        return calage_xy
+
     return None
 
+
+
+# pdflatex prints "[<page number>" on its output when it ships a page out ("[2021/..." of the package
+# dates excluded). AMC numbers the pages of each copy from 1: the markers are counted, not read.
+PAGE_SHIPOUT_RE = re.compile(r"\[(\d+)(?=[\s\]{<]|$)")
+
+
+class BuildCancelled(Exception):
+    """The user asked to stop the final generation."""
+
+
+# Set by build_final_exam: returns True when the user asked to stop the generation. Checked between the steps
+# (_report_progress) and, while LaTeX compiles, every CANCEL_POLL_SECONDS (the compilation is then killed).
+_should_cancel = contextvars.ContextVar("examc_should_cancel", default=None)
+CANCEL_POLL_SECONDS = 1.0
+
+
+def _raise_if_cancelled():
+    should_cancel = _should_cancel.get()
+    if should_cancel and should_cancel():
+        raise BuildCancelled("The generation was cancelled.")
+
+
+def _run_latex(cmd: list[str], cwd: Path, timeout: int, on_page=None) -> tuple[int | None, str]:
+    """
+    Runs a LaTeX command, reading its output while it compiles: `on_page(pages)` is called with the number of
+    pages shipped out so far. Returns (return code, output), the return code being None after `timeout` seconds
+    (the process is then killed). Raises BuildCancelled (process killed) when the user asked to stop.
+    """
+    process = subprocess.Popen(
+        cmd,
+        cwd=str(cwd),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        errors="replace",
+    )
+    timed_out = threading.Event()
+
+    def kill():
+        timed_out.set()
+        process.kill()
+
+    timer = threading.Timer(timeout, kill)
+    timer.start()
+    should_cancel = _should_cancel.get()
+    cancelled = threading.Event()
+    finished = threading.Event()
+
+    def watch_cancel():
+        try:
+            while not finished.wait(CANCEL_POLL_SECONDS):
+                if should_cancel():
+                    cancelled.set()
+                    process.kill()
+                    return
+        finally:
+            # should_cancel reads the database: the connection of this thread is not left open
+            connection.close()
+
+    watcher = threading.Thread(target=watch_cancel, daemon=True) if should_cancel else None
+    if watcher:
+        watcher.start()
+    output = []
+    pages = 0
+    try:
+        for line in process.stdout:
+            output.append(line)
+            shipped = len(PAGE_SHIPOUT_RE.findall(line))
+            if shipped and on_page:
+                pages += shipped
+                on_page(pages)
+        process.wait()
+    finally:
+        finished.set()
+        timer.cancel()
+        if process.poll() is None:
+            process.kill()
+    if cancelled.is_set():
+        raise BuildCancelled("The generation was cancelled.")
+    return (None if timed_out.is_set() else process.returncode), "".join(output)
+
+
+# The qrcode package computes each QR code in TeX (~0.15 s each, one per page of each copy) and saves it in the
+# .aux file, where the next compilation reads it back. The QR codes are keyed by their text ("...,<ID>,<page>"):
+# when the students or the pages change, the missing ones are computed and the others are no longer written.
+QR_CACHE_LINE_PREFIXES = ("\\ifx\\qr@savematrix", "\\qr@savematrix{")
+
+
+def read_qr_cache(aux_path: Path) -> list[str]:
+    """The QR code lines of a LaTeX .aux file (and the line defining their macro), nothing else of it."""
+    try:
+        lines = aux_path.read_text(encoding="latin-1").splitlines()
+    except OSError:
+        return []
+    return [line for line in lines if line.startswith(QR_CACHE_LINE_PREFIXES)]
+
+
+def seed_qr_cache(workspace_path: Path, qr_cache: list[str]) -> None:
+    """Writes the .aux of the next compilation with only the QR codes of `qr_cache`."""
+    if qr_cache:
+        (workspace_path / "amc-compiled.aux").write_text("\\relax\n" + "\n".join(qr_cache) + "\n",
+                                                         encoding="latin-1")
 
 
 def compile_exam_in_workspace(
@@ -423,6 +479,7 @@ def compile_exam_in_workspace(
     timeout: int = 60,
     latex_engine: str = "pdflatex",
     mode: str = "subject",
+    on_page=None,
 ) -> dict:
     """
     Compile an exam in a temporary workspace.
@@ -430,6 +487,8 @@ def compile_exam_in_workspace(
     Supported modes:
     - ``subject``: uses ``students.csv`` and produces canonical layout artifacts
     - ``catalog``: uses ``student_prev.csv`` and produces a one-copy catalog PDF
+
+    ``on_page(pages)`` is called while compiling with the number of pages produced so far.
 
     Returns:
         dict: Success flag, paths, logs, and error/status details.
@@ -474,20 +533,7 @@ def compile_exam_in_workspace(
     ]
 
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=str(workspace_path),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-    except subprocess.TimeoutExpired:
-        return {
-            "ok": False,
-            "error": "Compilation timeout",
-            "status": 500,
-            "build_log": "",
-        }
+        returncode, output = _run_latex(cmd, workspace_path, timeout, on_page)
     except FileNotFoundError:
         return {
             "ok": False,
@@ -503,8 +549,16 @@ def compile_exam_in_workspace(
 
     build_log = _read_log_file_if_exists(tex_log_path)
 
-    if result.returncode != 0 or not pdf_path.exists():
-        error_message = result.stdout or result.stderr or build_log or "LaTeX compilation failed"
+    if returncode is None:
+        return {
+            "ok": False,
+            "error": f"Compilation timeout ({timeout} s)",
+            "status": 500,
+            "build_log": build_log,
+        }
+
+    if returncode != 0 or not pdf_path.exists():
+        error_message = output or build_log or "LaTeX compilation failed"
         return {
             "ok": False,
             "error": error_message,
@@ -557,35 +611,6 @@ PERSISTENT_AMC_FILES = [
     "catalog.amc",
 ]
 
-def export_exam_named_artifacts(project_path: Path, exam: Exam) -> dict:
-    """
-    Create AMC-style user-facing filenames alongside internal compiled files.
-
-    This is mainly a convenience export layer for files such as
-    ``{prefix}-sujet.pdf`` and ``{prefix}-calage.xy``.
-    """
-    prefix = _safe_exam_prefix(exam)
-
-    exported = {
-        "subject_pdf": "",
-        "calage_xy": "",
-    }
-
-    compiled_pdf = project_path / "amc-compiled.pdf"
-    calage_xy = project_path / "calage.xy"
-
-    subject_pdf = project_path / f"{prefix}-sujet.pdf"
-    exam_calage_xy = project_path / f"{prefix}-calage.xy"
-
-    if compiled_pdf.exists():
-        shutil.copy2(compiled_pdf, subject_pdf)
-        exported["subject_pdf"] = str(subject_pdf)
-
-    if calage_xy.exists():
-        shutil.copy2(calage_xy, exam_calage_xy)
-        exported["calage_xy"] = str(exam_calage_xy)
-
-    return exported
 
 def _safe_exam_prefix(exam: Exam) -> str:
     """
@@ -613,8 +638,8 @@ def promote_workspace_to_project(
     with the following expected compile order:
 
     1. CATALOG
-    2. SUBJECT pass 1
-    3. SUBJECT pass 2 (final canonical state)
+    2. SUBJECT (final canonical state, unless some copies are longer)
+    3. SUBJECT again when some copies are longer (final canonical state)
 
     Because SUBJECT is compiled last, the workspace already contains the
     final AMC config/data/log state that later features depend on.
@@ -726,12 +751,189 @@ def promote_workspace_to_project(
         "catalog_amc_path": str(final_catalog_amc_path) if final_catalog_amc_path.exists() else "",
     }
 
+# ---------------------------------------------------------------------------
+# AMC databases (layout.sqlite, scoring.sqlite)
+# ---------------------------------------------------------------------------
+
+
+class AmcStepError(Exception):
+    """An AMC command of the final generation failed: the message is shown to the user."""
+
+
+# The lines AMC prints for the problems of the exam (questions, LaTeX...) and the warnings
+AMC_MESSAGE_RE = re.compile(r"^(ERR|WARN):\s*(.*)$", re.MULTILINE)
+AMC_OUTPUT_TAIL = 1500
+AMC_LAYOUT_TIMEOUT = 600
+
+
+def _run_amc_step(command: list[str], cwd: Path, timeout: int, label: str) -> list[str]:
+    """
+    Runs one AMC command: returns its warnings, raises AmcStepError with its errors when it failed, and
+    BuildCancelled when the user asked to stop.
+    """
+    returncode, output = _run_latex(command, cwd, timeout)
+    messages = AMC_MESSAGE_RE.findall(output)
+    errors = [text for kind, text in messages if kind == "ERR"]
+    warnings = [text for kind, text in messages if kind == "WARN"]
+
+    if returncode is None:
+        raise AmcStepError(f"AMC: {label} timed out after {timeout} s.")
+    if returncode != 0 or errors:
+        details = " ".join(errors) or output.strip()[-AMC_OUTPUT_TAIL:] or f"exit code {returncode}"
+        raise AmcStepError(f"AMC: {label} failed. {details}")
+    return warnings
+
+
+def _copy_amc_sources(project_path: Path, destination: Path) -> None:
+    """
+    Copies what AMC needs to read the exam (the LaTeX sources, the students list, the options and the media), and
+    not the generated documents: AMC compiles in the folder of the source, and its compilation must not replace the
+    SUBJECT state kept in the project (amc-compiled.*, amc-compiled-config.tex).
+    """
+    for item in project_path.iterdir():
+        if item.is_dir():
+            if item.name == "media":
+                shutil.copytree(item, destination / item.name)
+        elif item.name not in IGNORED_BUILD_FILES and item.suffix not in (".pdf", ".xy"):
+            shutil.copy2(item, destination / item.name)
+
+
+def _extract_scoring_in_amc(exam: Exam, project_path: Path, data_path: Path, expected_pages: int, timeout: int) -> list[str]:
+    """
+    ``prepare --mode b``: AMC compiles the sources once more and extracts the scoring strategy of every copy in
+    ``data/scoring.sqlite``. It reads the layout, so ``data/layout.sqlite`` must exist. It runs in a copy of the sources
+    (AMC compiles in the folder of the source): the project keeps its SUBJECT state.
+    """
+    Path(settings.AMC_TMP_ROOT).mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=settings.AMC_TMP_ROOT, prefix=f"amc_scoring_{exam.pk}_") as tmp_dir:
+        sources_path = Path(tmp_dir)
+        _copy_amc_sources(project_path, sources_path)
+        # The QR codes of the subject compiled by the final generation: computing them in TeX takes ~0.15 s per page
+        seed_qr_cache(sources_path, read_qr_cache(project_path / "amc-compiled.aux"))
+        return _run_amc_step(
+            [
+                "auto-multiple-choice", "prepare",
+                "--mode", "b",
+                "--data", f"{data_path}/",
+                "--with", "pdflatex",
+                "--filter", "latex",
+                "--prefix", f"{sources_path}/",
+                str(sources_path / "exam.tex"),
+            ],
+            sources_path, _compile_timeout(timeout, expected_pages), "the extraction of the scoring strategy")
+
+
+def update_scoring_in_amc(exam: Exam, *, timeout: int = 60, should_cancel=None, progress_callback=None) -> list[str]:
+    """
+    Extracts again the scoring strategy of an exam whose final files were generated, after its scoring formulas changed
+    (the LaTeX files of the project must have been rewritten, see update_exam_scoring_latex). The scoring does not
+    change the layout: only ``data/scoring.sqlite`` is rewritten.
+
+    Returns the warnings of AMC. Raises AmcStepError when the layout of the exam is not in the project (the final
+    generation did not register it in AMC) or when AMC fails.
+    """
+    project_path = Path(get_amc_project_path(exam, False))
+    data_path = project_path / "data"
+    try:
+        with AmcLayoutDbManager(amc_data_path=f"{data_path}/") as layout_db:
+            pages = layout_db.select_count_layout_pages()
+    except AmcDbManagerError:
+        pages = 0
+    if not pages:
+        raise AmcStepError("AMC: the layout of this exam is not in its project: unlock the editing and generate the "
+                           "final files again before changing the scoring.")
+
+    token = _should_cancel.set(should_cancel)
+    try:
+        _report_progress(progress_callback, 10, "Extracting the scoring strategy with AMC...")
+        return _extract_scoring_in_amc(exam, project_path, data_path, pages, timeout)
+    finally:
+        _should_cancel.reset(token)
+
+
+def register_exam_in_amc(
+    exam: Exam,
+    xy_path: str,
+    *,
+    expected_pages: int,
+    timeout: int = 60,
+    should_cancel=None,
+    progress_callback=None,
+) -> list[str]:
+    """
+    Feeds the databases of the AMC project with the exam just generated, as AMC does itself, so that the scans and the
+    marks are processed by AMC:
+
+    1. the layout (``meptex`` reads the SUBJECT XY file: ``data/layout.sqlite``),
+    2. the scoring strategy (``prepare --mode b`` compiles the sources once more: ``data/scoring.sqlite``). It reads
+       the layout, so it comes second, and runs in a copy of the sources: the project keeps its SUBJECT state.
+
+    Returns the warnings of AMC. Raises AmcStepError when AMC fails or does not find the pages of the PDF (its
+    message is shown to the user), and BuildCancelled when the user asked to stop.
+    """
+    project_path = Path(get_amc_project_path(exam, False))
+    data_path = project_path / "data"
+    data_path.mkdir(exist_ok=True)
+
+    token = _should_cancel.set(should_cancel)
+    try:
+        _report_progress(progress_callback, 92, "Detecting the layout with AMC...")
+        warnings = _run_amc_step(
+            ["auto-multiple-choice", "meptex", "--src", str(xy_path), "--data", f"{data_path}/"],
+            project_path, AMC_LAYOUT_TIMEOUT, "the layout detection")
+
+        with AmcLayoutDbManager(amc_data_path=f"{data_path}/") as layout_db:
+            detected_pages = layout_db.select_count_layout_pages()
+        if detected_pages != expected_pages:
+            raise AmcStepError(
+                f"AMC: the layout detection found {detected_pages} pages, but the subject has {expected_pages}.")
+
+        _report_progress(progress_callback, 94, "Extracting the scoring strategy with AMC...")
+        warnings += _extract_scoring_in_amc(exam, project_path, data_path, expected_pages, timeout)
+    finally:
+        _should_cancel.reset(token)
+
+    return warnings
+
+
 # --------------------------------------------------------------------------
 # Progress helper
 # --------------------------------------------------------------------------
 def _report_progress(progress_callback, percent, message):
+    _raise_if_cancelled()
     if progress_callback:
         progress_callback(percent=percent, message=message)
+
+
+# Seconds allowed to a compilation: ~0.3 s per page is measured (QR codes not cached), 1 s per page is allowed
+LATEX_BASE_TIMEOUT = 120
+LATEX_SECONDS_PER_PAGE = 1
+
+
+def _compile_timeout(timeout: int, expected_pages: int) -> int:
+    return max(timeout, LATEX_BASE_TIMEOUT + LATEX_SECONDS_PER_PAGE * expected_pages)
+
+
+def _page_progress(progress_callback, start: int, end: int, label: str, copies: int, pages_per_copy: int,
+                   min_interval: float = 2.0):
+    """
+    on_page callback of compile_exam_in_workspace: reports "<label>: copy X / N" with a percent from `start` to
+    `end`, at most every `min_interval` seconds. `pages_per_copy` may be an estimate (before the first subject
+    compilation): the percent then stops just before `end`.
+    """
+    expected_pages = max(1, copies * pages_per_copy)
+    last_report = [0.0]
+
+    def on_page(pages):
+        now = time.monotonic()
+        if now - last_report[0] < min_interval:
+            return
+        last_report[0] = now
+        done = min(1.0, pages / expected_pages)
+        copy = min(copies, math.ceil(pages / max(1, pages_per_copy)))
+        _report_progress(progress_callback, start + int((end - 1 - start) * done), f"{label}: copy {copy} / {copies}")
+
+    return on_page
 
 # ---------------------------------------------------------------------------
 # Main entrypoint
@@ -741,6 +943,44 @@ def _report_progress(progress_callback, percent, message):
 # SUBJECT must remain the canonical retained AMC project state because
 # later features (layout extraction, scan processing, downstream data usage)
 # depend on subject files/config remaining in place after the build.
+# Written in the LaTeX log for each copy by \\examcPadPages (exam_template.tex): the pages of its content
+COPY_PAGES_RE = re.compile(r"^EXAMC-COPY-PAGES=(\d+)", re.MULTILINE)
+
+
+def read_copy_pages_from_log(log: str) -> list[int]:
+    """The pages of the content of each copy (before the blank pages), in the order of the copies."""
+    return [int(pages) for pages in COPY_PAGES_RE.findall(log or "")]
+
+
+def round_pages_per_copy(pages: int, booklet: bool) -> int:
+    """The pages of a copy: a multiple of 4 for a booklet (A3 folded), see \\examcPadPages."""
+    return math.ceil(pages / 4) * 4 if booklet else pages
+
+
+def exam_has_shuffling(exam: Exam) -> bool:
+    """True when the questions or the answers of some copies are in random order (their length then varies)."""
+    return (exam.prepSections.filter(random_questions=True).exists()
+            or exam.prepSections.filter(prepQuestions__random_answers=True).exists())
+
+
+def longer_copies_warning(copy_pages: list[int], estimated: int, final: int, shuffled: bool,
+                          booklet: bool, max_listed: int = 10) -> str:
+    """Why all the copies were padded to `final` pages instead of `estimated` (the pages of the catalog copy).
+    `copy_pages` are the pages of the content of each copy (see read_copy_pages_from_log)."""
+    longer = [copy for copy, pages in enumerate(copy_pages, start=1) if pages > estimated]
+    listed = ", ".join(str(copy) for copy in longer[:max_listed])
+    if len(longer) > max_listed:
+        listed += f" and {len(longer) - max_listed} others"
+    reason = ("the questions or the answers are in random order, so the length of the copies varies"
+              if shuffled else "their content is longer than the one of the catalog copy")
+    pages_text = f"{final} pages" + (" (a multiple of 4 for the booklet)" if booklet else "")
+    return (
+        f"{len(longer)} {'copy has' if len(longer) == 1 else 'copies have'} more than {estimated} pages "
+        f"(copy {listed}) because {reason}. All the copies were padded with blank pages to {pages_text}, "
+        f"which needed a second compilation of the subject."
+    )
+
+
 def build_final_exam(
     exam: Exam,
     user=None,
@@ -748,27 +988,31 @@ def build_final_exam(
     timeout: int = 60,
     latex_engine: str = "pdflatex",
     progress_callback=None,
+    should_cancel=None,
 ) -> ExamBuild:
     """
     Build the final AMC project for one exam.
 
+    `should_cancel()` returns True when the user asked to stop: BuildCancelled is raised (the build is then marked
+    as failed, and the compilation running is killed).
+
     This pipeline intentionally compiles the two AMC modes in the following order:
 
     1. Generate LaTeX once without a known ``pages_per_copy`` value.
-    2. Create and lock an ``ExamBuild`` snapshot.
+    2. Create and lock an ``ExamBuild``.
     3. Copy the persistent AMC project into a temporary workspace.
-    4. Compile CATALOG first using ``student_prev.csv``.
+    3b. Write the students list ``students.csv`` (PrepStudent) into the persistent project.
+    4. Compile CATALOG first using ``student_prev.csv`` (one anonymous copy).
        - This produces only the catalog PDF side artifact.
        - It must never become the canonical build state.
-    5. Compile SUBJECT (pass 1) using ``students.csv``.
-       - Read the generated subject XY file to determine the real
-         ``pages_per_copy``.
-    6. Regenerate LaTeX with the final ``pages_per_copy`` injected.
-    7. Refresh generated ``.tex`` files inside the temporary workspace.
-    8. Recompile SUBJECT (pass 2).
-       - This final subject compilation is the canonical build output.
-    9. Promote successful workspace artifacts back to the persistent project.
-    10. Bind canonical ``ExamBuild`` paths to SUBJECT artifacts only.
+       - Its number of pages estimates ``pages_per_copy`` (multiple of 4 for a booklet).
+    5. Regenerate LaTeX with the estimated ``pages_per_copy`` and compile SUBJECT using ``students.csv``: the
+       copies are padded to this number of pages, and their first page shows it.
+    6. Read the subject XY file: when no copy is longer than the estimate (the usual case), this compilation is
+       the canonical build output. Otherwise (shuffled questions or answers...), LaTeX is regenerated with the
+       real ``pages_per_copy`` and SUBJECT is compiled again, and a warning tells it (``build.build_warnings``).
+    7. Promote successful workspace artifacts back to the persistent project.
+    8. Bind canonical ``ExamBuild`` paths to SUBJECT artifacts only.
 
     Important invariants:
     - SUBJECT is always the canonical final build state.
@@ -783,7 +1027,15 @@ def build_final_exam(
             otherwise a build in ``error`` state.
     """
 
-    _report_progress(progress_callback, 10, "Preparing AMC workspace...")
+    token = _should_cancel.set(should_cancel)
+    try:
+        return _build_final_exam(exam, user, timeout, latex_engine, progress_callback)
+    finally:
+        _should_cancel.reset(token)
+
+
+def _build_final_exam(exam, user, timeout, latex_engine, progress_callback) -> ExamBuild:
+    _report_progress(progress_callback, 6, "Preparing AMC workspace...")
 
     persistent_project_path = get_amc_project_path(exam, False)
     exam_prefix = exam.code or f"exam-{exam.pk}"
@@ -791,11 +1043,11 @@ def build_final_exam(
     # ------------------------------------------------------------------
     # INITIAL LATEX GENERATION (without final pages_per_copy yet)
     # ------------------------------------------------------------------
-    _report_progress(progress_callback, 12, "Generating LaTeX sources...")
+    _report_progress(progress_callback, 7, "Generating LaTeX sources...")
     update_exam_latex(exam, pages_per_copy=None)
-    _report_progress(progress_callback, 18, "LaTeX sources generated.")
+    _report_progress(progress_callback, 8, "LaTeX sources generated.")
 
-    build = create_exam_build_snapshot(
+    build = create_exam_build(
         exam=exam,
         user=user,
         lock_build=True,
@@ -803,9 +1055,20 @@ def build_final_exam(
         project_path=persistent_project_path,
         latex_main_path=str(Path(persistent_project_path) / "exam.tex"),
     )
+    # Shown to the user at the end of the generation (not saved)
+    build.build_warnings = []
 
     try:
         mark_exam_build_building(build)
+
+        # The students list of the prep module, read by AMC: one copy per student
+        _report_progress(progress_callback, 9, "Writing the students list...")
+        try:
+            write_students_csv(exam, persistent_project_path)
+        except StudentsCsvError as error:
+            mark_exam_build_error(build, error_message=" ".join(error.errors))
+            return build
+
         Path(settings.AMC_TMP_ROOT).mkdir(parents=True, exist_ok=True)
 
         with tempfile.TemporaryDirectory(
@@ -815,6 +1078,10 @@ def build_final_exam(
             workspace_path = Path(tmp_dir)
 
             copy_project_to_workspace(persistent_project_path, workspace_path)
+
+            # QR codes of the previous build (see read_qr_cache), given to each first compilation
+            qr_cache = read_qr_cache(Path(persistent_project_path) / "amc-compiled.aux")
+            copies = exam.prepStudents.count() or 1
 
             subject_build_log = ""
             subject_amc_log_path = ""
@@ -832,13 +1099,17 @@ def build_final_exam(
             # - we want the final retained state in the workspace/project
             #   to be the SUBJECT state, because later features depend on it.
             # ==========================================================
-            _report_progress(progress_callback, 25, "Compiling catalog PDF...")
+            _report_progress(progress_callback, 10, "Compiling catalog PDF...")
 
+            # One anonymous copy (no student_prev.csv): its pages estimate the pages per copy
+            catalog_pages = [0]
+            seed_qr_cache(workspace_path, qr_cache)
             catalog_result = compile_exam_in_workspace(
                 workspace_path,
-                timeout=timeout,
+                timeout=_compile_timeout(timeout, 50),
                 latex_engine=latex_engine,
                 mode="catalog",
+                on_page=lambda pages: catalog_pages.__setitem__(0, pages),
             )
 
             if not catalog_result["ok"]:
@@ -854,142 +1125,102 @@ def build_final_exam(
             if catalog_pdf.exists():
                 shutil.copy2(catalog_pdf, catalog_named_pdf)
 
-            _report_progress(progress_callback, 35, "Catalog PDF compiled.")
+            _report_progress(progress_callback, 12, "Catalog PDF compiled.")
+            booklet = exam.print_format == Exam.PRINT_FORMAT_BOOKLET
+            # The pages of the content of the catalog copy (pages shipped out with an older exam_template.tex)
+            catalog_copy_pages = read_copy_pages_from_log(catalog_result.get("build_log", "")) or catalog_pages
+            estimated_pages_per_copy = round_pages_per_copy(max(1, catalog_copy_pages[0]), booklet)
+
+            def refresh_latex(pages_per_copy):
+                # The copies are padded up to `pages_per_copy` (\\examcPadPages), shown on their first page
+                update_exam_latex(exam, pages_per_copy=pages_per_copy)
+                for src in Path(persistent_project_path).glob("*.tex"):
+                    shutil.copy2(src, workspace_path / src.name)
+
+            def compile_subject(pages_per_copy, start, end, label):
+                """Compiles the subject; returns (build log, AMC log path, XY path), or None when it failed (the
+                build is then marked as failed)."""
+                _report_progress(progress_callback, start, label + "...")
+                result = compile_exam_in_workspace(
+                    workspace_path,
+                    timeout=_compile_timeout(timeout, copies * pages_per_copy * 2),
+                    latex_engine=latex_engine,
+                    mode="subject",
+                    on_page=_page_progress(progress_callback, start, end, label, copies, pages_per_copy),
+                )
+                if not result["ok"]:
+                    mark_exam_build_error(
+                        build,
+                        error_message=result["error"],
+                        build_log=result.get("build_log", "") or subject_build_log,
+                    )
+                    return None
+
+                subject_pdf = workspace_path / "amc-compiled.pdf"
+                if subject_pdf.exists():
+                    shutil.copy2(subject_pdf, workspace_path / f"{exam_prefix}-sujet.pdf")
+                subject_xy = workspace_path / "calage.xy"
+                subject_named_xy = workspace_path / f"{exam_prefix}-calage.xy"
+                if subject_xy.exists():
+                    shutil.copy2(subject_xy, subject_named_xy)
+
+                xy_path = str(subject_named_xy) if subject_named_xy.exists() else result.get("xy_path", "")
+                if not xy_path:
+                    mark_exam_build_error(
+                        build,
+                        error_message="Subject XY path is missing after subject compilation.",
+                        build_log=result.get("build_log", ""),
+                    )
+                    return None
+                return (
+                    result.get("build_log", ""),
+                    result.get("renamed_amc_path", "") or result.get("amc_log_path", ""),
+                    xy_path,
+                )
 
             # ==========================================================
-            # STEP 2 - SUBJECT BUILD PASS 1
+            # STEP 2 - SUBJECT BUILD, PADDED TO THE ESTIMATED PAGES
             # ==========================================================
             #
-            # Goal:
-            # - compile subject once
-            # - extract subject XY
-            # - determine the real pages_per_copy
+            # Usually the canonical final state: the copies have the pages of the catalog copy. Only when some
+            # copies are longer is the subject compiled again (STEP 3).
             # ==========================================================
-            _report_progress(progress_callback, 42, "Compiling subject PDF...")
-
-            subject_result = compile_exam_in_workspace(
-                workspace_path,
-                timeout=timeout,
-                latex_engine=latex_engine,
-                mode="subject",
-            )
-
-            if not subject_result["ok"]:
-                mark_exam_build_error(
-                    build,
-                    error_message=subject_result["error"],
-                    build_log=subject_result.get("build_log", ""),
-                )
+            refresh_latex(estimated_pages_per_copy)
+            # The catalog compilation rewrote the .aux with its single copy
+            seed_qr_cache(workspace_path, qr_cache)
+            compiled = compile_subject(estimated_pages_per_copy, 12, 80, "Compiling subject PDF")
+            if compiled is None:
                 return build
+            subject_build_log, subject_amc_log_path, subject_xy_path = compiled
 
-            subject_pdf = workspace_path / "amc-compiled.pdf"
-            subject_named_pdf = workspace_path / f"{exam_prefix}-sujet.pdf"
-            if subject_pdf.exists():
-                shutil.copy2(subject_pdf, subject_named_pdf)
-
-            subject_xy = workspace_path / "calage.xy"
-            subject_named_xy = workspace_path / f"{exam_prefix}-calage.xy"
-            if subject_xy.exists():
-                shutil.copy2(subject_xy, subject_named_xy)
-
-            subject_build_log = subject_result.get("build_log", "")
-            subject_amc_log_path = (
-                subject_result.get("renamed_amc_path", "")
-                or subject_result.get("amc_log_path", "")
-            )
-            subject_xy_path = (
-                str(subject_named_xy)
-                if subject_named_xy.exists()
-                else subject_result.get("xy_path", "")
-            )
-
-            if not subject_xy_path:
-                mark_exam_build_error(
-                    build,
-                    error_message="Subject XY path is missing after subject compilation.",
-                    build_log=subject_build_log,
-                )
-                return build
-
-            _report_progress(progress_callback, 50, "Reading subject page structure...")
-
-            counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
-            pages_per_copy = counts["pages_per_copy"]
+            _report_progress(progress_callback, 80, "Reading subject page structure...")
+            # The pages of the content of each copy, before the blank pages (with an older exam_template.tex:
+            # the pages of each copy in the XY file)
+            copy_pages = (read_copy_pages_from_log(subject_build_log)
+                          or [pages for _, pages in sorted(get_pages_by_copy_from_xy(subject_xy_path).items())])
+            pages_per_copy = round_pages_per_copy(max(copy_pages, default=1), booklet)
 
             # ==========================================================
-            # STEP 3 - REGENERATE LATEX WITH REAL PAGE COUNT
-            # ==========================================================
-            _report_progress(progress_callback, 58, "Injecting final page count into LaTeX...")
-            update_exam_latex(exam, pages_per_copy=pages_per_copy)
-
-            # Refresh generated TeX files in workspace so the second subject
-            # compilation uses the final page-aware sources.
-            _report_progress(progress_callback, 62, "Refreshing generated LaTeX files...")
-            for src in Path(persistent_project_path).glob("*.tex"):
-                shutil.copy2(src, workspace_path / src.name)
-
-            # ==========================================================
-            # STEP 4 - SUBJECT BUILD PASS 2 (CANONICAL FINAL STATE)
+            # STEP 3 - PAGES PER COPY DIFFERENT FROM THE ESTIMATE
             # ==========================================================
             #
-            # This is the most important compilation of the pipeline.
-            # After this step:
-            # - the workspace contains the final canonical subject state
-            # - promotion back to the persistent project must preserve this
-            # - ExamBuild canonical paths must point to subject artifacts only
+            # Some copies are longer than the catalog copy (shuffled questions or answers...): all the copies are
+            # padded to the longest one, which the user is told. Or all are shorter (the catalog shows the keys
+            # of the questions): the copies would have useless blank pages.
             # ==========================================================
-            _report_progress(
-                progress_callback,
-                72,
-                "Recompiling subject PDF with final page count...",
-            )
+            if pages_per_copy != estimated_pages_per_copy:
+                if pages_per_copy > estimated_pages_per_copy:
+                    build.build_warnings.append(longer_copies_warning(
+                        copy_pages, estimated_pages_per_copy, pages_per_copy, exam_has_shuffling(exam), booklet))
+                refresh_latex(pages_per_copy)
+                # The .aux of the first compilation holds all the QR codes of this build
+                compiled = compile_subject(
+                    pages_per_copy, 81, 84, f"Compiling subject PDF again with {pages_per_copy} pages per copy")
+                if compiled is None:
+                    return build
+                subject_build_log, subject_amc_log_path, subject_xy_path = compiled
 
-            subject_result = compile_exam_in_workspace(
-                workspace_path,
-                timeout=timeout,
-                latex_engine=latex_engine,
-                mode="subject",
-            )
-
-            if not subject_result["ok"]:
-                mark_exam_build_error(
-                    build,
-                    error_message=subject_result["error"],
-                    build_log=subject_result.get("build_log", "") or subject_build_log,
-                )
-                return build
-
-            subject_pdf = workspace_path / "amc-compiled.pdf"
-            subject_named_pdf = workspace_path / f"{exam_prefix}-sujet.pdf"
-            if subject_pdf.exists():
-                shutil.copy2(subject_pdf, subject_named_pdf)
-
-            subject_xy = workspace_path / "calage.xy"
-            subject_named_xy = workspace_path / f"{exam_prefix}-calage.xy"
-            if subject_xy.exists():
-                shutil.copy2(subject_xy, subject_named_xy)
-
-            subject_build_log = subject_result.get("build_log", "") or subject_build_log
-            subject_amc_log_path = (
-                subject_result.get("renamed_amc_path", "")
-                or subject_result.get("amc_log_path", "")
-                or subject_amc_log_path
-            )
-            subject_xy_path = (
-                str(subject_named_xy)
-                if subject_named_xy.exists()
-                else subject_result.get("xy_path", "")
-            )
-
-            if not subject_xy_path:
-                mark_exam_build_error(
-                    build,
-                    error_message="Final subject XY path is missing after recompilation.",
-                    build_log=subject_build_log,
-                )
-                return build
-
-            _report_progress(progress_callback, 82, "Final subject PDF compiled.")
+            _report_progress(progress_callback, 84, "Final subject PDF compiled.")
 
             # ==========================================================
             # STEP 5 - PROMOTE WORKSPACE TO PERSISTENT PROJECT
@@ -1001,7 +1232,7 @@ def build_final_exam(
             # CATALOG is still kept as a side artifact PDF, but must never be
             # bound as the canonical build output.
             # ==========================================================
-            _report_progress(progress_callback, 88, "Saving generated artifacts...")
+            _report_progress(progress_callback, 85, "Saving generated artifacts...")
 
             promoted = promote_workspace_to_project(
                 workspace_path=workspace_path,
@@ -1011,7 +1242,7 @@ def build_final_exam(
 
             final_subject_pdf_path = (
                 promoted.get("subject_pdf_path", "")
-                or str(subject_named_pdf)
+                or str(workspace_path / f"{exam_prefix}-sujet.pdf")
                 or promoted.get("compiled_pdf_path", "")
             )
             final_subject_amc_path = (
@@ -1039,6 +1270,9 @@ def build_final_exam(
 
             return build
 
+    except BuildCancelled as exc:
+        mark_exam_build_error(build, str(exc))
+        raise
     except Exception as exc:
         mark_exam_build_error(build, str(exc))
         return build

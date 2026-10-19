@@ -3,11 +3,11 @@
 ###########################
 import json
 
-from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Count
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
+
 
 TEACHER_GROUP_ID = 2
 
@@ -39,6 +39,13 @@ class Exam(models.Model):
     indiv_formula = models.CharField(max_length=100, blank=True,null=True)
     pages_by_copy = models.CharField(max_length=10000, blank=True,null=True)
     first_page_text = models.TextField(default='', null=True, blank=True)
+
+    # Booklet: A3 folded and stapled, the number of pages of a copy must be a multiple of 4
+    PRINT_FORMAT_STANDARD = "standard"
+    PRINT_FORMAT_BOOKLET = "booklet"
+    PRINT_FORMAT_CHOICES = [(PRINT_FORMAT_STANDARD, "Standard"), (PRINT_FORMAT_BOOKLET, "Booklet")]
+    print_format = models.CharField(max_length=20, choices=PRINT_FORMAT_CHOICES, default=PRINT_FORMAT_STANDARD)
+
     review_option = models.BooleanField(default=0)
     amc_option = models.BooleanField(default=0)
     res_and_stats_option = models.BooleanField(default=0)
@@ -110,18 +117,11 @@ class Exam(models.Model):
 
     def get_common_exams_yc_common(self):
         """ Return all common exams including the common (000-) """
-        exam_list = [self]
-        for comex in self.common_exams.all():
-            exam_list.append(comex)
-
-        return exam_list
+        return [self, *self.common_exams.all()]
 
     def get_common_exams_without_common(self):
         """ Return all common exams without the common (000-) """
-        exam_list = Exam.objects.filter(common_exams=self,overall=False)
-        for exam in exam_list.all():
-            print( exam)
-        return exam_list
+        return Exam.objects.filter(common_exams=self,overall=False)
 
 
     def get_students_results_exams(self):
@@ -135,11 +135,9 @@ class Exam(models.Model):
     def get_available_common_exams(self):
         exam = self
         if self.is_overall():
-            code_split = self.code.split('_')
-            code = code_split[1]
-            semester = self.semester
-            year = self.year
-            exam = Exam.objects.filter(code__startswith=code,semester=semester, year=year).exclude(code=self.code).first()
+            exam = self.common_exams.filter(overall=False).first()
+        if exam is None:
+            return []
 
         available_exams = []
         if exam.questions.all():
@@ -159,6 +157,9 @@ class Exam(models.Model):
 
     def get_overall_exam_or_default(self):
         """ The overall exam among the common exams if there is one, otherwise this exam """
+        if self.is_overall():
+            return self
+
         return self.common_exams.filter(overall=True).first() or self
 
     @property

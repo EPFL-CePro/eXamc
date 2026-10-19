@@ -5,8 +5,7 @@
 %%Package for tabular in openquestion
 \usepackage{array}
 
-%% redefine header code by adding QRCode
-\renewcommand\AMCIDBoxesABC{\hbox{\vbox{\noindent\AMCIDBoxesA\\\noindent\AMCIDBoxesB\AMCIDBoxesC}\vspace{-.5cm}\qrcode[height=15mm]{CePROExamsQRC,\ID,\thepage}}}%
+%% The header with the QR code (\AMCIDBoxesABC) is defined in exam.tex, after this file
 
 %% Default values for open questions:
 \AMCopenOpts{lines=10,lineheight=2ex,framerulecol=black,dots=false}

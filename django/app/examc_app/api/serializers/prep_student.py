@@ -15,8 +15,10 @@ class PrepStudentUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PrepStudent
-        fields = ["sciper", "last_name", "first_name", "email", "section", "room", "seat"]
+        fields = ["copy_no", "sciper", "last_name", "first_name", "email", "section", "room", "seat"]
         extra_kwargs = {
+            # Moves the student (see move_prep_student)
+            "copy_no": {"required": False, "min_value": 1},
             # Filled from the EPFL directory when the SCIPER is found
             "last_name": {"required": False, "allow_blank": True},
             "first_name": {"required": False, "allow_blank": True},
