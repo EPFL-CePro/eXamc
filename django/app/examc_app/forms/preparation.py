@@ -100,6 +100,27 @@ class PrepQuestionForm(forms.ModelForm):
 
         return value
 
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # The points of an open question are given by steps (see update_open_answers): its maximum is a whole number
+        # of steps. Checked here, otherwise the question is saved and the steps cannot be created.
+        question_type = cleaned_data.get("question_type")
+        if question_type is None or question_type.code != "OPEN":
+            return cleaned_data
+
+        if "point_increment" in cleaned_data and not cleaned_data["point_increment"]:
+            self.add_error("point_increment", "Choose the point increment.")
+        if "max_points" in cleaned_data and cleaned_data["max_points"] is None:
+            self.add_error("max_points", "Give the maximum points.")
+
+        max_points = cleaned_data.get("max_points")
+        increment = cleaned_data.get("point_increment")
+        if max_points is not None and increment and max_points % Decimal(increment) != 0:
+            self.add_error("max_points", f"The maximum points must be a multiple of the point increment ({increment}).")
+
+        return cleaned_data
+
 
 class CreatePrepQuestionForm(forms.Form):
     section_pk = forms.IntegerField(widget=forms.HiddenInput())

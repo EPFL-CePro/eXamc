@@ -1,5 +1,4 @@
 import json
-import unittest
 
 from examc_app.models import PrepQuestion, PrepQuestionAnswer, PrepSection
 from examc_app.tests.helpers.models import create_mock_exam
@@ -136,15 +135,45 @@ class QuestionViewsTestCase(PrepViewsTestCase):
         self.assertEqual([answer.title for answer in question.prepAnswers.order_by("position", "pk")],
                          ["0 points", "1 point", "2 points"])
 
-    @unittest.expectedFailure
-    def test_max_points_that_the_increment_does_not_divide_are_refused_by_the_form(self):
-        """Known problem: the form accepts 2.5 points with an increment of 1, update_open_answers then raises a
-        ValueError (an error 500) after the question was saved. The form should refuse it."""
+    def test_max_points_that_the_increment_does_not_divide_are_refused(self):
         question = self.question("OPEN", answers=0)
 
         response = self.client.post(self.panel_url(question), self.data(question, max_points="2.5"))
 
+        self.assertEqual(response.status_code, 200)
         self.assertFalse(save_feedback(response))
+        self.assertContains(response, "must be a multiple of the point increment (1)")
+        question.refresh_from_db()
+        self.assertEqual(question.max_points, 0)
+        self.assertEqual(question.prepAnswers.count(), 0)
+
+    def test_half_points_are_accepted_with_an_increment_of_half_a_point(self):
+        question = self.question("OPEN", answers=0)
+
+        response = self.client.post(self.panel_url(question),
+                                    self.data(question, max_points="2.5", point_increment="0.5"))
+
+        self.assertTrue(save_feedback(response))
+        self.assertEqual(question.prepAnswers.count(), 6)
+
+    def test_an_open_question_needs_an_increment_and_maximum_points(self):
+        question = self.question("OPEN", answers=0)
+
+        no_increment = self.client.post(self.panel_url(question), self.data(question, max_points="2", point_increment=""))
+        no_maximum = self.client.post(self.panel_url(question), self.data(question, max_points=""))
+
+        self.assertFalse(save_feedback(no_increment))
+        self.assertContains(no_increment, "Choose the point increment.")
+        self.assertFalse(save_feedback(no_maximum))
+        self.assertContains(no_maximum, "Give the maximum points.")
+        self.assertEqual(question.prepAnswers.count(), 0)
+
+    def test_the_points_of_a_choice_question_are_not_checked_against_the_increment(self):
+        question = self.question("SCQ")
+
+        response = self.client.post(self.panel_url(question), self.data(question, max_points="2.5"))
+
+        self.assertTrue(save_feedback(response))
 
     def test_locked_exam_cannot_be_saved(self):
         question = self.question("SCQ")
