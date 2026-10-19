@@ -114,3 +114,56 @@ export function toScanUrl(path: string): string {
     const parts = path.split('/');
     return `/${parts[1] ?? ''}/${parts[3] ?? ''}`;
 }
+
+
+/**
+ * Sends a request with a JSON body (PATCH, PUT, DELETE or POST), with the CSRF token in the headers.
+ *
+ * @param {string} method - The HTTP method.
+ * @param {string} url - The URL to send to.
+ * @param {unknown} body - What is sent, as JSON.
+ * @return {Promise<Response>} The response.
+ * @throws {HttpError} If the response status is not OK.
+ */
+export async function sendJson(method: string, url: string, body: unknown): Promise<Response> {
+    const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify(body),
+        credentials: 'same-origin',
+    });
+    if (!response.ok) throw new HttpError(response.status, url, await response.text());
+    return response;
+}
+
+/** A failed request: the status (0 when the server was not reached), and what the server answered. */
+export interface RequestFailure {
+    status: number;
+    text: string;
+    json: unknown;
+}
+
+/**
+ * Describes why a request failed.
+ *
+ * @param {unknown} error - What the request threw: an HttpError when the server answered with an error.
+ * @return {RequestFailure} The status (0 when the server was not reached), the answer as text and as JSON if it is.
+ */
+export function describeFailure(error: unknown): RequestFailure {
+    if (!(error instanceof HttpError)) {
+        return { status: 0, text: error instanceof Error ? error.message : String(error), json: undefined };
+    }
+
+    let json: unknown;
+    try {
+        json = JSON.parse(error.body);
+    } catch {
+        json = undefined;
+    }
+    return { status: error.status, text: error.body, json };
+}
+
+/** The JSON body of a failed request, or an empty object. */
+export function failureJson<T extends object>(failure: RequestFailure): Partial<T> {
+    return (failure.json ?? {}) as Partial<T>;
+}

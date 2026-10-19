@@ -1,6 +1,7 @@
+import { sendJson } from "@examc/helpers/http.ts";
 import type { SortableInstance, SortableOptions } from "@examc/types/definitions/sortable";
 
-import { CSRF, isExamFinalized, reorderAnswersUrl, reorderQuestionsUrl, Selectors, URLS } from "./config.ts";
+import { isExamFinalized, reorderAnswersUrl, reorderQuestionsUrl, Selectors, URLS } from "./config.ts";
 import { getElement, processHtmx } from "./ajax.ts";
 import { initMarkdownEditors } from "./markdown-editors.ts";
 import { initPreparationUI } from "./question-fields.ts";
@@ -19,17 +20,12 @@ function replaceInstance(list: HTMLElement, options: SortableOptions): void {
 /** POSTs the new order behind the saving overlay and returns the HTML the server sends back (the re-rendered list). */
 async function postOrder(url: string, key: string, items: OrderedItem[], errorMessage: string): Promise<string> {
     return withSavingOverlay(async () => {
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": CSRF,
-            },
-            body: JSON.stringify({ [key]: items }),
-        });
-        if (!response.ok) throw new Error(errorMessage);
-
-        return (await response.text()).trim();
+        try {
+            const response = await sendJson("POST", url, { [key]: items });
+            return (await response.text()).trim();
+        } catch (error) {
+            throw new Error(errorMessage, { cause: error });
+        }
     });
 }
 

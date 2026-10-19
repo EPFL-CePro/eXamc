@@ -1,8 +1,8 @@
-import { postJson } from "@examc/helpers/http.ts";
+import { describeFailure, failureJson, postJson } from "@examc/helpers/http.ts";
 import { ConfirmModal } from "@examc/modals";
 
 import { celeryTaskStatusUrl, CFG, URLS } from "./config.ts";
-import { describeFailure, failureJson, getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
+import { getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
 
 // Final generation: a Celery task followed in the dialog and, when the dialog is closed or the page
 // reloaded while it runs, in #final-generation-banner. The task goes on on the server in any case.

@@ -1,7 +1,7 @@
-import { getJson } from "@examc/helpers/http.ts";
+import { describeFailure, failureJson, getJson } from "@examc/helpers/http.ts";
 
 import { previewStatusUrl, URLS } from "./config.ts";
-import { describeFailure, failureJson, getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
+import { getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
 
 interface PreviewStartResponse {
     job_id?: string;

@@ -1,49 +1,15 @@
 import type { Api } from 'datatables.net-dt';
 
-import { confirmDialog } from '@examc/helpers/confirm-dialog';
-import { LoadingModal } from '@examc/modals';
+import { postForm } from '@examc/helpers/http.ts';
+import { ConfirmModal, LoadingModal } from '@examc/modals';
+
+import { showFailure, showResult } from "./result.ts";
 
 type ImportResponse = {
     imported?: number;
     replaced?: number;
     warnings?: string[];
-    errors?: string[];
 };
-
-
-export function showResult(resultElement: HTMLElement, kind: "success" | "warning" | "danger", title: string,
-                    details: string[] = []): void {
-    resultElement.replaceChildren();
-    resultElement.classList.remove("alert-success", "alert-warning", "alert-danger");
-    resultElement.classList.add(`alert-${kind}`);
-
-    // Texts are set with textContent: the errors quote the file content
-    const heading = document.createElement("div");
-    heading.className = "font-weight-bold";
-    heading.textContent = title;
-    resultElement.append(heading);
-
-    if (details.length) {
-        const list = document.createElement("ul");
-        list.className = "mb-0 mt-1";
-        for (const detail of details) {
-            const item = document.createElement("li");
-            item.textContent = detail;
-            list.append(item);
-        }
-        resultElement.append(list);
-    }
-    // Dismissible: the result stays until closed or replaced
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "close";
-    close.setAttribute("aria-label", "Close");
-    close.innerHTML = '<span aria-hidden="true">&times;</span>';
-    close.addEventListener("click", () => { resultElement.hidden = true; });
-    resultElement.append(close);
-
-    resultElement.hidden = false;
-}
 
 /**
  * Asks before replacing the current students, sends the import request, shows the result and reloads the table.
@@ -57,15 +23,15 @@ async function runImport(options: {
     body?: FormData;
 }): Promise<void> {
     const { button, resultElement, table, source, body } = options;
-    const { importUrl, csrfToken } = button.dataset;
-    if (!importUrl || !csrfToken) {
-        console.error(`#${button.id} missing data-import-url or data-csrf-token attribute`);
+    const { importUrl } = button.dataset;
+    if (!importUrl) {
+        console.error(`#${button.id} missing data-import-url attribute`);
         return;
     }
 
     const currentCount = table.rows().count();
     if (currentCount > 0) {
-        const confirmed = await confirmDialog({
+        const confirmed = await ConfirmModal.confirm({
             title: "Replace the students",
             warning: `The ${currentCount} students of this exam will be deleted.`,
             message: `Replace them by the students from ${source}?`,
@@ -77,28 +43,16 @@ async function runImport(options: {
 
     button.disabled = true;
     try {
-        const { response, data } = await new LoadingModal(async () => {
-            const response = await fetch(importUrl, {
-                method: "POST",
-                headers: { "X-CSRFToken": csrfToken },
-                body: body ?? null,
-            });
-            const data: ImportResponse = await response.json().catch(() => ({}));
-            return { response, data };
-        }).result;
+        const data = await new LoadingModal(
+            async () => (await postForm(importUrl, {}, body)).json() as Promise<ImportResponse>,
+        ).result;
 
-        if (response.ok) {
-            const warnings = data.warnings ?? [];
-            showResult(resultElement, warnings.length ? "warning" : "success",
-                `${data.imported} students imported from ${source}.`, warnings);
-            table.ajax.reload();
-        } else {
-            showResult(resultElement, "danger", `The students from ${source} were not imported, nothing was changed:`,
-                data.errors ?? [`Server error (${response.status}).`]);
-        }
+        const warnings = data.warnings ?? [];
+        showResult(resultElement, warnings.length ? "warning" : "success",
+            `${data.imported} students imported from ${source}.`, warnings);
+        table.ajax.reload();
     } catch (error) {
-        console.error("Students import failed", error);
-        showResult(resultElement, "danger", "The request could not be sent: please check your connection and try again.");
+        showFailure(resultElement, error, `The students from ${source} were not imported, nothing was changed:`);
     } finally {
         button.disabled = false;
     }

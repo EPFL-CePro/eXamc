@@ -1,9 +1,9 @@
-import { getJson, getText, postForm, postJson } from "@examc/helpers/http.ts";
+import { describeFailure, failureJson, getJson, getText, postForm, postJson } from "@examc/helpers/http.ts";
 import { ConfirmModal } from "@examc/modals";
 
 import { EXAM_PK, Selectors, URLS } from "./config.ts";
 import { showSaveToast } from "./save-toast.ts";
-import { describeFailure, failureJson, getElement, hideModal, showModal, type Spinner, withQuery, withSpinner } from "./ajax.ts";
+import { getElement, hideModal, showModal, type Spinner, withQuery, withSpinner } from "./ajax.ts";
 
 type ScoringParams = {
     exam_pk: string;

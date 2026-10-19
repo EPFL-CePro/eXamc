@@ -1,15 +1,15 @@
 import type { Api } from 'datatables.net-dt';
 
-import { confirmDialog } from '@examc/helpers/confirm-dialog';
+import { postForm } from '@examc/helpers/http.ts';
+import { ConfirmModal } from '@examc/modals';
 
 import type { PrepStudentRow } from "./prepStudentsTable.ts";
-import { showResult } from "./studentsImport.ts";
+import { showFailure, showResult } from "./result.ts";
 
 type AssignResponse = {
     updated?: number;
     first_seat?: string | null;
     last_seat?: string | null;
-    errors?: string[];
 };
 
 // Same rules as services/student/prep_seats.py: one run of "#" = the seat number with leading zeros
@@ -37,9 +37,9 @@ export function initSeatsAssign(options: {
     table: Api;
 }): void {
     const { form, previewElement, resultElement, table } = options;
-    const { assignUrl, csrfToken } = form.dataset;
-    if (!assignUrl || !csrfToken) {
-        console.error("#assignSeatsForm missing data-assign-url or data-csrf-token attribute");
+    const { assignUrl } = form.dataset;
+    if (!assignUrl) {
+        console.error("#assignSeatsForm missing data-assign-url attribute");
         return;
     }
 
@@ -128,7 +128,7 @@ export function initSeatsAssign(options: {
         const overwritten = students.filter((row) => (room && row.room) || (pattern && row.seat)).length;
         if (overwritten) {
             const what = [room && "room", pattern && "seat"].filter(Boolean).join(" or ");
-            const confirmed = await confirmDialog({
+            const confirmed = await ConfirmModal.confirm({
                 title: "Replace rooms and seats",
                 warning: `${overwritten} of these ${students.length} students already have a ${what}.`,
                 message: "Replace them?",
@@ -140,30 +140,17 @@ export function initSeatsAssign(options: {
 
         submitButton.disabled = true;
         try {
-            const response = await fetch(assignUrl, {
-                method: "POST",
-                headers: { "X-CSRFToken": csrfToken },
-                body: new FormData(form),
-            });
-            const data: AssignResponse = await response.json().catch(() => ({}));
-
-            if (response.ok) {
-                const seats = data.first_seat ? `, seats ${data.first_seat} to ${data.last_seat}` : "";
-                showResult(resultElement, "success",
-                    `${data.updated} students updated${room ? `: room ${room}` : ""}${seats}.`);
-                // Ready for the next room: it starts after this range
-                firstIdInput.value = String(lastId + 1);
-                lastIdInput.value = "";
-                roomInput.value = "";
-                table.ajax.reload();
-            } else {
-                showResult(resultElement, "danger", "The rooms and seats were not assigned, nothing was changed:",
-                    data.errors ?? [`Server error (${response.status}).`]);
-            }
+            const data = await (await postForm(assignUrl, {}, new FormData(form))).json() as AssignResponse;
+            const seats = data.first_seat ? `, seats ${data.first_seat} to ${data.last_seat}` : "";
+            showResult(resultElement, "success",
+                `${data.updated} students updated${room ? `: room ${room}` : ""}${seats}.`);
+            // Ready for the next room: it starts after this range
+            firstIdInput.value = String(lastId + 1);
+            lastIdInput.value = "";
+            roomInput.value = "";
+            table.ajax.reload();
         } catch (error) {
-            console.error("Seats assignment failed", error);
-            showResult(resultElement, "danger",
-                "The request could not be sent: please check your connection and try again.");
+            showFailure(resultElement, error, "The rooms and seats were not assigned, nothing was changed:");
         } finally {
             updatePreview();
         }

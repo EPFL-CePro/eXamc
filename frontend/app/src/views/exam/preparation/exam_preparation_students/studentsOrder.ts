@@ -1,12 +1,12 @@
 import type { Api } from 'datatables.net-dt';
 
-import { confirmDialog } from '@examc/helpers/confirm-dialog';
+import { postForm } from '@examc/helpers/http.ts';
+import { ConfirmModal } from '@examc/modals';
 
-import { showResult } from "./studentsImport.ts";
+import { showFailure, showResult } from "./result.ts";
 
 type ReorderResponse = {
     reordered?: number;
-    errors?: string[];
 };
 
 /**
@@ -19,9 +19,9 @@ export function initStudentsOrder(options: {
     table: Api;
 }): void {
     const { form, resultElement, table } = options;
-    const { reorderUrl, csrfToken } = form.dataset;
-    if (!reorderUrl || !csrfToken) {
-        console.error("#reorderStudentsForm missing data-reorder-url or data-csrf-token attribute");
+    const { reorderUrl } = form.dataset;
+    if (!reorderUrl) {
+        console.error("#reorderStudentsForm missing data-reorder-url attribute");
         return;
     }
     const select = form.querySelector<HTMLSelectElement>("select[name=order]")!;
@@ -36,7 +36,7 @@ export function initStudentsOrder(options: {
         }
 
         const orderLabel = select.selectedOptions[0]?.textContent?.trim().toLowerCase() ?? select.value;
-        const confirmed = await confirmDialog({
+        const confirmed = await ConfirmModal.confirm({
             title: "Renumber the students",
             warning: `The IDs (copy numbers) of the ${count} students will change. Rooms and seats do not change.`,
             message: `Renumber them ${orderLabel}?`,
@@ -47,24 +47,11 @@ export function initStudentsOrder(options: {
 
         submitButton.disabled = true;
         try {
-            const response = await fetch(reorderUrl, {
-                method: "POST",
-                headers: { "X-CSRFToken": csrfToken },
-                body: new FormData(form),
-            });
-            const data: ReorderResponse = await response.json().catch(() => ({}));
-
-            if (response.ok) {
-                showResult(resultElement, "success", `${data.reordered} students renumbered ${orderLabel}.`);
-                table.ajax.reload();
-            } else {
-                showResult(resultElement, "danger", "The students were not renumbered, nothing was changed:",
-                    data.errors ?? [`Server error (${response.status}).`]);
-            }
+            const data = await (await postForm(reorderUrl, {}, new FormData(form))).json() as ReorderResponse;
+            showResult(resultElement, "success", `${data.reordered} students renumbered ${orderLabel}.`);
+            table.ajax.reload();
         } catch (error) {
-            console.error("Students reorder failed", error);
-            showResult(resultElement, "danger",
-                "The request could not be sent: please check your connection and try again.");
+            showFailure(resultElement, error, "The students were not renumbered, nothing was changed:");
         } finally {
             submitButton.disabled = false;
         }
