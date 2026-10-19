@@ -1,4 +1,4 @@
-import type { Api } from 'datatables.net-dt';
+import type { Api } from 'datatables.net-bs5';
 
 import { postForm } from '@examc/helpers/http.ts';
 import { ConfirmModal, LoadingModal } from '@examc/modals';

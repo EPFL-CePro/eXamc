@@ -1,5 +1,8 @@
 import type { Api } from 'datatables.net-bs5';
 
+import { LocalModal } from '@examc/modals';
+import { describeFailure, failureJson, sendJson } from "@examc/helpers/http.ts";
+
 import type { PrepStudentRow } from "./prep-students-table.ts";
 
 const FIELDS = ["copy_no", "sciper", "last_name", "first_name", "email", "section", "room", "seat"] as const;
