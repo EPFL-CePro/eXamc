@@ -11,12 +11,9 @@ const DIALOG = "#generate_final_exam_files_dialog";
 const SUCCESS = `${DIALOG} #generate_final_success`;
 
 interface Summary {
+    copies?: number;
+    pages_per_copy?: number;
     pages?: number;
-    boxes?: number;
-    marks?: number;
-    zones?: number;
-    digits?: number;
-    unknown_payloads?: number;
 }
 
 /** Result of the generation task (possibly wrapped in `result`). */
@@ -29,7 +26,6 @@ interface RawFinalResult extends Summary {
     exam_calage_xy_path?: string;
     warnings?: string[];
     summary?: Summary;
-    layout_result?: Summary;
 }
 
 interface FinalSuccess {
@@ -126,12 +122,9 @@ function showGenFinalSuccess(data: FinalSuccess): void {
             ${warningsHtml}
             <div class="mb-3">
                 <strong>Build ID:</strong> ${escapeHtml(data.build_id || "-")}<br>
-                <strong>Pages:</strong> ${summary.pages || 0}<br>
-                <strong>Boxes:</strong> ${summary.boxes || 0}<br>
-                <strong>Marks:</strong> ${summary.marks || 0}<br>
-                <strong>Zones:</strong> ${summary.zones || 0}<br>
-                <strong>Digits:</strong> ${summary.digits || 0}<br>
-                <strong>Unknown payloads:</strong> ${summary.unknown_payloads || 0}
+                <strong>Copies:</strong> ${summary.copies || 0}<br>
+                <strong>Pages per copy:</strong> ${summary.pages_per_copy || 0}<br>
+                <strong>Pages:</strong> ${summary.pages || 0}
             </div>
             <div>
                 The page is refreshed when you close this dialog: the final files can then be downloaded with the
@@ -326,19 +319,11 @@ function normalizeGenFinalSuccessPayload(result: RawFinalResult | undefined): Fi
     if (!result) return { warnings: [], summary: {} };
 
     const payload = result.result ?? result;
-    const layout = payload.layout_result;
 
     return {
         ...(payload.build_id !== undefined ? { build_id: payload.build_id } : {}),
         warnings: payload.warnings ?? [],
-        summary: payload.summary ?? (layout ? {
-            pages: layout.pages || 0,
-            boxes: layout.boxes || 0,
-            marks: layout.marks || 0,
-            zones: layout.zones || 0,
-            digits: layout.digits || 0,
-            unknown_payloads: layout.unknown_payloads || 0,
-        } : {}),
+        summary: payload.summary ?? {},
     };
 }
 

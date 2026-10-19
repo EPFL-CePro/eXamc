@@ -3,18 +3,16 @@ import os
 import pathlib
 import re
 import shutil
-import threading
 import time
 import uuid
 import zipfile
-from contextlib import closing, contextmanager
+from contextlib import closing
 from datetime import datetime, timedelta
 
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
 from django.conf import settings
 from django.contrib.sessions.models import Session
-from django.db import connection
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -28,14 +26,17 @@ from examc_app.models import (
     StudentQuestionAnswer,
 )
 from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
-from examc_app.utils.amc.amc_build_functions import BuildCancelled, build_final_exam, mark_exam_build_error
+from examc_app.utils.amc.amc_build_functions import (
+    AmcStepError,
+    BuildCancelled,
+    build_final_exam,
+    mark_exam_build_error,
+    register_exam_in_amc,
+)
 from examc_app.utils.amc.amc_layout_functions import (
     LayoutExtractionError,
-    clear_build_layout_objects,
-    extract_layout_from_xy,
     get_pdf_page_metrics,
     get_subject_copy_and_page_counts_from_xy,
-    populate_subject_layout_pages,
 )
 from examc_app.utils.amc_functions import (
     amc_annotate,
@@ -742,37 +743,6 @@ def compile_exam_preview_task(self, job_id):
     job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
     print(f"[preview-task] end job={job_id} status={job.status}")
 
-CANCEL_POLL_SECONDS = 1.0
-
-
-@contextmanager
-def watch_cancel(should_cancel):
-    """
-    Yields an Event set as soon as `should_cancel()` is true, polled every second by a thread.
-
-    For the steps run in a transaction: the connection of the caller (REPEATABLE READ) would never see the request
-    to cancel, written meanwhile by another process; the thread reads it with a connection of its own.
-    """
-    cancelled = threading.Event()
-    finished = threading.Event()
-
-    def poll():
-        try:
-            while not finished.wait(CANCEL_POLL_SECONDS):
-                if should_cancel():
-                    cancelled.set()
-                    return
-        finally:
-            # should_cancel reads the database: the connection of this thread is not left open
-            connection.close()
-
-    watcher = threading.Thread(target=poll, daemon=True)
-    watcher.start()
-    try:
-        yield cancelled
-    finally:
-        finished.set()
-
 
 @shared_task(bind=True)
 def generate_final_exam_files_task(self, job_id):
@@ -890,31 +860,15 @@ def generate_final_exam_files_task(self, job_id):
             )
 
         raise_if_cancelled()
-        set_progress(92, "Creating layout pages...")
-        page_result = populate_subject_layout_pages(
-            build,
-            total_copies=counts["total_copies"],
-            pages_per_copy=counts["pages_per_copy"],
-            dpi=pdf_metrics["dpi"],
-            width=pdf_metrics["width"],
-            height=pdf_metrics["height"],
+        # AMC reads the layout of the subject and its scoring strategy itself: its databases (data/layout.sqlite and
+        # data/scoring.sqlite of the project) are the reference of the scans and the marks
+        warnings += register_exam_in_amc(
+            exam,
+            subject_xy_path,
+            expected_pages=counts["total_pages"],
+            should_cancel=cancel_requested,
+            progress_callback=progress_callback,
         )
-
-        raise_if_cancelled()
-        set_progress(96, "Extracting layout boxes, digits, zones, and marks...")
-
-        def raise_if_watched_cancelled():
-            if cancelled.is_set():
-                raise BuildCancelled("The generation was cancelled.")
-
-        # The extraction is one transaction: it can't see the request to cancel itself, see watch_cancel
-        with watch_cancel(cancel_requested) as cancelled:
-            layout_result = extract_layout_from_xy(
-                build,
-                xy_path=subject_xy_path,
-                clear_existing=False,
-                before_page=raise_if_watched_cancelled,
-            )
 
         # Last chance to stop: the exam is finalized below
         raise_if_cancelled()
@@ -929,16 +883,11 @@ def generate_final_exam_files_task(self, job_id):
             "amc_log_path": build.amc_log_path or "",
             "xy_path": subject_xy_path,
             "exam_calage_xy_path": subject_xy_path,
-            "page_result": page_result,
-            "layout_result": layout_result,
             "warnings": warnings,
             "summary": {
-                "pages": layout_result.get("pages", 0),
-                "boxes": layout_result.get("boxes", 0),
-                "marks": layout_result.get("marks", 0),
-                "zones": layout_result.get("zones", 0),
-                "digits": layout_result.get("digits", 0),
-                "unknown_payloads": layout_result.get("unknown_payloads", 0),
+                "copies": counts["total_copies"],
+                "pages_per_copy": counts["pages_per_copy"],
+                "pages": counts["total_pages"],
             },
         }
 
@@ -968,9 +917,16 @@ def generate_final_exam_files_task(self, job_id):
         job.status = "cancelled"
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message", "updated_at"])
-        # Cancelled after the build (build_final_exam marks its own build): the build and its layout are dropped
+        # Cancelled after the build (build_final_exam marks its own build): the build is dropped
         if build is not None:
-            clear_build_layout_objects(build)
+            mark_exam_build_error(build, str(exc))
+        raise
+    except (AmcStepError, LayoutExtractionError) as exc:
+        # After the build (build_final_exam marks its own failures): the build is not usable, the user sees why
+        job.status = "error"
+        job.error_message = str(exc)
+        job.save(update_fields=["status", "error_message", "updated_at"])
+        if build is not None:
             mark_exam_build_error(build, str(exc))
         raise
     except Exception as exc:
