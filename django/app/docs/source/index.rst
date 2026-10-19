@@ -21,7 +21,7 @@ It also supports workflows based on Auto Multiple Choice (AMC).
 
       - Connect to your ENTRA ID account
       - Use the Dashboard to open an exam or continue pending work
-      - Upload the AMC project
+      - Prepare the exam in Preparation and generate the final files, or upload the AMC project
       - Check that AMC working documents and layout detection are ready
       - Enable the required modules in Exam Info
       - Add teachers, reviewers or assistants in Exam Info
@@ -55,6 +55,7 @@ Contents
    modules/create_exam/create_exam
    modules/room_plan/room_plan
    modules/exam_info/exam_info
+   modules/preparation/preparation
    modules/review/review
    modules/amc/amc
    modules/results/results
