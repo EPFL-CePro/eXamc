@@ -4,7 +4,7 @@ AMC build retention policy.
 This module decides which ``ExamBuild`` rows should be kept and which can be
 removed. The policy is intentionally conservative:
 
-- always protect builds that are locked or already used downstream
+- always protect builds that are locked
 - always keep the latest ready build
 - keep a rolling window of recent ready and non-ready builds
 - optionally delete associated non-shared files when a build is removed
@@ -55,19 +55,12 @@ def _build_keep_reasons(build: ExamBuild) -> list[str]:
     """
     Return hard-protection reasons for a build.
 
-    A build is considered non-deletable when it is explicitly locked or when it
-    already has downstream data attached, such as copies or score results.
+    A build is considered non-deletable when it is explicitly locked.
     """
     reasons = []
 
     if build.is_locked:
         reasons.append("locked")
-
-    if build.copies.exists():
-        reasons.append("has_copies")
-
-    if build.score_results.exists():
-        reasons.append("has_score_results")
 
     return reasons
 
