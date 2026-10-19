@@ -78,6 +78,7 @@ from examc_app.utils.preparation_functions import (
     is_exam_locked,
     get_active_final_build_job,
     get_answers,
+    get_applied_scorings,
     get_questions,
     get_scoring_formula_queryset,
     get_scoring_formula_scope,
@@ -85,6 +86,7 @@ from examc_app.utils.preparation_functions import (
     renumber_questions,
     renumber_sections,
     save_scoring_formulas,
+    scoring_info_text,
     update_open_answers,
 )
 from examc_app.utils.preparation_latex_functions import (
@@ -1112,6 +1114,19 @@ def exam_preview_status(request, exam_pk, job_pk):
         data["error"] = job.error_message
 
     return JsonResponse(data)
+
+@exam_permission_required(["manage"])
+def scoring_infos(request, exam_pk):
+    """The text next to the Scoring button of each question and answer (see get_applied_scorings), read again by
+    the page when the dialog of the formulas is closed."""
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    scorings = get_applied_scorings(exam)
+
+    return JsonResponse({
+        kind: {str(pk): scoring_info_text(info) for pk, info in infos.items()}
+        for kind, infos in scorings.items()
+    })
+
 
 @exam_permission_required(["manage"])
 def scoring_formulas_modal(request, exam_pk):

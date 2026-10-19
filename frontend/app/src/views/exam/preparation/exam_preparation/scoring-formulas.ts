@@ -1,4 +1,4 @@
-import { getText, postForm, postJson } from "@examc/helpers/http.ts";
+import { getJson, getText, postForm, postJson } from "@examc/helpers/http.ts";
 import { ConfirmModal } from "@examc/modals";
 
 import { EXAM_PK, Selectors, URLS } from "./config.ts";
@@ -16,6 +16,28 @@ interface ScoringResponse {
     success?: boolean;
     message?: string;
     html?: string;
+}
+
+/** Text next to the Scoring button of each question and answer: the formula applied, with its level. */
+interface ScoringInfos {
+    questions: Record<string, string>;
+    answers: Record<string, string>;
+}
+
+// The formulas of the exam, sections and questions change what the other questions apply: all the texts are read again
+async function refreshScoringInfos(): Promise<void> {
+    let infos: ScoringInfos;
+    try {
+        infos = await getJson<ScoringInfos>(URLS.scoringInfos);
+    } catch (error) {
+        console.error("[preparation] refresh scoring infos failed:", error);
+        return;
+    }
+
+    document.querySelectorAll<HTMLElement>("[data-prep-scoring-kind]").forEach((element) => {
+        const texts = element.dataset["prepScoringKind"] === "question" ? infos.questions : infos.answers;
+        element.textContent = texts[element.dataset["prepScoringId"] ?? ""] ?? "";
+    });
 }
 
 function setBody(html: string): void {
@@ -237,6 +259,11 @@ export function initScoringFormulas(): void {
 
         event.preventDefault();
         void open(buildParams(button));
+    });
+
+    // Whatever the way the dialog is closed (saved, cancelled, formulas deleted inside it)
+    document.addEventListener("hidden.bs.modal", (event) => {
+        if ((event.target as Element).matches(Selectors.scoringModal)) void refreshScoringInfos();
     });
 
     document.addEventListener("submit", (event) => {

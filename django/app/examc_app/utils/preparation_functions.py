@@ -406,6 +406,78 @@ def compile_exam_preview(exam: Exam, job_id, timeout: int = 30):
 # Scoring formulas
 # -------------------------
 
+# The levels of the scoring formulas, shown next to the Scoring buttons (see get_applied_scorings)
+SCORING_LEVEL_EXAM = "Global"
+SCORING_LEVEL_SECTION = "Section"
+SCORING_LEVEL_QUESTION = "Question"
+SCORING_LEVEL_ANSWER = "Answer"
+
+
+NO_FORMULA_TEXT = "AMC default"
+
+
+def scoring_info_text(info) -> str:
+    """The text next to a Scoring button: 'Section : "b=2,m=-1"', or the default of AMC when no level has a formula."""
+    if not info:
+        return ""
+    if not info["formula"]:
+        return NO_FORMULA_TEXT
+    return f'{info["level"]} : "{info["formula"]}"'
+
+
+def get_applied_scorings(exam) -> dict[str, dict[int, dict | None]]:
+    """
+    The scoring formula applied to each choice question and answer of the exam, with its level:
+    {"questions": {question id: info}, "answers": {answer id: info}}, info being {"level": ..., "formula": ...}
+    (None for an open question, scored by its corrector boxes, and its answers).
+
+    A question has the formula of the most specific level that has one for it: the question, its section (formula of
+    its question type), the exam (formula of its question type). Otherwise AMC applies its own default: formula "".
+    An answer has its own formula, otherwise the one of its question.
+    This is what question_scoring_tex and the answer rendering write in the LaTeX sources.
+    One query for the formulas, one for the questions and one for the answers.
+    """
+    exam_formulas, section_formulas, question_formulas, answer_formulas = {}, {}, {}, {}
+    for formula in PrepScoringFormula.objects.filter(exam=exam).select_related("question_type").order_by("pk"):
+        code = formula.question_type.code if formula.question_type else None
+        if formula.prep_answer_id:
+            answer_formulas.setdefault(formula.prep_answer_id, formula.formula)
+        elif formula.prep_question_id:
+            question_formulas.setdefault(formula.prep_question_id, formula.formula)
+        elif formula.prep_section_id:
+            if code:
+                section_formulas.setdefault((formula.prep_section_id, code), formula.formula)
+        elif code:
+            exam_formulas.setdefault(code, formula.formula)
+
+    questions = {}
+    for question in PrepQuestion.objects.filter(prep_section__exam=exam).select_related("question_type"):
+        code = question.question_type.code
+        if code == "OPEN":
+            questions[question.pk] = None
+        elif question.pk in question_formulas:
+            questions[question.pk] = {"level": SCORING_LEVEL_QUESTION, "formula": question_formulas[question.pk]}
+        elif (question.prep_section_id, code) in section_formulas:
+            questions[question.pk] = {"level": SCORING_LEVEL_SECTION,
+                                      "formula": section_formulas[(question.prep_section_id, code)]}
+        elif code in exam_formulas:
+            questions[question.pk] = {"level": SCORING_LEVEL_EXAM, "formula": exam_formulas[code]}
+        else:
+            questions[question.pk] = {"level": "", "formula": ""}
+
+    answers = {}
+    for answer_id, question_id in PrepQuestionAnswer.objects.filter(
+            prep_question__prep_section__exam=exam).values_list("pk", "prep_question_id"):
+        if questions.get(question_id) is None:
+            answers[answer_id] = None
+        elif answer_id in answer_formulas:
+            answers[answer_id] = {"level": SCORING_LEVEL_ANSWER, "formula": answer_formulas[answer_id]}
+        else:
+            answers[answer_id] = questions[question_id]
+
+    return {"questions": questions, "answers": answers}
+
+
 def get_scoring_formula_scope(prep_section=None, prep_question=None, prep_answer=None):
     if prep_answer:
         return "answer"

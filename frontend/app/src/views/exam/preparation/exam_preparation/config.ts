@@ -5,6 +5,7 @@ export interface ExamPrepUrls {
     previewStart: string;
     reorderSections: string;
     scoringFormulasModal: string;
+    scoringInfos: string;
     editLatexFile: string;
     saveLatexFile: string;
     editLatexPackages: string;
@@ -42,6 +43,7 @@ function readConfig(root: HTMLElement): ExamPrepConfig {
             previewStart: requireData(root, "previewStartUrl"),
             reorderSections: requireData(root, "reorderSectionsUrl"),
             scoringFormulasModal: requireData(root, "scoringFormulasModalUrl"),
+            scoringInfos: requireData(root, "scoringInfosUrl"),
             editLatexFile: requireData(root, "editLatexFileUrl"),
             saveLatexFile: requireData(root, "saveLatexFileUrl"),
             editLatexPackages: requireData(root, "editLatexPackagesUrl"),

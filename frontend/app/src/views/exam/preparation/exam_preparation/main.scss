@@ -411,3 +411,11 @@ textarea.markdown-editor {
         background: #dc3545;
     }
 }
+
+// Scoring formula applied to a question or an answer (level and formula), next to its Scoring button
+.prep-scoring-info {
+    margin-left: 1.5rem;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: #995904;
+}
