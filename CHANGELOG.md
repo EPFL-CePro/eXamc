@@ -35,6 +35,8 @@ The format follows [Semantic Versioning](https://semver.org/).
   honoured in the copies. A question that started on a new page with **Fixed** no longer does: use the section option.
 - Unused tables of the preparation module (layout, scan pages, capture boxes, exam copies and score results): the
   layout and the scores are kept by AMC.
+- Preparation module: the copy of the questions and answers that each final generation stored, and the unused progress
+  and job type columns of the generation jobs. Nothing read them: the layout and the scores are read by AMC.
 
 ## [2.0.2] - 2026-10-12
 ### Security

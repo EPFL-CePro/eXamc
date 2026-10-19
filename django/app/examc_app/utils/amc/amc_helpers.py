@@ -25,8 +25,8 @@ def get_amc_question_id(question: PrepQuestion) -> str:
     """
     Build the canonical AMC question identifier for a preparation question.
 
-    This identifier must stay aligned with LaTeX generation because it is later
-    used to map compiled AMC artifacts back onto Django snapshot rows.
+    This identifier is the one written in the LaTeX of the question (see
+    render_question_tex_from_html): it must stay aligned with it.
 
     Example:
         SECTION-1-SCQ-3
@@ -45,9 +45,8 @@ def get_amc_answer_code(
     """
     Build the canonical Django-side answer identifier for an answer choice.
 
-    AMC itself mainly relies on numeric answer order, but Django keeps this
-    additional stable identifier so layout/scoring data can be mapped back to
-    the frozen build snapshot in a readable way.
+    AMC itself relies on the order of the answers: this identifier is only the
+    readable name of an answer, used in the hash of the preparation content.
 
     Example:
         SECTION-1-SCQ-3-A2

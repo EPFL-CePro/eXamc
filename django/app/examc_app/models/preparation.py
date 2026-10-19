@@ -74,11 +74,8 @@ class PrepStudent(models.Model):
 
 class ExamAMCJob(models.Model):
     JOB_TYPE_CHOICES = [
-        ("preview", "Preview"),
+        ("exam_preview", "Preview"),
         ("final_build", "Final build"),
-        ("layout_extract", "Layout extraction"),
-        ("scoring_extract", "Scoring extraction"),
-        ("data_capture", "Data capture"),
     ]
 
     STATUS_CHOICES = [
@@ -112,8 +109,3 @@ class ExamAMCJob(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    progress_current = models.PositiveIntegerField(default=0)
-    progress_total = models.PositiveIntegerField(default=0)
-    progress_percent = models.PositiveIntegerField(default=0)
-    progress_message = models.CharField(max_length=255, blank=True, default="")

@@ -2,22 +2,20 @@
 AMC exam build pipeline.
 
 This module is the orchestration layer for converting the current Django exam
-preparation state into persistent AMC artifacts and a frozen ``ExamBuild``
-snapshot.
+preparation state into persistent AMC artifacts, recorded by an ``ExamBuild``.
 
 Main responsibilities:
 - compute a stable hash of the preparation source content
-- create immutable build snapshot rows for questions and answers
+- create the ``ExamBuild`` of a generation
 - compile AMC artifacts in an isolated temporary workspace
 - promote successful outputs back into the persistent project folder
-- keep SUBJECT artifacts as the canonical source for layout/scoring extraction
-- trigger subject-only layout page population and XY extraction
+- keep SUBJECT artifacts as the canonical output of the build
+- have AMC read the layout and the scoring strategy of the subject (register_exam_in_amc)
 
 Important invariants:
-- subject compilation is canonical for database-related paths and extraction
-- catalog compilation is only a convenience artifact and must not drive DB state
+- subject compilation is canonical for the paths of the build
+- catalog compilation is only a convenience artifact
 - temporary workspace files should not be stored on the build after promotion
-- frozen snapshot data must reflect the exact question/answer state at build time
 """
 
 import contextvars
@@ -39,8 +37,6 @@ from django.utils import timezone
 from examc_app.models import (
     Exam,
     ExamBuild,
-    ExamBuildAnswer,
-    ExamBuildQuestion,
 )
 from examc_app.utils.amc.amc_helpers import (
     get_amc_answer_code,
@@ -54,7 +50,7 @@ from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 
 # ---------------------------------------------------------------------------
-# Snapshot helpers
+# Build helpers
 # ---------------------------------------------------------------------------
 
 def get_next_exam_build_version(exam: Exam) -> int:
@@ -146,7 +142,7 @@ def compute_exam_source_hash(exam: Exam) -> str:
 
 
 @transaction.atomic
-def create_exam_build_snapshot(
+def create_exam_build(
     exam: Exam,
     user=None,
     *,
@@ -156,77 +152,23 @@ def create_exam_build_snapshot(
     latex_main_path: str = "",
 ) -> ExamBuild:
     """
-    Create a frozen ``ExamBuild`` snapshot from the current preparation state.
-
-    The snapshot duplicates the question/answer information needed later for
-    layout extraction, scan mapping, and scoring, so future edits to the exam do
-    not retroactively change an older build.
+    Create the ``ExamBuild`` of a generation, with the hash of the preparation content it starts from.
 
     Returns:
         ExamBuild: Newly created build in ``draft`` status.
     """
-    version = get_next_exam_build_version(exam)
-    source_hash = compute_exam_source_hash(exam)
-    locked_at = timezone.now() if lock_build else None
-
-    build = ExamBuild.objects.create(
+    return ExamBuild.objects.create(
         exam=exam,
-        version=version,
+        version=get_next_exam_build_version(exam),
         status="draft",
         is_locked=lock_build,
-        locked_at=locked_at,
+        locked_at=timezone.now() if lock_build else None,
         requested_by=user,
-        source_hash=source_hash,
+        source_hash=compute_exam_source_hash(exam),
         latex_engine=latex_engine,
         project_path=project_path or "",
         latex_main_path=latex_main_path or "",
     )
-
-    sections = exam.prepSections.order_by("position", "pk").prefetch_related(
-        "prepQuestions__prepAnswers",
-        "prepQuestions__question_type",
-    )
-    global_index = 1
-    for section in sections:
-        for question in section.prepQuestions.order_by("position", "pk"):
-            question_type_code = question.question_type.code if question.question_type else ""
-            rendered_id = get_amc_question_id(question)
-
-            build_question = ExamBuildQuestion.objects.create(
-                build=build,
-                prep_question=question,
-                rendered_id=rendered_id,
-                amc_question_number=global_index,
-                rendered_code=rendered_id,
-                rendered_position=question.position,
-                section_position=section.position,
-                question_type_code=question_type_code,
-                prep_question_id_snapshot=question.pk,
-                title_snapshot=question.title or "",
-                text_snapshot=question.question_text or "",
-                max_points_snapshot=question.max_points or 0,
-                point_increment_snapshot=question.point_increment or "",
-                random_answers_snapshot=question.random_answers,
-            )
-            global_index += 1
-
-            for answer in question.prepAnswers.order_by("position", "pk"):
-                if not answer.box_type:
-                    ExamBuildAnswer.objects.create(
-                        build_question=build_question,
-                        prep_answer=answer,
-                        rendered_answer_number=answer.position,
-                        rendered_position=answer.position,
-                        rendered_code=get_amc_answer_code(question, answer),
-                        prep_answer_id_snapshot=answer.pk,
-                        title_snapshot=answer.title or "",
-                        answer_text_snapshot=answer.answer_text or "",
-                        is_correct_snapshot=answer.is_correct,
-                        box_type_snapshot=answer.box_type or "",
-                        box_height_mm_snapshot=answer.box_height_mm,
-                    )
-
-    return build
 
 
 @transaction.atomic
@@ -1019,7 +961,7 @@ def build_final_exam(
     This pipeline intentionally compiles the two AMC modes in the following order:
 
     1. Generate LaTeX once without a known ``pages_per_copy`` value.
-    2. Create and lock an ``ExamBuild`` snapshot.
+    2. Create and lock an ``ExamBuild``.
     3. Copy the persistent AMC project into a temporary workspace.
     3b. Write the students list ``students.csv`` (PrepStudent) into the persistent project.
     4. Compile CATALOG first using ``student_prev.csv`` (one anonymous copy).
@@ -1067,7 +1009,7 @@ def _build_final_exam(exam, user, timeout, latex_engine, progress_callback) -> E
     update_exam_latex(exam, pages_per_copy=None)
     _report_progress(progress_callback, 8, "LaTeX sources generated.")
 
-    build = create_exam_build_snapshot(
+    build = create_exam_build(
         exam=exam,
         user=user,
         lock_build=True,
