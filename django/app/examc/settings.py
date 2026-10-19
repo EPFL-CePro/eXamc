@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.forms',
     'django_extensions',
     'constance',
     'crispy_forms',
@@ -162,11 +163,13 @@ TEMPLATES = [
                 "examc_app.context_processors.app_metadata",
             ],
             "builtins": [
-                "examc_app.templatetags.custom_tags"
+                "examc_app.templatetags.custom_tags.all"
             ]
         },
     },
 ]
+
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

@@ -1,0 +1,5 @@
+<div class="form-check form-check-inline">
+    {% include "django/forms/widgets/input.html" %}
+    <label class="form-check-label"{% if widget.attrs.id %}
+           for="{{ widget.attrs.id }}"{% endif %}>{{ widget.label }}</label>
+</div>

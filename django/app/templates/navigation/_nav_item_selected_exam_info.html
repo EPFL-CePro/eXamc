@@ -1,0 +1,9 @@
+{% if exam_selected %}
+    <div class="d-flex align-items-center">
+        <div class="d-flex flex-column flex-column fs-6 text-bg-secondary px-3 py-2 my-1 w-100">
+            <span class="fw-semibold text-body-emphasis text-truncate">{{ exam_selected.code }} {{ exam_selected.name }}</span>
+            <span class="text-body-secondary"> S{{ exam_selected.semester }} {{ exam_selected.year.code }}</span>
+            <span class="text-body-secondary">{{ exam_selected.pk|get_exam_teachers_short_str }}</span>
+        </div>
+    </div>
+{% endif %}
