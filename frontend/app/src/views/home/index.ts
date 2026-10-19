@@ -23,7 +23,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // last connected users table
     const usersTableElement = document.querySelector<HTMLTableElement>("#dashboard-last-connected-users-table");
-    const usersConnectedApiUrl = usersTableElement?.dataset.apiUrl;
+    if (!usersTableElement) return;
+
+    const usersConnectedApiUrl = usersTableElement.dataset.apiUrl;
     if (!usersConnectedApiUrl) {
         console.error("Connected users table missing data-api-url attribute");
         return;

@@ -433,16 +433,16 @@ def get_dashboard_context(user):  #-> dict[str, Any]:
 
     shortcuts = [
         {
-            "label": "Room plan",
+            "label": "Room plan generator",
             "description": "Generate and export exam room plans.",
             "url": reverse("generate_room_plan"),
-            "icon": "fa-meteor",
+            "icon": "fa-chair",
         },
         {
-            "label": "Students CSV generator",
+            "label": "Student list CSV generator",
             "description": "Prepare student CSV files for exam workflows.",
             "url": reverse("csvgen"),
-            "icon": "fa-file-excel",
+            "icon": "fa-file-csv",
         },
         {
             "label": "Documentation",

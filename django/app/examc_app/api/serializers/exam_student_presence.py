@@ -14,9 +14,9 @@ def render_presence_toggle(student: Student) -> SafeString:
     def option(value: bool, icon: str) -> SafeString:
         active = value == student.present
         return format_html(
-            '<label class="btn btn-light btn-sm{}" style="background-color: transparent;">'
+            '<label class="btn btn-icon btn-lg {}" style="background-color: transparent;">'
             '<button type="button" class="btn btn-link p-0 border-0" style="background-color: transparent;" data-present="{}">'
-            '<i class="fa-solid {} fa-2xl"{}></i>'
+            '<i class="fa-solid {} fa-xl"{}></i>'
             '</button>'
             '</label>',
             " active" if active else "",
@@ -26,7 +26,7 @@ def render_presence_toggle(student: Student) -> SafeString:
         )
 
     return format_html(
-        '<div class="btn-group btn-group-toggle presence-toggle" style="margin-left:-20px;" data-url="{}">{}{}</div>',
+        '<div class="btn-group btn-group-toggle presence-toggle" data-url="{}">{}{}</div>',
         reverse("api-exam-students-presence-patch", kwargs={"exam_pk": student.exam_id, "pk": student.pk}),
         option(True, "fa-circle-check"),
         option(False, "fa-circle-xmark"),
