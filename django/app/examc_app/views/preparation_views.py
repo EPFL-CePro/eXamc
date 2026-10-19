@@ -458,19 +458,6 @@ def prep_first_page_panel(request, exam_pk):
 # Sections
 # -------------------------
 
-@exam_permission_required(["manage"])
-def prep_sections_list(request, exam_pk):
-    exam = get_object_or_404(Exam, pk=exam_pk)
-
-    return render(
-        request,
-        "exam/preparation/_prep_sections_list.html",
-        {
-            "exam_selected": exam,
-            **build_sections_list_context(exam),
-        },
-    )
-
 
 @exam_permission_required(["manage"])
 def prep_section_panel(request, exam_pk, section_id):
@@ -892,25 +879,6 @@ def delete_prep_question(request, exam_pk, question_id):
 # -------------------------
 # Answers
 # -------------------------
-
-@exam_permission_required(["manage"])
-def prep_answers_block(request, exam_pk, question_id):
-    question = get_object_or_404(
-        PrepQuestion,
-        pk=question_id,
-        prep_section__exam_id=exam_pk,
-    )
-
-    return render(
-        request,
-        "exam/preparation/_prep_answers_block.html",
-        {
-            "exam_selected": question.prep_section.exam,
-            "question": question,
-            "answers": get_answers(question),
-            "is_exam_locked": is_exam_locked(question.prep_section.exam),
-        },
-    )
 
 
 @exam_permission_required(["manage"])

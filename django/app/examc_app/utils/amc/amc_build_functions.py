@@ -48,10 +48,7 @@ from examc_app.utils.amc.amc_helpers import (
     get_exam_latex_main_file,
 )
 from examc_app.services.student.prep_amc_csv import StudentsCsvError, write_students_csv
-from examc_app.utils.amc.amc_layout_functions import (
-    get_pages_by_copy_from_xy,
-    get_subject_copy_and_page_counts_from_xy,
-)
+from examc_app.utils.amc.amc_layout_functions import get_pages_by_copy_from_xy
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.preparation_latex_functions import update_exam_latex
@@ -677,35 +674,6 @@ PERSISTENT_AMC_FILES = [
     "catalog.amc",
 ]
 
-def export_exam_named_artifacts(project_path: Path, exam: Exam) -> dict:
-    """
-    Create AMC-style user-facing filenames alongside internal compiled files.
-
-    This is mainly a convenience export layer for files such as
-    ``{prefix}-sujet.pdf`` and ``{prefix}-calage.xy``.
-    """
-    prefix = _safe_exam_prefix(exam)
-
-    exported = {
-        "subject_pdf": "",
-        "calage_xy": "",
-    }
-
-    compiled_pdf = project_path / "amc-compiled.pdf"
-    calage_xy = project_path / "calage.xy"
-
-    subject_pdf = project_path / f"{prefix}-sujet.pdf"
-    exam_calage_xy = project_path / f"{prefix}-calage.xy"
-
-    if compiled_pdf.exists():
-        shutil.copy2(compiled_pdf, subject_pdf)
-        exported["subject_pdf"] = str(subject_pdf)
-
-    if calage_xy.exists():
-        shutil.copy2(calage_xy, exam_calage_xy)
-        exported["calage_xy"] = str(exam_calage_xy)
-
-    return exported
 
 def _safe_exam_prefix(exam: Exam) -> str:
     """

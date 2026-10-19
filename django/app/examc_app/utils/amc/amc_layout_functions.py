@@ -101,20 +101,6 @@ def read_inches(dim: str) -> float:
     return value / UNIT_IN_ONE_INCH[unit]
 
 
-
-def _safe_int(value):
-    """
-    Best-effort integer conversion used by parsing helpers.
-    """
-    if value in (None, ""):
-        return None
-    try:
-        return int(value)
-    except ValueError:
-        return None
-
-
-
 def _strip_student_page_prefix(payload: str) -> str:
     """
     Remove the leading ``copy/page:`` prefix from an AMC payload key.

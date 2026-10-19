@@ -550,13 +550,6 @@ def extract_used_packages(file_contents: str) -> list[str]:
     return used
 
 
-def package_exists(package_name: str) -> bool:
-    if not has_kpsewhich():
-        return False
-
-    result = run_cmd(["kpsewhich", f"{package_name}.sty"])
-    return result.returncode == 0 and bool(result.stdout.strip())
-
 # =============================
 # KaTeX macros for the editors preview
 # =============================

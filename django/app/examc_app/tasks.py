@@ -1,7 +1,6 @@
 import csv
 import os
 import pathlib
-import re
 import shutil
 import time
 import uuid

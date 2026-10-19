@@ -24,7 +24,7 @@ from examc_app.models import (
     PrepSection,
 )
 from examc_app.services.student.prep_amc_csv import STUDENTS_CSV_NAME
-from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_path
+from examc_app.utils.amc_functions import ensure_amc_project
 from examc_app.utils.preparation_latex_functions import (
     update_exam_latex,
 )
@@ -295,10 +295,6 @@ def delete_exam_preview_job_files(job):
         preview_dir = pdf_path.parent
         if preview_dir.exists():
             shutil.rmtree(preview_dir, ignore_errors=True)
-
-def get_exam_preview_pdf_path(exam):
-    amc_project_path = Path(get_amc_project_path(exam, False))
-    return amc_project_path / "exam.pdf"
 
 
 def get_exam_preview_job_dir(exam: Exam, job_id):
