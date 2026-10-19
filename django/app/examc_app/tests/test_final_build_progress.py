@@ -131,7 +131,7 @@ class ActiveFinalBuildJobTestCase(TestCase):
     def test_second_start_follows_the_running_one(self):
         self.client.force_login(self.user)
 
-        with patch("examc_app.views.preparation_views.generate_final_exam_files_task.apply_async") as start:
+        with patch("examc_app.views.preparation.final_generation.generate_final_exam_files_task.apply_async") as start:
             response = self.client.post(reverse("generate_final_exam_files_start", kwargs={"exam_pk": self.exam.pk}))
 
         self.assertEqual(response.status_code, 409)

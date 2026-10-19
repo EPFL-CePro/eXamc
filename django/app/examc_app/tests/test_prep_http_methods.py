@@ -39,7 +39,7 @@ class StateChangingViewsTestCase(TestCase):
             self.url("generate_final_exam_files_start"),
         ]
 
-        with patch("examc_app.views.preparation_views.generate_final_exam_files_task.apply_async") as start:
+        with patch("examc_app.views.preparation.final_generation.generate_final_exam_files_task.apply_async") as start:
             for url in urls:
                 with self.subTest(url=url):
                     self.assertEqual(self.client.get(url).status_code, 405)
@@ -51,7 +51,7 @@ class StateChangingViewsTestCase(TestCase):
         self.assertFalse(ExamAMCJob.objects.filter(exam=self.exam).exists())
 
     def test_post_still_works(self):
-        with patch("examc_app.views.preparation_views.update_exam_latex"):
+        with patch("examc_app.views.preparation.answers.update_exam_latex"):
             response = self.client.post(self.url("delete_prep_answer", answer_id=self.answer.pk))
 
         self.assertEqual(response.status_code, 200)

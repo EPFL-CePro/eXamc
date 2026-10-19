@@ -90,7 +90,7 @@ class ExamChecksTestCase(ExamContentMixin, TestCase):
         ])
 
 
-@patch("examc_app.views.preparation_views.generate_final_exam_files_task.apply_async")
+@patch("examc_app.views.preparation.final_generation.generate_final_exam_files_task.apply_async")
 class FinalGenerationChecksTestCase(ExamContentMixin, TestCase):
     def setUp(self):
         super().setUp()
