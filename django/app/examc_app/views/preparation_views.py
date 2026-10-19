@@ -17,6 +17,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from docutils import DataError
 
 from examc_app.decorators import exam_permission_required
@@ -645,6 +646,7 @@ def reorder_prep_answers(request, exam_pk, question_id):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def add_prep_section(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
@@ -669,6 +671,7 @@ def add_prep_section(request, exam_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def delete_prep_section(request, exam_pk, section_id):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
@@ -856,6 +859,7 @@ def import_prep_questions(request, exam_pk, section_id):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def delete_prep_question(request, exam_pk, question_id):
     exam = Exam.objects.get(pk=exam_pk)
 
@@ -949,6 +953,7 @@ def prep_answer_panel(request, exam_pk, answer_id):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def add_prep_answer(request, exam_pk, question_id):
     exam = Exam.objects.get(pk=exam_pk)
 
@@ -978,6 +983,7 @@ def add_prep_answer(request, exam_pk, question_id):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def delete_prep_answer(request, exam_pk, answer_id):
     exam = Exam.objects.get(pk=exam_pk)
     locked = ensure_exam_not_finalized(exam)
@@ -1323,6 +1329,7 @@ def edit_latex_packages(request,exam_pk):
 
 
 @exam_permission_required(['manage'])
+@require_POST
 def save_latex_edited_file(request,exam_pk):
     data = request.POST['source']
     exam = Exam.objects.get(pk=exam_pk)
@@ -1388,6 +1395,7 @@ def save_latex_edited_packages(request,exam_pk):
     })
 
 @exam_permission_required(["manage"])
+@require_POST
 def generate_final_exam_files_start(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 
@@ -1407,7 +1415,7 @@ def generate_final_exam_files_start(request, exam_pk):
     errors = checks.errors + students_csv_problems(exam)
     if errors:
         return JsonResponse({"error": " ".join(errors), "errors": errors, "warnings": checks.warnings}, status=400)
-    if checks.warnings and request.GET.get("confirm_warnings") != "1":
+    if checks.warnings and request.POST.get("confirm_warnings") != "1":
         return JsonResponse({"warnings": checks.warnings})
 
     old_jobs = ExamAMCJob.objects.filter(

@@ -106,7 +106,7 @@ class FinalGenerationChecksTestCase(ExamContentMixin, TestCase):
         self.question("SCQ", correct=[])
         self.question("MCQ", correct=[])
 
-        response = self.client.get(self.url, {"confirm_warnings": 1})
+        response = self.client.post(self.url, {"confirm_warnings": 1})
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["errors"], ['Section "Algebra", question 1 "Q1" (SCQ): no correct answer.'])
@@ -117,14 +117,14 @@ class FinalGenerationChecksTestCase(ExamContentMixin, TestCase):
         start.return_value.id = "task-1"
         self.question("MCQ", correct=[])
 
-        response = self.client.get(self.url)
+        response = self.client.post(self.url)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["warnings"]), 1)
         self.assertNotIn("job_id", response.json())
         start.assert_not_called()
 
-        response = self.client.get(self.url, {"confirm_warnings": 1})
+        response = self.client.post(self.url, {"confirm_warnings": 1})
 
         self.assertEqual(response.json()["task_id"], "task-1")
         start.assert_called_once()

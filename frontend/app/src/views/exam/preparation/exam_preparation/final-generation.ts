@@ -1,8 +1,8 @@
-import { getJson, postJson } from "@examc/helpers/http.ts";
+import { postJson } from "@examc/helpers/http.ts";
 import { ConfirmModal } from "@examc/modals";
 
 import { celeryTaskStatusUrl, CFG, URLS } from "./config.ts";
-import { describeFailure, failureJson, getElement, hideElement, showElement, showModal, toggleElement, withQuery } from "./ajax.ts";
+import { describeFailure, failureJson, getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
 
 // Final generation: a Celery task followed in the dialog and, when the dialog is closed or the page
 // reloaded while it runs, in #final-generation-banner. The task goes on on the server in any case.
@@ -285,7 +285,7 @@ export async function generateFinalExamFiles(confirmWarnings = false): Promise<v
 
     let data: StartResponse;
     try {
-        data = await getJson<StartResponse>(withQuery(URLS.generateFinalStart, confirmWarnings ? { confirm_warnings: 1 } : {}));
+        data = await postJson<StartResponse>(URLS.generateFinalStart, confirmWarnings ? { confirm_warnings: 1 } : {});
     } catch (error) {
         const failure = describeFailure(error);
         const body = failureJson<ErrorResponse>(failure);

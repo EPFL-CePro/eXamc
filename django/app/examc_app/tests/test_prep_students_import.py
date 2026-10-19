@@ -404,7 +404,7 @@ class PrepStudentPatchApiTestCase(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_final_generation_blocked_while_students_to_correct(self):
-        response = self.client.get(reverse("generate_final_exam_files_start", kwargs={"exam_pk": self.exam.pk}))
+        response = self.client.post(reverse("generate_final_exam_files_start", kwargs={"exam_pk": self.exam.pk}))
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("1 student(s) of the Students page must be corrected", response.json()["error"])
@@ -414,7 +414,7 @@ class PrepStudentPatchApiTestCase(TestCase):
         self.student.seat = ""
         self.student.save()
 
-        response = self.client.get(reverse("generate_final_exam_files_start", kwargs={"exam_pk": self.exam.pk}))
+        response = self.client.post(reverse("generate_final_exam_files_start", kwargs={"exam_pk": self.exam.pk}))
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("1 student(s) of the Students page have no seat", response.json()["error"])

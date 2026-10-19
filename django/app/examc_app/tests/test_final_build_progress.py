@@ -132,7 +132,7 @@ class ActiveFinalBuildJobTestCase(TestCase):
         self.client.force_login(self.user)
 
         with patch("examc_app.views.preparation_views.generate_final_exam_files_task.apply_async") as start:
-            response = self.client.get(reverse("generate_final_exam_files_start", kwargs={"exam_pk": self.exam.pk}))
+            response = self.client.post(reverse("generate_final_exam_files_start", kwargs={"exam_pk": self.exam.pk}))
 
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["task_id"], "task-1")
