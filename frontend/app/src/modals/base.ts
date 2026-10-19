@@ -111,7 +111,7 @@ export abstract class ExamcModal {
 
         // remove the el when done
         modalEl.addEventListener("hidden.bs.modal", () => {
-            getPageBootstrap().Modal.getInstance(modalEl)?.dispose();
+            Modal.getInstance(modalEl)?.dispose();
             modalEl.remove();
             // Bootstrap unlocks the page scroll on close, even when another dialog is still open
             if (document.querySelector(".modal.show")) document.body.classList.add("modal-open");

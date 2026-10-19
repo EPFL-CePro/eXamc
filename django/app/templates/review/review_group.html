@@ -18,20 +18,17 @@
 {% block title %}Review {{ pages_group }}{% endblock %}
 
 {% block content %}
-    {% if user.pk|is_review_blocked:exam_selected.pk %}
-        <div class="alert alert-warning" role="alert">
-            You are currently blocked for Review!<br><br>Please contact the teacher to be unblocked.
-        </div>
-    {% elif copies_pages_list %}
-        <div class="d-flex justify-content-between mb-3">
-            <div class="d-flex align-items-center gap-5">
-                <h3 class="mb-0">
-                    <i class="fa-solid fa-glasses me-2"></i> Review {{ pages_group.group_name }}
-                </h3>
-                <a class="btn btn-icon btn-dark btn-sm" href="{% url 'reviewView' exam_selected.pk %}">
-                    <i class="fa-solid fa-arrow-left fa-lg me-2"></i> Back to Summary
-                </a>
+    <div class="d-flex justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-5">
+            <h3 class="mb-0">
+                <i class="fa-solid fa-glasses me-2"></i> Review {{ pages_group.group_name }}
+            </h3>
 
+            <a class="btn btn-icon btn-dark btn-sm" href="{% url 'reviewView' exam_selected.pk %}">
+                <i class="fa-solid fa-arrow-left fa-lg me-2"></i> Back to Summary
+            </a>
+
+            {% if not user.pk|is_review_blocked:exam_selected.pk and copies_pages_list %}
                 <div class="d-flex justify-content-end me-3">
                     <button type="button" class="btn btn-dark btn-sm js-toggle-comments"
                             data-bs-toggle="modal" data-bs-target="#commentsModal"
@@ -39,29 +36,35 @@
                         <i class="fa-solid fa-comments fa-lg me-2"></i> See comments
                     </button>
                 </div>
-            </div>
 
-            <div class="review-shortcuts-hint-row">
-                <div class="review-shortcuts-hint review-shortcuts-hint-top" id="navigation-shortcuts-help"
-                     role="note" aria-label="Navigation shortcuts">
-                    <span class="hint-item">
-                        <span class="hint-icons" aria-hidden="true">
-                            <i class="fa-solid fa-arrow-left"></i>
-                            <i class="fa-solid fa-arrow-right"></i>
+                <div class="review-shortcuts-hint-row">
+                    <div class="review-shortcuts-hint review-shortcuts-hint-top" id="navigation-shortcuts-help"
+                         role="note" aria-label="Navigation shortcuts">
+                        <span class="hint-item">
+                            <span class="hint-icons" aria-hidden="true">
+                                <i class="fa-solid fa-arrow-left"></i>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </span>
+                            <span>page</span>
                         </span>
-                        <span>page</span>
-                    </span>
-                    <span class="hint-item">
-                        <span class="hint-icons" aria-hidden="true">
-                            <i class="fa-solid fa-arrow-up"></i>
-                            <i class="fa-solid fa-arrow-down"></i>
+                        <span class="hint-item">
+                            <span class="hint-icons" aria-hidden="true">
+                                <i class="fa-solid fa-arrow-up"></i>
+                                <i class="fa-solid fa-arrow-down"></i>
+                            </span>
+                            <span>student</span>
                         </span>
-                        <span>student</span>
-                    </span>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         </div>
+    </div>
 
+    {% if user.pk|is_review_blocked:exam_selected.pk %}
+        <div class="alert alert-warning" role="alert">
+            You are currently blocked for Review!<br><br>Please contact the teacher to be unblocked.
+        </div>
+    {% elif copies_pages_list %}
         <div class="d-flex gap-3" id="reviewGroup_div" style="height:92vh;" tabindex="0">
             {# Left: list of copies and pages #}
             <div id="pages-group-list"
