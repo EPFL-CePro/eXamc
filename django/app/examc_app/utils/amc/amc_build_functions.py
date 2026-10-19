@@ -117,8 +117,6 @@ def compute_exam_source_hash(exam: Exam) -> str:
                     f"question_random_answers:{int(question.random_answers)}",
                     f"question_max_points:{question.max_points}",
                     f"question_point_increment:{question.point_increment or ''}",
-                    f"question_canceled:{int(question.canceled)}",
-                    f"question_new_page:{int(question.new_page)}",
                 ]
             )
 
@@ -133,7 +131,6 @@ def compute_exam_source_hash(exam: Exam) -> str:
                         f"answer_is_correct:{int(answer.is_correct)}",
                         f"answer_box_type:{answer.box_type or ''}",
                         f"answer_box_height_mm:{answer.box_height_mm if answer.box_height_mm is not None else ''}",
-                        f"answer_fix_position:{int(answer.fix_position)}",
                     ]
                 )
 
@@ -210,8 +207,6 @@ def create_exam_build_snapshot(
                 max_points_snapshot=question.max_points or 0,
                 point_increment_snapshot=question.point_increment or "",
                 random_answers_snapshot=question.random_answers,
-                new_page_snapshot=question.new_page,
-                canceled_snapshot=question.canceled,
             )
             global_index += 1
 
@@ -229,7 +224,6 @@ def create_exam_build_snapshot(
                         is_correct_snapshot=answer.is_correct,
                         box_type_snapshot=answer.box_type or "",
                         box_height_mm_snapshot=answer.box_height_mm,
-                        fix_position_snapshot=answer.fix_position,
                     )
 
     return build

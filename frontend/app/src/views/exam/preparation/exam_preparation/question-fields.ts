@@ -66,17 +66,15 @@ function updateAnswerForm(answerForm: HTMLElement): void {
     const scoring = answerForm.closest('[id^="prep-answer-"]')?.querySelector<HTMLElement>(".js-answer-scoring");
     if (scoring) scoring.style.display = selectedCode === "OPEN" ? "none" : "";
 
-    const fixPositionField = answerForm.querySelector<HTMLElement>(".js-answer-fix-position");
     const correctField = answerForm.querySelector<HTMLElement>(".js-answer-correct");
     const answerTextField = answerForm.querySelector<HTMLElement>(".js-answer-text");
     const boxTypeField = answerForm.querySelector<HTMLElement>(".js-answer-box-type");
     const boxHeightField = answerForm.querySelector<HTMLElement>(".js-answer-box-height");
 
-    if (!fixPositionField || !correctField || !answerTextField || !boxTypeField || !boxHeightField) {
+    if (!correctField || !answerTextField || !boxTypeField || !boxHeightField) {
         return;
     }
 
-    fixPositionField.style.display = "none";
     correctField.style.display = "none";
     answerTextField.style.display = "none";
     boxTypeField.style.display = "none";
@@ -86,7 +84,6 @@ function updateAnswerForm(answerForm: HTMLElement): void {
         boxTypeField.style.display = "flex";
         boxHeightField.style.display = "flex";
     } else if (selectedCode) {
-        fixPositionField.style.display = "flex";
         correctField.style.display = "flex";
         answerTextField.style.display = "flex";
     }

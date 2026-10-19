@@ -60,7 +60,7 @@ class PrepQuestionForm(forms.ModelForm):
     class Meta:
         model = PrepQuestion
         fields = ["title", "question_type", "question_text", "position", "max_points", "random_answers",
-                  "point_increment", "canceled", "new_page"]
+                  "point_increment"]
         widgets = {
             "question_text": forms.Textarea(attrs={"class": "markdown-editor","rows":12}),
             "position": forms.HiddenInput(),
@@ -86,8 +86,6 @@ class PrepQuestionForm(forms.ModelForm):
         })
         self.fields["random_answers"] = forms.BooleanField(label='Randomized answers', widget=SwitchWidget(),
                                                            required=False)
-        self.fields["canceled"] = forms.BooleanField(label='Cancel question', widget=SwitchWidget(), required=False)
-        self.fields["new_page"] = forms.BooleanField(label='Fixed', widget=SwitchWidget(), required=False)
 
     def clean_max_points(self):
         value = self.cleaned_data.get("max_points")
@@ -145,7 +143,7 @@ class CreatePrepQuestionForm(forms.Form):
 class PrepQuestionAnswerForm(forms.ModelForm):
     class Meta:
         model = PrepQuestionAnswer
-        fields = ["title", "answer_text", "is_correct", "position", "box_type", "box_height_mm", "fix_position"]
+        fields = ["title", "answer_text", "is_correct", "position", "box_type", "box_height_mm"]
         widgets = {
             "answer_text": forms.Textarea(attrs={"class": "markdown-editor","rows":1}),
             "position": forms.HiddenInput(),
@@ -161,7 +159,6 @@ class PrepQuestionAnswerForm(forms.ModelForm):
             "style": "min-width:300px",
         })
         self.fields["is_correct"] = forms.BooleanField(label='Correct', widget=SwitchWidget(), required=False)
-        self.fields["fix_position"] = forms.BooleanField(label='Fixed', widget=SwitchWidget(), required=False)
 
     def clean_box_type(self):
         # No box type (points of an open question) is stored as NULL, never as ""

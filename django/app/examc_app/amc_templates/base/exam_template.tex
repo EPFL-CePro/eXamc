@@ -84,15 +84,16 @@
 \providecommand{\passthrough}[1]{#1}
 \providecommand{\href}[2]{#2}
 
-% --- Answer lists. TF questions are rendered as "ANSWER-choiceshoriz[0]" by
-% render_question_tex_from_html(): keep their answers in the given order.
+% --- Answer lists, written by render_question_tex_from_html(): AMC shuffles the answers of a list, except with the
+% option [o], which keeps them in the given order: "ANSWER-choices[o]" for the questions whose answers are not
+% randomized, "ANSWER-choiceshoriz[o]" for the true/false questions (TRUE before FALSE).
 % (defined with \csname: \newenvironment does not accept "[" in a name)
 \expandafter\def\csname ANSWER-choices\endcsname{\begin{choices}}
 \expandafter\def\csname endANSWER-choices\endcsname{\end{choices}}
-\expandafter\def\csname ANSWER-choiceshoriz\endcsname{\begin{choiceshoriz}}
-\expandafter\def\csname endANSWER-choiceshoriz\endcsname{\end{choiceshoriz}}
-\expandafter\def\csname ANSWER-choiceshoriz[0]\endcsname{\begin{choiceshoriz}[o]}
-\expandafter\def\csname endANSWER-choiceshoriz[0]\endcsname{\end{choiceshoriz}}
+\expandafter\def\csname ANSWER-choices[o]\endcsname{\begin{choices}[o]}
+\expandafter\def\csname endANSWER-choices[o]\endcsname{\end{choices}}
+\expandafter\def\csname ANSWER-choiceshoriz[o]\endcsname{\begin{choiceshoriz}[o]}
+\expandafter\def\csname endANSWER-choiceshoriz[o]\endcsname{\end{choiceshoriz}}
 
 %%% increase the space between header and bottom for AMC control dots
 \renewcommand{\baselinestretch}{1.10}

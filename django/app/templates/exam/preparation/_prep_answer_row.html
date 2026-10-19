@@ -30,14 +30,6 @@
         {{ answer_form.title.as_hidden }}
 
         <div class="answer-row">
-            <div class="field-block js-answer-fix-position">
-                <label>Fixed</label>
-                {{ answer_form.fix_position }}
-                {% if answer_form.fix_position.errors %}
-                    <div class="text-danger small">{{ answer_form.fix_position.errors }}</div>
-                {% endif %}
-            </div>
-
             <div class="field-block js-answer-correct">
                 <label>Correct</label>
                 {{ answer_form.is_correct }}

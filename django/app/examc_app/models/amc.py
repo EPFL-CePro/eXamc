@@ -81,8 +81,6 @@ class ExamBuildQuestion(models.Model):
     max_points_snapshot = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     point_increment_snapshot = models.CharField(max_length=10, blank=True, default="")
     random_answers_snapshot = models.BooleanField(default=False)
-    new_page_snapshot = models.BooleanField(default=False)
-    canceled_snapshot = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["section_position", "rendered_position", "id"]
@@ -122,7 +120,6 @@ class ExamBuildAnswer(models.Model):
     is_correct_snapshot = models.BooleanField(default=False)
     box_type_snapshot = models.CharField(max_length=20, blank=True, default="")
     box_height_mm_snapshot = models.IntegerField(blank=True, null=True)
-    fix_position_snapshot = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["rendered_position", "id"]

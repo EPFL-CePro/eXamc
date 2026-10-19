@@ -100,22 +100,6 @@
                             <div class="text-danger small">{{ question_form.point_increment.errors }}</div>
                         {% endif %}
                     </div>
-
-                    <div class="field-block">
-                        <label>Cancel question</label>
-                        {{ question_form.canceled }}
-                        {% if question_form.canceled.errors %}
-                            <div class="text-danger small">{{ question_form.canceled.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="field-block">
-                        <label>Fixed</label>
-                        {{ question_form.new_page }}
-                        {% if question_form.new_page.errors %}
-                            <div class="text-danger small">{{ question_form.new_page.errors }}</div>
-                        {% endif %}
-                    </div>
                 </div>
 
                 <div class="mt-3">

@@ -135,17 +135,16 @@
     margin-top: 0.5rem;
 }
 
-// Answer layout: 2 small columns + 1 flexible editor column
+// Answer layout: 1 small column + 1 flexible editor column
 .answer-row {
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: 0.5rem 1rem;
     width: 100%;
     min-width: 0;
 }
 
-.js-answer-fix-position,
 .js-answer-correct {
     min-width: 140px;
 }
@@ -157,6 +156,11 @@
 .js-answer-box-type,
 .js-answer-box-height {
     min-width: 180px;
+}
+
+// The second column is flexible: the height of an answer zone does not need all of it
+.js-answer-box-height {
+    max-width: 220px;
 }
 
 .js-answer-box-type select,

@@ -16,7 +16,7 @@ class PrepSection(models.Model):
     title = models.CharField(max_length=500)
     section_text = models.TextField(default='')
     position = models.IntegerField(default=0)
-    random_questions = models.BooleanField(default=False)
+    random_questions = models.BooleanField(default=True)
     start_on_new_page = models.BooleanField(default=False)
     history = HistoricalRecords()
 
@@ -28,11 +28,9 @@ class PrepQuestion(models.Model):
     title = models.CharField(max_length=500)
     question_text = models.TextField(default='')
     position = models.IntegerField(default=0)
-    random_answers = models.BooleanField(default=False)
+    random_answers = models.BooleanField(default=True)
     max_points = models.DecimalField(max_digits=10, decimal_places=2,default=0.0,)
     point_increment = models.CharField(max_length=10, choices=POINT_INCREMENT_CHOICES, default="1", blank=True, null=True)
-    canceled = models.BooleanField(default=False)
-    new_page = models.BooleanField(default=False)
     history = HistoricalRecords()
 
 class PrepQuestionAnswer(models.Model):
@@ -44,7 +42,6 @@ class PrepQuestionAnswer(models.Model):
     box_type = models.CharField(max_length=10, choices=BOX_TYPE_CHOICES, default=None, blank=True, null=True)
     box_height_mm = models.IntegerField(default=0,blank=True, null=True)
     position = models.IntegerField(default=0)
-    fix_position = models.BooleanField(default=False)
     history = HistoricalRecords()
 
 class PrepScoringFormula(models.Model):

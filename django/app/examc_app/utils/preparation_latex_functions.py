@@ -19,7 +19,6 @@ from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_pa
 from examc_app.utils.examc_qr import qr_exam_fields
 
 #PLACEHOLDERS FOR TEMPLATES
-PH_NEW_PAGE = '%NEW-PAGE%'
 PH_SECTIONS = '%SECTIONS%'
 PH_SECTIONS_INSERT = '%SECTIONS-INSERT%'
 PH_FIRST_PAGE_TXT = '%FIRST-PAGE-TEXT%'
@@ -346,18 +345,21 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
     elif question.question_type.code == 'OPEN' and PH_QUESTION_TITLE not in template:
         raise ValueError(f"Placeholder {PH_QUESTION_TITLE!r} not found in template")
 
+    # AMC shuffles the answers of a list unless it has the option [o] (see exam_template.tex); a true/false question
+    # always keeps TRUE before FALSE (it has no switch)
+    keep_order = '' if question.random_answers else '[o]'
     if question.question_type.code == 'MCQ':
         question_type_text = 'questionmult'
-        answer_type_text = 'choices'
+        answer_type_text = f'choices{keep_order}'
     elif question.question_type.code == 'OPEN':
         question_type_text = None
         answer_type_text = None
     elif question.question_type.code == 'SCQ':
         question_type_text = 'question'
-        answer_type_text = 'choices'
+        answer_type_text = f'choices{keep_order}'
     else:
         question_type_text = 'question'
-        answer_type_text = 'choiceshoriz'
+        answer_type_text = 'choiceshoriz[o]'
 
     question_tex = (
         template
@@ -365,9 +367,6 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
         .replace(PH_SECTION_ID, f'SECTION-{question.prep_section.position}')
         .replace(PH_QUESTION_ID, f'SECTION-{question.prep_section.position}-{question.question_type.code}-{question.position}')
     )
-
-    if question.new_page:
-        question_tex = question_tex.replace(PH_NEW_PAGE,r'\newpage')
 
     if question.question_type.code == 'OPEN':
         question_tex = (
@@ -382,9 +381,6 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
             .replace(PH_QUESTION_TYPE, question_type_text)
             .replace(PH_QUESTION_SCORING, question_scoring_tex(question, section_formulas, exam_tf_formula))
         )
-
-    if question.question_type.code == 'TF':
-        question_tex = question_tex.replace(f'ANSWER-{answer_type_text}',f'ANSWER-{answer_type_text}[0]')
 
     for answer in question.prepAnswers.order_by("position"):
         question_tex = render_answer_tex_from_html(answer, question_tex)
