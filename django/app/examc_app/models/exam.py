@@ -3,10 +3,13 @@
 ###########################
 import json
 
+from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
-from django.db.models import Count
+
+TEACHER_GROUP_ID = 2
 
 class AcademicYear(models.Model):
     """ Stores academic year data """
@@ -63,7 +66,7 @@ class Exam(models.Model):
         super().__init__(*args, **kwargs)
 
     def is_overall(self):
-        """ Overall exam is automatically generated for common exam to store common statistics."""
+        """ Overall exam is automatically generated for a common exam to store common statistics."""
         return bool(self.overall)
 
     def has_review_option(self):
@@ -82,9 +85,6 @@ class Exam(models.Model):
         """ Return the sum of all common students. """
         value = self.common_exams.all().filter(overall=False).aggregate(total=Count('students'))['total']
         return value
-
-    def __str__(self):
-        return f"{self.code} {self.name} (S{self.semester.code} {self.year.code})"
 
     def get_max_points(self):
         """ Return the max points for an exam. """
@@ -127,14 +127,12 @@ class Exam(models.Model):
     def get_students_results_exams(self):
         """ Return all exams for students results (without global one) """
         exam_list = []
-        if not self.is_overall():
-            exam_list.append(self)
-        for comex in self.common_exams.all():
-            exam_list.append(comex)
+        if not self.is_overall(): exam_list.append(self)
+
+        for comex in self.common_exams.all(): exam_list.append(comex)
         return exam_list
 
     def get_available_common_exams(self):
-
         exam = self
         if self.is_overall():
             code_split = self.code.split('_')
@@ -163,6 +161,36 @@ class Exam(models.Model):
         """ The overall exam among the common exams if there is one, otherwise this exam """
         return self.common_exams.filter(overall=True).first() or self
 
+    @property
+    def is_part_of_overall(self) -> bool:
+        """True if this exam belongs to a common exam with an overall exam."""
+        return self.common_exams.filter(overall=True).exists()
+
+    @property
+    def is_overall_or_part(self) -> bool:
+        """True if this exam is an overall exam, or part of one."""
+        return bool(self.is_overall()) or self.is_part_of_overall
+
+    @property
+    def display_name(self) -> str:
+        # If the exam is common, return only the name (usually "COMMON"), as the exam code is for DJango's internal use
+        if self.is_overall(): return f"{self.name}"
+
+        return f"{self.code} {self.name}"
+
+    @property
+    def display_date(self) -> str:
+        return f"S{self.semester} {self.year.code}"
+
+    @property
+    def display_teachers(self) -> str:
+        exam_users = self.exam_users.filter(group_id=TEACHER_GROUP_ID).select_related("user")
+        return ", ".join(
+            f"{eu.user.first_name[:1]}.{eu.user.last_name}" for eu in exam_users
+        )
+
+    def __str__(self):
+        return f"{self.code} {self.name} (S{self.semester.code} {self.year.code})"
 
 
 class QuestionType(models.Model):

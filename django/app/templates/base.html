@@ -58,9 +58,6 @@
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
     <script src="{% static 'js/summernote-math.js' %}"></script>
 
-    <!-- CSS eXamc -->
-    <link rel="stylesheet" type="text/css" href="{% vite_asset_url 'src/styles/examc.scss' %}">
-
     <!-- favicon -->
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
 
@@ -109,7 +106,7 @@
 
 <body>
 <div class="d-flex gap-3">
-    {% include "_sidebar.html" %}
+    {% include "navigation/_sidebar.html" %}
 
     <main class="flex-grow-1" style="min-width: 0">
         <div class="w-100 d-flex flex-column gap-0 flex-grow-1"
@@ -131,25 +128,7 @@
                 </div>
             {% endif %}
 
-            {# Exams sharing this one's common exam: one pill each #}
-            {% if nav_url != 'amc_data_capture_manual' and nav_url != 'review_group' %}
-                <nav class="nav nav-pills nav-fill flex-column flex-sm-row" aria-label="Common exams">
-                    {% for comex in exam.get_common_exams_yc_common %}
-                        <a class="nav-link mb-3 text-sm-center{% if comex.id == exam_selected.id %} active{% endif %}"
-                           {% if comex.id == exam_selected.id %}aria-current="page"{% endif %}
-                           href="{% if curr_tab %}{% url nav_url comex.pk curr_tab %}{% else %}{% url nav_url comex.pk %}{% endif %}">
-                            {% if comex.is_overall %}
-                                {{ comex.name }}<br>
-                                (S{{ comex.semester.code }} {{ comex.year.code }})
-                            {% else %}
-                                {{ comex.code }} {{ comex.name }} (S{{ comex.semester.code }} {{ comex.year.code }})<br>
-                                <small>{{ comex.id|get_exam_teachers_short_str }}</small>
-                            {% endif %}
-                        </a>
-                    {% endfor %}
-                </nav>
-            {% endif %}
-
+            {# Main content #}
             {% block content %}{% endblock %}
         </div>
     </main>

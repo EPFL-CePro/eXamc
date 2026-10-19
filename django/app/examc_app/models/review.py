@@ -21,12 +21,16 @@ class PagesGroup(models.Model):
         return self.group_name + " ( pages " + str(self.nb_pages) + " )"
 
 class ExamUser(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_exams')
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE,related_name='exam_users')
-    group = models.ForeignKey(Group, on_delete=models.CASCADE,related_name='user_groups', null=True,default=None)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_exams')
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam_users')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='user_groups', null=True, default=None)
     pages_groups = models.ManyToManyField(PagesGroup, blank=True)
     review_blocked = models.BooleanField(default=False)
     history = HistoricalRecords()
+
+    def __str__(self):
+        """Exam user, in the format 'J. Doe'"""
+        return f"{self.user.first_name[:1]}. {self.user.last_name}"
 
 
 class PagesGroupComment(models.Model):
