@@ -412,9 +412,17 @@ textarea.markdown-editor {
     }
 }
 
-// What a level has scoring formulas for, in its Scoring button (like the badge of Print settings)
-.prep-scoring-badge {
-    margin-left: 0.5rem;
+// The frame in a button of the page: the booklet of Print settings, what a level has scoring formulas for in its Scoring
+// button. The text is centered in the frame, both ways (the display is set inline to none when there is nothing to show),
+// and the negative vertical margins are the vertical padding: the frame does not make the button higher than the others.
+.prep-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6em;
+    line-height: 1;
+    vertical-align: middle;
+    margin: -0.6em 0 -0.6em 0.5rem;
     background-color: #212529;
     color: #fff;
     border: 1px solid #fff;

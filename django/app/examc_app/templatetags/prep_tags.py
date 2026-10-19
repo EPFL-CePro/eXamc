@@ -36,5 +36,5 @@ def prep_scoring_badge(exam, kind, pk=0):
     text = scoring_badge_text(applied_scorings(exam)["defined"][kind].get(pk))
 
     return format_html(
-        '<span class="badge prep-scoring-badge" data-prep-scoring-badge-kind="{}" data-prep-scoring-badge-id="{}"{}>{}</span>',
+        '<span class="badge prep-badge" data-prep-scoring-badge-kind="{}" data-prep-scoring-badge-id="{}"{}>{}</span>',
         kind, pk, "" if text else mark_safe(' style="display: none"'), text)
