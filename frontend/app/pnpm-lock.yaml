@@ -214,21 +214,24 @@ importers:
       codemirror:
         specifier: ^6.0.2
         version: 6.0.2
-      datatables.net-buttons-dt:
-        specifier: ^4.0.3
-        version: 4.1.1
-      datatables.net-columncontrol-dt:
-        specifier: ^2.1.1
-        version: 2.1.1
-      datatables.net-dt:
-        specifier: ^3.0.4
-        version: 3.1.1
-      datatables.net-keytable-dt:
+      datatables.net-bs5:
+        specifier: ^3.1.3
+        version: 3.1.3
+      datatables.net-buttons-bs5:
+        specifier: ^4.1.2
+        version: 4.1.2
+      datatables.net-columncontrol-bs5:
+        specifier: ^2.1.2
+        version: 2.1.2
+      datatables.net-keytable-bs5:
         specifier: ^3.1.1
         version: 3.1.1
-      datatables.net-select-dt:
-        specifier: ^4.0.1
-        version: 4.1.0
+      datatables.net-select-bs5:
+        specifier: ^4.1.1
+        version: 4.1.1
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
@@ -1328,35 +1331,35 @@ packages:
     resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
     engines: {node: '>= 12'}
 
-  datatables.net-buttons-dt@4.1.1:
-    resolution: {integrity: sha512-YhUFQ4mKj0iywP2LI7XS+3B3t6RBWJT1eonrtLXgx5F/O8fYw8NB35Y38LB7m7sxnhfNDppktRL/Opo22pTpFA==}
+  datatables.net-bs5@3.1.3:
+    resolution: {integrity: sha512-6ypicbuX5yWBsOjeNPLE1YhxSEK0bhoiyOfutSjrrzzgmybV8HywIXObQb1tWEw24ZNi6/CaL8ZAmIfL466JLQ==}
 
-  datatables.net-buttons@4.1.1:
-    resolution: {integrity: sha512-KH8SewpQJTUq5M8YsY7aXUkhbhjUsxsoxXsXMUqMcU6daa7f+vtQDUp3yYTMTnPofzBkS9m2vxRrqxWEMtP+Ew==}
+  datatables.net-buttons-bs5@4.1.2:
+    resolution: {integrity: sha512-7tUhfF43ckS3pBJK3DanLs2GRrwS2pAHzLglQqI9MVw5jHPkvbRx34uOqnGRe5aC9AoWkpfCMzYaqCYjU3kZYA==}
 
-  datatables.net-columncontrol-dt@2.1.1:
-    resolution: {integrity: sha512-rpTwTg2JSxUzWRW5jFhRdjE6yx/bSoOizKOarood/nNahCrWb50yk7jMW6+C0w0EE2Ucx5SZqXpw9xFjqUVYfQ==}
+  datatables.net-buttons@4.1.2:
+    resolution: {integrity: sha512-VigN0751S8r/brSZNRSPXgfUHZciujQ2zXkZifOuWYbgMaX/I68YyGmiuQTTrI7DMl0fXHgM4nA3lmJcdtKD2A==}
 
-  datatables.net-columncontrol@2.1.1:
-    resolution: {integrity: sha512-CPC940ZhlhoNdP1Q1zMb2XccGaOskwYvMX48xHARyAun8x8U9BUMp1MhYyXZgkA9z8yRcIwy7ApO/E5dvWdJCA==}
+  datatables.net-columncontrol-bs5@2.1.2:
+    resolution: {integrity: sha512-uVHhpvQjZ86Jdgi+V438bvuS//rVQdt9bCMObagx3B9wxp9PZAHMJnOtuP/NZLjvIKDEgBcwqGEcB2E9n/L/uQ==}
 
-  datatables.net-dt@3.1.1:
-    resolution: {integrity: sha512-CeooC2ByHWu4fUpVxBvgimCseR1/1gr8IjO34BjYmZ4pUp6cNEkCzx49uzK0AnFqDR3v32Hue9BDAf9BnFMxxA==}
+  datatables.net-columncontrol@2.1.2:
+    resolution: {integrity: sha512-iy+nwFpbiyvbZbXRNs23XHsnK2zT2+jhwvjbwfiu6i7GxdsvU+xH1S3NlD8oINpAjCLC1LzQlE5uAiVJVk/03w==}
 
-  datatables.net-keytable-dt@3.1.1:
-    resolution: {integrity: sha512-yGQiSowvnf9sHPTr3JustaiD8evcgGNxzD2LfxxQD0GZCQNzsKJ+McbedgmkjckCngL9KldztQSo1mXzSs1lmw==}
+  datatables.net-keytable-bs5@3.1.1:
+    resolution: {integrity: sha512-QHpfg96cSDTmPALLS5gf1iYAH9v0dnRA0Ws/Z7GfshW5fHFAhXUtgpeJyhlxZlx9dYb2RMmdSljcmWQTQce8iA==}
 
   datatables.net-keytable@3.1.1:
     resolution: {integrity: sha512-kmvklrl226CS3+QJq/wmGJuN64Don8YiEIspjVqqcMy6iBcXkWJQFF7HE4RzNFBm/t8NGu738JUVXrBicYjbsA==}
 
-  datatables.net-select-dt@4.1.0:
-    resolution: {integrity: sha512-ZIVCrKg8QVGJkInyhQ9VVHY2mBulFan0kOf6ToKwSEcDNOChctJueITh7N/rMqLwTxF7iNZQwdcGW2hCXo7/Wg==}
+  datatables.net-select-bs5@4.1.1:
+    resolution: {integrity: sha512-WWUtiVWjx9CeG2EmXIbz3NmY2vTxHjVO8thORK5Y6cvuSo5TlmykrjoNfYowuQDioxstG+BjxmZUixPC8ebNAA==}
 
-  datatables.net-select@4.1.0:
-    resolution: {integrity: sha512-ndDZUr67NvSKerRU592yQYryMtUYkyY4LCNgU5DFiZ6Fq2TD/+wvgBcpOqV18oXBbZDvKsfhMRZbjUYjh3ig/g==}
+  datatables.net-select@4.1.1:
+    resolution: {integrity: sha512-B5NNGXpJjKYXb8rlLwwSF/x/mRdgFYMS4el715sBYyn2Ovz00CBw5mwjB1NXeaR4DDl0D2dCg7UBh5uvHrXYuw==}
 
-  datatables.net@3.1.1:
-    resolution: {integrity: sha512-dETxh14+KkQrFTZFIVtnKuIcNuglSLnraITbvrkztA+2yM6AeNtEAiMVucZ5o6vkJnJrtoApSALggSmc0czs0w==}
+  datatables.net@3.1.3:
+    resolution: {integrity: sha512-B34/A+KAkKQnl6si+SgmB8grhDepfHDXEFyQxJanqY70dB4ab0pHTF1aHZvLKKruuUoL815/y3YeTSYUr/pAOw==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -4126,47 +4129,47 @@ snapshots:
 
   data-uri-to-buffer@4.0.1: {}
 
-  datatables.net-buttons-dt@4.1.1:
+  datatables.net-bs5@3.1.3:
     dependencies:
-      datatables.net-buttons: 4.1.1
-      datatables.net-dt: 3.1.1
+      datatables.net: 3.1.3
 
-  datatables.net-buttons@4.1.1:
+  datatables.net-buttons-bs5@4.1.2:
     dependencies:
-      datatables.net: 3.1.1
+      datatables.net-bs5: 3.1.3
+      datatables.net-buttons: 4.1.2
 
-  datatables.net-columncontrol-dt@2.1.1:
+  datatables.net-buttons@4.1.2:
     dependencies:
-      datatables.net-columncontrol: 2.1.1
-      datatables.net-dt: 3.1.1
+      datatables.net: 3.1.3
 
-  datatables.net-columncontrol@2.1.1:
+  datatables.net-columncontrol-bs5@2.1.2:
     dependencies:
-      datatables.net: 3.1.1
+      datatables.net-bs5: 3.1.3
+      datatables.net-columncontrol: 2.1.2
 
-  datatables.net-dt@3.1.1:
+  datatables.net-columncontrol@2.1.2:
     dependencies:
-      datatables.net: 3.1.1
+      datatables.net: 3.1.3
 
-  datatables.net-keytable-dt@3.1.1:
+  datatables.net-keytable-bs5@3.1.1:
     dependencies:
-      datatables.net-dt: 3.1.1
+      datatables.net-bs5: 3.1.3
       datatables.net-keytable: 3.1.1
 
   datatables.net-keytable@3.1.1:
     dependencies:
-      datatables.net: 3.1.1
+      datatables.net: 3.1.3
 
-  datatables.net-select-dt@4.1.0:
+  datatables.net-select-bs5@4.1.1:
     dependencies:
-      datatables.net-dt: 3.1.1
-      datatables.net-select: 4.1.0
+      datatables.net-bs5: 3.1.3
+      datatables.net-select: 4.1.1
 
-  datatables.net-select@4.1.0:
+  datatables.net-select@4.1.1:
     dependencies:
-      datatables.net: 3.1.1
+      datatables.net: 3.1.3
 
-  datatables.net@3.1.1: {}
+  datatables.net@3.1.3: {}
 
   debug@4.4.3(supports-color@10.2.2):
     dependencies:

@@ -1,15 +1,22 @@
-<div id="prep-answer-{{ answer.id }}" class="border p-2 mt-2 sortable-answer" data-answer-id="{{ answer.id }}">
-    <button
-        type="button"
-        class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
-        id="openScoringFormulasModal"
-        data-exam-pk="{{ exam_selected.pk }}"
-        data-prep-section=""
-        data-prep-question=""
-        data-prep-answer="{{ answer.id }}"
-        style="margin-bottom: 10px;"
-    ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
-    </button>
+{% load prep_tags %}<div id="prep-answer-{{ answer.id }}" class="border p-2 mt-2 sortable-answer" data-answer-id="{{ answer.id }}">
+    {# The answers of an open question are corrector boxes: no formula, see question-fields.ts #}
+    <div class="js-answer-scoring"{% if question.question_type.code == "OPEN" %} style="display: none"{% endif %}>
+        <div class="d-flex align-items-center" style="margin-bottom: 10px;">
+            {% prep_scoring_lock exam_selected as scoring_lock %}
+            <button
+                type="button"
+                class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
+                id="openScoringFormulasModal"
+                data-exam-pk="{{ exam_selected.pk }}"
+                data-prep-section=""
+                data-prep-question=""
+                data-prep-answer="{{ answer.id }}"
+                {% if scoring_lock %}disabled title="{{ scoring_lock }}"{% endif %}
+            ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring{% prep_scoring_badge exam_selected "answer" answer.id %}
+            </button>
+            {% prep_scoring_info exam_selected "answer" answer.id %}
+        </div>
+    </div>
     <form
         novalidate
         class="js-answer-form"
@@ -25,14 +32,6 @@
         {{ answer_form.title.as_hidden }}
 
         <div class="answer-row">
-            <div class="field-block js-answer-fix-position">
-                <label>Fixed</label>
-                {{ answer_form.fix_position }}
-                {% if answer_form.fix_position.errors %}
-                    <div class="text-danger small">{{ answer_form.fix_position.errors }}</div>
-                {% endif %}
-            </div>
-
             <div class="field-block js-answer-correct">
                 <label>Correct</label>
                 {{ answer_form.is_correct }}
@@ -71,7 +70,7 @@
                 {{ answer_form.non_field_errors }}
             </div>
         {% endif %}
-        {% if not is_exam_finalized %}
+        {% if not is_exam_locked %}
             <button class="btn btn-dark btn-sm mt-2">Save</button>
         {% endif %}
     </form>

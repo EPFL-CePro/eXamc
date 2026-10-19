@@ -4,7 +4,7 @@
             <div class="sortable-answer-wrapper" data-answer-id="{{ answer.id }}">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center gap-2">
-                        {% if not is_exam_finalized %}
+                        {% if not is_exam_locked %}
                             <span class="drag-handle" style="cursor:move;margin-right:10px;">
                                 <i class="fa-solid fa-grip-vertical"></i>
                             </span>
@@ -21,7 +21,7 @@
                         </div>
                     </div>
 
-                    {% if not is_exam_finalized %}
+                    {% if not is_exam_locked %}
                         <button
                             class="btn btn-sm btn-light float-end"
                             hx-post="{% url 'delete_prep_answer' exam_selected.pk answer.id %}"
@@ -48,7 +48,7 @@
         {% endfor %}
     </div>
 
-    {% if not is_exam_finalized %}
+    {% if not is_exam_locked %}
         <button
             class="btn btn-light"
             hx-post="{% url 'add_prep_answer' exam_selected.pk question.id %}"

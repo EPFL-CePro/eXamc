@@ -1,7 +1,7 @@
-import DataTable, { type Api } from 'datatables.net-dt';
+import DataTable, { type Api } from 'datatables.net-bs5';
 
-import 'datatables.net-columncontrol-dt';
-import 'datatables.net-columncontrol-dt/css/columnControl.dataTables.css';
+import 'datatables.net-columncontrol-bs5';
+import 'datatables.net-columncontrol-bs5/css';
 
 import { openZooms } from './zooms.ts';
 import type { DiagnosisRow, PagePosition } from './types.ts';
@@ -52,8 +52,7 @@ export function initDiagnosis(tableElement: HTMLTableElement): void {
             },
             {
                 data: null,
-                orderable: false,
-                searchable: false,
+                columnControl: [],
                 className: 'text-center',
                 defaultContent:
                     '<span data-action="zooms" aria-label="Show box zooms" style="cursor: pointer">' +
@@ -74,7 +73,7 @@ export function initDiagnosis(tableElement: HTMLTableElement): void {
             bottomEnd: 'paging',
         },
         autoWidth: true,
-        scrollY: '51vh',
+        scrollY: '47vh',
     });
 
     table = dataTable;

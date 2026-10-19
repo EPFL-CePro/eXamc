@@ -1,4 +1,4 @@
-import DataTable from 'datatables.net-dt';
+import DataTable from 'datatables.net-bs5';
 import {getLayoutElementsSeparator, setupDatatables} from "@examc/helpers/datatables.ts";
 
 export function lastConnectedUsersTable(options: {
@@ -22,7 +22,7 @@ export function lastConnectedUsersTable(options: {
             topStart: function() {
                 const title = document.createElement('h4');
                 title.style.margin = "0";
-                title.innerHTML = `<i class="fa-solid fa-clock-rotate-left dashboard-section-icon"></i>Users' last connection`;
+                title.innerHTML = `<i class="fa-solid fa-clock-rotate-left dashboard-section-icon"></i> Users' last connection`;
 
                 return title;
             },

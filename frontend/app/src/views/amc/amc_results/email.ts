@@ -1,4 +1,4 @@
-import type { Api } from "datatables.net-dt";
+import type { Api } from 'datatables.net-bs5';
 import type { StudentRow } from "../amc_markings/types";
 import { SimpleEditor } from "@examc/editors";
 

@@ -13,7 +13,91 @@ from examc_app.models import (
     PrepScoringFormula,
     PrepSection,
     QuestionType,
+    Semester,
 )
+
+
+class CreateExamProjectForm(forms.Form):
+    course = forms.ChoiceField(
+        label="Course",
+        choices=[],
+        widget=forms.Select(
+            attrs={
+                "class": "selectpicker form-control",
+                "size": 5,
+                "data-live-search": "true",
+            }
+        ),
+        required=True,
+    )
+
+    semester = forms.ChoiceField(
+        label="Semester",
+        choices=[],
+        widget=forms.RadioSelect(attrs={"class": "custom-radio-list"}),
+        required=True,
+    )
+
+    date = forms.DateField(
+        label="Date",
+        widget=forms.DateInput(
+            format="%d-%m-%Y",
+            attrs={"id": "dateAndTime", "type": "date", "class": "form-control"},
+        ),
+        required=True,
+    )
+
+    def __init__(self, *args, courses, teacher_names_by_course, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.errors_list = []
+
+        self.courses_by_code = {course["coursCode"]: course for course in courses}
+        self.teachers_by_course = teacher_names_by_course
+
+        courses_choices = []
+
+        for course in courses:
+            code = course["coursCode"]
+            label = f"{code} - {course['coursNomFr']}"
+
+            course_teachers = teacher_names_by_course.get(code, [])
+            if course_teachers:
+                label += f" ({', '.join(t['name'] for t in course_teachers)})"
+
+            courses_choices.append((code, label))
+
+        # populate the course field + error mgmt
+        self.fields["course"].choices = courses_choices
+
+        if len(courses_choices) == 0:
+            self.errors_list.append(
+                "No courses are available. Please create a course first."
+            )
+
+        # populate the semester field + error mgmt
+        self.fields["semester"].choices = [
+            (semester.pk, semester.code) for semester in Semester.objects.all()
+        ]
+
+        if len(self.fields["semester"].choices) == 0:
+            self.errors_list.append(
+                "No semesters are available. Please create a semester first."
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        course_code = cleaned_data.get("course")
+        date = cleaned_data.get("date")
+
+        if not course_code or not date:
+            return cleaned_data
+
+        if Exam.objects.filter(code=course_code, date=date).exists():
+            raise ValidationError("An exam for this course and date already exists.")
+
+        return cleaned_data
 
 
 class ExamFirstPageForm(forms.ModelForm):
@@ -32,7 +116,7 @@ class ExamFirstPageForm(forms.ModelForm):
 class PrepSectionForm(forms.ModelForm):
     class Meta:
         model = PrepSection
-        fields = ["title", "section_text", "position", "random_questions"]
+        fields = ["title", "section_text", "position", "random_questions", "start_on_new_page"]
         widgets = {
             "section_text": forms.Textarea(attrs={"class": "markdown-editor","rows":5}),
             "position": forms.HiddenInput(),
@@ -49,13 +133,18 @@ class PrepSectionForm(forms.ModelForm):
             widget=SwitchWidget(),
             required=False
         )
+        self.fields["start_on_new_page"] = forms.BooleanField(
+            label='Start on a new page',
+            widget=SwitchWidget(),
+            required=False
+        )
 
 
 class PrepQuestionForm(forms.ModelForm):
     class Meta:
         model = PrepQuestion
         fields = ["title", "question_type", "question_text", "position", "max_points", "random_answers",
-                  "point_increment", "canceled", "new_page"]
+                  "point_increment"]
         widgets = {
             "question_text": forms.Textarea(attrs={"class": "markdown-editor","rows":12}),
             "position": forms.HiddenInput(),
@@ -81,8 +170,6 @@ class PrepQuestionForm(forms.ModelForm):
         })
         self.fields["random_answers"] = forms.BooleanField(label='Randomized answers', widget=SwitchWidget(),
                                                            required=False)
-        self.fields["canceled"] = forms.BooleanField(label='Cancel question', widget=SwitchWidget(), required=False)
-        self.fields["new_page"] = forms.BooleanField(label='Fixed', widget=SwitchWidget(), required=False)
 
     def clean_max_points(self):
         value = self.cleaned_data.get("max_points")
@@ -94,6 +181,27 @@ class PrepQuestionForm(forms.ModelForm):
             raise ValidationError("Value must be in increments of 0.5")
 
         return value
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # The points of an open question are given by steps (see update_open_answers): its maximum is a whole number
+        # of steps. Checked here, otherwise the question is saved and the steps cannot be created.
+        question_type = cleaned_data.get("question_type")
+        if question_type is None or question_type.code != "OPEN":
+            return cleaned_data
+
+        if "point_increment" in cleaned_data and not cleaned_data["point_increment"]:
+            self.add_error("point_increment", "Choose the point increment.")
+        if "max_points" in cleaned_data and cleaned_data["max_points"] is None:
+            self.add_error("max_points", "Give the maximum points.")
+
+        max_points = cleaned_data.get("max_points")
+        increment = cleaned_data.get("point_increment")
+        if max_points is not None and increment and max_points % Decimal(increment) != 0:
+            self.add_error("max_points", f"The maximum points must be a multiple of the point increment ({increment}).")
+
+        return cleaned_data
 
 
 class CreatePrepQuestionForm(forms.Form):
@@ -112,14 +220,14 @@ class CreatePrepQuestionForm(forms.Form):
         required=False,
         min_value=2,
         initial=4,
-        widget=forms.NumberInput(attrs={"class": "form-control"})
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
     )
 
 
 class PrepQuestionAnswerForm(forms.ModelForm):
     class Meta:
         model = PrepQuestionAnswer
-        fields = ["title", "answer_text", "is_correct", "position", "box_type", "box_height_mm", "fix_position"]
+        fields = ["title", "answer_text", "is_correct", "position", "box_type", "box_height_mm"]
         widgets = {
             "answer_text": forms.Textarea(attrs={"class": "markdown-editor","rows":1}),
             "position": forms.HiddenInput(),
@@ -135,7 +243,6 @@ class PrepQuestionAnswerForm(forms.ModelForm):
             "style": "min-width:300px",
         })
         self.fields["is_correct"] = forms.BooleanField(label='Correct', widget=SwitchWidget(), required=False)
-        self.fields["fix_position"] = forms.BooleanField(label='Fixed', widget=SwitchWidget(), required=False)
 
     def clean_box_type(self):
         # No box type (points of an open question) is stored as NULL, never as ""
@@ -177,6 +284,11 @@ def get_existing_question_type_ids(exam_pk, scope, prep_section=None, prep_quest
     return list(qs.values_list("question_type_id", flat=True))
 
 
+# Question types (QuestionType.code) that a scoring formula can be given to
+SCORED_QUESTION_TYPES = ("SCQ", "MCQ", "TF")
+FORMULA_FORBIDDEN_CHARACTERS = "%\\{}#"
+
+
 class PrepScoringFormulaForm(forms.ModelForm):
     class Meta:
         model = PrepScoringFormula
@@ -206,7 +318,8 @@ class PrepScoringFormulaForm(forms.ModelForm):
         self._filter_question_type_choices()
 
     def _filter_question_type_choices(self):
-        qs = QuestionType.objects.exclude(code="OPEN")
+        # The open questions are scored by their corrector boxes, not by a formula
+        qs = QuestionType.objects.filter(code__in=SCORED_QUESTION_TYPES)
 
         existing_qt_ids = get_existing_question_type_ids(
             exam_pk=self.exam_pk,
@@ -222,7 +335,16 @@ class PrepScoringFormulaForm(forms.ModelForm):
         if self.instance and self.instance.pk and self.instance.question_type_id:
             qs = (QuestionType.objects.filter(pk=self.instance.question_type_id) | qs).distinct()
 
-        self.fields["question_type"].queryset = qs.distinct()
+        self.fields["question_type"].queryset = qs.distinct().order_by("pk")
+        self.fields["question_type"].empty_label = "Choose a question type"
+
+    def clean_formula(self):
+        formula = (self.cleaned_data.get("formula") or "").strip()
+        # Written as is in \bareme{...} (see preparation_latex_functions): these characters would break the LaTeX
+        forbidden = sorted({c for c in formula if c in FORMULA_FORBIDDEN_CHARACTERS})
+        if forbidden:
+            raise forms.ValidationError(f"These characters are not allowed: {' '.join(forbidden)}")
+        return formula
 
     def clean(self):
         cleaned_data = super().clean()

@@ -24,8 +24,11 @@ def _safe_referer(request: HttpRequest) -> str | None:
     referer = request.headers.get("referer")
     if not referer:
         return None
-    if not url_has_allowed_host_and_scheme(referer, allowed_hosts={request.get_host()},
-                                           require_https=request.is_secure()):
+    if not url_has_allowed_host_and_scheme(
+        referer,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure()
+    ):
         return None
     if urlparse(referer).path == request.path:  # avoid redirecting to the failing page in a loop
         return None
@@ -56,5 +59,11 @@ class UserFacingErrorMiddleware:
             return redirect(referer)
 
         # No page to go back to (direct link, bookmark...): show the error page instead.
-        return render(request, "errors/user_facing_error.html",
-                      {"error": exception.to_dict()}, status=exception.status_code)
+        return render(
+            request,
+            "errors/user_facing_error.html",
+            {
+                "error": exception.to_dict()
+            },
+            status=exception.status_code
+        )

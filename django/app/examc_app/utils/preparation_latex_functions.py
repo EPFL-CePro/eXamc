@@ -16,9 +16,9 @@ from examc_app.models import (
     PrepSection,
 )
 from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_path
+from examc_app.utils.examc_qr import qr_exam_fields
 
 #PLACEHOLDERS FOR TEMPLATES
-PH_NEW_PAGE = '%NEW-PAGE%'
 PH_SECTIONS = '%SECTIONS%'
 PH_SECTIONS_INSERT = '%SECTIONS-INSERT%'
 PH_FIRST_PAGE_TXT = '%FIRST-PAGE-TEXT%'
@@ -28,6 +28,7 @@ PH_EXAM_DATE = '%EXAM-DATE%'
 PH_EXAM_TIME = '%EXAM-TIME%'
 PH_SECTION_TITLE = '%SECTION-TITLE%'
 PH_SECTION_TEXT = '%SECTION-TEXT%'
+PH_SECTION_NEW_PAGE = '%SECTION-NEW-PAGE%'
 PH_SECTION_ID = '%SECTION-ID%'
 PH_SECTION_RANDOM = '%SECTION-RANDOM%'
 PH_SECTION_QUESTIONS = '%QUESTIONS%'
@@ -105,16 +106,39 @@ def latex_escape(text) -> str:
     """Escape plain text (not markdown) inserted as is in a LaTeX template."""
     return "".join(LATEX_SPECIAL_CHARS.get(c, c) for c in clean_pasted_text(str(text or "")))
 
+CODE_FENCE_RE = re.compile(r"^ {0,3}(```|~~~)")
+LATEX_COMMENT_RE = re.compile(r"^ {0,3}%")
+
+def protect_latex_comments(markdown: str) -> str:
+    """Pandoc escapes a line starting with % (or drops it at the top of the text, as a title block). Keeps these
+    lines, outside of the code blocks, as raw LaTeX comments."""
+    lines = []
+    in_fence = False
+    in_comment = False
+    for line in markdown.split("\n"):
+        if CODE_FENCE_RE.match(line):
+            in_fence = not in_fence
+        is_comment = not in_fence and bool(LATEX_COMMENT_RE.match(line))
+        if is_comment and not in_comment:
+            lines += ["", "```{=latex}"]
+        elif in_comment and not is_comment:
+            lines += ["```", ""]
+        in_comment = is_comment
+        lines.append(line)
+    if in_comment:
+        lines.append("```")
+    return "\n".join(lines)
+
 def markdown_to_latex_pandoc(markdown: str) -> str:
     latex = pypandoc.convert_text(
-        clean_pasted_text(markdown or ""),
+        protect_latex_comments(clean_pasted_text(markdown or "")),
         to="latex",
         format="markdown+tex_math_dollars",
         extra_args=["--wrap=none"],
     )
     return postprocess_latex(latex)
 
-def write_exam_generated_vars(project_path: str, pages_per_copy: int | None) -> str:
+def write_exam_generated_vars(exam: Exam, project_path: str, pages_per_copy: int | None) -> str:
     if pages_per_copy is None:
         pages_value = "2"
     else:
@@ -123,31 +147,50 @@ def write_exam_generated_vars(project_path: str, pages_per_copy: int | None) -> 
     vars_tex_path = Path(project_path) / "examc_generated_vars.tex"
     vars_tex_path.write_text(
         "% Auto-generated file - do not edit\n"
-        f"\\newcommand{{\\TotalPagesPerCopy}}{{{pages_value}}}\n",
+        f"\\newcommand{{\\TotalPagesPerCopy}}{{{pages_value}}}\n"
+        # 1 for a booklet: the copies are padded up to a multiple of 4 pages (see \\examcPadPages), preview included
+        f"\\newcommand{{\\ExamcBooklet}}{{{int(exam.print_format == Exam.PRINT_FORMAT_BOOKLET)}}}\n"
+        # Start of the QR code of each page, see examc_qr.py
+        f"\\newcommand{{\\ExamcQRExam}}{{{qr_exam_fields(exam)}}}\n",
         encoding="utf-8",
     )
     return str(vars_tex_path)
 
-def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
+def update_exam_scoring_latex(exam: Exam) -> None:
+    """
+    Rewrites only what the scoring formulas change in the AMC project: global_scoring.tex and the files of the sections
+    (the \\bareme of the questions and answers). For an exam whose final files were generated: the first page, the
+    number of pages per copy and exam.tex are left as they are, the scoring does not change the layout.
+    """
+    update_exam_latex(exam, scoring_only=True)
+
+
+def update_exam_latex(exam: Exam, pages_per_copy: int | None = None, *, scoring_only: bool = False):
     amc_project_path = ensure_amc_project(exam)
     amc_project_template_path = str(settings.AMC_TEMPLATES_DIR) + "/base"
     template_exam_latex_path = amc_project_template_path + "/exam_template.tex"
     exam_latex_path_output = amc_project_path + "/exam.tex"
     exam_template = Path(template_exam_latex_path).read_text(encoding="utf-8")
     exam_tex = exam_template
-    write_exam_generated_vars(amc_project_path, pages_per_copy)
+    if not scoring_only:
+        write_exam_generated_vars(exam, amc_project_path, pages_per_copy)
+    exam_formulas = scoring_formulas_by_type(exam.prepExamScoringFormulas.filter(
+        prep_section__isnull=True, prep_question__isnull=True, prep_answer__isnull=True))
+    write_global_scoring_file(exam_formulas, amc_project_path)
 
     #first update first page
-    template_first_page_latex_path = amc_project_template_path + "/first_page_template.tex"
-    first_page_latex_path_output = amc_project_path + "/first_page.tex"
-    render_first_page_tex_from_html(exam, exam.first_page_text, template_first_page_latex_path, first_page_latex_path_output,pages_per_copy)
+    if not scoring_only:
+        template_first_page_latex_path = amc_project_template_path + "/first_page_template.tex"
+        first_page_latex_path_output = amc_project_path + "/first_page.tex"
+        render_first_page_tex_from_html(exam, exam.first_page_text, template_first_page_latex_path, first_page_latex_path_output,pages_per_copy)
 
     for section in exam.prepSections.order_by("position").all():
         template_section_header_latex_path = amc_project_template_path + "/section_header_template.tex"
         section_header_filename = f"section_header_{section.position}.tex"
         section_grp_name = f"SECTION-{section.position}"
         section_header_latex_path_output = amc_project_path + "/" + section_header_filename
-        render_section_header_tex_from_html(section, template_section_header_latex_path, section_header_latex_path_output)
+        if not scoring_only:
+            render_section_header_tex_from_html(section, template_section_header_latex_path, section_header_latex_path_output)
 
         template_section_latex_path = amc_project_template_path + "/section_template.tex"
         section_filename = f"section_{section.position}.tex"
@@ -155,23 +198,49 @@ def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
         section_latex_file_path = render_section_tex_from_html(section, template_section_latex_path,
                                                                section_latex_path_output)
 
+        section_formulas = scoring_formulas_by_type(section.prepSectionScoringFormulas.filter(
+            prep_question__isnull=True, prep_answer__isnull=True))
         for question in section.prepQuestions.order_by("position").all():
             if question.question_type.code != 'OPEN':
                 template_question_latex_path = amc_project_template_path + "/scq_mcq_tf_template.tex"
             else:
                 template_question_latex_path = amc_project_template_path + "/open_template.tex"
 
-            render_question_tex_from_html(question, section_latex_file_path, template_question_latex_path)
+            render_question_tex_from_html(question, section_latex_file_path, template_question_latex_path,
+                                          section_formulas=section_formulas,
+                                          exam_tf_formula="TF" in exam_formulas)
+
+        exam_tex = exam_tex.replace(
+            PH_SECTIONS_INSERT, f"\\input{{./{section_header_filename}}} \n" + f"{PH_SECTIONS_INSERT}")
+
+        # AMC fails on a group without any question
+        if not section.prepQuestions.exists():
+            continue
 
         exam_tex = (
             exam_tex
             .replace(PH_SECTIONS, f"\\input{{./{section_filename}}} \n" + f"{PH_SECTIONS}")
-            .replace(PH_SECTIONS_INSERT, f"\\input{{./{section_header_filename}}} \n" + f"{PH_SECTIONS_INSERT}")
             .replace(PH_SECTIONS_INSERT, f"\\insertgroup{{{section_grp_name}}} \n" + f"{PH_SECTIONS_INSERT}")
         )
 
-    Path(exam_latex_path_output).write_text(exam_tex, encoding="utf-8")
+    if not scoring_only:
+        Path(exam_latex_path_output).write_text(exam_tex, encoding="utf-8")
     return exam_latex_path_output
+
+# The template ends the line of the teachers with \\, which LaTeX refuses after nothing ("There's no line here to end")
+EMPTY_LINE_TEXT = r"\mbox{}"
+
+
+def teachers_text(exam: Exam) -> str:
+    """The teachers of the exam (group 2) as "A. Lovelace, G. Hopper"; one without first name is given by its last
+    name. Empty when the exam has no teacher."""
+    names = []
+    for exam_user in exam.exam_users.filter(group_id=2).select_related("user").order_by("pk"):
+        user = exam_user.user
+        initial = f"{user.first_name[0]}. " if user.first_name else ""
+        names.append(f"{initial}{user.last_name}".strip())
+    return ", ".join(name for name in names if name)
+
 
 def render_first_page_tex_from_html(exam: Exam, html: str, template_path: str, output_path: str, pages_per_copy: int = None) -> str:
     template = Path(template_path).read_text(encoding="utf-8")
@@ -188,13 +257,7 @@ def render_first_page_tex_from_html(exam: Exam, html: str, template_path: str, o
     if PH_EXAM_TIME not in template:
         raise ValueError(f"Placeholder {PH_EXAM_TIME!r} not found in template")
 
-    teacher_txt = ''
-    for exam_user in exam.exam_users.filter(group_id=2):
-        if teacher_txt:
-            teacher_txt += ', '
-        teacher_txt += f'{exam_user.user.first_name[0]}. {exam_user.user.last_name}'
-
-    teacher_txt = latex_escape(teacher_txt)
+    teacher_txt = latex_escape(teachers_text(exam)) or EMPTY_LINE_TEXT
     exam_name_txt = latex_escape(f'({exam.code}) {exam.name}')
     exam_date = exam.date.strftime("%d.%m.%Y")
     exam_time = latex_escape(exam.duration)
@@ -228,9 +291,12 @@ def render_section_header_tex_from_html(section: PrepSection, template_path: str
         raise ValueError(f"Placeholder {PH_SECTION_TITLE!r} not found in template")
     elif PH_SECTION_TEXT not in template:
         raise ValueError(f"Placeholder {PH_SECTION_TEXT!r} not found in template")
+    elif PH_SECTION_NEW_PAGE not in template:
+        raise ValueError(f"Placeholder {PH_SECTION_NEW_PAGE!r} not found in template")
 
     final_tex = (
         template
+        .replace(PH_SECTION_NEW_PAGE, r"\clearpage" if section.start_on_new_page else "")
         .replace(PH_SECTION_TITLE, latex_fragment_title)
         .replace(PH_SECTION_TEXT, latex_fragment_text)
     )
@@ -258,7 +324,30 @@ def render_section_tex_from_html(section: PrepSection, template_path: str, outpu
     return output_path
 
 
-def render_question_tex_from_html(question: PrepQuestion, section_path: str, template_path: str) -> str:
+def question_scoring_tex(question: PrepQuestion, section_formulas: dict[str, str] | None = None,
+                         exam_tf_formula: bool = False) -> str:
+    """
+    The \\bareme of a choice question, from the most specific level that has a formula for it: the question, its
+    section (formula of its question type), the exam for a true/false question (\\baremeDefautTF of
+    global_scoring.tex). Empty otherwise: AMC then applies the exam default of simple or multiple questions
+    (\\baremeDefautS / \\baremeDefautM of global_scoring.tex).
+    AMC keeps a single default per question type for the whole exam (the last \\baremeDefautS read): the section
+    formulas are therefore written on each question of the section, not as section defaults.
+    """
+    question_scoring = question.prepQuestionScoringFormulas.filter(prep_answer__isnull=True).first()
+    if question_scoring:
+        return f'\\bareme{{{question_scoring.formula}}}'
+    code = question.question_type.code
+    if section_formulas and code in section_formulas:
+        return f'\\bareme{{{section_formulas[code]}}}'
+    if code == "TF" and exam_tf_formula:
+        return '\\bareme{\\baremeDefautTF}'
+    return ''
+
+
+def render_question_tex_from_html(question: PrepQuestion, section_path: str, template_path: str,
+                                  section_formulas: dict[str, str] | None = None,
+                                  exam_tf_formula: bool = False) -> str:
     template = Path(template_path).read_text(encoding="utf-8")
     section = Path(section_path).read_text(encoding="utf-8")
     latex_fragment_text = markdown_to_latex_pandoc(question.question_text)
@@ -278,18 +367,21 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
     elif question.question_type.code == 'OPEN' and PH_QUESTION_TITLE not in template:
         raise ValueError(f"Placeholder {PH_QUESTION_TITLE!r} not found in template")
 
+    # AMC shuffles the answers of a list unless it has the option [o] (see exam_template.tex); a true/false question
+    # always keeps TRUE before FALSE (it has no switch)
+    keep_order = '' if question.random_answers else '[o]'
     if question.question_type.code == 'MCQ':
         question_type_text = 'questionmult'
-        answer_type_text = 'choices'
+        answer_type_text = f'choices{keep_order}'
     elif question.question_type.code == 'OPEN':
         question_type_text = None
         answer_type_text = None
     elif question.question_type.code == 'SCQ':
         question_type_text = 'question'
-        answer_type_text = 'choices'
+        answer_type_text = f'choices{keep_order}'
     else:
         question_type_text = 'question'
-        answer_type_text = 'choiceshoriz'
+        answer_type_text = 'choiceshoriz[o]'
 
     question_tex = (
         template
@@ -298,9 +390,6 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
         .replace(PH_QUESTION_ID, f'SECTION-{question.prep_section.position}-{question.question_type.code}-{question.position}')
     )
 
-    if question.new_page:
-        question_tex = question_tex.replace(PH_NEW_PAGE,r'\newpage')
-
     if question.question_type.code == 'OPEN':
         question_tex = (
             question_tex
@@ -308,16 +397,12 @@ def render_question_tex_from_html(question: PrepQuestion, section_path: str, tem
             .replace(PH_CORR_POINTS, corr_box_number_to_text(float(question.max_points), float(question.point_increment)))
         )
     else:
-        question_scoring = question.prepQuestionScoringFormulas.first()
         question_tex = (
             question_tex
             .replace(PH_ANSWER_TYPE, f'{answer_type_text}')
             .replace(PH_QUESTION_TYPE, question_type_text)
-            .replace(PH_QUESTION_SCORING, f'\\bareme{{{question_scoring.formula}}}' if question_scoring else '')
+            .replace(PH_QUESTION_SCORING, question_scoring_tex(question, section_formulas, exam_tf_formula))
         )
-
-    if question.question_type.code == 'TF':
-        question_tex = question_tex.replace(f'ANSWER-{answer_type_text}',f'ANSWER-{answer_type_text}[0]')
 
     for answer in question.prepAnswers.order_by("position"):
         question_tex = render_answer_tex_from_html(answer, question_tex)
@@ -365,28 +450,28 @@ def render_answer_tex_from_html(answer: PrepQuestionAnswer, question_tex: str) -
     return question_tex
 
 ## scoring formulas
-def update_global_scoring_latex_file(scoring_formulas,exam_pk):
-    exam = Exam.objects.get(pk=exam_pk)
-    amc_project_path = Path(ensure_amc_project(exam))
-    filepath = amc_project_path / "global_scoring.tex"
+def scoring_formulas_by_type(scoring_formulas) -> dict[str, str]:
+    """Question type code -> formula, for the formulas of a level (exam or section) that have a question type."""
+    return {f.question_type.code: f.formula for f in scoring_formulas.select_related("question_type").order_by("pk")
+            if f.question_type and f.formula}
 
-    lines = []
 
-    for scoring_formula in scoring_formulas:
-        if scoring_formula.question_type.code == 'SCQ':
-            lines.append(f"\\baremeDefautS{{{scoring_formula.formula}}}")
-        elif scoring_formula.question_type.code == 'MCQ':
-            lines.append(f"\\baremeDefautM{{{scoring_formula.formula}}}")
-        elif scoring_formula.question_type.code == 'TF':
-            lines.append(f"\\newcommand{{\\baremeDefautTF}}{{{scoring_formula.formula}}}")
-
-    content = "% Auto-generated scoring formulas\n"
-    if lines:
-        content += "\n".join(lines) + "\n"
-
-    filepath.write_text(content, encoding="utf-8")
-
-    return True
+def write_global_scoring_file(exam_formulas: dict[str, str], amc_project_path) -> Path:
+    """
+    global_scoring.tex, input in the preamble of exam.tex: the exam formulas (see scoring_formulas_by_type) as AMC
+    defaults of the simple (SCQ) and multiple (MCQ) questions. AMC has no default for the true/false questions:
+    \\baremeDefautTF is given to each of them (see question_scoring_tex).
+    """
+    lines = ["% Auto-generated scoring formulas of the exam - do not edit"]
+    if "SCQ" in exam_formulas:
+        lines.append(f"\\baremeDefautS{{{exam_formulas['SCQ']}}}")
+    if "MCQ" in exam_formulas:
+        lines.append(f"\\baremeDefautM{{{exam_formulas['MCQ']}}}")
+    if "TF" in exam_formulas:
+        lines.append(f"\\newcommand{{\\baremeDefautTF}}{{{exam_formulas['TF']}}}")
+    filepath = Path(amc_project_path) / "global_scoring.tex"
+    filepath.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return filepath
 
 # functions to get LaTeX package installed on server
 INTERNAL_PATTERNS = [
@@ -482,13 +567,6 @@ def extract_used_packages(file_contents: str) -> list[str]:
 
     return used
 
-
-def package_exists(package_name: str) -> bool:
-    if not has_kpsewhich():
-        return False
-
-    result = run_cmd(["kpsewhich", f"{package_name}.sty"])
-    return result.returncode == 0 and bool(result.stdout.strip())
 
 # =============================
 # KaTeX macros for the editors preview

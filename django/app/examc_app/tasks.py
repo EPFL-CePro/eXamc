@@ -1,7 +1,6 @@
 import csv
 import os
 import pathlib
-import re
 import shutil
 import time
 import uuid
@@ -26,13 +25,18 @@ from examc_app.models import (
     StudentQuestionAnswer,
 )
 from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
-from examc_app.utils.amc.amc_build_functions import build_final_exam
+from examc_app.utils.amc.amc_build_functions import (
+    AmcStepError,
+    BuildCancelled,
+    build_final_exam,
+    mark_exam_build_error,
+    register_exam_in_amc,
+    update_scoring_in_amc,
+)
 from examc_app.utils.amc.amc_layout_functions import (
     LayoutExtractionError,
-    extract_layout_from_xy,
     get_pdf_page_metrics,
     get_subject_copy_and_page_counts_from_xy,
-    populate_subject_layout_pages,
 )
 from examc_app.utils.amc_functions import (
     amc_annotate,
@@ -47,6 +51,7 @@ from examc_app.utils.marker_rendering import (
     render_marked_scan,
 )
 from examc_app.utils.preparation_functions import compile_exam_preview
+from examc_app.utils.preparation_latex_functions import update_exam_scoring_latex
 from examc_app.utils.results_statistics_functions import delete_exam_data
 from examc_app.utils.review_functions import (
     generate_marked_pdfs,
@@ -697,8 +702,9 @@ def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_
 
 @shared_task(bind=True)
 def compile_exam_preview_task(self, job_id):
-    print(f"[preview-task] entered task job_id={job_id}")
     job = ExamAMCJob.objects.get(pk=job_id)
+    # Read by the error handling below, whatever fails first
+    result = None
 
     try:
         job.status = "running"
@@ -707,7 +713,6 @@ def compile_exam_preview_task(self, job_id):
         job.save(update_fields=["status", "error_message", "pdf_path", "updated_at"])
 
         result = compile_exam_preview(job.exam, job_id=job.pk)
-        print(f"[preview-task] result for job={job_id}: {result}")
 
         if result["ok"]:
             job.status = "success"
@@ -737,7 +742,41 @@ def compile_exam_preview_task(self, job_id):
         }
 
     job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
-    print(f"[preview-task] end job={job_id} status={job.status}")
+    logger.info("Exam preview finished | job_id=%s | status=%s", job_id, job.status)
+
+
+@shared_task(bind=True)
+def update_amc_scoring_task(self, job_id):
+    """
+    Updates the scoring strategy of AMC for an exam whose final files were generated, after its scoring formulas
+    changed: rewrites the scoring part of the LaTeX files of the project, then AMC extracts the strategy again.
+    The state is read by the page with the job (see views.preparation.scoring.scoring_update_status).
+    """
+    job = ExamAMCJob.objects.select_related("exam").get(pk=job_id)
+
+    try:
+        job.status = "running"
+        job.error_message = ""
+        job.result_json = {}
+        job.save(update_fields=["status", "error_message", "result_json", "updated_at"])
+
+        update_exam_scoring_latex(job.exam)
+        warnings = update_scoring_in_amc(job.exam)
+
+        job.status = "success"
+        job.result_json = {"warnings": warnings}
+    except AmcStepError as exc:
+        job.status = "error"
+        job.error_message = str(exc)
+    except Exception:
+        error_ref = f"AMC-{uuid.uuid4().hex[:8].upper()}"
+        logger.exception("Scoring update failed | error_ref=%s | job_id=%s | exam_id=%s", error_ref, job_id, job.exam_id)
+        job.status = "error"
+        job.error_message = f"An error occurred while updating the scoring in AMC. Reference: {error_ref}"
+
+    job.save(update_fields=["status", "error_message", "result_json", "updated_at"])
+    logger.info("Scoring update finished | job_id=%s | status=%s", job_id, job.status)
+
 
 @shared_task(bind=True)
 def generate_final_exam_files_task(self, job_id):
@@ -753,6 +792,8 @@ def generate_final_exam_files_task(self, job_id):
         def _callback(*, percent, message):
             progress_recorder.set_progress(percent, 100, description=message)
         return _callback
+
+    build = None
 
     try:
         job.status = "running"
@@ -774,11 +815,20 @@ def generate_final_exam_files_task(self, job_id):
 
         progress_callback = make_amc_progress_callback(progress_recorder)
 
+        def cancel_requested():
+            return ExamAMCJob.objects.filter(pk=job.pk, cancel_requested=True).exists()
+
+        def raise_if_cancelled():
+            # build_final_exam checks it itself while it runs; this is for the steps after it
+            if cancel_requested():
+                raise BuildCancelled("The generation was cancelled.")
+
         build = build_final_exam(
             exam,
             user=job.requested_by,
             timeout=60,
             progress_callback=progress_callback,
+            should_cancel=cancel_requested,
         )
 
         if build.status != "ready":
@@ -793,7 +843,8 @@ def generate_final_exam_files_task(self, job_id):
             ])
             raise Exception(job.error_message)
 
-        set_progress(60, "Resolving generated artifacts...")
+        raise_if_cancelled()
+        set_progress(86, "Resolving generated artifacts...")
 
         project_path = pathlib.Path(build.project_path) if build.project_path else None
         exam_prefix = exam.code or f"exam-{exam.pk}"
@@ -821,18 +872,20 @@ def generate_final_exam_files_task(self, job_id):
         if not subject_xy_path:
             raise LayoutExtractionError("Subject XY path is missing; cannot extract subject layout.")
 
-        set_progress(68, "Reading subject XY structure...")
+        set_progress(88, "Reading subject XY structure...")
         counts = get_subject_copy_and_page_counts_from_xy(subject_xy_path)
 
-        warnings = []
+        # The copies padded after a second compilation (see build_final_exam)
+        warnings = list(getattr(build, "build_warnings", []))
 
-        if counts["pages_per_copy"] % 4 != 0:
+        # Only a booklet needs a multiple of 4: the final build pads the copies with blank pages up to it
+        if exam.print_format == Exam.PRINT_FORMAT_BOOKLET and counts["pages_per_copy"] % 4 != 0:
             warnings.append(
                 f"This exam has {counts['pages_per_copy']} pages per copy. "
                 f"For booklet printing, the total number of pages per copy should be a multiple of 4."
             )
 
-        set_progress(76, "Reading subject PDF metrics...")
+        set_progress(90, "Reading subject PDF metrics...")
         pdf_metrics = get_pdf_page_metrics(subject_pdf_path, dpi=300.0)
 
         if pdf_metrics["page_count"] != counts["total_pages"]:
@@ -840,22 +893,19 @@ def generate_final_exam_files_task(self, job_id):
                 f"PDF/XY page mismatch: PDF={pdf_metrics['page_count']} XY={counts['total_pages']}"
             )
 
-        set_progress(86, "Creating layout pages...")
-        page_result = populate_subject_layout_pages(
-            build,
-            total_copies=counts["total_copies"],
-            pages_per_copy=counts["pages_per_copy"],
-            dpi=pdf_metrics["dpi"],
-            width=pdf_metrics["width"],
-            height=pdf_metrics["height"],
+        raise_if_cancelled()
+        # AMC reads the layout of the subject and its scoring strategy itself: its databases (data/layout.sqlite and
+        # data/scoring.sqlite of the project) are the reference of the scans and the marks
+        warnings += register_exam_in_amc(
+            exam,
+            subject_xy_path,
+            expected_pages=counts["total_pages"],
+            should_cancel=cancel_requested,
+            progress_callback=progress_callback,
         )
 
-        set_progress(96, "Extracting layout boxes, digits, zones, and marks...")
-        layout_result = extract_layout_from_xy(
-            build,
-            xy_path=subject_xy_path,
-            clear_existing=False,
-        )
+        # Last chance to stop: the exam is finalized below
+        raise_if_cancelled()
 
         result = {
             "ok": True,
@@ -867,16 +917,11 @@ def generate_final_exam_files_task(self, job_id):
             "amc_log_path": build.amc_log_path or "",
             "xy_path": subject_xy_path,
             "exam_calage_xy_path": subject_xy_path,
-            "page_result": page_result,
-            "layout_result": layout_result,
             "warnings": warnings,
             "summary": {
-                "pages": layout_result.get("pages", 0),
-                "boxes": layout_result.get("boxes", 0),
-                "marks": layout_result.get("marks", 0),
-                "zones": layout_result.get("zones", 0),
-                "digits": layout_result.get("digits", 0),
-                "unknown_payloads": layout_result.get("unknown_payloads", 0),
+                "copies": counts["total_copies"],
+                "pages_per_copy": counts["pages_per_copy"],
+                "pages": counts["total_pages"],
             },
         }
 
@@ -902,6 +947,22 @@ def generate_final_exam_files_task(self, job_id):
         set_progress(100, "Final build complete.")
         return result
 
+    except BuildCancelled as exc:
+        job.status = "cancelled"
+        job.error_message = str(exc)
+        job.save(update_fields=["status", "error_message", "updated_at"])
+        # Cancelled after the build (build_final_exam marks its own build): the build is dropped
+        if build is not None:
+            mark_exam_build_error(build, str(exc))
+        raise
+    except (AmcStepError, LayoutExtractionError) as exc:
+        # After the build (build_final_exam marks its own failures): the build is not usable, the user sees why
+        job.status = "error"
+        job.error_message = str(exc)
+        job.save(update_fields=["status", "error_message", "updated_at"])
+        if build is not None:
+            mark_exam_build_error(build, str(exc))
+        raise
     except Exception as exc:
         job.status = "error"
         job.error_message = str(exc)

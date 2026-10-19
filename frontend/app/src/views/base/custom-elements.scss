@@ -1,0 +1,18 @@
+// Icon-only buttons (can be used in toolbars, list toggles, etc): no border or focus ring.
+// Keyboard users still get a focus indicator, drawn only when focusing with the keyboard.
+.btn-icon {
+    --bs-btn-border-width: 0;
+    --bs-btn-focus-box-shadow: none;
+
+    &:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: -4px;
+    }
+}
+
+
+// nicer dragging feel (global)
+.dragging {
+    user-select: none;
+    cursor: row-resize;
+}

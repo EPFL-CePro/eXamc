@@ -1,0 +1,45 @@
+% =====================================================================
+% eXamc - questions import template
+%
+% One environment per question: scq, mcq, tf or open. The argument is the
+% title of the question. The questions are added at the end of the section.
+% Lines starting with % are comments. Text is Markdown / LaTeX, like in the
+% question editor ($...$ for the math).
+% =====================================================================
+
+% --- Single choice question: exactly ONE \correctchoice
+\begin{scq}{Example single choice}
+Which of these numbers is even?
+\begin{choices}
+	\wrongchoice{$3$}
+	\correctchoice{$4$}
+	\wrongchoice{$7$}
+	\wrongchoice{$9$}
+\end{choices}
+\end{scq}
+
+% --- Multiple choice question: one or more \correctchoice
+\begin{mcq}{Example multiple choice}
+Which of these numbers are prime?
+\begin{choices}
+	\correctchoice{$2$}
+	\wrongchoice{$4$}
+	\correctchoice{$5$}
+	\wrongchoice{$9$}
+\end{choices}
+\end{mcq}
+
+% --- True / false question: the right answer is given by \answer{true} or \answer{false}
+\begin{tf}{Example true or false}
+The sum of two odd numbers is always even.
+\answer{true}
+\end{tf}
+
+% --- Open question: options between brackets, all optional
+%   points    maximum number of points (default 1)
+%   increment points step of the correction: 1 or 0.5 (default 1)
+%   box       answer zone: grid or blank (default grid)
+%   height    height of the answer zone in mm (default 50)
+\begin{open}{Example open question}[points=4, increment=0.5, box=grid, height=60]
+Prove that the sum of two even numbers is even.
+\end{open}

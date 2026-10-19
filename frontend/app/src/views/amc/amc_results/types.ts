@@ -48,8 +48,18 @@ export interface SelectedStudent {
     email: CellValue;
 }
 
-/** Default email loaded with the students list, applied when the editor is created. */
-export interface PendingEmail {
+/** The email being written in the send dialog, kept when it's closed. */
+export interface EmailDraft {
     subject: string;
+    /** Markdown, as the editor takes it back. */
     body: string;
+}
+
+/** What the send dialog asks to send. */
+export interface SendRequest {
+    emailColumn: string;
+    subject: string;
+    /** HTML. */
+    body: string;
+    students: SelectedStudent[];
 }

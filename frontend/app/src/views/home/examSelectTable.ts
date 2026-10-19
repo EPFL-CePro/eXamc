@@ -1,4 +1,4 @@
-import DataTable from 'datatables.net-dt';
+import DataTable from 'datatables.net-bs5';
 import {getLayoutElementsSeparator, setupDatatables} from "@examc/helpers/datatables.ts";
 
 export function initExamSelectTable(options: {
@@ -12,7 +12,7 @@ export function initExamSelectTable(options: {
     new DataTable(tableElement, {
         serverSide: true,
         processing: true,
-        scrollY: "45.5dvh",
+        scrollY: "40dvh",
         ajax: {
             url: apiUrl,
             type: "GET",
@@ -34,7 +34,6 @@ export function initExamSelectTable(options: {
             { data: "exam", orderable: true },
             { data: "date", orderable: true, width: "10rem" },
             { data: "role", orderable: false, width: "10rem" },
-            { data: "modules", orderable: false, width: "10rem" },
             { data: "review", orderable: false, width: "10rem" },
             { data: "actions", orderable: false },
         ],

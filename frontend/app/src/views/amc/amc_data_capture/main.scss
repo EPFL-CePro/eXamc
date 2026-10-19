@@ -2,8 +2,8 @@
 #table-copies-pages {
     tbody {
         tr {
-            &.is-current {
-                background-color: rgba(0, 0, 0, 0.14);
+            &.is-current td {
+                background-color: rgba(0, 0, 0, 0.26);
                 color: black;
             }
 

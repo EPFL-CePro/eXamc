@@ -1,5 +1,5 @@
-import DataTable, { type Api, type ColumnOptions } from 'datatables.net-dt';
-import 'datatables.net-dt/css/dataTables.dataTables.css';
+import DataTable, { type Api, type ColumnOptions } from 'datatables.net-bs5';
+import 'datatables.net-bs5/css';
 
 import { setupDatatables } from '@examc/helpers/datatables.ts';
 import { ExamcModal } from '@examc/modals/base.ts';
@@ -28,7 +28,7 @@ export class ReportModal extends ExamcModal {
             extraDialogClass: 'modal-xl',
             bodyContent: `
                 <div class="modal-body">
-                    <table class="display compact" style="width:100%">
+                    <table class="table table-striped" style="width:100%">
                         <thead><tr></tr></thead>
                     </table>
                 </div>
@@ -41,6 +41,8 @@ export class ReportModal extends ExamcModal {
         const tableEl = this.element.querySelector('table');
         if (!tableEl) throw new Error('Table element not found for the report modal !');
 
+        setupDatatables();
+
         // Header texts are set with textContent: never interpreted as HTML.
         tableEl.querySelector('thead tr')!.replaceChildren(...headers.map((text) => {
             const th = document.createElement('th');
@@ -48,8 +50,7 @@ export class ReportModal extends ExamcModal {
             return th;
         }));
 
-        setupDatatables();
-        this.table = new DataTable<HTMLTableRowElement>(tableEl, {
+        this.table = new DataTable(tableEl, {
             columns: columns ?? headers.map(() => ({})),
             pageLength: 10,
             lengthMenu: [10, 50, 100, 250],
@@ -57,6 +58,13 @@ export class ReportModal extends ExamcModal {
             order: [], // keep the server's order until the user sorts
             autoWidth: false,
             language: emptyMessage ? { emptyTable: emptyMessage } : {},
+            layout: {
+                topStart: null, topEnd: null,
+                bottomStart: [
+                    "pageLength",
+                    "info"
+                ],
+            },
         });
 
         // Images are only fetched for the rows actually shown.

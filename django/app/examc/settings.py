@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.forms',
     'django_extensions',
     'constance',
     'crispy_forms',
@@ -161,9 +162,14 @@ TEMPLATES = [
                 "examc_app.context_processors.maintenance_notice",
                 "examc_app.context_processors.app_metadata",
             ],
+            "builtins": [
+                "examc_app.templatetags.custom_tags.all"
+            ]
         },
     },
 ]
+
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -322,9 +328,14 @@ EXAM_REVIEWER_GROUP_NAMES = env_list("EXAM_REVIEWER_GROUP_NAMES", "Reviewer")
 
 # Used by login_required.LoginRequiredMiddleware
 LOGIN_REQUIRED_IGNORE_PATHS = [
-    r'^/oidc/',  # all OIDC URLs
-    r'^/static/',
-    r'^/healthz/$',
+    r"^/oidc/",  # all OIDC URLs
+    r"^/static/",
+    r"^/healthz/$",
+
+    # Public facing pages
+    r"^/csvgen/?.*",
+    r"^/generate_room_plan/?.*",
+    r"^/rooms_plans/",
 ]
 
 # Email configuration

@@ -77,7 +77,7 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         if not user_allowed(pages_group.exam, self.request.user.id):
             context.update({
                 'user_allowed': False,
-                'nav_url': "reviewGroup",
+                'nav_url': "review_group",
                 'exam': pages_group.exam,
                 'pages_group': pages_group
             })
@@ -87,7 +87,7 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         # user is allowed
         context.update({
             'user_allowed': True,
-            'nav_url': "reviewGroup",
+            'nav_url': "review_group",
             'pages_group': pages_group,
             'copies_pages_list': copies_pages_list,
             'json_copies_pages_list': json.dumps(copies_pages_list),

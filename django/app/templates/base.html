@@ -1,19 +1,20 @@
-{% load static %}
-{% load custom_tags %}
 {% load django_vite %}
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en-US">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width" />
 
-    <!-- Vite - used for hot reloading when DEBUG is set to true. Requires Vite dev server to run. -->
+    <!-- django-vite - used for hot reloading when DEBUG is set to true. Requires Vite dev server to run. -->
     {% vite_hmr_client %}
 
     <!-- TODO - replace with proper entrypoint in Vite project -->
     {% include "legacy/jquery-cdn.html" %}
     {% include "legacy/jquery-ui-cdn.html" %}
-    {% include "legacy/bootstrap-cdn.html" %}
+
+    {% vite_asset 'src/views/base/index.ts' %}
 
     <!-- Boostrap, local file -->
     <script src="{% static 'js/jquery.bootstrap.modal.forms.min.js' %}"></script>
@@ -44,15 +45,6 @@
 
     <script src="{% static 'js/multiselect.min.js' %}"></script>
 
-
-    <!-- CSS bootstrap -->
-    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-
-    <!-- bootstrap-select -->
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
-
     <!-- CSS fontawesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
           integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
@@ -65,12 +57,6 @@
     <!-- Summernote JS -->
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
     <script src="{% static 'js/summernote-math.js' %}"></script>
-
-    <!-- CSS menubars -->
-    <link rel="stylesheet" href="{% static 'css/menubars.css' %}">
-
-    <!-- CSS eXamc -->
-    <link rel="stylesheet" type="text/css" href="{% vite_asset_url 'src/styles/examc.scss' %}">
 
     <!-- favicon -->
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
@@ -119,396 +105,80 @@
 {% endif %}
 
 <body>
-{% if request.impersonator %}
-    <div class="impersonation-banner alert alert-warning" role="alert">
-        <div>
-            <i class="fa-solid fa-user-secret"></i>
-            Impersonating {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
-            as {{ request.impersonator.first_name }} {{ request.impersonator.last_name }}
-            ({{ request.impersonator.username }})
-        </div>
-        <form method="post" action="{% url 'impersonate_stop' %}" class="impersonation-stop-form">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn btn-outline-dark btn-sm">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                Stop impersonation
-            </button>
-        </form>
-    </div>
-{% endif %}
-{#<main>#}
+<div class="d-flex gap-3">
+    {% include "navigation/_sidebar.html" %}
 
-<script type="text/javascript">
-    $(document).ready(function () {
-        {% block scripts %}
-        {% endblock %}
-    });
-
-    function SidebarCollapse() {
-        const sidebarContainer = $('#sidebar-container');
-
-        $('.menu-collapsed').toggleClass('d-none');
-        $('.sidebar-submenu').toggleClass('d-none');
-        $('.submenu-icon').toggleClass('d-none');
-        sidebarContainer.toggleClass('sidebar-expanded sidebar-collapsed');
-
-        // Treating d-flex/d-none on separators with title
-        const SeparatorTitle = $('.sidebar-separator-title');
-        if (SeparatorTitle.hasClass('d-flex')) {
-            SeparatorTitle.removeClass('d-flex');
-        } else {
-            SeparatorTitle.addClass('d-flex');
-        }
-
-        // Collapse/Expand icon
-        $('#collapse-icon').toggleClass('fa-angle-double-left fa-angle-double-right');
-        if (sidebarContainer.hasClass('sidebar-collapsed')) {
-            $('#page-content-wrapper').css('margin-left', '-170px');
-        } else {
-            $('#page-content-wrapper').css('margin-left', '0px');
-        }
-    }
-</script>
-
-<div id="wrapper">
-    {# <div class="row" id="body-row">#}
-    <!-- Sidebar -->
-    <div id="sidebar-container" class="sidebar-expanded d-none d-md-block">
-        <ul class="list-group" style="overflow: visible;">
-            <li class="bg-dark list-group-item-action">
-                <div style="display: grid; padding: 15px;">
-                    <img id="examc_logo_small"
-                         src="{% static 'img/eXamc_bg_transp_square_72.png' %}" alt="eXamc logo"
-                         style="grid-area: 1 / 1; width: 30px; height: 30px; align-self: center;"/>
-                    <span class="menu-collapsed" style="grid-area: 1 / 1;">
-                        <img id="examc_logo" src="{% get_logo_url %}" alt="eXamc logo"
-                             style="display: block; width: 100%; background-color: #000;"/>
+    <main class="flex-grow-1" style="min-width: 0">
+        <div class="w-100 d-flex flex-column gap-0 flex-grow-1"
+             style="padding-block: 1rem; padding-right: 1rem; min-height: calc(100dvh - 2rem)">
+            {# Impersonation banner #}
+            {% if request.impersonator %}
+                <div class="alert alert-warning d-flex justify-content-between align-items-center" role="alert">
+                    <span>
+                        <i class="fa-solid fa-user-secret"></i> Impersonating {{ user.first_name }} {{ user.last_name }} (<code>{{ user.username }}</code>)
                     </span>
-                </div>
-            </li>
-            {% if user.is_authenticated %}
-                <a class="bg-secondary list-group-item list-group-item-action"
-                   href="{% url 'home' %}"
-                   style="background-color: #191919!important;color:#b1b1b1!important;">
-                    <div class="d-flex w-100 justify-content-start align-items-center">
-                        <span class="fa-solid fa-table-columns fa-xl" style="margin-right:5px;"></span>
-                        <span class="menu-collapsed" style="margin-right:5px;">DASHBOARD</span>
-                    </div>
-                </a>
-                {% if exam_selected %}
-                    <a {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
-                        href="{% url 'examInfo' exam_selected.pk %}" {% endif %}class="bg-secondary list-group-item list-group-item-action sidebar-separator-title font-weight-bold"
-                        style="height:auto;background-color: #1d2124;margin-top:20px;">
-                        <span title="{{ exam_selected.code }}" class="fa-solid fa-book-open"
-                              style="margin-right: 5px;"></span>
-                        <span class="menu-collapsed" style="margin-right:5px;">{% if exam_selected.is_overall %}
-                            {{ exam_selected.name }}{% else %}{{ exam_selected.code }}{% endif %}</span>
-                    </a>
-                    {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
-                        {% if exam_selected.has_prep_option %}
-                            <li class="bg-dark list-group-item list-group-item-action">
-                                <div class="d-flex w-100 justify-content-start align-items-center">
-                                    <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle"
-                                       href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
-                                       aria-expanded="false">
-                                        <span class="fas fa-edit" style="margin-right:5px;"></span>
-                                        <span class="menu-collapsed" style="margin-right:5px;">Preparation</span>
-                                    </a>
-                                    <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
-                                        <li><a class="bg-secondary dropdown-item"
-                                               href="{% url 'exam_preparation' exam_selected.pk %}"
-                                               style="padding-top:15px;"><i
-                                                class="fas fa-glasses" style="margin-right:5px;"></i>Exam</a></li>
-                                        <li class="bg-secondary dropdown-divider"></li>
-                                        <li><a class="bg-secondary dropdown-item"
-                                               href="{% url 'exam_preparation_students' exam_selected.pk %}"
-                                               style="padding-top:15px;"><i class="fas fa-cogs"
-                                                                            style="margin-right:5px;"></i>Students</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </li>
-                            <hr class="hr-sidebar">
-                        {% endif %}
-                    {% endif %}
-                {% endif %}
-                {% if user|more_arg:exam_selected|is_allowed:'review' %}
-                    {% if exam_selected.has_review_option %}
-                        <li class="bg-dark list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-start align-items-center">
-                                <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle"
-                                   href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
-                                   aria-expanded="false">
-                                    <span class="fas fa-glasses" style="margin-right:5px;"></span>
-                                    <span class="menu-collapsed" style="margin-right:5px;">Review</span>
-                                </a>
-                                <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
-                                    <li><a class="bg-secondary dropdown-item"
-                                           href="{% url 'reviewView' exam_selected.pk %}" style="padding-top:15px;"><i
-                                            class="fas fa-glasses" style="margin-right:5px;"></i>Review</a></li>
-                                    <li class="bg-secondary dropdown-divider"></li>
-                                    <li><a class="bg-secondary dropdown-item"
-                                           href="{% url 'reviewSettingsView' exam_selected.pk 'groups' %}"
-                                           style="padding-top:15px;"><i class="fas fa-cogs"
-                                                                        style="margin-right:5px;"></i>Settings</a></li>
-                                    <li class="bg-secondary dropdown-divider"></li>
-                                    <li><a class="bg-secondary dropdown-item"
-                                           href="{% url 'upload_scans' exam_selected.pk %}" style="padding-top:15px;"><i
-                                            class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Upload
-                                        scans</a></li>
-                                    <li><a class="bg-secondary dropdown-item"
-                                           href="{% url 'generate_marked_files' exam_selected.pk %}"
-                                           style="padding-top:15px;"><i class="fas fa-cloud-download-alt"
-                                                                        style="margin-right:5px;"></i>Export marked
-                                        scans</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    {% endif %}
-                    <hr class="hr-sidebar">
-                {% endif %}
-                {% if user|more_arg:exam_selected|is_allowed:'amc' %}
-                    {% if exam_selected.has_amc_option %}
-                        <li class="bg-dark list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-start align-items-center">
-                                <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle"
-                                   href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
-                                   aria-expanded="false">
-                                    <img src="{% static 'img/amc_icons/amc.ico' %}" style="margin-right:5px;"
-                                         alt="AMC icon"/>
-                                    <span class="menu-collapsed" style="margin-right:5px;">AMC</span>
-                                </a>
-                                <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
-                                    <li><a class="bg-secondary dropdown-item"
-                                           href="{% url 'amc_view' exam_pk=exam_selected.pk %}"
-                                           style="padding-top:15px;">
-                                        <img src="{% static 'img/amc_icons/amc.ico' %}"
-                                             style="margin-right:5px;" alt="AMC icon"/>AMC</a>
-                                    </li>
-                                    <li class="bg-secondary dropdown-divider"></li>
-                                    <li><a class="bg-secondary dropdown-item"
-                                           href="{% url 'upload_amc_project' exam_selected.pk %}"
-                                           style="padding-top:15px;">
-                                        <i class="fas fa-cloud-upload-alt" style="margin-right:5px;"></i>Import data</a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </li>
-                        <hr class="hr-sidebar">
-                    {% endif %}
-                {% endif %}
-                {% if user|more_arg:exam_selected|is_allowed:'res_and_stats' %}
-                    {% if exam_selected.has_res_and_stats_option %}
-                        <a href="{% url 'studentsResults' exam_selected.pk %}"
-                           class="bg-dark list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-start align-items-center">
-                                <span class="fas fa-th-list" style="margin-right:5px;"></span>
-                                <span class="menu-collapsed" style="margin-right:5px;">Results</span>
-                            </div>
-                        </a>
-                        <li class="bg-dark list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-start align-items-center">
-                                <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle"
-                                   href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
-                                   aria-expanded="false">
-                                    <span class="fas fa-chart-column" style="margin-right:5px;"></span>
-                                    <span class="menu-collapsed" style="margin-right:5px;">Statistics</span>
-                                </a>
-                                <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
-                                    {% if exam_selected.scales.all %}
-                                        <li><a class="bg-secondary dropdown-item"
-                                               href="{% url 'generalStats' exam_selected.pk %}"
-                                               style="padding-top:15px;"><i class="fas fa-chart-line"
-                                                                            style="margin-right:5px;"></i>Global</a>
-                                        </li>
-                                        <li><a class="bg-secondary dropdown-item"
-                                               href="{% url 'questionsStats' exam_selected.pk %}"
-                                               style="padding-top:15px;"><i class="fas fa-chart-area"
-                                                                            style="margin-right:5px;"></i>Questions</a>
-                                        </li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </li>
-                        <a href="{% url 'import_data_4_stats' exam_selected.pk %}"
-                           class="bg-dark list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-start align-items-center">
-                                <span class="fas fa-cloud-upload-alt" style="margin-right:5px;"></span>
-                                <span class="menu-collapsed" style="margin-right:5px;">Import data</span>
-                            </div>
-                        </a>
-                        <a href="{% url 'export_data' exam_selected.pk %}"
-                           class="bg-dark list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-start align-items-center">
-                                <span class="fas fa-cloud-download-alt" style="margin-right:5px;"></span>
-                                <span class="menu-collapsed" style="margin-right:5px;">Export results</span>
-                            </div>
-                        </a>
-                        <hr class="hr-sidebar">
-                    {% endif %}
-                {% endif %}
-
-                <li class="bg-dark list-group-item list-group-item-action">
-                    <div class="d-flex w-100 justify-content-start align-items-center">
-                        <a class="d-flex w-100 justify-content-start align-items-center dropdown-toggle" href="#"
-                           id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="fa-regular fa-circle-question fa-lg"
-                                  style="color:#CCA71CFF;margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="color:#CCA71CFF;margin-right:5px;">Info</span>
-                        </a>
-                        <ul class="bg-secondary dropdown-menu" aria-labelledby="navbarDropdown">
-                            <li><a class="bg-secondary dropdown-item" href="{% url 'documentation' %}"
-                                   style="padding-top:15px;"><i class="fa-solid fa-circle-question fa-lg"
-                                                                style="margin-right:5px;"></i>Documentation</a></li>
-                            <li><a class="bg-secondary dropdown-item"
-                                   type="button"
-                                   data-bs-toggle="modal"
-                                   data-bs-target="#aboutModal"
-                                   style="padding-top:15px;">
-                                <i class="fa-solid fa-circle-info fa-lg" style="margin-right:5px;"></i>About</a></li>
-                        </ul>
-                    </div>
-                </li>
-
-
-                <hr class="hr-sidebar">
-                {% if user|is_admin %}
-                    <a href="{% url 'impersonate_select' %}?next={{ request.get_full_path|urlencode }}"
-                       class="bg-dark list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="fas fa-user-secret" style="color: #10E6BC;margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="color: #10E6BC;margin-right:5px;">Impersonate</span>
-                        </div>
-                    </a>
-                    <a href="{% url 'admin:index' %}" class="bg-dark list-group-item list-group-item-action"
-                       target="_blank">
-                        <div class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="fas fa-carrot fa-spin" style="color: #10E6BC;margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="color: #10E6BC;margin-right:5px;">Admin </span>
-                        </div>
-                    </a>
-                    <hr class="hr-sidebar">
-                {% endif %}
-                <a data-toggle="sidebar-colapse"
-                   class="bg-dark list-group-item list-group-item-action d-flex align-items-center">
-                    <div class="d-flex w-100 justify-content-start align-items-center">
-                        <span class="fa-solid fa-face-grimace" style="color:#387900FF;margin-right:5px;"></span>
-                        <span class="menu-collapsed" style="color:#387900FF;margin-right:5px;">{{ user }}</span>
-                    </div>
-                </a>
-                <form action="{% url 'oidc_logout' %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" data-toggle="sidebar-colapse"
-                            class="bg-dark list-group-item list-group-item-action d-flex align-items-center"
-                            style="border:0;font-weight:200;letter-spacing:1px;">
-                        <span class="d-flex w-100 justify-content-start align-items-center">
-                            <span class="fa-solid fa-right-from-bracket" style="color:#a90000;margin-right:5px;"></span>
-                            <span class="menu-collapsed" style="color:#a90000;margin-right:5px;">Logout</span>
-                        </span>
-                    </button>
-                </form>
-
-                <!--suppress HtmlUnknownAnchorTarget -->
-                <a href="#top" data-toggle="sidebar-colapse"
-                   class="bg-dark list-group-item list-group-item-action d-flex align-items-center"
-                   style="margin-top:50px;color:grey;">
-                    <div class="d-flex w-100 justify-content-start align-items-center">
-                        <span id="collapse-icon" class="fa mr-3"></span>
-                        <span id="collapse-text" class="menu-collapsed">Collapse</span>
-                    </div>
-                </a>
-            {% endif %}
-        </ul>
-        <!-- List Group END-->
-    </div>
-
-    <!-- sidebar-container END -->
-    <!-- page content -->
-    <div id="page-content-wrapper">
-        <div class="container-fluid">
-            <!-- eXamcs navbar: display common exams list or single exam if no common -->
-            {% if nav_url != 'amc_data_capture_manual' and nav_url != 'reviewGroup' %}
-                <ul class="nav nav-pills nav-fill flex-column flex-sm-row" id="amc-pills-tab"
-                    style="margin-bottom:10px;">
-                    {% for comex in exam.get_common_exams_yc_common %}
-                        <li class="nav-item" role="presentation">
-                            <a class="flex-sm-fill text-sm-center nav-link {% if comex.id == exam_selected.id %}active{% endif %}"
-                               id="{{ comex.id }}-tab"
-                               href="{% if curr_tab %}{% url nav_url comex.pk curr_tab %}{% else %}{% url nav_url comex.pk %}{% endif %}"
-                            >
-                                {% if comex.is_overall %}
-                                    {{ comex.name }}
-                                    <br>
-                                    (S{{ comex.semester.code }} {{ comex.year.code }} )
-                                {% else %}
-                                    {{ comex.code }} {{ comex.name }} (S{{ comex.semester.code }} {{ comex.year.code }})
-                                    <br>
-                                    {{ comex.id|get_exam_teachers_short_str }}
-                                {% endif %}
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-            <!-- Page Content -->
-            {% block content %}
-
-
-            {% endblock %}
-        </div>
-
-        <div class="modal fade" id="ajax-info-modal" tabindex="-1" role="dialog" aria-labelledby="ajaxInfoModal"
-             aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="ajax-info-modal-title">Process info</h5>
-                        <button id="ajax_modal_close" type="button" class="close"
-                                onclick="$('#ajax-info-modal').modal('hide');" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
+                    <form method="post" action="{% url 'impersonate_stop' %}" class="impersonation-stop-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn btn-outline-dark btn-sm">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            Stop impersonation
                         </button>
-                    </div>
-                    <div class="modal-body" id="ajax-info-modal-msg">
-                    </div>
-                    <div class="modal-footer">
-                        <button id="ajax_modal_ok" type="button" class="btn btn-secondary"
-                                onclick="$('#ajax-info-modal').modal('hide');">OK
-                        </button>
-                    </div>
+                    </form>
                 </div>
-            </div>
-        </div>
+            {% endif %}
 
-        {% include "errors/_user_facing_error_modal.html" %}
-    </div>
+            {# Main content #}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
 </div>
-<div class="modal fade" id="loadingModal" tabindex="-1" role="dialog"
-     style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content" style="background-color:transparent;border:none;">
-            <div class="spinner-grow" style="width: 100px; height: 100px;" role="status">
-                <span class="sr-only"></span>
+
+{# Info messages (helpers/ajax-info-modal.ts) #}
+<div class="modal fade" id="ajax-info-modal" tabindex="-1" aria-labelledby="ajax-info-modal-title" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ajax-info-modal-title">Process info</h5>
+                <button id="ajax_modal_close" type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="ajax-info-modal-msg"></div>
+            <div class="modal-footer">
+                <button id="ajax_modal_ok" type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
             </div>
         </div>
     </div>
 </div>
-<div class="modal fade" id="celeryProgressBarModal" tabindex="-1" role="dialog"
-     style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content" style="border:none;">
-            <div class="modal-header" style="font-size: 14px;">
+
+{% include "errors/_user_facing_error_modal.html" %}
+
+{# Spinner shown while a request runs (LoadingModal) #}
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered justify-content-center">
+        <div class="modal-content bg-transparent border-0 w-auto">
+            <div class="spinner-grow text-light" role="status"
+                 style="--bs-spinner-width: 6rem; --bs-spinner-height: 6rem;">
+                <span class="visually-hidden">Loading…</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Celery task progress (helpers/ajax-info-modal.ts) #}
+<div class="modal fade" id="celeryProgressBarModal" tabindex="-1" aria-labelledby="progress-bar-message"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header small">
                 <div id="progress-bar-message"></div>
-                <button type="button" class="close" onclick="$('#celeryProgressBarModal').modal('hide');"
-                        aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class='progress-wrapper' style="background-color: lightgray; ">
-                    <div id='progress-bar' class='progress-bar' role='progressbar'
-                         style="height:30px; width: 0; border-radius: 5px;">&nbsp;
-                    </div>
+                <div class="progress" role="progressbar" aria-label="Task progress"
+                     aria-valuemin="0" aria-valuemax="100" style="--bs-progress-height: 2rem;">
+                    <div id="progress-bar" class="progress-bar" style="width: 0"></div>
                 </div>
             </div>
         </div>
@@ -538,7 +208,7 @@
 </div>
 
 <!-- About Modal -->
-<div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+<div class="modal fade" id="about-modal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="color:#a8a8a8;background-color:#292828;">
             <div class="modal-header">
@@ -629,15 +299,4 @@
         });
 
     {% endif %}
-
-    // Hide submenus
-    $('#body-row .collapse').collapse('hide');
-
-    // Collapse/Expand icon
-    $('#collapse-icon').addClass('fa-angle-double-left');
-
-    // Collapse click
-    $('[data-toggle=sidebar-colapse]').click(function () {
-        SidebarCollapse();
-    });
 </script>

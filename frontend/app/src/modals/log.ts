@@ -1,5 +1,6 @@
 import type { ExamcModalOptions } from "@examc/types/modals";
 import { ExamcModal } from "@examc/modals/base";
+import { getCodeFontFamily } from "@examc/helpers/fonts";
 
 /** Distance from the bottom (in px) under which the output still counts as scrolled to its end. */
 const END_THRESHOLD_PX = 20;
@@ -69,7 +70,7 @@ export class LogModal extends ExamcModal {
             extraDialogClass: 'modal-xl',
             bodyContent: `
                 <div class="modal-body">
-                    <textarea readonly style="height: 76vh; padding: 1rem; resize: none; background: black; color: white; width: 100%"></textarea>
+                    <textarea readonly style="height: 76vh; padding: 1rem; resize: none; background: black; color: white; width: 100%; font-family: ${getCodeFontFamily()}"></textarea>
                 </div>
             `,
             footerContent: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`,

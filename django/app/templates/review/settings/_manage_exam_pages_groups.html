@@ -1,0 +1,243 @@
+<script src="https://unpkg.com/markerjs2/markerjs2.js"></script>
+
+<!-- Katex -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"
+      integrity="sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeYb+TwlBVMrlgLqwRjRtGZiK7ww" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"
+        integrity="sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd"
+        crossorigin="anonymous"></script>
+
+<!-- Quilljs editor -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css" rel="stylesheet">
+
+
+<form enctype='multipart/form-data' id="form-groups" method="POST">
+    {% csrf_token %}
+    {{ exam_pages_groups_formset.management_form }}
+
+    <div class="d-flex gap-3 mb-3">
+        <h4 class="m-0">Pages groups</h4>
+        <button type="submit" title="Save pages groups changes" name="submit-groups" class="btn btn-primary btn-sm">
+            <i class="fas fa-floppy-disk"></i> Save changes
+        </button>
+    </div>
+
+    {% if error_msg %}
+        <div class="alert alert-danger text-center" role="alert" style="max-width: var(--form-max-width)">{{ error_msg }}</div>
+    {% endif %}
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'warning' }}" role="alert"
+                 style="margin:20px;text-align:center;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <table class="table" style="max-width: var(--form-max-width)">
+        <thead>
+        <tr>
+            {% for field in exam_pages_groups_formset.initial_forms.0 %}
+                {% if field.label != 'Id' %}
+                    <th scope="col">{{ field.label }}</th>
+                {% endif %}
+            {% endfor %}
+            <th scope="col">Delete</th>
+            <th scope="col">Grading Help</th>
+            <th scope="col">Status</th>
+        </tr>
+        </thead>
+        <tbody id="group-tbody">
+        {% for form in exam_pages_groups_formset.initial_forms %}
+            <tr class="group-form{% if form.instance.pk in locked_pages_group_ids %} table-light{% endif %}">
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+                {% for field in form.visible_fields %}
+                    <td>
+                        {{ field }}
+                    </td>
+                {% endfor %}
+
+                <td>
+                    {% if form.instance.pk in locked_pages_group_ids %}
+                        <span class="btn btn-light disabled" title="Locked because review data already exists.">
+                        <i class="fa-solid fa-lock fa-lg" style="margin-right:5px;color:#6c757d;"></i>
+                    </span>
+                    {% else %}
+                        <button type="submit"
+                                class="btn btn-light"
+                                formaction="{% url 'delete_pages_group' form.hidden_fields.0.value exam_selected.pk %}"
+                                formnovalidate
+                                title="Delete pages group">
+                            <i class="fa-solid fa-circle-minus fa-xl" style="margin-right:5px;color:red;"></i>
+                        </button>
+                    {% endif %}
+                </td>
+                <td>
+                    <button type="button" title="Grading Help" class="btn btn-light"
+                            onclick="openGradingHelpDialog( {{ form.hidden_fields.0.value }} )"><i
+                            class="fas fa-edit fa-xl"></i></button>
+                </td>
+                <td>
+                    {% if form.instance.pk in locked_pages_group_ids %}
+                        <span class="text-muted"><i class="fa-solid fa-lock"></i> Locked</span>
+                    {% else %}
+                        <span class="text-muted">Editable</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        <tr class="exam_pages_groups_formset_empty_form" hidden>
+            {% for hidden in exam_pages_groups_formset.extra_forms.0.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% for field in exam_pages_groups_formset.extra_forms.0.visible_fields %}
+                {% if field.label == 'Delete' %}
+                    <td style="text-align:center;padding-top:35px">
+                        {{ field }}</td>
+                {% else %}
+                    <td>
+                        {% if field.name == "use_grading_scheme" %}
+                            <div class="form-check form-switch">
+                                {{ field }}
+                                <label class="custom-control-label" for="{{ field.id_for_label }}"></label>
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                    </td>
+                {% endif %}
+            {% endfor %}
+            {% load static %}
+        </tr>
+        </tbody>
+    </table>
+    <button id="add-form" type="submit" class="btn btn-light mt-3"
+            title="Add another group"
+            formaction="{% url 'add_new_pages_group' exam_selected.pk %}"
+            formnovalidate>
+        <i class="fa-solid fa-circle-plus" style="margin-right:5px;color:green;"></i> Add another group
+    </button>
+</form>
+
+
+<div id="grading-help-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span hidden id="grading-help-group-id"></span>
+                <h5 class="modal-title">Grading Help</h5>
+            </div>
+            <div class="modal-body" style="color:#000">
+                <div class="form-group">
+                    <div id="toolbar-container">
+                        <span class="ql-formats">
+                            <select class="ql-font"></select>
+                            <select class="ql-size"></select>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                            <button class="ql-strike"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <select class="ql-color"></select>
+                            <select class="ql-background"></select>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-script" value="sub"></button>
+                            <button class="ql-script" value="super"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-header" value="1"></button>
+                            <button class="ql-header" value="2"></button>
+                            <button class="ql-blockquote"></button>
+                            <button class="ql-code-block"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                            <button class="ql-indent" value="-1"></button>
+                            <button class="ql-indent" value="+1"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-direction" value="rtl"></button>
+                            <select class="ql-align"></select>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                            <button class="ql-image"></button>
+                            <button class="ql-formula"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-clean"></button>
+                        </span>
+                    </div>
+                    <div id="grading-help" style="height:60vh;overflow-y:auto"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a type="button" class="btn btn-dark btn-sm" onclick="saveGradingHelp();">Save changes</a>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="cancelGradingHelp();">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    // Quill configuration remains the same
+    const quill = new Quill('#grading-help', {
+        theme: 'snow',
+        modules: {
+            toolbar: '#toolbar-container',
+        },
+    });
+
+    // Open Grading Help Modal
+    function openGradingHelpDialog(group_id) {
+        $.ajax({
+            url: "{% url 'get_pages_group_grading_help' exam_selected.pk %}",
+            async: false,
+            type: "POST",
+            data: {
+                'csrfmiddlewaretoken': "{{ csrf_token }}",
+                'group_pk': group_id,
+            },
+            success: (data) => {
+                quill.container.firstChild.innerHTML = data
+                $('#grading-help-group-id').val(group_id)
+                $('#grading-help-modal').modal('show');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
+
+    function cancelGradingHelp() {
+        $('#grading-help-modal').modal('hide');
+    }
+
+    function saveGradingHelp() {
+        $.ajax({
+            url: "{% url 'edit_pages_group_grading_help' exam_selected.pk %}",
+            async: false,
+            type: "POST",
+            data: {
+                'csrfmiddlewaretoken': "{{ csrf_token }}",
+                'group_pk': $('#grading-help-group-id').val(),
+                'grading_help': quill.container.firstChild.innerHTML,
+            },
+            success: () => {
+                $('#grading-help-modal').modal('hide');
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }
+</script>

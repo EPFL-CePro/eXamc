@@ -3,7 +3,6 @@ import '@awesome.me/webawesome/dist/components/tree/tree.js';
 import '@awesome.me/webawesome/dist/components/tree-item/tree-item.js';
 
 import {
-    CODE_FONT_FAMILY,
     CODE_LANGUAGES,
     CODE_THEMES,
     CodeEditor,
@@ -13,6 +12,7 @@ import {
     isCodeTheme,
 } from '@examc/editors';
 import { ExamcModal } from '@examc/modals/base.ts';
+import { getCodeFontFamily } from '@examc/helpers/fonts';
 
 /** A file shown in the browser. */
 export interface CodeFile {
@@ -137,7 +137,7 @@ function treeItem(filename: string, icon: string): TreeItem {
     labelEl.textContent = filename;
 
     const item = document.createElement('wa-tree-item') as TreeItem;
-    item.style.fontFamily = CODE_FONT_FAMILY;
+    item.style.fontFamily = getCodeFontFamily();
     item.append(iconEl, labelEl);
     return item;
 }
@@ -214,6 +214,7 @@ export class CodeEditorModal extends ExamcModal {
         this.setTitle(options.title);
 
         this.labelEl = this.element.querySelector<HTMLLabelElement>('label')!;
+        this.labelEl.style.fontSize = "1rem";
         this.labelEl.id = `code-editor-label-${++labelCount}`;
         this.statusEl = this.element.querySelector<HTMLElement>('[data-status]')!;
         this.saveButton = this.element.querySelector<HTMLButtonElement>('[data-save]')!;
@@ -389,7 +390,7 @@ export class CodeEditorModal extends ExamcModal {
 
             this.currentPath = path;
             this.currentItem = item;
-            this.labelEl.textContent = path;
+            this.labelEl.innerHTML = `<code>${path}</code>`;
             this.setStatus('');
             (await this.editor).focus();
         } catch (error) {

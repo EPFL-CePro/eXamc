@@ -101,7 +101,7 @@ export function initReports(config: ReportsConfig): void {
     }
 
     async function showUnrecognized(): Promise<void> {
-        const headers = ['File', 'Image', ''];
+        const headers = ['File', 'Image', 'Actions'];
         const columns = [{}, STATIC_COLUMN, STATIC_COLUMN];
 
         let pages: UnrecognizedPage[];
@@ -128,6 +128,7 @@ export function initReports(config: ReportsConfig): void {
                 const addButton = document.createElement('button');
                 addButton.type = 'button';
                 addButton.className = 'btn btn-primary btn-sm';
+                addButton.style.width = "9rem";
                 addButton.textContent = 'Add this page to...';
                 addButton.addEventListener('click', () => {
                     report.hide();

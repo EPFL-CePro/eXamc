@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load django_vite %}
+{% load static %}
+
+{% block title %}Review Settings{% endblock %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/review/settings/review_settings/index.ts' %}
+{% endblock %}
+
+{% block content %}
+    <h3 class="mb-3"><i class="fa fa-cogs fa-l" style="margin-right:5px;"></i>Review Settings</h3>
+
+    <div class="d-inline-flex flex-column flex-sm-row align-items-sm-center gap-2 border rounded p-1 mb-5"
+         style="width: fit-content">
+        <ul class="nav nav-pills nav-fill flex-column flex-sm-row" id="review-settings-pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" id="pages-groups-tab" role="tab"
+                        data-bs-toggle="pill" data-bs-target="#pills-pages-groups"
+                        aria-controls="pills-pages-groups">Pages groups</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" id="reviewers-tab" role="tab"
+                        data-bs-toggle="pill" data-bs-target="#pills-reviewers"
+                        aria-controls="pills-reviewers">Reviewers</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" id="grading-schemes-tab" role="tab"
+                        data-bs-toggle="pill" data-bs-target="#pills-grading-schemes"
+                        aria-controls="pills-grading-schemes">Grading Schemes</button>
+            </li>
+        </ul>
+    </div>
+
+    {% if exam_pages_groups_formset %}
+        <div class="tab-content" id="review-settings-tab-content" style="--form-max-width: 80rem">
+            <div class="tab-pane fade" id="pills-pages-groups"  role="tabpanel" aria-labelledby="pages-groups-tab">
+                {% include "review/settings/_manage_exam_pages_groups.html" %}
+            </div>
+            <div class="tab-pane fade" id="pills-reviewers" role="tabpanel" aria-labelledby="reviewers-tab">
+                {% include "review/settings/_manage_exam_reviewers.html" %}
+            </div>
+            <div class="tab-pane fade" id="pills-grading-schemes" role="tabpanel" aria-labelledby="grading-schemes-tab">
+                {% include "review/settings/_manage_grading_schemes.html" %}
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <h4 class="alert-heading">Warning!</h4>
+            <p class="mb-0">No AMC project found! Please upload the AMC project zip folder from the left menu "AMC" →
+                "Import data".</p>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -1,7 +1,7 @@
-import DataTable from 'datatables.net-dt';
+import DataTable from 'datatables.net-bs5';
 import type {DataTableColumn} from "@examc/types/datatables.ts";
 
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import 'datatables.net-bs5/css';
 import {setupDatatables} from "@examc/helpers/datatables.ts";
 
 type PresenceResponse = {

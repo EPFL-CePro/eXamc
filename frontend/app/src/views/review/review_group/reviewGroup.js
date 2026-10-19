@@ -1,7 +1,8 @@
-import DataTable from "datatables.net-dt";
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import DataTable from 'datatables.net-bs5';
+import 'datatables.net-bs5/css';
 import { MarkerArea } from '@markerjs/markerjs3';
 import {setupDatatables} from "@examc/helpers/datatables.ts";
+import { Tooltip } from 'bootstrap';
 
 (function () {
     'use strict';
@@ -534,10 +535,11 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
         currentSourceIdParts = parts[2].split('_');
         currentSourceElementId = `${currentSourceIdParts[0]}_${currentSourceIdParts[1]}_${currentSourceIdParts[2]}`;
         const currentEl = document.getElementById(currentSourceElementId);
+
         if (!fromCopy) {
             if (currentEl) {
                 currentSourceIdParts.push(currentEl.cells[0].innerText);
-                currentEl.style.backgroundColor = "yellow";
+                currentEl.querySelectorAll("td").forEach(td => td.style.backgroundColor = "yellow");
             }
         }
 
@@ -552,7 +554,7 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
 
             const lastEl = document.getElementById(lastElementId);
             if (lastEl && lastEl !== currentEl) {
-                lastEl.style.backgroundColor = "";
+                lastEl.querySelectorAll("td").forEach(td => td.style.backgroundColor = "");
             }
         }
     }
@@ -1338,6 +1340,7 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
         } else {
             new DataTable(tableCopiesPages, {
                 scrollY: '83.5vh',
+                scrollX: false,
                 layout: {
                     topStart: null,
                     topEnd: null,
@@ -1516,8 +1519,6 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
             }, 350);
         }
 
-        SidebarCollapse();
-
         // Keyboard navigation:
         // Left/Right = previous/next page
         // Up/Down = previous/next student (copy)
@@ -1596,21 +1597,11 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
     });
 
     // Expand/collapse left group list panel
-    document.getElementById("expandCollapseGroupListBt").addEventListener("click", _=> {
-        const expandIcon = $("#expand-group-list-icon");
-        const collapseIcon = $("#collapse-group-list-icon");
-
-        if (collapseIcon.hasClass('fa-angle-double-left')) {
-            collapseIcon.removeClass('fa-angle-double-left');
-            expandIcon.addClass("fa-solid fa-table-list");
-            expandIcon.show();
-            collapseIcon.hide();
-        } else {
-            expandIcon.removeClass('fa-solid fa-table-list');
-            collapseIcon.addClass("fa-angle-double-left");
-            collapseIcon.show();
-            expandIcon.hide();
-        }
+    document.getElementById("expand-collapse-group-list-bt").addEventListener("click", (event) => {
+        const collapsed = document.getElementById("pages-group-list-table-div").classList.toggle("d-none");
+        event.currentTarget.setAttribute("aria-expanded", String(!collapsed));
+        document.getElementById("expand-group-list-icon").classList.toggle("d-none", !collapsed);
+        document.getElementById("collapse-group-list-icon").classList.toggle("d-none", collapsed);
     });
 
     // ---------------------------------------------------------------------------
@@ -1731,11 +1722,11 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
                 a.parentNode.setAttribute('data-placement', 'top');
                 a.parentNode.setAttribute('title', msg);
 
-                let tip = bootstrap.Tooltip.getInstance(a);
+                let tip = Tooltip.getInstance(a);
                 if (tip) {
                     tip.setContent({'.tooltip-inner': msg});
                 } else {
-                    tip = new bootstrap.Tooltip(a);
+                    tip = new Tooltip(a);
                 }
             }
         });
@@ -1750,7 +1741,7 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
             a.removeAttribute('aria-disabled');
             a.removeAttribute('tabindex');
 
-            const tip = bootstrap.Tooltip.getInstance(a);
+            const tip = Tooltip.getInstance(a);
             if (tip) tip.dispose();
             a.parentNode.removeAttribute('data-toggle');
             a.parentNode.removeAttribute('data-placement');

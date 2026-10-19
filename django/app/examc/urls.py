@@ -19,10 +19,10 @@ from django.contrib import admin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
 from django.shortcuts import redirect
-from django.urls import path, include
+from django.urls import include, path
 
 from examc_app import views
-from examc_app.admin import ExamAdmin, CourseAdmin
+from examc_app.admin import CourseAdmin, ExamAdmin
 
 
 def healthz(_request):  # simple 200

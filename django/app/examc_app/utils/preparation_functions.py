@@ -1,11 +1,13 @@
 import shutil
 import subprocess
 import tempfile
+from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
 from django.db.models import Max
 from django.http import HttpResponseForbidden
+from django.utils import timezone
 
 from django.conf import settings
 from examc_app.forms.preparation import (
@@ -15,15 +17,16 @@ from examc_app.forms.preparation import (
 )
 from examc_app.models import (
     Exam,
+    ExamAMCJob,
     PrepQuestion,
     PrepQuestionAnswer,
     PrepScoringFormula,
     PrepSection,
 )
-from examc_app.utils.amc_functions import ensure_amc_project, get_amc_project_path
+from examc_app.services.student.prep_amc_csv import STUDENTS_CSV_NAME
+from examc_app.utils.amc_functions import ensure_amc_project
 from examc_app.utils.preparation_latex_functions import (
     update_exam_latex,
-    update_global_scoring_latex_file,
 )
 
 
@@ -117,11 +120,93 @@ def renumber_answers(question):
 # Creation / mutation helpers
 # -------------------------
 
-def ensure_exam_not_finalized(exam):
+# A final generation not finished after this time is considered interrupted (worker stopped...): far above the
+# compilation timeouts of build_final_exam for a big exam
+FINAL_BUILD_MAX_DURATION = timedelta(hours=4)
+
+
+def get_active_final_build_job(exam):
+    """
+    The final generation of the exam still running, whoever started it, or None. A job whose Celery task ended
+    without updating it (worker killed...) or older than FINAL_BUILD_MAX_DURATION is marked as failed.
+    """
+    from celery.result import AsyncResult
+
+    job = (ExamAMCJob.objects
+           .filter(exam=exam, job_type="final_build", status__in=["pending", "running"])
+           .order_by("-created_at")
+           .first())
+    if job is None:
+        return None
+
+    interrupted = job.created_at < timezone.now() - FINAL_BUILD_MAX_DURATION
+    if not interrupted and job.celery_task_id:
+        interrupted = AsyncResult(job.celery_task_id).state in ("FAILURE", "REVOKED")
+    if interrupted:
+        job.status = "error"
+        job.error_message = job.error_message or "The final generation was interrupted."
+        job.save(update_fields=["status", "error_message", "updated_at"])
+        return None
+    return job
+
+
+def exam_lock_reason(exam):
+    """Why the exam (content and students) cannot be modified: finalized, or a final generation is running."""
     if exam.is_finalized:
-        return HttpResponseForbidden(
-            "This exam is finalized. Unlock editing before making changes."
-        )
+        return "This exam is finalized. Unlock editing before making changes."
+    if get_active_final_build_job(exam):
+        return "The final generation of this exam is running. Wait for its end, or cancel it, before making changes."
+    return None
+
+
+# The extraction of the scoring strategy of AMC after a change of the formulas: ~1 minute for 230 copies. A job not
+# finished after this time is considered interrupted (worker stopped...)
+SCORING_UPDATE_MAX_DURATION = timedelta(minutes=30)
+
+
+def get_active_scoring_update_job(exam):
+    """The update of the scoring strategy of AMC still running for the exam, or None (see views.preparation.scoring)."""
+    for job in ExamAMCJob.objects.filter(exam=exam, job_type="scoring_update", status__in=("pending", "running")):
+        if timezone.now() - job.created_at > SCORING_UPDATE_MAX_DURATION:
+            job.status = "error"
+            job.error_message = "The update was interrupted."
+            job.save(update_fields=["status", "error_message", "updated_at"])
+            continue
+        return job
+    return None
+
+
+def scoring_lock_reason(exam):
+    """
+    Why the scoring formulas cannot be changed now, or None. They can be changed at any time, even once the exam is
+    finalized (they do not change the layout), except while AMC works on the project: a final generation, or the
+    update of its scoring strategy after a previous change.
+    """
+    if get_active_final_build_job(exam):
+        return "The final generation of this exam is running. Wait for its end, or cancel it, before changing the scoring."
+    if get_active_scoring_update_job(exam):
+        return ("The marking scale of this exam is being updated in AMC: wait for its end (about a minute) before "
+                "changing the scoring again.")
+    return None
+
+
+def ensure_scoring_editable(exam):
+    """A 403 response when the scoring cannot be changed now (see scoring_lock_reason), else None."""
+    reason = scoring_lock_reason(exam)
+    if reason:
+        return HttpResponseForbidden(reason)
+    return None
+
+
+def is_exam_locked(exam) -> bool:
+    return exam_lock_reason(exam) is not None
+
+
+def ensure_exam_not_finalized(exam):
+    """A 403 response when the exam cannot be modified (see exam_lock_reason), else None."""
+    reason = exam_lock_reason(exam)
+    if reason:
+        return HttpResponseForbidden(reason)
     return None
 
 def create_prep_section(exam: Exam, title="New section", section_text=""):
@@ -250,10 +335,6 @@ def delete_exam_preview_job_files(job):
         if preview_dir.exists():
             shutil.rmtree(preview_dir, ignore_errors=True)
 
-def get_exam_preview_pdf_path(exam):
-    amc_project_path = Path(get_amc_project_path(exam, False))
-    return amc_project_path / "exam.pdf"
-
 
 def get_exam_preview_job_dir(exam: Exam, job_id):
     preview_dir = Path(settings.PRIVATE_MEDIA_ROOT) / "exam_previews" / str(exam.pk) / str(job_id)
@@ -264,6 +345,10 @@ def get_exam_preview_job_dir(exam: Exam, job_id):
 def compile_exam_preview(exam: Exam, job_id, timeout: int = 30):
     amc_project_path = Path(ensure_amc_project(exam))
     root_latex_file_path = amc_project_path / "exam.tex"
+
+    # exam.tex is generated by the preparation module: an exam whose content was never saved doesn't have it yet
+    if not root_latex_file_path.exists():
+        update_exam_latex(exam)
 
     if not root_latex_file_path.exists():
         return {
@@ -277,6 +362,9 @@ def compile_exam_preview(exam: Exam, job_id, timeout: int = 30):
             tmp_path = Path(tmp_dir)
 
             for item in amc_project_path.iterdir():
+                # Without students list, the preview is a single anonymous copy (see exam_template.tex)
+                if item.name == STUDENTS_CSV_NAME:
+                    continue
                 src = item
                 dst = tmp_path / item.name
 
@@ -353,6 +441,106 @@ def compile_exam_preview(exam: Exam, job_id, timeout: int = 30):
 # Scoring formulas
 # -------------------------
 
+# The levels of the scoring formulas, shown next to the Scoring buttons (see get_applied_scorings)
+SCORING_LEVEL_EXAM = "Global"
+SCORING_LEVEL_SECTION = "Section"
+SCORING_LEVEL_QUESTION = "Question"
+SCORING_LEVEL_ANSWER = "Answer"
+
+
+NO_FORMULA_TEXT = "AMC default"
+
+
+def scoring_info_text(info) -> str:
+    """The text next to a Scoring button: 'Section : "b=2,m=-1"', or the default of AMC when no level has a formula."""
+    if not info:
+        return ""
+    if not info["formula"]:
+        return NO_FORMULA_TEXT
+    return f'{info["level"]} : "{info["formula"]}"'
+
+
+SCORING_BADGE_CUSTOM = "Custom"
+
+
+def scoring_badge_text(codes) -> str:
+    """The text on the Scoring button of a level: the question types it has formulas for ("MCQ, SCQ"), or "Custom"
+    for the formulas without question type (questions and answers). Empty when the level has no formula."""
+    if not codes:
+        return ""
+    typed = sorted(code for code in codes if code)
+    return ", ".join(typed) if typed else SCORING_BADGE_CUSTOM
+
+
+def scoring_badges(defined: dict[str, dict[int, set]]) -> dict[str, dict[str, str]]:
+    """The texts of the Scoring buttons that have one: {level kind: {id: text}}, for the page to update them."""
+    return {
+        kind: {str(pk): text for pk, codes in levels.items() if (text := scoring_badge_text(codes))}
+        for kind, levels in defined.items()
+    }
+
+
+def get_applied_scorings(exam) -> dict[str, dict]:
+    """
+    The scoring formula applied to each choice question and answer of the exam, with its level:
+    {"questions": {question id: info}, "answers": {answer id: info}}, info being {"level": ..., "formula": ...}
+    (None for an open question, scored by its corrector boxes, and its answers).
+    "defined" is what each level has formulas for, to show on its Scoring button: {"exam" (id 0), "section",
+    "question", "answer": {id: set of question type codes, None for a formula without question type}}.
+
+    A question has the formula of the most specific level that has one for it: the question, its section (formula of
+    its question type), the exam (formula of its question type). Otherwise AMC applies its own default: formula "".
+    An answer has its own formula, otherwise the one of its question.
+    This is what question_scoring_tex and the answer rendering write in the LaTeX sources.
+    One query for the formulas, one for the questions and one for the answers.
+    """
+    exam_formulas, section_formulas, question_formulas, answer_formulas = {}, {}, {}, {}
+    defined = {"exam": {0: set()}, "section": {}, "question": {}, "answer": {}}
+    for formula in PrepScoringFormula.objects.filter(exam=exam).select_related("question_type").order_by("pk"):
+        code = formula.question_type.code if formula.question_type else None
+        if formula.prep_answer_id:
+            answer_formulas.setdefault(formula.prep_answer_id, formula.formula)
+            defined["answer"].setdefault(formula.prep_answer_id, set()).add(code)
+        elif formula.prep_question_id:
+            question_formulas.setdefault(formula.prep_question_id, formula.formula)
+            defined["question"].setdefault(formula.prep_question_id, set()).add(code)
+        elif formula.prep_section_id:
+            defined["section"].setdefault(formula.prep_section_id, set()).add(code)
+            if code:
+                section_formulas.setdefault((formula.prep_section_id, code), formula.formula)
+        else:
+            defined["exam"][0].add(code)
+            if code:
+                exam_formulas.setdefault(code, formula.formula)
+
+    questions = {}
+    for question in PrepQuestion.objects.filter(prep_section__exam=exam).select_related("question_type"):
+        code = question.question_type.code
+        if code == "OPEN":
+            questions[question.pk] = None
+        elif question.pk in question_formulas:
+            questions[question.pk] = {"level": SCORING_LEVEL_QUESTION, "formula": question_formulas[question.pk]}
+        elif (question.prep_section_id, code) in section_formulas:
+            questions[question.pk] = {"level": SCORING_LEVEL_SECTION,
+                                      "formula": section_formulas[(question.prep_section_id, code)]}
+        elif code in exam_formulas:
+            questions[question.pk] = {"level": SCORING_LEVEL_EXAM, "formula": exam_formulas[code]}
+        else:
+            questions[question.pk] = {"level": "", "formula": ""}
+
+    answers = {}
+    for answer_id, question_id in PrepQuestionAnswer.objects.filter(
+            prep_question__prep_section__exam=exam).values_list("pk", "prep_question_id"):
+        if questions.get(question_id) is None:
+            answers[answer_id] = None
+        elif answer_id in answer_formulas:
+            answers[answer_id] = {"level": SCORING_LEVEL_ANSWER, "formula": answer_formulas[answer_id]}
+        else:
+            answers[answer_id] = questions[question_id]
+
+    return {"questions": questions, "answers": answers, "defined": defined}
+
+
 def get_scoring_formula_scope(prep_section=None, prep_question=None, prep_answer=None):
     if prep_answer:
         return "answer"
@@ -426,12 +614,6 @@ def save_scoring_formulas(
         else:
             instance.save()
 
-    if scope == "exam":
-        exam_scoring_formulas = PrepScoringFormula.objects.filter(exam_id=exam_pk,prep_section_id=None,prep_question_id=None,prep_answer_id=None)
-        update_global_scoring_latex_file(exam_scoring_formulas, exam_pk)
-    else:
-        # Question and answer formulas are written inline by the LaTeX generation
-        update_exam_latex(Exam.objects.get(pk=exam_pk))
-
+    # The LaTeX files are rewritten by the caller (see apply_scoring_change): not the same ones when the exam is final
     return instances
 

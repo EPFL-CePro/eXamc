@@ -88,6 +88,7 @@ def build_unrecognized_review_scan_context(exam: Exam) -> list:
             "filename": scan.filename,
             "original_filename": scan.original_filename,
             "upload_order": scan.upload_order,
+            "reason": scan.reason,
             "scan_url": make_token_for(scan.relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False),
             "previous_url": (
                 make_token_for(scan.previous_relative_path, str(settings.SCANS_ROOT), copy_page_in_url=False)

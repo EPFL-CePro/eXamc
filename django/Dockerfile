@@ -61,6 +61,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# cm-super: Type 1 (vector) versions of the EC fonts used by the exams (fontenc T1). Only recommended by
+# texlive-fonts-extra, so not installed with --no-install-recommends: pdflatex then generated bitmap fonts
+# with METAFONT at each worker start.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -73,6 +76,7 @@ RUN set -eux; \
         texlive-latex-extra \
         texlive-fonts-recommended \
         texlive-fonts-extra \
+        cm-super \
         lmodern \
         texlive-lang-european \
         latexmk \

@@ -1,0 +1,6 @@
+@use "bootstrap/scss/bootstrap" with (
+    // Colors
+    $primary: rgb(31, 115, 199),
+);
+
+@use "custom-elements";

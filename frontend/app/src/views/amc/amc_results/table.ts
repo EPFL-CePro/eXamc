@@ -1,12 +1,12 @@
-import DataTable from 'datatables.net-dt';
-import 'datatables.net-dt/css/dataTables.dataTables.css';
+import DataTable, { type Api } from 'datatables.net-bs5';
+import 'datatables.net-bs5/css';
 
-import 'datatables.net-buttons-dt';
-import 'datatables.net-select-dt';
+import 'datatables.net-buttons-bs5';
+import 'datatables.net-select-bs5';
 
-import { byId, icon } from '@examc/helpers/dom.ts';
+import { icon } from '@examc/helpers/dom.ts';
 import { setupDatatables } from '@examc/helpers/datatables.ts';
-import { state } from './state.ts';
+
 import type { CellValue, SelectedStudent, StudentRow } from './types.ts';
 
 /** Column sent by the server for the status tooltip; not displayed as a column. */
@@ -44,26 +44,22 @@ function renderCell(key: string, value: CellValue, row: StudentRow): HTMLTableCe
  * @param {StudentRow[]} rows - The rows.
  * @return {string[]} The displayed column names.
  */
-function columnKeys(rows: StudentRow[]): string[] {
+export function columnKeys(rows: StudentRow[]): string[] {
     return rows[0] ? Object.keys(rows[0]).filter((key) => key !== ERROR_KEY) : [];
 }
 
 /**
- * (Re)builds the students table of the send dialog. An existing table is destroyed first,
- * so reopening the dialog shows the latest send statuses.
+ * Builds the students table in an empty table element, with a checkbox per row.
  *
+ * @param {HTMLTableElement} tableElement - The table to fill.
  * @param {StudentRow[]} rows - The students.
+ * @return {Api<StudentRow>} The DataTable, to destroy with its dialog.
  */
-export function buildSendTable(rows: StudentRow[]): void {
-    const tableElement = byId<HTMLTableElement>('send-annotated-papers-table');
-
-    state.sendTable?.destroy();
-    state.sendTable = null;
-    state.sendRows = rows;
-
+export function buildSendTable(tableElement: HTMLTableElement, rows: StudentRow[]): Api<StudentRow> {
     const keys = columnKeys(rows);
 
-    byId('send-annotated-papers-table-thead').replaceChildren(
+    const headRow = tableElement.createTHead().insertRow();
+    headRow.append(
         document.createElement('th'), // checkbox column
         ...keys.map((key) => {
             const th = document.createElement('th');
@@ -72,17 +68,15 @@ export function buildSendTable(rows: StudentRow[]): void {
         }),
     );
 
-    byId('send-annotated-papers-table-tbody').replaceChildren(
-        ...rows.map((row) => {
-            const tr = document.createElement('tr');
-            tr.append(document.createElement('td'), ...keys.map((key) => renderCell(key, row[key] ?? null, row)));
-            return tr;
-        }),
-    );
+    tableElement.createTBody().append(...rows.map((row) => {
+        const tr = document.createElement('tr');
+        tr.append(document.createElement('td'), ...keys.map((key) => renderCell(key, row[key] ?? null, row)));
+        return tr;
+    }));
 
     setupDatatables();
 
-    state.sendTable = new DataTable<StudentRow>(tableElement, {
+    return new DataTable<StudentRow>(tableElement, {
         scrollY: '25vh',
         paging: false,
         select: {
@@ -106,23 +100,19 @@ export function buildSendTable(rows: StudentRow[]): void {
     });
 }
 
-/** Recalculates column widths; needed once the table is visible, since it was built while hidden. */
-export function adjustSendTable(): void {
-    state.sendTable?.columns.adjust();
-}
-
 /**
  * The students selected in the table.
  *
+ * @param {Api<StudentRow>} table - The students table.
+ * @param {StudentRow[]} rows - Its rows, in table index order.
  * @param {string} emailColumn - The column holding the email address.
  * @return {SelectedStudent[]} The selected students.
  */
-export function selectedStudents(emailColumn: string): SelectedStudent[] {
-    if (!state.sendTable) return [];
-    const indexes = state.sendTable.rows({ selected: true }).indexes().toArray() as number[];
+export function selectedStudents(table: Api<StudentRow>, rows: StudentRow[], emailColumn: string): SelectedStudent[] {
+    const indexes = table.rows({ selected: true }).indexes().toArray() as number[];
 
     return indexes.flatMap((index) => {
-        const row = state.sendRows[index];
+        const row = rows[index];
         if (!row) return [];
         // Assumes the first two data columns are the student id and copy number; adjust if needed.
         const [id = null, copy = null] = columnKeys([row]).map((key) => row[key] ?? null);

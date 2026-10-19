@@ -1,7 +1,5 @@
 {% extends 'base.html' %}
 {% load django_vite %}
-{% load static %}
-{% load custom_tags %}
 
 {% block title %}AMC (auto-multiple-choice){% endblock %}
 
@@ -11,63 +9,65 @@
 
 {% block content %}
     {% if user_allowed %}
-        <div class="tab-content" id="amc-page"
+        <div id="amc-page" style="max-width: 800px"
              data-current-tab="{{ curr_tab|default:'' }}"
              data-log-file-url="{% url 'view_amc_log_file' exam_selected.pk %}"
              data-csrf-token="{{ csrf_token }}">
-            <h4>AMC (auto-multiple-choice)</h4>
+            <h4 class="mb-3">AMC (auto-multiple-choice)</h4>
 
             {% if project_dir_dict %}
-                <ul class="nav nav-pills flex-column flex-sm-row border" id="amc-tabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <a class="flex-sm-fill text-sm-center nav-link" id="project-tab" data-bs-toggle="pill"
-                           href="#pills-project" role="tab" aria-controls="pills-project"
-                           aria-selected="false">Project</a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a class="flex-sm-fill text-sm-center nav-link" id="data-capture-tab" data-bs-toggle="pill"
-                           href="#pills-data-capture" role="tab" aria-controls="pills-data-capture" aria-selected="false">Data
-                            capture</a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a class="flex-sm-fill text-sm-center nav-link{% if not data_pages %} disabled{% endif %}"
-                           id="marking-tab" data-bs-toggle="pill" href="#pills-marking" role="tab"
-                           aria-controls="pills-marking" aria-selected="false">Marking</a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a class="flex-sm-fill text-sm-center nav-link{% if not data_pages %} disabled{% endif %}"
-                           id="results-tab" data-bs-toggle="pill" href="#pills-reports" role="tab"
-                           aria-controls="pills-reports" aria-selected="false">Results</a>
-                    </li>
-                    <li style="padding-left:200px;">
-                        <button id="btn-view-log-file" type="button" class="btn btn-outline-secondary btn-sm">log file
-                        </button>
-                    </li>
-                </ul>
-                <div class="tab-content" id="project-pills-tab-content">
-                    <div class="tab-pane fade" id="pills-project" role="tabpanel" aria-labelledby="project-tab">
+                <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 border rounded p-1 mb-3">
+                    <ul class="nav nav-pills nav-fill flex-column flex-sm-row flex-grow-1" id="amc-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button type="button" class="nav-link w-100" id="project-tab" role="tab"
+                                    data-bs-toggle="pill" data-bs-target="#pills-project"
+                                    aria-controls="pills-project" aria-selected="false">Project</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button type="button" class="nav-link w-100" id="data-capture-tab" role="tab"
+                                    data-bs-toggle="pill" data-bs-target="#pills-data-capture"
+                                    aria-controls="pills-data-capture" aria-selected="false">Data capture</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button type="button" class="nav-link w-100" id="marking-tab" role="tab"
+                                    data-bs-toggle="pill" data-bs-target="#pills-marking"
+                                    aria-controls="pills-marking" aria-selected="false"
+                                    {% if not data_pages %}disabled{% endif %}>Marking</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button type="button" class="nav-link w-100" id="results-tab" role="tab"
+                                    data-bs-toggle="pill" data-bs-target="#pills-reports"
+                                    aria-controls="pills-reports" aria-selected="false"
+                                    {% if not data_pages %}disabled{% endif %}>Results</button>
+                        </li>
+                    </ul>
+                    <button id="btn-view-log-file" type="button" class="btn btn-outline-secondary btn-sm ms-sm-auto">
+                        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Log file
+                    </button>
+                </div>
+
+                <div class="tab-content" id="amc-tab-content">
+                    <div class="tab-pane fade" id="pills-project" role="tabpanel" aria-labelledby="project-tab" tabindex="0">
                         {% include "./amc_project.html" %}
                     </div>
-                    <div class="tab-pane fade" id="pills-data-capture" role="tabpanel" aria-labelledby="data-capture-tab">
+                    <div class="tab-pane fade" id="pills-data-capture" role="tabpanel" aria-labelledby="data-capture-tab" tabindex="0">
                         {% include "./amc_data_capture.html" %}
                     </div>
-                    <div class="tab-pane fade" id="pills-marking" role="tabpanel" aria-labelledby="marking-tab">
+                    <div class="tab-pane fade" id="pills-marking" role="tabpanel" aria-labelledby="marking-tab" tabindex="0">
                         {% include "./amc_marking.html" %}
                     </div>
-                    <div class="tab-pane fade" id="pills-reports" role="tabpanel" aria-labelledby="results-tab">
+                    <div class="tab-pane fade" id="pills-reports" role="tabpanel" aria-labelledby="results-tab" tabindex="0">
                         {% include "./amc_results.html" %}
                     </div>
                 </div>
             {% else %}
-                <div class="alert alert-warning" id="no-amc-project-dir-msg" role="alert"
-                     style="margin-top:20px;text-align:center;">
+                <div class="alert alert-warning text-center mt-3" id="no-amc-project-dir-msg" role="alert">
                     There is no AMC project directory. Please upload an AMC project directory from the left panel to be
-                    able to use this module !
+                    able to use this module!
                 </div>
             {% endif %}
         </div>
-    {% endif %}
-    {% if not user_allowed %}
-        <h4>You are not allowed to view this page!</h4>
+    {% else %}
+        <div class="alert alert-danger" role="alert">You are not allowed to view this page!</div>
     {% endif %}
 {% endblock %}

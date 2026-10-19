@@ -1,4 +1,4 @@
-import DataTable from 'datatables.net-dt';
+import DataTable from 'datatables.net-bs5';
 
 /**
  * Returns a function that provides a reusable HTMLSpanElement as a separator.

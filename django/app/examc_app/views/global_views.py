@@ -80,9 +80,8 @@ def home(request):
 
 
 def select_exam(request, pk, nav_url=None):
-    url_string = '../'
     if nav_url is None:
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'pk': str(pk)}))
+        return HttpResponseRedirect(reverse('exam-info', kwargs={'exam_pk': str(pk)}))
     else:
         return HttpResponseRedirect(reverse(nav_url, kwargs={'pk': str(pk)}))
 
@@ -182,6 +181,7 @@ def user_allowed(exam, user_id):
 @require_GET
 def serve_signed_file(request, file_hint=None):
     token = request.GET.get("token")
+
     if not token:
         rooms_plans = request.GET.get("rooms_plans")
         if rooms_plans:
@@ -213,6 +213,5 @@ def serve_signed_file(request, file_hint=None):
 
 
 def force_oidc_logout(request):
-    if request.user.is_authenticated:
-        logout(request)
+    if request.user.is_authenticated: logout(request)
     return render(request, 'oidc_auto_logout.html')

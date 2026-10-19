@@ -1,10 +1,8 @@
-from django.urls import path, include
+from django.urls import include, path
 
 from examc_app import views
 from examc_app.api.router import examc_router
-
-from examc_app.views.rooms_plans_views import GenerateRoomPlanView
-from examc_app.views.rooms_plans_special_views import GenerateRoomPlanSpecialView
+from examc_app.views.rooms_plans_views import GenerateRoomPlanView, room_plan_file
 
 urlpatterns = [
     # DRF
@@ -18,8 +16,8 @@ urlpatterns = [
     # EXAM INFO
     path('update_exam_users/<int:exam_pk>', views.update_exam_users, name="update_exam_users"),
     path('update_exam_info/<int:exam_pk>', views.update_exam_info, name="update_exam_info"),
-    path('examInfo/<int:exam_pk>', views.ExamInfoView.as_view(), name="examInfo"),
-    path('examInfo/<int:exam_pk>/<str:task_id>', views.ExamInfoView.as_view(), name="examInfo"),
+    path('exam_info/<int:exam_pk>', views.ExamInfoView.as_view(), name="exam_info"),
+    path('exam_info/<int:exam_pk>/<str:task_id>', views.ExamInfoView.as_view(), name="exam_info_with_task"),
     path('update_exam_options/<int:exam_pk>', views.update_exam_options, name='update_exam_options'),
     path('create_scale/<int:exam_pk>', views.ScaleCreateView.as_view(), name="create_scale"),
     path('delete_exam_scale/<int:scale_pk>/<int:exam_pk>', views.delete_exam_scale, name="delete_exam_scale"),
@@ -30,21 +28,24 @@ urlpatterns = [
     # PREPARATION
     path('create_exam_project', views.create_exam_project, name="create_exam_project"),
     path("exam_preparation/<int:exam_pk>/", views.exam_preparation_view, name="exam_preparation"),
-    path("exam_preparation/<int:exam_pk>/first-page/", views.prep_first_page_panel, name="prep_first_page_panel"),
-    path("exam_preparation/<int:exam_pk>/sections/", views.prep_sections_list, name="prep_sections_list"),
+    path("exam_preparation/<int:exam_pk>/first_page/", views.prep_first_page_panel, name="prep_first_page_panel"),
     path("exam_preparation/<int:exam_pk>/sections/add/", views.add_prep_section, name="add_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/", views.prep_section_panel,name="prep_section_panel"),
     path("exam_preparation/<int:exam_pk>/sections/reorder/", views.reorder_prep_sections,name="reorder_prep_sections"),
     path("reorder_prep_questions/<int:exam_pk>/<int:section_id>", views.reorder_prep_questions, name="reorder_prep_questions"),
+    path("exam_preparation/<int:exam_pk>/print_settings/", views.prep_print_settings, name="prep_print_settings"),
     path("reorder_prep_answers/<int:exam_pk>/<int:question_id>", views.reorder_prep_answers, name="reorder_prep_answers"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/delete/", views.delete_prep_section,name="delete_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/questions/add/", views.add_prep_question,name="add_prep_question"),
+    path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/questions/import/", views.import_prep_questions,name="import_prep_questions"),
+    path("exam_preparation/<int:exam_pk>/questions/import_template/", views.download_prep_questions_template,name="download_prep_questions_template"),
     path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/", views.prep_question_panel,name="prep_question_panel"),
     path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/delete/", views.delete_prep_question,name="delete_prep_question"),
-    path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/answers/", views.prep_answers_block,name="prep_answers_block"),
     path("exam_preparation/<int:exam_pk>/questions/<int:question_id>/answers/add/", views.add_prep_answer,name="add_prep_answer"),
     path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/", views.prep_answer_panel, name="prep_answer_panel"),
     path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/delete/", views.delete_prep_answer,name="delete_prep_answer"),
+    path("exam_preparation/<int:exam_pk>/scoring_infos/", views.scoring_infos, name="scoring_infos"),
+    path("exam_preparation/<int:exam_pk>/scoring_update/<int:job_pk>/", views.scoring_update_status, name="scoring_update_status"),
     path("exam_preparation/<int:exam_pk>/scoring_formulas_modal/", views.scoring_formulas_modal, name="scoring_formulas_modal"),
     path("exam_preparation/<int:exam_pk>/scoring_formula/<int:pk>/delete/", views.delete_scoring_formula, name="delete_scoring_formula"),
     path("exams/<int:exam_pk>/preview/start/", views.exam_preview_start, name="exam_preview_start"),
@@ -55,11 +56,15 @@ urlpatterns = [
     path('edit_latex_packages/<int:exam_pk>', views.edit_latex_packages, name="edit_latex_packages"),
     path('save_latex_edited_packages/<int:exam_pk>', views.save_latex_edited_packages, name="save_latex_edited_packages"),
     path('generate_final_exam_files/start/<int:exam_pk>',views.generate_final_exam_files_start,name="generate_final_exam_files_start"),
+    path('generate_final_exam_files/cancel/<int:exam_pk>',views.cancel_final_exam_files,name="cancel_final_exam_files"),
     path("unlock_exam_editing/<int:exam_pk>", views.unlock_exam_editing, name="unlock_exam_editing"),
     path("exam_preparation_students/<int:exam_pk>", views.exam_preparation_students_view, name="exam_preparation_students"),
     path("exam_preparation_students/<int:exam_pk>/import_students_xlsx", views.import_prep_students_xlsx, name="import_prep_students_xlsx"),
     path("exam_preparation_students/<int:exam_pk>/students_template", views.download_prep_students_template, name="download_prep_students_template"),
+    path("exam_preparation_students/<int:exam_pk>/students_export", views.download_prep_students_export, name="download_prep_students_export"),
     path("exam_preparation_students/<int:exam_pk>/import_students_api", views.import_prep_students_api, name="import_prep_students_api"),
+    path("exam_preparation_students/<int:exam_pk>/reorder", views.reorder_prep_students_view, name="reorder_prep_students"),
+    path("exam_preparation_students/<int:exam_pk>/assign_seats", views.assign_prep_students_seats, name="assign_prep_students_seats"),
 
 
     # REVIEW SETTINGS
@@ -68,13 +73,14 @@ urlpatterns = [
     path('assign_unrecognized_review_scan/<int:exam_pk>', views.assign_unrecognized_review_scan, name="assign_unrecognized_review_scan"),
     path('delete_unrecognized_review_scan/<int:exam_pk>', views.delete_unrecognized_review_scan, name="delete_unrecognized_review_scan"),
     path('delete_unrecognized_review_scans/<int:exam_pk>', views.delete_unrecognized_review_scans, name="delete_unrecognized_review_scans"),
-    path('reviewSettings/<int:exam_pk>/<str:curr_tab>', views.ReviewSettingsView.as_view(), name="reviewSettingsView"),
+    path('review_settings/<int:exam_pk>', views.ReviewSettingsView.as_view(), name="review_settings_view"),
+    path('review_settings/<int:exam_pk>?tab=<str:curr_tab>', views.ReviewSettingsView.as_view(), name="review_settings_view"),
     path('add_new_pages_group/<int:exam_pk>', views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help/<int:exam_pk>', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help/<int:exam_pk>', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
     path('delete_pages_group/<int:group_pk>/<int:exam_pk>', views.delete_pages_group, name="delete_pages_group"),
     path("grading_scheme_pages_group/<int:exam_pk>/<int:pages_group_id>",views.grading_scheme_pages_group,name="grading_scheme_pages_group"),
-    path("grading_scheme_pages_group/<int:exam_pk>/<int:pages_group_id>/<int:current_grading_scheme_id>",views.grading_scheme_pages_group,name="grading_scheme_pages_group"),
+    path("grading_scheme_pages_group/<int:exam_pk>/<int:pages_group_id>/<int:current_grading_scheme_id>",views.grading_scheme_pages_group,name="grading_scheme_pages_group_with_grading_scheme"),
     path("grading_scheme_panel/<int:exam_pk>/<int:grading_scheme_id>", views.grading_scheme_panel, name="grading_scheme_panel"),
     path("grading_scheme_checkboxes/<int:exam_pk>/<int:grading_scheme_id>", views.grading_scheme_checkboxes, name="grading_scheme_checkboxes"),
     path("delete_grading_scheme_checkbox/<int:exam_pk>/<int:grading_scheme_checkbox_id>", views.delete_grading_scheme_checkbox,name="delete_grading_scheme_checkbox"),
@@ -85,7 +91,7 @@ urlpatterns = [
 
     # REVIEW
     path('review/<int:exam_pk>', views.ReviewView.as_view(), name="reviewView"),
-    path('reviewGroup/<int:exam_pk>/<int:group_pk>/<str:currpage>/<int:current_grading_scheme>', views.ReviewGroupView.as_view(), name="reviewGroup"),
+    path('review_group/<int:exam_pk>/<int:group_pk>/<str:currpage>/<int:current_grading_scheme>', views.ReviewGroupView.as_view(), name="review_group"),
     path('save_markers/<int:exam_pk>', views.save_markers, name="save_markers"),
     path('get_markers_and_comments/<int:exam_pk>', views.get_markers_and_comments, name="get_markers_and_comments"),
     path('save_comment/<int:exam_pk>', views.save_comment, name="save_comment"),
@@ -104,6 +110,7 @@ urlpatterns = [
 
     # AMC
     path('amc_view/<int:exam_pk>', views.amc_view, name="amc_view"),
+    path('amc_view/<int:exam_pk>?tab=<str:curr_tab>', views.amc_view, name="amc_view"),
     path('amc_data_capture_manual/<int:exam_pk>', views.amc_data_capture_manual, name="amc_data_capture_manual"),
     path('get_amc_marks_positions/<int:exam_pk>', views.get_amc_marks_positions, name="get_amc_marks_positions"),
     path('update_amc_mark_zone/<int:exam_pk>', views.update_amc_mark_zone, name="update_amc_mark_zone"),
@@ -136,13 +143,13 @@ urlpatterns = [
     path('get_unrecognized_pages/<int:exam_pk>', views.get_unrecognized_pages, name="get_unrecognized_pages"),
 
     # RESULTS & STATISTICS
-    path('catalogPdf/<int:exam_pk>', views.display_catalog, name="catalogPdf"),
+    path('catalog_pdf/<int:exam_pk>', views.display_catalog, name="catalog_pdf"),
     path('update_questions/<int:exam_pk>', views.update_questions, name="update_questions"),
     path('update_student_present/<int:exam_pk>/<int:student_pk>/<int:value>', views.update_student_present, name="update_student_present"),
-    path('generateStats/<int:exam_pk>', views.generate_stats, name="generate_stats"),
-    path('generalStats/<int:exam_pk>', views.general_statistics_view, name="generalStats"),
+    path('generate_stats/<int:exam_pk>', views.generate_stats, name="generate_stats"),
+    path('general_stats/<int:exam_pk>', views.general_statistics_view, name="general_stats"),
     path('studentsResults/<int:exam_pk>', views.students_results_view, name="studentsResults"),
-    path('questionsStats/<int:exam_pk>', views.questions_statistics_view, name="questionsStats"),
+    path('questions_stats/<int:exam_pk>', views.questions_statistics_view, name="questions_stats"),
     path('export_data/<int:exam_pk>', views.export_data, name="export_data"),
     path('import_data_4_stats/<int:exam_pk>', views.import_data_4_stats, name="import_data_4_stats"),
     path('upload_amc_csv/<int:exam_pk>', views.upload_amc_csv, name="upload_amc_csv"),
@@ -150,14 +157,13 @@ urlpatterns = [
 
     # ROOM PLAN
     path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
-    path('generate_room_plan/special', GenerateRoomPlanSpecialView.as_view(), name='generate_room_plan_special'),
+    path("rooms_plans/<str:folder>/<str:filename>", room_plan_file, name="room_plan_file"),
 
     # CSVGEN
     path('csvgen/', views.csvgen, name="csvgen"),
     path('csvgen/templates.zip', views.download_csvgen_templates, name="download_csvgen_templates"),
     # path('export_csv/', views.export_csv, name="export_csv"),
     path('import_students_excel/', views.import_students_excel, name="import_students_excel"),
-    path('change_csv_type/<str:choice>', views.change_csv_type, name="change_csv_type"),
 
     # SEARCH LDAP
     path('search/', views.upload_excel_generate_csv, name='search_people'),

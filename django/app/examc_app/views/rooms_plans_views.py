@@ -1,337 +1,362 @@
 import csv
+import logging
 import math
-import os
 import secrets
 import zipfile
 from pathlib import Path
+from typing import Any
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from django.http import FileResponse, HttpResponse
+from django.core.files.uploadedfile import UploadedFile
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
-from django.urls import reverse_lazy
+from django.urls import reverse
 from django.views.generic.edit import FormView
 
-from examc_app.forms.misc import SeatingForm
-from examc_app.utils.rooms_plans_functions import generate_plan
+from examc_app.forms.misc import SeatingForm, SeatingSpecialForm
+from examc_app.utils.rooms_plans_functions import (
+    RoomPlan,
+    RoomPlanError,
+    generate_plans,
+)
 
-# CSV_TO_JPG_MAP = {
-#     'AAC_006.csv': 'AAC_006.jpg',
-#     'AAC_008.csv': 'AAC_008.jpg',
-#     'AAC_020.csv': 'AAC_020.jpg',
-#     'AAC_114.csv': 'AAC_114.jpg',
-#     'AAC_120.csv': 'AAC_120.jpg',
-#     'AAC_132.csv': 'AAC_132.jpg',
-#     'AAC_137.csv': 'AAC_137.jpg',
-#     'AAC_231.csv': 'AAC_231.jpg',
-#     'BC_07.csv': 'BC07.jpg',
-#     'BC_08.csv': 'BC08.jpg',
-#     'BCH_2201.csv': 'BCH_2201.jpg',
-#     'BS_150.csv': 'BS_150.jpg',
-#     'BS_150_soft.csv': 'BS_150_soft.jpg',
-#     'BS_160.csv': 'BS_160.jpg',
-#     'BS_170.csv': 'BS_170.jpg',
-#     'BS_260.csv': 'BS_260.jpg',
-#     'BS_270.csv': 'BS_270.jpg',
-#     'CE_1_1.csv': 'CE_1_1.jpg',
-#     'CE_1_2.csv': 'CE_1_2.jpg',
-#     'CE_1_3.csv': 'CE_1_3.jpg',
-#     'CE_1_4.csv': 'CE_1_4.jpg',
-#     'CE_1_5.csv': 'CE_1_5.jpg',
-#     'CE_1_6.csv': 'CE_1_6.jpg',
-#     'CE_1_soft.csv': 'CE_1_1.jpg',
-#     'CE_3_soft.csv': 'CE_1_3.jpg',
-#     'CE_1100.csv': 'CE_1100.jpg',
-#     'CE_1101.csv': 'CE_1101.jpg',
-#     'CE_1103.csv': 'CE_1103.jpg',
-#     'CE_1104.csv': 'CE_1104.jpg',
-#     'CE_1105.csv': 'CE_1105.jpg',
-#     'CE_1106.csv': 'CE_1106.jpg',
-#     'CE_1515_bas.csv': 'CE_1515_bas.jpg',
-#     'CE_1515_haut.csv': 'CE_1515_haut.jpg',
-#     'CH_B3_30.csv': 'CH_B3_30.jpg',
-#     'CM_0_11.csv': 'CM_0_11.jpg',
-#     'CM_0_13.csv': 'CM_0_13.jpg',
-#     'CM_1_1.csv': 'CM_1_1.jpg',
-#     'CM_1_2.csv': 'CM_1_2.jpg',
-#     'CM_1_3.csv': 'CM_1_3.jpg',
-#     'CM_1_4.csv': 'CM_1_4.jpg',
-#     'CM_1_5.csv': 'CM_1_5.jpg',
-#     'CM_1105.csv': 'CM_1105.jpg',
-#     'CM_1106.csv': 'CM_1106.jpg',
-#     'CM_1111.csv': 'CM1111.jpg',
-#     'CM_1112.csv': 'CM1112.jpg',
-#     'CM_1113.csv': 'CM1113.jpg',
-#     'CM_1120.csv': 'CM_1120.jpg',
-#     'CM_1121.csv': 'CM_1121.jpg',
-#     'CM_1221.csv': 'CM_1221.jpg',
-#     'CO_01.csv': 'CO_01.jpg',
-#     'CO_02.csv': 'CO_02.jpg',
-#     'CO_03.csv': 'CO_03.jpg',
-#     'CO_4.csv': 'CO4.jpg',
-#     'CO_5.csv': 'CO5.jpg',
-#     'CO_6.csv': 'CO6.jpg',
-#     'CO_023.csv': 'CO_023.jpg',
-#     'CO_020.csv': 'CO_020.jpg',
-#     'CO_021.csv': 'CO_021.jpg',
-#     'CO_260.csv': 'CO_260.jpg',
-#     'GC_A3_31.csv': 'GC_A3_31.jpg',
-#     'GC_B3_31.csv': 'GC_B3_31.jpg',
-#     'GC_C3_30.csv': 'GC_C3_30.jpg',
-#     'GR_A3_32.csv': 'GR_A3_32.jpg',
-#     'GR_B3_30.csv': 'GR_B3_30.jpg',
-#     'INF_1.csv': 'INF_1.jpg',
-#     'INF_2.csv': 'INF_2.jpg',
-#     'INJ_218.csv': 'INJ_218.jpg',
-#     'INM_10.csv': 'INM_10.jpg',
-#     'INM_11.csv': 'INM_11.jpg',
-#     'INM_200.csv': 'INM_200.jpg',
-#     'INM_202.csv': 'INM_202.jpg',
-#     'MA_A1_10.csv': 'MA_A1_10.jpg',
-#     'MA_A3_30.csv': 'MA_A3_30.jpg',
-#     'MA_A3_31.csv': 'MA_A3_31.jpg',
-#     'MA_A1_12.csv': 'MA_A1_12.jpg',
-#     'ME_B3_31.csv': 'ME_B3_31.jpg',
-#     'MXF_014.csv': 'MXF_014.jpg',
-#     'PO_01.csv': 'PO_01.jpg',
-#     "PO_01_old.csv": "PO_01_old.jpg",
-#     'SG_0211.csv': 'SG_0211.jpg',
-#     'SG_0213.csv': 'SG_0213.jpg',
-#     'SG_1138.csv': 'SG_1138.jpg',
-#     'STCC_A.csv': 'STCC.jpg',
-#     'STCC_B.csv': 'STCC_B.jpg',
-#     'STCC_C.csv': 'STCC_C.jpg',
-#     'STCC_D.csv': 'STCC_D.jpg',
-#     'STCC_E.csv': 'STCC_E.jpg',
-#     'STCC_F.csv': 'STCC_F.jpg',
-#     'STCC_G.csv': 'STCC_G.jpg',
-#     'STCC_H.csv': 'STCC_H.jpg',
-# }
+logger = logging.getLogger(__name__)
 
-def CSV_to_JPG(csv_dir: str | Path, jpg_dir: str | Path | None = None) -> dict[str, str]:
-    csv_dir = Path(csv_dir)
-    jpg_dir = Path(jpg_dir) if jpg_dir else csv_dir
+ROOMS_PLANS_ROOT = Path(settings.ROOMS_PLANS_ROOT)
+CSV_DIR = ROOMS_PLANS_ROOT / "csv"
+MAP_DIR = ROOMS_PLANS_ROOT / "map"
+EXPORT_DIR = ROOMS_PLANS_ROOT / "export"
+SPECIAL_DIR = ROOMS_PLANS_ROOT / "csv_special_numbers"
 
-    image_index: dict[str, str] = {}
-    for ext in ("*.jpg", "*.jpeg", "*.png"):
-        for p in jpg_dir.glob(ext):
-            image_index[p.stem.lower()] = p.name
+IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
 
-    mapping: dict[str, str] = {}
-    for csv_path in csv_dir.glob("*.csv"):
-        key = csv_path.stem.lower()
-        if key in image_index:
-            mapping[csv_path.name] = image_index[key]
-
-    return mapping
+SeatRange = tuple[int, int]
 
 
-CSV_TO_JPG_MAP = CSV_to_JPG(str(settings.ROOMS_PLANS_ROOT)+"/csv", str(settings.ROOMS_PLANS_ROOT)+"/map")
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def csv_to_image_map(csv_dir: Path, image_dir: Path) -> dict[str, str]:
+    """Map each room CSV file name to the plan image with the same name (case-insensitive)."""
+    images = {
+        path.stem.lower(): path.name
+        for path in image_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+    }
+    return {
+        path.name: images[path.stem.lower()]
+        for path in csv_dir.glob("*.csv")
+        if path.stem.lower() in images
+    }
 
 
-def count_csv_lines(file_path):
+CSV_TO_JPG_MAP = csv_to_image_map(CSV_DIR, MAP_DIR)
+
+
+def count_csv_lines(file_path: Path) -> int | None:
+    """Number of non-empty rows in a CSV file, or None if it can't be read."""
     try:
-        with open(file_path, 'r', newline='') as file:
-            reader = csv.reader(file)
-            line_count = sum(1 for row in reader if any(row))
-        return line_count
-    except Exception as e:
-        print(f"Error reading CSV file: {e}")
+        with file_path.open(newline="") as file:
+            return sum(1 for row in csv.reader(file) if any(row))
+    except (OSError, csv.Error, UnicodeDecodeError):
+        logger.exception("Error reading CSV file %s", file_path)
         return None
 
 
-def calculate_seat_numbers(csv_files, first_seat_number, last_seat_number, count_csv_lines):
-    try:
-        N = [0] * len(csv_files)
-        F = [0] * len(csv_files)
-        L = [0] * len(csv_files)
+def calculate_seat_numbers(
+    seat_counts: list[int],
+    first_seat_number: int,
+    last_seat_number: int,
+) -> tuple[list[int], list[int]]:
+    """
+    Split [first_seat_number, last_seat_number] across rooms in proportion to their size.
+    Returns (first numbers, last numbers), one per room. Raises ValueError if impossible.
+    """
+    total_seats = sum(seat_counts)
+    if total_seats == 0:
+        raise ValueError("The selected rooms have no seats")
 
-        F[0] = first_seat_number
-        maxN = last_seat_number
+    ratio = min((last_seat_number - first_seat_number + 1) / total_seats, 1)
 
-        total_seats = sum(count_csv_lines(file) for file in csv_files)
+    firsts: list[int] = []
+    lasts: list[int] = []
+    next_first = first_seat_number
 
-        ratio = (last_seat_number - first_seat_number + 1) / total_seats
-        ratio = min(ratio, 1)
+    for index, count in enumerate(seat_counts):
+        last = math.ceil(count * ratio) + next_first - 1
+        if index == len(seat_counts) - 1:
+            last = min(last, last_seat_number)
+        if last < next_first:
+            raise ValueError("Negative number of seats selected")
 
-        for j in range(len(csv_files)):
-            N[j] = count_csv_lines(csv_files[j])
+        firsts.append(next_first)
+        lasts.append(last)
+        next_first = last + 1
 
-            L[j] = math.ceil(N[j] * ratio) + F[j] - 1
-            if j < len(csv_files) - 1:
-                F[j + 1] = L[j] + 1
-            else:
-                L[j] = min(L[j], maxN)
-
-            if L[j] < F[j]:
-                raise ValueError("Negative number of seats selected")
-
-        return F, L
-    except Exception as e:
-        print(f"Error calculating seat numbers: {e}")
-        return None, None
-
-def skip_places(csv_files,num_to_skip, count_csv_lines):
-    try:
-        seats = []
-        for file in csv_files:
-            seats.append(count_csv_lines(file) + num_to_skip)
-        print(seats)
-        return seats
-    except Exception as e:
-        print(f"Error calculating seat numbers: {e}")
-        return None, None
+    return firsts, lasts
 
 
-def get_user_token(request):
-    if 'user_token' not in request.session:
-        request.session['user_token'] = secrets.token_hex(16)
-    return request.session['user_token']
+def seat_ranges(
+    seat_counts: list[int],
+    *,
+    numbering_option: str,
+    skipping_option: str,
+    fill_all_seats: bool,
+    first_seat_number: int,
+    last_seat_number: int | None,
+    special_count: int | None,
+) -> list[SeatRange]:
+    """First and last seat number for each room. Raises ValueError if impossible."""
+    special_numbering = skipping_option != "skip" and numbering_option == "special"
 
+    if special_numbering:
+        if special_count is None:
+            raise ValueError("Special numbering needs a special numbering CSV file. Upload one and try again.")
+        if not fill_all_seats and last_seat_number is None:
+            raise ValueError('Enter a last seat number, or tick "Fill all seats" to use every number in the special file.')
 
-class GenerateRoomPlanView(FormView):
-    template_name = 'rooms_plans/rooms_plans.html'
-    form_class = SeatingForm
-    success_url = reverse_lazy('success')
-
-    def form_valid(self, form):
-        csv_files = form.cleaned_data['csv_file']
-        image_files = [CSV_TO_JPG_MAP[csv_file] for csv_file in csv_files]
-        numbering_option = form.cleaned_data['numbering_option']
-        skipping_option = form.cleaned_data['skipping_option']
-        first_seat_number = form.cleaned_data['first_seat_number']
-        last_seat_number = form.cleaned_data['last_seat_number']
-        special_file = form.cleaned_data['special_file']
-        shape_to_draw = form.cleaned_data['shape_to_draw']
-        fill_all_seats = form.cleaned_data['fill_all_seats']
-        # skip_place = form.cleaned_data['skipping_place']
-
-        special_files_paths = []
-        current_seat_number = first_seat_number
-        export_files = []
-        export_files_url = []
-        user_token = get_user_token(self.request)
-
-        zip_filename = f'seat_map_{user_token}_export.zip'
-
-        for export_file in os.listdir(os.path.join(settings.ROOMS_PLANS_ROOT, "export")):
-            file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-
-        for special_file_path in os.listdir(os.path.join(settings.ROOMS_PLANS_ROOT, "csv_special_numbers")):
-            file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "csv_special_numbers", special_file_path)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-
-        if special_file:
-            fs = FileSystemStorage(location=str(settings.ROOMS_PLANS_ROOT) + '/csv_special_numbers')
-            filename = fs.save(special_file.name, special_file)
-            special_file_path = fs.path(filename)
-            special_files_paths.append(special_file_path)
-            special_file_number = count_csv_lines(str(special_file_path))
-            print(special_file_number)
-            self.request.session['special_file_path'] = special_file_path
-        else:
-            special_file = self.request.session.get('special_file_path')
-
-        csv_file_paths = [str(settings.ROOMS_PLANS_ROOT) + '/csv/' + csv_file for csv_file in csv_files]
-        f, l = calculate_seat_numbers(
-            csv_files=csv_file_paths,
-            first_seat_number=first_seat_number,
-            last_seat_number=last_seat_number or sum([count_csv_lines(f) for f in csv_file_paths]),
-            count_csv_lines=count_csv_lines
+    split_firsts: list[int] = []
+    split_lasts: list[int] = []
+    if not fill_all_seats and not special_numbering:
+        split_firsts, split_lasts = calculate_seat_numbers(
+            seat_counts, first_seat_number, last_seat_number or sum(seat_counts)
         )
 
-        csv_data = []
-        for i in range(len(csv_files)):
-            image_file = image_files[i]
-            csv_file = csv_files[i]
-            export_file = f"{image_file.replace('.jpg', f'_{user_token}_export')}.jpg"
-            total_seats = count_csv_lines(os.path.join(settings.ROOMS_PLANS_ROOT, 'csv', csv_file))
+    ranges: list[SeatRange] = []
+    current = first_seat_number
+    previous_last = 0
 
-            if total_seats is None:
+    for index, count in enumerate(seat_counts):
+        first: int
+        last: int
+
+        if skipping_option == "skip" and fill_all_seats:
+            # Same numbering as the original code, including the +1000 on the first room
+            if index == 0:
+                first = first_seat_number
+                last = first + count + 1000 - 1
+            else:
+                first = previous_last + 1
+                last = previous_last + count - 1
+        elif special_numbering:
+            # Checked above: special_count is set, and last_seat_number is set unless filling all seats
+            assert special_count is not None
+            first = 1
+            if fill_all_seats or last_seat_number is None:
+                last = first + special_count - 1
+            else:
+                last = last_seat_number
+        elif fill_all_seats:
+            first = current
+            last = current + count - 1
+        else:
+            first, last = split_firsts[index], split_lasts[index]
+
+        current = previous_last = last
+        current += 1
+
+        ranges.append((first, last))
+
+    return ranges
+
+
+def get_user_token(request: HttpRequest) -> str:
+    token: str | None = request.session.get("user_token")
+    if token is None:
+        token = secrets.token_hex(16)
+        request.session["user_token"] = token
+    return token
+
+
+def remove_files(directory: Path, pattern: str) -> None:
+    for path in directory.glob(pattern):
+        if path.is_file():
+            path.unlink(missing_ok=True)
+
+
+def export_file_name(image_file: str, token: str) -> str:
+    return f"{Path(image_file).stem}_{token}_export.jpg"
+
+
+# ---------------------------------------------------------------------------
+# View
+# ---------------------------------------------------------------------------
+
+class GenerateRoomPlanView(FormView):
+    """
+    One page with two tabs: "default" (this form, generated on the server) and
+    "special" (labels placed in the browser). Open on the special tab with
+    GenerateRoomPlanView.as_view(extra_context={"curr_tab": "special"}).
+    """
+
+    template_name = "public/rooms_plans.html"
+    form_class = SeatingForm
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.setdefault("curr_tab", "default")
+        # The prefix keeps the special form's names and ids apart from the default form's
+        context["tabs"] = [
+            ("default", context["form"]),
+            ("special", SeatingSpecialForm(prefix="special")),
+        ]
+        return context
+
+    def form_valid(self, form: SeatingForm) -> HttpResponse:
+        data = form.cleaned_data
+        csv_files: list[str] = data["csv_file"]
+        numbering_option: str = data["numbering_option"]
+        skipping_option: str = data["skipping_option"]
+        fill_all_seats: bool = data["fill_all_seats"]
+        shape_to_draw = data["shape_to_draw"]
+
+        # Empty "first seat number" means start at 1
+        first_seat_number: int = data["first_seat_number"] if data["first_seat_number"] is not None else 1
+
+        token = get_user_token(self.request)
+
+        # Room images
+        missing = [csv_file for csv_file in csv_files if csv_file not in CSV_TO_JPG_MAP]
+        if missing:
+            return HttpResponse(f"No plan image found for: {', '.join(missing)}", status=404)
+        image_files = [CSV_TO_JPG_MAP[csv_file] for csv_file in csv_files]
+
+        # Seats per room (each CSV is read once)
+        seat_counts: list[int] = []
+        for csv_file in csv_files:
+            count = count_csv_lines(CSV_DIR / csv_file)
+            if count is None:
                 return HttpResponse(f"Error reading CSV file: {csv_file}", status=500)
+            seat_counts.append(count)
 
-            if skipping_option == 'skip':
-                    if fill_all_seats:
-                        if i == 0:
-                            first_seat_number = form.cleaned_data['first_seat_number']
-                            last_seat_number = first_seat_number + total_seats + 1000 - 1
-                        else:
-                            first_seat_number = last_seat_number + 1
-                            last_seat_number = last_seat_number + total_seats - 1
-                    else:
-                        first_seat_number = f[i]
-                        last_seat_number = l[i]
+        # Special numbering file (new upload, or the one kept from a previous request)
+        special_path = self._special_file_path(data["special_file"], token)
+        special_count = count_csv_lines(Path(special_path)) if special_path else None
 
-            elif numbering_option == 'special':
-                first_seat_number = 1
-                if fill_all_seats:
-                    last_seat_number = first_seat_number + special_file_number - 1
-                else:
-                    last_seat_number = form.cleaned_data['last_seat_number']
+        # Special numbering reads its numbers from the file, whatever the skip option.
+        # (Skipping without a file just skips nothing.)
+        if numbering_option == "special" and special_path is None:
+            return HttpResponse(
+                "Special numbering needs a special numbering CSV file. Upload one and try again.", status=400
+            )
 
-            # skip every two places
-            # elif skip_place == '2':
-            #     first_seat_number = 1
-            #     if fill_all_seats:
-            #         last_seat_number = skip_places(csv_file_paths, 2, count_csv_lines)
+        # generate_plans builds the path itself from csv_special_numbers/ + this name,
+        # and treats an empty string as "no file"
+        special_name = Path(special_path).name if special_path else ""
+
+        try:
+            ranges = seat_ranges(
+                seat_counts,
+                numbering_option=numbering_option,
+                skipping_option=skipping_option,
+                fill_all_seats=fill_all_seats,
+                first_seat_number=first_seat_number,
+                last_seat_number=data["last_seat_number"],
+                special_count=special_count,
+            )
+        except ValueError as error:
+            return HttpResponse(str(error), status=400)
+
+        rooms = [
+            RoomPlan(
+                image_file=image_file,
+                csv_file=csv_file,
+                export_file=export_file_name(image_file, token),
+                first_seat=first,
+                last_seat=last,
+            )
+            for image_file, csv_file, (first, last) in zip(image_files, csv_files, ranges)
+        ]
+
+        # Only remove this user's previous exports, not everyone's
+        remove_files(EXPORT_DIR, f"*_{token}_export.*")
+
+        try:
+            generate_plans(
+                rooms,
+                numbering_option=numbering_option,
+                skipping_option=skipping_option,
+                special_file=special_name,
+                shape=shape_to_draw,
+            )
+        except RoomPlanError as error:
+            return HttpResponse(f"Error during plan generation: {error}", status=500)
+
+        export_paths = [EXPORT_DIR / room.export_file for room in rooms]
+
+        if self.request.POST.get("action") == "download":
+            zip_path = EXPORT_DIR / f"seat_map_{token}_export.zip"
+            with zipfile.ZipFile(zip_path, "w") as archive:
+                for export_path in export_paths:
+                    archive.write(export_path, export_path.name)
+            return FileResponse(zip_path.open("rb"), as_attachment=True, filename=zip_path.name)
+
+        # "preview" (and the default)
+        return render(
+            self.request,
+            self.template_name,
+            self.get_context_data(
+                form=form,
+                curr_tab="default",
+                export_files=[reverse("room_plan_file", args=["export", path.name]) for path in export_paths],
+                special_file=special_path,
+            ),
+        )
+
+    def _special_file_path(self, uploaded: UploadedFile | None, token: str) -> str | None:
+        """Save a newly uploaded special file, or reuse the one stored in the session."""
+        session = self.request.session
+
+        if uploaded is None:
+            stored: str | None = session.get("special_file_path")
+            return stored if stored and Path(stored).is_file() else None
+
+        # Replace only this user's previous file
+        remove_files(SPECIAL_DIR, f"{token}_*")
+        storage = FileSystemStorage(location=SPECIAL_DIR)
+        saved_name = storage.save(f"{token}_{Path(uploaded.name or 'special.csv').name}", uploaded)
+        path = storage.path(saved_name)
+        session["special_file_path"] = path
+        return path
 
 
-            else:
-                if fill_all_seats:
-                    first_seat_number = current_seat_number
-                    last_seat_number = current_seat_number + total_seats - 1
-                else:
-                    first_seat_number = f[i]
-                    last_seat_number = l[i]
+# ---------------------------------------------------------------------------
+# Room plan images (open to anonymous users, see LOGIN_REQUIRED_IGNORE_PATHS)
+# ---------------------------------------------------------------------------
 
-            current_seat_number = last_seat_number + 1
-            csv_data.append([
-                image_file, csv_file, export_file, numbering_option, skipping_option,
-                first_seat_number, last_seat_number, str(special_file), shape_to_draw])
 
-        for i in range(len(csv_files)):
-            image_file = image_files[i]
-            csv_file = csv_files[i]
-            export_file = f"{image_file.replace('.jpg', f'_{user_token}_export')}.jpg"
-            result = generate_plan(csv_data, image_file, csv_file, export_file, numbering_option, skipping_option,
-                                   str(first_seat_number), str(last_seat_number), special_file, shape_to_draw)
+def room_plan_file(request: HttpRequest, folder: str, filename: str) -> FileResponse:
+    """
+    Serve a room plan image.
 
-            if result == 'ok':
-                export_file_path = os.path.join(settings.ROOMS_PLANS_ROOT, "export", export_file)
-                if os.path.exists(export_file_path):
-                    export_files.append(export_file_path)
-                    export_file_url = "/protected/?rooms_plans=/export/" + export_file  # +os.path.join(settings.ROOMS_PLANS_URL, "export", export_file)
-                    export_files_url.append(export_file_url)
+    map:    looked up by room name, with or without extension ("CO_1", "CO_1.csv" and
+            "CO_1.jpg" all give the CO_1 plan), so both room selects can use it.
+    export: only readable by the session that generated it.
+    """
+    if folder == "map":
+        room = Path(filename).stem.lower()
+        path = next(
+            (
+                image
+                for image in MAP_DIR.iterdir()
+                if image.is_file() and image.suffix.lower() in IMAGE_EXTENSIONS and image.stem.lower() == room
+            ),
+            None,
+        )
+        if path is None:
+            raise Http404
+        return FileResponse(path.open("rb"))
 
-                    zip_filename = f'seat_map_{user_token}_export.zip'
-                    zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
+    if folder == "export":
+        token = request.session.get("user_token")
+        if not token or f"_{token}_export" not in filename:
+            raise Http404
 
-                    with zipfile.ZipFile(zip_filepath, 'w') as zipf:
-                        for export_file in export_files:
-                            zipf.write(export_file, os.path.basename(export_file))
-                else:
-                    return HttpResponse(f"No export file found for {export_file}.", status=404)
-            else:
-                return HttpResponse("Error during plan generation : " + result, status=404)
+        path = (EXPORT_DIR / filename).resolve()
+        if path.parent != EXPORT_DIR.resolve() or not path.is_file():
+            raise Http404
+        return FileResponse(path.open("rb"))
 
-        if self.request.POST.get('action') == 'preview':
-            if export_files:
-                return render(self.request, 'rooms_plans/rooms_plans.html',
-                                {'export_files': export_files_url, 'form': form, 'special_file': special_file})
-            else:
-                return HttpResponse("No export files found.", status=404)
-    
-        elif self.request.POST.get('action') == 'download':
-            zip_filename = f'seat_map_{user_token}_export.zip'
-            zip_filepath = os.path.join(settings.ROOMS_PLANS_ROOT, "export", zip_filename)
-
-            if os.path.exists(zip_filepath):
-                return FileResponse(
-                    open(zip_filepath, "rb"), as_attachment=True, filename=zip_filename
-                )
-            else:
-                return HttpResponse("No ZIP file found.", status=404)
-        return None
+    raise Http404

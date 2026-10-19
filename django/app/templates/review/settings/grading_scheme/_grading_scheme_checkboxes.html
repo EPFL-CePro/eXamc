@@ -1,0 +1,111 @@
+<form method="POST"
+      hx-post="{% url 'grading_scheme_checkboxes' exam_selected.pk  grading_scheme.id %}"
+      hx-target="#chk-panel-{{ grading_scheme.id }}"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+
+    {% if error_msg %}
+        <div class="alert alert-danger mb-3" style="max-width: fit-content">{{ error_msg }}</div>
+    {% endif %}
+
+    {% if saved %}
+        <div class="alert alert-success mb-3" style="max-width: fit-content">Saved.</div>
+    {% endif %}
+
+    {% if scheme_in_use %}
+        <div class="alert alert-warning mb-3" style="max-width: fit-content">
+            This grading scheme is used in review. Changing, creating and removing marking criteria points is now locked.
+        </div>
+    {% endif %}
+
+    {{ grading_scheme_checkboxes_formset.management_form }}
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Name</th>
+                <th style="width:12rem{% if points != grading_scheme.max_points %};color:red{% endif %}">
+                    Points {{ points }} / {{ grading_scheme.max_points }}
+                </th>
+                <th>Description</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody data-sortable="checkboxes">
+        {% for form in grading_scheme_checkboxes_formset.forms %}
+            <tr class="group-form sortable-row">
+                <td class="drag-handle" style="cursor:move; text-align:center;padding-top:1rem">
+                    <i class="fa-solid fa-grip-vertical"></i>
+                </td>
+
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+                {% for field in form.visible_fields %}
+                    {% if field.label == 'Delete' %}
+                        <td style="text-align:center;padding-top:35px">{{ field }}</td>
+                    {% elif field.label == 'Description' %}
+                        <td style="min-width:400px;width:50vw">{{ field }}</td>
+                    {% else %}
+                        <td>{{ field }}</td>
+                    {% endif %}
+                {% endfor %}
+
+                <td>
+                    {% if scheme_in_use %}
+                        <span class="btn btn-light disabled"
+                              title="Locked because this grading scheme is already used in review.">
+                            <i class="fa-solid fa-lock fa-lg" style="margin-right:5px;color:#6c757d;"></i>
+                        </span>
+                    {% else %}
+                        <a class="btn btn-light"
+                           hx-post="{% url 'delete_grading_scheme_checkbox' exam_selected.pk form.instance.pk %}"
+                           hx-target="#chk-panel-{{ grading_scheme.id }}"
+                           hx-swap="innerHTML"><i class="fa-solid fa-circle-minus fa-xl"
+                                                  style="margin-right:5px;color:red;"></i></a>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        <tr class="grading_scheme_checkbox_formset_empty_form" hidden>
+            {% for hidden in form.extra_forms.0.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% for field in form.extra_forms.0.visible_fields %}
+                {% if field.label == 'Delete' %}
+                    <td style="text-align:center;padding-top:35px">{{ field }}</td>
+                {% elif field.label == 'Description' %}
+                    <td style="min-width:400px;width:50vw">{{ field }}</td>
+                {% else %}
+                    <td>{{ field }}</td>
+                {% endif %}
+            {% endfor %}
+            {% load static %}
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr>
+            <td colspan="4" style="padding:0">
+                {% if scheme_in_use %}
+                    <span id="add-checkbox-form" style="margin-top:20px;" class="btn btn-light disabled"
+                          title="Locked because this grading scheme is already used in review">
+                <i class="fa-solid fa-lock fa-xl" style="margin-right:5px;color:#6c757d;"></i>
+              </span>
+                {% else %}
+                    <a id="add-checkbox-form" style="margin-top:20px;" class="btn btn-light"
+                       title="Add Another Checkbox"
+                       hx-post="{% url 'add_new_grading_scheme_checkbox' exam_selected.pk grading_scheme.id %}"
+                       hx-target="#chk-panel-{{ grading_scheme.id }}"
+                       hx-swap="innerHTML"><i class="fa-solid fa-circle-plus fa-2xl"
+                                              style="margin-right:5px;color:green;"></i></a>
+                {% endif %}
+            </td>
+        </tr>
+        </tfoot>
+    </table>
+    <button type="submit" style="margin:20px;" class="btn btn-primary btn-sm"><i class="fas fa-floppy-disk fa-lg"
+                                                                                 style="margin-right:10px;"></i>Save
+    </button>
+
+</form>

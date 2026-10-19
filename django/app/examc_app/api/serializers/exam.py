@@ -1,11 +1,10 @@
 from typing import Any
 
-from examc_app.models import Exam
-
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 from rest_framework import serializers
 
+from examc_app.models import Exam
 from examc_app.utils.dashboard import build_exam_card
 
 _NOT_BUILT = object()
@@ -14,7 +13,6 @@ class ExamRowSerializer(serializers.Serializer):
     exam = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
-    modules = serializers.SerializerMethodField()
     review = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
     DT_RowAttr = serializers.SerializerMethodField()
@@ -45,19 +43,6 @@ class ExamRowSerializer(serializers.Serializer):
 
         return card["role"]
 
-    def get_modules(self, exam):
-        card = self._card(exam)
-        if card is None: return None
-
-        value = card["module_badges"]
-
-        if not value:
-            return None
-        return format_html(
-            '<div class="dashboard-badges">{}</div>',
-            format_html_join("", '<span class="badge badge-secondary">{}</span>', ((b,) for b in value)),
-        )
-
     def get_review(self, exam):
         card = self._card(exam)
         if card is None: return None
@@ -71,7 +56,7 @@ class ExamRowSerializer(serializers.Serializer):
 
         return format_html(
             '<div class="dashboard-muted">{} / {}</div>'
-            '<div class="progress dashboard-review-progress">'
+            '<div class="progress" style="--bs-progress-height: .5rem">'
             '<div class="progress-bar {}" role="progressbar" style="width: {}%;" '
             'aria-valuenow="{}" aria-valuemin="0" aria-valuemax="100"></div></div>',
             value["graded"], value["total"], bar_class, value["percent"], value["percent"],
@@ -84,11 +69,11 @@ class ExamRowSerializer(serializers.Serializer):
         value = card["actions"]
 
         return format_html(
-            '<div class="dashboard-actions">{}</div>',
+            '<div class="d-flex flex-wrap gap-2" style="min-width: 14rem">{}</div>',
             format_html_join(
                 "",
                 '<a class="btn btn-dark btn-sm" href="{}">'
-                '<i class="fa-solid {} dashboard-action-icon"></i>{}</a>',
+                '<i class="fa-solid {} me-1"></i>{}</a>',
                 ((a["url"], a["icon"], a["label"]) for a in value),
             )
         )

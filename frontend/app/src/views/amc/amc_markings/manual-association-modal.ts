@@ -1,5 +1,5 @@
-import DataTable, { type Api } from 'datatables.net-dt';
-import 'datatables.net-dt/css/dataTables.dataTables.css';
+import DataTable, { type Api } from 'datatables.net-bs5';
+import 'datatables.net-bs5/css';
 
 import { setupDatatables } from '@examc/helpers/datatables.ts';
 import { ExamcModal } from '@examc/modals/base.ts';
@@ -19,7 +19,7 @@ export class ManualAssociationModal extends ExamcModal {
             bodyContent: `
                 <div class="modal-body">
                     <div class="alert alert-danger" role="alert" hidden></div>
-                    <table class="display compact manual-association-table" style="width:100%">
+                    <table id="manual-association-table" class="table table-striped" style="width:100%">
                         <thead>
                             <tr>
                                 <th>Copy</th>
@@ -79,6 +79,7 @@ export class ManualAssociationModal extends ExamcModal {
         for (const row of rows) {
             for (const image of row.querySelectorAll<HTMLImageElement>('img[data-src]')) {
                 image.src = image.dataset['src'] ?? '';
+                image.style.maxWidth = "20rem";
                 image.removeAttribute('data-src');
             }
         }
