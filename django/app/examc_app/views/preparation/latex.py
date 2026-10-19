@@ -84,10 +84,8 @@ def save_latex_edited_file(request,exam_pk):
 
 
 @exam_permission_required(['manage'])
+@require_POST
 def save_latex_edited_packages(request,exam_pk):
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid method"}, status=405)
-
     exam = Exam.objects.get(pk=exam_pk)
     locked = ensure_exam_not_finalized(exam)
     if locked:

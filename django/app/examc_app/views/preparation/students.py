@@ -3,8 +3,9 @@
 import logging
 import re
 
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_POST
 
 from examc_app.decorators import exam_permission_required
 from examc_app.models import Exam
@@ -65,11 +66,9 @@ def download_prep_students_export(request, exam_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def import_prep_students_xlsx(request, exam_pk):
     """Replaces the exam students by those of an uploaded .xlsx file (see services.student.prep_import)."""
-    if request.method != "POST":
-        return HttpResponseBadRequest("Invalid method")
-
     exam = get_object_or_404(Exam, pk=exam_pk)
 
     locked = ensure_exam_not_finalized(exam)
@@ -95,11 +94,9 @@ def import_prep_students_xlsx(request, exam_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def import_prep_students_api(request, exam_pk):
     """Replaces the exam students by those enrolled in the course in IS-Academia (see services.student.prep_import)."""
-    if request.method != "POST":
-        return HttpResponseBadRequest("Invalid method")
-
     exam = get_object_or_404(Exam, pk=exam_pk)
 
     locked = ensure_exam_not_finalized(exam)
@@ -124,11 +121,9 @@ def import_prep_students_api(request, exam_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def reorder_prep_students_view(request, exam_pk):
     """Renumbers the exam students in the chosen order (see services.student.prep_order)."""
-    if request.method != "POST":
-        return HttpResponseBadRequest("Invalid method")
-
     exam = get_object_or_404(Exam, pk=exam_pk)
 
     locked = ensure_exam_not_finalized(exam)
@@ -144,11 +139,9 @@ def reorder_prep_students_view(request, exam_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def assign_prep_students_seats(request, exam_pk):
     """Gives a room and numbered seats to a range of exam students (see services.student.prep_seats)."""
-    if request.method != "POST":
-        return HttpResponseBadRequest("Invalid method")
-
     exam = get_object_or_404(Exam, pk=exam_pk)
 
     locked = ensure_exam_not_finalized(exam)

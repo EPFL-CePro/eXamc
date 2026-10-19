@@ -108,7 +108,7 @@ class ImportStudentsXlsxTestCase(StudentsViewsTestCase):
         self.assertEqual(self.names(), [(1, 999999, "Old")])
 
     def test_get_is_refused(self, _directory):
-        self.assertEqual(self.client.get(self.url("import_prep_students_xlsx")).status_code, 400)
+        self.assertEqual(self.client.get(self.url("import_prep_students_xlsx")).status_code, 405)
 
     def test_locked_exam_is_refused(self, _directory):
         self.student(1, 999999, "Old")
@@ -159,7 +159,7 @@ class ImportStudentsApiTestCase(StudentsViewsTestCase):
         self.assertEqual(self.names(), [(1, 999999, "Old")])
 
     def test_get_is_refused(self):
-        self.assertEqual(self.client.get(self.url("import_prep_students_api")).status_code, 400)
+        self.assertEqual(self.client.get(self.url("import_prep_students_api")).status_code, 405)
 
     def test_locked_exam_is_refused(self):
         self.student(1, 999999, "Old")

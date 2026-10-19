@@ -3,7 +3,8 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.urls import reverse
 
-from examc_app.models import ExamAMCJob, PrepQuestion, PrepQuestionAnswer, PrepSection, QuestionType
+from examc_app.models import (
+    ExamAMCJob, PrepQuestion, PrepQuestionAnswer, PrepScoringFormula, PrepSection, QuestionType)
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 
 
@@ -59,3 +60,30 @@ class StateChangingViewsTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(PrepQuestionAnswer.objects.filter(pk=self.answer.pk).exists())
+
+    def test_the_other_mutation_views_only_accept_a_post_either(self):
+        question = self.question
+        formula = PrepScoringFormula.objects.create(exam=self.exam, formula="b=1", question_type=self.question.question_type)
+        urls = [
+            self.url("reorder_prep_sections"),
+            self.url("reorder_prep_questions", section_id=self.section.pk),
+            self.url("reorder_prep_answers", question_id=question.pk),
+            self.url("cancel_final_exam_files"),
+            self.url("unlock_exam_editing"),
+            self.url("import_prep_students_xlsx"),
+            self.url("import_prep_students_api"),
+            self.url("reorder_prep_students"),
+            self.url("assign_prep_students_seats"),
+            self.url("save_latex_edited_packages"),
+            self.url("delete_scoring_formula", pk=formula.pk),
+        ]
+        self.exam.is_finalized = True
+        self.exam.save()
+
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 405)
+
+        self.exam.refresh_from_db()
+        self.assertTrue(self.exam.is_finalized)
+        self.assertTrue(PrepScoringFormula.objects.filter(pk=formula.pk).exists())

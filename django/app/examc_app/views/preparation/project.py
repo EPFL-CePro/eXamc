@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from examc_app.decorators import exam_permission_required
 from examc_app.exceptions.exam import NoAcademicYearError
@@ -131,10 +132,8 @@ def exam_preparation_view(request, exam_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def unlock_exam_editing(request, exam_pk):
-    if request.method != "POST":
-        return HttpResponseBadRequest("Invalid method")
-
     exam = get_object_or_404(Exam, pk=exam_pk)
 
     exam.is_finalized = False

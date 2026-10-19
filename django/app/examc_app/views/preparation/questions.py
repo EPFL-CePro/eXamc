@@ -169,10 +169,8 @@ def delete_prep_question(request, exam_pk, question_id):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def reorder_prep_questions(request, exam_pk, section_id):
-    if request.method != "POST":
-        return HttpResponseBadRequest("Invalid method")
-
     section = get_object_or_404(PrepSection, pk=section_id, exam_id=exam_pk)
 
     locked = ensure_exam_not_finalized(section.exam)

@@ -121,10 +121,8 @@ def delete_prep_answer(request, exam_pk, answer_id):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def reorder_prep_answers(request, exam_pk, question_id):
-    if request.method != "POST":
-        return HttpResponseBadRequest("Invalid method")
-
     question = get_object_or_404(
         PrepQuestion,
         pk=question_id,

@@ -306,7 +306,7 @@ class ReorderViewsTestCase(PrepViewsTestCase):
                          [("Q1", 1), ("Q2", 2), ("Q3", 3)])
 
     def test_questions_need_a_post_with_json(self):
-        self.assertEqual(self.client.get(self.questions_url()).status_code, 400)
+        self.assertEqual(self.client.get(self.questions_url()).status_code, 405)
         response = self.client.post(self.questions_url(), data="not json", content_type="application/json")
 
         self.assertEqual(response.status_code, 400)
@@ -340,7 +340,7 @@ class ReorderViewsTestCase(PrepViewsTestCase):
                          [("A2", 1), ("A1", 2)])
 
     def test_answers_need_a_post_with_json(self):
-        self.assertEqual(self.client.get(self.answers_url()).status_code, 400)
+        self.assertEqual(self.client.get(self.answers_url()).status_code, 405)
         response = self.client.post(self.answers_url(), data="{", content_type="application/json")
 
         self.assertEqual(response.status_code, 400)

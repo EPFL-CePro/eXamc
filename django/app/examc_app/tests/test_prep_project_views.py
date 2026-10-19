@@ -94,7 +94,7 @@ class UnlockEditingTestCase(PrepViewsTestCase):
     def test_unlock_needs_a_post(self):
         self.lock()
 
-        self.assertEqual(self.client.get(self.url("unlock_exam_editing")).status_code, 400)
+        self.assertEqual(self.client.get(self.url("unlock_exam_editing")).status_code, 405)
         self.exam.refresh_from_db()
         self.assertTrue(self.exam.is_finalized)
 

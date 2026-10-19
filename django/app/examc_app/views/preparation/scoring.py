@@ -2,6 +2,7 @@
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_POST
 
 from examc_app.decorators import exam_permission_required
 from examc_app.forms.preparation import PrepScoringFormulaFormSet
@@ -153,16 +154,8 @@ def scoring_formulas_modal(request, exam_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def delete_scoring_formula(request, exam_pk, pk):
-    if request.method != "POST":
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Invalid request method.",
-            },
-            status=405,
-        )
-
     exam = get_object_or_404(Exam, pk=exam_pk)
     locked = ensure_exam_not_finalized(exam)
     if locked:

@@ -1,6 +1,6 @@
 """Final generation of the exam files: start and cancel."""
 
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -70,12 +70,10 @@ def generate_final_exam_files_start(request, exam_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def cancel_final_exam_files(request, exam_pk):
     """Asks the running final generation to stop: the task stops at its next check, within a few seconds (see
     BuildCancelled). The exam is editable again once it has stopped."""
-    if request.method != "POST":
-        return HttpResponseBadRequest("Invalid method")
-
     exam = get_object_or_404(Exam, pk=exam_pk)
     job = get_active_final_build_job(exam)
     if job is None:
