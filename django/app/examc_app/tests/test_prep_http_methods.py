@@ -37,14 +37,17 @@ class StateChangingViewsTestCase(TestCase):
             self.url("delete_prep_answer", answer_id=self.answer.pk),
             self.url("save_latex_edited_file"),
             self.url("generate_final_exam_files_start"),
+            self.url("exam_preview_start"),
         ]
 
-        with patch("examc_app.views.preparation.final_generation.generate_final_exam_files_task.apply_async") as start:
+        with patch("examc_app.views.preparation.final_generation.generate_final_exam_files_task.apply_async") as start, \
+                patch("examc_app.views.preparation.preview.compile_exam_preview_task.apply_async") as preview:
             for url in urls:
                 with self.subTest(url=url):
                     self.assertEqual(self.client.get(url).status_code, 405)
 
         start.assert_not_called()
+        preview.assert_not_called()
         self.assertEqual(PrepSection.objects.filter(exam=self.exam).count(), 1)
         self.assertEqual(PrepQuestion.objects.filter(prep_section=self.section).count(), 1)
         self.assertEqual(PrepQuestionAnswer.objects.filter(prep_question=self.question).count(), 1)

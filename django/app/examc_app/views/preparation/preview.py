@@ -5,6 +5,7 @@ from pathlib import Path
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from examc_app.decorators import exam_permission_required
 from examc_app.models import Exam, ExamAMCJob
@@ -49,6 +50,7 @@ def exam_preview_pdf_file(request, exam_pk, job_pk):
 
 
 @exam_permission_required(["manage"])
+@require_POST
 def exam_preview_start(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
 

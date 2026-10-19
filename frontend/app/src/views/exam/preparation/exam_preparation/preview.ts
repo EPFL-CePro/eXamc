@@ -1,4 +1,4 @@
-import { describeFailure, failureJson, getJson } from "@examc/helpers/http.ts";
+import { describeFailure, failureJson, getJson, postJson } from "@examc/helpers/http.ts";
 
 import { previewStatusUrl, URLS } from "./config.ts";
 import { getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
@@ -57,7 +57,7 @@ export async function previewExam(): Promise<void> {
 
     let data: PreviewStartResponse;
     try {
-        data = await getJson<PreviewStartResponse>(URLS.previewStart);
+        data = await postJson<PreviewStartResponse>(URLS.previewStart);
     } catch (error) {
         const failure = describeFailure(error);
         showPreviewError(failureJson<PreviewStartResponse>(failure).error || failure.text || "Error starting preview.");
