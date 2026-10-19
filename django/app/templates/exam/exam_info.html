@@ -2,7 +2,7 @@
 {% load django_vite %}
 {% load l10n %}
 
-{% block title %}Exam info{% endblock %}
+{% block title %}Exam settings{% endblock %}
 
 {% block extra_head %}
     {% vite_asset 'src/views/exam/exam_info/index.ts' %}
@@ -20,22 +20,23 @@
                  data-ldap-search-url="{% url 'ldap_search_exam_user_by_email' comex.pk %}"
                  data-update-users-url="{% url 'update_exam_users' comex.pk %}"
                  data-create-scale-url="{% url 'create_scale' comex.pk %}"
-                 data-catalog-url="{% url 'catalogPdf' comex.pk %}">
+                 data-catalog-url="{% url 'catalog_pdf' comex.pk %}">
 
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                     <h4 class="m-0 me-auto">
-                        <i class="fa-solid fa-book-open me-2" aria-hidden="true"></i>Exam info
+                        <i class="fa-solid fa-book-open" aria-hidden="true"></i> Exam settings
                     </h4>
+
                     <a class="btn btn-dark btn-sm" href="{% url 'generate_stats' comex.pk %}">
-                        <i class="fa-solid fa-rotate-right me-1" aria-hidden="true"></i>Regen stats
+                        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Regen stats
                     </a>
+
                     <button type="button" class="btn btn-outline-danger btn-sm" id="btn-show-catalog">
-                        <i class="fa-regular fa-file-pdf me-1" aria-hidden="true"></i>Catalog
+                        <i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Catalog
                     </button>
                 </div>
 
                 <div class="accordion" id="exam-info-accordion">
-
                     {# ---------------------------------------------------------------- Exam #}
                     <div class="accordion-item">
                         <h2 class="accordion-header">

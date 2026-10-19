@@ -136,13 +136,13 @@ urlpatterns = [
     path('get_unrecognized_pages/<int:exam_pk>', views.get_unrecognized_pages, name="get_unrecognized_pages"),
 
     # RESULTS & STATISTICS
-    path('catalogPdf/<int:exam_pk>', views.display_catalog, name="catalogPdf"),
+    path('catalog_pdf/<int:exam_pk>', views.display_catalog, name="catalog_pdf"),
     path('update_questions/<int:exam_pk>', views.update_questions, name="update_questions"),
     path('update_student_present/<int:exam_pk>/<int:student_pk>/<int:value>', views.update_student_present, name="update_student_present"),
-    path('generateStats/<int:exam_pk>', views.generate_stats, name="generate_stats"),
-    path('generalStats/<int:exam_pk>', views.general_statistics_view, name="generalStats"),
+    path('generate_stats/<int:exam_pk>', views.generate_stats, name="generate_stats"),
+    path('general_stats/<int:exam_pk>', views.general_statistics_view, name="general_stats"),
     path('studentsResults/<int:exam_pk>', views.students_results_view, name="studentsResults"),
-    path('questionsStats/<int:exam_pk>', views.questions_statistics_view, name="questionsStats"),
+    path('questions_stats/<int:exam_pk>', views.questions_statistics_view, name="questions_stats"),
     path('export_data/<int:exam_pk>', views.export_data, name="export_data"),
     path('import_data_4_stats/<int:exam_pk>', views.import_data_4_stats, name="import_data_4_stats"),
     path('upload_amc_csv/<int:exam_pk>', views.upload_amc_csv, name="upload_amc_csv"),

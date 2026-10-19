@@ -4,6 +4,7 @@ import shutil
 import zipfile
 from datetime import datetime
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.http.request import HttpRequest
@@ -12,7 +13,6 @@ from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import require_POST
 
-from django.conf import settings
 from examc_app.decorators import exam_permission_required
 from examc_app.forms.results_statistics import ExportResultsForm
 from examc_app.models import Exam, Question, Scale, Student
@@ -39,7 +39,8 @@ logger = logging.getLogger(__name__)
 
 # STUDENTS MANAGEMENT
 
-@exam_permission_required(['manage','see_results'])
+
+@exam_permission_required(["manage", "see_results"])
 @require_POST
 def update_student_present(request, exam_pk: int, student_pk: int, value: int):
     student = get_object_or_404(Student, pk=student_pk, exam_id=exam_pk)
@@ -65,8 +66,8 @@ def update_student_present(request, exam_pk: int, student_pk: int, value: int):
     return students_results_view(request, exam_pk=exam_pk, task_id=task_id)
 
 
-@exam_permission_required(['manage'])
-def import_data_4_stats(request,exam_pk:int, task_id=None):
+@exam_permission_required(["manage"])
+def import_data_4_stats(request, exam_pk: int, task_id=None):
     exam = Exam.objects.get(pk=exam_pk)
     exam_selected = exam
 
@@ -83,58 +84,67 @@ def import_data_4_stats(request,exam_pk:int, task_id=None):
 
     return render(
         request,
-        'res_and_stats/import_data.html',
+        "res_and_stats/import_data.html",
         {
             "user_allowed": user_allowed(exam, request.user.id),
             "exam": exam,
             "exam_selected": exam_selected,
             "common_list": common_list,
-            "nav_url": 'import_data_4_stats',
-            "task_id": task_id
-        }
+            "nav_url": "import_data_4_stats",
+            "task_id": task_id,
+        },
     )
 
 
-@exam_permission_required(['manage'])
+@exam_permission_required(["manage"])
 @require_POST
 def upload_amc_csv(request, exam_pk: int):
     csv_file = request.FILES["amc_csv_file"]
-    temp_csv_file_name = "tmp_upload_amc_csv_"+datetime.now().strftime("%Y%m%d%H%M%S")+".csv"
+    temp_csv_file_name = (
+        "tmp_upload_amc_csv_" + datetime.now().strftime("%Y%m%d%H%M%S") + ".csv"
+    )
     temp_csv_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, temp_csv_file_name)
 
     os.makedirs(os.path.dirname(temp_csv_file_path), exist_ok=True)
 
-    with open(temp_csv_file_path, 'wb') as temp_file:
+    with open(temp_csv_file_path, "wb") as temp_file:
         temp_file.writelines(csv_file.chunks())
 
     task = import_csv_data.delay(temp_csv_file_path, exam_pk)
     task_id = task.task_id
 
-    url = reverse('import_data_4_stats', kwargs={'exam_pk': exam_pk})
+    url = reverse("import_data_4_stats", kwargs={"exam_pk": exam_pk})
     return redirect(f"{url}?task_id={task_id}")
-    #return import_data_4_stats(request,exam_pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk) + '/'+str(task_id))
+    # return import_data_4_stats(request,exam_pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk) + '/'+str(task_id))
 
 
-@exam_permission_required(['manage'])
+@exam_permission_required(["manage"])
 @require_POST
 def upload_catalog_pdf(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     catalog = request.FILES["catalog_pdf_file"]
 
-    filename = exam.code+'_'+str(exam.year.code)+'_'+str(exam.semester.code)+'_catalog.pdf'
+    filename = (
+        exam.code
+        + "_"
+        + str(exam.year.code)
+        + "_"
+        + str(exam.semester.code)
+        + "_catalog.pdf"
+    )
     dest = str(get_exam_catalog_dir(exam) / filename)
     name = to_private_name(dest)
     private_storage.delete(name)
-    private_storage.save(name,ContentFile(catalog.read()))
+    private_storage.save(name, ContentFile(catalog.read()))
     # default_storage.delete(dest)
     # default_storage.save(dest,ContentFile(catalog.read()))
     exam.pdf_catalog_name = filename
     exam.save()
 
-    return redirect('../import_data_4_stats/' + str(exam.pk))
+    return redirect("../import_data_4_stats/" + str(exam.pk))
 
 
-@exam_permission_required(['manage','see_results'])
+@exam_permission_required(["manage", "see_results"])
 def export_data(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     exam_selected = exam
@@ -153,19 +163,19 @@ def export_data(request, exam_pk: int):
     if not user_allowed(exam, request.user.id):
         return render(
             request,
-            'res_and_stats/export_results.html',
+            "res_and_stats/export_results.html",
             {
                 "user_allowed": False,
                 "form": None,
-                "exam" : exam,
-                "exam_selected" : exam_selected,
+                "exam": exam,
+                "exam_selected": exam_selected,
                 "common_list": None,
-                "nav_url": "export_data"
-            }
+                "nav_url": "export_data",
+            },
         )
 
     # if not POST, a blank form is created
-    if request.method != 'POST':
+    if request.method != "POST":
         if exam and exam.scaleStatistics:
             form = ExportResultsForm(exam=exam)
         else:
@@ -173,15 +183,15 @@ def export_data(request, exam_pk: int):
 
         return render(
             request,
-            'res_and_stats/export_results.html',
+            "res_and_stats/export_results.html",
             {
                 "user_allowed": True,
                 "form": form,
                 "exam": exam,
                 "exam_selected": exam_selected,
                 "common_list": common_list,
-                "nav_url": "export_data"
-            }
+                "nav_url": "export_data",
+            },
         )
 
     if exam and exam.scaleStatistics:
@@ -194,42 +204,44 @@ def export_data(request, exam_pk: int):
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
             except Exception as e:
-                logger.exception('Failed to delete %s', file_path)
+                logger.exception("Failed to delete %s", file_path)
 
-        form = ExportResultsForm(request.POST,exam=exam)
+        form = ExportResultsForm(request.POST, exam=exam)
         logger.info(form)
 
         if form.is_valid():
-            scale_pk = form.cleaned_data['scale']
+            scale_pk = form.cleaned_data["scale"]
             scale = Scale.objects.get(pk=scale_pk)
 
             common_exams = []
             if exam.overall:
-                common_exams = form.cleaned_data['common_exams']
+                common_exams = form.cleaned_data["common_exams"]
             else:
                 common_exams.append(exam.pk)
 
-            isa_csv = form.cleaned_data['exportIsaCsv']
-            scale_pdf = form.cleaned_data['exportExamScalePdf']
-            student_data_csv = form.cleaned_data['exportStudentsDataCsv']
+            isa_csv = form.cleaned_data["exportIsaCsv"]
+            scale_pdf = form.cleaned_data["exportExamScalePdf"]
+            student_data_csv = form.cleaned_data["exportStudentsDataCsv"]
 
             # create tmp folder
-            export_folder_name = "export_"+str(datetime.now().strftime("%d%m%y_%H%M%S"))
-            export_path = str(settings.EXPORT_TMP_ROOT)+"/"+export_folder_name
+            export_folder_name = "export_" + str(
+                datetime.now().strftime("%d%m%y_%H%M%S")
+            )
+            export_path = str(settings.EXPORT_TMP_ROOT) + "/" + export_folder_name
             os.makedirs(export_path, exist_ok=True)
             logger.info(os.path.dirname(export_path))
 
             for exam_id in common_exams:
                 exam = Exam.objects.get(pk=exam_id)
                 if isa_csv:
-                    generate_isa_csv(exam,scale,export_path)
+                    generate_isa_csv(exam, scale, export_path)
                 if scale_pdf:
-                    generate_scale_pdf(exam,scale,export_path)
+                    generate_scale_pdf(exam, scale, export_path)
                 if student_data_csv:
-                    generate_students_data_csv(exam,export_path)
+                    generate_students_data_csv(exam, export_path)
 
             # zip folder
-            zipf = zipfile.ZipFile(f"{export_path}.zip", 'w', zipfile.ZIP_DEFLATED)
+            zipf = zipfile.ZipFile(f"{export_path}.zip", "w", zipfile.ZIP_DEFLATED)
             zipdir(export_path, zipf)
             zipf.close()
 
@@ -238,7 +250,7 @@ def export_data(request, exam_pk: int):
             # process the data in form.cleaned_data as required
             # ...
             # redirect to a new URL:
-            #return HttpResponseRedirect(request.path_info)
+            # return HttpResponseRedirect(request.path_info)
         else:
             logger.info("INVALID")
             logger.info(form.errors)
@@ -250,22 +262,25 @@ def export_data(request, exam_pk: int):
 # STATISTICS
 # ------------------------------------------
 
-@exam_permission_required(['manage','see_results'])
+
+@exam_permission_required(["manage", "see_results"])
 def generate_stats(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
 
     task = generate_statistics.delay(exam.pk)
     task_id = task.task_id
 
-    return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
+    return HttpResponseRedirect(
+        reverse("exam_info_with_task", kwargs={"exam_pk": exam_pk, "task_id": task_id})
+    )
 
 
-@exam_permission_required(['manage','see_results'])
-def general_statistics_view(request,exam_pk: int):
+@exam_permission_required(["manage", "see_results"])
+def general_statistics_view(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     curr_exam = exam
 
-    if not user_allowed(exam,request.user.id):
+    if not user_allowed(exam, request.user.id):
         return render(
             request,
             "res_and_stats/general_statistics.html",
@@ -273,8 +288,8 @@ def general_statistics_view(request,exam_pk: int):
                 "user_allowed": False,
                 "grade_list": None,
                 "absent": 0,
-                "nav_url": "generalStats"
-            }
+                "nav_url": "general_stats",
+            },
         )
 
     if not exam.scaleStatistics:
@@ -285,13 +300,33 @@ def general_statistics_view(request,exam_pk: int):
                 "user_allowed": True,
                 "grade_list": None,
                 "absent": 0,
-                "nav_url": "generalStats",
-                "exam": exam
-            }
+                "nav_url": "general_stats",
+                "exam": exam,
+            },
         )
 
     grade_list = [
-        1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4, 4.25, 4.5, 4.75, 5, 5.25, 5.5, 5.75, 6
+        1,
+        1.25,
+        1.5,
+        1.75,
+        2,
+        2.25,
+        2.5,
+        2.75,
+        3,
+        3.25,
+        3.5,
+        3.75,
+        4,
+        4.25,
+        4.5,
+        4.75,
+        5,
+        5.25,
+        5.5,
+        5.75,
+        6,
     ]
 
     common_list = get_common_list(exam)
@@ -314,17 +349,16 @@ def general_statistics_view(request,exam_pk: int):
             "user_allowed": True,
             "grade_list": grade_list,
             "absent": sum_all_students - curr_exam.present_students,
-            "nav_url": "generalStats",
-            "exam" : exam,
+            "nav_url": "general_stats",
+            "exam": exam,
             "exam_selected": curr_exam,
             "common_list": common_list,
-            "correlation_list":correlation_list
-        }
+            "correlation_list": correlation_list,
+        },
     )
 
 
-
-@exam_permission_required(['manage','see_results'])
+@exam_permission_required(["manage", "see_results"])
 def students_results_view(request, exam_pk: int, task_id=None):
     exam = Exam.objects.get(pk=exam_pk)
     curr_exam = exam
@@ -346,81 +380,133 @@ def students_results_view(request, exam_pk: int, task_id=None):
                 request,
                 "res_and_stats/students_results.html",
                 {
-                    "user_allowed":True,
-                    "exam" : exam,
+                    "user_allowed": True,
+                    "exam": exam,
                     "common_list": common_list,
-                    "exam_selected" : curr_exam,
+                    "exam_selected": curr_exam,
                     "nav_url": "studentsResults",
-                    "task_id":task_id
-                }
+                    "task_id": task_id,
+                },
             )
         else:
-            return render(request, "res_and_stats/students_results.html", {"user_allowed":True, "scales": None, "students": None,"nav_url": "studentsResults"})
+            return render(
+                request,
+                "res_and_stats/students_results.html",
+                {
+                    "user_allowed": True,
+                    "scales": None,
+                    "students": None,
+                    "nav_url": "studentsResults",
+                },
+            )
     else:
-        return render(request, "res_and_stats/students_results.html", {"user_allowed":False, "scales": None, "students": None,"nav_url": "studentsResults"})
+        return render(
+            request,
+            "res_and_stats/students_results.html",
+            {
+                "user_allowed": False,
+                "scales": None,
+                "students": None,
+                "nav_url": "studentsResults",
+            },
+        )
 
 
-
-@exam_permission_required(['manage','see_results'])
-def questions_statistics_view(request,exam_pk: int):
+@exam_permission_required(["manage", "see_results"])
+def questions_statistics_view(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
-    currexam = exam
+    curr_exam = exam
+    
+    context = {
+        "user_allowed": False,
+        "exam_selected": exam,
+        "discriminatory_factor": None,
+        "discriminatory_qty": None,
+        "questions": None,
+        "nav_url": "questions_stats",
+    }
 
-    if user_allowed(exam,request.user.id):
+    if not user_allowed(exam, request.user.id):
+        return render(
+            request,
+            "res_and_stats/questions_statistics.html",
+            context,
+        )
+    
+    if not(exam and exam.scaleStatistics.all() and exam.questions.all()):
+        context["user_allowed"] = True
+        return render(
+            request,
+            "res_and_stats/questions_statistics.html",
+            context
+        )
 
-        if exam and exam.scaleStatistics.all() and exam.questions.all():
+    common_list = get_common_list(exam)
 
-            common_list = get_common_list(exam)
+    if common_list:
+        curr_exam = exam
+        exam = common_list[0]
 
-            if common_list:
-                currexam = exam
-                exam = common_list[0]
+    discriminatory_factor = Question.objects.filter(exam=curr_exam)[
+        0
+    ].discriminatory_factor
+    discriminatory_qty = round(
+        curr_exam.present_students * discriminatory_factor / 100
+    )
 
-            discriminatory_factor = Question.objects.filter(exam=currexam)[0].discriminatory_factor
-            discriminatory_qty = round(currexam.present_students * discriminatory_factor / 100)
+    question_stat_by_exam_list = []
 
-            question_stat_by_exam_list = []
+    if curr_exam.overall:
+        question_stat_by_exam_list = get_questions_stats_by_exam(curr_exam)
 
-            if currexam.overall:
-                question_stat_by_exam_list = get_questions_stats_by_exam(currexam)
+    mcq_questions = Question.objects.filter(
+        exam=curr_exam, removed_from_common=False
+    ).exclude(question_type__id=4)
+    open_questions = Question.objects.filter(
+        exam=curr_exam, question_type__id=4, removed_from_common=False
+    )
 
-            mcq_questions = Question.objects.filter(exam=currexam,removed_from_common=False).exclude(question_type__id=4)
-            open_questions = Question.objects.filter(exam=currexam,question_type__id=4,removed_from_common=False)
+    for question in open_questions.all():
+        print(question)
 
-            for question in open_questions.all():
-                print(question)
-
-            return render(request, "res_and_stats/questions_statistics.html",
-                          {"user_allowed":True,
-                           "exam": exam,
-                           "exam_selected" : currexam,
-                           "discriminatory_factor": discriminatory_factor, "discriminatory_qty": discriminatory_qty,
-                           "mcq_questions": mcq_questions,
-                           "open_questions": open_questions,
-                           "questionsStatsByExam": question_stat_by_exam_list,
-                           "common_list" : common_list,
-                           "nav_url": "questionsStats"})
-        else:
-            return render(request, "res_and_stats/questions_statistics.html",
-                          {"user_allowed":True,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None,"nav_url": "questionsStats"})
-    else:
-        return render(request, "res_and_stats/questions_statistics.html",
-                      {"user_allowed":False,"exam": exam,"discriminatory_factor": None, "discriminatory_qty": None, "questions": None,"nav_url": "questionsStats"})
-
+    return render(
+        request,
+        "res_and_stats/questions_statistics.html",
+        {
+            "user_allowed": True,
+            "exam": exam,
+            "exam_selected": curr_exam,
+            "discriminatory_factor": discriminatory_factor,
+            "discriminatory_qty": discriminatory_qty,
+            "mcq_questions": mcq_questions,
+            "open_questions": open_questions,
+            "question_stats_by_exam": question_stat_by_exam_list,
+            "common_list": common_list,
+            "nav_url": "questions_stats",
+        },
+    )
+        
 
 # PDF
 # ------------------------------------------
 @xframe_options_exempt
-@exam_permission_required(['manage','see_results'])
+@exam_permission_required(["manage", "see_results"])
 def display_catalog(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     if exam.is_overall():
         exam = exam.common_exams.all().first()
-    cat_name = exam.code + '_' + str(exam.year.code) + '_' + str(exam.semester.code) + '_catalog.pdf'
+    cat_name = (
+        exam.code
+        + "_"
+        + str(exam.year.code)
+        + "_"
+        + str(exam.semester.code)
+        + "_catalog.pdf"
+    )
     cat_path = str(get_exam_catalog_dir(exam) / cat_name)
     if not os.path.exists(cat_path):
-      #try to find it in amc dir
-      cat_path = get_amc_catalog_pdf_path(exam)
+        # try to find it in amc dir
+        cat_path = get_amc_catalog_pdf_path(exam)
     try:
         return FileResponse(open(cat_path, "rb"), content_type="application/pdf")
     except FileNotFoundError:
