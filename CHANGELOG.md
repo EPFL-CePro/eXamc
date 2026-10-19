@@ -17,6 +17,10 @@ The format follows [Semantic Versioning](https://semver.org/).
   scoring.sqlite of the project), reporting its errors and warnings.
 
 ### Changed
+- Preparation module: the scoring formulas can be changed at any time, at every level, even once the exam is finalized
+  (they do not change the layout). On a finalized exam, saving a change makes AMC update its marking scale in the
+  background (about a minute for 230 copies), with a message at the end. They cannot be changed while a final
+  generation or this update is running.
 - Preparation module: **Randomized questions** (sections) and **Randomized answers** (questions) are on by default, and
   now decide the order on the copies: the answers of a question whose switch is off are kept in the order of the page
   (the switch was not used before: AMC always shuffled them, and the existing questions keep it on).

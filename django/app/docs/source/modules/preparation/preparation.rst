@@ -40,7 +40,7 @@ The exam, and its students, cannot be modified in two cases:
 - a **final generation is running**: a banner tells who started it and when, and it can be cancelled from the banner;
 - the exam is **finalized**: the final generation has succeeded. To modify the exam again, use **Unlock editing**.
 
-All the buttons that modify the exam are then disabled, and the server refuses the changes.
+All the buttons that modify the exam are then disabled, and the server refuses the changes. The **scoring formulas** are the exception: they can be changed on a finalized exam too (see :doc:`preparation-scoring`), but not while a final generation runs.
 
 .. toctree::
    :maxdepth: 1

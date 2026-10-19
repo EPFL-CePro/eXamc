@@ -48,3 +48,14 @@ Next to the **Scoring** button of each question and answer, a short text tells w
 A small black frame in the **Scoring** button of a level lists what it defines: the question types that have a formula (for example ``MCQ, SCQ``) at the global and section levels, and ``Custom`` for a question or an answer that has its own formula. A level without formula keeps the button as it is.
 
 The texts and the frames are updated when the **Scoring** dialog is closed, since a formula of the exam or of a section changes what the other questions apply.
+
+Changing the formulas at any time
+---------------------------------
+
+The scoring formulas do not change the layout of the copies: they can be changed at any time, at every level, even once the exam is finalized and after it took place. The rest of the exam stays locked.
+
+On a finalized exam, saving a change makes AMC **update its marking scale** (the *Update marking scale* function of AMC) in the background. eXamc rewrites the scoring files of the AMC project, without touching the first page or the pages of the copies, and AMC extracts the marking scale of every copy again: about a minute for 230 copies. A message tells when it is done, or why it failed. When it failed, the formulas are saved but the marks of AMC still use the previous ones.
+
+To apply the new scale to the copies that were already corrected, run **Mark** again in the **AMC** module.
+
+While a final generation or an update of the marking scale is running, the formulas cannot be saved: the **Scoring** buttons are disabled and tell why. An exam finalized before AMC kept its layout in the project cannot be updated: unlock the editing and generate the final files again.
