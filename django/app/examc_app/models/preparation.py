@@ -76,6 +76,7 @@ class ExamAMCJob(models.Model):
     JOB_TYPE_CHOICES = [
         ("exam_preview", "Preview"),
         ("final_build", "Final build"),
+        ("scoring_update", "Scoring update"),
     ]
 
     STATUS_CHOICES = [

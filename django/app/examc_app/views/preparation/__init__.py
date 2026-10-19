@@ -19,7 +19,7 @@ from .questions import (
     prep_question_panel,
     reorder_prep_questions,
 )
-from .scoring import delete_scoring_formula, scoring_formulas_modal, scoring_infos
+from .scoring import delete_scoring_formula, scoring_formulas_modal, scoring_infos, scoring_update_status
 from .sections import add_prep_section, delete_prep_section, prep_section_panel, reorder_prep_sections
 from .students import (
     assign_prep_students_seats,
@@ -69,5 +69,6 @@ __all__ = [
     "save_latex_edited_packages",
     "scoring_formulas_modal",
     "scoring_infos",
+    "scoring_update_status",
     "unlock_exam_editing",
 ]

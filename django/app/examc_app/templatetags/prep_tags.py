@@ -2,7 +2,9 @@ from django import template
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from examc_app.utils.preparation_functions import get_applied_scorings, scoring_badge_text, scoring_info_text
+from examc_app.utils.preparation_functions import (
+    get_applied_scorings, scoring_badge_text, scoring_info_text, scoring_lock_reason,
+)
 
 register = template.Library()
 
@@ -38,3 +40,16 @@ def prep_scoring_badge(exam, kind, pk=0):
     return format_html(
         '<span class="badge prep-badge" data-prep-scoring-badge-kind="{}" data-prep-scoring-badge-id="{}"{}>{}</span>',
         kind, pk, "" if text else mark_safe(' style="display: none"'), text)
+
+
+@register.simple_tag
+def prep_scoring_lock(exam) -> str:
+    """
+    Why the Scoring buttons are disabled (AMC works on the project: see scoring_lock_reason), or "". They stay enabled
+    once the exam is final. Read once per exam object, that is once per request.
+    """
+    reason = getattr(exam, "_prep_scoring_lock", None)
+    if reason is None:
+        reason = exam._prep_scoring_lock = scoring_lock_reason(exam) or ""
+    return reason
+

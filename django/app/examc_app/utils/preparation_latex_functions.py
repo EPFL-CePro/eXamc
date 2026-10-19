@@ -156,29 +156,41 @@ def write_exam_generated_vars(exam: Exam, project_path: str, pages_per_copy: int
     )
     return str(vars_tex_path)
 
-def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
+def update_exam_scoring_latex(exam: Exam) -> None:
+    """
+    Rewrites only what the scoring formulas change in the AMC project: global_scoring.tex and the files of the sections
+    (the \\bareme of the questions and answers). For an exam whose final files were generated: the first page, the
+    number of pages per copy and exam.tex are left as they are, the scoring does not change the layout.
+    """
+    update_exam_latex(exam, scoring_only=True)
+
+
+def update_exam_latex(exam: Exam, pages_per_copy: int | None = None, *, scoring_only: bool = False):
     amc_project_path = ensure_amc_project(exam)
     amc_project_template_path = str(settings.AMC_TEMPLATES_DIR) + "/base"
     template_exam_latex_path = amc_project_template_path + "/exam_template.tex"
     exam_latex_path_output = amc_project_path + "/exam.tex"
     exam_template = Path(template_exam_latex_path).read_text(encoding="utf-8")
     exam_tex = exam_template
-    write_exam_generated_vars(exam, amc_project_path, pages_per_copy)
+    if not scoring_only:
+        write_exam_generated_vars(exam, amc_project_path, pages_per_copy)
     exam_formulas = scoring_formulas_by_type(exam.prepExamScoringFormulas.filter(
         prep_section__isnull=True, prep_question__isnull=True, prep_answer__isnull=True))
     write_global_scoring_file(exam_formulas, amc_project_path)
 
     #first update first page
-    template_first_page_latex_path = amc_project_template_path + "/first_page_template.tex"
-    first_page_latex_path_output = amc_project_path + "/first_page.tex"
-    render_first_page_tex_from_html(exam, exam.first_page_text, template_first_page_latex_path, first_page_latex_path_output,pages_per_copy)
+    if not scoring_only:
+        template_first_page_latex_path = amc_project_template_path + "/first_page_template.tex"
+        first_page_latex_path_output = amc_project_path + "/first_page.tex"
+        render_first_page_tex_from_html(exam, exam.first_page_text, template_first_page_latex_path, first_page_latex_path_output,pages_per_copy)
 
     for section in exam.prepSections.order_by("position").all():
         template_section_header_latex_path = amc_project_template_path + "/section_header_template.tex"
         section_header_filename = f"section_header_{section.position}.tex"
         section_grp_name = f"SECTION-{section.position}"
         section_header_latex_path_output = amc_project_path + "/" + section_header_filename
-        render_section_header_tex_from_html(section, template_section_header_latex_path, section_header_latex_path_output)
+        if not scoring_only:
+            render_section_header_tex_from_html(section, template_section_header_latex_path, section_header_latex_path_output)
 
         template_section_latex_path = amc_project_template_path + "/section_template.tex"
         section_filename = f"section_{section.position}.tex"
@@ -211,7 +223,8 @@ def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
             .replace(PH_SECTIONS_INSERT, f"\\insertgroup{{{section_grp_name}}} \n" + f"{PH_SECTIONS_INSERT}")
         )
 
-    Path(exam_latex_path_output).write_text(exam_tex, encoding="utf-8")
+    if not scoring_only:
+        Path(exam_latex_path_output).write_text(exam_tex, encoding="utf-8")
     return exam_latex_path_output
 
 # The template ends the line of the teachers with \\, which LaTeX refuses after nothing ("There's no line here to end")

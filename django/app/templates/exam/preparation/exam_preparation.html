@@ -64,6 +64,7 @@
             </div>
         </div>
         <div class="d-flex align-items-center justify-content-between w-100">
+            {% prep_scoring_lock exam_selected as scoring_lock %}
             <button
                 type="button"
                 class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
@@ -72,7 +73,7 @@
                 data-prep-section=""
                 data-prep-question=""
                 data-prep-answer=""
-                {% if is_exam_locked %}disabled{% endif %}
+                {% if scoring_lock %}disabled title="{{ scoring_lock }}"{% endif %}
             >
                 <i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>
                 Default questions scorings{% prep_scoring_badge exam_selected "exam" 0 %}

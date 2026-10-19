@@ -45,6 +45,7 @@ from examc_app.utils.amc.amc_helpers import (
 )
 from examc_app.services.student.prep_amc_csv import StudentsCsvError, write_students_csv
 from examc_app.utils.amc.amc_layout_functions import get_pages_by_copy_from_xy
+from examc_app.exceptions.amc import AmcDbManagerError
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.preparation_latex_functions import update_exam_latex
@@ -797,6 +798,59 @@ def _copy_amc_sources(project_path: Path, destination: Path) -> None:
             shutil.copy2(item, destination / item.name)
 
 
+def _extract_scoring_in_amc(exam: Exam, project_path: Path, data_path: Path, expected_pages: int, timeout: int) -> list[str]:
+    """
+    ``prepare --mode b``: AMC compiles the sources once more and extracts the scoring strategy of every copy in
+    ``data/scoring.sqlite``. It reads the layout, so ``data/layout.sqlite`` must exist. It runs in a copy of the sources
+    (AMC compiles in the folder of the source): the project keeps its SUBJECT state.
+    """
+    Path(settings.AMC_TMP_ROOT).mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=settings.AMC_TMP_ROOT, prefix=f"amc_scoring_{exam.pk}_") as tmp_dir:
+        sources_path = Path(tmp_dir)
+        _copy_amc_sources(project_path, sources_path)
+        # The QR codes of the subject compiled by the final generation: computing them in TeX takes ~0.15 s per page
+        seed_qr_cache(sources_path, read_qr_cache(project_path / "amc-compiled.aux"))
+        return _run_amc_step(
+            [
+                "auto-multiple-choice", "prepare",
+                "--mode", "b",
+                "--data", f"{data_path}/",
+                "--with", "pdflatex",
+                "--filter", "latex",
+                "--prefix", f"{sources_path}/",
+                str(sources_path / "exam.tex"),
+            ],
+            sources_path, _compile_timeout(timeout, expected_pages), "the extraction of the scoring strategy")
+
+
+def update_scoring_in_amc(exam: Exam, *, timeout: int = 60, should_cancel=None, progress_callback=None) -> list[str]:
+    """
+    Extracts again the scoring strategy of an exam whose final files were generated, after its scoring formulas changed
+    (the LaTeX files of the project must have been rewritten, see update_exam_scoring_latex). The scoring does not
+    change the layout: only ``data/scoring.sqlite`` is rewritten.
+
+    Returns the warnings of AMC. Raises AmcStepError when the layout of the exam is not in the project (the final
+    generation did not register it in AMC) or when AMC fails.
+    """
+    project_path = Path(get_amc_project_path(exam, False))
+    data_path = project_path / "data"
+    try:
+        with AmcLayoutDbManager(amc_data_path=f"{data_path}/") as layout_db:
+            pages = layout_db.select_count_layout_pages()
+    except AmcDbManagerError:
+        pages = 0
+    if not pages:
+        raise AmcStepError("AMC: the layout of this exam is not in its project: unlock the editing and generate the "
+                           "final files again before changing the scoring.")
+
+    token = _should_cancel.set(should_cancel)
+    try:
+        _report_progress(progress_callback, 10, "Extracting the scoring strategy with AMC...")
+        return _extract_scoring_in_amc(exam, project_path, data_path, pages, timeout)
+    finally:
+        _should_cancel.reset(token)
+
+
 def register_exam_in_amc(
     exam: Exam,
     xy_path: str,
@@ -835,23 +889,7 @@ def register_exam_in_amc(
                 f"AMC: the layout detection found {detected_pages} pages, but the subject has {expected_pages}.")
 
         _report_progress(progress_callback, 94, "Extracting the scoring strategy with AMC...")
-        Path(settings.AMC_TMP_ROOT).mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=settings.AMC_TMP_ROOT, prefix=f"amc_scoring_{exam.pk}_") as tmp_dir:
-            sources_path = Path(tmp_dir)
-            _copy_amc_sources(project_path, sources_path)
-            # The QR codes of the subject just compiled: computing them in TeX takes ~0.15 s per page
-            seed_qr_cache(sources_path, read_qr_cache(project_path / "amc-compiled.aux"))
-            warnings += _run_amc_step(
-                [
-                    "auto-multiple-choice", "prepare",
-                    "--mode", "b",
-                    "--data", f"{data_path}/",
-                    "--with", "pdflatex",
-                    "--filter", "latex",
-                    "--prefix", f"{sources_path}/",
-                    str(sources_path / "exam.tex"),
-                ],
-                sources_path, _compile_timeout(timeout, expected_pages), "the extraction of the scoring strategy")
+        warnings += _extract_scoring_in_amc(exam, project_path, data_path, expected_pages, timeout)
     finally:
         _should_cancel.reset(token)
 

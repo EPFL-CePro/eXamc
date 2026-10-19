@@ -35,6 +35,7 @@
             {# No formula for an open question (corrector boxes): shown according to the type, see question-fields.ts #}
             <div class="js-question-scoring"{% if question.question_type.code == "OPEN" %} style="display: none"{% endif %}>
                 <div class="d-flex align-items-center" style="margin-bottom: 10px;">
+                    {% prep_scoring_lock exam_selected as scoring_lock %}
                     <button
                         type="button"
                         class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
@@ -43,6 +44,7 @@
                         data-prep-section=""
                         data-prep-question="{{ question.id }}"
                         data-prep-answer=""
+                        {% if scoring_lock %}disabled title="{{ scoring_lock }}"{% endif %}
                     ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring{% prep_scoring_badge exam_selected "question" question.id %}
                     </button>
                     {% prep_scoring_info exam_selected "question" question.id %}

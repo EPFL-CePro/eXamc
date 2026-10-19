@@ -31,6 +31,7 @@ from examc_app.utils.amc.amc_build_functions import (
     build_final_exam,
     mark_exam_build_error,
     register_exam_in_amc,
+    update_scoring_in_amc,
 )
 from examc_app.utils.amc.amc_layout_functions import (
     LayoutExtractionError,
@@ -50,6 +51,7 @@ from examc_app.utils.marker_rendering import (
     render_marked_scan,
 )
 from examc_app.utils.preparation_functions import compile_exam_preview
+from examc_app.utils.preparation_latex_functions import update_exam_scoring_latex
 from examc_app.utils.results_statistics_functions import delete_exam_data
 from examc_app.utils.review_functions import (
     generate_marked_pdfs,
@@ -741,6 +743,39 @@ def compile_exam_preview_task(self, job_id):
 
     job.save(update_fields=["status", "pdf_path", "error_message", "updated_at"])
     logger.info("Exam preview finished | job_id=%s | status=%s", job_id, job.status)
+
+
+@shared_task(bind=True)
+def update_amc_scoring_task(self, job_id):
+    """
+    Updates the scoring strategy of AMC for an exam whose final files were generated, after its scoring formulas
+    changed: rewrites the scoring part of the LaTeX files of the project, then AMC extracts the strategy again.
+    The state is read by the page with the job (see views.preparation.scoring.scoring_update_status).
+    """
+    job = ExamAMCJob.objects.select_related("exam").get(pk=job_id)
+
+    try:
+        job.status = "running"
+        job.error_message = ""
+        job.result_json = {}
+        job.save(update_fields=["status", "error_message", "result_json", "updated_at"])
+
+        update_exam_scoring_latex(job.exam)
+        warnings = update_scoring_in_amc(job.exam)
+
+        job.status = "success"
+        job.result_json = {"warnings": warnings}
+    except AmcStepError as exc:
+        job.status = "error"
+        job.error_message = str(exc)
+    except Exception:
+        error_ref = f"AMC-{uuid.uuid4().hex[:8].upper()}"
+        logger.exception("Scoring update failed | error_ref=%s | job_id=%s | exam_id=%s", error_ref, job_id, job.exam_id)
+        job.status = "error"
+        job.error_message = f"An error occurred while updating the scoring in AMC. Reference: {error_ref}"
+
+    job.save(update_fields=["status", "error_message", "result_json", "updated_at"])
+    logger.info("Scoring update finished | job_id=%s | status=%s", job_id, job.status)
 
 
 @shared_task(bind=True)

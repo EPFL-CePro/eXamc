@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from examc_app.models import PrepScoringFormula
 from examc_app.tests.helpers.models import create_mock_exam
 from examc_app.tests.helpers.prep import PrepViewsTestCase
@@ -115,11 +118,16 @@ class DeleteScoringFormulaTestCase(PrepViewsTestCase):
         self.assertEqual(response.status_code, 405)
         self.assertTrue(PrepScoringFormula.objects.exists())
 
-    def test_locked_exam_is_refused(self):
+    def test_a_final_exam_can_be_changed(self):
+        # What follows (the update of AMC) is tested in test_prep_scoring_update
         self.lock()
 
-        self.assertEqual(self.delete().status_code, 403)
-        self.assertTrue(PrepScoringFormula.objects.exists())
+        with patch("examc_app.views.preparation.scoring.update_amc_scoring_task.apply_async") as start:
+            start.return_value = SimpleNamespace(id="task-1")
+            response = self.delete()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PrepScoringFormula.objects.exists())
 
     def test_formula_of_another_exam_is_not_found(self):
         other = PrepScoringFormula.objects.create(exam=create_mock_exam(code="OTHER-101"), formula="b=5",

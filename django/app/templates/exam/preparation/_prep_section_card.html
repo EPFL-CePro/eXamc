@@ -21,6 +21,7 @@
             </div>
         </div>
         <div class="d-flex align-items-center">
+        {% prep_scoring_lock exam_selected as scoring_lock %}
         <button
             type="button"
             class="btn btn-outline-dark btn-sm open-scoring-formulas-modal"
@@ -28,8 +29,8 @@
             data-prep-section="{{ section.id }}"
             data-prep-question=""
             data-prep-answer=""
-            title="Scoring of the questions of this section"
-            {% if is_exam_locked %}disabled{% endif %}
+            title="{% if scoring_lock %}{{ scoring_lock }}{% else %}Scoring of the questions of this section{% endif %}"
+            {% if scoring_lock %}disabled{% endif %}
         ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring{% prep_scoring_badge exam_selected "section" section.id %}
         </button>
         {% if not is_exam_locked %}

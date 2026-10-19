@@ -1,4 +1,5 @@
 import { describeFailure, failureJson, getJson, getText, postForm, postJson } from "@examc/helpers/http.ts";
+import { sleep } from "@examc/helpers/dom.ts";
 import { ConfirmModal } from "@examc/modals";
 
 import { EXAM_PK, Selectors, URLS } from "./config.ts";
@@ -16,6 +17,61 @@ interface ScoringResponse {
     success?: boolean;
     message?: string;
     html?: string;
+    /** The update of the marking scale of AMC that follows a change on a final exam (see followScoringUpdate). */
+    scoring_update?: { job_id: number; status_url: string };
+}
+
+interface ScoringUpdateStatus {
+    status: "pending" | "running" | "success" | "error";
+    error?: string;
+    warnings?: string[];
+}
+
+const SCORING_UPDATE_POLL_MS = 2000;
+// AMC compiles the copies again: about a minute for 230 copies, the server gives up on a job after 30 minutes
+const SCORING_UPDATE_MAX_POLLS = 900;
+
+/**
+ * A change of the formulas of a final exam makes AMC update its marking scale in the background (the server answers
+ * with the job): tells when it is done, or why it failed.
+ */
+async function followScoringUpdate(statusUrl: string): Promise<void> {
+    showSaveToast("Formulas saved. AMC is updating its marking scale...", false);
+
+    for (let poll = 0; poll < SCORING_UPDATE_MAX_POLLS; poll++) {
+        await sleep(SCORING_UPDATE_POLL_MS);
+
+        let state: ScoringUpdateStatus;
+        try {
+            state = await getJson<ScoringUpdateStatus>(statusUrl);
+        } catch (error) {
+            console.error("[preparation] scoring update status failed:", error);
+            continue;
+        }
+
+        if (state.status === "success") {
+            showSaveToast("The marking scale of AMC is updated.", false);
+            return;
+        }
+        if (state.status === "error") {
+            await ConfirmModal.confirm({
+                title: "The marking scale of AMC was not updated",
+                message: state.error || "AMC failed to update its marking scale.",
+                warning: "The formulas are saved, but the marks of AMC still use the previous ones.",
+                confirmLabel: "OK",
+                cancelLabel: "Close",
+                confirmClass: "btn-dark",
+            });
+            return;
+        }
+    }
+    showSaveToast("The update of the marking scale of AMC takes longer than expected.", true);
+}
+
+// The server refuses a change while AMC works on the project (403): its reason is for the user
+function refusedReason(error: unknown): string | null {
+    const failure = describeFailure(error);
+    return failure.status === 403 && failure.text ? failure.text : null;
 }
 
 /**
@@ -101,14 +157,16 @@ async function submit(form: HTMLFormElement): Promise<void> {
             return;
         }
 
-        renderError("An error occurred while saving formulas.");
+        renderError(refusedReason(error) ?? "An error occurred while saving formulas.");
         return;
     }
 
     if (response.success) {
         hideModal(Selectors.scoringModal);
 
-        if (response.message) {
+        if (response.scoring_update) {
+            void followScoringUpdate(response.scoring_update.status_url);
+        } else if (response.message) {
             showSaveToast(response.message, false);
         }
         return;
@@ -229,12 +287,13 @@ async function deleteSavedRow(deleteUrl: string | undefined): Promise<void> {
         response = await withSpinner("saving", () => postJson<ScoringResponse>(deleteUrl));
     } catch (error) {
         console.error("[preparation] delete scoring formula failed:", error);
-        renderError("An error occurred while deleting formula.");
+        renderError(refusedReason(error) ?? "An error occurred while deleting formula.");
         return;
     }
 
     if (response.success) {
         reloadFromCurrentForm();
+        if (response.scoring_update) void followScoringUpdate(response.scoring_update.status_url);
         return;
     }
 

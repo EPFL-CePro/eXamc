@@ -47,6 +47,7 @@ urlpatterns = [
     path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/", views.prep_answer_panel, name="prep_answer_panel"),
     path("exam_preparation/<int:exam_pk>/answers/<int:answer_id>/delete/", views.delete_prep_answer,name="delete_prep_answer"),
     path("exam_preparation/<int:exam_pk>/scoring_infos/", views.scoring_infos, name="scoring_infos"),
+    path("exam_preparation/<int:exam_pk>/scoring_update/<int:job_pk>/", views.scoring_update_status, name="scoring_update_status"),
     path("exam_preparation/<int:exam_pk>/scoring_formulas_modal/", views.scoring_formulas_modal, name="scoring_formulas_modal"),
     path("exam_preparation/<int:exam_pk>/scoring_formula/<int:pk>/delete/", views.delete_scoring_formula, name="delete_scoring_formula"),
     path("exams/<int:exam_pk>/preview/start/", views.exam_preview_start, name="exam_preview_start"),

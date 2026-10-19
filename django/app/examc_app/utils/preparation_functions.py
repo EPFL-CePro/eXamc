@@ -159,6 +159,45 @@ def exam_lock_reason(exam):
     return None
 
 
+# The extraction of the scoring strategy of AMC after a change of the formulas: ~1 minute for 230 copies. A job not
+# finished after this time is considered interrupted (worker stopped...)
+SCORING_UPDATE_MAX_DURATION = timedelta(minutes=30)
+
+
+def get_active_scoring_update_job(exam):
+    """The update of the scoring strategy of AMC still running for the exam, or None (see views.preparation.scoring)."""
+    for job in ExamAMCJob.objects.filter(exam=exam, job_type="scoring_update", status__in=("pending", "running")):
+        if timezone.now() - job.created_at > SCORING_UPDATE_MAX_DURATION:
+            job.status = "error"
+            job.error_message = "The update was interrupted."
+            job.save(update_fields=["status", "error_message", "updated_at"])
+            continue
+        return job
+    return None
+
+
+def scoring_lock_reason(exam):
+    """
+    Why the scoring formulas cannot be changed now, or None. They can be changed at any time, even once the exam is
+    finalized (they do not change the layout), except while AMC works on the project: a final generation, or the
+    update of its scoring strategy after a previous change.
+    """
+    if get_active_final_build_job(exam):
+        return "The final generation of this exam is running. Wait for its end, or cancel it, before changing the scoring."
+    if get_active_scoring_update_job(exam):
+        return ("The marking scale of this exam is being updated in AMC: wait for its end (about a minute) before "
+                "changing the scoring again.")
+    return None
+
+
+def ensure_scoring_editable(exam):
+    """A 403 response when the scoring cannot be changed now (see scoring_lock_reason), else None."""
+    reason = scoring_lock_reason(exam)
+    if reason:
+        return HttpResponseForbidden(reason)
+    return None
+
+
 def is_exam_locked(exam) -> bool:
     return exam_lock_reason(exam) is not None
 
@@ -575,8 +614,6 @@ def save_scoring_formulas(
         else:
             instance.save()
 
-    # Exam formulas in global_scoring.tex, the others on the questions and answers (see question_scoring_tex)
-    update_exam_latex(Exam.objects.get(pk=exam_pk))
-
+    # The LaTeX files are rewritten by the caller (see apply_scoring_change): not the same ones when the exam is final
     return instances
 
