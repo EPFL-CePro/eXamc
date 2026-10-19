@@ -214,6 +214,21 @@ def update_exam_latex(exam: Exam, pages_per_copy: int | None = None):
     Path(exam_latex_path_output).write_text(exam_tex, encoding="utf-8")
     return exam_latex_path_output
 
+# The template ends the line of the teachers with \\, which LaTeX refuses after nothing ("There's no line here to end")
+EMPTY_LINE_TEXT = r"\mbox{}"
+
+
+def teachers_text(exam: Exam) -> str:
+    """The teachers of the exam (group 2) as "A. Lovelace, G. Hopper"; one without first name is given by its last
+    name. Empty when the exam has no teacher."""
+    names = []
+    for exam_user in exam.exam_users.filter(group_id=2).select_related("user").order_by("pk"):
+        user = exam_user.user
+        initial = f"{user.first_name[0]}. " if user.first_name else ""
+        names.append(f"{initial}{user.last_name}".strip())
+    return ", ".join(name for name in names if name)
+
+
 def render_first_page_tex_from_html(exam: Exam, html: str, template_path: str, output_path: str, pages_per_copy: int = None) -> str:
     template = Path(template_path).read_text(encoding="utf-8")
     latex_fragment = markdown_to_latex_pandoc(html)
@@ -229,13 +244,7 @@ def render_first_page_tex_from_html(exam: Exam, html: str, template_path: str, o
     if PH_EXAM_TIME not in template:
         raise ValueError(f"Placeholder {PH_EXAM_TIME!r} not found in template")
 
-    teacher_txt = ''
-    for exam_user in exam.exam_users.filter(group_id=2):
-        if teacher_txt:
-            teacher_txt += ', '
-        teacher_txt += f'{exam_user.user.first_name[0]}. {exam_user.user.last_name}'
-
-    teacher_txt = latex_escape(teacher_txt)
+    teacher_txt = latex_escape(teachers_text(exam)) or EMPTY_LINE_TEXT
     exam_name_txt = latex_escape(f'({exam.code}) {exam.name}')
     exam_date = exam.date.strftime("%d.%m.%Y")
     exam_time = latex_escape(exam.duration)
