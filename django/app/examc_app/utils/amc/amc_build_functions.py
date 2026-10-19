@@ -52,6 +52,7 @@ from examc_app.utils.amc.amc_layout_functions import (
     get_pages_by_copy_from_xy,
     get_subject_copy_and_page_counts_from_xy,
 )
+from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 
@@ -844,6 +845,114 @@ def promote_workspace_to_project(
         "catalog_log_path": str(final_catalog_log_path) if final_catalog_log_path.exists() else "",
         "catalog_amc_path": str(final_catalog_amc_path) if final_catalog_amc_path.exists() else "",
     }
+
+# ---------------------------------------------------------------------------
+# AMC databases (layout.sqlite, scoring.sqlite)
+# ---------------------------------------------------------------------------
+
+
+class AmcStepError(Exception):
+    """An AMC command of the final generation failed: the message is shown to the user."""
+
+
+# The lines AMC prints for the problems of the exam (questions, LaTeX...) and the warnings
+AMC_MESSAGE_RE = re.compile(r"^(ERR|WARN):\s*(.*)$", re.MULTILINE)
+AMC_OUTPUT_TAIL = 1500
+AMC_LAYOUT_TIMEOUT = 600
+
+
+def _run_amc_step(command: list[str], cwd: Path, timeout: int, label: str) -> list[str]:
+    """
+    Runs one AMC command: returns its warnings, raises AmcStepError with its errors when it failed, and
+    BuildCancelled when the user asked to stop.
+    """
+    returncode, output = _run_latex(command, cwd, timeout)
+    messages = AMC_MESSAGE_RE.findall(output)
+    errors = [text for kind, text in messages if kind == "ERR"]
+    warnings = [text for kind, text in messages if kind == "WARN"]
+
+    if returncode is None:
+        raise AmcStepError(f"AMC: {label} timed out after {timeout} s.")
+    if returncode != 0 or errors:
+        details = " ".join(errors) or output.strip()[-AMC_OUTPUT_TAIL:] or f"exit code {returncode}"
+        raise AmcStepError(f"AMC: {label} failed. {details}")
+    return warnings
+
+
+def _copy_amc_sources(project_path: Path, destination: Path) -> None:
+    """
+    Copies what AMC needs to read the exam (the LaTeX sources, the students list, the options and the media), and
+    not the generated documents: AMC compiles in the folder of the source, and its compilation must not replace the
+    SUBJECT state kept in the project (amc-compiled.*, amc-compiled-config.tex).
+    """
+    for item in project_path.iterdir():
+        if item.is_dir():
+            if item.name == "media":
+                shutil.copytree(item, destination / item.name)
+        elif item.name not in IGNORED_BUILD_FILES and item.suffix not in (".pdf", ".xy"):
+            shutil.copy2(item, destination / item.name)
+
+
+def register_exam_in_amc(
+    exam: Exam,
+    xy_path: str,
+    *,
+    expected_pages: int,
+    timeout: int = 60,
+    should_cancel=None,
+    progress_callback=None,
+) -> list[str]:
+    """
+    Feeds the databases of the AMC project with the exam just generated, as AMC does itself, so that the scans and the
+    marks are processed by AMC:
+
+    1. the layout (``meptex`` reads the SUBJECT XY file: ``data/layout.sqlite``),
+    2. the scoring strategy (``prepare --mode b`` compiles the sources once more: ``data/scoring.sqlite``). It reads
+       the layout, so it comes second, and runs in a copy of the sources: the project keeps its SUBJECT state.
+
+    Returns the warnings of AMC. Raises AmcStepError when AMC fails or does not find the pages of the PDF (its
+    message is shown to the user), and BuildCancelled when the user asked to stop.
+    """
+    project_path = Path(get_amc_project_path(exam, False))
+    data_path = project_path / "data"
+    data_path.mkdir(exist_ok=True)
+
+    token = _should_cancel.set(should_cancel)
+    try:
+        _report_progress(progress_callback, 92, "Detecting the layout with AMC...")
+        warnings = _run_amc_step(
+            ["auto-multiple-choice", "meptex", "--src", str(xy_path), "--data", f"{data_path}/"],
+            project_path, AMC_LAYOUT_TIMEOUT, "the layout detection")
+
+        with AmcLayoutDbManager(amc_data_path=f"{data_path}/") as layout_db:
+            detected_pages = layout_db.select_count_layout_pages()
+        if detected_pages != expected_pages:
+            raise AmcStepError(
+                f"AMC: the layout detection found {detected_pages} pages, but the subject has {expected_pages}.")
+
+        _report_progress(progress_callback, 94, "Extracting the scoring strategy with AMC...")
+        Path(settings.AMC_TMP_ROOT).mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=settings.AMC_TMP_ROOT, prefix=f"amc_scoring_{exam.pk}_") as tmp_dir:
+            sources_path = Path(tmp_dir)
+            _copy_amc_sources(project_path, sources_path)
+            # The QR codes of the subject just compiled: computing them in TeX takes ~0.15 s per page
+            seed_qr_cache(sources_path, read_qr_cache(project_path / "amc-compiled.aux"))
+            warnings += _run_amc_step(
+                [
+                    "auto-multiple-choice", "prepare",
+                    "--mode", "b",
+                    "--data", f"{data_path}/",
+                    "--with", "pdflatex",
+                    "--filter", "latex",
+                    "--prefix", f"{sources_path}/",
+                    str(sources_path / "exam.tex"),
+                ],
+                sources_path, _compile_timeout(timeout, expected_pages), "the extraction of the scoring strategy")
+    finally:
+        _should_cancel.reset(token)
+
+    return warnings
+
 
 # --------------------------------------------------------------------------
 # Progress helper
