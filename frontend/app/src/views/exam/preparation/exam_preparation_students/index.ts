@@ -1,11 +1,11 @@
 import 'vite/modulepreload-polyfill';
 
-import {initPrepStudentsTable} from "./prepStudentsTable.ts";
-import {initPrepStudentEdit} from "./prepStudentEdit.ts";
-import {initSeatsAssign} from "./seatsAssign.ts";
-import {initStudentsApiImport, initStudentsFileImport} from "./studentsImport.ts";
-import {initStudentsOrder} from "./studentsOrder.ts";
-import {initStudentsPanels} from "./studentsPanels.ts";
+import {initPrepStudentsTable} from "./prep-students-table.ts";
+import {initPrepStudentEdit} from "./prep-student-edit.ts";
+import {initSeatsAssign} from "./seats-assign.ts";
+import {initStudentsApiImport, initStudentsFileImport} from "./students-import.ts";
+import {initStudentsOrder} from "./students-order.ts";
+import {initStudentsPanels} from "./students-panels.ts";
 
 document.addEventListener("DOMContentLoaded", () => {
     const tableElement = document.querySelector<HTMLTableElement>("#prep-students-dt");

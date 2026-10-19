@@ -3,7 +3,7 @@ import type { Api } from 'datatables.net-dt';
 import { postForm } from '@examc/helpers/http.ts';
 import { ConfirmModal } from '@examc/modals';
 
-import type { PrepStudentRow } from "./prepStudentsTable.ts";
+import type { PrepStudentRow } from "./prep-students-table.ts";
 import { showFailure, showResult } from "./result.ts";
 
 type AssignResponse = {

@@ -3,7 +3,7 @@ import type { Api } from 'datatables.net-dt';
 import { describeFailure, failureJson, sendJson } from '@examc/helpers/http.ts';
 import { LocalModal } from '@examc/modals';
 
-import type { PrepStudentRow } from "./prepStudentsTable.ts";
+import type { PrepStudentRow } from "./prep-students-table.ts";
 
 const FIELDS = ["copy_no", "sciper", "last_name", "first_name", "email", "section", "room", "seat"] as const;
 
