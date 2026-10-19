@@ -7,9 +7,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
-from docutils import DataError
 
 from examc_app.decorators import exam_permission_required
+from examc_app.exceptions.exam import NoAcademicYearError
 from examc_app.forms.general import CreateExamProjectForm
 from examc_app.forms.preparation import ExamFirstPageForm
 from examc_app.models import AcademicYear, Exam, ExamUser, Semester
@@ -32,7 +32,8 @@ def create_exam_project(request):
     # get the most current academic year
     year = AcademicYear.objects.order_by("-code").first()
 
-    if year is None: raise DataError("No academic year configured.")
+    if year is None:
+        raise NoAcademicYearError("No academic year in the database")
 
     teacher_names_by_course = get_teachers_names_by_course(year.code)
     courses = get_courses(year.code)
@@ -52,18 +53,8 @@ def create_exam_project(request):
         date = form.cleaned_data['date']
         semester_id = form.cleaned_data['semester']
 
-        # date_text = date.strftime('%d.%m.%Y')
-        # duration_text = form.cleaned_data['durationText']
-        # language = form.cleaned_data['language']
-
         semester = Semester.objects.get(pk=semester_id)
-        # exam_text = course.code + " - " + course.name
-        # teachers_text = get_course_teachers_string(course.teachers)
         teachers = add_course_teachers_ldap(teacher_scipers)
-
-        # user = request.user
-        # if not user in teachers:
-        #     teachers.append(user)
 
         exam = Exam()
         exam.code = course_code
@@ -71,7 +62,6 @@ def create_exam_project(request):
         exam.semester = semester
         exam.year = year
         exam.date = date
-        # exam.amc_option = True
         exam.save()
 
         for teacher in teachers:

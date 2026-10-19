@@ -28,9 +28,6 @@ def exam_preview_pdf_file(request, exam_pk, job_pk):
     pdf_path = Path(job.pdf_path)
     if not pdf_path.exists():
         raise Http404("Preview PDF file missing")
-    # else:
-    #     rel_path = pdf_path.resolve().relative_to(Path(settings.AMC_PROJECTS_ROOT).resolve()).as_posix()
-    #     preview_pdf_path = make_token_for(rel_path, settings.AMC_PROJECTS_ROOT, token_type="amc_document")
 
     return FileResponse(open(pdf_path, "rb"), content_type="application/pdf")
 

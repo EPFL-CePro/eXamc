@@ -27,6 +27,7 @@ The format follows [Semantic Versioning](https://semver.org/).
 - Preparation module: the preview no longer fails with a Python error instead of its error message when its
   compilation raises.
 - Preparation module: saving an empty list of LaTeX packages no longer writes lines that LaTeX cannot compile.
+- Preparation module: creating an exam when no academic year exists shows a message, instead of an error page.
 - Preparation module: an open question with maximum points that its point increment does not divide (e.g. 2.5 points by
   steps of 1) is refused with a message, instead of ending on an error page after being saved.
 

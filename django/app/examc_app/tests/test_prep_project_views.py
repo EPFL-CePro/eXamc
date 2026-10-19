@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group, User
 from django.contrib.messages import get_messages
 from django.urls import reverse
 
-from examc_app.models import Exam, ExamBuild, ExamUser
+from examc_app.models import AcademicYear, Exam, ExamBuild, ExamUser
 from examc_app.tests.helpers.models import create_mock_user
 from examc_app.tests.helpers.prep import PrepViewsTestCase
 from examc_app.utils.amc_functions import ensure_amc_project
@@ -168,3 +168,16 @@ class CreateExamProjectTestCase(PrepViewsTestCase):
             response = self.client.get("/create_exam_project")
 
         self.assertContains(response, "No courses are available")
+
+    def test_without_academic_year_the_user_is_told_so(self):
+        # An academic year cannot be deleted while an exam uses it
+        Exam.objects.all().delete()
+        AcademicYear.objects.all().delete()
+
+        page = self.client.get("/create_exam_project")
+        data = self.client.get("/create_exam_project", HTTP_ACCEPT="application/json")
+
+        self.assertEqual(page.status_code, 400)
+        self.assertContains(page, "No academic year", status_code=400)
+        self.assertEqual(data.status_code, 400)
+        self.assertEqual(data.json()["title"], "No academic year")
