@@ -56,6 +56,15 @@ TARGET_URL_NAMES = {
     "update_questions",
     "set_common_exam",
     "validate_common_exams_settings",
+    # views/preparation/ (the others check the method in their body)
+    "add_prep_section",
+    "delete_prep_section",
+    "delete_prep_question",
+    "add_prep_answer",
+    "delete_prep_answer",
+    "save_latex_edited_file",
+    "generate_final_exam_files_start",
+    "exam_preview_start",
     # results_statistics_views.py
     "update_student_present",
     "upload_amc_csv",
