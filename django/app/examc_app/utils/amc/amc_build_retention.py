@@ -56,8 +56,7 @@ def _build_keep_reasons(build: ExamBuild) -> list[str]:
     Return hard-protection reasons for a build.
 
     A build is considered non-deletable when it is explicitly locked or when it
-    already has downstream data attached, such as copies, scan pages, or score
-    results.
+    already has downstream data attached, such as copies or score results.
     """
     reasons = []
 
@@ -66,9 +65,6 @@ def _build_keep_reasons(build: ExamBuild) -> list[str]:
 
     if build.copies.exists():
         reasons.append("has_copies")
-
-    if build.scan_pages.exists():
-        reasons.append("has_scan_pages")
 
     if build.score_results.exists():
         reasons.append("has_score_results")
