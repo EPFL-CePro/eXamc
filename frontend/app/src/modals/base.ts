@@ -1,6 +1,5 @@
 import type { ExamcModalOptions } from "@examc/types/modals";
-import type { Modal } from "bootstrap";
-import { getPageBootstrap } from "@examc/helpers/page-bootstrap";
+import { Modal } from "bootstrap";
 
 /** The parts of a modal built on the fly. */
 interface GeneratedModalParts {
@@ -32,7 +31,7 @@ export abstract class ExamcModal {
     protected constructor(element: HTMLElement, modalOptions?: ExamcModalOptions) {
         this.element = element;
         this.titleEl = element.querySelector<HTMLElement>(".modal-title");
-        this.modal = getPageBootstrap().Modal.getOrCreateInstance(element, modalOptions);
+        this.modal = Modal.getOrCreateInstance(element, modalOptions);
     }
 
     public show(): void {

@@ -4,7 +4,7 @@
             <div class="d-flex flex-column gap-1"
                  title="{{ exam_selected.display_name }}&#013;{{ exam_selected.display_date }}&#013;Teachers: {{ teachers }}">
 
-                {% if exam_selected.is_overall_or_part %}
+                {% if exam_selected.is_overall_or_part and nav_url != 'review_group' and nav_url != 'amc_data_capture_manual' %}
                     <select class="common-exam-select form-select text-bg-light text-truncate ps-2" aria-label="Common exams"
                             onchange="if (this.value) location.href = this.value">
                         {% for common_exam in exam.get_common_exams_yc_common %}

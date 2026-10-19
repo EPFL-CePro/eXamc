@@ -1595,8 +1595,8 @@ import {setupDatatables} from "@examc/helpers/datatables.ts";
     });
 
     // Expand/collapse left group list panel
-    document.getElementById("expandCollapseGroupListBt").addEventListener("click", (event) => {
-        const collapsed = document.getElementById("pages_group_list_table_div").classList.toggle("d-none");
+    document.getElementById("expand-collapse-group-list-bt").addEventListener("click", (event) => {
+        const collapsed = document.getElementById("pages-group-list-table-div").classList.toggle("d-none");
         event.currentTarget.setAttribute("aria-expanded", String(!collapsed));
         document.getElementById("expand-group-list-icon").classList.toggle("d-none", !collapsed);
         document.getElementById("collapse-group-list-icon").classList.toggle("d-none", collapsed);

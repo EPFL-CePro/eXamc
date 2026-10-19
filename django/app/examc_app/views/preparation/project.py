@@ -11,8 +11,7 @@ from django.views.decorators.http import require_POST
 
 from examc_app.decorators import exam_permission_required
 from examc_app.exceptions.exam import NoAcademicYearError
-from examc_app.forms.general import CreateExamProjectForm
-from examc_app.forms.preparation import ExamFirstPageForm
+from examc_app.forms.preparation import CreateExamProjectForm, ExamFirstPageForm
 from examc_app.models import AcademicYear, Exam, ExamUser, Semester
 from examc_app.services.oasis import get_courses, get_teachers_names_by_course
 from examc_app.signing import make_token_for
@@ -20,10 +19,13 @@ from examc_app.utils.global_functions import add_course_teachers_ldap
 from examc_app.utils.preparation_functions import (
     build_sections_list_context,
     ensure_exam_not_finalized,
-    is_exam_locked,
     get_active_final_build_job,
+    is_exam_locked,
 )
-from examc_app.utils.preparation_latex_functions import get_exam_katex_macros, update_exam_latex
+from examc_app.utils.preparation_latex_functions import (
+    get_exam_katex_macros,
+    update_exam_latex,
+)
 
 from ._htmx import with_save_feedback
 

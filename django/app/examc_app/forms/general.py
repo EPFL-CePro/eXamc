@@ -64,3 +64,4 @@ class SwitchWidget(forms.CheckboxInput):
             f'<label class="form-check-label" for="{attrs["id"]}">{checkbox_html}</label>'
             f'</div>'
         )
+

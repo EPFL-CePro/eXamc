@@ -29,7 +29,6 @@ urlpatterns = [
     path('create_exam_project', views.create_exam_project, name="create_exam_project"),
     path("exam_preparation/<int:exam_pk>/", views.exam_preparation_view, name="exam_preparation"),
     path("exam_preparation/<int:exam_pk>/first_page/", views.prep_first_page_panel, name="prep_first_page_panel"),
-    path("exam_preparation/<int:exam_pk>/sections/", views.prep_sections_list, name="prep_sections_list"),
     path("exam_preparation/<int:exam_pk>/sections/add/", views.add_prep_section, name="add_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/", views.prep_section_panel,name="prep_section_panel"),
     path("exam_preparation/<int:exam_pk>/sections/reorder/", views.reorder_prep_sections,name="reorder_prep_sections"),
