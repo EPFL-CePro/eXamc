@@ -1,17 +1,22 @@
 from django import forms
 from django.utils.safestring import mark_safe
 
+from examc_app.forms.general import (
+    CheckboxSelectMultiple,
+    InlineRadioSelect,
+)
+
 
 class ExportMarkedFilesForm(forms.Form):
     export_type = forms.ChoiceField(
-        widget=forms.RadioSelect(attrs={"class": "form-check-input"}),
+        widget=InlineRadioSelect,
         choices=[(2, "PDFs (one per student copy)"), (1, "JPGs (one per page)")],
         initial=2,
         required=True,
     )
 
     with_comments = forms.ChoiceField(
-        widget=forms.RadioSelect(attrs={"class": "form-check-input"}),
+        widget=InlineRadioSelect,
         choices=[(1, "Yes"), (2, "No")],
         initial=1,
         required=True,
@@ -25,21 +30,21 @@ class ExportMarkedFilesForm(forms.Form):
 
 class ExportResultsForm(forms.Form):
     exportIsaCsv = forms.BooleanField(
-        label="export ISA .csv",
+        label="Export ISA CSV file",
         label_suffix=" ",
         initial=False,
         required=False,
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
     exportExamScalePdf = forms.BooleanField(
-        label="export Exam scale pdf",
+        label="Export Exam scale PDF file",
         label_suffix=" ",
         initial=False,
         required=False,
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
     exportStudentsDataCsv = forms.BooleanField(
-        label="export Students data .csv",
+        label="Export Students data CSV file",
         label_suffix=" ",
         initial=False,
         required=False,
@@ -47,14 +52,11 @@ class ExportResultsForm(forms.Form):
     )
     scale = forms.ChoiceField(
         choices=(),
-        widget=forms.RadioSelect(
-            attrs={"class": "custom-radio-list form-check-inline"}
-        ),
+        widget=InlineRadioSelect,
         required=True,
     )
 
     def __init__(self, *args, **kwargs):
-
         exam = kwargs.pop("exam", None)
 
         super().__init__(*args, **kwargs)
@@ -62,9 +64,7 @@ class ExportResultsForm(forms.Form):
         if exam and exam.scaleStatistics:
             if exam.overall:
                 self.fields["common_exams"] = forms.MultipleChoiceField(
-                    widget=forms.CheckboxSelectMultiple(
-                        attrs={"class": "custom-radio-list form-check-inline"}
-                    ),
+                    widget=CheckboxSelectMultiple,
                     choices=[
                         (c.pk, c.code + " " + c.exam_users.first().user.last_name)
                         for c in exam.common_exams.all()
