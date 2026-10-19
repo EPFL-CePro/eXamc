@@ -43,7 +43,7 @@
                         data-prep-section=""
                         data-prep-question="{{ question.id }}"
                         data-prep-answer=""
-                    ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
+                    ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring{% prep_scoring_badge exam_selected "question" question.id %}
                     </button>
                     {% prep_scoring_info exam_selected "question" question.id %}
                 </div>

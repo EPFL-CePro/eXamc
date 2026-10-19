@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load django_vite %}
+{% load prep_tags %}
 
 {% block title %}Exam preparation{% endblock %}
 
@@ -74,7 +75,7 @@
                 {% if is_exam_locked %}disabled{% endif %}
             >
                 <i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>
-                Default questions scorings
+                Default questions scorings{% prep_scoring_badge exam_selected "exam" 0 %}
             </button>
 
             <div class="d-flex">

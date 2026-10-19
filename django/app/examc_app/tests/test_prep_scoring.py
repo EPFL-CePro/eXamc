@@ -8,8 +8,10 @@ from django.urls import reverse
 from examc_app.forms.preparation import PrepScoringFormulaForm
 from examc_app.models import PrepQuestion, PrepQuestionAnswer, PrepScoringFormula, PrepSection, QuestionType
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
-from examc_app.templatetags.prep_tags import prep_scoring_info
-from examc_app.utils.preparation_functions import get_applied_scorings, scoring_info_text
+from examc_app.templatetags.prep_tags import prep_scoring_badge, prep_scoring_info
+from examc_app.utils.preparation_functions import (
+    get_applied_scorings, scoring_badge_text, scoring_badges, scoring_info_text,
+)
 from examc_app.utils.preparation_latex_functions import (
     question_scoring_tex, scoring_formulas_by_type, update_exam_latex, write_global_scoring_file,
 )
@@ -216,6 +218,57 @@ class AppliedScoringsTestCase(ScoringTestCase):
                 prep_scoring_info(self.exam, "answer", answer.pk)
 
 
+class ScoringBadgeTestCase(ScoringTestCase):
+    def defined(self):
+        return get_applied_scorings(self.exam)["defined"]
+
+    def test_texts(self):
+        self.assertEqual(scoring_badge_text(set()), "")
+        self.assertEqual(scoring_badge_text(None), "")
+        self.assertEqual(scoring_badge_text({"SCQ", "MCQ"}), "MCQ, SCQ")
+        self.assertEqual(scoring_badge_text({None}), "Custom")
+        # A formula without question type next to typed ones: the types are what tells them apart
+        self.assertEqual(scoring_badge_text({None, "TF"}), "TF")
+
+    def test_exam_level_lists_the_types_with_a_formula(self):
+        self.formula("b=1", "SCQ")
+        self.formula("b=2", "MCQ")
+        # The formulas of a section are not the ones of the exam
+        self.formula("b=9", "TF", prep_section=self.section)
+
+        self.assertEqual(scoring_badges(self.defined())["exam"], {"0": "MCQ, SCQ"})
+        self.assertEqual(scoring_badges(self.defined())["section"], {str(self.section.pk): "TF"})
+
+    def test_question_and_answer_levels(self):
+        scq = self.question("SCQ")
+        other = self.question("SCQ", 2)
+        answer = scq.prepAnswers.order_by("position").first()
+        self.formula("b=3", prep_question=scq)
+        self.formula("b=9", prep_answer=answer)
+
+        badges = scoring_badges(self.defined())
+
+        self.assertEqual(badges["question"], {str(scq.pk): "Custom"})
+        self.assertEqual(badges["answer"], {str(answer.pk): "Custom"})
+        self.assertNotIn(str(other.pk), badges["question"])
+        self.assertEqual(badges["exam"], {})
+
+    def test_tag_is_hidden_when_the_level_has_no_formula(self):
+        html = prep_scoring_badge(self.exam, "section", self.section.pk)
+
+        self.assertIn(f'data-prep-scoring-badge-kind="section" data-prep-scoring-badge-id="{self.section.pk}"', html)
+        self.assertIn('style="display: none"', html)
+
+    def test_tag_shows_the_types(self):
+        self.formula("b=1", "SCQ")
+        self.formula("b=2", "MCQ")
+
+        html = prep_scoring_badge(self.exam, "exam", 0)
+
+        self.assertIn(">MCQ, SCQ</span>", html)
+        self.assertNotIn("display: none", html)
+
+
 class ScoringInfoPagesTestCase(ScoringTestCase):
     def setUp(self):
         super().setUp()
@@ -278,3 +331,25 @@ class ScoringInfoPagesTestCase(ScoringTestCase):
 
             self.assertIn('class="js-question-scoring">', question_html)
             self.assertIn('class="js-answer-scoring">', answer_html)
+
+    def test_badges_of_the_page_for_the_refresh(self):
+        scq = self.question("SCQ")
+        self.formula("b=1", "SCQ")
+        self.formula("b=3", prep_question=scq)
+
+        badges = self.client.get(reverse("scoring_infos", kwargs={"exam_pk": self.exam.pk})).json()["badges"]
+
+        self.assertEqual(badges["exam"], {"0": "SCQ"})
+        self.assertEqual(badges["question"], {str(scq.pk): "Custom"})
+        self.assertEqual(badges["section"], {})
+
+    def test_panels_show_the_badge_of_their_level(self):
+        scq = self.question("SCQ")
+        answer = scq.prepAnswers.order_by("position").first()
+        self.formula("b=3", prep_question=scq)
+
+        question_html, answer_html = self.panels(scq)
+
+        self.assertIn(f'data-prep-scoring-badge-id="{scq.pk}">Custom</span>', question_html)
+        self.assertIn(f'data-prep-scoring-badge-kind="answer" data-prep-scoring-badge-id="{answer.pk}" style="display: none"',
+                      answer_html)

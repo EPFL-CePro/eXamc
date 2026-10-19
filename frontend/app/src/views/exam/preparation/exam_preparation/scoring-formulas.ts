@@ -18,10 +18,15 @@ interface ScoringResponse {
     html?: string;
 }
 
-/** Text next to the Scoring button of each question and answer: the formula applied, with its level. */
+/**
+ * Text next to the Scoring button of each question and answer (the formula applied, with its level), and frame in the
+ * Scoring button of each level (what it has formulas for), by kind of level ("exam", "section", "question", "answer")
+ * and id: only the buttons that have one.
+ */
 interface ScoringInfos {
     questions: Record<string, string>;
     answers: Record<string, string>;
+    badges: Record<string, Record<string, string>>;
 }
 
 // The formulas of the exam, sections and questions change what the other questions apply: all the texts are read again
@@ -37,6 +42,13 @@ async function refreshScoringInfos(): Promise<void> {
     document.querySelectorAll<HTMLElement>("[data-prep-scoring-kind]").forEach((element) => {
         const texts = element.dataset["prepScoringKind"] === "question" ? infos.questions : infos.answers;
         element.textContent = texts[element.dataset["prepScoringId"] ?? ""] ?? "";
+    });
+
+    document.querySelectorAll<HTMLElement>("[data-prep-scoring-badge-kind]").forEach((element) => {
+        const kind = element.dataset["prepScoringBadgeKind"] ?? "";
+        const text = infos.badges[kind]?.[element.dataset["prepScoringBadgeId"] ?? ""] ?? "";
+        element.textContent = text;
+        element.style.display = text ? "" : "none";
     });
 }
 

@@ -10,7 +10,7 @@
                 data-prep-section=""
                 data-prep-question=""
                 data-prep-answer="{{ answer.id }}"
-            ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring
+            ><i class="fa-solid fa-calculator fa-xl" style="margin-right:5px;"></i>Scoring{% prep_scoring_badge exam_selected "answer" answer.id %}
             </button>
             {% prep_scoring_info exam_selected "answer" answer.id %}
         </div>

@@ -425,11 +425,33 @@ def scoring_info_text(info) -> str:
     return f'{info["level"]} : "{info["formula"]}"'
 
 
-def get_applied_scorings(exam) -> dict[str, dict[int, dict | None]]:
+SCORING_BADGE_CUSTOM = "Custom"
+
+
+def scoring_badge_text(codes) -> str:
+    """The text on the Scoring button of a level: the question types it has formulas for ("MCQ, SCQ"), or "Custom"
+    for the formulas without question type (questions and answers). Empty when the level has no formula."""
+    if not codes:
+        return ""
+    typed = sorted(code for code in codes if code)
+    return ", ".join(typed) if typed else SCORING_BADGE_CUSTOM
+
+
+def scoring_badges(defined: dict[str, dict[int, set]]) -> dict[str, dict[str, str]]:
+    """The texts of the Scoring buttons that have one: {level kind: {id: text}}, for the page to update them."""
+    return {
+        kind: {str(pk): text for pk, codes in levels.items() if (text := scoring_badge_text(codes))}
+        for kind, levels in defined.items()
+    }
+
+
+def get_applied_scorings(exam) -> dict[str, dict]:
     """
     The scoring formula applied to each choice question and answer of the exam, with its level:
     {"questions": {question id: info}, "answers": {answer id: info}}, info being {"level": ..., "formula": ...}
     (None for an open question, scored by its corrector boxes, and its answers).
+    "defined" is what each level has formulas for, to show on its Scoring button: {"exam" (id 0), "section",
+    "question", "answer": {id: set of question type codes, None for a formula without question type}}.
 
     A question has the formula of the most specific level that has one for it: the question, its section (formula of
     its question type), the exam (formula of its question type). Otherwise AMC applies its own default: formula "".
@@ -438,17 +460,23 @@ def get_applied_scorings(exam) -> dict[str, dict[int, dict | None]]:
     One query for the formulas, one for the questions and one for the answers.
     """
     exam_formulas, section_formulas, question_formulas, answer_formulas = {}, {}, {}, {}
+    defined = {"exam": {0: set()}, "section": {}, "question": {}, "answer": {}}
     for formula in PrepScoringFormula.objects.filter(exam=exam).select_related("question_type").order_by("pk"):
         code = formula.question_type.code if formula.question_type else None
         if formula.prep_answer_id:
             answer_formulas.setdefault(formula.prep_answer_id, formula.formula)
+            defined["answer"].setdefault(formula.prep_answer_id, set()).add(code)
         elif formula.prep_question_id:
             question_formulas.setdefault(formula.prep_question_id, formula.formula)
+            defined["question"].setdefault(formula.prep_question_id, set()).add(code)
         elif formula.prep_section_id:
+            defined["section"].setdefault(formula.prep_section_id, set()).add(code)
             if code:
                 section_formulas.setdefault((formula.prep_section_id, code), formula.formula)
-        elif code:
-            exam_formulas.setdefault(code, formula.formula)
+        else:
+            defined["exam"][0].add(code)
+            if code:
+                exam_formulas.setdefault(code, formula.formula)
 
     questions = {}
     for question in PrepQuestion.objects.filter(prep_section__exam=exam).select_related("question_type"):
@@ -475,7 +503,7 @@ def get_applied_scorings(exam) -> dict[str, dict[int, dict | None]]:
         else:
             answers[answer_id] = questions[question_id]
 
-    return {"questions": questions, "answers": answers}
+    return {"questions": questions, "answers": answers, "defined": defined}
 
 
 def get_scoring_formula_scope(prep_section=None, prep_question=None, prep_answer=None):

@@ -412,6 +412,14 @@ textarea.markdown-editor {
     }
 }
 
+// What a level has scoring formulas for, in its Scoring button (like the badge of Print settings)
+.prep-scoring-badge {
+    margin-left: 0.5rem;
+    background-color: #212529;
+    color: #fff;
+    border: 1px solid #fff;
+}
+
 // Scoring formula applied to a question or an answer (level and formula), next to its Scoring button
 .prep-scoring-info {
     margin-left: 1.5rem;

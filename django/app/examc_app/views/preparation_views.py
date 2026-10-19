@@ -86,6 +86,7 @@ from examc_app.utils.preparation_functions import (
     renumber_questions,
     renumber_sections,
     save_scoring_formulas,
+    scoring_badges,
     scoring_info_text,
     update_open_answers,
 )
@@ -1117,14 +1118,15 @@ def exam_preview_status(request, exam_pk, job_pk):
 
 @exam_permission_required(["manage"])
 def scoring_infos(request, exam_pk):
-    """The text next to the Scoring button of each question and answer (see get_applied_scorings), read again by
-    the page when the dialog of the formulas is closed."""
+    """The text next to the Scoring button of each question and answer, and the one on the Scoring button of each
+    level (see get_applied_scorings), read again by the page when the dialog of the formulas is closed."""
     exam = get_object_or_404(Exam, pk=exam_pk)
     scorings = get_applied_scorings(exam)
 
     return JsonResponse({
-        kind: {str(pk): scoring_info_text(info) for pk, info in infos.items()}
-        for kind, infos in scorings.items()
+        "questions": {str(pk): scoring_info_text(info) for pk, info in scorings["questions"].items()},
+        "answers": {str(pk): scoring_info_text(info) for pk, info in scorings["answers"].items()},
+        "badges": scoring_badges(scorings["defined"]),
     })
 
 
