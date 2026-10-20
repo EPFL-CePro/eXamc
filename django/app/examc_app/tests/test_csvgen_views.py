@@ -15,7 +15,7 @@ class CsvgenViewsTest(TestCase):
         cls.user = create_mock_user()
 
     def test_csvgen_template_uses_generated_template_download(self):
-        template_path = Path(__file__).resolve().parents[2] / "templates" / "csvgen" / "csvgen.html"
+        template_path = Path(__file__).resolve().parents[2] / "templates" / "public" / "csvgen.html"
         template_source = template_path.read_text()
 
         self.assertIn("{% url 'download_csvgen_templates' %}", template_source)
