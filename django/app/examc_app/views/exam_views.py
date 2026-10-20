@@ -61,7 +61,8 @@ class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
-        context = super(ExamInfoView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
+
         task_id = None
         if 'task_id' in self.kwargs:
             task_id = self.kwargs['task_id']

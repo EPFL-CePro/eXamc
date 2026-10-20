@@ -1,15 +1,11 @@
-import os.path
-import shutil
-
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Q
 
-from examc_app.models import ExamUser
+from examc_app.models import Exam, ExamUser
 from examc_app.utils.epflldap.ldap_search import ldap_search_by_sciper
 
 
-def user_allowed(exam, user_id):
+def user_allowed(exam: Exam, user_id):
     user = User.objects.get(pk=user_id)
     exam_users = ExamUser.objects.filter(Q(user=user) & (Q(exam=exam) | Q(exam__in=exam.common_exams.all())))
     return bool(exam_users or user.is_superuser)

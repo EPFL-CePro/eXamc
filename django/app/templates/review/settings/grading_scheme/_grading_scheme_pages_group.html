@@ -1,5 +1,5 @@
 <div class="d-flex flex-column gap-2 mb-2" style="max-width: var(--form-max-width)">
-    <h4 class="m-0">2. Select a grading schemes</h4>
+    <h5 class="m-0">2. Select a grading scheme</h5>
 
     <span class="alert alert-info mb-3" style="max-width: fit-content">
         Adding a new grading scheme is allowed. Existing used schemes remain locked for destructive changes.
@@ -19,10 +19,11 @@
                    hx-target="#scheme-panel-{{ gs.pages_group.id }}"
                    hx-swap="innerHTML"
                    hx-on:click="
-                    const list = this.closest('#scheme-pills-{{ pages_group.id }}');
-                    list.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected','false'); });
-                    this.classList.add('active'); this.setAttribute('aria-selected','true');
-                  "
+                    this.closest('.nav').querySelectorAll('.nav-link').forEach((link) => {
+                        link.classList.toggle('active', link === this);
+                        link.setAttribute('aria-selected', String(link === this));
+                    });
+                   "
                   {% if current_grading_scheme and current_grading_scheme.id == gs.id %}hx-trigger="load once, click"{% endif %}
                 >
                     {{ gs.name }}

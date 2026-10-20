@@ -7,7 +7,7 @@ from typing import Any
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.http import FileResponse, HttpResponse, HttpResponseRedirect, Http404
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse

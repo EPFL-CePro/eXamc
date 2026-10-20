@@ -14,5 +14,7 @@ $dark: #212529;
     $nav-link-hover-color: #000,
 );
 
+@use '/node_modules/@fortawesome/fontawesome-free/css/all.min.css';
+
 @use "root-css-vars";
 @use "custom-elements";
