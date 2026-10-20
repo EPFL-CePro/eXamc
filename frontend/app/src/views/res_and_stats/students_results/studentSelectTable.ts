@@ -37,11 +37,11 @@ export function initStudentsTable(options: {
     const { tableElement, apiUrl, csrfToken, onPresenceChange } = options;
 
     const columns: DataTableColumn[] = [
-        { data: "copy_no", orderable: true },
-        { data: "sciper", orderable: true },
+        { data: "copy_no", orderable: true, width: "10rem" },
+        { data: "sciper", orderable: true, width: "10rem" },
         { data: "name", orderable: true },
-        { data: "present", orderable: true, searchable: false },
-        { data: "points", orderable: true },
+        { data: "present", orderable: true, searchable: false, width: "10rem" },
+        { data: "points", orderable: true, width: "10rem" },
         ...scaleColumns(tableElement),
     ];
 
@@ -64,7 +64,7 @@ export function initStudentsTable(options: {
         },
         columns,
         pageLength: 25,
-        scrollY: '75vh',
+        scrollY: '83vh',
         order: [[0, "asc"]],
     });
 

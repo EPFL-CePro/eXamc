@@ -11,25 +11,24 @@ class StudentPresenceSerializer(serializers.Serializer):
 
 
 def render_presence_toggle(student: Student) -> SafeString:
-    def option(value: bool, icon: str) -> SafeString:
-        active = value == student.present
+    def option(present: bool, icon: str, colorClass: str) -> SafeString:
+        active = present == student.present
         return format_html(
-            '<label class="btn btn-icon btn-lg {}" style="background-color: transparent;">'
-            '<button type="button" class="btn btn-link p-0 border-0" style="background-color: transparent;" data-present="{}">'
-            '<i class="fa-solid {} fa-xl"{}></i>'
-            '</button>'
+            '<label class="btn btn-icon {}">'
+                '<button type="button" class="btn btn-link p-0 border-0" style="background-color: transparent;" data-present="{}">'
+                    '<i class="{} fa-xl"></i>'
+                '</button>'
             '</label>',
             " active" if active else "",
-            int(value),
-            icon,
-            "" if active else mark_safe(' style="color:lightgray;"'),
+            int(present),
+            f"{"fa-regular" if active else "fa-solid"} {icon} {"text-secondary" if active else colorClass}",
         )
 
     return format_html(
         '<div class="btn-group btn-group-toggle presence-toggle" data-url="{}">{}{}</div>',
         reverse("api-exam-students-presence-patch", kwargs={"exam_pk": student.exam_id, "pk": student.pk}),
-        option(True, "fa-circle-check"),
-        option(False, "fa-circle-xmark"),
+        option(present=True, icon="fa-circle-check", colorClass="text-success"),
+        option(present=False, icon="fa-circle-xmark", colorClass="text-danger"),
     )
 
 
