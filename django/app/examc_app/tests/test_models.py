@@ -45,7 +45,7 @@ class ExamModelTestCase(TestCase):
     def test_exam_str_method(self):
         self.assertEqual(
             str(self.exam),
-            "EXAM1-Exam 1 2023-2024 1",
+            "EXAM1 Exam 1 (S1 2023-2024)",
         )
 
 

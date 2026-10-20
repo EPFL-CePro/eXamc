@@ -1,20 +1,11 @@
 import os
-from pathlib import Path
 
 from celery import Celery
 from django.conf import settings
 
-if os.getenv("DJANGO_DOTENV", "0") == "1":
-    try:
-        from dotenv import load_dotenv
-        load_dotenv(Path(__file__).resolve().parent / ".env")
-    except Exception:
-        pass
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examc.settings')
 
-app = Celery('examc') #, backend='redis://redis:6379', broker='redis://redis:6379')
-
+app = Celery('examc')
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
@@ -27,7 +18,7 @@ app.autodiscover_tasks(settings.INSTALLED_APPS)
 
 @app.task(bind=True)
 def debug_task(self):
-    print('Request: {0!r}'.format(self.request))
+    print(f'Request: {self.request!r}')
 
 
 

@@ -23,10 +23,12 @@ def write_amc_data(data_dir):
     with sqlite3.connect(data_dir / "layout.sqlite") as layout:
         layout.execute("CREATE TABLE layout_question (question INTEGER, name TEXT)")
         layout.executemany("INSERT INTO layout_question VALUES (?, ?)", [(1, "OPEN-Q1"), (2, "OPEN-Q2")])
+
     with sqlite3.connect(data_dir / "capture.sqlite") as capture:
         capture.execute("CREATE TABLE capture_zone (zoneid INTEGER, student INTEGER, page INTEGER, copy INTEGER, "
                         "type INTEGER, id_a INTEGER, id_b INTEGER, total INTEGER, black INTEGER, manual REAL)")
         capture.execute("CREATE TABLE capture_position (zoneid INTEGER, corner INTEGER, x REAL, y REAL, type INTEGER)")
+
         for zoneid, question, answer in ((1, 1, 1), (2, 1, 2), (3, 2, 1), (4, 2, 2), (5, 2, 3)):
             capture.execute("INSERT INTO capture_zone VALUES (?, 1, 2, 0, 4, ?, ?, 100, 0, -1)", (zoneid, question, answer))
             for corner in range(1, 5):
@@ -89,7 +91,8 @@ class SharedPageTestCase(TestCase):
     def test_markers_saved_in_the_reviewed_group(self):
         self.page_markers(self.q1, 10, 10)
         scan_url = make_token_for(
-            self.scan_path.relative_to(self.scans_root).as_posix(), str(self.scans_root))
+            self.scan_path.relative_to(self.scans_root).as_posix(), str(self.scans_root)
+        )
 
         response = self.client.post(reverse("save_markers", args=[self.exam.pk]), {
             "reviewGroup_pk": self.q2.pk, "curr_row": 0, "copy_no": "0001", "page_no": "02",

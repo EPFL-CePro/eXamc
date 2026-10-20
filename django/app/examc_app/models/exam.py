@@ -8,7 +8,6 @@ from django.db.models import Count
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
-
 TEACHER_GROUP_ID = 2
 
 class AcademicYear(models.Model):

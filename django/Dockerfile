@@ -146,4 +146,4 @@ FROM tooling AS dev
 USER root
 COPY --from=uv-base /opt/install-build-deps.sh /opt/
 RUN /opt/install-build-deps.sh
-user examc
+USER examc

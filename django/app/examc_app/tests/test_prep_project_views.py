@@ -108,8 +108,18 @@ class UnlockEditingTestCase(PrepViewsTestCase):
 
 
 class CreateExamProjectTestCase(PrepViewsTestCase):
-    COURSES = [{"coursCode": "MATH-101", "coursNomFr": "Analyse I"}, {"coursCode": "PHYS-102", "coursNomFr": "Physique"}]
-    TEACHERS = {"MATH-101": [{"sciper": "123456", "name": "Ada Lovelace"}]}
+    def __init__(self, methodName: str = "runTest"):
+        super().__init__(methodName)
+
+        self.COURSES = [
+            {"coursCode": "MATH-101", "coursNomFr": "Analyse I"},
+            {"coursCode": "PHYS-102", "coursNomFr": "Physique"}
+        ]
+        self.TEACHERS = {
+            "MATH-101": [
+                {"sciper": "123456", "name": "Ada Lovelace"}
+            ]
+        }
 
     def setUp(self):
         super().setUp()
@@ -137,7 +147,7 @@ class CreateExamProjectTestCase(PrepViewsTestCase):
             response = self.post()
 
         exam = Exam.objects.get(code="MATH-101")
-        self.assertRedirects(response, reverse("examInfo", kwargs={"exam_pk": exam.pk}), fetch_redirect_response=False)
+        self.assertRedirects(response, reverse("exam_info", kwargs={"exam_pk": exam.pk}), fetch_redirect_response=False)
         self.assertEqual((exam.name, exam.date, exam.semester, exam.year),
                          ("Analyse I", date(2026, 6, 20), self.exam.semester, self.exam.year))
         ldap.assert_called_once_with(["123456"])
