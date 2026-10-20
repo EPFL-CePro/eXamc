@@ -46,6 +46,7 @@ export default defineConfig({
         "impersonation/select_user": resolve(import.meta.dirname, 'src/views/impersonation/select_user/index.ts'),
 
         "res_and_stats/students_results": resolve(import.meta.dirname, 'src/views/res_and_stats/students_results/index.ts'),
+        "res_and_stats/questions_statistics": resolve(import.meta.dirname, 'src/views/res_and_stats/questions_statistics/index.ts'),
         
         "review/review_group": resolve(import.meta.dirname, 'src/views/review/review_group/index.ts'),
       },
