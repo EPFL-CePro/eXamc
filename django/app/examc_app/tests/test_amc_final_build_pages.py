@@ -8,7 +8,12 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from examc_app.models import Exam, PrepStudent
 from examc_app.tests.helpers.models import create_mock_exam
 from examc_app.utils.amc.amc_build_functions import (
-    _ensure_xy_output, build_final_exam, longer_copies_warning, read_copy_pages_from_log, round_pages_per_copy)
+    _ensure_xy_output,
+    build_final_exam,
+    longer_copies_warning,
+    read_copy_pages_from_log,
+    round_pages_per_copy,
+)
 from examc_app.utils.preparation_functions import create_prep_section
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 

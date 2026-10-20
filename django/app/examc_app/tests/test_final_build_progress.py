@@ -45,8 +45,10 @@ class RunLatexTestCase(SimpleTestCase):
 class PageProgressTestCase(SimpleTestCase):
     def test_copy_and_percent_reported_at_most_every_interval(self):
         reports = []
-        on_page = build._page_progress(lambda percent, message: reports.append((percent, message)), 10, 50,
-                                       "Compiling", copies=4, pages_per_copy=2, min_interval=3600)
+        on_page = build._page_progress(
+            lambda percent, message: reports.append((percent, message)),
+            start=10, end=50, label="Compiling", copies=4, pages_per_copy=2, min_interval=3600
+        )
 
         on_page(5)
         on_page(8)
