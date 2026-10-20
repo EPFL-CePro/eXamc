@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDatatables();
 
     const tables = Array.from(root.querySelectorAll<HTMLTableElement>('table[data-stats-table]')).map(createStatsTable);
-    const adjustTables = (): void => tables.forEach((table) => table.columns.adjust());
+    tables.forEach((table) => table.columns.adjust());
 
     initPdfDownloads(root);
     initCatalogDialog(byId('display-pdf-modal'), requireData(root, 'catalogUrl'));
