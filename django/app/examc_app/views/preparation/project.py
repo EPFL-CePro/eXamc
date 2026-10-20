@@ -77,7 +77,7 @@ def create_exam_project(request):
         # The AMC project (base files, exam.tex) exists from the creation of the exam
         update_exam_latex(exam)
 
-        return redirect("examInfo", exam_pk=exam.pk)
+        return redirect("exam_info", exam_pk=exam.pk)
 
     # if form is invalid or a GET (or any other method) is received, we'll create a blank form
     return render(

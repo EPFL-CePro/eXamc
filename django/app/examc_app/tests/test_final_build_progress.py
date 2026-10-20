@@ -145,5 +145,5 @@ class ActiveFinalBuildJobTestCase(TestCase):
 
         response = self.client.get(reverse("exam_preparation", kwargs={"exam_pk": self.exam.pk}))
 
-        self.assertContains(response, 'activeFinalTaskId: "task-1"')
+        self.assertContains(response, 'data-active-final-task-id="task-1"')
         self.assertContains(response, 'id="generate-final-button" disabled')
