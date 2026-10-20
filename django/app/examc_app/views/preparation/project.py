@@ -5,6 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -27,6 +28,7 @@ from examc_app.utils.preparation_latex_functions import (
     update_exam_latex,
 )
 
+from ...utils.view_context_helpers import get_base_view_context
 from ._htmx import with_save_feedback
 
 
@@ -95,6 +97,8 @@ def create_exam_project(request):
 @exam_permission_required(["manage"])
 def exam_preparation_view(request, exam_pk):
     exam = get_object_or_404(Exam, pk=exam_pk)
+    user = get_object_or_404(User, pk=request.user.id)
+
     first_page_form = ExamFirstPageForm(instance=exam)
 
     final_subject_pdf = ""
@@ -115,21 +119,23 @@ def exam_preparation_view(request, exam_pk):
             rel_path = catalog_pdf.resolve().relative_to(root).as_posix()
             final_catalog_pdf = make_token_for(rel_path, settings.AMC_PROJECTS_ROOT,token_type="amc_document")
 
+    context = {
+        **get_base_view_context(exam_pk=exam.pk, user_id=user.id),
+        "fp_txt_form": first_page_form,
+        "nav_url": "exam_preparation",
+        "is_exam_finalized": exam.is_finalized,
+        "is_exam_locked": is_exam_locked(exam),
+        "active_final_job": get_active_final_build_job(exam),
+        "final_subject_pdf": final_subject_pdf,
+        "final_catalog_pdf": final_catalog_pdf,
+        "katex_macros": get_exam_katex_macros(exam),
+        **build_sections_list_context(exam),
+    }
+
     return render(
         request,
         "exam/preparation/exam_preparation.html",
-        {
-            "exam_selected": exam,
-            "fp_txt_form": first_page_form,
-            "nav_url": "exam_preparation",
-            "is_exam_finalized": exam.is_finalized,
-            "is_exam_locked": is_exam_locked(exam),
-            "active_final_job": get_active_final_build_job(exam),
-            "final_subject_pdf": final_subject_pdf,
-            "final_catalog_pdf": final_catalog_pdf,
-            "katex_macros": get_exam_katex_macros(exam),
-            **build_sections_list_context(exam),
-        },
+        context
     )
 
 

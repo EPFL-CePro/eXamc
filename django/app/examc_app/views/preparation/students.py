@@ -19,9 +19,18 @@ from examc_app.services.student.prep_import import (
     load_students_from_oasis,
     replace_prep_students,
 )
-from examc_app.services.student.prep_order import StudentsOrderError, reorder_prep_students
-from examc_app.services.student.prep_seats import SeatsAssignmentError, assign_rooms_and_seats
-from examc_app.utils.preparation_functions import ensure_exam_not_finalized, is_exam_locked
+from examc_app.services.student.prep_order import (
+    StudentsOrderError,
+    reorder_prep_students,
+)
+from examc_app.services.student.prep_seats import (
+    SeatsAssignmentError,
+    assign_rooms_and_seats,
+)
+from examc_app.utils.preparation_functions import (
+    ensure_exam_not_finalized,
+    is_exam_locked,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +43,7 @@ def exam_preparation_students_view(request, exam_pk):
         request,
         "exam/preparation/exam_preparation_students.html",
         {
+            "exam": exam,
             "exam_selected": exam,
             "nav_url": "exam_preparation_students",
             "is_exam_finalized": exam.is_finalized,
