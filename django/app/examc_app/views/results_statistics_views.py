@@ -384,7 +384,7 @@ def students_results_view(request, exam_pk: int, task_id=None):
                     "exam": exam,
                     "common_list": common_list,
                     "exam_selected": curr_exam,
-                    "nav_url": "studentsResults",
+                    "nav_url": "students_results",
                     "task_id": task_id,
                 },
             )
@@ -396,7 +396,7 @@ def students_results_view(request, exam_pk: int, task_id=None):
                     "user_allowed": True,
                     "scales": None,
                     "students": None,
-                    "nav_url": "studentsResults",
+                    "nav_url": "students_results",
                 },
             )
     else:
@@ -407,7 +407,7 @@ def students_results_view(request, exam_pk: int, task_id=None):
                 "user_allowed": False,
                 "scales": None,
                 "students": None,
-                "nav_url": "studentsResults",
+                "nav_url": "students_results",
             },
         )
 

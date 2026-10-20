@@ -3,11 +3,9 @@ from rest_framework import routers
 from examc_app.api.viewsets.amc.data_capture.manual import AmcDataCaptureManualViewSet
 from examc_app.api.viewsets.connected_user import ConnectedUsersViewSet
 from examc_app.api.viewsets.exam import ExamViewSet
-
 from examc_app.api.viewsets.exam_student_presence import ExamStudentPresenceViewSet
 from examc_app.api.viewsets.impersonation import ImpersonationUserViewSet
 from examc_app.api.viewsets.prep_student import PrepStudentViewSet
-
 
 examc_router = routers.SimpleRouter()
 

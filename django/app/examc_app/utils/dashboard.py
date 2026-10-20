@@ -263,7 +263,7 @@ def build_exam_card(user: User, exam: Exam) -> dict[str, typing.Any]:
     if exam.res_and_stats_option and capabilities["results"]:
         actions.append({
             "label": "Results",
-            "url": reverse("studentsResults", kwargs={"exam_pk": exam.pk}),
+            "url": reverse("students_results", kwargs={"exam_pk": exam.pk}),
             "icon": "fa-th-list",
         })
 

@@ -107,11 +107,12 @@
 
                 {# Results and statistics #}
                 {% if exam_selected.has_res_and_stats_option and user|more_arg:exam_selected|is_allowed:'res_and_stats' %}
-                    <a href="{% url 'studentsResults' exam_selected.pk %}" {% nav_attrs 'studentsResults' %}
-                       class="list-group-item list-group-item-action border-0 rounded-0 d-flex align-items-center gap-2 {% nav_class 'studentsResults' %}">
+                    <a href="{% url 'students_results' exam_selected.pk %}" {% nav_attrs 'students_results' %}
+                       class="list-group-item list-group-item-action border-0 rounded-0 d-flex align-items-center gap-2 {% nav_class 'students_results' %}">
                         <span class="fa-solid fa-table-list fa-fw" aria-hidden="true"></span>
-                        Results
+                        Students' results
                     </a>
+
                     {% if exam_selected.scales.exists %}
                         <div class="dropend">
                             <button type="button" id="sidebar-statistics-menu" data-bs-toggle="dropdown" aria-expanded="false"
@@ -122,13 +123,14 @@
                             <ul class="dropdown-menu py-0 overflow-hidden" aria-labelledby="sidebar-statistics-menu">
                                 <li><a class="dropdown-item d-flex align-items-center gap-2 py-2 {% nav_class 'general_stats' %}" {% nav_attrs 'general_stats' %}
                                        href="{% url 'general_stats' exam_selected.pk %}">
-                                    <span class="fa-solid fa-chart-line fa-fw" aria-hidden="true"></span>Global</a></li>
+                                    <span class="fa-solid fa-chart-line fa-fw" aria-hidden="true"></span>General</a></li>
                                 <li><a class="dropdown-item d-flex align-items-center gap-2 py-2 {% nav_class 'questions_stats' %}" {% nav_attrs 'questions_stats' %}
                                        href="{% url 'questions_stats' exam_selected.pk %}">
                                     <span class="fa-solid fa-chart-area fa-fw" aria-hidden="true"></span>Questions</a></li>
                             </ul>
                         </div>
                     {% endif %}
+
                     <a href="{% url 'import_data_4_stats' exam_selected.pk %}" {% nav_attrs 'import_data_4_stats' %}
                        class="list-group-item list-group-item-action border-0 rounded-0 d-flex align-items-center gap-2 {% nav_class 'import_data_4_stats' %}">
                         <span class="fa-solid fa-cloud-arrow-up fa-fw" aria-hidden="true"></span>

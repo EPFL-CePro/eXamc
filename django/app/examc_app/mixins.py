@@ -51,7 +51,7 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
             if has(['review']):
                 return redirect(reverse('reviewView', kwargs={'exam_pk': exam.pk}))
             if has(['see_results']):
-                return redirect(reverse('studentsResults', kwargs={'exam_pk': exam.pk}))
+                return redirect(reverse('students_results', kwargs={'exam_pk': exam.pk}))
             # nothing else
             return self._no_access("You don’t have access to this exam.")
 
