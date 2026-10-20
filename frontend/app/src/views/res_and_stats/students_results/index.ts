@@ -1,6 +1,4 @@
-import 'vite/modulepreload-polyfill';
-
-import {initStudentsTable} from "./studentSelectTable.ts";
+import {initStudentsTable} from "./student-select-table.ts";
 import {byId} from "@examc/helpers/dom.ts";
 
 document.addEventListener("DOMContentLoaded", () => {
