@@ -922,7 +922,8 @@ def _page_progress(progress_callback, start: int, end: int, label: str, copies: 
     compilation): the percent then stops just before `end`.
     """
     expected_pages = max(1, copies * pages_per_copy)
-    last_report = [0.0]
+    # -inf: the first page is always reported, whatever value time.monotonic() starts from
+    last_report = [float("-inf")]
 
     def on_page(pages):
         now = time.monotonic()
