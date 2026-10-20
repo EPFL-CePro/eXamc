@@ -20,7 +20,10 @@ export default defineConfig({
     manifest: "manifest.json",
     rolldownOptions: {
       input: {
-        // Entries used by single views        
+        // Entries shared by multiple views
+        "base": resolve(import.meta.dirname, 'src/views/base/index.ts'),
+
+        // Entries used by single views
         "amc/amc": resolve(import.meta.dirname, 'src/views/amc/amc/index.ts'),
         "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
         "amc/amc_data_capture_manual": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture_manual/index.ts'),
