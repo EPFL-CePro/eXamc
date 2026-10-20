@@ -122,7 +122,7 @@ class SetCommonExamViewTests(CommonExamsTestCase):
         self.assertIn(overall, exam.common_exams.all())
         self.assertEqual(
             response.url,
-            reverse("examInfo", kwargs={"exam_pk": overall.pk, "task_id": "task-1"}),
+            reverse("exam_info_with_task", kwargs={"exam_pk": overall.pk, "task_id": "task-1"}),
         )
 
     @patch("examc_app.views.exam_views.generate_statistics")
