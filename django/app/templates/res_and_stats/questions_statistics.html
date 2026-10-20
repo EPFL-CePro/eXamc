@@ -315,7 +315,7 @@
             });
         </script>
 
-        <h4><i class="fas fa-chart-area"></i> Questions Statistics</h4>
+        <h4 class="mb-4"><i class="fas fa-chart-area"></i> Questions Statistics</h4>
 
         {% if mcq_questions or open_questions %}
             {% if exam_selected.is_overall %}
@@ -585,7 +585,7 @@
         {% else %}
             <div class="alert alert-warning">
                 <h4 class="alert-heading">Warning!</h4>
-                <p class="mb-0">No data found for this exam. Please import data and generate statistics.</p>
+                <p class="mb-0">No data was found for this exam. Please import data and generate statistics.</p>
             </div>
         {% endif %}
     {% else %}

@@ -8,30 +8,29 @@
 {% endblock %}
 
 {% block content %}
-    <div class="mt-5 p-2" style="max-width: 48rem;">
-        <h3 class="mb-3">Upload AMC project</h3>
+    <h3 class="mb-3">Upload AMC project</h3>
 
-        {% if message %}
-            <div class="alert alert-info py-2" role="status">{{ message }}</div>
-        {% endif %}
+    {% if message %}
+        <div class="alert alert-info py-2" role="status">{{ message }}</div>
+    {% endif %}
 
-        <form id="upload-amc-project-form" method="post" enctype="multipart/form-data"
-              action="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}">
-            {% csrf_token %}
+    <form id="upload-amc-project-form" method="post" enctype="multipart/form-data"
+          style="max-width: 48rem"
+          action="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}">
+        {% csrf_token %}
 
-            <label id="amc-project-zip-file-label" for="amc-project-zip-file" class="form-label">
-                AMC project (.zip file)
-            </label>
-            <div class="input-group">
-                <input type="file" class="form-control" id="amc-project-zip-file" name="amc_project_zip_file"
-                       accept=".zip,application/zip" required aria-describedby="amc-project-zip-file-help">
-                <button class="btn btn-primary" type="submit">
-                    <i class="fa-solid fa-cloud-arrow-up me-1" aria-hidden="true"></i>Start upload
-                </button>
-            </div>
-            <div id="amc-project-zip-file-help" class="form-text">
-                The .zip file of the whole AMC project directory.
-            </div>
-        </form>
-    </div>
+        <label id="amc-project-zip-file-label" for="amc-project-zip-file" class="form-label">
+            AMC project (.zip file)
+        </label>
+        <div class="input-group">
+            <input type="file" class="form-control" id="amc-project-zip-file" name="amc_project_zip_file"
+                   accept=".zip,application/zip" required aria-describedby="amc-project-zip-file-help">
+            <button class="btn btn-primary" type="submit">
+                <i class="fa-solid fa-cloud-arrow-up me-1" aria-hidden="true"></i>Start upload
+            </button>
+        </div>
+        <div id="amc-project-zip-file-help" class="form-text">
+            The .zip file of the whole AMC project directory.
+        </div>
+    </form>
 {% endblock %}

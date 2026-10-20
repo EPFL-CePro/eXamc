@@ -20,10 +20,10 @@
                        hx-target="#grading-scheme-panel"
                        hx-swap="innerHTML"
                        hx-on:click="
-                    const list = this.closest('#gs-pages-groups-pills');
-                    list.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected','false'); });
-                    this.classList.add('active'); this.setAttribute('aria-selected','true');
-                  "
+                        const list = this.closest('#gs-pages-groups-pills');
+                        list.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected','false'); });
+                        this.classList.add('active'); this.setAttribute('aria-selected','true');
+                       "
                        {% if forloop.first %}hx-trigger="load once, click"{% endif %}>
                         {{ group.group_name }}
                     </a>

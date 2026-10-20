@@ -12,7 +12,7 @@
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css" rel="stylesheet">
 
 
-<form enctype='multipart/form-data' id="form-groups" method="POST">
+<form enctype='multipart/form-data' id="form-groups" method="POST" style="max-width: var(--form-max-width)">
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
 
@@ -24,7 +24,7 @@
     </div>
 
     {% if error_msg %}
-        <div class="alert alert-danger text-center" role="alert" style="max-width: var(--form-max-width)">{{ error_msg }}</div>
+        <div class="alert alert-danger text-center" role="alert">{{ error_msg }}</div>
     {% endif %}
 
     {% if messages %}
@@ -36,7 +36,7 @@
         {% endfor %}
     {% endif %}
 
-    <table class="table" style="max-width: var(--form-max-width)">
+    <table class="table">
         <thead>
         <tr>
             {% for field in exam_pages_groups_formset.initial_forms.0 %}

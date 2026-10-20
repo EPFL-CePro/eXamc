@@ -1,5 +1,5 @@
 <div id="scheme-wrapper-{{ grading_scheme.id }}">
-    <div class="card mb-5">
+    <div class="card mb-5" style="max-width: var(--form-max-width)">
         <div class="card-body">
             {% if error_msg %}<div class="alert alert-danger mb-3">{{ error_msg }}</div>{% endif %}
 
@@ -8,9 +8,9 @@
                   hx-target="#grading-scheme-panel"
                   hx-swap="innerHTML">
                 {% csrf_token %}
-                <div class="row align-items-start mb-3" style="--bs-gutter-x: 2rem; --bs-gutter-y: .5rem">
-                    <div class="col">
-                        <div class="mb-3">
+                <div class="d-flex flex-column gap-3 mb-3">
+                    <div class="d-flex gap-3">
+                        <div class="flex-grow-1" style="flex-basis: 20rem">
                             <label for="{{ grading_scheme_form.name.id_for_label }}" class="form-label">Name</label>
                             {{ grading_scheme_form.name }}
                             {% if grading_scheme_form.name.errors %}
@@ -28,7 +28,7 @@
                         </div>
                     </div>
 
-                    <div class="col-12 col-md-7">
+                    <div class="flex-grow-1">
                         <label for="{{ grading_scheme_form.description.id_for_label }}"
                                class="form-label">Description</label>
                         {{ grading_scheme_form.description }}
@@ -38,24 +38,26 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="fas fa-floppy-disk fa-lg" style="margin-right:10px;"></i>Save
-                </button>
-
-                {% if scheme_in_use %}
-                    <button type="button" class="btn btn-secondary btn-sm" disabled style="opacity:1;"
-                            title="Locked because this grading scheme is already used in review.">
-                        <i class="fa-solid fa-lock fa-lg" style="margin-right:5px;"></i>Delete (locked)</button>
-
-                    <span class="small text-muted mt-2">This scheme is used in review. Deletion and max points changes are blocked.</span>
-                {% else %}
-                    <button class="btn btn-outline-danger btn-sm"
-                            hx-post="{% url 'delete_grading_scheme' exam_selected.pk grading_scheme.id %}"
-                            hx-target="#grading-scheme-panel"
-                            hx-swap="innerHTML"><i class="fa-solid fa-circle-minus fa-xl"
-                                                   style="margin-right:5px;color:red;"></i>Delete
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-floppy-disk fa-lg" style="margin-right:10px;"></i>Save
                     </button>
-                {% endif %}
+
+                    {% if scheme_in_use %}
+                        <button type="button" class="btn btn-secondary btn-sm" disabled style="opacity:1;"
+                                title="Locked because this grading scheme is already used in review.">
+                            <i class="fa-solid fa-lock fa-lg" style="margin-right:5px;"></i>Delete (locked)</button>
+
+                        <span class="small text-muted mt-2">This scheme is used in review. Deletion and max points changes are blocked.</span>
+                    {% else %}
+                        <button class="btn btn-outline-danger btn-sm"
+                                hx-post="{% url 'delete_grading_scheme' exam_selected.pk grading_scheme.id %}"
+                                hx-target="#grading-scheme-panel"
+                                hx-swap="innerHTML"><i class="fa-solid fa-circle-minus fa-xl"
+                                                       style="margin-right:5px;color:red;"></i>Delete
+                        </button>
+                    {% endif %}
+                </div>
             </form>
         </div>
     </div>

@@ -1,15 +1,15 @@
-<form id="form-reviewer" method="POST">
+<form id="form-reviewer" method="POST" style="max-width: var(--form-max-width)">
     {% csrf_token %}
     {{ exam_reviewers_formset.management_form }}
 
-    <div class="d-flex gap-3 mb-3" style="max-width: var(--form-max-width)">
+    <div class="d-flex gap-3 mb-3">
         <h4 class="m-0">Exam reviewers</h4>
         <button type="submit" title="Save exam reviewers changes" name="submit-reviewers" class="btn btn-primary btn-sm">
             <i class="fas fa-floppy-disk"></i> Save changes
         </button>
     </div>
 
-    <table class="table" style="max-width: var(--form-max-width)">
+    <table class="table">
       <thead>
         <tr>
             {% for field in exam_reviewers_formset.initial_forms.0 %}
