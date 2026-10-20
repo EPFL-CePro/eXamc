@@ -3,11 +3,6 @@ from django.utils.safestring import mark_safe
 from django_summernote.widgets import SummernoteWidget
 
 
-class LoginForm(forms.Form):
-    username = forms.CharField(max_length=65)
-    password = forms.CharField(max_length=65, widget=forms.PasswordInput)
-
-
 class SummernoteForm(forms.Form):
     summernote_txt = forms.CharField(
         widget=SummernoteWidget(

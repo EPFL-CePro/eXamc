@@ -79,14 +79,6 @@ class FormsTestCase(TestCase):
             },
         )
 
-    def test_login_pages_form(self):
-        form = LoginForm()
-        self.assertIsInstance(form.fields['username'], forms.CharField)
-        self.assertIsInstance(form.fields['password'], forms.CharField)
-        self.assertEqual(form.fields['username'].max_length, 65)
-        self.assertEqual(form.fields['password'].max_length, 65)
-        self.assertIsInstance(form.fields['password'].widget, forms.PasswordInput)
-
     def test_export_results_form(self):
         form = ExportResultsForm()
 
@@ -100,9 +92,9 @@ class FormsTestCase(TestCase):
         self.assertIsInstance(form.fields['exportStudentsDataCsv'], forms.BooleanField)
         self.assertIsInstance(form.fields['scale'], forms.ChoiceField)
 
-        self.assertEqual(form.fields['exportIsaCsv'].label, 'export ISA .csv')
-        self.assertEqual(form.fields['exportExamScalePdf'].label, 'export Exam scale pdf')
-        self.assertEqual(form.fields['exportStudentsDataCsv'].label, 'export Students data .csv')
+        self.assertEqual(form.fields['exportIsaCsv'].label, 'Export ISA CSV file')
+        self.assertEqual(form.fields['exportExamScalePdf'].label, 'Export Exam scale PDF file')
+        self.assertEqual(form.fields['exportStudentsDataCsv'].label, 'Export Students data CSV file')
 
         self.assertIsInstance(form.fields['exportIsaCsv'].widget, forms.CheckboxInput)
         self.assertIsInstance(form.fields['exportExamScalePdf'].widget, forms.CheckboxInput)
