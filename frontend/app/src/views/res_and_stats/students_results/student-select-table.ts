@@ -22,7 +22,7 @@ function scaleColumns(tableElement: HTMLTableElement): DataTableColumn[] {
 
     return Array.from(headers, (th) => ({
         data: `scales.${th.dataset.scalePk}`,
-        orderable: false,
+        orderable: true,
         searchable: false,
         defaultContent: "",
     }));
