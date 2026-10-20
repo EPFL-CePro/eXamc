@@ -1,11 +1,12 @@
 # Preparation forms
 from decimal import Decimal
+from typing import ClassVar
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import BaseModelFormSet, modelformset_factory
 
-from examc_app.forms.general import SwitchWidget
+from examc_app.forms.general import InlineRadioSelect, SwitchWidget
 from examc_app.models import (
     Exam,
     PrepQuestion,
@@ -29,12 +30,12 @@ class CreateExamProjectForm(forms.Form):
             }
         ),
         required=True,
-    )
+)
 
     semester = forms.ChoiceField(
         label="Semester",
         choices=[],
-        widget=forms.RadioSelect(attrs={"class": "custom-radio-list"}),
+        widget=InlineRadioSelect,
         required=True,
     )
 
@@ -103,8 +104,8 @@ class CreateExamProjectForm(forms.Form):
 class ExamFirstPageForm(forms.ModelForm):
     class Meta:
         model = Exam
-        fields = ["first_page_text"]
-        widgets = {
+        fields: ClassVar = ["first_page_text"]
+        widgets: ClassVar = {
             "first_page_text": forms.Textarea(attrs={"class": "markdown-editor","rows":12}),
         }
 
@@ -116,60 +117,87 @@ class ExamFirstPageForm(forms.ModelForm):
 class PrepSectionForm(forms.ModelForm):
     class Meta:
         model = PrepSection
-        fields = ["title", "section_text", "position", "random_questions", "start_on_new_page"]
-        widgets = {
-            "section_text": forms.Textarea(attrs={"class": "markdown-editor","rows":5}),
+        fields: ClassVar = [
+            "title",
+            "section_text",
+            "position",
+            "random_questions",
+            "start_on_new_page",
+        ]
+        widgets: ClassVar = {
+            "section_text": forms.Textarea(
+                attrs={"class": "markdown-editor", "rows": 5}
+            ),
             "position": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["title"].widget.attrs.update({
-            "class": "form-control",
-            "style": "min-width:300px",
-        })
+        self.fields["title"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "style": "min-width:300px",
+            }
+        )
         self.fields["random_questions"] = forms.BooleanField(
-            label='Randomized questions',
-            widget=SwitchWidget(),
-            required=False
+            label="Randomized questions", widget=SwitchWidget(), required=False
         )
         self.fields["start_on_new_page"] = forms.BooleanField(
-            label='Start on a new page',
-            widget=SwitchWidget(),
-            required=False
+            label="Start on a new page", widget=SwitchWidget(), required=False
         )
 
 
 class PrepQuestionForm(forms.ModelForm):
     class Meta:
         model = PrepQuestion
-        fields = ["title", "question_type", "question_text", "position", "max_points", "random_answers",
-                  "point_increment"]
-        widgets = {
-            "question_text": forms.Textarea(attrs={"class": "markdown-editor","rows":12}),
+        fields: ClassVar = [
+            "title",
+            "question_type",
+            "question_text",
+            "position",
+            "max_points",
+            "random_answers",
+            "point_increment",
+        ]
+        widgets: ClassVar = {
+            "question_text": forms.Textarea(
+                attrs={"class": "markdown-editor", "rows": 12}
+            ),
             "position": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["title"].widget.attrs.update({
-            "class": "form-control",
-            "style": "min-width:300px",
-        })
-        self.fields["question_type"].widget.attrs.update({
-            "class": "form-control",
-            "style": "width:250px",
-        })
+        self.fields["title"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "style": "min-width:300px",
+            }
+        )
+        self.fields["question_type"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "style": "width:250px",
+            }
+        )
         self.fields["max_points"] = forms.DecimalField(
-            widget=forms.NumberInput(attrs={'class': "form-control", 'style': 'width:100px', 'step': "0.5"}),
-            decimal_places=2, required=False, min_value=0)
-        self.fields["point_increment"].widget.attrs.update({
-            "class": "form-control",
-            "style": "width:100px",
-        })
-        self.fields["random_answers"] = forms.BooleanField(label='Randomized answers', widget=SwitchWidget(),
-                                                           required=False)
+            widget=forms.NumberInput(
+                attrs={"class": "form-control", "style": "width:100px", "step": "0.5"}
+            ),
+            decimal_places=2,
+            required=False,
+            min_value=0,
+        )
+        self.fields["point_increment"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "style": "width:100px",
+            }
+        )
+        self.fields["random_answers"] = forms.BooleanField(
+            label="Randomized answers", widget=SwitchWidget(), required=False
+        )
 
     def clean_max_points(self):
         value = self.cleaned_data.get("max_points")
@@ -198,8 +226,15 @@ class PrepQuestionForm(forms.ModelForm):
 
         max_points = cleaned_data.get("max_points")
         increment = cleaned_data.get("point_increment")
-        if max_points is not None and increment and max_points % Decimal(increment) != 0:
-            self.add_error("max_points", f"The maximum points must be a multiple of the point increment ({increment}).")
+        if (
+            max_points is not None
+            and increment
+            and max_points % Decimal(increment) != 0
+        ):
+            self.add_error(
+                "max_points",
+                f"The maximum points must be a multiple of the point increment ({increment}).",
+            )
 
         return cleaned_data
 
@@ -209,12 +244,12 @@ class CreatePrepQuestionForm(forms.Form):
     question_type = forms.ModelChoiceField(
         queryset=QuestionType.objects.all(),
         to_field_name="code",
-        widget=forms.Select(attrs={"class": "form-control"})
+        widget=forms.Select(attrs={"class": "form-control"}),
     )
     title = forms.CharField(
         max_length=500,
         required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"})
+        widget=forms.TextInput(attrs={"class": "form-control"}),
     )
     nb_answers = forms.IntegerField(
         required=False,
@@ -227,33 +262,56 @@ class CreatePrepQuestionForm(forms.Form):
 class PrepQuestionAnswerForm(forms.ModelForm):
     class Meta:
         model = PrepQuestionAnswer
-        fields = ["title", "answer_text", "is_correct", "position", "box_type", "box_height_mm"]
-        widgets = {
-            "answer_text": forms.Textarea(attrs={"class": "markdown-editor","rows":1}),
+        fields: ClassVar = [
+            "title",
+            "answer_text",
+            "is_correct",
+            "position",
+            "box_type",
+            "box_height_mm",
+        ]
+        widgets: ClassVar = {
+            "answer_text": forms.Textarea(
+                attrs={"class": "markdown-editor", "rows": 1}
+            ),
             "position": forms.HiddenInput(),
-            "box_type": forms.Select(attrs={"class": "form-control", "min-width": "100px"}),
+            "box_type": forms.Select(
+                attrs={"class": "form-control", "min-width": "100px"}
+            ),
             "box_height_mm": forms.NumberInput(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["title"].widget.attrs.update({
-            "class": "form-control",
-            "style": "min-width:300px",
-        })
-        self.fields["is_correct"] = forms.BooleanField(label='Correct', widget=SwitchWidget(), required=False)
+        self.fields["title"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "style": "min-width:300px",
+            }
+        )
+        self.fields["is_correct"] = forms.BooleanField(
+            label="Correct", widget=SwitchWidget(), required=False
+        )
 
     def clean_box_type(self):
         # No box type (points of an open question) is stored as NULL, never as ""
         return self.cleaned_data["box_type"] or None
 
 
-PrepQuestionAnswerFormSet = modelformset_factory(PrepQuestionAnswer, form=PrepQuestionAnswerForm, extra=0)
+PrepQuestionAnswerFormSet = modelformset_factory(
+    PrepQuestionAnswer, form=PrepQuestionAnswerForm, extra=0
+)
 
 
-def get_existing_question_type_ids(exam_pk, scope, prep_section=None, prep_question=None, prep_answer=None,
-                                   exclude_pk=None):
+def get_existing_question_type_ids(
+    exam_pk,
+    scope,
+    prep_section=None,
+    prep_question=None,
+    prep_answer=None,
+    exclude_pk=None,
+):
     qs = PrepScoringFormula.objects.filter(exam_id=exam_pk)
 
     if scope == "exam":
@@ -292,13 +350,15 @@ FORMULA_FORBIDDEN_CHARACTERS = "%\\{}#"
 class PrepScoringFormulaForm(forms.ModelForm):
     class Meta:
         model = PrepScoringFormula
-        fields = ["formula", "question_type"]
-        widgets = {
+        fields: ClassVar = ["formula", "question_type"]
+        widgets: ClassVar = {
             "formula": forms.TextInput(attrs={"class": "form-control"}),
-            "question_type": forms.Select(attrs={
-                "class": "form-control",
-                "style": "min-width:200px",
-            }),
+            "question_type": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "style": "min-width:200px",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -333,7 +393,9 @@ class PrepScoringFormulaForm(forms.ModelForm):
         qs = qs.exclude(pk__in=existing_qt_ids)
 
         if self.instance and self.instance.pk and self.instance.question_type_id:
-            qs = (QuestionType.objects.filter(pk=self.instance.question_type_id) | qs).distinct()
+            qs = (
+                QuestionType.objects.filter(pk=self.instance.question_type_id) | qs
+            ).distinct()
 
         self.fields["question_type"].queryset = qs.distinct().order_by("pk")
         self.fields["question_type"].empty_label = "Choose a question type"
@@ -343,7 +405,9 @@ class PrepScoringFormulaForm(forms.ModelForm):
         # Written as is in \bareme{...} (see preparation_latex_functions): these characters would break the LaTeX
         forbidden = sorted({c for c in formula if c in FORMULA_FORBIDDEN_CHARACTERS})
         if forbidden:
-            raise forms.ValidationError(f"These characters are not allowed: {' '.join(forbidden)}")
+            raise forms.ValidationError(
+                f"These characters are not allowed: {' '.join(forbidden)}"
+            )
         return formula
 
     def clean(self):
@@ -369,7 +433,7 @@ class PrepScoringFormulaForm(forms.ModelForm):
         if question_type.pk in existing_qt_ids:
             self.add_error(
                 "question_type",
-                "A scoring formula already exists for this question type at this level."
+                "A scoring formula already exists for this question type at this level.",
             )
 
         return cleaned_data
@@ -399,10 +463,14 @@ class BasePrepScoringFormulaFormSet(BaseModelFormSet):
             if key in seen:
                 form.add_error(
                     "question_type",
-                    "This question type is already used in another row."
+                    "This question type is already used in another row.",
                 )
             seen.add(key)
 
 
-PrepScoringFormulaFormSet = modelformset_factory(PrepScoringFormula, form=PrepScoringFormulaForm,
-                                                 formset=BasePrepScoringFormulaFormSet, extra=0)
+PrepScoringFormulaFormSet = modelformset_factory(
+    PrepScoringFormula,
+    form=PrepScoringFormulaForm,
+    formset=BasePrepScoringFormulaFormSet,
+    extra=0,
+)
