@@ -34,18 +34,18 @@ from django.db import connection, transaction
 from django.db.models import Max
 from django.utils import timezone
 
+from examc_app.exceptions.amc import AmcDbManagerError
 from examc_app.models import (
     Exam,
     ExamBuild,
 )
+from examc_app.services.student.prep_amc_csv import StudentsCsvError, write_students_csv
 from examc_app.utils.amc.amc_helpers import (
     get_amc_answer_code,
     get_amc_question_id,
     get_exam_latex_main_file,
 )
-from examc_app.services.student.prep_amc_csv import StudentsCsvError, write_students_csv
 from examc_app.utils.amc.amc_layout_functions import get_pages_by_copy_from_xy
-from examc_app.exceptions.amc import AmcDbManagerError
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
 from examc_app.utils.preparation_latex_functions import update_exam_latex
@@ -914,8 +914,9 @@ def _compile_timeout(timeout: int, expected_pages: int) -> int:
     return max(timeout, LATEX_BASE_TIMEOUT + LATEX_SECONDS_PER_PAGE * expected_pages)
 
 
-def _page_progress(progress_callback, start: int, end: int, label: str, copies: int, pages_per_copy: int,
-                   min_interval: float = 2.0):
+def _page_progress(
+        progress_callback, start: int, end: int, label: str, copies: int, pages_per_copy: int, min_interval: float = 2.0
+):
     """
     on_page callback of compile_exam_in_workspace: reports "<label>: copy X / N" with a percent from `start` to
     `end`, at most every `min_interval` seconds. `pages_per_copy` may be an estimate (before the first subject

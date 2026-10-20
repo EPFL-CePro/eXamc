@@ -721,7 +721,7 @@ def compile_exam_preview_task(self, job_id):
             job.status = "error"
             job.error_message = result["error"]
 
-    except Exception as e:
+    except Exception:
         error_ref = f"AMC-{uuid.uuid4().hex[:8].upper()}"
 
         logger.error(

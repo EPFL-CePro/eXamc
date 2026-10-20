@@ -66,7 +66,7 @@ class FormsTestCase(TestCase):
 
         self.assertEqual(
             form.fields["export_type"].widget.__class__.__name__,
-            "RadioSelect",
+            "InlineRadioSelect",
         )
         self.assertEqual(
             set(form.fields["export_type"].choices),
@@ -101,5 +101,5 @@ class FormsTestCase(TestCase):
         self.assertEqual(form.fields['exportIsaCsv'].widget.attrs['class'], 'form-check-input')
         self.assertEqual(form.fields['exportExamScalePdf'].widget.attrs['class'], 'form-check-input')
         self.assertEqual(form.fields['exportStudentsDataCsv'].widget.attrs['class'], 'form-check-input')
-        self.assertEqual(form.fields['scale'].widget.attrs['class'], 'custom-radio-list form-check-inline')
+        self.assertEqual(form.fields['scale'].widget.attrs['class'], 'form-check-input')
 
