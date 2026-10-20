@@ -163,7 +163,14 @@ TEMPLATES = [
                 "examc_app.context_processors.app_metadata",
             ],
             "builtins": [
-                "examc_app.templatetags.custom_tags.all"
+                "examc_app.templatetags.custom_tags.collection_filters",
+                "examc_app.templatetags.custom_tags.exam_tags",
+                "examc_app.templatetags.custom_tags.grading_tags",
+                "examc_app.templatetags.custom_tags.math_filters",
+                "examc_app.templatetags.custom_tags.nav_tags",
+                "examc_app.templatetags.custom_tags.permission_tags",
+                "examc_app.templatetags.custom_tags.stats_tags",
+                "examc_app.templatetags.custom_tags.ui_tags",
             ]
         },
     },
