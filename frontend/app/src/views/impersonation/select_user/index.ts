@@ -1,7 +1,7 @@
 import 'vite/modulepreload-polyfill';
 
-import {initUserSelectTable} from "./userSelectTable";
-import {byId} from "@examc/helpers/dom.ts";
+import {initUserSelectTable} from "./user-select-table";
+import {byId} from "@examc/helpers/dom";
 
 
 /**
