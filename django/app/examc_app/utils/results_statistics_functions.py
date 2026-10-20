@@ -3,10 +3,11 @@ import logging
 import operator
 import os
 from decimal import ROUND_HALF_UP, Decimal
+from typing import TypedDict
 
 import numpy as np
 from django.db import transaction
-from django.db.models import Count, FloatField, Subquery, Sum
+from django.db.models import Count, FloatField, QuerySet, Subquery, Sum
 from django.db.models.functions import Cast
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -23,8 +24,13 @@ from examc_app.models import (
     StudentQuestionAnswer,
     StudentScaleGrade,
 )
+from examc_app.templatetags.custom_tags.stats_tags import (
+    get_open_question_stats_by_quarter,
+)
 
 logger = logging.getLogger(__name__)
+
+MAX_CHARTED_ANSWER_COMBINATIONS = 10
 
 SCALE_COPY_FIELDS = (
     "total_points",
@@ -35,6 +41,14 @@ SCALE_COPY_FIELDS = (
     "formula",
     "final",
 )
+
+class QuestionStats(TypedDict):
+    question: Question
+    exam_list: list
+
+
+
+
 
 def clone_scale(src: Scale, *, exam) -> Scale:
     data = {f: getattr(src, f) for f in SCALE_COPY_FIELDS}
@@ -211,7 +225,6 @@ def generate_isa_csv(exam: Exam, scale,folder_path):
         return True
 
 def generate_scale_pdf(exam: Exam,scale,folder_path):
-
     scale_list = {}
     grade_list = np.arange(float(scale.min_grade),float(scale.max_grade)+0.25,0.25)
 
@@ -328,42 +341,48 @@ def zipdir(path, ziph):
             os.path.join(path, '..')))
 
 def get_max_decimal_places(data):
-    maxD = 0
+    max_d = 0
     for value in data:
         exp = value.normalize().as_tuple().exponent*-1
-        if exp > maxD:
-            maxD = exp
+        max_d = max(max_d, exp)
 
-    return maxD
+    return max_d
+
 
 # file import
-def delete_exam_data(exam):
+def delete_exam_data(exam: Exam):
     Question.objects.filter(exam=exam).delete()
     Student.objects.filter(exam=exam).delete()
 
-def get_common_list(exam):
-    common_list = []
-    common_list.append(exam)
+def get_common_list(exam: Exam):
+    common_list = [exam]
+
     if exam.common_exams.all():
         commons = list(exam.common_exams.all())
         common_list.extend(commons)
         common_list.sort(key=operator.attrgetter('code'))
     return common_list
 
-def get_questions_stats_by_exam(exam):
-    question_stat_list = []
+
+
+def get_questions_stats_by_exam(exam: Exam) -> list[QuestionStats]:
+    question_stat_list: list[QuestionStats] = []
 
     com_questions = Question.objects.filter(removed_from_common=False,common=True,exam=exam)
 
     for question in com_questions:
-        question_stat = {'question':question}
-        exam_list = []
+        question_stat: QuestionStats = {
+            'question': question,
+            'exam_list': []
+        }
 
         for comex in exam.common_exams.all():
-            exam_dict = {'exam':comex.code.replace('(','').replace(')','').replace('-','')}
+            exam_dict = {
+                'exam': comex.code.replace('(','').replace(')','').replace('-','')
+            }
 
             section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
-            exam_dict.update({'sections':section_list})
+            exam_dict.update({'sections': section_list})
 
             present_students = comex.present_students if comex.present_students > 0 else 1
             answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
@@ -371,19 +390,99 @@ def get_questions_stats_by_exam(exam):
             na_answers = 0
             new_answer_list = []
             for answer in answer_list.iterator():
-                if answer.get('ticked') == '' or (question.question_type == 1 and len(answer.get('ticked')) > 1):
-                    na_answers += comex.present_students*answer.get('percent')/100
+                answer_ticked = answer.get('ticked')
+                answer_percent = answer.get('percent')
+
+                if not answer_ticked or (question.question_type == 1 and len(answer_ticked) > 1):
+                    na_answers += comex.present_students * answer_percent / 100
                 else:
-                    new_answer_list.append({'ticked':answer.get('ticked'),'percent':answer.get('percent')})
+                    new_answer_list.append({
+                        'ticked': answer_ticked,
+                        'percent': answer_percent
+                    })
+
             na_answers = na_answers if na_answers > 0 else 1
             new_answer_list.append({'ticked':'NA','percent':100/present_students*na_answers})
 
 
             exam_dict.update({'answers':new_answer_list})
 
-            exam_list.append(exam_dict)
+            question_stat["exam_list"].append(exam_dict)
 
-        question_stat.update({'exams':exam_list})
         question_stat_list.append(question_stat)
 
     return question_stat_list
+
+
+class OpenQuestionChartQuarter(TypedDict):
+    maxPoints: int
+    students: int
+
+class OpenQuestionChart(TypedDict):
+    canvasId: str
+    quarters: list[OpenQuestionChartQuarter]
+
+
+class ClosedEndedQuestionCharts(TypedDict):
+    canvasId: str
+    labels: list[str]
+    rates: list[float | int]
+    quantities: list[int]
+
+
+class ByExamChart(TypedDict):
+    canvasId: str
+    labels: list[str]
+    percents: list[float | int]
+
+
+def questions_statistics_charts(
+        exam: Exam,mcq_questions: QuerySet[Question],
+        open_questions: QuerySet[Question],
+        question_stats_by_exam: list[QuestionStats]
+) -> dict:
+
+    """
+    Data of the questions statistics page's charts, drawn by its script
+    (src/views/res_and_stats/questions_statistics). Each chart names the canvas it's drawn in.
+    """
+    mcq_charts: list[ClosedEndedQuestionCharts] = []
+
+    for question in mcq_questions:
+        stats = sorted(question.answerStatistics.all(), key=lambda stat: stat.answer)
+        if len(stats) > MAX_CHARTED_ANSWER_COMBINATIONS: continue
+
+        mcq_charts.append(ClosedEndedQuestionCharts(
+            canvasId=f"canvas-{question.pk}",
+            labels=[stat.answer or "None" for stat in stats],
+            rates=[float(stat.rate) for stat in stats],
+            quantities=[stat.quantity for stat in stats],
+        ))
+
+    open_charts: list[OpenQuestionChart] = [
+        OpenQuestionChart(
+            canvasId=f"canvas-{question.pk}",
+            quarters=[
+                OpenQuestionChartQuarter(maxPoints=max_points, students=students)
+                for _quarter, max_points, students in get_open_question_stats_by_quarter(question)
+            ]
+        )
+        for question in open_questions
+    ]
+
+    by_exam_charts: list[ByExamChart] = [
+        ByExamChart(
+            canvasId=f"canvas-questionStatByExam{qstat['question'].pk}_{exam_stats['exam']}",
+            labels=[f" {answer['percent']:.0f}% - {answer['ticked']}" for answer in exam_stats["answers"]],
+            percents=[round(answer["percent"], 2) for answer in exam_stats["answers"]],
+        )
+        for qstat in question_stats_by_exam
+        for exam_stats in qstat["exam_list"]
+    ]
+
+    return {
+        "presentStudents": exam.present_students,
+        "mcq": mcq_charts,
+        "open": open_charts,
+        "byExam": by_exam_charts,
+    }

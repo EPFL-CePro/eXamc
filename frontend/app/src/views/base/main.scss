@@ -1,6 +1,17 @@
+// custom colors
+$primary: #1f73c7;
+$dark: #212529;
+
 @use "bootstrap/scss/bootstrap" with (
     // Colors
-    $primary: rgb(31, 115, 199),
+    $primary: $primary,
+    $dark: $dark,
+
+    // Navigation pills: dark when active, body text otherwise
+    $nav-pills-link-active-bg: $dark,
+    $nav-pills-link-active-color: #fff,
+    $nav-link-color: $dark,
+    $nav-link-hover-color: #000,
 );
 
 @use "root-css-vars";

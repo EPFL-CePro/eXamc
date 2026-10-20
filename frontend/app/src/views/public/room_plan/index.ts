@@ -1,8 +1,8 @@
 import { Tab, Tooltip } from "bootstrap";
 import { zipSync } from "fflate";
-import html2canvas from "html2canvas";
 
 import "./room-plan.scss";
+import html2canvas from "html2canvas-pro";
 
 type NumberingMode = "numbers" | "letters" | "prefix";
 
