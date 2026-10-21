@@ -24,7 +24,7 @@ from examc_app.models import (
     StudentQuestionAnswer,
     StudentScaleGrade,
 )
-from examc_app.templatetags.custom_tags.stats_tags import (
+from examc_app.templatetags.stats_tags import (
     get_open_question_stats_by_quarter,
 )
 
