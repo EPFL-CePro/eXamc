@@ -125,7 +125,7 @@
             <hr>
 
             <div id="answers-containers-{{ question.id }}">
-                {% include "./_prep_answers_block.html" with question=question answers=answers exam_selected=exam_selected %}
+                {% include "exam/preparation/partials/_prep_answers_block.html" with question=question answers=answers exam_selected=exam_selected %}
             </div>
 
         </div>

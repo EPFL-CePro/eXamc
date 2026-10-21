@@ -1,8 +1,9 @@
 import { describeFailure, failureJson, postJson } from "@examc/helpers/http.ts";
-import { ConfirmModal } from "@examc/modals";
+import { ConfirmModal, LocalModal } from "@examc/modals";
 
 import { celeryTaskStatusUrl, CFG, URLS } from "./config.ts";
-import { getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
+import { getElement, hideElement, showElement, toggleElement } from "./ajax.ts";
+import { byId } from "@examc/helpers/dom.ts";
 
 // Final generation: a Celery task followed in the dialog and, when the dialog is closed or the page
 // reloaded while it runs, in #final-generation-banner. The task goes on on the server in any case.
@@ -232,7 +233,7 @@ function finishFinalGeneration(ok: boolean, payload?: unknown): void {
     } else {
         // The exam was locked by the generation (see isLocked): the page is reloaded when the dialog is closed
         if (CFG.isLocked && !CFG.isFinalized) reloadWhenFinalDialogClosed = true;
-        if (!dialogOpen) showModal(DIALOG);
+        if (!dialogOpen) new LocalModal(byId(DIALOG)).show();
         showGenFinalError(typeof payload === "string" ? payload : "Generation failed.");
     }
 }
@@ -278,7 +279,7 @@ export async function generateFinalExamFiles(confirmWarnings = false): Promise<v
     resetGenFinalUi();
     setGenFinalLoading(true);
     setFinalProgress(0, "Starting...");
-    showModal(DIALOG);
+    new LocalModal(byId(DIALOG)).show();
 
     // Already running (this page loaded before, or another user): follow it
     if (finalTracking) return;
@@ -360,7 +361,7 @@ export function initFinalGeneration(): void {
         resetGenFinalUi();
         setGenFinalLoading(true);
         showFinalBanner(false);
-        showModal(DIALOG);
+        new LocalModal(byId(DIALOG)).show();
     });
 
     const genFinalDialog = document.getElementById("generate_final_exam_files_dialog");

@@ -1,7 +1,9 @@
 import { describeFailure, failureJson, getJson, postJson } from "@examc/helpers/http.ts";
 
 import { previewStatusUrl, URLS } from "./config.ts";
-import { getElement, hideElement, showElement, showModal, toggleElement } from "./ajax.ts";
+import { getElement, hideElement, showElement, toggleElement } from "./ajax.ts";
+import { LocalModal } from "@examc/modals/local.ts";
+import { byId } from "@examc/helpers/dom.ts";
 
 interface PreviewStartResponse {
     job_id?: string;
@@ -53,7 +55,7 @@ export async function previewExam(): Promise<void> {
     stopPreviewPolling();
     resetPreviewUi();
     setPreviewLoading(true);
-    showModal("#exam_preview_dialog");
+    new LocalModal(byId("exam_preview_dialog")).show();
 
     let data: PreviewStartResponse;
     try {

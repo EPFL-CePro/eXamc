@@ -1,5 +1,6 @@
+import { byId } from "@examc/helpers/dom.ts";
 import { isExamFinalized, Selectors } from "./config.ts";
-import { showModal } from "./ajax.ts";
+import { LocalModal } from "@examc/modals/local.ts";
 
 /** Disables the editing once the exam is finalized or locked. */
 export function applyFinalizedReadOnlyState(container: Document | Element = document): void {
@@ -34,7 +35,7 @@ export function applyFinalizedReadOnlyState(container: Document | Element = docu
 }
 
 export function openUnlockEditingModal(): void {
-    showModal("#unlock_exam_editing_modal");
+    new LocalModal(byId("unlock_exam_editing_modal")).show();
 }
 
 export function initUnlockEditing(): void {

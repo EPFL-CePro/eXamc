@@ -45,7 +45,7 @@ def prep_section_panel(request, exam_pk, section_id):
 
     response = render(
         request,
-        "exam/preparation/_prep_section_card.html",
+        "exam/preparation/partials/_prep_section_card.html",
         {
             "exam_selected": section.exam,
             "section": section,
@@ -72,7 +72,7 @@ def add_prep_section(request, exam_pk):
 
     return render(
         request,
-        "exam/preparation/_prep_section_card.html",
+        "exam/preparation/partials/_prep_section_card.html",
         {
             "exam_selected": exam,
             "section": section,
@@ -101,7 +101,7 @@ def delete_prep_section(request, exam_pk, section_id):
 
     return render(
         request,
-        "exam/preparation/_prep_sections_list.html",
+        "exam/preparation/partials/_prep_sections_list.html",
         {
             "exam_selected": exam,
             **build_sections_list_context(exam),
@@ -142,7 +142,7 @@ def reorder_prep_sections(request, exam_pk):
 
     return render(
         request,
-        "exam/preparation/_prep_sections_list.html",
+        "exam/preparation/partials/_prep_sections_list.html",
         {
             "exam_selected": exam,
             **build_sections_list_context(exam),

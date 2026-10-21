@@ -1,4 +1,5 @@
 import logging
+from typing import ClassVar
 
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
@@ -22,6 +23,10 @@ from examc_app.utils.review_settings_guards import (
     pages_group_has_review_activity,
     pages_group_name_available,
     pages_group_settings_changed,
+)
+from examc_app.utils.view_context_helpers import (
+    ViewContext,
+    ViewTab,
 )
 from examc_app.views.review_views import (
     ReviewUnrecognizedScansBlockMixin,
@@ -60,15 +65,26 @@ class ReviewSettingsView(
         :return: dict: A dictionary containing context data for rendering the view.
         """
         context = super().get_context_data(**kwargs)
-
-        context["nav_url"] = "review_settings_view"
-
         exam = Exam.objects.get(pk=context.get("object").id)
+        
+        view_context = ViewContext(
+            base_dict=context,
+            exam_pk=exam.pk,
+            tabs=[
+                ViewTab(key="exam", label="Exam"),
+                ViewTab(key="students", label="Students"),
+            ],
+            nav_url="review_settings_view"
+        )
 
         if user_allowed(exam, self.request.user.id):
+            view_context.set_user_allowed(True)
+
             curr_tab = self.kwargs.get("curr_tab")
             if not curr_tab:
                 curr_tab = "pages-groups-tab"
+
+            view_context.set_curr_tab(curr_tab)
 
             formset_reviewers = ReviewersFormSet(
                 queryset=ExamUser.objects.filter(exam=exam, group__pk__in=[2, 3, 4])
@@ -98,28 +114,17 @@ class ReviewSettingsView(
                     GradingSchemeCheckBoxForm()
                 )  # empty instance, just for .media
 
-                context["user_allowed"] = True
-                context["exam_reviewers_formset"] = formset_reviewers
-                context["exam_pages_groups_formset"] = formset_pages_groups
-                context["nav_url"] = "review_settings_view"
-                context["curr_tab"] = curr_tab
-                context["summernote_media_form"] = summernote_media_form
-                context["grading_schemes_pages_groups"] = grading_schemes_pages_groups
-                context["locked_pages_group_ids"] = locked_pages_group_ids
-            else:
-                context["user_allowed"] = True
-                context["nav_url"] = "review_settings_view"
-                context["curr_tab"] = curr_tab
-                context["locked_pages_group_ids"] = []
+                view_context.update(exam_reviewers_formset=formset_reviewers)
+                view_context.update(exam_pages_groups_formset=formset_pages_groups)
+                view_context.update(summernote_media_form=summernote_media_form)
+                view_context.update(grading_schemes_pages_groups=grading_schemes_pages_groups)
+                view_context.update(locked_pages_group_ids=locked_pages_group_ids)
 
-            context["exam_selected"] = exam
-            exam = exam.get_overall_exam_or_default()
-            context["exam"] = exam
-            return context
-        else:
-            context["user_allowed"] = False
-            context["exam"] = exam
-            return context
+            else:
+                view_context.update(locked_pages_group_ids=[])
+
+        return view_context.as_dict()
+
 
     # Define method to handle POST request
     def post(self, *args, **kwargs):
@@ -210,13 +215,13 @@ class ReviewSettingsView(
 
         error_msg = " ".join(dict.fromkeys(error_messages)) if error_messages else None
 
-        formsetReviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam))
+        formset_reviewers = ReviewersFormSet(queryset=ExamUser.objects.filter(exam=exam))
 
         amc_data_path = get_amc_project_path(exam, True) + "/data/"
         with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
             questions = amc_layout_db_manager.select_questions()
         questions_choices = [(q["name"], q["name"]) for q in questions]
-        formsetPagesGroups = PagesGroupsFormSet(
+        formset_pages_groups = PagesGroupsFormSet(
             queryset=PagesGroup.objects.filter(exam=exam),
             initial=[{"id": None, "group_name": "Select", "nb_pages": -1}],
             form_kwargs={"questions_choices": questions_choices},
@@ -236,8 +241,8 @@ class ReviewSettingsView(
         if user_allowed(exam, self.request.user.id):
             context["user_allowed"] = True
 
-            context["exam_pages_groups_formset"] = formsetPagesGroups
-            context["exam_reviewers_formset"] = formsetReviewers
+            context["exam_pages_groups_formset"] = formset_pages_groups
+            context["exam_reviewers_formset"] = formset_reviewers
             context["curr_tab"] = curr_tab
             context["grading_schemes_pages_groups"] = grading_schemes_pages_groups
             context["error_msg"] = error_msg

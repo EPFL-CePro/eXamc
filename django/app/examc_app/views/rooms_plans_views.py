@@ -327,7 +327,7 @@ class GenerateRoomPlanView(FormView):
 # ---------------------------------------------------------------------------
 
 
-def room_plan_file(request: HttpRequest, folder: str, filename: str) -> FileResponse:
+def get_room_plan_file(request: HttpRequest, folder: str, filename: str) -> FileResponse:
     """
     Serve a room plan image.
 
@@ -351,12 +351,22 @@ def room_plan_file(request: HttpRequest, folder: str, filename: str) -> FileResp
 
     if folder == "export":
         token = request.session.get("user_token")
-        if not token or f"_{token}_export" not in filename:
+        if not token:
             raise Http404
 
-        path = (EXPORT_DIR / filename).resolve()
-        if path.parent != EXPORT_DIR.resolve() or not path.is_file():
+        # Only accept a bare filename: no separators, no "..", no absolute paths
+        if Path(filename).name != filename or "\\" in filename:
             raise Http404
+
+        export_dir = EXPORT_DIR.resolve()
+        path = (export_dir / filename).resolve()
+        if path.parent != export_dir or not path.is_file():
+            raise Http404
+
+        # Check the token against what will actually be served
+        if f"_{token}_export" not in path.name:
+            raise Http404
+
         return FileResponse(path.open("rb"))
 
     raise Http404

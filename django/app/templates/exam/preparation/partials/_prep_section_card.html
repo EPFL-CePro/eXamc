@@ -81,7 +81,7 @@
 
             <hr>
             <div id="prep-questions-list-{{ section.id }}">
-                {% include "./_prep_questions_list.html" with section=section questions=questions exam_selected=exam_selected %}
+                {% include "exam/preparation/partials/_prep_questions_list.html" with section=section questions=questions exam_selected=exam_selected %}
             </div>
             {% if not is_exam_locked %}
                 <button style="margin-top:20px;" class="btn btn-light" title="Add Question"

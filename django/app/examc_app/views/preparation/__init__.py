@@ -1,12 +1,22 @@
 """Views of the exam preparation module."""
 
-from .answers import add_prep_answer, delete_prep_answer, prep_answer_panel, reorder_prep_answers
+from .answers import (
+    add_prep_answer,
+    delete_prep_answer,
+    prep_answer_panel,
+    reorder_prep_answers,
+)
 from .final_generation import cancel_final_exam_files, generate_final_exam_files_start
-from .latex import edit_latex_file, edit_latex_packages, save_latex_edited_file, save_latex_edited_packages
+from .latex import (
+    edit_latex_file,
+    edit_latex_packages,
+    save_latex_edited_file,
+    save_latex_edited_packages,
+)
 from .preview import exam_preview_pdf_file, exam_preview_start, exam_preview_status
 from .project import (
     create_exam_project,
-    exam_preparation_view,
+    preparation_view,
     prep_first_page_panel,
     prep_print_settings,
     unlock_exam_editing,
@@ -19,13 +29,22 @@ from .questions import (
     prep_question_panel,
     reorder_prep_questions,
 )
-from .scoring import delete_scoring_formula, scoring_formulas_modal, scoring_infos, scoring_update_status
-from .sections import add_prep_section, delete_prep_section, prep_section_panel, reorder_prep_sections
+from .scoring import (
+    delete_scoring_formula,
+    scoring_formulas_modal,
+    scoring_infos,
+    scoring_update_status,
+)
+from .sections import (
+    add_prep_section,
+    delete_prep_section,
+    prep_section_panel,
+    reorder_prep_sections,
+)
 from .students import (
     assign_prep_students_seats,
     download_prep_students_export,
     download_prep_students_template,
-    exam_preparation_students_view,
     import_prep_students_api,
     import_prep_students_xlsx,
     reorder_prep_students_view,
@@ -47,8 +66,7 @@ __all__ = [
     "download_prep_students_template",
     "edit_latex_file",
     "edit_latex_packages",
-    "exam_preparation_students_view",
-    "exam_preparation_view",
+    "preparation_view",
     "exam_preview_pdf_file",
     "exam_preview_start",
     "exam_preview_status",

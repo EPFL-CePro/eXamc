@@ -2,7 +2,7 @@ from django.urls import include, path
 
 from examc_app import views
 from examc_app.api.router import examc_router
-from examc_app.views.rooms_plans_views import GenerateRoomPlanView, room_plan_file
+from examc_app.views.rooms_plans_views import GenerateRoomPlanView, get_room_plan_file
 
 urlpatterns = [
     # DRF
@@ -26,8 +26,9 @@ urlpatterns = [
     path('set_common_exam/<int:exam_pk>', views.set_common_exam, name="set_common_exam"),
 
     # PREPARATION
+    path("preparation/<int:exam_pk>/", views.preparation_view, name="preparation"),
     path('create_exam_project', views.create_exam_project, name="create_exam_project"),
-    path("exam_preparation/<int:exam_pk>/", views.exam_preparation_view, name="exam_preparation"),
+    path("exam_preparation/<int:exam_pk>/", views.preparation_view, name="exam_preparation"),
     path("exam_preparation/<int:exam_pk>/first_page/", views.prep_first_page_panel, name="prep_first_page_panel"),
     path("exam_preparation/<int:exam_pk>/sections/add/", views.add_prep_section, name="add_prep_section"),
     path("exam_preparation/<int:exam_pk>/sections/<int:section_id>/", views.prep_section_panel,name="prep_section_panel"),
@@ -58,7 +59,6 @@ urlpatterns = [
     path('generate_final_exam_files/start/<int:exam_pk>',views.generate_final_exam_files_start,name="generate_final_exam_files_start"),
     path('generate_final_exam_files/cancel/<int:exam_pk>',views.cancel_final_exam_files,name="cancel_final_exam_files"),
     path("unlock_exam_editing/<int:exam_pk>", views.unlock_exam_editing, name="unlock_exam_editing"),
-    path("exam_preparation_students/<int:exam_pk>", views.exam_preparation_students_view, name="exam_preparation_students"),
     path("exam_preparation_students/<int:exam_pk>/import_students_xlsx", views.import_prep_students_xlsx, name="import_prep_students_xlsx"),
     path("exam_preparation_students/<int:exam_pk>/students_template", views.download_prep_students_template, name="download_prep_students_template"),
     path("exam_preparation_students/<int:exam_pk>/students_export", views.download_prep_students_export, name="download_prep_students_export"),
@@ -157,7 +157,7 @@ urlpatterns = [
 
     # ROOM PLAN
     path('generate_room_plan/', GenerateRoomPlanView.as_view(), name='generate_room_plan'),
-    path("rooms_plans/<str:folder>/<str:filename>", room_plan_file, name="room_plan_file"),
+    path("rooms_plans/<str:folder>/<str:filename>", get_room_plan_file, name="room_plan_file"),
 
     # CSVGEN
     path('csvgen/', views.csvgen, name="csvgen"),

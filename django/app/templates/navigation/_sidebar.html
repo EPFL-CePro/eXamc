@@ -36,21 +36,10 @@
 
                 {# Preparation #}
                 {% if exam_selected.has_prep_option and user|more_arg:exam_selected|is_allowed:'preparation' %}
-                    <div class="dropend">
-                        <button type="button" id="sidebar-preparation-menu" data-bs-toggle="dropdown" aria-expanded="false"
-                                class="sidebar-menu-toggle {% nav_parent_class 'exam_preparation' 'exam_preparation_students' %}">
-                            <span class="fa-solid fa-pen-to-square fa-fw" aria-hidden="true"></span>Preparation
-                        </button>
-                        <ul class="dropdown-menu sidebar-menu" aria-labelledby="sidebar-preparation-menu">
-                            <li><a href="{% url 'exam_preparation' exam_selected.pk %}" {% nav_attrs 'exam_preparation' %}
-                                   class="dropdown-item sidebar-menu-item {% nav_class 'exam_preparation' %}">
-                                <span class="fa-solid fa-edit fa-fw" aria-hidden="true"></span>Exam preparation</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a href="{% url 'exam_preparation_students' exam_selected.pk %}" {% nav_attrs 'exam_preparation_students' %}
-                                   class="dropdown-item sidebar-menu-item {% nav_class 'exam_preparation_students' %}">
-                                <span class="fa-solid fa-users fa-fw" aria-hidden="true"></span>Exam students</a></li>
-                        </ul>
-                    </div>
+                    <a href="{% url 'preparation' exam_selected.pk %}" title="{{ exam_selected.code }}" {% nav_attrs 'exam_info' %}
+                       class="sidebar-link mt-3 {% nav_class 'exam_info' %}">
+                        <span class="fa-solid fa-pen-to-square fa-fw" aria-hidden="true"></span>Preparation
+                    </a>
                 {% endif %}
 
                 {# AMC #}

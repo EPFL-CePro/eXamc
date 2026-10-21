@@ -375,7 +375,7 @@ def set_common_exam(request,exam_pk: int):
         overall_exam.res_and_stats_option = True
         overall_exam.save()
 
-    exam.common_exams.add(overall_exam)
+    exam.common_exams.update(overall_exam)
     exam.save()
 
     update_common_exams_questions(overall_exam.pk)

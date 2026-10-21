@@ -5,6 +5,7 @@
 
             <div class="modal-header">
                 <h5 class="modal-title">Add question</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body" id="modalAddQuestionBody">
@@ -22,6 +23,7 @@
 
             <div class="modal-header">
                 <h5 class="modal-title">Print settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body" id="modalPrintSettingsBody"></div>
@@ -35,8 +37,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Import questions</h5>
-                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body" id="modalImportQuestionsBody"></div>
@@ -50,10 +51,7 @@
 
             <div class="modal-header">
                 <h5 class="modal-title">Scoring formulas</h5>
-
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><span  aria-hidden="true"></span></button>
-                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body" id="modalScoringFormulasBody"></div>
@@ -66,8 +64,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Preview PDF</h5>
-                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
@@ -100,7 +97,7 @@
             <div class="modal-header">
                 <h5 class="modal-title" id="edit_latex_file_modal_title"></h5>
                 <span id="edit_latex_file_type" hidden></span>
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -120,8 +117,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Generate final exam files</h5>
-                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
@@ -129,7 +125,7 @@
                     <div class="progress" style="height:22px;">
                         <div class="progress-bar progress-bar-striped progress-bar-animated"
                              id="generate-final-progress-bar"
-                             role="progressbar" style="width:0%;">0%
+                             role="progressbar" style="width:0">0%
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mt-2">
@@ -191,9 +187,9 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Unlock editing</h5>
-                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+
             <div class="modal-body">
                 <div class="alert alert-warning mb-3">
                     This exam has already been finalized.
@@ -208,6 +204,7 @@
                     Any already printed documents should be destroyed and must not be used.
                 </p>
             </div>
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
                     No
@@ -220,37 +217,35 @@
     </div>
 </div>
 
-<div id="edit_latex_packages_modal" class="modal fade" tabindex="-1" aria-hidden="true">
+<div id="edit_latex_packages_modal" class="modal fade" tabindex="-1" aria-labelledby="edit_latex_packages_title" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Edit LaTeX packages</h5>
+                <h5 class="modal-title" id="edit_latex_packages_title">Edit LaTeX packages</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
-                <div>
-                    <label class="form-label fw-semibold">Used packages</label>
-                    <div id="used_latex_packages_list" class="latex-package-chips"></div>
+                <div class="mb-4">
+                    <div class="form-label fw-semibold" id="used_latex_packages_label">Used packages</div>
+                    <div id="used_latex_packages_list" class="latex-package-chips"
+                         role="list" aria-labelledby="used_latex_packages_label"></div>
                 </div>
-                <div class="mb-4 position-relative">
+
+                <div class="mb-2">
                     <label for="latex_package_search" class="form-label fw-semibold">Add package</label>
-                    <input
-                            type="text"
-                            id="latex_package_search"
-                            class="form-control"
-                            placeholder="Search available packages..."
-                            autocomplete="off"
-                    >
-                    <div id="latex_package_search_results" class="latex-search-results shadow-sm"></div>
+                    <input type="search" id="latex_package_search" class="form-control"
+                           placeholder="Search available packages..." autocomplete="off"
+                           aria-controls="latex_package_search_results">
+                    <div id="latex_package_search_results" class="latex-search-results"
+                         role="listbox" aria-label="Available packages"></div>
                 </div>
             </div>
 
             <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary btn-sm" data-prep-action="save-latex-packages">
                     Save changes
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                    Cancel
                 </button>
             </div>
         </div>

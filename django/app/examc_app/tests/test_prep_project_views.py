@@ -61,7 +61,7 @@ class PreparationPageTestCase(PrepViewsTestCase):
         self.assertEqual(self.client.get(self.url("exam_preparation")).status_code, 403)
 
     def test_students_page_gives_the_url_of_the_table(self):
-        response = self.client.get(self.url("exam_preparation_students"))
+        response = self.client.get(self.url("preparation"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="prep-students-dt"')

@@ -1,14 +1,5 @@
-<form
-    hx-post="{% url 'prep_print_settings' exam_selected.pk %}"
-    hx-swap="none"
-    hx-disabled-elt="find button[type=submit]"
-    hx-on::after-request="
-        if(event.detail.successful){
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalPrintSettings'));
-            if(modal){ modal.hide(); }
-        }
-    "
->
+<form id="print-settings-form" method="post" action="{% url 'prep_print_settings' exam_selected.pk %}">
+    {% csrf_token %}
     {% csrf_token %}
 
     <p class="mb-2"><strong>Print format</strong></p>
@@ -39,4 +30,4 @@
         <button type="submit" class="btn btn-dark">Save</button>
     </div>
 </form>
-{% if oob %}{% include "./_prep_print_badge.html" %}{% endif %}
+{% if oob %}{% include "exam/preparation/partials/_prep_print_badge.html" %}{% endif %}

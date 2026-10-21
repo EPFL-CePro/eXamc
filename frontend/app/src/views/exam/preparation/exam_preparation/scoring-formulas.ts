@@ -1,10 +1,10 @@
 import { describeFailure, failureJson, getJson, getText, postForm, postJson } from "@examc/helpers/http.ts";
-import { sleep } from "@examc/helpers/dom.ts";
-import { ConfirmModal } from "@examc/modals";
+import { byId, sleep } from "@examc/helpers/dom.ts";
+import { ConfirmModal, LocalModal } from "@examc/modals";
 
 import { EXAM_PK, Selectors, URLS } from "./config.ts";
 import { showSaveToast } from "./save-toast.ts";
-import { getElement, hideModal, showModal, type Spinner, withQuery, withSpinner } from "./ajax.ts";
+import { getElement, type Spinner, withQuery, withSpinner } from "./ajax.ts";
 
 type ScoringParams = {
     exam_pk: string;
@@ -129,7 +129,7 @@ function buildParams(button: HTMLElement): ScoringParams {
 async function open(params: ScoringParams, spinner: Spinner = true): Promise<void> {
     if (!params.exam_pk) {
         renderError("Missing exam_pk.");
-        showModal(Selectors.scoringModal);
+        new LocalModal(byId("modalScoringFormulas")).show();
         return;
     }
 
@@ -139,7 +139,7 @@ async function open(params: ScoringParams, spinner: Spinner = true): Promise<voi
         console.error("[preparation] open scoring formulas modal failed:", error);
         renderError("Unable to load formulas.");
     }
-    showModal(Selectors.scoringModal);
+    new LocalModal(byId("modalScoringFormulas")).show();
 }
 
 // Saving rewrites the LaTeX files: the saving overlay shows it above the dialog, which stays open until the answer
@@ -162,7 +162,7 @@ async function submit(form: HTMLFormElement): Promise<void> {
     }
 
     if (response.success) {
-        hideModal(Selectors.scoringModal);
+        new LocalModal(byId("modalScoringFormulas")).hide();
 
         if (response.scoring_update) {
             void followScoringUpdate(response.scoring_update.status_url);
