@@ -25,9 +25,8 @@ export function showResult(resultElement: HTMLElement, kind: "success" | "warnin
     // Dismissible: the result stays until closed or replaced
     const close = document.createElement("button");
     close.type = "button";
-    close.className = "close";
+    close.className = "btn-close";
     close.setAttribute("aria-label", "Close");
-    close.innerHTML = '<span aria-hidden="true">&times;</span>';
     close.addEventListener("click", () => { resultElement.hidden = true; });
     resultElement.append(close);
 

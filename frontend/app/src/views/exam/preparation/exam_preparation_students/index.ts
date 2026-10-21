@@ -5,62 +5,37 @@ import {initPrepStudentEdit} from "./prep-student-edit.ts";
 import {initSeatsAssign} from "./seats-assign.ts";
 import {initStudentsApiImport, initStudentsFileImport} from "./students-import.ts";
 import {initStudentsOrder} from "./students-order.ts";
-import {initStudentsPanels} from "./students-panels.ts";
+import { byId, requireData } from '@examc/helpers/dom.ts';
 
 document.addEventListener("DOMContentLoaded", () => {
-    const tableElement = document.querySelector<HTMLTableElement>("#prep-students-dt");
-    if (!tableElement) return;
+    const tableEl = byId<HTMLTableElement>("prep-students-dt");
+    const prepStudentEditModalEl = byId("prepStudentEditModal");
+    const importStudentsResultEl = byId("importStudentsResult");
+    const importStudentsFileEl = byId<HTMLInputElement>("importStudentsFile");
+    const importStudentsFromApiEl = byId<HTMLButtonElement>("importStudentsFromAPI");
+    const reorderStudentsFormEl = byId<HTMLFormElement>("reorderStudentsForm");
+    const assignSeatsFormEl = byId<HTMLFormElement>("assignSeatsForm");
+    const assignSeatsPreviewEl = byId<HTMLElement>("assignSeatsPreview");
 
-    const {apiUrl} = tableElement.dataset;
-    if (!apiUrl) {
-        console.error("Prep students table missing data-api-url attribute");
-        return;
-    }
+    const fileButtons = [...document.querySelectorAll<HTMLButtonElement>(".import-students-from-xlsx")];
+
+    const apiUrl = requireData(tableEl, "apiUrl");
+
+    
     const table = initPrepStudentsTable({
-        tableElement,
+        tableElement: tableEl,
         apiUrl,
         toCorrectBanner: document.querySelector<HTMLElement>("#prepStudentsToCorrect"),
         summary: document.querySelector<HTMLElement>("#prepStudentsSummary"),
     });
 
-    const toolbar = document.querySelector<HTMLElement>(".prep-students-toolbar");
-    if (toolbar) {
-        const {openPanel, hasStoredPanel} = initStudentsPanels(toolbar);
-        // An exam without students: show the import first
-        if (!hasStoredPanel) {
-            table.one("xhr", (_event, _settings, json) => {
-                if (!(json as {data?: unknown[]} | null)?.data?.length) openPanel("get");
-            });
-        }
+    
+    if (fileButtons.length > 0) {
+        initStudentsFileImport({ buttons: fileButtons, fileInput: importStudentsFileEl, resultElement: importStudentsResultEl, table });
     }
 
-    const modalElement = document.querySelector<HTMLElement>("#prepStudentEditModal");
-    if (modalElement) {
-        initPrepStudentEdit({table, tableElement, apiUrl, modalElement});
-    }
-
-    const resultElement = document.querySelector<HTMLElement>("#importStudentsResult");
-    if (!resultElement) return;
-
-    const fileButtons = [...document.querySelectorAll<HTMLButtonElement>(".import-students-from-xlsx")];
-    const fileInput = document.querySelector<HTMLInputElement>("#importStudentsFile");
-    if (fileButtons.length && fileInput) {
-        initStudentsFileImport({buttons: fileButtons, fileInput, resultElement, table});
-    }
-
-    const apiButton = document.querySelector<HTMLButtonElement>("#importStudentsFromAPI");
-    if (apiButton) {
-        initStudentsApiImport({button: apiButton, resultElement, table});
-    }
-
-    const reorderForm = document.querySelector<HTMLFormElement>("#reorderStudentsForm");
-    if (reorderForm) {
-        initStudentsOrder({form: reorderForm, resultElement, table});
-    }
-
-    const seatsForm = document.querySelector<HTMLFormElement>("#assignSeatsForm");
-    const seatsPreview = document.querySelector<HTMLElement>("#assignSeatsPreview");
-    if (seatsForm && seatsPreview) {
-        initSeatsAssign({form: seatsForm, previewElement: seatsPreview, resultElement, table});
-    }
+    initPrepStudentEdit({table, tableElement: tableEl, apiUrl, modalElement: prepStudentEditModalEl });
+    initStudentsApiImport({button: importStudentsFromApiEl, resultElement: importStudentsResultEl, table});
+    initStudentsOrder({form: reorderStudentsFormEl, resultElement: importStudentsResultEl, table});
+    initSeatsAssign({form: assignSeatsFormEl, previewElement: assignSeatsPreviewEl, resultElement: importStudentsResultEl, table});
 });
