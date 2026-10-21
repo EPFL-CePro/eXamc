@@ -47,8 +47,7 @@
     {% else %}
         <div class="alert alert-warning">
             <h4 class="alert-heading">Warning!</h4>
-            <p class="mb-0">No AMC project found! Please upload the AMC project zip folder from the left menu "AMC" →
-                "Import data".</p>
+            <p class="mb-0">No AMC project found! Please upload the AMC project zip <a href="{% url 'upload_amc_project' exam_selected.pk %}">here</a>.</p>
         </div>
     {% endif %}
 {% endblock %}

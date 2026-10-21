@@ -5,7 +5,7 @@ The **Students** page lists the students of the exam. The final generation print
 
 .. screenshot TODO: Add a screenshot of the Students page with the two steps and the table.
 
-1. Get the students
+1. Retrieve students
 -------------------
 
 Two ways to fill the list. Both **replace all the students of the exam** (a confirmation is asked when there are some):

@@ -22,7 +22,7 @@
                  data-create-scale-url="{% url 'create_scale' comex.pk %}"
                  data-catalog-url="{% url 'catalog_pdf' comex.pk %}">
 
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3" style="max-width: var(--form-max-width)">
                     <h4 class="m-0 me-auto">
                         <i class="fa-solid fa-book-open" aria-hidden="true"></i> Exam settings
                     </h4>
@@ -36,7 +36,7 @@
                     </button>
                 </div>
 
-                <div class="accordion" id="exam-info-accordion">
+                <div class="accordion" id="exam-info-accordion" style="max-width: var(--form-max-width)">
                     {# ---------------------------------------------------------------- Exam #}
                     <div class="accordion-item">
                         <h2 class="accordion-header">
@@ -69,7 +69,8 @@
                                         <label for="exam-year" class="form-label">Year</label>
                                         <select class="form-select" id="exam-year" name="year_id" required>
                                             {% for year in years %}
-                                                <option value="{{ year.id }}" {% if year.id == comex.year.id %}selected{% endif %}>{{ year.code }}</option>
+                                                <option value="{{ year.id }}"
+                                                        {% if year.id == comex.year.id %}selected{% endif %}>{{ year.code }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -77,7 +78,8 @@
                                         <label for="exam-semester" class="form-label">Semester</label>
                                         <select class="form-select" id="exam-semester" name="semester_id" required>
                                             {% for semester in semesters %}
-                                                <option value="{{ semester.id }}" {% if semester.id == comex.semester.id %}selected{% endif %}>{{ semester.code }}</option>
+                                                <option value="{{ semester.id }}"
+                                                        {% if semester.id == comex.semester.id %}selected{% endif %}>{{ semester.code }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -91,7 +93,8 @@
                                         <div class="col-12">
                                             <span class="form-label d-block">Individual specific: <code>{{ comex.indiv_formula }}</code></span>
                                             <div class="small text-body-secondary mt-1">
-                                                Format: <code>[indiv_max_points];[common_max_points];[formula]</code>, with :
+                                                Format: <code>[indiv_max_points];[common_max_points];[formula]</code>,
+                                                with :
                                                 <ul>
                                                     <li><code>IP</code>: individual max points</li>
                                                     <li><code>CP</code>: common max points</li>
@@ -115,7 +118,8 @@
                     <div class="accordion-item">
                         <h2 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#section-scales" aria-expanded="false" aria-controls="section-scales">
+                                    data-bs-target="#section-scales" aria-expanded="false"
+                                    aria-controls="section-scales">
                                 Scales
                             </button>
                         </h2>
@@ -124,51 +128,64 @@
                                 <div class="table-responsive">
                                     <table class="table table-striped table-sm align-middle">
                                         <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>Total points</th>
-                                                <th>Points to add</th>
-                                                <th class="text-center">Final</th>
-                                                <th><span class="visually-hidden">Delete</span></th>
-                                            </tr>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Total points</th>
+                                            <th>Points to add</th>
+                                            <th class="text-center">Final</th>
+                                            <th><span class="visually-hidden">Delete</span></th>
+                                        </tr>
                                         </thead>
                                         <tbody>
-                                            {% for scale in comex.scales.all %}
-                                                <tr>
-                                                    <td>{{ scale.name }}</td>
-                                                    <td>{{ scale.total_points }}</td>
-                                                    <td>{{ scale.points_to_add }}</td>
-                                                    <td class="text-center">
-                                                        {% if scale.final %}
-                                                            <i class="fa-solid fa-circle-check fa-xl text-success" title="Final scale"></i>
-                                                        {% elif comex.common_exams.all %}
-                                                            <button type="button" class="btn btn-link p-0" title="Set as final scale"
-                                                                    data-final-scale-all-url="{% url 'set_final_scale' scale.pk comex.pk 1 %}"
-                                                                    data-final-scale-one-url="{% url 'set_final_scale' scale.pk comex.pk 0 %}">
-                                                                <i class="fa-solid fa-circle-xmark fa-xl text-body-tertiary" aria-hidden="true"></i>
-                                                            </button>
-                                                        {% else %}
-                                                            <form method="post" action="{% url 'set_final_scale' scale.pk comex.pk 0 %}" class="d-inline">
-                                                                {% csrf_token %}
-                                                                <button type="submit" class="btn btn-link p-0" title="Set as final scale">
-                                                                    <i class="fa-solid fa-circle-xmark fa-xl text-body-tertiary" aria-hidden="true"></i>
-                                                                </button>
-                                                            </form>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <form method="post" action="{% url 'delete_exam_scale' scale.pk comex.pk %}"
-                                                              class="d-inline" data-confirm="Delete the scale “{{ scale.name }}”?">
+                                        {% for scale in comex.scales.all %}
+                                            <tr>
+                                                <td>{{ scale.name }}</td>
+                                                <td>{{ scale.total_points }}</td>
+                                                <td>{{ scale.points_to_add }}</td>
+                                                <td class="text-center">
+                                                    {% if scale.final %}
+                                                        <i class="fa-solid fa-circle-check fa-xl text-success"
+                                                           title="Final scale"></i>
+                                                    {% elif comex.common_exams.all %}
+                                                        <button type="button" class="btn btn-link p-0"
+                                                                title="Set as final scale"
+                                                                data-final-scale-all-url="{% url 'set_final_scale' scale.pk comex.pk 1 %}"
+                                                                data-final-scale-one-url="{% url 'set_final_scale' scale.pk comex.pk 0 %}">
+                                                            <i class="fa-solid fa-circle-xmark fa-xl text-body-tertiary"
+                                                               aria-hidden="true"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <form method="post"
+                                                              action="{% url 'set_final_scale' scale.pk comex.pk 0 %}"
+                                                              class="d-inline">
                                                             {% csrf_token %}
-                                                            <button type="submit" class="btn btn-link p-0 text-danger" title="Delete this scale">
-                                                                <i class="fa-solid fa-circle-minus fa-xl" aria-hidden="true"></i>
+                                                            <button type="submit" class="btn btn-link p-0"
+                                                                    title="Set as final scale">
+                                                                <i class="fa-solid fa-circle-xmark fa-xl text-body-tertiary"
+                                                                   aria-hidden="true"></i>
                                                             </button>
                                                         </form>
-                                                    </td>
-                                                </tr>
-                                            {% empty %}
-                                                <tr><td colspan="5" class="text-body-secondary">No scale yet.</td></tr>
-                                            {% endfor %}
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">
+                                                    <form method="post"
+                                                          action="{% url 'delete_exam_scale' scale.pk comex.pk %}"
+                                                          class="d-inline"
+                                                          data-confirm="Delete the scale “{{ scale.name }}”?">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-link p-0 text-danger"
+                                                                title="Delete this scale">
+                                                            <i class="fa-solid fa-circle-minus fa-xl"
+                                                               aria-hidden="true"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="5" class="text-body-secondary">No scale yet.</td>
+                                            </tr>
+                                        {% endfor %}
                                         </tbody>
                                     </table>
                                 </div>
@@ -183,13 +200,15 @@
                     <div class="accordion-item">
                         <h2 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#section-questions" aria-expanded="false" aria-controls="section-questions">
+                                    data-bs-target="#section-questions" aria-expanded="false"
+                                    aria-controls="section-questions">
                                 Questions (total points: {{ comex.id|get_sum_questions_points }})
                             </button>
                         </h2>
                         <div id="section-questions" class="accordion-collapse collapse">
                             <div class="accordion-body">
-                                <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" id="regen-stats-alert"
+                                <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2"
+                                     id="regen-stats-alert"
                                      role="alert" hidden>
                                     Don't forget to regenerate the statistics after changing the questions!
                                     <a class="btn btn-dark btn-sm ms-auto" href="{% url 'generate_stats' comex.pk %}">
@@ -201,61 +220,71 @@
                                     <div class="table-responsive">
                                         <table class="table table-striped table-sm align-middle">
                                             <thead>
-                                                <tr>
-                                                    <th>Question</th>
-                                                    <th>Type</th>
-                                                    <th>Possible answers count</th>
-                                                    <th>Max points</th>
-                                                    {% if comex.is_overall %}<th>Common</th>{% endif %}
-                                                </tr>
+                                            <tr>
+                                                <th>Question</th>
+                                                <th>Type</th>
+                                                <th>Possible answers count</th>
+                                                <th>Max points</th>
+                                                {% if comex.is_overall %}
+                                                    <th>Common</th>{% endif %}
+                                            </tr>
                                             </thead>
                                             <tbody>
-                                                {% for question in comex.questions.all %}
-                                                    <tr data-question="{{ question.pk }}" {% if question.removed_from_common %}class="opacity-50"{% endif %}>
-                                                        <td {% if question.removed_from_common %}class="text-decoration-line-through"{% endif %}>
-                                                            {{ question.code }}
-                                                        </td>
+                                            {% for question in comex.questions.all %}
+                                                <tr data-question="{{ question.pk }}"
+                                                    {% if question.removed_from_common %}class="opacity-50"{% endif %}>
+                                                    <td {% if question.removed_from_common %}class="text-decoration-line-through"{% endif %}>
+                                                        {{ question.code }}
+                                                    </td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm" role="group"
+                                                             aria-label="Type of question {{ question.code }}">
+                                                            {% for question_type in question_types.all %}
+                                                                <input type="radio" class="btn-check" autocomplete="off"
+                                                                       name="type-{{ question.pk }}"
+                                                                       id="type-{{ question.pk }}-{{ question_type.pk }}"
+                                                                       value="{{ forloop.counter }}"
+                                                                       {% if question.question_type.pk == question_type.pk %}checked{% endif %}>
+                                                                <label class="btn btn-outline-dark"
+                                                                       for="type-{{ question.pk }}-{{ question_type.pk }}">{{ question_type.code }}</label>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        {% if question.question_type.id <= 2 %}
+                                                            <input type="number" class="form-control form-control-sm"
+                                                                   min="1" max="12" step="1"
+                                                                   style="width: 6rem"
+                                                                   name="answers-{{ question.pk }}"
+                                                                   id="answers-{{ question.pk }}"
+                                                                   value="{{ question.nb_answers }}"
+                                                                   aria-label="Number of answers of question {{ question.code }}">
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control form-control-sm"
+                                                               style="width: 6rem"
+                                                               name="max-points-{{ question.pk }}" min="0" step=".01"
+                                                               value="{{ question.max_points|unlocalize }}"
+                                                               aria-label="Max points of question {{ question.code }}">
+                                                    </td>
+                                                    {% if comex.is_overall %}
                                                         <td>
-                                                            <div class="btn-group btn-group-sm" role="group" aria-label="Type of question {{ question.code }}">
-                                                                {% for question_type in question_types.all %}
-                                                                    <input type="radio" class="btn-check" autocomplete="off"
-                                                                           name="type-{{ question.pk }}"
-                                                                           id="type-{{ question.pk }}-{{ question_type.pk }}"
-                                                                           value="{{ forloop.counter }}"
-                                                                           {% if question.question_type.pk == question_type.pk %}checked{% endif %}>
-                                                                    <label class="btn btn-outline-dark" for="type-{{ question.pk }}-{{ question_type.pk }}">{{ question_type.code }}</label>
-                                                                {% endfor %}
+                                                            <div class="form-check form-switch m-0">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                       role="switch"
+                                                                       name="common-{{ question.pk }}"
+                                                                       aria-label="Question {{ question.code }} is common"
+                                                                       {% if not question.removed_from_common %}checked{% endif %}>
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            {% if question.question_type.id <= 2 %}
-                                                                <input type="number" class="form-control form-control-sm" min="1" max="12" step="1"
-                                                                       style="width: 6rem"
-                                                                       name="answers-{{ question.pk }}" id="answers-{{ question.pk }}"
-                                                                       value="{{ question.nb_answers }}"
-                                                                       aria-label="Number of answers of question {{ question.code }}">
-                                                            {% endif %}
-                                                        </td>
-                                                        <td>
-                                                            <input type="number" class="form-control form-control-sm" style="width: 6rem"
-                                                                   name="max-points-{{ question.pk }}" min="0" step=".01"
-                                                                   value="{{ question.max_points|unlocalize }}"
-                                                                   aria-label="Max points of question {{ question.code }}">
-                                                        </td>
-                                                        {% if comex.is_overall %}
-                                                            <td>
-                                                                <div class="form-check form-switch m-0">
-                                                                    <input class="form-check-input" type="checkbox" role="switch"
-                                                                           name="common-{{ question.pk }}"
-                                                                           aria-label="Question {{ question.code }} is common"
-                                                                           {% if not question.removed_from_common %}checked{% endif %}>
-                                                                </div>
-                                                            </td>
-                                                        {% endif %}
-                                                    </tr>
-                                                {% empty %}
-                                                    <tr><td colspan="5" class="text-body-secondary">No questions.</td></tr>
-                                                {% endfor %}
+                                                    {% endif %}
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="5" class="text-body-secondary">No questions.</td>
+                                                </tr>
+                                            {% endfor %}
                                             </tbody>
                                         </table>
                                     </div>
@@ -272,7 +301,8 @@
                     <div class="accordion-item">
                         <h2 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#section-common" aria-expanded="false" aria-controls="section-common">
+                                    data-bs-target="#section-common" aria-expanded="false"
+                                    aria-controls="section-common">
                                 Common exams
                             </button>
                         </h2>
@@ -283,41 +313,53 @@
                                           action="{% url 'validate_common_exams_settings' comex.pk %}">
                                         {% csrf_token %}
                                         <p class="small text-body-secondary">
-                                            Available exams have a similar code, the same year and semester, and questions.
+                                            Available exams have a similar code, the same year and semester, and
+                                            questions.
                                         </p>
                                         <div class="row g-2 align-items-center">
                                             <div class="col-md">
-                                                <label for="common-from" class="form-label fw-semibold">Available exams</label>
-                                                <select id="common-from" name="{{ comex.id }}_common_from[]" class="form-select"
+                                                <label for="common-from" class="form-label fw-semibold">Available
+                                                    exams</label>
+                                                <select id="common-from" name="{{ comex.id }}_common_from[]"
+                                                        class="form-select"
                                                         size="8" multiple data-list="from">
                                                     {% for available in comex.get_available_common_exams %}
                                                         <option value="{{ available.id }}"
-                                                                {% if not available.questions.exists %}disabled title="No questions yet"{% endif %}>
-                                                            {{ available.code }} - {{ available.name }} - {{ available.date }}
+                                                                {% if not available.questions.exists %}disabled
+                                                                title="No questions yet"{% endif %}>
+                                                            {{ available.code }} - {{ available.name }}
+                                                            - {{ available.date }}
                                                         </option>
                                                     {% endfor %}
                                                 </select>
                                             </div>
                                             <div class="col-md-auto d-flex flex-md-column justify-content-center gap-1">
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" data-move="to-all" title="Add all">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                        data-move="to-all" title="Add all">
                                                     <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" data-move="to" title="Add selected">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                        data-move="to" title="Add selected">
                                                     <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" data-move="from" title="Remove selected">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                        data-move="from" title="Remove selected">
                                                     <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" data-move="from-all" title="Remove all">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                        data-move="from-all" title="Remove all">
                                                     <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
                                                 </button>
                                             </div>
                                             <div class="col-md">
-                                                <label for="common-to" class="form-label fw-semibold">Selected exams</label>
-                                                <select id="common-to" name="{{ comex.id }}_common_to[]" class="form-select"
+                                                <label for="common-to" class="form-label fw-semibold">Selected
+                                                    exams</label>
+                                                <select id="common-to" name="{{ comex.id }}_common_to[]"
+                                                        class="form-select"
                                                         size="8" multiple data-list="to">
                                                     {% for common in comex.get_common_exams_without_common.all %}
-                                                        <option value="{{ common.id }}">{{ common.code }} - {{ common.name }} - {{ common.date }}</option>
+                                                        <option value="{{ common.id }}">{{ common.code }}
+                                                            - {{ common.name }} - {{ common.date }}</option>
                                                     {% endfor %}
                                                 </select>
                                             </div>
@@ -328,11 +370,14 @@
                                         </div>
                                     </form>
                                 {% elif comex.get_common_exams_yc_common|length > 1 %}
-                                    <div class="alert alert-warning" role="alert">Common exams are managed in the COMMON tab!</div>
+                                    <div class="alert alert-warning" role="alert">Common exams are managed in the COMMON
+                                        tab!
+                                    </div>
                                     <h6>Current common exams</h6>
                                     <ul class="list-group">
                                         {% for common in comex.get_common_exams_without_common.all %}
-                                            <li class="list-group-item">{{ common.code }} - {{ common.name }} - {{ common.date }}</li>
+                                            <li class="list-group-item">{{ common.code }} - {{ common.name }}
+                                                - {{ common.date }}</li>
                                         {% endfor %}
                                     </ul>
                                 {% else %}
@@ -356,69 +401,80 @@
                         <div id="section-users" class="accordion-collapse collapse">
                             <div class="accordion-body">
                                 <div class="alert alert-warning" id="users-error" role="alert" hidden></div>
-                                <div class="row g-3">
-                                    <div class="col-lg-6">
-                                        <h6>Current users</h6>
-                                        <ul class="list-group" id="current-users">
-                                            {% for exam_user in comex.exam_users.all %}
-                                                <li class="list-group-item d-flex flex-wrap align-items-center gap-2"
-                                                    data-username="{{ exam_user.user.username }}"
-                                                    data-first-name="{{ exam_user.user.first_name }}"
-                                                    data-last-name="{{ exam_user.user.last_name }}"
-                                                    data-email="{{ exam_user.user.email }}">
-                                                    <button type="button" class="btn btn-link btn-sm p-0 text-danger" data-remove-user
-                                                            title="Remove this user" aria-label="Remove {{ exam_user.user.username }}">
-                                                        <i class="fa-solid fa-circle-minus fa-lg" aria-hidden="true"></i>
-                                                    </button>
-                                                    <span class="me-auto" data-user-label>
-                                                        {{ exam_user.user.username }} - {{ exam_user.user.first_name }} {{ exam_user.user.last_name }} - {{ exam_user.user.email }}
-                                                    </span>
-                                                    <div>
-                                                        {% for user_group in users_groups_add.all %}
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio"
-                                                                       name="user-group-{{ exam_user.user.username }}"
-                                                                       id="user-group-{{ exam_user.user.username }}-{{ user_group.id }}"
-                                                                       value="{{ user_group.id }}"
-                                                                       {% if exam_user.group.id == user_group.id %}checked{% endif %}>
-                                                                <label class="form-check-label" for="user-group-{{ exam_user.user.username }}-{{ user_group.id }}">{{ user_group.name }}</label>
-                                                            </div>
-                                                        {% endfor %}
+                                <h6>Current users</h6>
+                                <ul class="list-group mb-4" id="current-users">
+                                    {% for exam_user in comex.exam_users.all %}
+                                        <li class="list-group-item d-flex flex-wrap align-items-center gap-2"
+                                            data-username="{{ exam_user.user.username }}"
+                                            data-first-name="{{ exam_user.user.first_name }}"
+                                            data-last-name="{{ exam_user.user.last_name }}"
+                                            data-email="{{ exam_user.user.email }}">
+                                            <button type="button" class="btn btn-link btn-sm p-0 text-danger"
+                                                    data-remove-user
+                                                    title="Remove this user"
+                                                    aria-label="Remove {{ exam_user.user.username }}">
+                                                <i class="fa-solid fa-circle-minus fa-lg" aria-hidden="true"></i>
+                                            </button>
+                                            <span class="me-auto" data-user-label>
+                                                {{ exam_user.user.username }} - {{ exam_user.user.first_name }} {{ exam_user.user.last_name }} - {{ exam_user.user.email }}
+                                            </span>
+                                            <div>
+                                                {% for user_group in users_groups_add.all %}
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio"
+                                                               name="user-group-{{ exam_user.user.username }}"
+                                                               id="user-group-{{ exam_user.user.username }}-{{ user_group.id }}"
+                                                               value="{{ user_group.id }}"
+                                                               {% if exam_user.group.id == user_group.id %}checked{% endif %}>
+                                                        <label class="form-check-label"
+                                                               for="user-group-{{ exam_user.user.username }}-{{ user_group.id }}">{{ user_group.name }}</label>
                                                     </div>
-                                                </li>
-                                            {% empty %}
-                                                <li class="list-group-item text-body-secondary">No users yet.</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                    <div class="col-lg-6">
-                                        <div class="bg-body-tertiary rounded p-3">
-                                            <h6>Add users</h6>
-                                            <form id="ldap-search-form" class="input-group mb-3">
-                                                <input type="email" class="form-control" id="ldap-email" placeholder="Email"
-                                                       aria-label="Email of the user to add" required>
-                                                <button type="submit" class="btn btn-dark">
-                                                    <i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Search
-                                                </button>
-                                            </form>
-                                            <ul class="list-group" id="new-users"></ul>
+                                                {% endfor %}
+                                            </div>
+                                        </li>
+                                    {% empty %}
+                                        <li class="list-group-item text-body-secondary">No users yet.</li>
+                                    {% endfor %}
+                                </ul>
+
+
+
+                                <form id="ldap-search-form">
+                                    <div class="input-group">
+                                        <div class="input-group-text">
+                                            <label for="ldap-email">Add users to the exam</label>
                                         </div>
+                                        <input id="ldap-email" type="email" class="form-control"
+                                               placeholder="New user's email"
+                                               aria-label="New user's email" required>
+                                        <button type="submit" class="btn btn-dark">
+                                            <i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Search
+                                        </button>
                                     </div>
+                                </form>
+
+                                <div id="new-users" style="display: none">
+                                    <h6 class="mt-4">The following users will be added:</h6>
+                                    <ul class="list-group" id="new-users-list"></ul>
                                 </div>
 
                                 {# Group choices of a newly added user; TS sets their names and ids #}
                                 <template id="user-groups-template">
                                     {% for user_group in users_groups_add.all %}
                                         <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" value="{{ user_group.id }}" {% if user_group.id == 2 %}checked{% endif %}>
+                                            <input class="form-check-input" type="radio" value="{{ user_group.id }}"
+                                                   {% if user_group.id == 2 %}checked{% endif %}>
                                             <label class="form-check-label">{{ user_group.name }}</label>
                                         </div>
                                     {% endfor %}
                                 </template>
 
                                 <div class="d-flex gap-2 border-top pt-3 mt-3">
-                                    <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-users">Cancel</button>
-                                    <button type="button" class="btn btn-dark btn-sm" id="btn-validate-users">Validate</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-users">
+                                        Cancel
+                                    </button>
+                                    <button type="button" class="btn btn-dark btn-sm" id="btn-validate-users">Validate
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -428,7 +484,8 @@
                     <div class="accordion-item">
                         <h2 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#section-modules" aria-expanded="false" aria-controls="section-modules">
+                                    data-bs-target="#section-modules" aria-expanded="false"
+                                    aria-controls="section-modules">
                                 Modules
                             </button>
                         </h2>
@@ -437,24 +494,29 @@
                                 <form id="exam-options-form">
                                     {% csrf_token %}
                                     <div class="form-check form-switch mb-2">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="review-option"
-                                               name="review_option_{{ comex.id }}" {% if comex.review_option == 1 %}checked{% endif %}>
-                                        <label class="form-check-label" for="review-option">Review module</label>
+                                        <input class="form-check-input" type="checkbox" role="switch" id="prep-option"
+                                               name="prep_option_{{ comex.id }}"
+                                               {% if comex.prep_option == 1 %}checked{% endif %}>
+                                        <label class="form-check-label" for="prep-option">Preparation module</label>
                                     </div>
                                     <div class="form-check form-switch mb-2">
                                         <input class="form-check-input" type="checkbox" role="switch" id="amc-option"
-                                               name="amc_option_{{ comex.id }}" {% if comex.amc_option == 1 %}checked{% endif %}>
+                                               name="amc_option_{{ comex.id }}"
+                                               {% if comex.amc_option == 1 %}checked{% endif %}>
                                         <label class="form-check-label" for="amc-option">AMC module</label>
                                     </div>
                                     <div class="form-check form-switch mb-2">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="res-and-stats-option"
-                                               name="res_and_stats_option_{{ comex.id }}" {% if comex.res_and_stats_option == 1 %}checked{% endif %}>
-                                        <label class="form-check-label" for="res-and-stats-option">Results &amp; stats module</label>
+                                        <input class="form-check-input" type="checkbox" role="switch" id="review-option"
+                                               name="review_option_{{ comex.id }}"
+                                               {% if comex.review_option == 1 %}checked{% endif %}>
+                                        <label class="form-check-label" for="review-option">Review module</label>
                                     </div>
                                     <div class="form-check form-switch mb-2">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="prep-option"
-                                               name="prep_option_{{ comex.id }}" {% if comex.prep_option == 1 %}checked{% endif %}>
-                                        <label class="form-check-label" for="prep-option">Preparation module</label>
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="res-and-stats-option"
+                                               name="res_and_stats_option_{{ comex.id }}"
+                                               {% if comex.res_and_stats_option == 1 %}checked{% endif %}>
+                                        <label class="form-check-label" for="res-and-stats-option">Results module</label>
                                     </div>
                                     <div class="d-flex gap-2 border-top pt-3">
                                         <button type="reset" class="btn btn-secondary btn-sm">Cancel</button>
@@ -468,7 +530,8 @@
             </div>
 
             {# ---------------------------------------------------------------- Dialogs #}
-            <div class="modal fade" id="catalog-modal" tabindex="-1" aria-labelledby="catalog-modal-title" aria-hidden="true">
+            <div class="modal fade" id="catalog-modal" tabindex="-1" aria-labelledby="catalog-modal-title"
+                 aria-hidden="true">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -482,7 +545,8 @@
                 </div>
             </div>
 
-            <div class="modal fade" id="final-scale-common-modal" tabindex="-1" aria-labelledby="final-scale-common-title" aria-hidden="true">
+            <div class="modal fade" id="final-scale-common-modal" tabindex="-1"
+                 aria-labelledby="final-scale-common-title" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -499,9 +563,12 @@
                             </form>
                             <form method="post" data-final-scale="one">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-dark btn-sm">No, only for this exam</button>
+                                <button type="submit" class="btn btn-outline-dark btn-sm">No, only for this exam
+                                </button>
                             </form>
-                            <button type="button" class="btn btn-secondary btn-sm ms-auto" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-secondary btn-sm ms-auto" data-bs-dismiss="modal">
+                                Cancel
+                            </button>
                         </div>
                     </div>
                 </div>

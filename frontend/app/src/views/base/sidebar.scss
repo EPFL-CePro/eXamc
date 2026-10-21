@@ -1,0 +1,24 @@
+// Sidebar classes, made of Bootstrap's: the sidebar's markup names what an element is,
+// these rules say how it looks. @extend keeps Bootstrap's states (hover, active, focus).
+// Bootstrap's dropdown script finds menus and items by their classes: .dropdown-menu and
+// .dropdown-item stay in the markup, next to the classes below.
+@use "bootstrap/scss/bootstrap";
+
+// Top-level entries: links, and the buttons opening a module's menu
+.sidebar-link,
+.sidebar-menu-toggle {
+    @extend .list-group-item, .list-group-item-action, .border-0, .rounded-0, .d-flex, .align-items-center, .gap-2;
+}
+
+.sidebar-menu-toggle {
+    @extend .w-100, .dropdown-toggle;
+}
+
+// A module's menu (with .dropdown-menu) and its items (with .dropdown-item)
+.sidebar-menu {
+    @extend .py-0, .overflow-hidden;
+}
+
+.sidebar-menu-item {
+    @extend .d-flex, .align-items-center, .gap-2, .py-2;
+}

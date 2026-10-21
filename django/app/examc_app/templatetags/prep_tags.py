@@ -3,7 +3,10 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from examc_app.utils.preparation_functions import (
-    get_applied_scorings, scoring_badge_text, scoring_info_text, scoring_lock_reason,
+    get_applied_scorings,
+    scoring_badge_text,
+    scoring_info_text,
+    scoring_lock_reason,
 )
 
 register = template.Library()

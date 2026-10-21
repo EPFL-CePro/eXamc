@@ -105,7 +105,8 @@ function newUserItem(user: UserInfo, groupsTemplate: HTMLTemplateElement): HTMLL
  */
 export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): void {
     const currentList = byId('current-users');
-    const newList = byId('new-users');
+    const newUsers = byId('new-users');
+    const newUsersList = byId('new-users-list');
     const searchForm = byId<HTMLFormElement>('ldap-search-form');
     const emailInput = byId<HTMLInputElement>('ldap-email');
     const errorBox = byId('users-error');
@@ -121,8 +122,9 @@ export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): voi
         if (item) setDeleted(item, item.dataset['deleted'] !== 'true');
     });
 
-    newList.addEventListener('click', (event) => {
+    newUsersList.addEventListener('click', (event) => {
         (event.target as Element).closest('[data-remove-user]')?.closest('[data-username]')?.remove();
+        if (newUsersList.childElementCount === 0) newUsers.style.display = 'none';
     });
 
     searchForm.addEventListener('submit', (event) => {
@@ -142,20 +144,24 @@ export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): voi
 
             // "exist", or "username;first name;last name;email"
             const [username = '', firstName = '', lastName = '', userEmail = ''] = result.split(';');
-            const listed = userItems(currentList, newList).some((item) => item.dataset['username'] === username);
+            const listed = userItems(currentList, newUsersList).some((item) => item.dataset['username'] === username);
             if (result === 'exist' || listed) {
                 showError('This user is already a user of this exam!');
                 return;
             }
 
-            newList.append(newUserItem({ username, firstName, lastName, email: userEmail }, groupsTemplate));
+            // show the div
+            newUsers.style.display = 'block';
+            newUsersList.append(
+                newUserItem({ username, firstName, lastName, email: userEmail }, groupsTemplate)
+            );
             emailInput.value = '';
         })();
     });
 
     byId('btn-cancel-users').addEventListener('click', () => {
         for (const item of userItems(currentList)) setDeleted(item, false);
-        newList.replaceChildren();
+        newUsersList.replaceChildren();
         emailInput.value = '';
         showError(null);
     });
@@ -164,7 +170,7 @@ export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): voi
         const body = new FormData();
         body.append('csrfmiddlewaretoken', csrfToken);
         // 'users_list[]' is the key jQuery used for arrays, which the view reads
-        for (const item of userItems(currentList, newList)) body.append('users_list[]', userEntry(item));
+        for (const item of userItems(currentList, newUsersList)) body.append('users_list[]', userEntry(item));
 
         void (async () => {
             try {
