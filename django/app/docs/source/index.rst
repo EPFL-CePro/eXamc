@@ -61,7 +61,7 @@ Contents
    modules/results/results
    modules/statistic/statistics
    modules/import_data/import_data
-   modules/export_data/export_data
+   modules/export_results/export_results
 
 
 
