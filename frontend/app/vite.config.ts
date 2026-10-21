@@ -49,6 +49,8 @@ export default defineConfig({
         "res_and_stats/questions_statistics": resolve(import.meta.dirname, 'src/views/res_and_stats/questions_statistics/index.ts'),
         
         "review/review_group": resolve(import.meta.dirname, 'src/views/review/review_group/index.ts'),
+        "review/settings/review_settings": resolve(import.meta.dirname, 'src/views/review/settings/review_settings/index.ts'),
+        "review/_review_grading_scheme_panel": resolve(import.meta.dirname, 'src/views/review/_review_grading_scheme_panel/index.ts'),
       },
     },
   },
