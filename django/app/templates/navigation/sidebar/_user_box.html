@@ -1,0 +1,19 @@
+<div class="mt-auto border-top d-flex flex-column p-3 gap-2">
+    {% if user.is_authenticated %}
+        <div class="fw-semibold text-body-emphasis text-truncate text-center">{{ user }}</div>
+
+        <form action="{% url 'oidc_logout' %}" method="post" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2">
+                <span class="fa-solid fa-right-from-bracket" aria-hidden="true"></span>Logout
+            </button>
+        </form>
+    {% else %}
+        <form action="{% url 'oidc_authentication_init' %}" method="get" class="m-0">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2">
+                <span class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></span>Login
+            </button>
+        </form>
+    {% endif %}
+</div>
