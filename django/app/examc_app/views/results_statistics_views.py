@@ -143,7 +143,7 @@ def upload_catalog_pdf(request, exam_pk: int):
 
 
 @exam_permission_required(["manage", "see_results"])
-def export_data(request, exam_pk: int):
+def export_results(request, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     exam_selected = exam
     common_list = get_common_list(exam)
@@ -168,7 +168,7 @@ def export_data(request, exam_pk: int):
                 "exam": exam,
                 "exam_selected": exam_selected,
                 "common_list": None,
-                "nav_url": "export_data",
+                "nav_url": "export_results",
             },
         )
 
@@ -188,7 +188,7 @@ def export_data(request, exam_pk: int):
                 "exam": exam,
                 "exam_selected": exam_selected,
                 "common_list": common_list,
-                "nav_url": "export_data",
+                "nav_url": "export_results",
             },
         )
 
