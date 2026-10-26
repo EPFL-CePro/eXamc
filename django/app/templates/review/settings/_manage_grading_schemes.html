@@ -1,0 +1,58 @@
+{% if grading_schemes_pages_groups %}
+    {% load django_vite %}
+
+    <div class="input-group mb-2" style="width: fit-content">
+        <label class="input-group-text" for="grading-scheme-selected-question">Question</label>
+        <select class="form-select" id="grading-scheme-selected-question"
+                hx-get="{% url 'grading_scheme_pages_group' exam_selected.id grading_schemes_pages_groups.0.id %}"
+                hx-trigger="load, change"
+                hx-target="#grading-scheme-panel"
+                hx-swap="innerHTML"
+                hx-on::config-request="event.detail.path = this.selectedOptions[0]?.dataset.url ?? event.detail.path">
+            {% for group in grading_schemes_pages_groups %}
+                <option value="{{ group.id }}"
+                        data-url="{% url 'grading_scheme_pages_group' exam_selected.id group.id %}">
+                    {{ group.group_name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="grading-scheme-panel" class="tab-content"></div>
+
+    <script>
+        function initSortableIn(root) {
+            $(root).find("tbody[data-sortable='checkboxes']").each(function () {
+                const $tbody = $(this);
+
+                if ($tbody.data("sortable-initialized")) return;
+                $tbody.data("sortable-initialized", true);
+
+                $tbody.sortable({
+                    handle: ".drag-handle",
+                    items: "tr.sortable-row",
+                    update: function () {
+                        $tbody.find("tr.sortable-row").each(function (newPos) {
+                            // Find the hidden position input inside this row
+                            const $pos = $(this).find("input[name$='-position']");
+                            $pos.val(newPos); // or newPos + 1 if you prefer 1-based positions
+                        });
+                    }
+                });
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            initSortableIn(document);
+        });
+
+        document.body.addEventListener("htmx:afterSwap", function (evt) {
+            initSortableIn(evt.target);
+        });
+    </script>
+{% else %}
+    <div class="alert alert-info" role="alert" style="width: fit-content">
+        <p>You need to have a page group with a grading scheme enabled to manage grading schemes.</p>
+        <p class="mb-0">Access the pages group options to manage this.</p>
+    </div>
+{% endif %}

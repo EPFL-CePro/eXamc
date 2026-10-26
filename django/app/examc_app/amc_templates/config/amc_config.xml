@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<global>
+  <annote_chsign>4</annote_chsign>
+  <annote_ecart>5.5</annote_ecart>
+  <annote_font_name>Linux Libertine O 12</annote_font_name>
+  <ascii_filenames>1</ascii_filenames>
+  <assoc_ncols>4</assoc_ncols>
+  <box_size_proportion>0.8</box_size_proportion>
+  <bw_threshold>0.8</bw_threshold>
+  <conserve_taille>1</conserve_taille>
+  <csv_name_headers />
+  <csv_surname_headers />
+  <defaut_annote_rtl />
+  <defaut_encodage_csv>UTF-8</defaut_encodage_csv>
+  <defaut_encodage_liste>UTF-8</defaut_encodage_liste>
+  <defaut_moteur_latex_b>pdflatex</defaut_moteur_latex_b>
+  <defaut_name_field_type />
+  <defaut_note_arrondi>sup</defaut_note_arrondi>
+  <defaut_note_grain>0.25</defaut_note_grain>
+  <defaut_note_max>6</defaut_note_max>
+  <defaut_note_max_plafond>1</defaut_note_max_plafond>
+  <defaut_note_min />
+  <defaut_note_null>0</defaut_note_null>
+  <defaut_seuil>0.1</defaut_seuil>
+  <defaut_seuil_up>1</defaut_seuil_up>
+  <defaut_verdict>%(ID)
+Score: %S/%M</defaut_verdict>
+  <defaut_verdict_q>"%s/%m"</defaut_verdict_q>
+  <defaut_verdict_qc>"X"</defaut_verdict_qc>
+  <delimiteur_decimal>,</delimiteur_decimal>
+  <embedded_format>jpeg</embedded_format>
+  <embedded_jpeg_quality>75</embedded_jpeg_quality>
+  <embedded_max_size>1000x1500</embedded_max_size>
+  <encodage_interne>UTF-8</encodage_interne>
+  <encodage_latex>UTF-8</encodage_latex>
+  <force_convert />
+  <ignore_red />
+  <manuel_image_type>xpm</manuel_image_type>
+  <n_procs>0</n_procs>
+  <nonascii_projectnames />
+  <prepare_catalog />
+  <prepare_indiv_solution />
+  <prepare_solution />
+  <print_extract_with>gs</print_extract_with>
+  <saisie_dpi>150</saisie_dpi>
+  <seuil_eqm>3</seuil_eqm>
+  <seuil_sens>8</seuil_sens>
+  <symbole_0_0_color>#000000000000</symbole_0_0_color>
+  <symbole_0_0_type>none</symbole_0_0_type>
+  <symbole_0_1_color>#a5a51d1d2d2d</symbole_0_1_color>
+  <symbole_0_1_type>circle</symbole_0_1_type>
+  <symbole_1_0_color>#1a1a5f5fb4b4</symbole_1_0_color>
+  <symbole_1_0_type>circle</symbole_1_0_type>
+  <symbole_1_1_color>#2626a2a26969</symbole_1_1_color>
+  <symbole_1_1_type>circle</symbole_1_1_type>
+  <symboles_indicatives />
+  <symboles_trait>2</symboles_trait>
+  <tolerance_marque_inf>0.2</tolerance_marque_inf>
+  <tolerance_marque_sup>0.2</tolerance_marque_sup>
+  <try_three>1</try_three>
+  <vector_scan_density>250</vector_scan_density>
+  <view_empty_color>#7878ffffeded</view_empty_color>
+  <view_invalid_color>#ffffefef3b3b</view_invalid_color>
+  <zoom_window_factor>1</zoom_window_factor>
+  <zoom_window_height>400</zoom_window_height>
+  <zooms_edit_mode>0</zooms_edit_mode>
+  <zooms_ncols>4</zooms_ncols>
+</global>

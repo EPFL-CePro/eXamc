@@ -36,7 +36,6 @@ services:
       django:
         condition: service_started
     volumes:
-      - media_volume:/media:ro
       - static_volume:/static:ro
       # configuration and private_media are mounted in dev.yml
     healthcheck:
@@ -47,6 +46,7 @@ services:
     restart: unless-stopped
 
   django:
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       # TODO - use secrets instead of env vars for secrets for better security
       # See https://docs.docker.com/compose/how-tos/use-secrets/
@@ -104,11 +104,7 @@ services:
       EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES: "${EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES:-Teacher,Assistant,Results,Statistics}"
       COMMON_EXAM_GROUP_NAMES: "${COMMON_EXAM_GROUP_NAMES:-Teacher,Results,Statistics}"
       EXAM_REVIEWER_GROUP_NAMES: "${EXAM_REVIEWER_GROUP_NAMES:-Reviewer}"
-    depends_on:
-      redis:
-        condition: service_healthy
     volumes:
-      - media_volume:/media
       - static_volume:/static # collectstatic writes hashed assets here
       # ../django/app is only mounted in dev.yml
       # /private_media is mounted in dev.yml and prod.yml

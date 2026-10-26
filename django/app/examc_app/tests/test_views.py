@@ -1,25 +1,22 @@
-from django.contrib.auth.models import User, Permission, Group
+from django import forms
+from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.datastructures import MultiValueDict
 
-from examc_app.forms import (
-    UploadScansForm,
+from examc_app.forms.results_statistics import ExportMarkedFilesForm
+from examc_app.forms.review import (
     ManagePagesGroupsForm,
     ManageReviewersForm,
-    ExportMarkedFilesForm,
+    UploadScansForm,
 )
-from examc_app.models import (
-    ExamUser,
-    PagesGroup,
-    ReviewLock,
-)
+from examc_app.models import ExamUser, PagesGroup, ReviewLock
 from examc_app.tests.helpers.models import (
-    create_mock_semester,
     create_mock_academic_year,
-    create_mock_user,
     create_mock_exam,
+    create_mock_semester,
+    create_mock_user,
 )
 
 
@@ -147,7 +144,9 @@ class TestForms(TestCase):
             list(form.fields["pages_groups"].queryset),
             [pages_group],
         )
-        self.assertTrue(form.fields["user"].disabled)
+
+        self.assertNotIn("user", form.fields)
+
         self.assertEqual(
             form.fields["review_blocked"].widget.__class__.__name__,
             "SwitchWidget",
@@ -161,10 +160,8 @@ class TestForms(TestCase):
 
         form = ManagePagesGroupsForm(questions_choices)
 
-        self.assertEqual(
-            form.fields["group_name"].widget.__class__.__name__,
-            "Select",
-        )
+        self.assertIsInstance(form.fields["group_name"].widget, forms.Select)
+
         self.assertEqual(
             form.fields["nb_pages"].widget.__class__.__name__,
             "NumberInput",
@@ -279,15 +276,12 @@ class TestReviewView(TestCase):
 
         response = self.client.get(
             reverse(
-                "reviewView",
+                "review_view",
                 kwargs={"exam_pk": self.exam.pk},
             )
         )
 
         self.assertEqual(response.status_code, 200)
-
-
-from django.contrib.auth.models import Group, User
 
 
 class TestReviewGroupView(TestCase):
@@ -325,7 +319,7 @@ class TestReviewGroupView(TestCase):
 
         response = self.client.get(
             reverse(
-                "reviewGroup",
+                "review_group",
                 kwargs={
                     "exam_pk": self.exam.pk,
                     "group_pk": self.pages_group.pk,
@@ -400,11 +394,8 @@ class TestReviewSettingsView(TestCase):
 
         response = self.client.get(
             reverse(
-                "reviewSettingsView",
-                kwargs={
-                    "exam_pk": self.exam.pk,
-                    "curr_tab": "groups",
-                },
+                "review_settings_view",
+                kwargs={ "exam_pk": self.exam.pk },
             )
         )
 

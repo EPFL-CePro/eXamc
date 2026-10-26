@@ -3,7 +3,6 @@ import re
 
 from django.conf import settings
 from django.shortcuts import render
-from django.template.response import TemplateResponse
 
 logger = logging.getLogger(__name__)
 

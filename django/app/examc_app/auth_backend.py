@@ -1,5 +1,10 @@
+from django.contrib.auth.models import User
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 from django.conf import settings
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ExamcOIDCBackend(OIDCAuthenticationBackend):
     def get_userinfo(self, access_token, id_token, payload):
@@ -9,11 +14,21 @@ class ExamcOIDCBackend(OIDCAuthenticationBackend):
         """
         Called only the first time a user logs in.
         """
-        user = super().create_user(claims)
-        self.update_user(user, claims)
+
+        try:
+            existing_user = User.objects.get(username=claims.get("gaspar"))
+        except User.DoesNotExist:
+            existing_user = None
+
+        if existing_user is not None:
+            self.update_user(existing_user, claims)
+            user = existing_user
+        else:
+            user = super().create_user(claims)
+
         return user
 
-    def update_user(self, user, claims):
+    def update_user(self, user: User, claims):
         """
         Called every login — keeps user info in sync.
         """

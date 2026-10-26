@@ -23,18 +23,18 @@
         <tr class="review-checkbox-row"
             onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
             <td style="padding-bottom: 0;">
-                <div class="custom-control custom-switch mb-3">
-                    <input class="custom-control-input" type="checkbox"
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" role="switch"
                            id="check-{{ gsc.ref }}-{{ gsc.item_id }}"
                            name="check-{{ gsc.ref }}-{{ gsc.item_id }}"
                            {% if gsc.checked %}checked{% endif %}
                            onchange="updatePagesGroupCheckBox(this.id, this.checked, null,{% if gsc.name == 'ZERO' %} true {% else %} false {% endif %},{% if gsc.name == 'FULL' %} true {% else %} false {% endif %})"/>
-                    <label class="custom-control-label" for="check-{{ gsc.ref }}-{{ gsc.item_id }}"></label>
+                    <label class="form-check-label visually-hidden" for="check-{{ gsc.ref }}-{{ gsc.item_id }}">{{ gsc.name }}</label>
                 </div>
             </td>
             {% if gsc.name == 'ADJ' %}
                 <td colspan="2" style="padding-bottom: 0;">
-                    <input class="form-control form-control-sm d-inline-block w-auto mr-2" type="number"
+                    <input class="form-control form-control-sm d-inline-block w-auto me-2" type="number"
                            id="adj-{{ gsc.ref }}-{{ gsc.item_id }}"
                            name="adj-{{ gsc.ref }}-{{ gsc.item_id }}"
                            step="0.01"

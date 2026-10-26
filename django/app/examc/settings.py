@@ -22,27 +22,38 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parents[1]
 
+
 # ----- helpers env
 def env(key, default=None): return os.getenv(key, default)
-def env_bool(key, default="0"): return str(os.getenv(key, default)).lower() in ("1","true","yes","on")
+
+
+def env_bool(key, default="0"): return str(os.getenv(key, default)).lower() in ("1", "true", "yes", "on")
+
+
 def env_int(key, default="0"):
-    try: return int(os.getenv(key, default))
-    except (TypeError, ValueError): return int(default)
+    try:
+        return int(os.getenv(key, default))
+    except (TypeError, ValueError):
+        return int(default)
+
+
 def env_list(key, default=""):
     return [value.strip() for value in env(key, default).split(",") if value.strip()]
 
+
 # load .env only for test and dev environments (outside Docker)
+TESTING_MODE_ENABLED = os.getenv("TESTING_MODE_ENABLED", "0") == "1"
+
 if os.getenv("DJANGO_DOTENV", "0") == "1" or not os.getenv("SECRET_KEY"):
     # allows manage.py runserver or migrate, ... locally without Compose
     load_dotenv(BASE_DIR / ".env.dev", override=False)
-elif os.getenv("TESTING_MODE_ENABLED", "0") == "1" or not os.getenv("TESTING_MODE_ENABLED"):
+elif TESTING_MODE_ENABLED:
     load_dotenv(BASE_DIR / ".env.test", override=True)
 else:
     # Otherwise (prod/test) set port forwarding
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     USE_X_FORWARDED_HOST = True
     SESSION_COOKIE_SAMESITE = "Lax"
-
 
 # Enables Vite's dev mode (hot reload)
 VITE_DEV_MODE = os.environ.get("VITE_DEV_MODE", "0").lower() == "1"
@@ -62,8 +73,8 @@ APP_OWNER = "EPFL - CePro"
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = os.getenv(
     "DEBUG",
-    "1" if os.path.exists(BASE_DIR / ".env.dev") or os.getenv("TESTING_MODE_ENABLED") else "0"
-) in ("1","true","yes","on")
+    "1" if os.path.exists(BASE_DIR / ".env.dev") or TESTING_MODE_ENABLED else "0"
+) in ("1", "true", "yes", "on")
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", "*").split(",")
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS", "")
@@ -73,21 +84,20 @@ CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS.split(",") if CSRF_TRUSTED_ORIGINS e
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", "0" if DEBUG else "1")
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", "0" if DEBUG else "1")
-CSRF_COOKIE_SECURE    = env_bool("CSRF_COOKIE_SECURE", "0" if DEBUG else "1")
-SECURE_HSTS_SECONDS   = 0 if DEBUG else 15768000 #6mois
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", "0" if DEBUG else "1")
+SECURE_HSTS_SECONDS = 0 if DEBUG else 15768000  #6mois
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_HSTS_PRELOAD = True
 SECURE_BROWSER_XSS_FILTER = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # Session timeout after 1h of inactivity. Middleware is managing auto-logout on inactivity
-SESSION_COOKIE_AGE = 3600 #86400  # seconds
+SESSION_COOKIE_AGE = 3600  #86400  # seconds
 SESSION_SAVE_EVERY_REQUEST = True  # resets timeout on each request
-SESSION_ENGINE = 'django.contrib.sessions.backends.db' #This stores sessions in the django_session table, allowing you to check who is still logged in
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  #This stores sessions in the django_session table, allowing you to check who is still logged in
 
 # MAX UPLOAD SIZE 10MB (default 2.5MB not enough for review)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
-
 
 # Application definition
 
@@ -101,6 +111,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.forms',
     'django_extensions',
     'constance',
     'crispy_forms',
@@ -127,12 +138,12 @@ MIDDLEWARE = [
     'maintenance_mode.middleware.MaintenanceModeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'examc_app.middleware.auto_logout.AutoLogoutMiddleware',
+    'examc_app.middleware.user_facing_errors.UserFacingErrorMiddleware',
 ]
 
-AUTO_LOGOUT_DELAY = 1800 # seconds
+AUTO_LOGOUT_DELAY = 1800  # seconds
 REVIEW_LOCK_TIMEOUT = env_int("REVIEW_LOCK_TIMEOUT", str(AUTO_LOGOUT_DELAY))  # seconds
 
 ROOT_URLCONF = 'examc.urls'
@@ -151,10 +162,23 @@ TEMPLATES = [
                 "examc_app.context_processors.maintenance_notice",
                 "examc_app.context_processors.app_metadata",
             ],
+            "builtins": [
+                "examc_app.templatetags.collection_filters",
+                "examc_app.templatetags.exam_tags",
+                "examc_app.templatetags.grading_tags",
+                "examc_app.templatetags.math_filters",
+                "examc_app.templatetags.nav_tags",
+                "examc_app.templatetags.permission_tags",
+                "examc_app.templatetags.prep_tags",
+                "examc_app.templatetags.stats_tags",
+                "examc_app.templatetags.ui_tags",
+                "examc_app.templatetags.user_tags",
+            ]
         },
     },
 ]
 
+FORM_RENDERER = "examc_app.forms.renderers.DefaultFormRenderer"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -164,30 +188,38 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "examc_app.api.datatables.DataTablesPagination",
 }
 
-
 DJANGO_VITE = {
-  "default": {
-    "dev_mode": VITE_DEV_MODE,
-    "manifest_path": "/static/vite/manifest.json",
-    "static_url_prefix": "vite",
-  }
-}
-
-DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": env("MYSQL_DATABASE", "examc"),
-        "USER": env("MYSQL_USER", "appuser"),
-        "PASSWORD": env("MYSQL_PASSWORD", ""),
-        "HOST": env("DB_HOST", "mysql"),
-        "PORT": env("DB_PORT", "3306"),
-        "OPTIONS": {
-            "autocommit": True,
-            "charset": "utf8mb4",
-        },
-        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", "60"),
+        "dev_mode": VITE_DEV_MODE,
+        "manifest_path": "/static/vite/manifest.json",
+        "static_url_prefix": "vite",
     }
 }
+
+if TESTING_MODE_ENABLED:
+    # Use SQlite for testing (faster in CI/CD)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": env("SQLITE_PATH", "/tmp/examc-test.sqlite3"),
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": env("MYSQL_DATABASE", "examc"),
+            "USER": env("MYSQL_USER", "appuser"),
+            "PASSWORD": env("MYSQL_PASSWORD", ""),
+            "HOST": env("DB_HOST", "mysql"),
+            "PORT": env("DB_PORT", "3306"),
+            "OPTIONS": {
+                "autocommit": True,
+                "charset": "utf8mb4",
+            },
+            "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", "60"),
+        }
+    }
 
 WSGI_APPLICATION = 'examc.wsgi.application'
 
@@ -195,7 +227,7 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = env("TZ",'Europe/Zurich')
+TIME_ZONE = env("TZ", 'Europe/Zurich')
 
 USE_I18N = True
 
@@ -204,8 +236,6 @@ USE_L10N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
@@ -259,9 +289,13 @@ CATALOG_ROOT = PRIVATE_MEDIA_ROOT / 'catalogs/'
 # AMC projects folder
 AMC_PROJECTS_ROOT = PRIVATE_MEDIA_ROOT / 'amc_projects/'
 AMC_PROJECTS_URL = '/amc_projects/'
+AMC_TMP_ROOT = PRIVATE_MEDIA_ROOT / 'amc_tmp'
+
+# AMC templates (versioned with the code, copied into each new AMC project)
+AMC_TEMPLATES_DIR = BASE_DIR / 'examc_app/amc_templates'
 
 # AMC config file
-AMC_CONFIG_FILE = AMC_PROJECTS_ROOT / 'config/amc_config.xml'
+AMC_CONFIG_FILE = AMC_TEMPLATES_DIR / 'config/amc_config.xml'
 
 # Documentation folder
 DOCUMENTATION_ROOT = STATIC_ROOT + '/docs/html/'
@@ -271,7 +305,7 @@ DOCUMENTATION_URL = STATIC_URL + 'docs/html/'
 ####################################################
 # Authentication settings
 ####################################################
-AUTHENTICATION_BACKENDS = ("examc_app.auth_backend.ExamcOIDCBackend","django.contrib.auth.backends.ModelBackend")
+AUTHENTICATION_BACKENDS = ("examc_app.auth_backend.ExamcOIDCBackend", "django.contrib.auth.backends.ModelBackend")
 OIDC_RP_CLIENT_ID = env("OIDC_RP_CLIENT_ID", "")
 OIDC_RP_CLIENT_SECRET = env("OIDC_RP_CLIENT_SECRET", "")
 TENANT_ID = env("TENANT_ID", "")
@@ -295,20 +329,26 @@ OASIS_BEARER = env("OASIS_BEARER", "")
 EXAM_PERMISSION_GROUP_NAMES = {
     "manage": env_list("EXAM_PERMISSION_MANAGE_GROUP_NAMES", "Teacher,Assistant,Coordinator"),
     "review": env_list("EXAM_PERMISSION_REVIEW_GROUP_NAMES", "Teacher,Reviewer,Coordinator,Assistant"),
-    "see_results": env_list("EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES", "Teacher,Assistant,Coordinator,Results,Statistics"),
+    "see_results": env_list("EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES",
+                            "Teacher,Assistant,Coordinator,Results,Statistics"),
 }
 COMMON_EXAM_GROUP_NAMES = env_list("COMMON_EXAM_GROUP_NAMES", "Teacher,Results,Statistics")
 EXAM_REVIEWER_GROUP_NAMES = env_list("EXAM_REVIEWER_GROUP_NAMES", "Reviewer")
 
 # Used by login_required.LoginRequiredMiddleware
 LOGIN_REQUIRED_IGNORE_PATHS = [
-    r'^/oidc/',            # all OIDC URLs
-    r'^/static/',
-    r'^/healthz/$',
+    r"^/oidc/",  # all OIDC URLs
+    r"^/static/",
+    r"^/healthz/$",
+
+    # Public facing pages
+    r"^/csvgen/?.*",
+    r"^/generate_room_plan/?.*",
+    r"^/rooms_plans/",
 ]
 
 # Email configuration
-EMAIL_BACKEND = 'examc_app.email_backend.py'
+EMAIL_BACKEND = 'examc_app.email_backend.ConstanceEmailBackend'
 
 # Pandoc filters
 PANDOC_UTILS_DIR = BASE_DIR / 'examc_app/utils/pandoc'
@@ -354,10 +394,10 @@ LOGGING = {
     },
 }
 
-# Celery & Redis
-
+# Celery
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", "0")
 CELERY_BEAT_SCHEDULER = env("CELERY_BEAT_SCHEDULER", "django_celery_beat.schedulers:DatabaseScheduler")
@@ -372,7 +412,7 @@ SUMMERNOTE_CONFIG = {
             ["style", ["bold", "italic", "underline", "clear"]],
             ["para", ["ul", "ol", "paragraph"]],
             ['table', ['table']],
-            ["insert", ["link","picture","math"]],
+            ["insert", ["link", "picture", "math"]],
             ["view", ["fullscreen", "codeview"]],
             ["misc", ["undo", "redo"]],
         ],
@@ -387,15 +427,12 @@ SUMMERNOTE_CONFIG = {
     "js": (
         # order matters a little less, but keep KaTeX before the plugin if the plugin calls it immediately
         "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js",
-         f"{settings.STATIC_URL}js/summernote-math.js?v={STATIC_ASSET_VERSION}"
+        f"{settings.STATIC_URL}js/summernote-math.js?v={STATIC_ASSET_VERSION}"
     ),
     "attachment_storage_class": "examc_app.storage.SummernoteSignedPrivateStorage",
     # optional:
     "attachment_require_authentication": True,
 }
-
-
-
 
 #MAINTENANCE_MODE = False commented to let constance manage maintenance
 MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
@@ -404,21 +441,27 @@ MAINTENANCE_MODE_STATE_BACKEND = "examc_app.maintenance_backend.ScheduledCacheBa
 MAINTENANCE_MODE_CACHE_NAME = "maintenance_mode"
 # MAINTENANCE_MODE_STATE_FILE_PATH = "/tmp/maintenance_mode_state.txt"
 MAINTENANCE_MODE_IGNORE_URLS = (
-    r"^/oidc/authenticate/?$",   # OIDC start (mozilla-django-oidc default)
-    r"^/oidc/callback/?$",       # OIDC callback (mozilla-django-oidc default)
+    r"^/oidc/authenticate/?$",  # OIDC start (mozilla-django-oidc default)
+    r"^/oidc/callback/?$",  # OIDC callback (mozilla-django-oidc default)
 )
 
-### CONSTANCE FOR MAINTENANCE
-CONSTANCE_REDIS_URL = env("CONSTANCE_REDIS_CONNECTION", default="redis://redis:6379/0")
-parsed = urlparse(CONSTANCE_REDIS_URL)
+### CONSTANCE FOR MAINTENANCE AND OTHER CONSTANTS
+if TESTING_MODE_ENABLED:
+    # Use in-memory cache for testing (faster in CI/CD)
+    CONSTANCE_BACKEND = "constance.backends.memory.MemoryBackend"
+    CONSTANCE_REDIS_URL = "memory://"
+else:
+    CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
 
-REDIS_CONNECTION = {
-    "host": parsed.hostname or "redis",
-    "port": parsed.port or 6379,
-    "db": int((parsed.path or "/0").lstrip("/")),
-}
-CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
-CONSTANCE_REDIS_CONNECTION = REDIS_CONNECTION
+    CONSTANCE_REDIS_URL = env("CONSTANCE_REDIS_CONNECTION", default="redis://redis:6379/0")
+    redis_parsed = urlparse(CONSTANCE_REDIS_URL)
+
+    REDIS_CONNECTION = {
+        "host": redis_parsed.hostname or "redis",
+        "port": redis_parsed.port or 6379,
+        "db": int((redis_parsed.path or "/0").lstrip("/")),
+    }
+    CONSTANCE_REDIS_CONNECTION = REDIS_CONNECTION
 
 # Admin widgets/fields for Constance
 CONSTANCE_ADDITIONAL_FIELDS = {
@@ -435,21 +478,21 @@ CONSTANCE_ADDITIONAL_FIELDS = {
 CONSTANCE_CONFIG = {
     # Controls the banner (pre-maintenance heads-up)
     "MAINT_BANNER_ENABLED": (False, "Show pre-maintenance banner", bool),
-    "MAINT_BANNER_FROM":   (None, "Start showing banner at (timezone local) YYYY-MM-DD HH:MM", "optional_datetime"),
-    "MAINT_MESSAGE":       ("We’ll be undergoing planned maintenance.", "Banner message", "text"),
+    "MAINT_BANNER_FROM": (None, "Start showing banner at (timezone local) YYYY-MM-DD HH:MM", "optional_datetime"),
+    "MAINT_MESSAGE": ("We’ll be undergoing planned maintenance.", "Banner message", "text"),
 
     # Actual maintenance window; your scheduler will toggle maintenance mode based on these
     "MAINT_START": (None, "Maintenance starts at (timezone local) YYYY-MM-DD HH:MM", "optional_datetime"),
-    "MAINT_END":   (None, "Maintenance ends at (timezone local) YYYY-MM-DD HH:MM", "optional_datetime"),
+    "MAINT_END": (None, "Maintenance ends at (timezone local) YYYY-MM-DD HH:MM", "optional_datetime"),
     "MAINT_BYPASS_AUTHENTICATED": (True, "Hide banner for logged-in users", bool),
     "MAINT_BYPASS_STAFF": (True, "Hide banner for staff", bool),
 
     # Mail server configuration
-    "EMAIL_HOST": ("smtp_myhost","smtp server host",str),
-    "EMAIL_PORT": (587,"SMTP server port (587 for TLS, 465 for SSL)",int),
+    "EMAIL_HOST": ("smtp_myhost", "smtp server host", str),
+    "EMAIL_PORT": (587, "SMTP server port (587 for TLS, 465 for SSL)", int),
     "EMAIL_USE_SSL": (True, "True for SSL, false for TLS", bool),
-    "EMAIL_HOST_USER": ("user","server username",str),
-    "EMAIL_HOST_PASSWORD": ("","server password",str),
+    "EMAIL_HOST_USER": ("user", "server username", str),
+    "EMAIL_HOST_PASSWORD": ("", "server password", str),
     "DEFAULT_FROM_EMAIL": ("sender email", "Default sender email address", str),
 }
 
@@ -470,13 +513,26 @@ CONSTANCE_CONFIG_FIELDSETS = {
     )
 }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("DJANGO_CACHE_URL", default="redis://redis:6379/1"),
-    },
-    "maintenance_mode": {  # dedicated cache for the flag (optional but nice)
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("DJANGO_MAINTENANCE_CACHE_URL", default="redis://redis:6379/2"),
-    },
-}
+if TESTING_MODE_ENABLED:
+    # In-process caches: no Redis needed, and each test process starts empty.
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "default",
+        },
+        "maintenance_mode": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "maintenance_mode",
+        },
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": env("DJANGO_CACHE_URL", default="redis://redis:6379/1"),
+        },
+        "maintenance_mode": {  # dedicated cache for the flag (optional but nice)
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": env("DJANGO_MAINTENANCE_CACHE_URL", default="redis://redis:6379/2"),
+        },
+    }

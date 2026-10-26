@@ -6,18 +6,16 @@ Only the latest version of **eXamc** is actively maintained and receives securit
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in eXamc, **please do not create a public GitHub issue**.
-
-Instead, contact us privately:
-
- **cepro-exams@epfl.ch**  
+> [!IMPORTANT]
+> If you discover a security vulnerability in eXamc, **please do not create a public GitHub issue**.  
+> Instead, contact us privately: **[cepro-exams@epfl.ch](mailto:cepro-exams@epfl.ch)**
 
 Please include:
 
-- description of the vulnerability  
-- steps to reproduce  
-- potential impact  
-- your environment (OS, browser, version)  
+- Description of the vulnerability  
+- Steps to reproduce  
+- The potential impact  
+- Your environment (OS, browser, version of eXamc)  
 
 We will:
 

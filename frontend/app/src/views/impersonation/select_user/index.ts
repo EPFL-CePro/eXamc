@@ -1,14 +1,14 @@
 import 'vite/modulepreload-polyfill';
 
-import {initUserSelectTable} from "./userSelectTable";
+import {initUserSelectTable} from "./user-select-table";
+import {byId} from "@examc/helpers/dom";
 
 
 /**
  * Initializes the exam select table after the DOM has loaded.
  */
 document.addEventListener("DOMContentLoaded", () => {
-    const tableElement = document.querySelector<HTMLTableElement>("#impersonation-users-table");
-    if (!tableElement) return;
+    const tableElement = byId<HTMLTableElement>("impersonation-users-table");
 
     const apiUrl = tableElement.dataset.apiUrl;
 

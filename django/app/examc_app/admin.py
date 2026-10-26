@@ -1,3 +1,5 @@
+import logging
+
 from django import forms
 from django.contrib import admin
 from django.db import transaction
@@ -6,10 +8,30 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from import_export.admin import ImportExportModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
+from simple_history.signals import (
+    post_create_historical_record,
+    pre_create_historical_record,
+)
 
-from .models import *
-from .models import Exam
-from .utils.admin_functions import parse_exams_data_csv, parse_courses_data_json
+from .models import (
+    AcademicYear,
+    Course,
+    Exam,
+    ExamUser,
+    PageMarkers,
+    PagesGroup,
+    PagesGroupComment,
+    PrepQuestion,
+    PrepQuestionAnswer,
+    PrepSection,
+    Question,
+    QuestionAnswer,
+    Scale,
+    Semester,
+    Student,
+    UnrecognizedReviewScan,
+)
+from .utils.admin_functions import parse_courses_data_json, parse_exams_data_csv
 
 logger = logging.getLogger(__name__)
 
@@ -20,18 +42,14 @@ class CsvImportForm(forms.Form):
 class JsonImportForm(forms.Form):
     json_file = forms.FileField()
 
-from simple_history.signals import (
-    pre_create_historical_record,
-    post_create_historical_record,
-)
 
 
 @admin.action(description="Delete selected exams (per-exam commits)")
 def delete_selected_per_exam(modeladmin, request, queryset):
     # Capture IDs first so we don't mutate the queryset while iterating it
     exam_ids = list(queryset.values_list('pk', flat=True))
-    from django.db.models.signals import pre_delete, post_delete
     from django.contrib import messages
+    from django.db.models.signals import post_delete, pre_delete
 
     # Disconnect signals for specific models
     for model in [Exam, ExamUser, Question, QuestionAnswer]:
@@ -116,7 +134,7 @@ class CourseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
                 json_data = json_file.read()
                 result = parse_courses_data_json(json_data)
 
-                if not result == 'ok' :
+                if result != 'ok' :
                     print(result)
         else:
             form = JsonImportForm()
@@ -138,5 +156,7 @@ admin.site.register(Student)
 admin.site.register(Scale)
 admin.site.register(Semester)
 admin.site.register(AcademicYear)
-admin.site.register(ExamSection, SimpleHistoryAdmin)
 admin.site.register(QuestionAnswer, SimpleHistoryAdmin)
+admin.site.register(PrepSection, SimpleHistoryAdmin)
+admin.site.register(PrepQuestion, SimpleHistoryAdmin)
+admin.site.register(PrepQuestionAnswer, SimpleHistoryAdmin)

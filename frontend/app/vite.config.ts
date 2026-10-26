@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import checker from 'vite-plugin-checker';
 
 export default defineConfig({
   base: '/static/vite',
@@ -8,18 +9,49 @@ export default defineConfig({
       '@examc': resolve(import.meta.dirname, 'src'),
     },
   },
+  plugins: [
+    checker({
+      typescript: true,
+      eslint: { lintCommand: 'eslint .', useFlatConfig: true },
+    }),
+  ],
   build: {
     outDir: resolve(import.meta.dirname, 'dist/vite'),
     manifest: "manifest.json",
-    rollupOptions: {
+    rolldownOptions: {
       input: {
+        // Entries shared by multiple views
+        "base": resolve(import.meta.dirname, 'src/views/base/index.ts'),
+
         // Entries used by single views
-        "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
+        "amc/amc": resolve(import.meta.dirname, 'src/views/amc/amc/index.ts'),
         "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
-        "csvgen/csvgen": resolve(import.meta.dirname, 'src/views/csvgen/csvgen/index.ts'),
+        "amc/amc_data_capture_manual": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture_manual/index.ts'),
+        "amc/amc_data_capture": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture/index.ts'),
+        "amc/amc_markings": resolve(import.meta.dirname, 'src/views/amc/amc_markings/index.ts'),
+        "amc/amc_project": resolve(import.meta.dirname, 'src/views/amc/amc_project/index.ts'),
+        
+        "public/csvgen": resolve(import.meta.dirname, 'src/views/public/csvgen/index.ts'),
+        "public/room_plan": resolve(import.meta.dirname, 'src/views/public/room_plan/index.ts'),
+
+        "errors/_user_facing_error_modal": resolve(import.meta.dirname, 'src/views/errors/_user_facing_error_modal/index.ts'),
+
+        "exam/exam_info": resolve(import.meta.dirname, 'src/views/exam/exam_info/index.ts'),
+        "exam/preparation/exam_preparation": resolve(import.meta.dirname, 'src/views/exam/preparation/exam_preparation/index.ts'),
+        "exam/preparation/exam_preparation_students": resolve(import.meta.dirname, 'src/views/exam/preparation/exam_preparation_students/index.ts'),
+        
+        "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
+
         "impersonation/select_user": resolve(import.meta.dirname, 'src/views/impersonation/select_user/index.ts'),
+
         "res_and_stats/students_results": resolve(import.meta.dirname, 'src/views/res_and_stats/students_results/index.ts'),
+        "res_and_stats/questions_statistics": resolve(import.meta.dirname, 'src/views/res_and_stats/questions_statistics/index.ts'),
+        
         "review/review_group": resolve(import.meta.dirname, 'src/views/review/review_group/index.ts'),
+        "review/settings/review_settings": resolve(import.meta.dirname, 'src/views/review/settings/review_settings/index.ts'),
+        "review/settings/_manage_exam_pages_groups": resolve(import.meta.dirname, 'src/views/review/settings/_manage_exam_pages_groups/index.ts'),
+        "review/settings/grading_scheme/_grading_scheme_pages_group": resolve(import.meta.dirname, 'src/views/review/settings/grading_scheme/_grading_scheme_pages_group/index.ts'),
+        "review/_review_grading_scheme_panel": resolve(import.meta.dirname, 'src/views/review/_review_grading_scheme_panel/index.ts'),
       },
     },
   },

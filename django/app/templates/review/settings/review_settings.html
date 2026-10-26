@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% load django_vite %}
+
+{% block title %}Review Settings{% endblock %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/review/settings/review_settings/index.ts' %}
+{% endblock %}
+
+{% block content %}
+    {% pill_header title="Review settings" prefix="review-settings" icon="fas fa-gears" active=curr_tab %}
+        {% pill_tab "questions" label="Questions" icon="fa-solid fa-layer-group" %}
+        {% pill_tab "exam-reviewers" label="Exam reviewers" icon="fa-solid fa-users-gear" %}
+        {% pill_tab "grading-schemes" label="Grading schemes" icon="fa-solid fa-file-signature" %}
+    {% endpill_header %}
+
+    {% if not user_allowed %}
+        {% alert "danger" %}You are not allowed to view this page!{% endalert %}
+    {% elif exam_pages_groups_formset %}
+        <div class="tab-content" id="review-settings-tab-content">
+            {% pill_pane "questions" prefix="review-settings" %}
+                {% include "review/settings/_manage_exam_questions.html" %}
+            {% endpill_pane %}
+
+            {% pill_pane "exam-reviewers" prefix="review-settings" %}
+                {% include "review/settings/_manage_exam_reviewers.html" %}
+            {% endpill_pane %}
+
+            {% pill_pane "grading-schemes" prefix="review-settings" %}
+                {% include "review/settings/_manage_grading_schemes.html" %}
+            {% endpill_pane %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <h4 class="alert-heading">Warning!</h4>
+            <p class="mb-0">
+                No AMC project found! Upload the AMC project zip from the
+                <a href="{% url 'amc_view' exam_selected.pk %}">AMC page</a>.
+            </p>
+        </div>
+    {% endif %}
+{% endblock %}

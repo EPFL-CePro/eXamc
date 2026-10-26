@@ -1,83 +1,92 @@
-import re
-from datetime import datetime
+import json
+import logging
+from datetime import date
+from decimal import Decimal
+from typing import Any, ClassVar
 
-from dateutil.utils import today
+from django.contrib.auth.models import Group, User
+from django.core.exceptions import BadRequest
+from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http.request import HttpRequest
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView
 
 from examc_app.decorators import exam_permission_required
+from examc_app.forms.scale import ScaleForm
 from examc_app.mixins import ExamPermissionAndRedirectMixin
-from examc_app.models import *
+from examc_app.models import (
+    REVIEWER_GROUP_ID,
+    AcademicYear,
+    Exam,
+    ExamUser,
+    PagesGroup,
+    Question,
+    QuestionType,
+    Scale,
+    Semester,
+)
+from examc_app.services.exam.common import build_overall_exam_code
+from examc_app.services.exam.paths import get_exam_subdir, update_exam_folders
 from examc_app.tasks import generate_statistics
 from examc_app.utils.epflldap import ldap_search
-from examc_app.utils.global_functions import user_allowed, \
-    update_folders_paths
-from examc_app.utils.results_statistics_functions import update_common_exams_questions, \
-    update_common_exams_scales, update_common_exams_users
+from examc_app.utils.global_functions import user_allowed
+from examc_app.utils.results_statistics_functions import (
+    update_common_exams_questions,
+    update_common_exams_scales,
+    update_common_exams_users,
+)
+from examc_app.utils.view_context_helpers import ViewContext
+
+logger = logging.getLogger(__name__)
 
 class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
     model = Exam
-    template_name = 'exam/exam_info.html'
-    perm_codenames = ['manage']
-    pk_url_kwarg = 'exam_pk'
+    template_name = "exam/exam_info.html"
+    perm_codenames: ClassVar = ["manage"]
+    pk_url_kwarg = "exam_pk"
     redirect_enabled = True
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
-        context = self.get_context_data(object=self.object)
-        exam = Exam.objects.get(pk=context.get("object").id)
-        exam_user = ExamUser.objects.filter(exam=exam, user=self.request.user).first()
+        exam: Exam = self.object
 
-        if not exam_user and exam.common_exams:
-            for comex in exam.common_exams.all():
-                exam_user = ExamUser.objects.filter(exam=comex,user=self.request.user).first()
-                if exam_user: break
+        # The user's role in this exam, else in one of its common exams: a reviewer goes to the review instead
+        exam_users = list(
+            ExamUser.objects.filter(user=request.user, exam__in=[exam, *exam.common_exams.all()])
+        )
+        exam_user = next((role for role in exam_users if role.exam_id == exam.pk), exam_users[0] if exam_users else None)
 
-        # redirect to review if reviewer
-        if exam_user and not self.request.user.is_superuser and exam_user.group.pk == 3:
-            return redirect(reverse('reviewView', kwargs={'exam_pk': exam.pk}))
+        if exam_user and not request.user.is_superuser and exam_user.group_id == REVIEWER_GROUP_ID:
+            return redirect("review_view", exam_pk=exam.pk)
 
-        return self.render_to_response(context)
+        return self.render_to_response(self.get_context_data(object=exam))
 
-    def get_context_data(self, **kwargs):
-        context = super(ExamInfoView, self).get_context_data(**kwargs)
-        task_id = None
-        if 'task_id' in self.kwargs:
-            task_id = self.kwargs['task_id']
-        exam = Exam.objects.get(pk=context.get("object").id)
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        exam: Exam = self.object
+        # What belongs to the whole group (permissions, questions) is read from the overall exam
+        overall = exam.get_overall_exam_or_default()
 
-        users_groups_add = Group.objects.filter(pk__in=[2,3,4])
-        semesters = Semester.objects.all()
-        years = AcademicYear.objects.all()
+        view_context = ViewContext(base_dict=super().get_context_data(**kwargs), nav_url="exam_info")
+        if not user_allowed(overall, self.request.user.id):
+            return view_context.as_dict()
 
-        exam_selected = exam
-        if exam.common_exams:
-            for common_exam in exam.common_exams.all():
-                if common_exam.is_overall():
-                    exam = common_exam
-                    break
+        # The opened exam: the sidebar and the page show this one
+        view_context.set_exam(exam.pk)
+        view_context.set_task_id(self.kwargs.get("task_id"))
+        view_context.set_user_allowed(True)
 
-        if user_allowed(exam,self.request.user.id):
-            context['user_allowed'] = True
-            context['common_list'] = None
-            context['nav_url'] = "examInfo"
-            context['exam'] = exam
-            context['exam_selected'] = exam_selected
-            context['question_types'] = QuestionType.objects.all()
-            context['sum_questions_points'] = exam.questions.filter(removed_from_common=False).aggregate(Sum('max_points'))
-            context['users_groups_add'] = users_groups_add
-            context['semesters'] = semesters
-            context['years'] = years
-            context['task_id'] = task_id
-            return context
-        else:
-            context['user_allowed'] = False
-            return context
+        view_context.update(
+            question_types=QuestionType.objects.all(),
+            sum_questions_points=overall.questions.filter(removed_from_common=False).aggregate(Sum("max_points")),
+            users_groups_add=Group.objects.filter(pk__in=[2, 3, 4]),
+            semesters=Semester.objects.all(),
+            years=AcademicYear.objects.all(),
+        )
+        return view_context.as_dict()
 
 @exam_permission_required(['manage'])
 @require_POST
@@ -116,7 +125,7 @@ def ldap_search_exam_user_by_email(request, exam_pk: int):
             status=400
         )
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def update_exam_users(request: HttpRequest, exam_pk: int):
@@ -129,7 +138,7 @@ def update_exam_users(request: HttpRequest, exam_pk: int):
         request: The HTTP request object.
         exam_pk: The primary key of the exam.
     """
-    exam = Exam.objects.get(pk=exam_pk)
+    exam = request.exam
     users_list = request.POST.getlist('users_list[]')
 
     #reviewer_group, created = Group.objects.get_or_create(name='Reviewer')
@@ -152,15 +161,15 @@ def update_exam_users(request: HttpRequest, exam_pk: int):
                 user.email = user_list[3]
                 user.save()
 
-            exam_user, created = ExamUser.objects.get_or_create(user=user, exam=exam)
+            exam_user, _created = ExamUser.objects.get_or_create(user=user, exam=exam)
             exam_user.group = Group.objects.get(pk=user_list[4])
             if exam_user.group.id in [2,3,4] and not exam_user.pages_groups:
                 exam_user.pages_groups.set(PagesGroup.objects.filter(exam=exam).all())
             exam_user.save()
 
-    return redirect('examInfo', exam_pk=exam.pk)
+    return redirect('exam_info', exam_pk=exam.pk)
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
 def update_exam_info(request, exam_pk: int):
@@ -174,33 +183,65 @@ def update_exam_info(request, exam_pk: int):
         exam_pk: The primary key of the exam to be updated.
     """
 
-    exam = Exam.objects.get(pk=exam_pk)
+    exam = request.exam
 
-    if exam.date :
-        old_exam_date = exam.date.strftime("%Y-%m-%d")
+    # This looks if the exam's directory changes after updating its info. If it does, it renames them to the new value.
+    # In the past, data from the exam was used for naming the directory (e.g. "CEPRO_001_20241030"). We now use the
+    # primary key from the exam DB entry to not have to move the directory after its date changes, for example.
+    # This code verifies that the new way is used, and renames the directory to the exam's PK if it's not already.
+    current_folder_path = get_exam_subdir(exam)
+    logger.info(f"Exam {exam.pk} - current path: {current_folder_path}")
+
+    # Date
+    exam_date = request.POST.get("date")
+    if not exam_date: raise BadRequest("Exam date is required")
+    try:
+        exam_date = date.fromisoformat(exam_date)
+    except ValueError:
+        raise BadRequest("Exam date is not a valid date")
+    exam.date = exam_date
+
+    # Code
+    exam_code = request.POST.get("code")
+    if not exam_code: raise BadRequest("Exam code is required")
+    exam.code = exam_code
+
+    # Name
+    exam_name = request.POST.get("name")
+    if not exam_name: raise BadRequest("Exam name is required")
+    exam.name = exam_name
+
+    # Semester's ID
+    exam_semester_id = request.POST.get("semester_id")
+    if not exam_semester_id: raise BadRequest("Exam semester is required")
+    exam.semester_id = exam_semester_id
+
+    # Year's ID
+    exam_year_id = request.POST.get("year_id")
+    if not exam_year_id: raise BadRequest("Exam year is required")
+    exam.year_id = exam_year_id
+
+    # the new type of folder path is created even if it already exists
+    new_folder_path = get_exam_subdir(exam, force_by_id_dir=True)
+
+    if current_folder_path != new_folder_path:
+        with transaction.atomic():
+            logger.info(f"Exam {exam.pk} updated - path: {new_folder_path} (from {current_folder_path})")
+            update_exam_folders(current_folder_path, new_folder_path)
     else:
-        old_exam_date = today().strftime("%Y-%m-%d")
-    old_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + old_exam_date#.replace("-","")
-    exam.date = datetime.strptime(request.POST.get('date'),"%Y-%m-%d")
-    exam.code = request.POST.get('code')
-    exam.name = request.POST.get('name')
-    exam.semester_id = request.POST.get('semester_id')
-    exam.year_id = request.POST.get('year_id')
+        logger.info(f"Exam {exam.pk} unchanged - path: {new_folder_path}")
+
     exam.save()
 
-    new_folder_path = "/" + str(exam.year.code) + "/" + str(exam.semester.code) + "/" + exam.code + "_" + exam.date.replace("-","")
-
-    if old_folder_path != new_folder_path:
-        update_folders_paths(old_folder_path, new_folder_path)
-
-    return redirect('examInfo', exam_pk=exam.pk)
+    return redirect('exam_info', exam_pk=exam.pk)
 
 
-class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
+class ScaleCreateView(ExamPermissionAndRedirectMixin, CreateView):
     template_name = 'exam/scale_create.html'
     model = Scale
-    fields = ['name', 'total_points', 'points_to_add', 'min_grade','max_grade','rounding']#,'formula']
-    perm_codenames = ['manage']
+    #fields = ['name', 'total_points', 'points_to_add', 'min_grade','max_grade', 'rounding']#,'formula']
+    form_class = ScaleForm
+    perm_codenames: ClassVar = ['manage']
     pk_url_kwarg = 'exam_pk'
 
     def form_valid(self, form):
@@ -224,17 +265,27 @@ class ScaleCreateView(ExamPermissionAndRedirectMixin,CreateView):
         task = generate_statistics.delay(exam.pk)
         task_id = task.task_id
 
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam.pk, 'task_id': task_id}))
+        return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': exam.pk, 'task_id': task_id}))
 
     def get_context_data(self, **kwargs):
-        context = super(ScaleCreateView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context['exam_pk'] = self.kwargs['exam_pk']
         return context
 
-#@login_required
+    def get_initial(self) -> dict[str, Any]:
+        initial = super().get_initial()
+        exam = get_object_or_404(Exam, pk=self.kwargs["exam_pk"])
+        total = exam.questions.filter(removed_from_common=False).aggregate(total=Sum("max_points"))["total"]
+        if total is not None:
+            # The sum has the questions' precision: rounded to the scale's (e.g. 16.00000 -> 16.00)
+            places = Scale._meta.get_field("total_points").decimal_places
+            initial["total_points"] = total.quantize(Decimal(1).scaleb(-places))
+        return initial
+
+
 @exam_permission_required(['manage'])
 @require_POST
-def delete_exam_scale(request, scale_pk, exam_pk):
+def delete_exam_scale(request, scale_pk, exam_pk: int):
     scale_to_delete = Scale.objects.get(pk=scale_pk)
     exam_to_manage = Exam.objects.get(pk=exam_pk)
 
@@ -254,29 +305,13 @@ def delete_exam_scale(request, scale_pk, exam_pk):
     task = generate_statistics.delay(exam_pk)
     task_id = task.task_id
 
-    return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
+    return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': exam_pk, 'task_id': task_id}))
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
-def update_exam(request,exam_pk):
-    exam = Exam.objects.get(pk=exam_pk)
-    field_name = request.POST['field']
-    value = request.POST['value']
-
-    setattr(exam, field_name, value)
-    exam.save()
-
-    global DATA_UPDATED
-    DATA_UPDATED = True
-
-    return HttpResponse(1)
-
-#@login_required
-@exam_permission_required(['manage'])
-@require_POST
-def set_final_scale(request, scale_pk, exam_pk,all_common=0):
+def set_final_scale(request, scale_pk, exam_pk: int, all_common=0):
     final_scale = Scale.objects.get(id=scale_pk)
 
     for scale in final_scale.exam.scales.all():
@@ -295,39 +330,35 @@ def set_final_scale(request, scale_pk, exam_pk,all_common=0):
                     comex_scale.final = False
                 comex_scale.save()
 
-    return redirect(reverse('examInfo', kwargs={'exam_pk': str(final_scale.exam.pk)}))
+    return redirect(reverse('exam_info', kwargs={'exam_pk': str(final_scale.exam.pk)}))
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
-def update_exam_options(request,exam_pk):
-    if request.method == 'POST':
-        exam = Exam.objects.get(pk=exam_pk)
-        exam.review_option = False
-        exam.amc_option = False
-        exam.res_and_stats_option = False
-        exam.prep_option = False
-        if 'review_option_'+str(exam_pk) in request.POST:
-            exam.review_option = True
-        if 'amc_option_'+str(exam_pk) in request.POST:
-            exam.amc_option = True
-        if 'res_and_stats_option_'+str(exam_pk) in request.POST:
-            exam.res_and_stats_option = True
-        if 'prep_option_'+str(exam_pk) in request.POST:
-            exam.prep_option = True
+def update_exam_options(request,exam_pk: int):
+    exam = request.exam
+    exam.review_option = False
+    exam.amc_option = False
+    exam.res_and_stats_option = False
+    exam.prep_option = False
+    if f"review_option_{exam_pk}" in request.POST:
+        exam.review_option = True
+    if f"amc_option_{exam_pk}" in request.POST:
+        exam.amc_option = True
+    if f"res_and_stats_option_{exam_pk}" in request.POST:
+        exam.res_and_stats_option = True
+    if f"prep_option_{exam_pk}" in request.POST:
+        exam.prep_option = True
 
-        exam.save()
-        return HttpResponse('ok')
-
-    return None
+    exam.save()
+    return HttpResponse('ok')
 
 
 # QUESTIONS MANAGEMENT
 # ------------------------------------------
-# #@login_required
 # @exam_permission_required(['manage'])
-# def update_question(request,exam_pk):
+# def update_question(request,exam_pk: int):
 #     question = Question.objects.get(pk=request.POST['question_pk'])
 #     field_name = request.POST['field']
 #     value = request.POST['value']
@@ -337,11 +368,12 @@ def update_exam_options(request,exam_pk):
 #     return HttpResponse(1)
 
 
-#@login_required
+
 @exam_permission_required(['manage'])
 @require_POST
-def update_questions(request,exam_pk):
+def update_questions(request, exam_pk: int):
     data = json.loads(request.POST.get('data'))
+
     for question in data:
         quest = Question.objects.get(pk=question['QUESTION'])
         if 'ANSWERS' in question:
@@ -357,76 +389,52 @@ def update_questions(request,exam_pk):
             else:
                 quest.nb_answers = 0
         if 'COMMON' in question:
-            quest.common = True if question['COMMON'] else False
-            quest.removed_from_common = False if question['COMMON'] else True
+            quest.common = bool(question['COMMON'])
+            quest.removed_from_common = not question['COMMON']
         quest.save()
 
     return HttpResponse(1)
 
 @exam_permission_required(['manage'])
 @require_POST
-def set_common_exam(request,exam_pk):
-    exam = Exam.objects.get(pk=exam_pk)
+def set_common_exam(request: HttpRequest, exam_pk: int):
+    exam = get_object_or_404(Exam, pk=exam_pk)
 
     # get or create overall exam if not from overall exam
-    if not exam.is_overall():
-        overall_code = '000_' + re.sub(r"\(.*?\)", "", exam.code).strip()
-        month_year = exam.date.strftime("%m-%Y")
-        overall_code += "_" + month_year
-        overall_exam, created = Exam.objects.get_or_create(code=overall_code, semester=exam.semester,
-                                                           year=exam.year)
-        if created:
-            overall_exam.name = 'COMMON'
-            overall_exam.pdf_catalog_name = exam.pdf_catalog_name
-            overall_exam.date = exam.date
-            overall_exam.overall = True
-            overall_exam.res_and_stats_option = True
-            overall_exam.save()
+    if exam.is_overall():
+        return HttpResponseRedirect(reverse('exam_info', kwargs={ 'exam_pk': exam.pk }))
 
-        exam.common_exams.add(overall_exam)
-        exam.save()
+    overall_code = build_overall_exam_code(exam)
+    overall_exam, new_exam_was_created = Exam.objects.get_or_create(
+        code=overall_code,
+        semester=exam.semester,
+        year=exam.year
+    )
 
-        update_common_exams_questions(overall_exam.pk)
-        update_common_exams_scales(overall_exam.pk)
-        update_common_exams_users(overall_exam.pk)
+    if new_exam_was_created:
+        overall_exam.name = 'COMMON'
+        overall_exam.pdf_catalog_name = exam.pdf_catalog_name
+        overall_exam.date = exam.date
+        overall_exam.overall = True
+        overall_exam.res_and_stats_option = True
+        overall_exam.save()
 
-        task = generate_statistics.delay(overall_exam.pk)
-        task_id = task.task_id
+    exam.common_exams.add(overall_exam)
+    exam.save()
 
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
+    update_common_exams_questions(overall_exam.pk)
+    update_common_exams_scales(overall_exam.pk)
+    update_common_exams_users(overall_exam.pk)
 
-#@login_required
-# @exam_permission_required(['manage'])
-# def validate_common_exams_settings(request,overall_exam_pk):
-    # overall_exam = Exam.objects.get(pk=overall_exam_pk)
-    # common_exams_ids = request.POST.getlist(str(overall_exam_pk)+'_common_to[]')
-    # if common_exams_ids:
-    #     common_exams = Exam.objects.filter(id__in=common_exams_ids)
-    #     overall_exam.common_exams.set(common_exams)
-    #     overall_exam.save()
-    #     update_common_exams(overall_exam)
-    #
-    #     # if common exam, update overall exam users
-    #     for comex in overall_exam.common_exams.all():
-    #         for exam_user in comex.exam_users.all():
-    #             if not overall_exam.exam_users.filter(user=exam_user.user).exists() and exam_user.group.pk != 3:
-    #                 new_exam_user = ExamUser()
-    #                 new_exam_user.user = exam_user.user
-    #                 new_exam_user.exam = overall_exam
-    #                 new_exam_user.group = exam_user.group
-    #                 new_exam_user.save()
-    #                 overall_exam.exam_users.add(new_exam_user)
-    #     overall_exam.save()
-    #
-    # else:
-    #
-    #
-    #
-    # return redirect('../examInfo/' + str(exam.pk))
+    task = generate_statistics.delay(overall_exam.pk)
+    task_id = task.task_id
+
+    return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
+
 @exam_permission_required(['manage'])
 @require_POST
-def validate_common_exams_settings(request,exam_pk):
-    overall_exam = Exam.objects.get(pk=exam_pk)
+def validate_common_exams_settings(request,exam_pk: int):
+    overall_exam = request.exam
     common_exams_ids = request.POST.getlist(str(exam_pk) + '_common_to[]')
     if common_exams_ids:
         common_exams = Exam.objects.filter(id__in=common_exams_ids)
@@ -440,10 +448,10 @@ def validate_common_exams_settings(request,exam_pk):
         task = generate_statistics.delay(overall_exam.pk)
         task_id = task.task_id
 
-        return HttpResponseRedirect(reverse('examInfo', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
+        return HttpResponseRedirect(reverse('exam_info_with_task', kwargs={'exam_pk': overall_exam.pk, 'task_id': task_id}))
     else:
         redirect_exam = overall_exam.common_exams.first()
         for exam in overall_exam.common_exams.all():
             exam.common_exams.clear()
         overall_exam.delete()
-        return redirect('../examInfo/' + str(redirect_exam.pk))
+        return redirect('../exam-info/' + str(redirect_exam.pk))

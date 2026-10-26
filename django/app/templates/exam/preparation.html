@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load django_vite %}
+
+{% block title %}Exam preparation{% endblock %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/exam/preparation/exam_preparation/index.ts' %}
+{% endblock %}
+
+{% block content %}
+    {% pill_header title="Preparation" prefix="preparation" icon="fas fa-edit" %}
+        {% pill_tab "exam" label="Exam" icon="fas fa-book-open" %}
+        {% pill_tab "students" %}
+    {% endpill_header %}
+
+    {# The data attributes are the configuration of the page (see config.ts) #}
+    <div id="prep-root" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+         data-csrf-token="{{ csrf_token }}"
+         data-exam-pk="{{ exam_selected.pk }}"
+         data-is-finalized="{{ is_exam_finalized|yesno:'true,false' }}"
+            {# Finalized, or a final generation is running: nothing can be modified #}
+         data-is-locked="{{ is_exam_locked|yesno:'true,false' }}"
+            {# Celery task of a final generation still running when the page was loaded #}
+         data-active-final-task-id="{{ active_final_job.celery_task_id|default:'' }}"
+         data-active-final-started-at="{{ active_final_job.created_at|date:'c' }}"
+         data-preview-start-url="{% url 'exam_preview_start' exam_selected.pk %}"
+         data-preview-status-url="{% url 'exam_preview_status' exam_selected.pk 0 %}"
+         data-reorder-sections-url="{% url 'reorder_prep_sections' exam_selected.pk %}"
+         data-reorder-questions-url="{% url 'reorder_prep_questions' exam_selected.pk 0 %}"
+         data-reorder-answers-url="{% url 'reorder_prep_answers' exam_selected.pk 0 %}"
+         data-scoring-formulas-modal-url="{% url 'scoring_formulas_modal' exam_selected.pk %}"
+         data-scoring-infos-url="{% url 'scoring_infos' exam_selected.pk %}"
+         data-edit-latex-file-url="{% url 'edit_latex_file' exam_selected.pk %}"
+         data-save-latex-file-url="{% url 'save_latex_edited_file' exam_selected.pk %}"
+         data-edit-latex-packages-url="{% url 'edit_latex_packages' exam_selected.pk %}"
+         data-save-latex-packages-url="{% url 'save_latex_edited_packages' exam_selected.pk %}"
+         data-generate-final-start-url="{% url 'generate_final_exam_files_start' exam_selected.pk %}"
+         data-cancel-final-url="{% url 'cancel_final_exam_files' exam_selected.pk %}"
+         data-celery-task-status-url="{% url 'celery_progress:task_status' 'TASK_ID_PLACEHOLDER' %}"
+    >
+        {% if is_exam_finalized %}
+            <div class="alert alert-warning mt-3">
+                This exam has been finalized. Editing is locked. Download the final files or unlock editing to modify
+                the exam.
+            </div>
+        {% endif %}
+
+        {# Final generation running (see generateFinalExamFiles / trackFinalGeneration in final-generation.ts) #}
+        <div class="alert alert-info mt-3" id="final-generation-banner" role="status"
+             {% if not active_final_job %}hidden{% endif %}>
+            <div class="d-flex align-items-center justify-content-between flex-wrap">
+                <strong class="mr-3">Final generation in progress: the exam and its students cannot be modified until it
+                    ends.</strong>
+                <span>
+                    <button type="button" class="btn btn-outline-danger btn-sm" id="final-generation-banner-cancel">
+                        Cancel generation
+                    </button>
+                    <button type="button" class="btn btn-outline-dark btn-sm" id="final-generation-banner-show">
+                        Show details
+                    </button>
+                </span>
+            </div>
+            <div class="progress mt-2" style="height:18px;">
+                <div class="progress-bar" id="final-generation-banner-bar" role="progressbar" style="width:0">0%</div>
+            </div>
+            <div class="small mt-1" id="final-generation-banner-message">
+                {% if active_final_job %}Started by {{ active_final_job.requested_by }} at
+                    {{ active_final_job.created_at|time:"H:i" }}.{% endif %}
+            </div>
+        </div>
+
+        {# Tab content #}
+        <div class="tab-content" id="preparation-tab-content">
+            {% pill_pane "exam" prefix="preparation" %}
+                {% include "exam/preparation/preparation_exam.html" %}
+            {% endpill_pane %}
+
+            {% pill_pane "students" prefix="preparation" %}
+                {% include "exam/preparation/preparation_students.html" %}
+            {% endpill_pane %}
+        </div>
+    </div>
+{% endblock %}

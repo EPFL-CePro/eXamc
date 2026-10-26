@@ -1,3 +1,9 @@
+{% load django_vite %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/review/_review_grading_scheme_panel/index.ts' %}
+{% endblock %}
+
 <div class="review-grading-scheme-split-vert" id="scheme-wrapper-{{ grading_scheme.id }}">
     <div class="pane">
         <div class="card">
@@ -7,8 +13,10 @@
             </div>
         </div>
     </div>
+
     <!-- Draggable divider -->
     <div class="divider" id="scheme-divider" aria-label="Resize panels" role="separator"></div>
+
     <!-- Checkboxes (lazy) -->
     <div class="pane">
         <div class="card" style="height:99%;">

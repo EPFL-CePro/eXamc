@@ -1,0 +1,8 @@
+<!-- Bootstrap compatible multiple choice template -->
+<div class="form-check{% if widget.inline %} form-check-inline{% endif %}">
+    <input type="{{ widget.type }}" name="{{ widget.name }}" {% if widget.value != None %}value="{{ widget.value|stringformat:'s' }}"{% endif %}{% for name, value in widget.attrs.items %}
+        {% if value is not False %}{{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}{% endfor %}
+    >
+    <label class="form-check-label"{% if widget.attrs.id %}
+           for="{{ widget.attrs.id }}"{% endif %}>{{ widget.label }}</label>
+</div>

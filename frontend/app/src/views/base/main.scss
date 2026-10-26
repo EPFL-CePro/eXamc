@@ -1,0 +1,22 @@
+// custom colors
+$primary: #1f73c7;
+$dark: #212529;
+
+@use "bootstrap/scss/bootstrap" with (
+    // Colors
+    $primary: $primary,
+    $dark: $dark,
+
+    // Navigation pills: dark when active, body text otherwise
+    $nav-pills-link-active-bg: $dark,
+    $nav-pills-link-active-color: #fff,
+    $nav-link-color: $dark,
+    $nav-link-hover-color: #000,
+);
+
+@use '/node_modules/@fortawesome/fontawesome-free/css/all.min.css';
+
+@use "root-css-vars";
+@use "custom-elements";
+
+@use "sidebar";

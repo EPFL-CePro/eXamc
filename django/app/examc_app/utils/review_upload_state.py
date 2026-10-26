@@ -5,7 +5,7 @@ REVIEW_UPLOAD_PENDING_AMC_IMPORT_SESSION_KEY = "review_upload_pending_amc_import
 REVIEW_UPLOAD_PENDING_TTL_SECONDS = 24 * 3600
 
 
-def _normalise_exam_pk(exam_pk):
+def _normalise_exam_pk(exam_pk: int):
     return str(int(exam_pk))
 
 
@@ -42,7 +42,7 @@ def get_pending_amc_imports(request):
     return pending
 
 
-def set_pending_amc_import(request, exam_pk, upload_task_id=None):
+def set_pending_amc_import(request, exam_pk: int,  upload_task_id=None):
     pending = get_pending_amc_imports(request)
     pending[_normalise_exam_pk(exam_pk)] = {
         "created_at": int(time.time()),
@@ -52,17 +52,17 @@ def set_pending_amc_import(request, exam_pk, upload_task_id=None):
     request.session.modified = True
 
 
-def clear_pending_amc_import(request, exam_pk):
+def clear_pending_amc_import(request, exam_pk: int):
     pending = get_pending_amc_imports(request)
     pending.pop(_normalise_exam_pk(exam_pk), None)
     request.session[REVIEW_UPLOAD_PENDING_AMC_IMPORT_SESSION_KEY] = pending
     request.session.modified = True
 
 
-def has_pending_amc_import(request, exam_pk):
+def has_pending_amc_import(request, exam_pk: int):
     return _normalise_exam_pk(exam_pk) in get_pending_amc_imports(request)
 
 
-def get_pending_amc_import_upload_task_id(request, exam_pk):
+def get_pending_amc_import_upload_task_id(request, exam_pk: int):
     meta = get_pending_amc_imports(request).get(_normalise_exam_pk(exam_pk), {})
     return meta.get("upload_task_id") or ""

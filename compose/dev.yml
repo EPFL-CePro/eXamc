@@ -44,10 +44,6 @@ services:
     build:
       context: ../django
       target: dev
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    user: "${UID:-1000}:${GID:-1000}"
     environment:
       DEBUG: "1"
       VITE_DEV_MODE: "1"
@@ -55,7 +51,10 @@ services:
     volumes:
       - ../django/app/:/app:z
       - ./data/private_media:/private_media
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload", "--nothreading"]
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--nothreading"]
+    depends_on:
+      redis:
+        condition: service_healthy
     env_file:
       - ../.env.dev
 
@@ -74,8 +73,9 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: dev
+      target: tooling
     volumes:
+      - ../django/app/:/app:z
       - ./data/private_media:/private_media
     env_file:
       - ../.env.dev
@@ -86,8 +86,9 @@ services:
       file: base.yml
     build:
       context: ../django
-      target: dev
+      target: tooling
     volumes:
+      - ../django/app/:/app:z
       - ./data/private_media:/private_media
     env_file:
       - ../.env.dev
@@ -96,5 +97,4 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
-  media_volume:
   client_temp:

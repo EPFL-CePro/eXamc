@@ -1,10 +1,10 @@
 import 'vite/modulepreload-polyfill';
 
-import 'datatables.net-dt/css/dataTables.dataTables.min.css';
+import 'datatables.net-bs5/css';
 
-import {initExamSelectTable} from "./examSelectTable";
-import {lastConnectedUsersTable} from "./lastConnectedUsersTable.ts";
-import "./dashboard.scss";
+import {initExamSelectTable} from "./exam-select-table";
+import {lastConnectedUsersTable} from "./last-connected-users-table";
+import {byId} from "@examc/helpers/dom.ts";
 
 
 /**
@@ -12,9 +12,7 @@ import "./dashboard.scss";
  */
 document.addEventListener("DOMContentLoaded", () => {
     // exam select table
-    const examTableElement = document.querySelector<HTMLTableElement>("#dashboard-exam-table");
-
-    if (!examTableElement) return;
+    const examTableElement = byId<HTMLTableElement>("dashboard-exam-table");
     const examApiUrl = examTableElement.dataset.apiUrl;
 
     if (!examApiUrl) {
@@ -23,11 +21,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     initExamSelectTable({ tableElement: examTableElement, apiUrl: examApiUrl });
 
-
     // last connected users table
     const usersTableElement = document.querySelector<HTMLTableElement>("#dashboard-last-connected-users-table");
+    if (!usersTableElement) return;
+
+    const usersConnectedApiUrl = usersTableElement.dataset.apiUrl;
+    if (!usersConnectedApiUrl) {
+        console.error("Connected users table missing data-api-url attribute");
+        return;
+    }
 
     if (!examTableElement || !usersTableElement) return;
 
-    lastConnectedUsersTable({ tableElement: usersTableElement });
+    lastConnectedUsersTable({ tableElement: usersTableElement, apiUrl: usersConnectedApiUrl });
 });

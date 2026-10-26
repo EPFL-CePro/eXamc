@@ -1,2 +1,2 @@
 import "./reviewGroup.js";
-import "./review-group.css";
+import "./review-group.scss";

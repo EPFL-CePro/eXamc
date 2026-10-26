@@ -1,0 +1,37 @@
+#amc-data-capture {
+    display: flex;
+    gap: 16px;
+
+    &:focus {
+        outline: none;
+    }
+
+    #canvas-scan {
+        display: block;
+        height: 92vh;
+        width: auto;
+        aspect-ratio: 210 / 297; // ~A4 ratio
+        border: 1px solid lightgray;
+    }
+
+    #table-copies-pages {
+        tbody {
+            tr {
+                &.is-current td {
+                    background-color: rgba(0, 0, 0, 0.26);
+                    color: black;
+                }
+
+                &:not(.is-current) {
+                    opacity: .7;
+                }
+
+                td {
+                    &.sensitive {
+                        color: red;
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,5 +1,6 @@
-import { getModal } from '@examc/helpers/modals.ts';
-import { getPageBootstrap } from '@examc/helpers/page-bootstrap.ts';
+import { LocalModal } from '@examc/modals';
+import { byId } from '@examc/helpers/dom';
+import { Collapse } from 'bootstrap';
 
 declare global {
     interface Window {
@@ -9,7 +10,7 @@ declare global {
     }
 }
 
-const progressModalElement = document.getElementById('celeryProgressBarModal');
+const progressModalElement = byId<HTMLElement>('celeryProgressBarModal');
 
 /**
  * Updates the progress bar element and its message from the task's progress data.
@@ -39,14 +40,15 @@ function showDownloadLink(fileName: string): void {
 
 function processResult(_resultElement: HTMLElement | null, result: unknown): void {
     if (typeof result !== 'string') return;
-    const progressModal = getModal({ type: 'local', element: progressModalElement });
+    const modalWrapper = new LocalModal(progressModalElement);
 
     if (result.includes('Process finished')) {
-        setTimeout(() => progressModal.hide(), 1000);
+        setTimeout(() => modalWrapper.hide(), 1000);
     } else if (result.startsWith('marked_') && result.endsWith('.zip')) {
         showDownloadLink(result);
     } else if (result === 'upload_scans_ok') {
-        progressModal.hide();
+        modalWrapper.hide();
+        
         if (window.onUploadScansComplete) {
             window.onUploadScansComplete();
         } else {
@@ -57,15 +59,13 @@ function processResult(_resultElement: HTMLElement | null, result: unknown): voi
 
 const progressUrl = progressModalElement?.dataset.progressUrl;
 if (progressModalElement && progressUrl) {
-    getModal({ type: 'local', element: progressModalElement }).show();
+    new LocalModal(progressModalElement).show();
 
     CeleryProgressBar.initProgressBar(progressUrl, {
         onProgress: processProgress,
         onResult: processResult,
     });
 }
-
-let ajaxInfoModalInitialized = false;
 
 export function setAjaxInfoModalLocked(locked: boolean): void {
     const okBtn = document.querySelector<HTMLButtonElement>('#ajax_modal_ok');
@@ -76,26 +76,18 @@ export function setAjaxInfoModalLocked(locked: boolean): void {
     closeBtn.disabled = locked;
 
     // Visually disable the "X" (top-right)
-    const xBtn = document.querySelector<HTMLButtonElement>('#ajax_info_modal .close, #ajax_info_modal .btn-close');
+    const xBtn = document.querySelector<HTMLButtonElement>('#ajax-info-modal .close, #ajax-info-modal .btn-close');
     if (xBtn) {
         xBtn.style.pointerEvents = locked ? 'none' : 'auto';
         xBtn.style.opacity = locked ? '0.5' : '1';
     }
 
-    // Configure the modal once (prevents closing via backdrop/ESC)
-    if (!ajaxInfoModalInitialized) {
-        getModal({
-            type: 'local',
-            element: document.getElementById('ajax_info_modal'),
-            modalOptions: { backdrop: 'static', keyboard: false },
-        }).show();
-        ajaxInfoModalInitialized = true;
-    }
+    new LocalModal(byId<HTMLElement>('ajax-info-modal'), { backdrop: 'static', keyboard: false }).show();
 }
 
 // Hide submenus
 document.querySelectorAll<HTMLElement>('#body-row .collapse').forEach((element) => {
-    getPageBootstrap().Collapse.getOrCreateInstance(element, { toggle: false }).hide();
+    Collapse.getOrCreateInstance(element, { toggle: false }).hide();
 });
 
 // Collapse/Expand icon

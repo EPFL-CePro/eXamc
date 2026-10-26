@@ -1,107 +1,92 @@
+from typing import ClassVar
+
+from django import forms
 from django.test import TestCase
 
-from examc_app.forms import *
-from examc_app.models import *
+from examc_app.forms.results_statistics import ExportMarkedFilesForm, ExportResultsForm
+from examc_app.forms.review import (
+    ManagePagesGroupsForm,
+    ManageReviewersForm,
+    UploadScansForm,
+)
+from examc_app.models import ExamUser, PagesGroup
 
 
-class FormsTestCase(TestCase):
-    def test_upload_scans_form(self):
-        form = UploadScansForm()
-        self.assertTrue(form.fields['files'].widget.attrs.get('allow_multiple_selected'))
+class UploadScansFormTests(TestCase):
+    def test_files_widget_allows_multiple_selection(self):
+        widget = UploadScansForm().fields["files"].widget
+        self.assertTrue(widget.attrs.get("allow_multiple_selected"))
 
-    def test_manage_exam_pages_groups_form(self):
-        questions_choices = [
+class ManagePagesGroupsFormTests(TestCase):
+    def setUp(self):
+        self.questions_choices = [
             ("Group 1", "Group 1"),
             ("Group 2", "Group 2"),
         ]
+        self.form = ManagePagesGroupsForm(data={}, questions_choices=self.questions_choices)
 
-        form = ManagePagesGroupsForm(
-            data={},
-            questions_choices=questions_choices,
+    def test_meta(self):
+        self.assertEqual(self.form.Meta.model, PagesGroup)
+        self.assertEqual(self.form.Meta.fields, ["group_name", "nb_pages", "use_grading_scheme"])
+
+    def test_group_name_is_a_select_with_the_given_choices(self):
+        field = self.form.fields["group_name"]
+        self.assertIsInstance(field.widget, forms.Select)
+        self.assertEqual(list(field.widget.choices), self.questions_choices)
+
+    def test_nb_pages_is_a_number_input_with_min_value_1(self):
+        field = self.form.fields["nb_pages"]
+        self.assertIsInstance(field.widget, forms.NumberInput)
+        self.assertEqual(field.widget.attrs.get("style"), "width:100px")
+        self.assertEqual(field.min_value, 1)
+
+    def test_use_grading_scheme_uses_switch_widget(self):
+        widget = self.form.fields["use_grading_scheme"].widget
+        self.assertEqual(type(widget).__name__, "SwitchWidget")
+
+
+class ManageReviewersFormTests(TestCase):
+    def test_meta(self):
+        self.assertEqual(ManageReviewersForm.Meta.model, ExamUser)
+        self.assertEqual(
+            list(ManageReviewersForm.Meta.fields), ["pages_groups", "review_blocked"]
         )
 
-        self.assertEqual(form.Meta.model, PagesGroup)
-        self.assertEqual(
-            form.Meta.fields,
-            ["group_name", "nb_pages", "use_grading_scheme"],
-        )
+class ExportMarkedFilesFormTests(TestCase):
+    def test_export_type_field(self):
+        field = ExportMarkedFilesForm().fields["export_type"]
 
+        self.assertEqual(type(field.widget).__name__, "InlineRadioSelect")
         self.assertEqual(
-            form.fields["group_name"].widget.__class__.__name__,
-            "Select",
-        )
-        self.assertEqual(
-            form.fields["nb_pages"].widget.__class__.__name__,
-            "NumberInput",
-        )
-        self.assertEqual(
-            form.fields["use_grading_scheme"].widget.__class__.__name__,
-            "SwitchWidget",
-        )
-
-        self.assertEqual(
-            form.fields["nb_pages"].widget.attrs.get("style"),
-            "width:100px",
-        )
-
-        self.assertEqual(
-            form.fields["nb_pages"].min_value,
-            1,
-        )
-
-    def test_manage_exam_reviewers_form(self):
-        form = ManageReviewersForm()
-
-        self.assertEqual(form.Meta.model, ExamUser)
-        self.assertEqual(form.Meta.fields, ['user', 'pages_groups', 'review_blocked'])
-
-    def test_export_marked_files_form(self):
-        form = ExportMarkedFilesForm()
-
-        self.assertEqual(
-            form.fields["export_type"].widget.__class__.__name__,
-            "RadioSelect",
-        )
-        self.assertEqual(
-            set(form.fields["export_type"].choices),
+            set(field.choices),
             {
                 (1, "JPGs (one per page)"),
                 (2, "PDFs (one per student copy)"),
             },
         )
 
-    def test_login_pages_form(self):
-        form = LoginForm()
-        self.assertIsInstance(form.fields['username'], forms.CharField)
-        self.assertIsInstance(form.fields['password'], forms.CharField)
-        self.assertEqual(form.fields['username'].max_length, 65)
-        self.assertEqual(form.fields['password'].max_length, 65)
-        self.assertIsInstance(form.fields['password'].widget, forms.PasswordInput)
 
-    def test_export_results_form(self):
-        form = ExportResultsForm()
+class ExportResultsFormTests(TestCase):
+    CHECKBOXES: ClassVar = {
+        "exportIsaCsv": "Export ISA CSV file",
+        "exportExamScalePdf": "Export Exam scale PDF file",
+        "exportStudentsDataCsv": "Export Students data CSV file",
+    }
 
-        self.assertIn('exportIsaCsv', form.fields)
-        self.assertIn('exportExamScalePdf', form.fields)
-        self.assertIn('exportStudentsDataCsv', form.fields)
-        self.assertIn('scale', form.fields)
+    def setUp(self):
+        self.form = ExportResultsForm()
 
-        self.assertIsInstance(form.fields['exportIsaCsv'], forms.BooleanField)
-        self.assertIsInstance(form.fields['exportExamScalePdf'], forms.BooleanField)
-        self.assertIsInstance(form.fields['exportStudentsDataCsv'], forms.BooleanField)
-        self.assertIsInstance(form.fields['scale'], forms.ChoiceField)
+    def test_checkbox_fields(self):
+        for name, label in self.CHECKBOXES.items():
+            with self.subTest(field=name):
+                field = self.form.fields[name]
+                self.assertIsInstance(field, forms.BooleanField)
+                self.assertEqual(field.label, label)
+                self.assertIsInstance(field.widget, forms.CheckboxInput)
+                self.assertEqual(field.widget.attrs.get("class"), "form-check-input")
 
-        self.assertEqual(form.fields['exportIsaCsv'].label, 'export ISA .csv')
-        self.assertEqual(form.fields['exportExamScalePdf'].label, 'export Exam scale pdf')
-        self.assertEqual(form.fields['exportStudentsDataCsv'].label, 'export Students data .csv')
-
-        self.assertIsInstance(form.fields['exportIsaCsv'].widget, forms.CheckboxInput)
-        self.assertIsInstance(form.fields['exportExamScalePdf'].widget, forms.CheckboxInput)
-        self.assertIsInstance(form.fields['exportStudentsDataCsv'].widget, forms.CheckboxInput)
-        self.assertIsInstance(form.fields['scale'].widget, forms.RadioSelect)
-
-        self.assertEqual(form.fields['exportIsaCsv'].widget.attrs['class'], 'form-check-input')
-        self.assertEqual(form.fields['exportExamScalePdf'].widget.attrs['class'], 'form-check-input')
-        self.assertEqual(form.fields['exportStudentsDataCsv'].widget.attrs['class'], 'form-check-input')
-        self.assertEqual(form.fields['scale'].widget.attrs['class'], 'custom-radio-list form-check-inline')
-
+    def test_scale_field(self):
+        field = self.form.fields["scale"]
+        self.assertIsInstance(field, forms.ChoiceField)
+        self.assertIsInstance(field.widget, forms.RadioSelect)
+        self.assertEqual(field.widget.attrs.get("class"), "form-check-input")

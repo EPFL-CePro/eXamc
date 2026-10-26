@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models import QuerySet
 from rest_framework import mixins, viewsets
 
@@ -14,15 +16,18 @@ class ExamViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     GET /api/exams/?filter=<role>
     """
-    serializer_class = ExamRowSerializer
-    filter_backends = [ExamRoleFilterBackend, DataTablesFilterBackend]
-    search_fields = ["code", "name"]
-    # Column index -> model field(s) for server-side ordering.
-    # Computed columns (role, modules, review, actions) are orderable: false in the JS config.
-    ordering_columns = {
-        0: ["code"],  # exam
-        1: ["date"],  # date
-    }
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
 
-    def get_queryset(self) -> "QuerySet[Exam]":
+        self.serializer_class = ExamRowSerializer
+        self.filter_backends = [ExamRoleFilterBackend, DataTablesFilterBackend]
+        self.search_fields = ["code", "name"]
+        # Column index -> model field(s) for server-side ordering.
+        # Computed columns (role, modules, review, actions) are orderable: false in the JS config.
+        self.ordering_columns = {
+            0: ["code"],  # exam
+            1: ["date"],  # date
+        }
+
+    def get_queryset(self) -> QuerySet[Exam]:
         return get_dashboard_exam_queryset(self.request.user)

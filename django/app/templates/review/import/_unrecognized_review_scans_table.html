@@ -55,6 +55,9 @@
                     {% if scan.original_filename %}
                     <div><small class="text-muted">{{ scan.original_filename }}</small></div>
                     {% endif %}
+                    {% if scan.reason %}
+                    <div><small class="text-danger">{{ scan.reason|capfirst }}</small></div>
+                    {% endif %}
                 </td>
                 <td>
                     {% if scan.next_url %}

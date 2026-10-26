@@ -10,26 +10,29 @@ from examc_app.api.permissions import IsSuperUser
 from examc_app.api.serializers.impersonation import ImpersonationUserRowSerializer
 
 
-def impersonable_users() -> "QuerySet[User]":
+def impersonable_users() -> QuerySet[User]:
     return User.objects.filter(is_active=True, is_superuser=False)
 
 
 
 class ImpersonationUserViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """GET /api/impersonation/users/"""
-    permission_classes = [IsSuperUser]
-    serializer_class = ImpersonationUserRowSerializer
-    filter_backends = [DataTablesFilterBackend]
-    pagination_class = DataTablesPagination
-    search_fields = ["username", "first_name", "last_name", "email"]
-    ordering_columns = {
-        0: ["username"],
-        1: ["first_name", "last_name"],
-        2: ["email"],
-        3: ["last_login"],
-    }
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
 
-    def get_queryset(self) -> "QuerySet[User]":
+        self.permission_classes = [IsSuperUser]
+        self.serializer_class = ImpersonationUserRowSerializer
+        self.filter_backends = [DataTablesFilterBackend]
+        self.pagination_class = DataTablesPagination
+        self.search_fields = ["username", "first_name", "last_name", "email"]
+        self.ordering_columns = {
+            0: ["username"],
+            1: ["first_name", "last_name"],
+            2: ["email"],
+            3: ["last_login"],
+        }
+
+    def get_queryset(self) -> QuerySet[User]:
         return User.objects.filter(is_active=True, is_superuser=False)
 
     def get_serializer_context(self) -> dict[str, Any]:

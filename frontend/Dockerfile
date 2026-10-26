@@ -20,6 +20,16 @@ RUN pnpm install --frozen-lockfile
 # =========================
 FROM base AS dev
 
+ARG UID=1000
+ARG GID=1000
+
+RUN getent group ${GID} || groupadd --gid ${GID} examc \
+    && useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash examc || true
+
+RUN chown -R $UID:$GID .
+
+RUN pnpm i
+
 EXPOSE 5173
 
 CMD ["pnpm", "run", "dev", "--host"]

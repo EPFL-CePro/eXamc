@@ -1,0 +1,18 @@
+<p class="d-flex flex-column my-3">
+    <span>Discriminatory factor: <span class="fs-3 fw-semibold">{{ discriminatory_factor }}%</span></span>
+    <span class="text-body-secondary">
+        The best and worst {{ discriminatory_qty }} of {{ exam_selected.present_students }} students are compared
+    </span>
+</p>
+
+<div class="d-inline-flex flex-wrap align-items-center gap-3 my-2 p-2 border rounded small">
+    <span class="d-inline-flex align-items-center gap-1">
+        <i class="fas fa-circle" style="color:green" aria-hidden="true"></i> Discriminatory question
+    </span>
+    <span class="d-inline-flex align-items-center gap-1">
+        <i class="fas fa-circle" style="color:orange" aria-hidden="true"></i> Best students under 60% success
+    </span>
+    <span class="d-inline-flex align-items-center gap-1">
+        <i class="fas fa-circle" style="color:red" aria-hidden="true"></i> Best students did worse than the weakest
+    </span>
+</div>

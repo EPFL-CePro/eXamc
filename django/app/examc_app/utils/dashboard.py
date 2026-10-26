@@ -1,17 +1,24 @@
-from pathlib import Path
-from typing import Any, List, TypedDict
+import typing
 
 from django.conf import settings
-from django.contrib.auth.models import User, AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 from django.db.models import QuerySet
 from django.urls import reverse
 
-from examc_app.models import Exam, ExamUser, PageMarkers, PagesGroupGradingSchemeCheckedBox, PagesGroup
+from examc_app.models import (
+    Exam,
+    ExamUser,
+    PageMarkers,
+    PagesGroup,
+    PagesGroupGradingSchemeCheckedBox,
+)
 from examc_app.permissions import exam_group_names_allow
+from examc_app.services.exam.paths import get_exam_scans_dir
 
 DASHBOARD_TODO_LIMIT = 8
 
-class DashboardTodo(TypedDict):
+
+class DashboardTodo(typing.TypedDict):
     title: str
     description: str
     url: str | None
@@ -30,7 +37,7 @@ def _get_reviewer_group_names():
     return _normalize_group_names(getattr(settings, "EXAM_REVIEWER_GROUP_NAMES", ()))
 
 
-def _get_exam_user_group_names(exam_users: List[ExamUser]) -> List[str]:
+def _get_exam_user_group_names(exam_users: list[ExamUser]) -> list[str]:
     return [
         exam_user.group.name
         for exam_user in exam_users
@@ -38,7 +45,7 @@ def _get_exam_user_group_names(exam_users: List[ExamUser]) -> List[str]:
     ]
 
 
-def _exam_users_allow(exam_users: List[ExamUser], permission_codenames) -> bool:
+def _exam_users_allow(exam_users: list[ExamUser], permission_codenames) -> bool:
     return exam_group_names_allow(
         _get_exam_user_group_names(exam_users),
         permission_codenames,
@@ -143,12 +150,8 @@ def _get_exam_review_scans_path(exam: Exam):
     if not exam.year_id or not exam.semester_id or not exam.date:
         return None
 
-    scans_path = (
-        Path(settings.SCANS_ROOT)
-        / str(exam.year.code)
-        / str(exam.semester.code)
-        / f"{exam.code}_{exam.date:%Y%m%d}"
-    )
+    scans_path = get_exam_scans_dir(exam)
+
     if not scans_path.is_dir():
         return None
 
@@ -178,8 +181,7 @@ def _exam_has_review_scan_files(exam: Exam):
     return False
 
 
-
-class PagesGroupProgress(TypedDict):
+class PagesGroupProgress(typing.TypedDict):
     graded: int
     total_copies: int | None
     percent: int | None
@@ -219,7 +221,7 @@ def _get_filter_tags(exam: Exam, capabilities):
     return filter_tags
 
 
-def build_exam_card(user: User, exam: Exam) -> dict[str, Any]:
+def build_exam_card(user: User, exam: Exam) -> dict[str, typing.Any]:
     exam_users = _get_user_exam_users(exam, user)
     capabilities = _get_exam_capabilities(user, exam_users)
     module_badges = []
@@ -237,7 +239,7 @@ def build_exam_card(user: User, exam: Exam) -> dict[str, Any]:
     if capabilities["manage"]:
         actions.append({
             "label": "Info",
-            "url": reverse("examInfo", kwargs={"exam_pk": exam.pk}),
+            "url": reverse("exam_info", kwargs={"exam_pk": exam.pk}),
             "icon": "fa-book-open",
         })
         if exam.prep_option:
@@ -255,13 +257,13 @@ def build_exam_card(user: User, exam: Exam) -> dict[str, Any]:
     if exam.review_option and capabilities["review"]:
         actions.append({
             "label": "Review",
-            "url": reverse("reviewView", kwargs={"exam_pk": exam.pk}),
+            "url": reverse("review_view", kwargs={"exam_pk": exam.pk}),
             "icon": "fa-glasses",
         })
     if exam.res_and_stats_option and capabilities["results"]:
         actions.append({
             "label": "Results",
-            "url": reverse("studentsResults", kwargs={"exam_pk": exam.pk}),
+            "url": reverse("students_results", kwargs={"exam_pk": exam.pk}),
             "icon": "fa-th-list",
         })
 
@@ -279,7 +281,7 @@ def build_exam_card(user: User, exam: Exam) -> dict[str, Any]:
 
 
 def _add_todo(
-        todos: List[DashboardTodo],
+        todos: list[DashboardTodo],
         title: str,
         description: str,
         url: str | None = None,
@@ -295,14 +297,14 @@ def _add_todo(
     ))
 
 
-def _add_manage_todos(todos: List[DashboardTodo], exam: Exam):
+def _add_manage_todos(todos: list[DashboardTodo], exam: Exam):
     if exam.review_option:
         if not exam.pagesGroup.exists():
             _add_todo(
                 todos,
                 f"{exam.code}: configure review groups",
                 "No page group exists for online review.",
-                reverse("reviewSettingsView", kwargs={"exam_pk": exam.pk, "curr_tab": "groups"}),
+                reverse("review_settings_view", kwargs={"exam_pk": exam.pk}),
                 "fa-cogs",
             )
         else:
@@ -311,7 +313,7 @@ def _add_manage_todos(todos: List[DashboardTodo], exam: Exam):
                     todos,
                     f"{exam.code}: assign reviewers",
                     "No dedicated reviewer is assigned to this exam.",
-                    reverse("reviewSettingsView", kwargs={"exam_pk": exam.pk, "curr_tab": "reviewers"}),
+                    reverse("review_settings_view", kwargs={"exam_pk": exam.pk}),
                     "fa-user-plus",
                 )
             if not _exam_has_review_scan_files(exam):
@@ -329,7 +331,7 @@ def _add_manage_todos(todos: List[DashboardTodo], exam: Exam):
                 todos,
                 f"{exam.code}: create a scale",
                 "Results are enabled but no scale exists yet.",
-                reverse("examInfo", kwargs={"exam_pk": exam.pk}),
+                reverse("exam_info", kwargs={"exam_pk": exam.pk}),
                 "fa-sliders",
             )
         elif exam.students.exists() and not exam.scaleStatistics.exists():
@@ -350,7 +352,7 @@ def _add_manage_todos(todos: List[DashboardTodo], exam: Exam):
             )
 
 
-def _add_review_todos(todos: List[DashboardTodo], user: User, exam: Exam, exam_users: List[ExamUser]):
+def _add_review_todos(todos: list[DashboardTodo], user: User, exam: Exam, exam_users: list[ExamUser]):
     if not exam.review_option:
         return
 
@@ -365,7 +367,7 @@ def _add_review_todos(todos: List[DashboardTodo], user: User, exam: Exam, exam_u
                 todos,
                 f"{exam.code}: review blocked",
                 "Your review access is currently blocked for this exam.",
-                reverse("reviewView", kwargs={"exam_pk": exam.pk}),
+                reverse("review_view", kwargs={"exam_pk": exam.pk}),
                 "fa-lock",
             )
             continue
@@ -376,7 +378,7 @@ def _add_review_todos(todos: List[DashboardTodo], user: User, exam: Exam, exam_u
                 todos,
                 f"{exam.code}: no assigned page group",
                 "You are reviewer on this exam but no page group is assigned to you.",
-                reverse("reviewView", kwargs={"exam_pk": exam.pk}),
+                reverse("review_view", kwargs={"exam_pk": exam.pk}),
                 "fa-triangle-exclamation",
             )
             continue
@@ -392,7 +394,7 @@ def _add_review_todos(todos: List[DashboardTodo], user: User, exam: Exam, exam_u
                     f"{exam.code}: continue {pages_group.group_name}",
                     f"{progress['graded']} / {progress['total_copies']} pages reviewed.",
                     reverse(
-                        "reviewGroup",
+                        'review_group',
                         kwargs={
                             "exam_pk": exam.pk,
                             "group_pk": pages_group.pk,
@@ -404,7 +406,7 @@ def _add_review_todos(todos: List[DashboardTodo], user: User, exam: Exam, exam_u
                 )
 
 
-def get_dashboard_context(user): #-> dict[str, Any]:
+def get_dashboard_context(user):  #-> dict[str, Any]:
     if user.is_superuser:
         exams = Exam.objects.filter(overall=False)
     else:
@@ -431,16 +433,16 @@ def get_dashboard_context(user): #-> dict[str, Any]:
 
     shortcuts = [
         {
-            "label": "Room plan",
+            "label": "Room plan generator",
             "description": "Generate and export exam room plans.",
             "url": reverse("generate_room_plan"),
-            "icon": "fa-meteor",
+            "icon": "fa-chair",
         },
         {
-            "label": "Students CSV generator",
+            "label": "Student list CSV generator",
             "description": "Prepare student CSV files for exam workflows.",
             "url": reverse("csvgen"),
-            "icon": "fa-file-excel",
+            "icon": "fa-file-csv",
         },
         {
             "label": "Documentation",
@@ -472,8 +474,7 @@ def get_dashboard_context(user): #-> dict[str, Any]:
     }
 
 
-
-def get_dashboard_exam_queryset(user: User | AnonymousUser) -> QuerySet[Exam, Exam]:
+def get_dashboard_exam_queryset(user: User | AnonymousUser) -> QuerySet[Exam]:
     if user.is_superuser:
         exams = Exam.objects.filter(overall=False)
     else:
@@ -486,3 +487,10 @@ def get_dashboard_exam_queryset(user: User | AnonymousUser) -> QuerySet[Exam, Ex
         "scales",
         "scaleStatistics",
     ).order_by("-date", "code")
+
+
+def get_dashboard_connected_users_queryset(user: User | AnonymousUser) -> QuerySet[User]:
+    if not user.is_superuser:
+        return User.objects.none()
+
+    return User.objects.exclude(last_login=None).order_by('-last_login')

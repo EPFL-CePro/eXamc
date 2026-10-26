@@ -1,0 +1,27 @@
+.searchable-dropdown {
+    --searchable-dropdown-width: 20rem;
+    --searchable-dropdown-max-height: 300px;
+
+    .dropdown-toggle {
+        width: 100%;
+        max-width: var(--searchable-dropdown-width);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: left;
+    }
+
+    .searchable-dropdown-menu {
+        width: var(--searchable-dropdown-width);
+        padding-top: 0;
+    }
+
+    .searchable-dropdown-search {
+        padding: 0.5rem;
+    }
+
+    .searchable-dropdown-list {
+        max-height: var(--searchable-dropdown-max-height);
+        overflow-y: auto;
+    }
+}

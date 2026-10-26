@@ -1,0 +1,173 @@
+% =====================================================================
+% eXamc - preparation module - main exam template
+% Rendered to <project>/exam.tex by update_exam_latex(), which fills two anchors
+% (placeholder names are not written in comments: every occurrence is replaced):
+%   - "SECTIONS" anchor (after \begin{document}): one \input{./section_<n>.tex} per section
+%   - "SECTIONS-INSERT" anchor (in \examcCopy): per section \input{./section_header_<n>.tex}
+%     followed by \insertgroup{SECTION-<n>}
+% Both anchors must stay alone at the end of their line.
+% =====================================================================
+
+% --- AMC build configuration (written by the final build before each compile).
+% Only read for the AMC build job, so the plain preview (jobname "exam") is
+% not affected by a config file left in the project by a previous build.
+\ifdefined\pdfstrcmp
+  \ifnum\pdfstrcmp{\jobname}{amc-compiled}=0
+    \InputIfFileExists{./amc-compiled-config.tex}{}{}
+  \fi
+\else
+  \InputIfFileExists{./amc-compiled-config.tex}{}{}
+\fi
+
+% Map ligatures and symbols to Unicode, so that text copied from the PDF
+% is clean (pdflatex only, before any font is loaded)
+\ifdefined\pdfgentounicode
+  \input{glyphtounicode}
+  \pdfgentounicode=1
+\fi
+
+\documentclass[a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{xcolor}
+\usepackage{fix-cm}
+\usepackage[nolinks]{qrcode}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{ifthen}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{csvsimple}
+\usepackage{url}
+% Optional packages used by pandoc output (strike-through, tables)
+\IfFileExists{soul.sty}{\usepackage{soul}}{}
+\providecommand{\st}[1]{#1}
+\IfFileExists{longtable.sty}{\usepackage{longtable}}{}
+\IfFileExists{booktabs.sty}{\usepackage{booktabs}}{}
+\usepackage[lang=FR,bloc]{automultiplechoice}
+
+\graphicspath{ {media/} }
+
+% Color used for signature box
+\definecolor{light-Gray}{gray}{0.95}
+
+% --- Project files (all optional: missing files are skipped)
+\InputIfFileExists{./packages.tex}{}{}
+\InputIfFileExists{./style_extra.tex}{}{\PackageWarning{examc}{style_extra.tex not found in the project}}
+\InputIfFileExists{./commands.tex}{}{}
+
+% Number of pages per copy, written by write_exam_generated_vars()
+\InputIfFileExists{./examc_generated_vars.tex}{}{}
+\providecommand{\TotalPagesPerCopy}{2}
+
+% QR code of each page, read when the scans are imported (examc_qr.py): "<exam fields>,<ID>,<page>", the exam
+% fields ("eXamcQRC2,<exam pk>,<exam code>,<date>") being written in examc_generated_vars.tex. Defined here and not
+% in style_extra.tex, which is only copied once into the project (older copies print the QR code without exam).
+\providecommand{\ExamcQRExam}{eXamcQRC2,,,}
+\renewcommand\AMCIDBoxesABC{\hbox{\vbox{\noindent\AMCIDBoxesA\\\noindent\AMCIDBoxesB\AMCIDBoxesC}\vspace{-.5cm}\qrcode[height=15mm]{\ExamcQRExam,\ID,\thepage}}}%
+
+% Exam-level scoring formulas, written by update_global_scoring_latex_file()
+\InputIfFileExists{./global_scoring.tex}{}{}
+\providecommand{\baremeDefautTF}{}
+
+% Students list (the AMC build sets \AMCStudentFile in amc-compiled-config.tex)
+\providecommand{\AMCStudentFile}{students.csv}
+
+% --- Helpers for the LaTeX produced by pandoc from the markdown editors
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\pandocbounded}[1]{#1}
+\providecommand{\passthrough}[1]{#1}
+\providecommand{\href}[2]{#2}
+
+% --- Answer lists, written by render_question_tex_from_html(): AMC shuffles the answers of a list, except with the
+% option [o], which keeps them in the given order: "ANSWER-choices[o]" for the questions whose answers are not
+% randomized, "ANSWER-choiceshoriz[o]" for the true/false questions (TRUE before FALSE).
+% (defined with \csname: \newenvironment does not accept "[" in a name)
+\expandafter\def\csname ANSWER-choices\endcsname{\begin{choices}}
+\expandafter\def\csname endANSWER-choices\endcsname{\end{choices}}
+\expandafter\def\csname ANSWER-choices[o]\endcsname{\begin{choices}[o]}
+\expandafter\def\csname endANSWER-choices[o]\endcsname{\end{choices}}
+\expandafter\def\csname ANSWER-choiceshoriz[o]\endcsname{\begin{choiceshoriz}[o]}
+\expandafter\def\csname endANSWER-choiceshoriz[o]\endcsname{\end{choiceshoriz}}
+
+%%% increase the space between header and bottom for AMC control dots
+\renewcommand{\baselinestretch}{1.10}
+\geometry{includeheadfoot,hmargin=2.25cm,headheight=2cm,headsep=0.2cm}
+\geometry{footskip=.8cm,top=.5cm,bottom=1.1cm,paper=a4paper}
+
+% Booklet printing (A3 folded and stapled): 1 when the pages of a copy must be a multiple of 4,
+% written by write_exam_generated_vars()
+\providecommand{\ExamcBooklet}{0}
+\newcount\examcCopyPages
+\newcount\examcPadCount
+
+% Number of pages of the current copy so far (the page counter restarts at each copy): the current page only
+% counts when something is on it (\pagegoal is \maxdimen on an empty page, e.g. after a \clearpage)
+\newcommand{\examcCountPages}{%
+  \par
+  \examcCopyPages=\value{page}%
+  \ifdim\pagegoal=\maxdimen\advance\examcCopyPages by -1\relax\fi
+}
+\newcommand{\examcBlankPage}{\clearpage\mbox{}\examcCountPages}
+
+% Pad the current copy with blank pages up to \TotalPagesPerCopy, then for a booklet up to a multiple of 4.
+% The pages of its content are written in the log ("EXAMC-COPY-PAGES=<n>", one line per copy): the final
+% generation reads them to know the pages per copy (see build_final_exam)
+\newcommand{\examcPadPages}{%
+  \examcCountPages
+  \typeout{EXAMC-COPY-PAGES=\the\examcCopyPages}%
+  \loop\ifnum\examcCopyPages<\TotalPagesPerCopy\relax
+    \examcBlankPage
+  \repeat
+  \ifnum\ExamcBooklet=1\relax
+    \loop
+      \examcPadCount=\examcCopyPages\divide\examcPadCount by 4\multiply\examcPadCount by 4
+    \ifnum\examcPadCount<\examcCopyPages\relax
+      \examcBlankPage
+    \repeat
+  \fi
+}
+
+% The CSV values are read with the special characters below as plain characters (see \csvreader): restore their
+% LaTeX meaning before the files of the copy are read, else their % comments would be printed
+\newcommand{\examcRestoreCatcodes}{%
+  \catcode`\%=14 \catcode`\&=4 \catcode`\#=6 \catcode`\_=8 \catcode`\^=7 \catcode`\~=13 \catcode`\$=3 %
+}
+
+% One copy of the exam, for the current student of the CSV list
+\newcommand{\examcCopy}{%
+  \examcRestoreCatcodes
+  \onecopy{1}{%
+    \setcounter{equation}{0}%
+    \input{./first_page.tex}
+    %SECTIONS-INSERT%
+    \examcPadPages
+    \AMCassociation{\ID}%
+  }%
+}
+
+\begin{document}
+
+%%% random seed
+\AMCrandomseed{11051975}
+
+%%% Sections (groups of questions)
+%SECTIONS%
+
+%%% One copy per student of the CSV list (a single anonymous copy without list).
+%%% The values may contain _ & # % $ ~ ^ (room CO_1...): printed as they are.
+\IfFileExists{\AMCStudentFile}{%
+  \csvreader[head to column names, respect underscore, respect and, respect sharp, respect percent,
+    respect dollar, respect tilde, respect circumflex]{\AMCStudentFile}{}{\examcCopy}%
+}{%
+  \def\ID{1}\def\SCIPER{000000}\def\NAME{}\def\LASTNAME{}\def\FIRSTNAME{}\def\EMAIL{}%
+  \def\SECTION{}\def\ROOM{}\def\SEAT{}%
+  \examcCopy
+}
+
+\end{document}

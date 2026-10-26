@@ -3,22 +3,24 @@ from django.test import TestCase
 from examc_app.models import (
     AcademicYear,
     ComVsIndStatistic,
+    PageMarkers,
     PagesGroup,
     PagesGroupComment,
-    PageMarkers,
     Question,
     QuestionType,
     Scale,
     ScaleDistribution,
+    ScaleStatistic,
     Semester,
     Student,
     StudentQuestionAnswer,
-    StudentScaleGrade, ScaleStatistic,
+    StudentScaleGrade,
 )
 from examc_app.tests.helpers.models import (
     create_mock_exam,
+    create_mock_scale,
     create_mock_semester,
-    create_mock_user, create_mock_scale,
+    create_mock_user,
 )
 
 
@@ -43,7 +45,7 @@ class ExamModelTestCase(TestCase):
     def test_exam_str_method(self):
         self.assertEqual(
             str(self.exam),
-            "EXAM1-Exam 1 2023-2024 1",
+            "EXAM1 Exam 1 (S1 2023-2024)",
         )
 
 
@@ -70,7 +72,7 @@ class PagesGroupTestCase(TestCase):
 
         self.assertEqual(
             str(group),
-            "Group 1 ( pages 5 )",
+            "Group 1 (5 pages)",
         )
 
 

@@ -1,0 +1,53 @@
+// Room plan generator (both tabs)
+
+$label-bg: rgba(0, 0, 0, 0.6);
+$viewport-max-height: 80vh;
+
+#rooms-plans-page {
+    // Scrolls when the plan is zoomed in
+    .room-plan-viewport {
+        max-height: $viewport-max-height;
+        overflow: auto;
+    }
+
+    // Labels are positioned in % of this box, so they follow the plan when it is zoomed.
+    // Its width is set by the zoom buttons (100% = fit).
+    .room-plan-frame {
+        position: relative;
+        width: 100%;
+
+        img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+    }
+
+    // Manual tab: the plans are clickable
+    #pills-special .room-plan-frame img {
+        cursor: crosshair;
+    }
+
+    .print-label {
+        position: absolute;
+        transform: translate(-50%, -50%); // centered on the clicked point
+        padding: 2px 5px;
+        border-radius: var(--bs-border-radius-sm);
+        background: $label-bg;
+        color: #fff;
+        font-size: 1rem;
+        line-height: 1.2;
+        white-space: nowrap;
+        pointer-events: none; // clicks go through to the plan
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    // Off-screen copy rendered by html2canvas-pro for the download
+    #export-layout {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        width: 1000px;
+    }
+}

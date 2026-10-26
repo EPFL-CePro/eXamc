@@ -1,0 +1,186 @@
+import logging
+import sys
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from django.conf import settings
+from django.http import QueryDict
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from examc_app.api.decorators import ExamScopedViewMixin, exam_permission_required
+from examc_app.api.serializers.amc.data_capture.manual import ScanUrlQuerySerializer
+from examc_app.models import Exam
+from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
+from examc_app.signing import make_token_for
+from examc_app.utils.amc.path import resolve_amc_path
+from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
+from examc_app.utils.amc_functions import get_amc_project_path
+from examc_app.utils.global_functions import user_allowed
+
+logger = logging.getLogger(__name__)
+
+# Question states, with the label shown in the State column's list
+QUESTION_STATES = {"invalid": "Invalid", "empty": "Empty"}
+
+
+def _num_key(value: Any) -> tuple[int, ...]:
+    """Sort key for AMC copy/page numbers: 3 / '3' -> (3,), '3.1' -> (3, 1).
+
+    A regular page sorts just before its extra pages; non-numeric parts sort last.
+    """
+    return tuple(int(part) if part.isdigit() else sys.maxsize for part in str(value).split("."))
+
+
+def _copy_page(r: dict[str, Any]) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    return _num_key(r["copy"]), _num_key(r["page"])
+
+def _problem_count(row: dict[str, Any]) -> int:
+    return sum(row["state_counts"].values())
+
+
+# DataTables column data name -> sort key
+ORDERING_COLUMNS: dict[str, Callable[[dict[str, Any]], tuple[Any, ...]]] = {
+    "copy": _copy_page,
+    "page": lambda r: (_num_key(r["page"]), _num_key(r["copy"])),
+    "states": lambda r: (len(r["states"]), "invalid" in r["states"], *_copy_page(r)),
+    "mse": lambda r: (r["mse"] or 0,),
+    "sensitivity": lambda r: (r["sensitivity"] or 0,),  # None sensitivity sorts as 0
+    "timestamp_manual": lambda r: (1 if r["timestamp_manual"] else 0, *_copy_page(r)),
+}
+
+
+def _int_param(params: QueryDict, name: str, default: int) -> int:
+    try:
+        return int(params.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _column_index(params: QueryDict, data_name: str) -> str | None:
+    """Index of the DataTables column whose `data` is data_name."""
+    for key, value in params.items():
+        if value == data_name and key.startswith("columns[") and key.endswith("][data]"):
+            return key[len("columns["):-len("][data]")]
+    return None
+
+
+def _column_list(params: QueryDict, data_name: str) -> list[str]:
+    """Values selected in a column's ColumnControl searchList (sent as [list][] or [list][0], [list][1]...)."""
+    index = _column_index(params, data_name)
+    if index is None:
+        return []
+    prefix = f"columns[{index}][columnControl][list]"
+    return [v for key in params if key.startswith(prefix) for v in params.getlist(key)]
+
+
+class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
+    """
+    Pages needing manual data capture, in DataTables server-side format.
+
+    GET /api/exams/<exam_pk>/amc-data-capture-manual/
+    """
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
+
+        self.permission_classes = [IsAuthenticated]
+
+    @exam_permission_required(["manage"])
+    def list(self, request: Request, exam_pk: str) -> Response:
+        if not user_allowed(self.exam, request.user.id):
+            raise PermissionDenied("Not allowed for this exam.")
+
+        data = get_amc_data_capture_manual_data(self.exam)
+        if data is None:
+            raise NotFound("No AMC project found for this exam.")
+
+        params = request.query_params
+        rows = data["pages"]
+        records_total = len(rows)
+
+        # search on copy / page
+        search = params.get("search[value]", "").strip()
+        if search:
+            rows = [r for r in rows if search in str(r["copy"]) or search in str(r["page"])]
+
+        # Questions + State lists (ColumnControl): keep pages having a question matching both.
+        # Several values in one list are combined with OR.
+        question_ids = {int(v) for v in _column_list(params, "page_questions") if v.isdigit()}
+        states = {v for v in _column_list(params, "states") if v in QUESTION_STATES}
+        if question_ids or states:
+            rows = [
+                r for r in rows
+                if any(
+                    (not question_ids or q["id"] in question_ids) and (not states or q["state"] in states)
+                    for q in r["page_questions"]
+                )
+            ]
+        records_filtered = len(rows)
+
+        # ordering, by the clicked column's data name (robust to column reordering)
+        order_column = params.get("order[0][column]", "")
+        sort_key = ORDERING_COLUMNS.get(params.get(f"columns[{order_column}][data]", ""))
+        if sort_key:
+            rows = sorted(rows, key=sort_key, reverse=params.get("order[0][dir]") == "desc")
+
+        # paging (length -1 = "All")
+        start = _int_param(params, "start", 0)
+        length = _int_param(params, "length", 25)
+        if length != -1:
+            rows = rows[start:start + length]
+
+        return Response({
+            "draw": _int_param(params, "draw", 0),
+            "recordsTotal": records_total,
+            "recordsFiltered": records_filtered,
+            "data": rows,
+            "copies": data["copies"],
+            # options for the ColumnControl searchLists, keyed by column data name
+            "columnControl": {
+                "page_questions": [{"label": q["name"], "value": q["question"]} for q in data["questions"]],
+                "states": [{"label": label, "value": value} for value, label in QUESTION_STATES.items()],
+            },
+        })
+
+    @action(detail=False, methods=['get'], url_path='scan-url')
+    @exam_permission_required(['manage'])  # use the same permission decorator as list()
+    def scan_url(self, request: Request, exam_pk: int | None = None):
+        query = ScanUrlQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        copy_nr = query.validated_data['copy']
+        page_nr = query.validated_data['page']
+
+        exam = get_object_or_404(Exam, pk=exam_pk)
+        project_path = get_amc_project_path(exam, False)
+
+        if '.' in page_nr:  # extra page
+            c = copy_nr.zfill(4)
+            scan_path = Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
+        else:
+            with AmcCaptureDbManager(amc_data_path=f'{project_path}/data/') as amc_capture_db_manager:
+                raw = amc_capture_db_manager.select_amc_scan_path(copy_nr, page_nr)
+                if not raw:
+                    raise NotFound('No scan was found for this page.')
+
+            scan_path = resolve_amc_path(raw, project_path)
+
+        roots = [Path(settings.MARKED_SCANS_ROOT), Path(settings.SCANS_ROOT), Path(project_path, 'scans', 'extra')]
+        root = next((r.resolve() for r in roots if scan_path.is_relative_to(r.resolve())), None)
+
+        if root is None or not scan_path.is_file():
+            logger.error('Scan not found: copy=%s page=%s path=%s', copy_nr, page_nr, scan_path)
+            raise NotFound('No scan file was found for this page.')
+
+        return Response({
+            'url': make_token_for(
+                rel_path=str(scan_path.relative_to(root)),
+                type_root=str(root),
+                copy_page_in_url=False
+            )
+        })

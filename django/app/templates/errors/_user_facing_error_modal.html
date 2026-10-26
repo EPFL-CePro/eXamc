@@ -1,0 +1,13 @@
+{% load django_vite %}
+
+{# Modal showing UserFacingError messages, from a redirect (Django messages) or an AJAX response. #}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/errors/_user_facing_error_modal/index.ts' %}
+{% endblock %}
+
+<div id="user-error-messages" hidden>
+  {% for message in messages %}
+    {% if "error-modal" in message.extra_tags %}<span data-error="{{ message }}"></span>{% endif %}
+  {% endfor %}
+</div>

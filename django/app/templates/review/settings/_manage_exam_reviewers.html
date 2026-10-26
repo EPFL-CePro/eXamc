@@ -1,0 +1,44 @@
+<form id="form-reviewer" method="POST" style="max-width: var(--form-max-width)">
+    {% csrf_token %}
+    {{ exam_reviewers_formset.management_form }}
+
+    <div class="alert alert-info" style="max-width: fit-content">
+        <i class="fas fa-info-circle"></i> To add or remove reviewers, go to the "Users" section of the
+        <a href="{% url 'exam_info' exam.pk %}">exam settings page</a>.
+    </div>
+
+    <button type="submit" title="Save exam reviewers changes" name="submit-reviewers" class="btn btn-primary mb-4">
+        <i class="fas fa-floppy-disk"></i> Save changes to exam reviewers
+    </button>
+
+    <table class="table" style="max-width: var(--form-max-width)">
+      <thead>
+        <tr>
+            <th scope="col">User</th>
+            {% for field in exam_reviewers_formset.initial_forms.0 %}
+                {% if field.label != 'Id' %}<th scope="col">{{ field.label }}</th>{% endif %}
+            {% endfor %}
+        </tr>
+      </thead>
+      <tbody id="group-tbody">
+
+        {% for form in exam_reviewers_formset.initial_forms %}
+            <tr>
+                <td>{% with form.instance.user as user %}
+                    <span>{{ user|get_user_all_infos:"html" }}</span>
+                {% endwith %}</td>
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+                {% for field in form.visible_fields %}
+                    {% if field.label == 'Delete' %}
+                        <td style="text-align:center;padding-top:35px">{{ field }}</td>
+                    {% else %}
+                        <td>{{ field }}</td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</form>
