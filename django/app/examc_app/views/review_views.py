@@ -83,6 +83,7 @@ from examc_app.utils.review_upload_state import (
     get_pending_amc_import_upload_task_id,
     set_pending_amc_import,
 )
+from examc_app.utils.view_context_helpers import ViewContext
 
 logger = logging.getLogger(__name__)
 
@@ -799,6 +800,7 @@ def grading_scheme_panel(request: HttpRequest, exam_pk: int, grading_scheme_id: 
             "review/settings/grading_scheme/_grading_scheme_panel.html",
             {
                 "exam_selected": grading_scheme.pages_group.exam,
+                "pages_group": grading_scheme.pages_group,
                 "grading_scheme": grading_scheme,
                 "grading_scheme_form": grading_scheme_form,
                 "error_msg": error_msg,
@@ -812,6 +814,7 @@ def grading_scheme_panel(request: HttpRequest, exam_pk: int, grading_scheme_id: 
         "review/settings/grading_scheme/_grading_scheme_panel.html",
         {
             "exam_selected": grading_scheme.pages_group.exam,
+            "pages_group": grading_scheme.pages_group,
             "grading_scheme": grading_scheme,
             "grading_scheme_form": grading_scheme_form,
             "scheme_in_use": scheme_in_use,

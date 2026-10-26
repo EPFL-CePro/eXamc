@@ -6,3 +6,5 @@ export interface AdvancedEditor {
     setMode(mode: AdvancedEditorMode): void;
     destroy(): void;
 }
+
+export type SimpleEditorFormat = 'html' | 'markdown';
