@@ -36,7 +36,7 @@ dependencies = [
     "pandocfilters==1.5.1",
     "pillow==13.0.0",
     "pypandoc==1.17",
-    "pypdf==6.21.1",
+    "pypdf==6.21.2",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.4",
     "pytz==2026.5",
@@ -100,4 +100,5 @@ DEP002 = [
 
 [tool.uv]
 exclude-newer = "7 days"
+exclude-newer-package = { pypdf = "2026-10-26T00:00:00Z" }
 add-bounds = "exact"
