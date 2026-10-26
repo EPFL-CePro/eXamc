@@ -100,8 +100,8 @@ DEP002 = [
 
 [tool.uv]
 exclude-newer = "7 days"
-exclude-newer-package = { 
-    pypdf = "2026-10-26T00:00:00Z",
-    certifi = "2026-10-26T00:00:00Z"
-}
 add-bounds = "exact"
+
+[tool.uv.exclude-newer-package]
+pypdf = "2026-10-26T00:00:00Z"
+certifi = "2026-10-26T00:00:00Z"
