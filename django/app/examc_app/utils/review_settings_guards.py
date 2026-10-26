@@ -8,7 +8,6 @@ from examc_app.models import (
     PagesGroupStudentReportNote,
 )
 
-
 IMMUTABLE_PAGES_GROUP_FIELDS = ("group_name", "nb_pages", "use_grading_scheme")
 
 

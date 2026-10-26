@@ -1,0 +1,14 @@
+<span class="nav-item" role="presentation"
+      {% if tab.tooltip %}data-bs-toggle="tooltip" data-bs-title="{{ tab.tooltip }}"{% endif %}
+      {% if tab.disabled and tab.tooltip %}tabindex="0"{% endif %}>
+    <button type="button"
+            class="nav-link w-100{% if tab.key == active %} active{% endif %}"
+            id="{{ prefix }}-{{ tab.key }}-tab" role="tab"
+            data-bs-toggle="pill" data-bs-target="#pills-{{ prefix }}-{{ tab.key }}"
+            data-tab-key="{{ tab.key }}"
+            aria-controls="pills-{{ prefix }}-{{ tab.key }}"
+            aria-selected="{% if tab.key == active %}true{% else %}false{% endif %}"
+            {% if tab.disabled %}disabled aria-disabled="true"{% endif %}>
+        {% if tab.icon %}<i class="{{ tab.icon }}"></i> {% endif %}{{ tab.label }}
+    </button>
+</span>

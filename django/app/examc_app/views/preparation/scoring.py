@@ -87,7 +87,7 @@ def scoring_formulas_modal(request, exam_pk):
 
         return render(
             request,
-            "exam/preparation/_prep_scoring_formulas_modal_body.html",
+            "exam/preparation/partials/_prep_scoring_formulas_modal_body.html",
             {
                 "formset": formset,
                 "exam_pk": exam_pk,
@@ -155,7 +155,7 @@ def scoring_formulas_modal(request, exam_pk):
 
         html = render(
             request,
-            "exam/preparation/_prep_scoring_formulas_modal_body.html",
+            "exam/preparation/partials/_prep_scoring_formulas_modal_body.html",
             {
                 "formset": formset,
                 "exam_pk": exam_pk,

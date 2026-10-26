@@ -5,7 +5,7 @@
     {% vite_asset 'src/views/amc/amc_data_capture/index.ts' %}
 {% endblock %}
 
-<div id="amc-data-capture" style="padding:20px;width:800px;"
+<div id="amc-data-capture"
      data-exam-pk="{{ exam_selected.pk }}"
      data-zip-import-url="{% url 'call_amc_automatic_data_capture' exam_selected.pk %}"
      data-import-all-url="{% url 'import_scans_from_review' exam_selected.pk %}"
@@ -19,18 +19,19 @@
     {{ missing_pages|default_if_none:""|json_script:"json-missing-pages" }}
     {{ overwritten_pages|default_if_none:""|json_script:"json-overwritten-pages" }}
 
-
-    <h6>Data capture after examination</h6>
-    <div class="mb-3" style="text-align: center;padding:10px;">
-        <button id="open-automatic-capture-btn" type="button" class="btn btn-dark btn-sm" style="margin:0 50% 0 0;">
-            <img src="{% static 'img/amc_icons/amc-auto-capture.svg' %}" width="16" height="16" alt="" style="margin-right:10px;"/>
-            Automatic
+    <div class="d-flex gap-3 mb-3">
+        <button id="open-automatic-capture-btn" type="button" class="btn btn-dark">
+            <img src="{% static 'img/amc_icons/amc-auto-capture.svg' %}" class="me-1" width="16" height="16" alt="AMC's auto capture logo"/>
+            Automatic data capture
         </button>
-        <a href="{% url 'amc_data_capture_manual' exam_selected.pk %}" class="btn btn-dark btn-sm">
-            <img src="{% static 'img/amc_icons/amc-manual-capture.svg' %}" width="16" height="16" alt="" style="margin-right:10px;"/>
-            Manual
+
+        <a href="{% url 'amc_data_capture_manual' exam_selected.pk %}" class="btn btn-dark">
+            <img src="{% static 'img/amc_icons/amc-manual-capture.svg' %}" class="me-1" width="16" height="16" alt="AMC's manual capture icon"/>
+            Manual data capture
         </a>
     </div>
+
+    <hr/>
 
     <div class="mb-3">
         {% if data_pages %}

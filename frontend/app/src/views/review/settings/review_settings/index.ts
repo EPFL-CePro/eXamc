@@ -1,3 +1,3 @@
 import { manageTabs } from '@examc/helpers/tabs';
 
-document.addEventListener('DOMContentLoaded', () => manageTabs({ tabListSelector: "#review-settings-pills-tab" }));
+document.addEventListener('DOMContentLoaded', () => manageTabs({ tabListSelector: "#review-settings-tabs" }));

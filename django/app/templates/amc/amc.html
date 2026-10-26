@@ -9,56 +9,46 @@
 
 {% block content %}
     {% if user_allowed %}
-        <div id="amc-page" style="max-width: 800px"
+        <div id="amc-page"
              data-current-tab="{{ curr_tab|default:'' }}"
              data-log-file-url="{% url 'view_amc_log_file' exam_selected.pk %}"
              data-csrf-token="{{ csrf_token }}">
-            <h4 class="mb-3">AMC (auto-multiple-choice)</h4>
+
+            {% pill_header title="AMC (auto-multiple-choice)" prefix="amc" %}
+                {% pill_tab "project" label="Project" icon="fas fa-edit" %}
+                {% pill_tab "data-capture" label="Data capture" icon="fas fa-file-image" %}
+                {% pill_tab "marking-scheme" label="Marking scheme" icon="fas fa-list-check" disabled=data_capture_missing tooltip="Locked: please import review data first." %}
+                {% pill_tab "reports" label="Reports" icon="fas fa-chart-simple" disabled=data_capture_missing tooltip="Locked: please import review data first." %}
+
+                <button id="btn-upload-amc-project" class="btn btn-dark"
+                        data-upload-amc-project-url="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}">
+                    <i class="fa-solid fa-cloud-arrow-up me-1" aria-hidden="true"></i>Upload AMC project
+                </button>
+
+                {% if project_dir_dict %}
+                    <button id="btn-view-log-file" type="button" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> See AMC logs
+                    </button>
+                {% endif %}
+            {% endpill_header %}
 
             {% if project_dir_dict %}
-                <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 border rounded p-1 mb-3">
-                    <ul class="nav nav-pills nav-fill flex-column flex-sm-row flex-grow-1" id="amc-tabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link w-100" id="project-tab" role="tab"
-                                    data-bs-toggle="pill" data-bs-target="#pills-project"
-                                    aria-controls="pills-project" aria-selected="false">Project</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link w-100" id="data-capture-tab" role="tab"
-                                    data-bs-toggle="pill" data-bs-target="#pills-data-capture"
-                                    aria-controls="pills-data-capture" aria-selected="false">Data capture</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link w-100" id="marking-tab" role="tab"
-                                    data-bs-toggle="pill" data-bs-target="#pills-marking"
-                                    aria-controls="pills-marking" aria-selected="false"
-                                    {% if not data_pages %}disabled{% endif %}>Marking</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link w-100" id="results-tab" role="tab"
-                                    data-bs-toggle="pill" data-bs-target="#pills-reports"
-                                    aria-controls="pills-reports" aria-selected="false"
-                                    {% if not data_pages %}disabled{% endif %}>Results</button>
-                        </li>
-                    </ul>
-                    <button id="btn-view-log-file" type="button" class="btn btn-outline-secondary btn-sm ms-sm-auto">
-                        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Log file
-                    </button>
-                </div>
-
-                <div class="tab-content" id="amc-tab-content">
-                    <div class="tab-pane fade" id="pills-project" role="tabpanel" aria-labelledby="project-tab" tabindex="0">
+                <div class="tab-content" id="amc-tab-content" style="max-width: 55rem">
+                    {% pill_pane "project" prefix="amc" %}
                         {% include "./amc_project.html" %}
-                    </div>
-                    <div class="tab-pane fade" id="pills-data-capture" role="tabpanel" aria-labelledby="data-capture-tab" tabindex="0">
+                    {% endpill_pane %}
+
+                    {% pill_pane "data-capture" prefix="amc" %}
                         {% include "./amc_data_capture.html" %}
-                    </div>
-                    <div class="tab-pane fade" id="pills-marking" role="tabpanel" aria-labelledby="marking-tab" tabindex="0">
+                    {% endpill_pane %}
+
+                    {% pill_pane "marking-scheme" prefix="amc" %}
                         {% include "./amc_marking.html" %}
-                    </div>
-                    <div class="tab-pane fade" id="pills-reports" role="tabpanel" aria-labelledby="results-tab" tabindex="0">
+                    {% endpill_pane %}
+
+                    {% pill_pane "reports" prefix="amc" %}
                         {% include "./amc_results.html" %}
-                    </div>
+                    {% endpill_pane %}
                 </div>
             {% else %}
                 <div class="alert alert-warning text-center mt-3" id="no-amc-project-dir-msg" role="alert">

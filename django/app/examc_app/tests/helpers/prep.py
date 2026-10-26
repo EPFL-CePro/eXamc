@@ -42,8 +42,8 @@ class PrepViewsTestCase(TestCase):
                       for code in ("SCQ", "MCQ", "TF", "OPEN")}
         self.section = PrepSection.objects.create(exam=self.exam, title="Algebra", position=1)
 
-    def url(self, name, **kwargs):
-        return reverse(name, kwargs={"exam_pk": self.exam.pk, **kwargs})
+    def url(self, name, query=None, **kwargs):
+        return reverse(name, kwargs={"exam_pk": self.exam.pk, **kwargs}, query=query)
 
     def project_path(self) -> Path:
         return Path(ensure_amc_project(self.exam))

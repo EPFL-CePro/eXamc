@@ -2,8 +2,9 @@ import { byId } from "@examc/helpers/dom.ts";
 import { getText, parseJson, postText } from "@examc/helpers/http.ts";
 
 import { URLS } from "./config.ts";
-import { hideModal, showModal, withQuery, withSpinner } from "./ajax.ts";
+import { withQuery, withSpinner } from "./ajax.ts";
 import { showSaveToast } from "./save-toast.ts";
+import { LocalModal } from "@examc/modals/local.ts";
 
 // Edit LaTeX file management
 
@@ -14,7 +15,7 @@ export async function openEditLaTeXFileDialog(type: string): Promise<void> {
         byId<HTMLTextAreaElement>("latex_source_text").value = parseJson<string[]>(text)?.[1] ?? "";
         byId("edit_latex_file_modal_title").innerText = "Edit " + type;
         byId("edit_latex_file_type").innerText = type;
-        showModal("#edit_latex_file_modal");
+        new LocalModal(byId("edit_latex_file_modal")).show();
     } catch (error) {
         console.error("[preparation] LaTeX request failed:", error);
         showSaveToast("Unable to load the LaTeX file.", true);
@@ -29,7 +30,7 @@ export async function saveEditedLaTeXFile(): Promise<void> {
 
     try {
         await withSpinner(true, () => postText(URLS.saveLatexFile, data));
-        hideModal("#edit_latex_file_modal");
+        new LocalModal(byId("edit_latex_file_modal")).hide();
     } catch (error) {
         console.error("[preparation] LaTeX request failed:", error);
         showSaveToast("Not saved: the LaTeX file could not be saved.", true);
@@ -180,7 +181,8 @@ export async function openEditLaTeXPackagesDialog(type: string): Promise<void> {
         renderUsedPackages();
         renderPackageSearchResults("");
 
-        showModal("#edit_latex_packages_modal");
+        new LocalModal(byId("edit_latex_packages_modal")).show();
+
     } catch (error) {
         console.error("[preparation] LaTeX request failed:", error);
         showSaveToast("Unable to load the LaTeX packages.", true);
@@ -190,7 +192,7 @@ export async function openEditLaTeXPackagesDialog(type: string): Promise<void> {
 export async function saveEditedLaTeXPackages(): Promise<void> {
     try {
         await withSpinner(true, () => postText(URLS.saveLatexPackages, { "new_used_packages[]": currentUsedPackages }));
-        hideModal("#edit_latex_packages_modal");
+        new LocalModal(byId("edit_latex_packages_modal")).hide();
     } catch (error) {
         console.error("[preparation] LaTeX request failed:", error);
         showSaveToast("Not saved: the LaTeX packages could not be saved.", true);

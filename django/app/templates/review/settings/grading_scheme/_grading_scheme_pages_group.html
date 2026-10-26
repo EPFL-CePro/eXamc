@@ -1,50 +1,52 @@
-<div class="d-flex flex-column gap-2 mb-2" style="max-width: var(--form-max-width)">
-    <h5 class="m-0">2. Select a grading scheme</h5>
+{% with selected_id=current_grading_scheme.id|default:grading_schemes.0.id %}
+    {% load django_vite %}
 
-    <span class="alert alert-info mb-3" style="max-width: fit-content">
-        Adding a new grading scheme is allowed. Existing used schemes remain locked for destructive changes.
-    </span>
-</div>
+    {% block extra_head %}
+        {% vite_asset 'src/views/review/settings/grading_scheme/_grading_scheme_pages_group/index.ts' %}
+    {% endblock %}
 
+    <div class="input-group" style="width: fit-content">
+        {% if grading_schemes %}
+            <label class="input-group-text" for="grading-scheme-selected-grading-scheme">Grading scheme</label>
+            <select class="form-select" id="grading-scheme-selected-grading-scheme"
+                    hx-get="{% url 'grading_scheme_panel' exam_selected.id selected_id %}"
+                    hx-trigger="load, change"
+                    hx-target="#scheme-panel-{{ pages_group.id }}"
+                    hx-swap="innerHTML"
+                    hx-on::config-request="event.detail.path = this.selectedOptions[0]?.dataset.url ?? event.detail.path">
+                {% for gs in grading_schemes %}
+                    <option value="{{ gs.id }}"
+                            data-url="{% url 'grading_scheme_panel' exam_selected.id gs.id %}"
+                            {% if gs.id == selected_id %}selected{% endif %}>
+                        {{ gs.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        {% endif %}
 
-<div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 border rounded p-1 mb-2"
-     style="width: fit-content">
-    <ul class="nav nav-pills nav-fill flex-column flex-sm-row">
-        {% for gs in grading_schemes %}
-            <li class="nav-item" role="presentation">
-                <a type="button"
-                   class="nav-link {% if current_grading_scheme and current_grading_scheme.id == gs.id %}active{% endif %}"
-                   aria-selected="{% if current_grading_scheme and current_grading_scheme.id == gs.id %}true{% else %}false{% endif %}"
-                   hx-get="{% url 'grading_scheme_panel' exam_selected.id gs.id %}"
-                   hx-target="#scheme-panel-{{ gs.pages_group.id }}"
-                   hx-swap="innerHTML"
-                   hx-on:click="
-                    this.closest('.nav').querySelectorAll('.nav-link').forEach((link) => {
-                        link.classList.toggle('active', link === this);
-                        link.setAttribute('aria-selected', String(link === this));
-                    });
-                   "
-                  {% if current_grading_scheme and current_grading_scheme.id == gs.id %}hx-trigger="load once, click"{% endif %}
-                >
-                    {{ gs.name }}
-                </a>
-            </li>
-        {% endfor %}
+        <button type="button" class="btn btn-outline-success"
+                title="Add grading scheme" aria-label="Add grading scheme"
+                hx-post="{% url 'add_new_grading_scheme' exam_selected.pk pages_group.id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#grading-scheme-panel"
+                hx-swap="innerHTML">
+            <i class="fa-solid fa-circle-plus"></i>
+        </button>
+    </div>
 
-        <a id="add-form" class="nav-link" title="Add grading scheme" style="cursor: pointer"
-           hx-post="{% url 'add_new_grading_scheme' exam_selected.pk pages_group.id %}"
-           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-           hx-target="#grading-scheme-panel"
-           hx-swap="innerHTML">
-            <i class="fa-solid fa-circle-plus fa-xl" style="color:green;"></i>
-        </a>
-    </ul>
-</div>
+    <hr>
+{% endwith %}
 
 {% if error_msg %}
-    <div class="alert alert-danger mt-2 mb-2">{{ error_msg }}</div>
+    <div class="alert alert-danger mt-2 mb-2" style="max-width: fit-content">
+        <i class="fa-solid fa-circle-exclamation"></i> {{ error_msg }}
+    </div>
 {% endif %}
-{% if saved %}
-    <div class="alert alert-success mb-3">Saved.</div>{% endif %}
-<div id="scheme-panel-{{ pages_group.id }}" class="tab-content"></div>
 
+{% if saved %}
+    <div class="alert alert-success mb-3" style="max-width: fit-content">
+        <i class="fa-solid fa-check"></i> Saved.
+    </div>
+{% endif %}
+
+<div id="scheme-panel-{{ pages_group.id }}" class="tab-content"></div>

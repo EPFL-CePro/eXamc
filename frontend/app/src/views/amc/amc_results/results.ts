@@ -12,19 +12,15 @@ export function initResults(endpoints: ResultsUrls): void {
 
 /**
  * Generates the results, then reloads the page to show them.
- *
- * @param {HTMLButtonElement} button - The button, disabled while the request runs.
  */
-export async function generateResults(button: HTMLButtonElement): Promise<void> {
+export async function generateResults(): Promise<void> {
     if (!urls) throw new ModuleUninitialized('results.ts', 'initResults');
 
-    button.disabled = true;
     try {
         await postText(urls.generate, {});
         window.location.reload();
     } catch (error) {
         console.error(error);
         showInfo('Failed to generate results.');
-        button.disabled = false;
     }
 }

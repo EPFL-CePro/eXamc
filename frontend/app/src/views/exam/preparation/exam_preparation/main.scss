@@ -1,51 +1,28 @@
-.latex-btn {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
-    display: inline-flex;
-    align-items: center;
-}
-
-.latex-text {
-    font-size: 0.8rem;
-    text-transform: lowercase;
-    margin-left: 5px;
-}
-
-// LaTeX packages
-
-// The search results are a list positioned under the field: the body needs room for it (the dialog scrolls)
-// stylelint-disable-next-line selector-id-pattern
-#edit_latex_packages_modal .modal-body {
-    min-height: 450px;
-}
-
+// LaTeX packages: search results under the search input. They're in the flow rather than floating over the dialog:
+// the dialog's body scrolls (modal-dialog-scrollable), which clips anything positioned over it.
 .latex-search-results {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1056;
-    background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
-    margin-top: 0.4rem;
+    display: none; // shown by the script while there are results
     max-height: 260px;
+    margin-top: 0.4rem;
     overflow-y: auto;
-    display: none;
-}
+    background: var(--bs-body-bg);
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: 0.5rem;
 
-.latex-search-item {
-    padding: 0.65rem 0.9rem;
-    cursor: pointer;
-    border-bottom: 1px solid #f1f3f5;
-    font-size: 0.95rem;
+    .latex-search-item {
+        padding: 0.65rem 0.9rem;
+        cursor: pointer;
+        border-bottom: var(--bs-border-width) solid var(--bs-border-color-translucent);
+        font-size: 0.95rem;
 
-    &:last-child {
-        border-bottom: none;
-    }
+        &:last-child {
+            border-bottom: none;
+        }
 
-    &:hover {
-        background: #f8f9fa;
+        &:hover,
+        &:focus-visible {
+            background: var(--bs-tertiary-bg);
+        }
     }
 }
 

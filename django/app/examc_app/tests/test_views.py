@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
@@ -143,7 +144,9 @@ class TestForms(TestCase):
             list(form.fields["pages_groups"].queryset),
             [pages_group],
         )
-        self.assertTrue(form.fields["user"].disabled)
+
+        self.assertNotIn("user", form.fields)
+
         self.assertEqual(
             form.fields["review_blocked"].widget.__class__.__name__,
             "SwitchWidget",
@@ -157,10 +160,8 @@ class TestForms(TestCase):
 
         form = ManagePagesGroupsForm(questions_choices)
 
-        self.assertEqual(
-            form.fields["group_name"].widget.__class__.__name__,
-            "Select",
-        )
+        self.assertIsInstance(form.fields["group_name"].widget, forms.Select)
+
         self.assertEqual(
             form.fields["nb_pages"].widget.__class__.__name__,
             "NumberInput",
@@ -275,7 +276,7 @@ class TestReviewView(TestCase):
 
         response = self.client.get(
             reverse(
-                "reviewView",
+                "review_view",
                 kwargs={"exam_pk": self.exam.pk},
             )
         )
@@ -394,10 +395,7 @@ class TestReviewSettingsView(TestCase):
         response = self.client.get(
             reverse(
                 "review_settings_view",
-                kwargs={
-                    "exam_pk": self.exam.pk,
-                    "curr_tab": "groups",
-                },
+                kwargs={ "exam_pk": self.exam.pk },
             )
         )
 

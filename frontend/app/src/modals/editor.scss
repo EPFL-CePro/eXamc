@@ -1,0 +1,35 @@
+.examc-editor-modal {
+    .modal-content {
+        // The dialog fills the screen height, minus Bootstrap's modal margins at the top and bottom.
+        min-height: 30rem;
+        max-height: calc(100dvh - var(--bs-modal-margin) * 2);
+
+        .modal-body {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        
+            // The editor takes the remaining height and scrolls inside it.
+            [data-editor] {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+
+                // Makes the empty area below the text part of the editor, so clicking there places the cursor.
+                .milkdown {
+                    min-height: 100%;
+                }
+            
+                // The toolbar stays at the top of the editor while its content scrolls.
+                .milkdown-top-bar {
+                    position: sticky;
+                    top: 0;
+                    z-index: 1;
+                    padding: 0;
+                    background: var(--crepe-color-background, var(--bs-body-bg));
+                }
+            }
+        }
+    }
+}

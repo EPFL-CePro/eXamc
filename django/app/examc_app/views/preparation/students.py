@@ -36,23 +36,6 @@ logger = logging.getLogger(__name__)
 
 
 @exam_permission_required(["manage"])
-def exam_preparation_students_view(request, exam_pk):
-    exam = get_object_or_404(Exam, pk=exam_pk)
-
-    return render(
-        request,
-        "exam/preparation/exam_preparation_students.html",
-        {
-            "exam": exam,
-            "exam_selected": exam,
-            "nav_url": "exam_preparation_students",
-            "is_exam_finalized": exam.is_finalized,
-            "is_exam_locked": is_exam_locked(exam),
-        },
-    )
-
-
-@exam_permission_required(["manage"])
 def download_prep_students_template(request, exam_pk):
     response = HttpResponse(
         build_students_template(),

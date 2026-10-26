@@ -42,6 +42,7 @@
             padding: 1rem;
         }
     </style>
+
     <aside class="scoring-help-panel" id="scoringHelpPanel">
         <div class="scoring-help-inner">
 
@@ -108,13 +109,13 @@ Score capped at 2</pre>
             <h6 class="mt-3">Available variables</h6>
 
             <ul class=" ps-3">
-                <li><code>N</code> : total number of answers</li>
-                <li><code>NB</code> : number of correct answers</li>
-                <li><code>NBC</code> : correct answers checked</li>
-                <li><code>NM</code> : number of wrong answers</li>
-                <li><code>NMC</code> : wrong answers checked</li>
-                <li><code>IS</code> : 1 if simple question</li>
-                <li><code>IMULT</code> : 1 if multiple-choice question</li>
+                <li><code>N</code>: total number of answers</li>
+                <li><code>NB</code>: number of correct answers</li>
+                <li><code>NBC</code>: correct answers checked</li>
+                <li><code>NM</code>: number of wrong answers</li>
+                <li><code>NMC</code>: wrong answers checked</li>
+                <li><code>IS</code>: 1 if simple question</li>
+                <li><code>IMULT</code>: 1 if multiple-choice question</li>
             </ul>
 
             <h6 class="mt-3">Operators</h6>
@@ -135,7 +136,6 @@ Score capped at 2</pre>
             <pre class="">formula="max(0,NBC-NMC)"</pre>
 
             <pre class="">formula="(NBC==NB ? 1 : 0)"</pre>
-
         </div>
     </aside>
 

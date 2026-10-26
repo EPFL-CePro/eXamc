@@ -1,9 +1,19 @@
 {% load static %}
 
 <div id="sidebar-container"
-     class="d-none d-md-flex flex-column bg-dark flex-shrink-0 flex-grow-0 position-sticky top-0 align-self-start z-2"
-     style="flex-basis: 14rem; height: 100dvh; max-width: 14rem"
+     class="offcanvas-md offcanvas-start d-flex flex-column bg-dark flex-shrink-0 flex-grow-0 align-self-start"
+     style="flex-basis: 14rem; width: 14rem; height: 100dvh; max-width: 14rem"
+     tabindex="-1" aria-label="Main menu"
      data-bs-theme="dark">
+
+    {# Mobile toggle: just outside the drawer's right edge, so it slides with it #}
+    <button type="button" id="sidebar-toggle"
+            class="btn btn-dark rounded-circle shadow d-flex align-items-center justify-content-center d-md-none"
+            data-bs-toggle="offcanvas" data-bs-target="#sidebar-container" aria-controls="sidebar-container"
+            aria-label="Toggle menu">
+        <span class="fa-solid fa-bars fa-lg sidebar-toggle-open" aria-hidden="true"></span>
+        <span class="fa-solid fa-xmark fa-lg sidebar-toggle-close" aria-hidden="true"></span>
+    </button>
 
     {# Main menu #}
     <nav class="list-group list-group-flush" aria-label="Main menu">
@@ -36,52 +46,29 @@
 
                 {# Preparation #}
                 {% if exam_selected.has_prep_option and user|more_arg:exam_selected|is_allowed:'preparation' %}
-                    <div class="dropend">
-                        <button type="button" id="sidebar-preparation-menu" data-bs-toggle="dropdown" aria-expanded="false"
-                                class="sidebar-menu-toggle {% nav_parent_class 'exam_preparation' 'exam_preparation_students' %}">
-                            <span class="fa-solid fa-pen-to-square fa-fw" aria-hidden="true"></span>Preparation
-                        </button>
-                        <ul class="dropdown-menu sidebar-menu" aria-labelledby="sidebar-preparation-menu">
-                            <li><a href="{% url 'exam_preparation' exam_selected.pk %}" {% nav_attrs 'exam_preparation' %}
-                                   class="dropdown-item sidebar-menu-item {% nav_class 'exam_preparation' %}">
-                                <span class="fa-solid fa-edit fa-fw" aria-hidden="true"></span>Exam preparation</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a href="{% url 'exam_preparation_students' exam_selected.pk %}" {% nav_attrs 'exam_preparation_students' %}
-                                   class="dropdown-item sidebar-menu-item {% nav_class 'exam_preparation_students' %}">
-                                <span class="fa-solid fa-users fa-fw" aria-hidden="true"></span>Exam students</a></li>
-                        </ul>
-                    </div>
+                    <a href="{% url 'preparation' exam_selected.pk %}" title="{{ exam_selected.code }}" {% nav_attrs 'preparation' %}
+                       class="sidebar-link mt-3 {% nav_class 'preparation' %}">
+                        <span class="fa-solid fa-pen-to-square fa-fw" aria-hidden="true"></span>Preparation
+                    </a>
                 {% endif %}
 
                 {# AMC #}
                 {% if exam_selected.has_amc_option and user|more_arg:exam_selected|is_allowed:'amc' %}
-                    <div class="dropend">
-                        <button type="button" id="sidebar-amc-menu" data-bs-toggle="dropdown" aria-expanded="false"
-                                class="sidebar-menu-toggle {% nav_parent_class 'amc_view' 'upload_amc_project' %}">
-                            <img src="{% static 'img/amc_icons/amc.ico' %}" alt="" width="16" height="16">AMC
-                        </button>
-                        <ul class="dropdown-menu sidebar-menu" aria-labelledby="sidebar-amc-menu">
-                            <li><a href="{% url 'amc_view' exam_pk=exam_selected.pk %}" {% nav_attrs 'amc_view' %}
-                                   class="dropdown-item sidebar-menu-item {% nav_class 'amc_view' %}">
-                                <img src="{% static 'img/amc_icons/amc.ico' %}" alt="" width="16" height="16">AMC</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a href="{% url 'upload_amc_project' exam_selected.pk %}" {% nav_attrs 'upload_amc_project' %}
-                                   class="dropdown-item sidebar-menu-item {% nav_class 'upload_amc_project' %}">
-                                <span class="fa-solid fa-cloud-arrow-up fa-fw" aria-hidden="true"></span>Import data</a></li>
-                        </ul>
-                    </div>
+                    <a href="{% url 'amc_view' exam_pk=exam_selected.pk %}" {% nav_attrs 'amc_view' %}
+                       class="sidebar-link mt-3 {% nav_class 'amc_view' %}">
+                        <img src="{% static 'img/amc_icons/amc.ico' %}" alt="" width="16" height="16">AMC</a>
                 {% endif %}
 
                 {# Review #}
                 {% if exam_selected.has_review_option and user|more_arg:exam_selected|is_allowed:'review' %}
                     <div class="dropend">
                         <button type="button" id="sidebar-review-menu" data-bs-toggle="dropdown" aria-expanded="false"
-                                class="sidebar-menu-toggle {% nav_parent_class 'reviewView' 'review_settings_view' 'upload_scans' 'generate_marked_files' %}">
+                                class="sidebar-menu-toggle {% nav_parent_class 'review_view' 'review_settings_view' 'upload_scans' 'generate_marked_files' %}">
                             <span class="fa-solid fa-glasses fa-fw" aria-hidden="true"></span>Review
                         </button>
                         <ul class="dropdown-menu sidebar-menu" aria-labelledby="sidebar-review-menu">
-                            <li><a href="{% url 'reviewView' exam_selected.pk %}" {% nav_attrs 'reviewView' %}
-                                   class="dropdown-item sidebar-menu-item {% nav_class 'reviewView' %}">
+                            <li><a href="{% url 'review_view' exam_selected.pk %}" {% nav_attrs 'review_view' %}
+                                   class="dropdown-item sidebar-menu-item {% nav_class 'review_view' %}">
                                 <span class="fa-solid fa-glasses fa-fw" aria-hidden="true"></span>Review</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a href="{% url 'review_settings_view' exam_selected.pk %}" {% nav_attrs 'review_settings_view' %}

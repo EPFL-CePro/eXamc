@@ -14,7 +14,10 @@ from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 from examc_app.tests.helpers.prep import PrepViewsTestCase
 from examc_app.utils.amc import amc_build_functions as build
 from examc_app.utils.amc.amc_build_functions import AmcStepError
-from examc_app.utils.preparation_latex_functions import update_exam_latex, update_exam_scoring_latex
+from examc_app.utils.preparation_latex_functions import (
+    update_exam_latex,
+    update_exam_scoring_latex,
+)
 
 START = "examc_app.views.preparation.scoring.update_amc_scoring_task.apply_async"
 

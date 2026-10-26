@@ -1,0 +1,40 @@
+{# Page header: title, the {% pill_tab %}s of the {% pill_header %} block, then the rest of the block. #}
+<div class="d-flex flex-column flex-md-row flex-wrap
+    align-items-start align-items-md-center
+    justify-content-center justify-content-md-start
+    gap-3">
+    <h3 class="m-0">{% if icon %}<i class="{{ icon }}"></i> {% endif %}{{ title }}</h3>
+
+    {% if tabs %}
+        <div class="d-flex flex-column flex-sm-row align-items-sm-start gap-2 border rounded p-1" style="width: fit-content">
+            <div class="nav nav-pills nav-fill flex-column flex-sm-row flex-nowrap" id="{{ prefix }}-tabs" role="tablist">
+                {% for tab in tabs %}
+                    <span class="nav-item"
+                          {% if tab.disabled %}
+                              tabindex="0"
+                              {% if tab.tooltip %}
+                                  data-bs-toggle="tooltip"
+                                  data-bs-title="{{ tab.tooltip }}"
+                                  data-bs-placement="bottom"
+                              {% endif %}
+                          {% endif %}>
+                        <button type="button" role="tab"
+                                class="nav-link w-100{% if tab.key == active %} active{% endif %}"
+                                id="{{ prefix }}-{{ tab.key }}-tab"
+                                data-bs-toggle="pill" data-bs-target="#pills-{{ prefix }}-{{ tab.key }}"
+                                data-tab-key="{{ tab.key }}"
+                                aria-controls="pills-{{ prefix }}-{{ tab.key }}"
+                                aria-selected="{% if tab.key == active %}true{% else %}false{% endif %}"
+                                {% if tab.disabled %}disabled aria-disabled="true"{% endif %}>
+                            {% if tab.icon %}<i class="{{ tab.icon }}"></i> {% endif %}{{ tab.label }}
+                        </button>
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {{ content }}
+</div>
+
+<hr>

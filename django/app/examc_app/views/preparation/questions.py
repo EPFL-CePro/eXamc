@@ -64,7 +64,7 @@ def prep_question_panel(request, exam_pk, question_id):
 
     response = render(
         request,
-        "exam/preparation/_prep_question_block.html",
+        "exam/preparation/partials/_prep_question_block.html",
         {
             "exam_selected": question.prep_section.exam,
             "section": question.prep_section,
@@ -106,7 +106,7 @@ def add_prep_question(request, exam_pk, section_id):
 
             return render(
                 request,
-                "exam/preparation/_prep_questions_list.html",
+                "exam/preparation/partials/_prep_questions_list.html",
                 {
                     "exam_selected": exam,
                     "section": section,
@@ -116,7 +116,7 @@ def add_prep_question(request, exam_pk, section_id):
 
         return render(
             request,
-            "exam/preparation/_prep_add_question_form.html",
+            "exam/preparation/partials/_prep_add_question_form.html",
             {
                 "exam_selected": exam,
                 "form": form,
@@ -128,7 +128,7 @@ def add_prep_question(request, exam_pk, section_id):
 
     return render(
         request,
-        "exam/preparation/_prep_add_question_form.html",
+        "exam/preparation/partials/_prep_add_question_form.html",
         {
             "exam_selected": exam,
             "form": form,
@@ -159,7 +159,7 @@ def delete_prep_question(request, exam_pk, question_id):
 
     return render(
         request,
-        "exam/preparation/_prep_questions_list.html",
+        "exam/preparation/partials/_prep_questions_list.html",
         {
             "exam_selected": section.exam,
             "section": section,
@@ -201,7 +201,7 @@ def reorder_prep_questions(request, exam_pk, section_id):
 
     return render(
         request,
-        "exam/preparation/_prep_questions_list.html",
+        "exam/preparation/partials/_prep_questions_list.html",
         {
             "exam_selected": section.exam,
             "section": section,
@@ -217,7 +217,7 @@ def import_prep_questions(request, exam_pk, section_id):
     Nothing is created when the file has a problem: the form is shown again with them."""
     exam = get_object_or_404(Exam, pk=exam_pk)
     section = get_object_or_404(PrepSection, pk=section_id, exam=exam)
-    form_template = "exam/preparation/_prep_import_questions_form.html"
+    form_template = "exam/preparation/partials/_prep_import_questions_form.html"
     form_context = {"exam_selected": exam, "section": section}
 
     if request.method != "POST":
@@ -248,7 +248,7 @@ def import_prep_questions(request, exam_pk, section_id):
 
     return render(
         request,
-        "exam/preparation/_prep_questions_list.html",
+        "exam/preparation/partials/_prep_questions_list.html",
         {
             "exam_selected": exam,
             "section": section,

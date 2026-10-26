@@ -53,9 +53,9 @@ function updateToCorrectBanner(table: Api, banner: HTMLElement | null, summary: 
     }
     if (withoutSeat) {
         lines.push(withoutSeat === 1
-            ? "1 student (in yellow) has no seat: give one with the pencil button or Assign rooms and seats."
-            : `${withoutSeat} students (in yellow) have no seat: give them one with Assign rooms and seats `
-              + "or the pencil button.");
+            ? `1 student (in yellow) has no seat: give one with the pencil button or "2. Arrange them" menu.`
+            : `${withoutSeat} students (in yellow) have no seat: assign them one using the "2. Arrange them" menu`
+              + " or the pencil button.");
     }
     if (lines.length) lines.push("The final files cannot be generated before.");
 

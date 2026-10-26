@@ -20,15 +20,16 @@
                  data-ldap-search-url="{% url 'ldap_search_exam_user_by_email' comex.pk %}"
                  data-update-users-url="{% url 'update_exam_users' comex.pk %}"
                  data-create-scale-url="{% url 'create_scale' comex.pk %}"
-                 data-catalog-url="{% url 'catalog_pdf' comex.pk %}">
+                 data-catalog-url="{% url 'catalog_pdf' comex.pk %}"
+                 style="max-width: var(--form-max-width)">
 
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-3" style="max-width: var(--form-max-width)">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                     <h4 class="m-0 me-auto">
                         <i class="fa-solid fa-book-open" aria-hidden="true"></i> Exam settings
                     </h4>
 
                     <a class="btn btn-dark btn-sm" href="{% url 'generate_stats' comex.pk %}">
-                        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Regen stats
+                        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Regen statistics
                     </a>
 
                     <button type="button" class="btn btn-outline-danger btn-sm" id="btn-show-catalog">
@@ -36,7 +37,7 @@
                     </button>
                 </div>
 
-                <div class="accordion" id="exam-info-accordion" style="max-width: var(--form-max-width)">
+                <div class="accordion" id="exam-info-accordion">
                     {# ---------------------------------------------------------------- Exam #}
                     <div class="accordion-item">
                         <h2 class="accordion-header">
@@ -123,8 +124,14 @@
                                 Scales
                             </button>
                         </h2>
+
                         <div id="section-scales" class="accordion-collapse collapse">
                             <div class="accordion-body">
+                                {% alert "info" fit=True %}
+                                    The <strong>official</strong> scale is the one used to grade the exam. The other scales can still be compared in
+                                    <a class="alert-link" href="{% url 'general_stats' comex.pk %}">Results › General statistics</a>.
+                                {% endalert %}
+
                                 <div class="table-responsive">
                                     <table class="table table-striped table-sm align-middle">
                                         <thead>
@@ -132,60 +139,49 @@
                                             <th>Name</th>
                                             <th>Total points</th>
                                             <th>Points to add</th>
-                                            <th class="text-center">Final</th>
-                                            <th><span class="visually-hidden">Delete</span></th>
+                                            <th>State</th>
+                                            <th>Actions</th>
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        {% for scale in comex.scales.all %}
-                                            <tr>
-                                                <td>{{ scale.name }}</td>
-                                                <td>{{ scale.total_points }}</td>
-                                                <td>{{ scale.points_to_add }}</td>
-                                                <td class="text-center">
-                                                    {% if scale.final %}
-                                                        <i class="fa-solid fa-circle-check fa-xl text-success"
-                                                           title="Final scale"></i>
-                                                    {% elif comex.common_exams.all %}
-                                                        <button type="button" class="btn btn-link p-0"
-                                                                title="Set as final scale"
-                                                                data-final-scale-all-url="{% url 'set_final_scale' scale.pk comex.pk 1 %}"
-                                                                data-final-scale-one-url="{% url 'set_final_scale' scale.pk comex.pk 0 %}">
-                                                            <i class="fa-solid fa-circle-xmark fa-xl text-body-tertiary"
-                                                               aria-hidden="true"></i>
-                                                        </button>
-                                                    {% else %}
-                                                        <form method="post"
-                                                              action="{% url 'set_final_scale' scale.pk comex.pk 0 %}"
-                                                              class="d-inline">
+                                        {% with in_group=comex.common_exams.exists %}
+                                            {% for scale in comex.scales.all %}
+                                                <tr>
+                                                    <td>{{ scale.name }}</td>
+                                                    <td>{{ scale.total_points }}</td>
+                                                    <td>{{ scale.points_to_add }}</td>
+                                                    <td style="width: 8rem">
+                                                        {% if scale.final %}
+                                                            <span class="text-success me-2">
+                                                                <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Official
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-nowrap" style="width: 15rem">
+                                                        {# In a group, the script asks whether it's for all the exams (data-final-scale-all-url) #}
+                                                        <button class="btn btn-outline-secondary btn-sm"
+                                                                data-final-scale-one-url="{% url 'set_final_scale' scale.pk comex.pk 0 %}"
+                                                                {% if scale.final %}
+                                                                    disabled
+                                                                {% else %}
+                                                                    {% if in_group %}data-final-scale-all-url="{% url 'set_final_scale' scale.pk comex.pk 1 %}"{% endif %}
+                                                                {% endif %}
+                                                        >Make official</button>
+
+
+                                                        <form method="post" action="{% url 'delete_exam_scale' scale.pk comex.pk %}" class="d-inline"
+                                                              data-confirm="Delete the scale “{{ scale.name }}”?">
                                                             {% csrf_token %}
-                                                            <button type="submit" class="btn btn-link p-0"
-                                                                    title="Set as final scale">
-                                                                <i class="fa-solid fa-circle-xmark fa-xl text-body-tertiary"
-                                                                   aria-hidden="true"></i>
-                                                            </button>
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
                                                         </form>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-end">
-                                                    <form method="post"
-                                                          action="{% url 'delete_exam_scale' scale.pk comex.pk %}"
-                                                          class="d-inline"
-                                                          data-confirm="Delete the scale “{{ scale.name }}”?">
-                                                        {% csrf_token %}
-                                                        <button type="submit" class="btn btn-link p-0 text-danger"
-                                                                title="Delete this scale">
-                                                            <i class="fa-solid fa-circle-minus fa-xl"
-                                                               aria-hidden="true"></i>
-                                                        </button>
-                                                    </form>
-                                                </td>
-                                            </tr>
-                                        {% empty %}
-                                            <tr>
-                                                <td colspan="5" class="text-body-secondary">No scale yet.</td>
-                                            </tr>
-                                        {% endfor %}
+                                                    </td>
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="4" class="text-body-secondary">No scale yet.</td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% endwith %}
                                         </tbody>
                                     </table>
                                 </div>
@@ -207,14 +203,11 @@
                         </h2>
                         <div id="section-questions" class="accordion-collapse collapse">
                             <div class="accordion-body">
-                                <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2"
-                                     id="regen-stats-alert"
-                                     role="alert" hidden>
-                                    Don't forget to regenerate the statistics after changing the questions!
-                                    <a class="btn btn-dark btn-sm ms-auto" href="{% url 'generate_stats' comex.pk %}">
-                                        <i class="fa-solid fa-rotate-right me-1" aria-hidden="true"></i>Regen stats
-                                    </a>
-                                </div>
+                                {% alert "danger" fit=True %}
+                                    After changing the questions, regenerate the statistics with the
+                                    <strong><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Regen statistics</strong> button,
+                                    at the top right of the page.
+                                {% endalert %}
 
                                 <form id="questions-form">
                                     <div class="table-responsive">
@@ -238,7 +231,7 @@
                                                     </td>
                                                     <td>
                                                         <div class="btn-group btn-group-sm" role="group"
-                                                             aria-label="Type of question {{ question.code }}">
+                                                             aria-label="Question {{ question.code }}'s type">
                                                             {% for question_type in question_types.all %}
                                                                 <input type="radio" class="btn-check" autocomplete="off"
                                                                        name="type-{{ question.pk }}"
@@ -246,7 +239,9 @@
                                                                        value="{{ forloop.counter }}"
                                                                        {% if question.question_type.pk == question_type.pk %}checked{% endif %}>
                                                                 <label class="btn btn-outline-dark"
-                                                                       for="type-{{ question.pk }}-{{ question_type.pk }}">{{ question_type.code }}</label>
+                                                                       for="type-{{ question.pk }}-{{ question_type.pk }}"
+                                                                       data-bs-toggle="tooltip"
+                                                                       data-bs-title="{{ question_type }}">{{ question_type.code }}</label>
                                                             {% endfor %}
                                                         </div>
                                                     </td>
@@ -309,77 +304,90 @@
                         <div id="section-common" class="accordion-collapse collapse">
                             <div class="accordion-body">
                                 {% if comex.is_overall %}
-                                    <form id="common-exams-form" method="post"
-                                          action="{% url 'validate_common_exams_settings' comex.pk %}">
-                                        {% csrf_token %}
-                                        <p class="small text-body-secondary">
-                                            Available exams have a similar code, the same year and semester, and
-                                            questions.
-                                        </p>
-                                        <div class="row g-2 align-items-center">
-                                            <div class="col-md">
-                                                <label for="common-from" class="form-label fw-semibold">Available
-                                                    exams</label>
-                                                <select id="common-from" name="{{ comex.id }}_common_from[]"
-                                                        class="form-select"
-                                                        size="8" multiple data-list="from">
-                                                    {% for available in comex.get_available_common_exams %}
-                                                        <option value="{{ available.id }}"
-                                                                {% if not available.questions.exists %}disabled
-                                                                title="No questions yet"{% endif %}>
-                                                            {{ available.code }} - {{ available.name }}
-                                                            - {{ available.date }}
-                                                        </option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                            <div class="col-md-auto d-flex flex-md-column justify-content-center gap-1">
-                                                <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                        data-move="to-all" title="Add all">
-                                                    <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
+                                    <div class="row g-2">
+                                        <div class="col-md d-flex flex-column">
+                                            <label for="common-from" class="form-label fw-semibold">Available exams</label>
+                                            <select id="common-from" name="{{ comex.id }}_common_from[]" class="form-select flex-grow-1"
+                                                    size="8" multiple data-list="from">
+                                                {% for available in comex.get_available_common_exams %}
+                                                    <option value="{{ available.id }}"
+                                                            {% if not available.questions.exists %}disabled title="No questions yet"{% endif %}>
+                                                        {{ available.code }} - {{ available.name }} - {{ available.date }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        {# Right and left arrows side by side; down and up arrows when the lists are stacked #}
+                                        <div class="col-md-auto d-flex flex-column">
+                                            {# The space of the lists' labels, so the buttons span exactly the lists' height #}
+                                            <span class="form-label d-none d-md-block invisible" aria-hidden="true">&nbsp;</span>
+                                            <div class="d-flex flex-md-column flex-grow-1 justify-content-center gap-1">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm flex-md-fill" data-move="to-all"
+                                                        title="Add all" aria-label="Add all">
+                                                    <i class="fa-solid fa-angles-right d-none d-md-inline" aria-hidden="true"></i>
+                                                    <i class="fa-solid fa-angles-down d-md-none" aria-hidden="true"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                        data-move="to" title="Add selected">
-                                                    <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm flex-md-fill" data-move="to"
+                                                        title="Add selected" aria-label="Add selected">
+                                                    <i class="fa-solid fa-angle-right d-none d-md-inline" aria-hidden="true"></i>
+                                                    <i class="fa-solid fa-angle-down d-md-none" aria-hidden="true"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                        data-move="from" title="Remove selected">
-                                                    <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm flex-md-fill" data-move="from"
+                                                        title="Remove selected" aria-label="Remove selected">
+                                                    <i class="fa-solid fa-angle-left d-none d-md-inline" aria-hidden="true"></i>
+                                                    <i class="fa-solid fa-angle-up d-md-none" aria-hidden="true"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                        data-move="from-all" title="Remove all">
-                                                    <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm flex-md-fill" data-move="from-all"
+                                                        title="Remove all" aria-label="Remove all">
+                                                    <i class="fa-solid fa-angles-left d-none d-md-inline" aria-hidden="true"></i>
+                                                    <i class="fa-solid fa-angles-up d-md-none" aria-hidden="true"></i>
                                                 </button>
-                                            </div>
-                                            <div class="col-md">
-                                                <label for="common-to" class="form-label fw-semibold">Selected
-                                                    exams</label>
-                                                <select id="common-to" name="{{ comex.id }}_common_to[]"
-                                                        class="form-select"
-                                                        size="8" multiple data-list="to">
-                                                    {% for common in comex.get_common_exams_without_common.all %}
-                                                        <option value="{{ common.id }}">{{ common.code }}
-                                                            - {{ common.name }} - {{ common.date }}</option>
-                                                    {% endfor %}
-                                                </select>
                                             </div>
                                         </div>
-                                        <div class="d-flex gap-2 border-top pt-3 mt-3">
-                                            <a class="btn btn-secondary btn-sm" href="{{ request.get_full_path }}">Cancel</a>
-                                            <button type="submit" class="btn btn-dark btn-sm">Validate</button>
+
+                                        <div class="col-md d-flex flex-column">
+                                            <label for="common-to" class="form-label fw-semibold">Exams of the group</label>
+                                            <select id="common-to" name="{{ comex.id }}_common_to[]" class="form-select flex-grow-1"
+                                                    size="8" multiple data-list="to">
+                                                {% for common in comex.get_common_exams_without_common %}
+                                                    <option value="{{ common.id }}">{{ common.code }} - {{ common.name }} - {{ common.date }}</option>
+                                                {% endfor %}
+                                            </select>
                                         </div>
-                                    </form>
-                                {% elif comex.get_common_exams_yc_common|length > 1 %}
-                                    <div class="alert alert-warning" role="alert">Common exams are managed in the COMMON
-                                        tab!
                                     </div>
-                                    <h6>Current common exams</h6>
-                                    <ul class="list-group">
-                                        {% for common in comex.get_common_exams_without_common.all %}
-                                            <li class="list-group-item">{{ common.code }} - {{ common.name }}
-                                                - {{ common.date }}</li>
-                                        {% endfor %}
-                                    </ul>
+                                {% elif comex.get_common_exams_yc_common|length > 1 %}
+                                    {% with overall=comex.get_overall_exam_or_default %}
+                                        {% with parts_count=overall.get_common_exams_without_common.count %}
+                                            {% alert "info" fit=True %}
+                                                {% if parts_count == 1 %}
+                                                    This exam is in a group of exams sharing questions, but no other exam has been added yet.
+                                                    Add them in the
+                                                {% else %}
+                                                    This exam is one of the {{ parts_count }} exams of a group sharing questions.
+                                                    Their shared settings are in the
+                                                {% endif %}
+
+                                                <a class="alert-link" href="{% url 'exam_info' overall.pk %}">COMMON exam settings</a>.
+                                            {% endalert %}
+                                        {% endwith %}
+
+                                        <h6>Exams in this group</h6>
+
+                                        <ul class="list-group" style="max-width: fit-content">
+                                            {% for common in overall.get_common_exams_without_common %}
+                                                {% if common.pk == comex.pk %}
+                                                    <li class="list-group-item active" aria-current="true">
+                                                        <span class="link-light">{{ common.code }}- {{ common.name }} - {{ common.date }}</span>
+                                                    </li>
+                                                {% else %}
+                                                    <li class="list-group-item">
+                                                        <a href="{% url 'exam_info' common.pk %}">{{ common.code }}</a> - {{ common.name }} - {{ common.date }}
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    {% endwith %}
                                 {% else %}
                                     <form method="post" action="{% url 'set_common_exam' comex.pk %}">
                                         {% csrf_token %}
@@ -400,8 +408,8 @@
                         </h2>
                         <div id="section-users" class="accordion-collapse collapse">
                             <div class="accordion-body">
-                                <div class="alert alert-warning" id="users-error" role="alert" hidden></div>
                                 <h6>Current users</h6>
+                                <div id="users-error"></div>
                                 <ul class="list-group mb-4" id="current-users">
                                     {% for exam_user in comex.exam_users.all %}
                                         <li class="list-group-item d-flex flex-wrap align-items-center gap-2"
@@ -416,7 +424,7 @@
                                                 <i class="fa-solid fa-circle-minus fa-lg" aria-hidden="true"></i>
                                             </button>
                                             <span class="me-auto" data-user-label>
-                                                {{ exam_user.user.username }} - {{ exam_user.user.first_name }} {{ exam_user.user.last_name }} - {{ exam_user.user.email }}
+                                                {{ exam_user.user|get_user_all_infos:"html" }}
                                             </span>
                                             <div>
                                                 {% for user_group in users_groups_add.all %}
@@ -436,8 +444,6 @@
                                         <li class="list-group-item text-body-secondary">No users yet.</li>
                                     {% endfor %}
                                 </ul>
-
-
 
                                 <form id="ldap-search-form">
                                     <div class="input-group">
@@ -491,12 +497,18 @@
                         </h2>
                         <div id="section-modules" class="accordion-collapse collapse">
                             <div class="accordion-body">
-                                <form id="exam-options-form">
+                                <form id="exam-options-form" class="d-flex flex-column align-items-start">
                                     {% csrf_token %}
-                                    <div class="form-check form-switch mb-2">
+
+                                    <div class="form-check form-switch mb-2"
+                                         {% if not user.is_superuser %}
+                                            data-bs-toggle="tooltip"
+                                            data-bs-title="Only available to administrators (for now)"
+                                         {% endif %}>
                                         <input class="form-check-input" type="checkbox" role="switch" id="prep-option"
                                                name="prep_option_{{ comex.id }}"
-                                               {% if comex.prep_option == 1 %}checked{% endif %}>
+                                               {% if comex.prep_option == 1 %}checked{% endif %}
+                                               {% if not user.is_superuser %}disabled{% endif %}>
                                         <label class="form-check-label" for="prep-option">Preparation module</label>
                                     </div>
                                     <div class="form-check form-switch mb-2">
@@ -528,60 +540,8 @@
                     </div>
                 </div>
             </div>
-
-            {# ---------------------------------------------------------------- Dialogs #}
-            <div class="modal fade" id="catalog-modal" tabindex="-1" aria-labelledby="catalog-modal-title"
-                 aria-hidden="true">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="catalog-modal-title">Catalog</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body p-0">
-                            <iframe class="d-block w-100 border-0" style="height: 80vh" title="Exam catalog"></iframe>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal fade" id="final-scale-common-modal" tabindex="-1"
-                 aria-labelledby="final-scale-common-title" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="final-scale-common-title">Final scale for common exams</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p class="mb-0">Do you want to set this final scale for all common exams?</p>
-                        </div>
-                        <div class="modal-footer">
-                            <form method="post" data-final-scale="all">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-dark btn-sm">Yes, for all</button>
-                            </form>
-                            <form method="post" data-final-scale="one">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-dark btn-sm">No, only for this exam
-                                </button>
-                            </form>
-                            <button type="button" class="btn btn-secondary btn-sm ms-auto" data-bs-dismiss="modal">
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {# Filled with the server's create scale form #}
-            <div class="modal fade" id="create-scale-modal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content"></div>
-                </div>
-            </div>
         {% endwith %}
     {% else %}
-        <div class="alert alert-danger" role="alert">You are not allowed to view this page!</div>
+        {% alert "danger" %}You are not allowed to view this page!{% endalert %}
     {% endif %}
 {% endblock %}

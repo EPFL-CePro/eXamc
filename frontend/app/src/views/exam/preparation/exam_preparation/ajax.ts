@@ -1,4 +1,4 @@
-import { LoadingModal, LocalModal } from "@examc/modals";
+import { LoadingModal } from "@examc/modals";
 
 import { withSavingOverlay } from "./saving-overlay.ts";
 
@@ -6,15 +6,6 @@ export function getElement<T extends HTMLElement = HTMLElement>(selector: string
     return document.querySelector<T>(selector);
 }
 
-export function showModal(selector: string): void {
-    const element = getElement(selector);
-    if (element) new LocalModal(element).show();
-}
-
-export function hideModal(selector: string): void {
-    const element = getElement(selector);
-    if (element) new LocalModal(element).hide();
-}
 
 /**
  * What shows that a request is running: the loading spinner (true), the saving overlay of the page ("saving": shown

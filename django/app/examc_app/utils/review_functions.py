@@ -309,8 +309,8 @@ def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count
         if is_jpeg:
             # Read image
             im = cv2.imread(f)
-            decodedObjects = pyzbar.decode(im)
-            qr_data = get_expected_review_qr_data(decodedObjects)
+            decoded_objects = pyzbar.decode(im)
+            qr_data = get_expected_review_qr_data(decoded_objects)
             # A page of another exam is left to the user like a page without QR code
             exam_problem = scan_qr_exam_problem(qr_data, exams) if qr_data else None
             if exam_problem:
@@ -411,7 +411,7 @@ def import_scans(exam, path, delete_old, progress_recorder, process_count, proce
     return result
 
 
-def create_students_from_amc(exam):
+def create_students_from_amc(exam: Exam):
     amc_project_path = get_amc_project_path(exam, False)
     if not amc_project_path:
         return
@@ -450,7 +450,7 @@ def delete_old_scans(exam):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+            print('Failed to delete {}. Reason: {}'.format(file_path, e))
 
     marked_scans_dir = str(get_exam_marked_scans_dir(exam))
     if os.path.exists(marked_scans_dir):

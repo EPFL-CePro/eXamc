@@ -43,7 +43,7 @@ export class ConfirmModal extends ExamcModal {
 
         const alert = this.element.querySelector<HTMLElement>(".alert")!;
         if (warning) {
-            alert.textContent = warning;
+            alert.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>${warning}`;
             alert.hidden = false;
         }
 

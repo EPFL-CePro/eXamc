@@ -47,7 +47,7 @@ def prep_answer_panel(request, exam_pk, answer_id):
 
     response = render(
         request,
-        "exam/preparation/_prep_answer_row.html",
+        "exam/preparation/partials/_prep_answer_row.html",
         {
             "exam_selected": answer.prep_question.prep_section.exam,
             "question": answer.prep_question,
@@ -81,7 +81,7 @@ def add_prep_answer(request, exam_pk, question_id):
 
     return render(
         request,
-        "exam/preparation/_prep_answers_block.html",
+        "exam/preparation/partials/_prep_answers_block.html",
         {
             "exam_selected": question.prep_section.exam,
             "question": question,
@@ -111,7 +111,7 @@ def delete_prep_answer(request, exam_pk, answer_id):
 
     return render(
         request,
-        "exam/preparation/_prep_answers_block.html",
+        "exam/preparation/partials/_prep_answers_block.html",
         {
             "exam_selected": question.prep_section.exam,
             "question": question,
@@ -157,7 +157,7 @@ def reorder_prep_answers(request, exam_pk, question_id):
 
     return render(
         request,
-        "exam/preparation/_prep_answers_block.html",
+        "exam/preparation/partials/_prep_answers_block.html",
         {
             "exam_selected": question.prep_section.exam,
             "question": question,

@@ -1,8 +1,8 @@
 """
 Where the files of an exam live.
 
-Every storage root (scans, marked scans, AMC projects, catalogs) uses the same layout:
-`<ROOT>/<year>/<semester>/<code>_<YYYYMMDD>`.
+Every storage root (scans, marked scans, AMC projects, catalogs) uses the same layout: `<ROOT>/projects/<pk>`.
+Exams created before it use `<ROOT>/<year>/<semester>/<code>_<YYYYMMDD>`, until their folders are moved.
 """
 import logging
 import shutil
@@ -36,20 +36,37 @@ def _check_folder_name(value: str, exam: Exam) -> str:
     return name
 
 
-def get_exam_subdir(exam: Exam) -> str:
+def _exists_under_a_root(subdir: str) -> bool:
+    """Whether an exam folder exists under at least one storage root (scans, marked scans, AMC projects, catalogs)."""
+    return any((Path(getattr(settings, name)) / subdir).is_dir() for name in EXAM_FOLDER_ROOT_SETTINGS)
+
+
+def get_exam_subdir(exam: Exam, force_by_id_dir: bool = False) -> str:
     """
-    '<year>/<semester>/<code>_<YYYYMMDD>', the folder of an exam under every storage root.
-    :raise ExamDateMissingError: if the exam has no date
-    :raise ExamFolderNameInvalidError: if the year, semester or code can't be a folder name
+    The folder of an exam under every storage root, relative to the root: 'projects/<pk>', or for exams created
+    before it, the legacy '<year>/<semester>/<code>_<YYYYMMDD>' until their folders are moved (update_exam_info
+    does it when their info is saved).
+
+    :param exam: The exam to get the folder of
+    :param force_by_id_dir: Return the id-based folder, even if a legacy one exists
+    :raise ExamFolderNameInvalidError: if a legacy folder name is needed and the year, semester or code can't be one
     """
-    if not exam.date:
-        raise ExamDateMissingError(f"Exam pk={exam.pk} has no date", context={"exam": exam})
+    by_id = f"projects/{exam.pk}"
+    if force_by_id_dir or _exists_under_a_root(by_id) or not exam.date:
+        # Without a date, there can't be a legacy folder: its name includes the date
+        return by_id
 
     year = _check_folder_name(exam.year.code, exam)
     semester = _check_folder_name(str(exam.semester.code), exam)
     code = _check_folder_name(exam.code, exam)
-    return f"{year}/{semester}/{code}_{exam.date:%Y%m%d}"
+    legacy = f"{year}/{semester}/{code}_{exam.date:%Y%m%d}"
 
+    if _exists_under_a_root(legacy):
+        logger.debug("Exam %s: legacy folder %s", exam.pk, legacy)
+        return legacy
+
+    # A new exam, without folders yet, gets the id-based layout
+    return by_id
 
 def get_exam_scans_dir(exam: Exam) -> Path:
     return Path(settings.SCANS_ROOT) / get_exam_subdir(exam)

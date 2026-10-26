@@ -9,6 +9,7 @@ from typing import Any, Final
 import celery
 from celery.result import AsyncResult
 from django.conf import settings
+from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import UploadedFile
 from django.http import (
@@ -54,7 +55,6 @@ from examc_app.utils.amc_functions import (
     amc_send_annotated_papers,
     amc_update_documents,
     amc_update_options_xml_by_key,
-    check_annotated_papers_available,
     check_students_csv_file,
     create_amc_project_dir_from_zip,
     create_annotated_zip,
@@ -69,6 +69,7 @@ from examc_app.utils.amc_functions import (
     get_amc_results_file_path,
     get_amc_send_annotated_papers_data,
     get_amc_update_document_info,
+    get_annotated_papers_generated_at,
     get_automatic_association_code,
     get_automatic_data_capture_summary,
     get_copy_page_zooms,
@@ -90,6 +91,7 @@ from examc_app.utils.review_functions import (
     iter_review_scan_files,
 )
 from examc_app.utils.review_upload_state import clear_pending_amc_import
+from examc_app.utils.view_context_helpers import ViewContext
 
 AMC_ANNOTATE_JOBS_SESSION_KEY: Final = "amc_annotate_jobs"
 AMC_IMPORT_JOBS_SESSION_KEY: Final = "amc_import_jobs"
@@ -137,155 +139,128 @@ def _job_response(status_url_name: str, exam_pk: int, job_id: str, existing: boo
     }, status=202)
 
 
-@exam_permission_required(['manage'])
-def upload_amc_project(request: HttpRequest, exam_pk: int):
-    exam_selected = Exam.objects.get(pk=exam_pk)
-    exam = exam_selected.get_overall_exam_or_default()
+@exam_permission_required(["manage"])
+@require_POST
+def upload_amc_project(request: HttpRequest, exam_pk: int) -> HttpResponse:
+    """Replaces the exam's AMC project by the uploaded .zip of its directory, then goes back to the AMC page."""
+    exam = get_object_or_404(Exam, pk=exam_pk)
 
-    if request.method == 'POST':
-        if 'amc_project_zip_file' not in request.FILES:
-            message = "No zip file provided."
-            return render(
-                request,
-                'amc/upload_amc_project.html',
-                {
-                    'exam': exam,
-                    'exam_selected': exam_selected,
-                    'message': message,
-                    "nav_url": "upload_amc_project"
-                }
-            )
-
-        zip_file = request.FILES['amc_project_zip_file']
-
+    zip_file = request.FILES.get("amc_project_zip_file")
+    if zip_file is None:
+        messages.error(request, "No .zip file was provided.")
+    else:
         create_amc_project_dir_from_zip(exam, zip_file)
         create_students_from_amc(exam)
+        messages.success(request, "The AMC project was uploaded.")
 
-        return render(
-            request,
-            'amc/upload_amc_project.html',
-            {
-                'exam': exam,
-                'exam_selected': exam_selected,
-                'nav_url': "upload_amc_project",
-                'message': 'AMC project folder uploaded !'
-            }
-        )
-
-    return render(
-        request,
-        'amc/upload_amc_project.html',
-        {
-            'exam': exam,
-            'exam_selected': exam_selected,
-            'nav_url': "upload_amc_project"
-        }
-    )
+    # Redirected after a POST: reloading the page won't upload the file again
+    return redirect("amc_view", exam_pk=exam.pk)
 
 
 @exam_permission_required(['manage'])
-def amc_view(request: HttpRequest, exam_pk: int, curr_tab: str = 'project-tab', task_id: str | None = None):
+def amc_view(request: HttpRequest, exam_pk: int, task_id: str | None = None):
     exam = Exam.objects.get(pk=exam_pk)
 
     amc_project_path = get_amc_project_path(exam, False)
 
-    context = {}
+    view_context = ViewContext(
+        nav_url="amc_view",
+    )
 
-    if user_allowed(exam, request.user.id):
-        context['exam_selected'] = exam
+    if not user_allowed(exam, request.user.id):
+        return render(request, 'amc/amc.html', view_context.as_dict())
 
-        exam = exam.get_overall_exam_or_default()
+    view_context.set_exam(exam_pk=exam.pk)
+    view_context.set_task_id(task_id)
+    view_context.set_user_allowed(True)
 
-        context['exam'] = exam
-        context['user_allowed'] = True
-        context['nav_url'] = 'amc_view'
-        
-        if amc_project_path:
-            # capture db mgt
-            with AmcCaptureDbManager(amc_data_path=f"{amc_project_path}/data/") as amc_capture_db_manager:
-                # get amc options and infos
-                amc_option_nb_copies = get_amc_option_by_key(exam, 'nombre_copies')
-                amc_update_documents_msg = get_amc_update_document_info(exam)
-                amc_layout_detection_msg = get_amc_layout_detection_info(exam)
-                #amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
-                amc_catalog_pdf_path = get_amc_catalog_pdf_path(exam)
+    if not amc_project_path:
+        return render(request, 'amc/amc.html', view_context.as_dict())
 
-                # get project dir list
-                project_dir_info = get_project_dir_info(exam)
-                project_dir_dict = project_dir_info[0]
-                project_dir_files_list = project_dir_info[1]
+    # capture db mgt
+    with AmcCaptureDbManager(amc_data_path=f"{amc_project_path}/data/") as amc_capture_db_manager:
+        # get amc options and infos
+        amc_option_nb_copies = get_amc_option_by_key(exam, 'nombre_copies')
+        amc_update_documents_msg = get_amc_update_document_info(exam)
+        amc_layout_detection_msg = get_amc_layout_detection_info(exam)
+        #amc_exam_pdf_path = get_amc_exam_pdf_path(exam)
+        amc_catalog_pdf_path = get_amc_catalog_pdf_path(exam)
 
-                # get data
-                data_capture_manual = get_amc_data_capture_manual_data(exam)
-                amc_data_capture_summary = get_automatic_data_capture_summary(exam)
-                number_of_copies = amc_data_capture_summary[0]
-                number_of_incomplete_copies = len(amc_data_capture_summary[1])
-                missing_pages = amc_data_capture_summary[1]
-                if number_of_incomplete_copies > 0:
-                    data_capture_message = "Data capture from " + str(
-                        number_of_copies - number_of_incomplete_copies) + " complete and " + str(
-                        number_of_incomplete_copies) + " incomplete papers"
-                else:
-                    data_capture_message = "Data capture from " + str(number_of_copies) + " complete papers"
-                nb_unrecognized_pages = amc_data_capture_summary[2]
+        # get project dir list
+        project_dir_info = get_project_dir_info(exam)
+        project_dir_dict = project_dir_info[0]
+        project_dir_files_list = project_dir_info[1]
 
-                overwritten_pages = amc_data_capture_summary[3]
+        # get data
+        data_capture_manual = get_amc_data_capture_manual_data(exam)
+        amc_data_capture_summary = get_automatic_data_capture_summary(exam)
+        number_of_copies = amc_data_capture_summary[0]
+        number_of_incomplete_copies = len(amc_data_capture_summary[1])
+        missing_pages = amc_data_capture_summary[1]
+        if number_of_incomplete_copies > 0:
+            data_capture_message = "Data capture from " + str(
+                number_of_copies - number_of_incomplete_copies) + " complete and " + str(
+                number_of_incomplete_copies) + " incomplete papers"
+        else:
+            data_capture_message = "Data capture from " + str(number_of_copies) + " complete papers"
 
-                students_list = get_amc_option_by_key(exam, "listeetudiants").replace("%PROJET/", '')
+        nb_unrecognized_pages = amc_data_capture_summary[2]
+        overwritten_pages = amc_data_capture_summary[3]
 
-                has_results = get_amc_results_file_path(exam)
+        students_list = get_amc_option_by_key(exam, "listeetudiants").replace("%PROJET/", '')
 
-                scans_list = get_scans_list(exam)
-                scans_list_json_string = json.dumps(scans_list)
+        has_results = get_amc_results_file_path(exam)
 
-                has_grading_schemes = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True).exists()
+        scans_list = get_scans_list(exam)
+        scans_list_json_string = json.dumps(scans_list)
 
-                exam_nb_pages = 1
-                if data_capture_manual is not None:
-                    pages = data_capture_manual.get("pages") or []
+        has_grading_schemes = PagesGroup.objects.filter(exam=exam, use_grading_scheme=True).exists()
 
-                    # No pages yet (e.g. layout not detected): keep the default of 1 page.
-                    exam_nb_pages = max(
-                        (float(page["page"]) for page in pages), default=exam_nb_pages
-                    )
+        exam_nb_pages = 1
 
-                    context["data_pages"] = pages
-                    context["data_questions"] = (
-                        data_capture_manual.get("questions") or []
-                    )
-                    context["data_copies"] = data_capture_manual.get("copies") or []
+        pages: list = []
+        if data_capture_manual is not None:
+            pages = data_capture_manual.get("pages") or []
+            # No pages yet (e.g. layout not detected): keep the default of 1 page.
+            exam_nb_pages = max((float(page["page"]) for page in pages), default=exam_nb_pages)
+            view_context.update(
+                data_questions=data_capture_manual.get("questions") or [],
+                data_copies=data_capture_manual.get("copies") or [],
+            )
 
-                context['number_of_copies_param'] = amc_option_nb_copies
-                context['copy_count'] = number_of_copies
-                context['catalog_pdf_path'] = amc_catalog_pdf_path
-                context['update_documents_msg'] = amc_update_documents_msg
-                context['layout_detection_msg'] = amc_layout_detection_msg
-                context['project_dir_dict'] = project_dir_dict
-                context['project_dir_files_list'] = project_dir_files_list
-                context['data_capture_message'] = data_capture_message
-                context['missing_pages'] = missing_pages
-                context['nb_unrecognized_pages'] = nb_unrecognized_pages
-                context['overwritten_pages'] = overwritten_pages
-                context['students_list'] = students_list
-                context['students_list_headers'] = get_students_csv_headers(exam)
-                context['auto_assoc_pk'] = get_amc_option_by_key(exam, 'liste_key')
-                context['auto_assoc_code'] = get_automatic_association_code(exam)
-                context['mean'] = get_amc_mean(exam)
-                context['questions_scoring_details'] = get_questions_scoring_details_list(exam)
-                context['count_missing_assoc'] = amc_capture_db_manager.get_count_missing_associations()
-                context['annotated_papers_available'] = check_annotated_papers_available(exam)
-                context['has_results'] = has_results
-                context['has_grading_schemes'] = has_grading_schemes
-                context['task_id'] = task_id
-                context['nav_url'] = "amc_view"
-                context['curr_tab'] = curr_tab
-                context['scans_list_json'] = json.loads(scans_list_json_string)
-                context['exam_nb_pages'] = range(1, int(float(exam_nb_pages)) + 1, 1)
+        annotated_papers_generated_at = get_annotated_papers_generated_at(exam)
 
-    else:
-        context['user_allowed'] = False
+        # sets non-generic context variables
+        view_context.update(
+            data_pages=pages,
+            data_capture_missing=not pages,
+            number_of_copies_param=amc_option_nb_copies,
+            copy_count=number_of_copies,
+            catalog_pdf_path=amc_catalog_pdf_path,
+            update_documents_msg=amc_update_documents_msg,
+            layout_detection_msg=amc_layout_detection_msg,
+            project_dir_dict=project_dir_dict,
+            project_dir_files_list=project_dir_files_list,
+            data_capture_message=data_capture_message,
+            missing_pages=missing_pages,
+            nb_unrecognized_pages=nb_unrecognized_pages,
+            overwritten_pages=overwritten_pages,
+            students_list=students_list,
+            students_list_headers=get_students_csv_headers(exam),
+            auto_assoc_pk=get_amc_option_by_key(exam, "liste_key"),
+            auto_assoc_code=get_automatic_association_code(exam),
+            mean=get_amc_mean(exam),
+            questions_scoring_details=get_questions_scoring_details_list(exam),
+            count_missing_assoc=amc_capture_db_manager.get_count_missing_associations(),
+            annotated_papers_available=annotated_papers_generated_at is not None,
+            annotated_papers_generated_at=annotated_papers_generated_at,
+            has_results=has_results,
+            has_grading_schemes=has_grading_schemes,
+            scans_list_json=json.loads(scans_list_json_string),
+            exam_nb_pages=range(1, int(float(exam_nb_pages)) + 1, 1),
+        )
 
-    return render(request, 'amc/amc.html', context)
+    return render(request, 'amc/amc.html', view_context.as_dict())
 
 
 @exam_permission_required(['manage'])

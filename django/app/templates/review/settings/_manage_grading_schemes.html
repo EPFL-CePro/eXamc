@@ -1,49 +1,26 @@
-<div class="d-flex gap-2 mb-4">
-    <h4 class="m-0">Grading schemes</h4>
-</div>
-
 {% if grading_schemes_pages_groups %}
-    <div class="d-flex gap-2 mb-3">
-        <h5 class="m-0">1. Select a pages group</h5>
-    </div>
+    {% load django_vite %}
 
-    <div class="d-inline-flex flex-column flex-sm-row align-items-sm-center gap-2 border rounded p-1 mb-5"
-         style="width: fit-content">
-        <ul class="nav nav-pills nav-fill flex-column flex-sm-row"
-            id="gs-pages-groups-pills"
-            role="tablist">
+    <div class="input-group mb-2" style="width: fit-content">
+        <label class="input-group-text" for="grading-scheme-selected-question">Question</label>
+        <select class="form-select" id="grading-scheme-selected-question"
+                hx-get="{% url 'grading_scheme_pages_group' exam_selected.id grading_schemes_pages_groups.0.id %}"
+                hx-trigger="load, change"
+                hx-target="#grading-scheme-panel"
+                hx-swap="innerHTML"
+                hx-on::config-request="event.detail.path = this.selectedOptions[0]?.dataset.url ?? event.detail.path">
             {% for group in grading_schemes_pages_groups %}
-                <li class="nav-item" role="presentation">
-                    <a type="button"
-                       class="flex-sm-fill text-sm-center nav-link {% if forloop.first %}active{% endif %}"
-                       id="gs-pages-group-{{ group.id }}-tab"
-                       aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
-                       hx-get="{% url 'grading_scheme_pages_group' exam_selected.id group.id %}"
-                       hx-target="#grading-scheme-panel"
-                       hx-swap="innerHTML"
-                       hx-on:click="
-                        const list = this.closest('#gs-pages-groups-pills');
-                        list.querySelectorAll('.nav-link').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected','false'); });
-                        this.classList.add('active'); this.setAttribute('aria-selected','true');
-                       "
-                       {% if forloop.first %}hx-trigger="load once, click"{% endif %}>
-                        {{ group.group_name }}
-                    </a>
-                </li>
+                <option value="{{ group.id }}"
+                        data-url="{% url 'grading_scheme_pages_group' exam_selected.id group.id %}">
+                    {{ group.group_name }}
+                </option>
             {% endfor %}
-        </ul>
+        </select>
     </div>
 
     <div id="grading-scheme-panel" class="tab-content"></div>
 
-
     <script>
-        (function () {
-            const first = document.querySelector('#gs-pages-groups-pills .nav-link');
-            if (first) first.click();
-        }());
-
-        // TODO fix, this no longer works, probably as old bootstrap js was removed
         function initSortableIn(root) {
             $(root).find("tbody[data-sortable='checkboxes']").each(function () {
                 const $tbody = $(this);

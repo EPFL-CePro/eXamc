@@ -97,6 +97,7 @@ export function initReports(config: ReportsConfig): void {
                 formatTimestamp(page.timestamp_auto),
             ])),
             emptyMessage: 'No overwritten pages.',
+            pageLength: 50
         }).show();
     }
 

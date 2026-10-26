@@ -29,31 +29,36 @@ def make_exam(code="CS-101", year="2025-2026", semester="1", exam_date=date(2026
 
 
 class ExamSubdirTests(SimpleTestCase):
-    def test_format_is_year_semester_code_and_compact_date(self):
-        self.assertEqual(get_exam_subdir(make_exam()), "2025-2026/1/CS-101_20260109")
+    def test_new_exam_gets_the_id_based_folder(self):
+        exam = make_exam()
+        self.assertEqual(get_exam_subdir(exam), f"projects/{exam.pk}")
 
-    def test_missing_date_raises(self):
-        with self.assertRaises(ExamDateMissingError):
-            get_exam_subdir(make_exam(exam_date=None))
+    def test_exam_without_date_gets_the_id_based_folder(self):
+        exam = make_exam(exam_date=None)
+        self.assertEqual(get_exam_subdir(exam), f"projects/{exam.pk}")
 
-    def test_invalid_folder_names_raise(self):
-        for bad_code in ("", "  ", "..", "a/b", "../../etc", "a\\b"):
-            with self.subTest(code=bad_code), self.assertRaises(ExamFolderNameInvalidError):
-                get_exam_subdir(make_exam(code=bad_code))
-        with self.assertRaises(ExamFolderNameInvalidError):
-            get_exam_subdir(make_exam(year=""))
-        with self.assertRaises(ExamFolderNameInvalidError):
-            get_exam_subdir(make_exam(semester="1/2"))
-
+    def test_existing_legacy_folder_is_kept(self):
+        exam = make_exam()
+        with (
+            tempfile.TemporaryDirectory() as root,
+            override_settings(
+                SCANS_ROOT=root,
+                MARKED_SCANS_ROOT=root,
+                AMC_PROJECTS_ROOT=root,
+                CATALOG_ROOT=root,
+            ),
+        ):
+            (Path(root) / "2025-2026/1/CS-101_20260109").mkdir(parents=True)
+            self.assertEqual(get_exam_subdir(exam), "2025-2026/1/CS-101_20260109")
 
 class ExamDirsTests(SimpleTestCase):
-    def test_each_root_uses_the_same_subdir(self):
+    def test_each_root_uses_the_right_subdir(self):
         with override_settings(
             SCANS_ROOT=Path("/s"), MARKED_SCANS_ROOT=Path("/m"),
             AMC_PROJECTS_ROOT=Path("/a"), CATALOG_ROOT=Path("/c"), AMC_PROJECTS_URL="/amc_projects/",
         ):
             exam, sub = make_exam(), "2025-2026/1/CS-101_20260109"
-            self.assertEqual(get_exam_scans_dir(exam), Path("/s") / sub)
+            self.assertEqual(get_exam_scans_dir(exam), Path("/s") / "projects" / str(exam.pk))
             self.assertEqual(get_exam_marked_scans_dir(exam), Path("/m") / sub)
             self.assertEqual(get_exam_amc_project_dir(exam), Path("/a") / sub)
             self.assertEqual(get_exam_catalog_dir(exam), Path("/c") / sub)
