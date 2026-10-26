@@ -1,6 +1,8 @@
 ############
 # REVIEW
 ############
+from typing import ClassVar
+
 from django.contrib.auth.models import Group, User
 from django.db import models
 from simple_history.models import HistoricalRecords
@@ -18,7 +20,7 @@ class PagesGroup(models.Model):
     history = HistoricalRecords()
 
     def __str__(self):
-        return self.group_name + " ( pages " + str(self.nb_pages) + " )"
+        return f"{self.group_name} ({self.nb_pages} pages)"
 
 class ExamUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_exams')
@@ -139,7 +141,7 @@ class QuestionGradingSchemeCheckBox(models.Model):
     history = HistoricalRecords()
 
     class Meta:
-        ordering = ['position']
+        ordering: ClassVar = ['position']
 
 #############################
 # Review Grading Schemes Checked Boxes

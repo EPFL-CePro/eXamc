@@ -72,7 +72,7 @@ class PagesGroupTestCase(TestCase):
 
         self.assertEqual(
             str(group),
-            "Group 1 ( pages 5 )",
+            "Group 1 (5 pages)",
         )
 
 
