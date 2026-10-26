@@ -9,18 +9,17 @@ import { initUsers } from './users.ts';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Not rendered when the user isn't allowed to view the page.
-    const root = document.getElementById('exam-info');
-    if (!root) return;
-
+    const root = byId('exam-info');
     const csrfToken = requireData(root, 'csrfToken');
+    const finalScaleBtns = root.querySelectorAll<HTMLButtonElement>("button[data-final-scale-one-url]");
 
     initAccordion(byId('exam-info-accordion'));
 
     initExamInfo(byId<HTMLFormElement>('exam-info-form'), requireData(root, 'updateInfoUrl'));
     initExamOptions(byId<HTMLFormElement>('exam-options-form'), requireData(root, 'updateOptionsUrl'));
-    initCatalog(byId('btn-show-catalog'), byId('catalog-modal'), requireData(root, 'catalogUrl'));
+    initCatalog({ button: byId<HTMLButtonElement>("btn-show-catalog"), url: requireData(root, 'catalogUrl')});
 
-    initScales({ createScaleUrl: requireData(root, 'createScaleUrl') });
+    initScales({ createScaleUrl: requireData(root, 'createScaleUrl'), finalScaleBtns, csrfToken });
 
     initQuestions({
         form: byId<HTMLFormElement>('questions-form'),

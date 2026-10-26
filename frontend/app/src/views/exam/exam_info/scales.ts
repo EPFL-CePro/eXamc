@@ -1,32 +1,43 @@
-import { byId } from '@examc/helpers/dom.ts';
+import { byId, requireData } from '@examc/helpers/dom.ts';
 import { confirmDialog } from '@examc/helpers/confirm-dialog';
-import { LoadingModal, LocalModal } from '@examc/modals';
 
-import { showRequestError } from './exam.ts';
+import { ScalesModal as AddScaleModal } from './add-scale-modal.ts';
+import { SetFinalScaleModal } from './set-final-scale-modal.ts';
+import { postForm } from '@examc/helpers/http.ts';
+import { showToast } from '@examc/helpers/toasts.ts';
 
-interface ScalesConfig {
-    createScaleUrl: string;
-}
 
 /**
  * Wires the scales section: the final scale choice for common exams, the delete confirmations
  * and the "Add scale" dialog.
  */
-export function initScales({ createScaleUrl }: ScalesConfig): void {
+export function initScales(options: { 
+    createScaleUrl: string; 
+    finalScaleBtns: NodeListOf<HTMLButtonElement>;
+    csrfToken: string;
+}): void {
+    const { createScaleUrl, finalScaleBtns, csrfToken } = options;
     // -----------------------------------------------------------------------
     // Final scale of an exam with common exams: for all of them, or only this one
     // -----------------------------------------------------------------------
 
-    const finalModalElement = byId('final-scale-common-modal');
-    const finalModal = new LocalModal(finalModalElement);
-    const allForm = finalModalElement.querySelector<HTMLFormElement>('form[data-final-scale="all"]')!;
-    const oneForm = finalModalElement.querySelector<HTMLFormElement>('form[data-final-scale="one"]')!;
+    // Final scale of an exam with common exams: for all of them, or only this one
+    for (const button of finalScaleBtns) {
+        button.addEventListener("click", (e) => {
+            e.preventDefault();
 
-    for (const button of document.querySelectorAll<HTMLElement>('[data-final-scale-all-url]')) {
-        button.addEventListener('click', () => {
-            allForm.action = button.dataset['finalScaleAllUrl'] ?? '';
-            oneForm.action = button.dataset['finalScaleOneUrl'] ?? '';
-            finalModal.show();
+            const all = button.dataset["finalScaleAllUrl"];
+            const one = requireData(button, "finalScaleOneUrl");
+            if (all) {
+                new SetFinalScaleModal({ urls: { all, one }, csrfToken }).show();
+            } else {
+                void postForm(one)
+                    .then(() => window.location.reload())
+                    .catch((error: unknown) => {
+                        console.error("Making the scale official failed", error);
+                        showToast("The scale could not be made official. Please try again.", { error: true });
+                    });
+            }
         });
     }
 
@@ -53,48 +64,7 @@ export function initScales({ createScaleUrl }: ScalesConfig): void {
     // "Add scale": the server's form, loaded into the dialog and submitted in it
     // -----------------------------------------------------------------------
 
-    const createModalElement = byId('create-scale-modal');
-    const createModal = new LocalModal(createModalElement);
-    const content = createModalElement.querySelector<HTMLElement>('.modal-content')!;
-
-    byId('btn-create-scale').addEventListener('click', () => {
-        void (async () => {
-            try {
-                const html = await new LoadingModal(async () => {
-                    const response = await fetch(createScaleUrl, { credentials: 'same-origin' });
-                    if (!response.ok) throw new Error(`Create scale form request failed: ${response.status}`);
-                    return response.text();
-                }).result;
-                content.innerHTML = html; // the server's own form template
-                createModal.show();
-            } catch (error) {
-                showRequestError(error, 'The scale form could not be loaded.');
-            }
-        })();
-    });
-
-    // A valid form redirects (the scale was created); an invalid one comes back with its errors.
-    content.addEventListener('submit', (event) => {
-        const form = event.target;
-        if (!(form instanceof HTMLFormElement)) return;
-        event.preventDefault();
-
-        void (async () => {
-            try {
-                const response = await fetch(form.action || createScaleUrl, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    credentials: 'same-origin',
-                });
-                if (response.redirected) {
-                    window.location.reload();
-                    return;
-                }
-                if (!response.ok) throw new Error(`Create scale request failed: ${response.status}`);
-                content.innerHTML = await response.text();
-            } catch (error) {
-                showRequestError(error, 'The scale could not be created.');
-            }
-        })();
+    byId('btn-create-scale').addEventListener('click', () => {        
+        new AddScaleModal({ createScaleUrl }).show();
     });
 }

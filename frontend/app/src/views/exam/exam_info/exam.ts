@@ -1,6 +1,7 @@
 import { byId } from '@examc/helpers/dom.ts';
 import { HttpError, postText } from '@examc/helpers/http.ts';
 import { LoadingModal, LocalModal } from '@examc/modals';
+import { PdfModal } from '@examc/modals/pdf';
 
 declare global {
     interface Window {
@@ -78,17 +79,11 @@ export function initExamOptions(form: HTMLFormElement, url: string): void {
 
 /**
  * The catalog PDF dialog. The PDF is only loaded the first time the dialog opens.
- *
- * @param {HTMLElement} button - The button opening it.
- * @param {HTMLElement} modalElement - The dialog.
- * @param {string} url - The catalog PDF.
  */
-export function initCatalog(button: HTMLElement, modalElement: HTMLElement, url: string): void {
-    const modal = new LocalModal(modalElement);
-    const frame = modalElement.querySelector('iframe')!;
+export function initCatalog(options: { button: HTMLButtonElement; url: string }): void {
+    const { button, url } = options;
 
-    button.addEventListener('click', () => {
-        if (!frame.getAttribute('src')) frame.src = url;
-        modal.show();
+    button.addEventListener("click", () => {
+        PdfModal.open({ title: "Catalog", url });
     });
 }

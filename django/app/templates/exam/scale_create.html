@@ -1,22 +1,13 @@
-{% load crispy_forms_tags %}
-<div class="modal-header">
-    <h5 class="modal-title" id="create-scale-title">Add scale</h5>
-    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close">Close</button>
-</div>
-<form method="post">{% csrf_token %}
-    <div id="create-scale-body" class="modal-body">
-        <table cellpadding="10" style="margin-bottom:50px;">
-          {{ form.as_table }}
-          <!-- <tr>
-            <td/>
-            <td>
-              information about the formula :
-            </td>
-          </tr> -->
-        </table>
-    </div>
-    <div class="modal-footer" style="text-align:right;">
-         <input type="submit" class="btn btn-dark btn-sm" value="validate"/>
+<form method="post" action="{% url "create_scale" exam_pk %}">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="row g-3">
+        <div class="col-12">{{ form.name.as_field_group }}</div>
+        <div class="col-sm-6">{{ form.total_points.as_field_group }}</div>
+        <div class="col-sm-6">{{ form.points_to_add.as_field_group }}</div>
+        <div class="col-sm-4">{{ form.min_grade.as_field_group }}</div>
+        <div class="col-sm-4">{{ form.max_grade.as_field_group }}</div>
+        <div class="col-sm-4">{{ form.rounding.as_field_group }}</div>
     </div>
 </form>
-
