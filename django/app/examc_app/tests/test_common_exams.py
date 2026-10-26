@@ -30,7 +30,7 @@ class CommonExamsTestCase(TestCase):
 
     def link(self, overall, *children):
         for child in children:
-            child.common_exams.update(overall)
+            child.common_exams.add(overall)
 
 
 class BuildOverallExamCodeTests(CommonExamsTestCase):

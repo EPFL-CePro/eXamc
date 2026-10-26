@@ -1,6 +1,6 @@
 from typing import Any, TypedDict
 
-from examc_app.models import Exam
+from examc_app.models import Exam, PagesGroup
 from examc_app.utils.results_statistics_functions import get_common_list
 
 
@@ -10,34 +10,56 @@ class ViewTab(TypedDict):
 
 
 class ViewContext:
+    task_id: str | None
+
     exam: Exam
-    curr_exam: Exam
+    exam_selected: Exam
+
     user_id: int | None
     user_allowed: bool
+
     nav_url: str | None
 
     tabs: list[ViewTab] | None
     curr_tab: str | None
 
+    pages_group: PagesGroup | None
+
+
     def __init__(
         self,
         base_dict: dict[str, Any] | None = None,
+
+        task_id: str | None = None,
+
         exam_pk: int | None = None,
+
         user_id: int | None = None,
         user_allowed: bool = False,
+
         nav_url: str | None = None,
+
         tabs: list[ViewTab] | None = None,
         curr_tab: str | None = None,
+
+        pages_group: PagesGroup | None = None
     ):
         if base_dict is not None:
             self.update(**base_dict)
 
+        self.set_task_id(task_id)
+
         self.set_exam(exam_pk)
+
         self.set_user_id(user_id)
         self.set_user_allowed(user_allowed)
+
         self.set_nav_url(nav_url)
+
         self.set_tabs(tabs)
         self.set_curr_tab(curr_tab)
+
+        self.set_pages_group(pages_group)
 
     def as_dict(self) -> dict[str, Any]:
         """Returns the fully built view context as a dictionary."""
@@ -48,7 +70,7 @@ class ViewContext:
         }
 
     def update(self, **kwargs: Any) -> None:
-        """Adds or updates attributes, ignoring None values."""
+        """Adds or updates any kind of attributes, ignoring None values."""
         self.__dict__.update({
             key: value
             for key, value in kwargs.items()
@@ -56,22 +78,16 @@ class ViewContext:
         })
 
     def set_exam(self, exam_pk: int | None) -> None:
-        """Sets the current exam and its related exam attributes."""
+        """
+        Sets the opened exam (exam_selected), and the overall exam of its group (exam): the exam itself when it
+        isn't part of a group.
+        """
         if exam_pk is None:
             return
 
         exam = Exam.objects.get(pk=exam_pk)
-        self.curr_exam = exam
-        common_list = get_common_list(exam)
-
-        if exam.is_overall():
-            self.curr_exam = common_list[1]
-            common_list.remove(exam)
-        elif common_list:
-            self.curr_exam = exam
-            self.exam = common_list[0]
-            if len(common_list) > 1:
-                common_list.remove(exam)
+        self.exam_selected = exam
+        self.exam = exam.get_overall_exam_or_default()
 
     def set_user_id(self, user_id: int | None = None) -> None:
         """Sets the user ID."""
@@ -96,3 +112,13 @@ class ViewContext:
         """Sets the current tab."""
         if curr_tab:
             self.curr_tab = curr_tab
+
+    def set_pages_group(self, pages_group: PagesGroup | None = None):
+        """Sets the pages group"""
+        if pages_group is not None:
+            self.pages_group = pages_group
+
+    def set_task_id(self, task_id: str | None = None):
+        """Sets the task ID."""
+        if task_id is not None:
+            self.task_id = task_id

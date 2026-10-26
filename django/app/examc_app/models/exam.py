@@ -2,6 +2,7 @@
 # EXAM
 ###########################
 import json
+from typing import ClassVar
 
 from django.db import models
 from django.db.models import Count
@@ -9,6 +10,7 @@ from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
 TEACHER_GROUP_ID = 2
+REVIEWER_GROUP_ID = 3
 
 class AcademicYear(models.Model):
     """ Stores academic year data """
@@ -42,7 +44,7 @@ class Exam(models.Model):
     # Booklet: A3 folded and stapled, the number of pages of a copy must be a multiple of 4
     PRINT_FORMAT_STANDARD = "standard"
     PRINT_FORMAT_BOOKLET = "booklet"
-    PRINT_FORMAT_CHOICES = [(PRINT_FORMAT_STANDARD, "Standard"), (PRINT_FORMAT_BOOKLET, "Booklet")]
+    PRINT_FORMAT_CHOICES: ClassVar = [(PRINT_FORMAT_STANDARD, "Standard"), (PRINT_FORMAT_BOOKLET, "Booklet")]
     print_format = models.CharField(max_length=20, choices=PRINT_FORMAT_CHOICES, default=PRINT_FORMAT_STANDARD)
 
     review_option = models.BooleanField(default=0)
@@ -58,11 +60,11 @@ class Exam(models.Model):
 
     class Meta:
         unique_together = ('code', 'date')
-        ordering = ['-year', '-semester', 'code']
+        ordering: ClassVar = ['-year', '-semester', 'code']
         verbose_name = "Exam"
 
         # for permissions linked to exam and user group
-        permissions = [
+        permissions: ClassVar = [
             ("review",   "Can review this exam"),
             ("manage", "Can manage this exam"),
             ("see_results", "Can see results of this exam"),
@@ -119,7 +121,7 @@ class Exam(models.Model):
         return [self, *self.common_exams.all()]
 
     def get_common_exams_without_common(self):
-        """ Return all common exams without the common (000-) """
+        """ Return all common exams without the special common exam (starting with 000-) """
         return Exam.objects.filter(common_exams=self,overall=False)
 
 
@@ -156,9 +158,8 @@ class Exam(models.Model):
 
     def get_overall_exam_or_default(self):
         """ The overall exam among the common exams if there is one, otherwise this exam """
-        if self.is_overall():
+        if self.overall:
             return self
-
         return self.common_exams.filter(overall=True).first() or self
 
     @property
@@ -183,11 +184,11 @@ class Exam(models.Model):
         return f"S{self.semester} {self.year.code}"
 
     @property
-    def display_teachers(self) -> str:
+    def display_teachers(self) -> list[str]:
         exam_users = self.exam_users.filter(group_id=TEACHER_GROUP_ID).select_related("user")
-        return ", ".join(
+        return [
             f"{eu.user.first_name[:1]}.{eu.user.last_name}" for eu in exam_users
-        )
+        ]
 
     def __str__(self):
         return f"{self.code} {self.name} (S{self.semester.code} {self.year.code})"
@@ -227,7 +228,7 @@ class Question(models.Model):
     history = HistoricalRecords()
 
     class Meta:
-        constraints = [
+        constraints: ClassVar = [
             models.UniqueConstraint(fields=["exam", "code"], name="uniq_question_exam_code")
         ]
 
