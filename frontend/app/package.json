@@ -43,7 +43,7 @@
     "@fortawesome/fontawesome-free": "^7.3.1",
     "@markerjs/markerjs3": "^3.10.0",
     "@milkdown/crepe": "^7.22.3",
-    "@milkdown/kit": "7.22.2",
+    "@milkdown/kit": "7.22.3",
     "@uiw/codemirror-theme-github": "^4.25.12",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
