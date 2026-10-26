@@ -4,6 +4,41 @@
 // .dropdown-item stay in the markup, next to the classes below.
 @use "bootstrap/scss/bootstrap";
 
+#sidebar-container {
+    // From md up, the sidebar is part of the layout; below md, it's a fixed drawer handled by Bootstrap's offcanvas.
+    @media (min-width: 768px) {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    #sidebar-toggle {
+        position: absolute;
+        left: 100%;
+        bottom: max(1rem, env(safe-area-inset-bottom));
+        width: 3.5rem;
+        height: 3.5rem;
+        margin-left: 1rem;
+        // The hidden drawer has visibility: hidden, which its children inherit; the toggle stays visible.
+        visibility: visible;
+
+        .sidebar-toggle-close {
+            display: none;
+        }
+    }
+
+    // Bootstrap sets "showing" while opening, "show" once open and "hiding" while closing.
+    &:is(.show, .showing):not(.hiding) #sidebar-toggle {
+        .sidebar-toggle-open {
+            display: none;
+        }
+
+        .sidebar-toggle-close {
+            display: inline-block;
+        }
+    }
+}
+
 // Top-level entries: links, and the buttons opening a module's menu
 .sidebar-link,
 .sidebar-menu-toggle {
