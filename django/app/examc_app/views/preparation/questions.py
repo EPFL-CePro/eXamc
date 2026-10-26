@@ -217,7 +217,7 @@ def import_prep_questions(request, exam_pk, section_id):
     Nothing is created when the file has a problem: the form is shown again with them."""
     exam = get_object_or_404(Exam, pk=exam_pk)
     section = get_object_or_404(PrepSection, pk=section_id, exam=exam)
-    form_template = "exam/preparation/_prep_import_questions_form.html"
+    form_template = "exam/preparation/partials/_prep_import_questions_form.html"
     form_context = {"exam_selected": exam, "section": section}
 
     if request.method != "POST":

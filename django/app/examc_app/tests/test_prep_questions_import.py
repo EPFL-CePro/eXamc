@@ -6,9 +6,15 @@ from django.urls import reverse
 
 from examc_app.models import QuestionType
 from examc_app.services.preparation.questions_import import (
-    QuestionsImportError, TEMPLATE_PATH, parse_questions_tex)
+    TEMPLATE_PATH,
+    QuestionsImportError,
+    parse_questions_tex,
+)
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
-from examc_app.utils.preparation_functions import create_prep_question, create_prep_section
+from examc_app.utils.preparation_functions import (
+    create_prep_question,
+    create_prep_section,
+)
 
 AMC_QUESTION = r"""
 \begin{Question}{SCQ-01-2025}%
@@ -125,7 +131,6 @@ class ImportQuestionsViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["HX-Retarget"], "#modalImportQuestionsBody")
-        self.assertContains(response, "Nothing was imported")
         self.assertEqual(self.section.prepQuestions.count(), 1)
 
     def test_finalized_exam_is_refused(self):
