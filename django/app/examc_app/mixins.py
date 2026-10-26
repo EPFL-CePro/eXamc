@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.contrib.auth.mixins import AccessMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
@@ -16,7 +18,7 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
       exam_kw          = "exam_pk"      # URL kwarg for the exam’s PK
       perm_codename  = "manage"         # URL kwarg for permission codenames # e.g. ["manage","review"]
     """
-    perm_codenames: list = None
+    perm_codenames: ClassVar[list | None] = None
     exam_kw: str = "exam_pk"
     redirect_enabled: bool = False
 
@@ -49,7 +51,7 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
                 return super().dispatch(request, *args, **kwargs)
             # next‐best fallbacks
             if has(['review']):
-                return redirect(reverse('reviewView', kwargs={'exam_pk': exam.pk}))
+                return redirect(reverse('review_view', kwargs={'exam_pk': exam.pk}))
             if has(['see_results']):
                 return redirect(reverse('students_results', kwargs={'exam_pk': exam.pk}))
             # nothing else

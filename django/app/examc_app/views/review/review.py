@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, ClassVar
 
 from django.views.generic import DetailView
 
@@ -7,6 +7,7 @@ from examc_app.mixins import ExamPermissionAndRedirectMixin
 from examc_app.models import Exam, ExamUser, PagesGroup
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import get_copies_pages_by_group
+from examc_app.utils.view_context_helpers import ViewContext
 from examc_app.views.review_views import ReviewUnrecognizedScansBlockMixin
 
 
@@ -14,10 +15,10 @@ class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMix
     model = Exam
     template_name = 'review/review.html'
     pk_url_kwarg = 'exam_pk'
-    perm_codenames = ['manage', 'review']
+    perm_codenames: ClassVar = ['manage', 'review']
 
     def get_context_data(self, **kwargs):
-        context = super(ReviewView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         exam = Exam.objects.get(pk=context.get("object").id)
 
         if user_allowed(exam, self.request.user.id):
@@ -30,7 +31,7 @@ class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMix
                     pages_groups = user_exam.first().pages_groups.all()
 
             context['user_allowed'] = True
-            context['nav_url'] = "reviewView"
+            context['nav_url'] = "review_view"
             context['exam_pages_group_list'] = pages_groups
             context['exam_selected'] = exam
             exam = exam.get_overall_exam_or_default()
@@ -39,7 +40,7 @@ class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMix
             return context
         else:
             context['user_allowed'] = False
-            context['nav_url'] = "reviewView"
+            context['nav_url'] = "review_view"
             context['exam'] = exam
             return context
 
@@ -61,43 +62,33 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
     model = Exam
     template_name = 'review/review_group.html'
     pk_url_kwarg = 'exam_pk'
-    perm_codenames = ['manage', 'review']
+    perm_codenames: ClassVar = ['manage', 'review']
 
     def get_context_data(self, **kwargs) -> dict[str, Any]:
-        context = super(ReviewGroupView, self).get_context_data(**kwargs)
+        pages_group = PagesGroup.objects.get(pk=self.kwargs.get("group_pk"))
+        current_page = self.kwargs["currpage"]
 
-        pages_group = PagesGroup.objects.get(pk=self.kwargs.get('group_pk'))
-
-        current_page = self.kwargs['currpage']
-
-        # Get scans file path dict by pages groups
-        copies_pages_list = get_copies_pages_by_group(pages_group)
+        # exam_selected is the reviewed exam, exam its group's overall exam (set by ViewContext)
+        view_context = ViewContext(
+            base_dict=super().get_context_data(),
+            nav_url="review_group",
+            exam_pk=pages_group.exam.pk,
+            pages_group=pages_group,
+        )
 
         # user is not allowed
         if not user_allowed(pages_group.exam, self.request.user.id):
-            context.update({
-                'user_allowed': False,
-                'nav_url': "review_group",
-                'exam': pages_group.exam,
-                'pages_group': pages_group
-            })
+            return view_context.as_dict()
 
-            return context
+        view_context.set_user_allowed(True)
 
-        # user is allowed
-        context.update({
-            'user_allowed': True,
-            'nav_url': "review_group",
-            'pages_group': pages_group,
-            'copies_pages_list': copies_pages_list,
-            'json_copies_pages_list': json.dumps(copies_pages_list),
-            'currpage': current_page,
-            'exam_selected': pages_group.exam,
-        })
-
-        # manages common exams
-        exam = pages_group.exam.get_overall_exam_or_default()
-        context['exam'] = exam
+        # Get scans file path dict by pages groups
+        copies_pages_list = get_copies_pages_by_group(pages_group)
+        view_context.update(
+            copies_pages_list=copies_pages_list,
+            json_copies_pages_list=json.dumps(copies_pages_list),
+            currpage=current_page,
+        )
 
         # grading scheme
         grading_schemes = None
@@ -106,14 +97,11 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
 
         current_grading_scheme = self.kwargs['current_grading_scheme']
         if grading_schemes and not current_grading_scheme:
-            if grading_schemes:
-                current_grading_scheme = grading_schemes.first()
-            else:
-                current_grading_scheme = 0
+            current_grading_scheme = grading_schemes.first()
 
-        context.update({
-            'grading_schemes': grading_schemes,
-            'current_grading_scheme': current_grading_scheme
-        })
+        view_context.update(
+            grading_schemes=grading_schemes,
+            current_grading_scheme=current_grading_scheme
+        )
 
-        return context
+        return view_context.as_dict()

@@ -257,7 +257,7 @@ def build_exam_card(user: User, exam: Exam) -> dict[str, typing.Any]:
     if exam.review_option and capabilities["review"]:
         actions.append({
             "label": "Review",
-            "url": reverse("reviewView", kwargs={"exam_pk": exam.pk}),
+            "url": reverse("review_view", kwargs={"exam_pk": exam.pk}),
             "icon": "fa-glasses",
         })
     if exam.res_and_stats_option and capabilities["results"]:
@@ -304,7 +304,7 @@ def _add_manage_todos(todos: list[DashboardTodo], exam: Exam):
                 todos,
                 f"{exam.code}: configure review groups",
                 "No page group exists for online review.",
-                reverse("review_settings_view", kwargs={"exam_pk": exam.pk, "curr_tab": "pages-groups-tab"}),
+                reverse("review_settings_view", kwargs={"exam_pk": exam.pk}),
                 "fa-cogs",
             )
         else:
@@ -313,7 +313,7 @@ def _add_manage_todos(todos: list[DashboardTodo], exam: Exam):
                     todos,
                     f"{exam.code}: assign reviewers",
                     "No dedicated reviewer is assigned to this exam.",
-                    reverse("review_settings_view", kwargs={"exam_pk": exam.pk, "curr_tab": "reviewers-tab"}),
+                    reverse("review_settings_view", kwargs={"exam_pk": exam.pk}),
                     "fa-user-plus",
                 )
             if not _exam_has_review_scan_files(exam):
@@ -367,7 +367,7 @@ def _add_review_todos(todos: list[DashboardTodo], user: User, exam: Exam, exam_u
                 todos,
                 f"{exam.code}: review blocked",
                 "Your review access is currently blocked for this exam.",
-                reverse("reviewView", kwargs={"exam_pk": exam.pk}),
+                reverse("review_view", kwargs={"exam_pk": exam.pk}),
                 "fa-lock",
             )
             continue
@@ -378,7 +378,7 @@ def _add_review_todos(todos: list[DashboardTodo], user: User, exam: Exam, exam_u
                 todos,
                 f"{exam.code}: no assigned page group",
                 "You are reviewer on this exam but no page group is assigned to you.",
-                reverse("reviewView", kwargs={"exam_pk": exam.pk}),
+                reverse("review_view", kwargs={"exam_pk": exam.pk}),
                 "fa-triangle-exclamation",
             )
             continue

@@ -74,13 +74,11 @@ urlpatterns = [
     path('delete_unrecognized_review_scan/<int:exam_pk>', views.delete_unrecognized_review_scan, name="delete_unrecognized_review_scan"),
     path('delete_unrecognized_review_scans/<int:exam_pk>', views.delete_unrecognized_review_scans, name="delete_unrecognized_review_scans"),
     path('review_settings/<int:exam_pk>', views.ReviewSettingsView.as_view(), name="review_settings_view"),
-    path('review_settings/<int:exam_pk>?tab=<str:curr_tab>', views.ReviewSettingsView.as_view(), name="review_settings_view"),
     path('add_new_pages_group/<int:exam_pk>', views.add_new_pages_group, name="add_new_pages_group"),
     path('edit_pages_group_grading_help/<int:exam_pk>', views.edit_pages_group_grading_help, name="edit_pages_group_grading_help"),
     path('get_pages_group_grading_help/<int:exam_pk>', views.get_pages_group_grading_help, name="get_pages_group_grading_help"),
     path('delete_pages_group/<int:group_pk>/<int:exam_pk>', views.delete_pages_group, name="delete_pages_group"),
     path("grading_scheme_pages_group/<int:exam_pk>/<int:pages_group_id>",views.grading_scheme_pages_group,name="grading_scheme_pages_group"),
-    path("grading_scheme_pages_group/<int:exam_pk>/<int:pages_group_id>/<int:current_grading_scheme_id>",views.grading_scheme_pages_group,name="grading_scheme_pages_group_with_grading_scheme"),
     path("grading_scheme_panel/<int:exam_pk>/<int:grading_scheme_id>", views.grading_scheme_panel, name="grading_scheme_panel"),
     path("grading_scheme_checkboxes/<int:exam_pk>/<int:grading_scheme_id>", views.grading_scheme_checkboxes, name="grading_scheme_checkboxes"),
     path("delete_grading_scheme_checkbox/<int:exam_pk>/<int:grading_scheme_checkbox_id>", views.delete_grading_scheme_checkbox,name="delete_grading_scheme_checkbox"),
@@ -90,7 +88,7 @@ urlpatterns = [
 
 
     # REVIEW
-    path('review/<int:exam_pk>', views.ReviewView.as_view(), name="reviewView"),
+    path('review/<int:exam_pk>', views.ReviewView.as_view(), name="review_view"),
     path('review_group/<int:exam_pk>/<int:group_pk>/<str:currpage>/<int:current_grading_scheme>', views.ReviewGroupView.as_view(), name="review_group"),
     path('save_markers/<int:exam_pk>', views.save_markers, name="save_markers"),
     path('get_markers_and_comments/<int:exam_pk>', views.get_markers_and_comments, name="get_markers_and_comments"),
@@ -110,7 +108,6 @@ urlpatterns = [
 
     # AMC
     path('amc_view/<int:exam_pk>', views.amc_view, name="amc_view"),
-    path('amc_view/<int:exam_pk>?tab=<str:curr_tab>', views.amc_view, name="amc_view"),
     path('amc_data_capture_manual/<int:exam_pk>', views.amc_data_capture_manual, name="amc_data_capture_manual"),
     path('get_amc_marks_positions/<int:exam_pk>', views.get_amc_marks_positions, name="get_amc_marks_positions"),
     path('update_amc_mark_zone/<int:exam_pk>', views.update_amc_mark_zone, name="update_amc_mark_zone"),
