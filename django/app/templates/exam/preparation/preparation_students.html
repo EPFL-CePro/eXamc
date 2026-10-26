@@ -1,10 +1,6 @@
-{% load static %}
 {% load django_vite %}
 
-{% block title %}Exam students{% endblock %}
-
 {% block extra_head %}
-    {#    {{ fp_txt_form.media }}#}
     {% vite_asset 'src/views/exam/preparation/exam_preparation_students/index.ts' %}
 {% endblock %}
 

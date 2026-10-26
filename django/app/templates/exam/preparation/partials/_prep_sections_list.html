@@ -1,4 +1,4 @@
-<div id="prep-sections-list">
+<div id="prep-sections-list" style="max-width: var(--form-max-width)">
     {% for item in section_items %}
         {% include "exam/preparation/partials/_prep_section_card.html" with section=item.section section_form=item.section_form questions=item.questions %}
     {% empty %}

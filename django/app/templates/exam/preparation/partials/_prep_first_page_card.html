@@ -1,4 +1,4 @@
-<div id="prep-first-page-panel" class="card mt-3">
+<div id="prep-first-page-panel" class="card mt-3" style="max-width: var(--form-max-width)">
     <div class="card-header">
         <div class="d-flex align-items-center flex-grow-1"
                  role="button"
@@ -10,6 +10,7 @@
                 <span>First page</span>
         </div>
     </div>
+
     <div id="prep-first-page-body" class="collapse{% if saved %} show{% endif %}">
         <div class="card-body">
             <form hx-post="{% url 'prep_first_page_panel' exam_selected.pk %}"
