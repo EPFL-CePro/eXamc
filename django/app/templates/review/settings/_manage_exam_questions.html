@@ -8,10 +8,6 @@
     {% csrf_token %}
     {{ exam_pages_groups_formset.management_form }}
 
-    <button type="submit" title="Save changes to pages groups" name="submit-groups" class="btn btn-primary mb-4">
-        <i class="fas fa-floppy-disk"></i> Save changes to pages groups
-    </button>
-
     {% if error_msg %}
         <div class="alert alert-danger" role="alert" style="width: fit-content">
             <i class="fa-solid fa-triangle-exclamation"></i> {{ error_msg }}
@@ -20,12 +16,15 @@
 
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'warning' }}" role="alert"
-                 style="margin:20px;text-align:center;">
-                {{ message }}
+            <div class="alert alert-{{ message.tags|default:'warning' }}" role="alert" style="width:fit-content">
+                <i class="fa-solid fa-info-circle"></i> {{ message }}
             </div>
         {% endfor %}
     {% endif %}
+
+    <button type="submit" title="Save changes to pages groups" name="submit-groups" class="btn btn-primary mb-4">
+        <i class="fas fa-floppy-disk"></i> Save changes to pages groups
+    </button>
 
     <table id="pages-groups-table" class="table"
        data-grading-help-load-url="{% url 'get_pages_group_grading_help' exam_selected.pk %}"
@@ -37,8 +36,8 @@
                         <th scope="col">{{ field.label }}</th>
                     {% endif %}
                 {% endfor %}
-                <th scope="col">Delete</th>
                 <th scope="col">Grading Help</th>
+                <th scope="col">Delete</th>
                 <th scope="col">Status</th>
             </tr>
         </thead>
@@ -47,7 +46,7 @@
             <tr class="group-form{% if form.locked %} table-light{% endif %}">
                 {% for h_field in form.hidden_fields %}{{ h_field }}{% endfor %}
                 {% for v_field in form.visible_fields %}
-                    <td class="align-middle">
+                    <td>
                         {{ v_field }}
                         {% if form.locked %}
                             {# Disabled inputs aren't submitted: send the current value instead #}
@@ -58,6 +57,13 @@
                         {% endfor %}
                     </td>
                 {% endfor %}
+
+                <td>
+                    <button type="button" class="btn btn-light" title="Grading help" aria-label="Grading help"
+                            data-grading-help-group="{{ form.instance.pk }}">
+                        <i class="fas fa-edit fa-xl"></i>
+                    </button>
+                </td>
                 <td>
                     <button type="submit"
                             class="btn btn-danger"
@@ -68,18 +74,10 @@
                         <i class="fa-solid fa-circle-minus"></i>
                     </button>
                 </td>
-                <td>
-                    <button type="button" class="btn btn-light" title="Grading help" aria-label="Grading help"
-                            data-grading-help-group="{{ form.instance.pk }}">
-                        <i class="fas fa-edit fa-xl"></i>
-                    </button>
-                </td>
-                <td class="align-middle">
-                    {% if form.instance.pk in locked_pages_group_ids %}
-                        <span class="text-muted">Locked <i class="fa-solid fa-lock"></i></span>
-                    {% else %}
-                        <span class="text-muted">Editable</span>
-                    {% endif %}
+                <td class="pt-3">
+                    <span class="text-muted">
+                        {% if form.instance.pk in locked_pages_group_ids %}Locked <i class="fa-solid fa-lock"></i>{% else %}Editable{% endif %}
+                    </span>
                 </td>
             </tr>
         {% endfor %}
@@ -94,7 +92,7 @@
                 {% else %}
                     <td>
                         {% if field.name == "use_grading_scheme" %}
-                            <div class="form-check form-switch">
+                            <div class="form-check form-switch pt-4">
                                 {{ field }}
                                 <label class="custom-control-label" for="{{ field.id_for_label }}"></label>
                             </div>

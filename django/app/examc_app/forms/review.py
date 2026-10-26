@@ -1,8 +1,10 @@
+from collections.abc import Collection
+from typing import Any, ClassVar
+
 from django import forms
 from django.forms import modelformset_factory
-from django_summernote.widgets import SummernoteWidget
 
-from examc_app.forms.general import SwitchWidget
+from examc_app.forms.general import SelectWithDisabledOptions, SwitchWidget
 from examc_app.models import (
     ExamUser,
     PagesGroup,
@@ -18,42 +20,62 @@ class UploadScansForm(forms.Form):
     )
 
 
+
 class ManagePagesGroupsForm(forms.ModelForm):
     class Meta:
         model = PagesGroup
-        fields = ["group_name", "nb_pages", "use_grading_scheme"]
+        fields: ClassVar = ["group_name", "nb_pages", "use_grading_scheme"]
 
-    def __init__(self, questions_choices, *args, **kwargs):
+    def __init__(
+        self,
+        questions_choices: list[tuple[str, str]],
+        *args: Any,
+        locked_pages_group_ids: Collection[int] = (),
+        used_question_names: Collection[str] = (),
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
+
+        # A group can keep, or switch back to, its own saved question.
+        own_question: str | None = self.instance.group_name if self.instance.pk is not None else None
+        taken_by_others: set[str] = set(used_question_names) - {own_question} if own_question else set(used_question_names)
+        
         self.fields["group_name"] = forms.ChoiceField(
             label="Question",
             choices=questions_choices,
-            widget=forms.Select(
-                attrs={"class": "form-select"}
+            widget=SelectWithDisabledOptions(
+                attrs={"class": "form-select"},
+                disabled_values=taken_by_others,
             ),
             required=True,
         )
+
         self.fields["nb_pages"] = forms.IntegerField(
-            label="Nb pages",
+            label="Pages",
             widget=forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "id": "nb_pages",
                     "style": "width:100px",
                 }
             ),
             required=True,
             min_value=1,
         )
+
         self.fields["use_grading_scheme"] = forms.BooleanField(
             label="Use grading scheme", widget=SwitchWidget(), required=False
         )
 
+        # Locked groups keep their current values: disabled fields ignore submitted data.
+        self.locked: bool = self.instance.pk is not None and self.instance.pk in locked_pages_group_ids
+
+        if self.locked:
+            for field in self.fields.values():
+                field.disabled = True
 
 PagesGroupsFormSet = modelformset_factory(
     PagesGroup, form=ManagePagesGroupsForm, extra=0
 )
-
 
 class ManageReviewersForm(forms.ModelForm):
     # override the field to give it our SwitchWidget
@@ -65,40 +87,35 @@ class ManageReviewersForm(forms.ModelForm):
 
     class Meta:
         model = ExamUser
-        fields = ["user", "pages_groups", "review_blocked"]
+        fields: ClassVar = ["pages_groups", "review_blocked"]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        # filter many to many pagesgroup to get only for curr exam
-        if self.instance.pk:
-            self.fields["pages_groups"].queryset = PagesGroup.objects.filter(
-                exam_id=self.instance.exam_id
+        # Only the row's exam's pages groups: without this, every exam's pages groups would be options.
+        pages_groups_field = self.fields["pages_groups"]
+        if isinstance(pages_groups_field, forms.ModelMultipleChoiceField):
+            pages_groups_field.queryset = (
+                PagesGroup.objects.filter(exam_id=self.instance.exam_id)
+                if self.instance.pk is not None
+                else PagesGroup.objects.none()
             )
-        else:
-            self.fields["pages_groups"].queryset = PagesGroup.objects.none()
 
-        self.fields["user"].widget.attrs["class"] = "form-control"
-        self.fields["user"].widget.attrs["style"] = "width:300px"
-        self.fields["user"].disabled = True
-        self.fields["pages_groups"].widget.attrs["class"] = "form-control"
-        self.fields["pages_groups"].widget.attrs["style"] = "width:300px"
-
+        pages_groups_field.widget.attrs["class"] = "form-select"
 
 ReviewersFormSet = modelformset_factory(ExamUser, form=ManageReviewersForm, extra=0)
-
 
 class GradingSchemeForm(forms.ModelForm):
     class Meta:
         model = QuestionGradingScheme
-        fields = ["name", "max_points", "description"]
+        fields: ClassVar = ["name", "max_points", "description"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for fname, f in self.fields.items():
             f.widget.attrs["class"] = "form-control"
             if fname == "description":
-                f.widget.attrs["rows"] = 4
+                f.widget.attrs["rows"] = 2
             if fname == "max_points":
                 f.widget.attrs["style"] = "width: 9rem"
                 f.widget.attrs["readonly"] = True
@@ -113,26 +130,18 @@ GradingSchemeFormSet = modelformset_factory(
 class GradingSchemeCheckBoxForm(forms.ModelForm):
     class Meta:
         model = QuestionGradingSchemeCheckBox
-        fields = ["name", "points", "description", "position"]
-        widgets = {
-            "description": SummernoteWidget(
-                attrs={"summernote": {"width": "100%", "height": "150px"}}
-            ),
+        fields: ClassVar = ["name", "points", "description", "position"]
+        widgets: ClassVar = {
             "position": forms.HiddenInput(),
+            "description": forms.Textarea(attrs={"data-simple-editor": True, "hidden": True}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        for fname, f in self.fields.items():
-            if fname != "description":
-                f.widget.attrs["class"] = "form-control"
-                if fname == "name":
-                    f.widget.attrs["style"] = "min-width:300px"
-                if fname == "points":
-                    f.widget.attrs["style"] = "width: 8rem"
-            else:
-                f.required = False
-
+        self.fields["name"].widget.attrs.update({"class": "form-control", "style": "min-width:300px"})
+        self.fields["points"].widget.attrs.update({"class": "form-control", "style": "width: 8rem"})
+        # Optional, and hidden behind the simple editor: a required hidden field would block the form's submit
+        self.fields["description"].required = False
 
 GradingSchemeCheckboxFormSet = modelformset_factory(
     QuestionGradingSchemeCheckBox, form=GradingSchemeCheckBoxForm, extra=0

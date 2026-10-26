@@ -172,12 +172,13 @@ TEMPLATES = [
                 "examc_app.templatetags.prep_tags",
                 "examc_app.templatetags.stats_tags",
                 "examc_app.templatetags.ui_tags",
+                "examc_app.templatetags.user_tags",
             ]
         },
     },
 ]
 
-FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
+FORM_RENDERER = "examc_app.forms.renderers.DefaultFormRenderer"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
