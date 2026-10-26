@@ -4,5 +4,8 @@
 
 <script>
   document.getElementById('oidc-logout-form').submit();
-  window.location.href = '/';
+
+  setTimeout(() => {
+    window.location.href = '/';
+  }, 500);
 </script>
