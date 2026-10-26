@@ -1,5 +1,5 @@
 import DataTable from 'datatables.net-bs5';
-import {getLayoutElementsSeparator, setupDatatables} from "@examc/helpers/datatables.ts";
+import { setupDatatables } from "@examc/helpers/datatables.ts";
 
 export function initExamSelectTable(options: {
     tableElement: HTMLTableElement;
@@ -25,10 +25,10 @@ export function initExamSelectTable(options: {
                 return title;
             },
             bottomStart: [
-                "pageLength",
-                getLayoutElementsSeparator(),
-                "info"
-            ]
+                { pageLength: {} },
+                { div: { text: "|" } },
+                { info: {} },
+            ],
         },
         columns: [
             { data: "exam", orderable: true },
