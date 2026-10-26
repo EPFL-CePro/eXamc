@@ -1,5 +1,5 @@
 import { openGradingHelp } from "./grading-help-modal";
-import { showToasts } from "@examc/helpers/toasts.ts";
+import { showToast } from "@examc/helpers/toasts.ts";
 document.addEventListener("DOMContentLoaded", () => {
     const gradingHelpBtns = document.querySelectorAll<HTMLButtonElement>("[data-grading-help-group]");
 
