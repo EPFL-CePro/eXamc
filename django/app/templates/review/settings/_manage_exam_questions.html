@@ -1,0 +1,117 @@
+{% load django_vite %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/review/settings/_manage_exam_pages_groups/index.ts' %}
+{% endblock %}
+
+<form enctype='multipart/form-data' id="form-groups" method="POST" style="max-width: var(--form-max-width)">
+    {% csrf_token %}
+    {{ exam_pages_groups_formset.management_form }}
+
+    <button type="submit" title="Save changes to pages groups" name="submit-groups" class="btn btn-primary mb-4">
+        <i class="fas fa-floppy-disk"></i> Save changes to pages groups
+    </button>
+
+    {% if error_msg %}
+        <div class="alert alert-danger" role="alert" style="width: fit-content">
+            <i class="fa-solid fa-triangle-exclamation"></i> {{ error_msg }}
+        </div>
+    {% endif %}
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'warning' }}" role="alert"
+                 style="margin:20px;text-align:center;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <table id="pages-groups-table" class="table"
+       data-grading-help-load-url="{% url 'get_pages_group_grading_help' exam_selected.pk %}"
+       data-grading-help-save-url="{% url 'edit_pages_group_grading_help' exam_selected.pk %}">
+        <thead>
+            <tr>
+                {% for field in exam_pages_groups_formset.initial_forms.0 %}
+                    {% if field.label != 'Id' %}
+                        <th scope="col">{{ field.label }}</th>
+                    {% endif %}
+                {% endfor %}
+                <th scope="col">Delete</th>
+                <th scope="col">Grading Help</th>
+                <th scope="col">Status</th>
+            </tr>
+        </thead>
+        <tbody id="group-tbody">
+        {% for form in exam_pages_groups_formset.initial_forms %}
+            <tr class="group-form{% if form.locked %} table-light{% endif %}">
+                {% for h_field in form.hidden_fields %}{{ h_field }}{% endfor %}
+                {% for v_field in form.visible_fields %}
+                    <td class="align-middle">
+                        {{ v_field }}
+                        {% if form.locked %}
+                            {# Disabled inputs aren't submitted: send the current value instead #}
+                            <input type="hidden" name="{{ v_field.html_name }}" value="{{ v_field.value|default_if_none:'' }}">
+                        {% endif %}
+                        {% for error in v_field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </td>
+                {% endfor %}
+                <td>
+                    <button type="submit"
+                            class="btn btn-danger"
+                            formaction="{% url 'delete_pages_group' form.hidden_fields.0.value exam_selected.pk %}"
+                            formnovalidate
+                            title="Delete pages group"
+                            {% if form.instance.pk in locked_pages_group_ids %}disabled{% endif %}>
+                        <i class="fa-solid fa-circle-minus"></i>
+                    </button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-light" title="Grading help" aria-label="Grading help"
+                            data-grading-help-group="{{ form.instance.pk }}">
+                        <i class="fas fa-edit fa-xl"></i>
+                    </button>
+                </td>
+                <td class="align-middle">
+                    {% if form.instance.pk in locked_pages_group_ids %}
+                        <span class="text-muted">Locked <i class="fa-solid fa-lock"></i></span>
+                    {% else %}
+                        <span class="text-muted">Editable</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        <tr class="exam_pages_groups_formset_empty_form" hidden>
+            {% for hidden in exam_pages_groups_formset.extra_forms.0.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% for field in exam_pages_groups_formset.extra_forms.0.visible_fields %}
+                {% if field.label == 'Delete' %}
+                    <td style="text-align:center;padding-top:35px">
+                        {{ field }}</td>
+                {% else %}
+                    <td>
+                        {% if field.name == "use_grading_scheme" %}
+                            <div class="form-check form-switch">
+                                {{ field }}
+                                <label class="custom-control-label" for="{{ field.id_for_label }}"></label>
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                    </td>
+                {% endif %}
+            {% endfor %}
+        </tr>
+        </tbody>
+    </table>
+
+    <button id="add-form" type="submit" class="btn btn-outline-success mt-3"
+            title="Add pages group"
+            formaction="{% url 'add_new_pages_group' exam_selected.pk %}"
+            formnovalidate>
+        <i class="fa-solid fa-circle-plus"></i> Add pages group
+    </button>
+</form>
