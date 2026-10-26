@@ -53,17 +53,17 @@ class ExamSubdirTests(SimpleTestCase):
 
 class ExamDirsTests(SimpleTestCase):
     def test_each_root_uses_the_id_based_subdir(self):
-    with override_settings(
-        SCANS_ROOT=Path("/s"), MARKED_SCANS_ROOT=Path("/m"),
-        AMC_PROJECTS_ROOT=Path("/a"), CATALOG_ROOT=Path("/c"), AMC_PROJECTS_URL="/amc_projects/",
-    ):
-        exam = make_exam()
-        sub = f"projects/{exam.pk}"
-        self.assertEqual(get_exam_scans_dir(exam), Path("/s") / sub)
-        self.assertEqual(get_exam_marked_scans_dir(exam), Path("/m") / sub)
-        self.assertEqual(get_exam_amc_project_dir(exam), Path("/a") / sub)
-        self.assertEqual(get_exam_catalog_dir(exam), Path("/c") / sub)
-        self.assertEqual(get_exam_amc_project_url(exam), "/amc_projects/" + sub)
+        with override_settings(
+            SCANS_ROOT=Path("/s"), MARKED_SCANS_ROOT=Path("/m"),
+            AMC_PROJECTS_ROOT=Path("/a"), CATALOG_ROOT=Path("/c"), AMC_PROJECTS_URL="/amc_projects/",
+        ):
+            exam = make_exam()
+            sub = f"projects/{exam.pk}"
+            self.assertEqual(get_exam_scans_dir(exam), Path("/s") / sub)
+            self.assertEqual(get_exam_marked_scans_dir(exam), Path("/m") / sub)
+            self.assertEqual(get_exam_amc_project_dir(exam), Path("/a") / sub)
+            self.assertEqual(get_exam_catalog_dir(exam), Path("/c") / sub)
+            self.assertEqual(get_exam_amc_project_url(exam), "/amc_projects/" + sub)
 
 
 class RenameExamFoldersTests(SimpleTestCase):
