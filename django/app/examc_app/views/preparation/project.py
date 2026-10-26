@@ -63,7 +63,8 @@ def preparation_view(request, exam_pk):
             ViewTab(key="exam", label="Exam"),
             ViewTab(key="students", label="Students"),
         ],
-        nav_url="exam_preparation",
+        nav_url="preparation",
+        curr_tab="exam"
     )
     
     view_context.update(
@@ -160,7 +161,7 @@ def unlock_exam_editing(request, exam_pk):
         "All printed documents should be destroyed and final files must be generated again before use."
     )
 
-    return redirect("exam_preparation", exam_pk=exam.pk)
+    return redirect("preparation", exam_pk=exam.pk)
 
 
 @exam_permission_required(["manage"])

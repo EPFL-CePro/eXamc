@@ -1,45 +1,45 @@
-<div class="fs-6 text-bg-secondary py-2 px-1 mb-3" style="--icon-width: 1rem">
+<div class="text-bg-secondary py-2 px-1 mb-3" style="--icon-width: 1rem">
     {% if exam_selected %}
-        {% with teachers=exam_selected.display_teachers %}
+        {% with teachers=exam_selected.display_teachers overall=exam_selected.get_overall_exam_or_default %}
             <div class="d-flex flex-column gap-1"
-                 title="{{ exam_selected.display_name }}&#013;{{ exam_selected.display_date }}&#013;Teachers: {{ teachers }}">
+                 title="{{ exam_selected.display_name }}&#013;Date: {{ exam_selected.display_date }}{% if teachers %}&#013;{{ teachers|length|pluralize:'Teacher,Teachers' }}: {{ teachers|join:', ' }}{% endif %}">
 
                 {% if exam_selected.is_overall_or_part and nav_url != 'review_group' and nav_url != 'amc_data_capture_manual' %}
-                    <select class="common-exam-select form-select text-bg-light text-truncate ps-2" aria-label="Common exams"
+                    <select class="common-exam-select form-select text-bg-light text-truncate ps-2"
+                            aria-label="Common exams"
                             onchange="if (this.value) location.href = this.value">
-                        {% for common_exam in exam.get_common_exams_yc_common %}
-                            <option value="{% if curr_tab %}{% url nav_url common_exam.pk curr_tab %}{% else %}{% url nav_url common_exam.pk %}{% endif %}"
+                        {% for common_exam in overall.get_common_exams_yc_common %}
+                            <option value="{% url nav_url common_exam.pk %}{% if curr_tab %}?tab={{ curr_tab|urlencode }}{% endif %}"
                                     {% if common_exam.pk == exam_selected.pk %}selected{% endif %}>
                                 {{ common_exam.display_name }}
                             </option>
                         {% endfor %}
                     </select>
-
-                    <style>
-                    .common-exam-select {
-                        --bs-form-select-bg-img: url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3e%3cpath fill=%27none%27 stroke=%27%23343a40%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27m2 5 6 6 6-6%27/%3e%3c/svg%3e")!important;
-                    }
-                    </style>
                 {% else %}
                     <span class="fw-semibold text-body-emphasis text-truncate px-2">{{ exam_selected.display_name }}</span>
                 {% endif %}
 
                 <span class="text-body-secondary px-2">
-                    <span class="fa-regular fa-calendar fa-xs text-center" style="width: var(--icon-width)" aria-hidden="true"></span>
+                    <span class="fa-solid fa-calendar fa-xs text-center" style="width: var(--icon-width)" aria-hidden="true"></span>
                     <span>{{ exam_selected.display_date }}</span>
                 </span>
 
-                {% if teachers %}
+                {% if teachers|length == 1 %}
+                    <div class="d-flex align-items-center gap-1 text-body-secondary px-2">
+                        <span class="fa-solid fa-user fa-xs" style="width: var(--icon-width)" aria-hidden="true"></span>
+                        <span><i>{{ teachers.0 }}</i></span>
+                    </div>
+                {% elif teachers %}
                     <button type="button"
-                            class="btn btn-sm btn-link text-body-secondary text-decoration-none text-start px-2 py-0 d-flex align-items-center gap-1"
+                            class="btn btn-link text-body-secondary text-decoration-none text-start px-2 py-0 d-flex align-items-center gap-1"
                             data-bs-toggle="collapse" data-bs-target="#sidebar-exam-teachers"
                             aria-expanded="false" aria-controls="sidebar-exam-teachers">
                         <span class="fa-solid fa-users fa-xs" style="width: var(--icon-width)" aria-hidden="true"></span>
-                        <span>Teacher(s)</span>
+                        <span>Teachers</span>
                         <span class="fa-solid fa-caret-down fa-xs text-center" aria-hidden="true"></span>
                     </button>
                     <div class="collapse" id="sidebar-exam-teachers">
-                        <span class="d-block text-body-secondary px-2"><i>{{ teachers }}</i></span>
+                        <span class="d-block text-body-secondary px-2"><i>{{ teachers|join:", " }}</i></span>
                     </div>
                 {% endif %}
             </div>

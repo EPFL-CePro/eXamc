@@ -10,7 +10,10 @@
 {% endblock %}
 
 {% block content %}
-    {% include "helpers/title/_tab_header.html" with title="Preparation" icon="fas fa-edit" prefix="preparation" %}
+    {% pill_header title="Preparation" prefix="preparation" icon="fas fa-edit" %}
+        {% pill_tab "exam" label="Exam" icon="fas fa-book-open" %}
+        {% pill_tab "students" %}
+    {% endpill_header %}
 
     {# The data attributes are the configuration of the page (see config.ts) #}
     <div id="prep-root" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -70,12 +73,13 @@
 
         {# Tab content #}
         <div class="tab-content" id="preparation-tab-content">
-            <div class="tab-pane fade" id="pills-preparation-exam" role="tabpanel" aria-labelledby="preparation-exam" tabindex="0">
+            {% pill_pane "exam" prefix="preparation" %}
                 {% include "exam/preparation/preparation_exam.html" %}
-            </div>
-            <div class="tab-pane fade" id="pills-preparation-students" role="tabpanel" aria-labelledby="preparation-students-tab" tabindex="0">
+            {% endpill_pane %}
+
+            {% pill_pane "students" prefix="preparation" %}
                 {% include "exam/preparation/preparation_students.html" %}
-            </div>
+            {% endpill_pane %}
         </div>
     </div>
 {% endblock %}

@@ -71,7 +71,7 @@ class PreparationPageTestCase(PrepViewsTestCase):
     def test_students_page_of_a_locked_exam_is_not_editable(self):
         self.lock()
 
-        response = self.client.get(self.url("exam_preparation_students"))
+        response = self.client.get(self.url("preparation", query={"tab": "students"}))
 
         self.assertContains(response, 'data-editable="false"')
         self.assertTrue(response.context["is_exam_locked"])
@@ -85,7 +85,7 @@ class UnlockEditingTestCase(PrepViewsTestCase):
 
         response = self.client.post(self.url("unlock_exam_editing"))
 
-        self.assertRedirects(response, self.url("exam_preparation"), fetch_redirect_response=False)
+        self.assertRedirects(response, self.url("preparation"), fetch_redirect_response=False)
         self.exam.refresh_from_db()
         self.assertFalse(self.exam.is_finalized)
         self.assertIsNone(self.exam.finalized_at)
