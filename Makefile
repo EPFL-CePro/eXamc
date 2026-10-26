@@ -84,7 +84,7 @@ build: ensure-env
 	$(DC) up -d --build
 
 tests:
-	docker compose -f compose/test.yml --env-file .env.test run --rm django && docker compose -f compose/test.yml --env-file .env.test rm -fsv
+	docker compose -f compose/test.yml --env-file .env.test up --force-recreate
 
 down:
 	$(DC) down
