@@ -4,7 +4,7 @@
     {% vite_asset 'src/views/amc/amc_project/index.ts' %}
 {% endblock %}
 
-<div id="amc-project" style="padding:10px;width:800px;"
+<div id="amc-project"
      data-edit-file-url="{% url 'edit_amc_file' exam_selected.pk %}"
      data-save-file-url="{% url 'save_amc_edited_file' exam_selected.pk %}"
      data-update-documents-url="{% url 'call_amc_update_documents' exam_selected.pk %}"
@@ -15,28 +15,38 @@
     {# Data for the scripts #}
     {{ project_dir_dict|json_script:"amc-project-dir" }}
     {{ project_dir_files_list|json_script:"amc-project-dir-files" }}
+
     <div class="mb-3">
-        <button type="button" id="btn-edit-source-files" class="btn btn-dark btn-sm">
-            <i class="fas fa-pencil-alt"></i> Edit source files
+        <button type="button" id="btn-edit-source-files" class="btn btn-dark">
+            <i class="fas fa-pencil-alt"></i> Edit LaTeX source files
         </button>
     </div>
+
     <hr/>
+
     <div class="mb-3">
         <label for="number-of-copies" class="form-label">Number of copies:</label>
-        <input type="number" class="form-control" id="number-of-copies" style="width:200px;"
+        <input type="number" class="form-control" id="number-of-copies" style="width:200px"
                value="{{ number_of_copies_param }}">
+        <div class="form-text">How many copies will be produced. Leave at 0 to use the number set in the LaTeX source file.</div>
     </div>
+
     <hr/>
-    <div class="mb-3">
-        <button type="button" id="btn-update-documents" class="btn btn-dark btn-sm">
-            <i class="fas fa-sync-alt"></i> Update documents
-        </button>
-        <div class="mb-3" style="text-align:right;">
-            <a href="{% url 'open_amc_exam_pdf' exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm"
-               style="margin-left:200px;"><i class="fas fa-file-pdf"></i> File to print</a>
-            <a href="{% url 'open_amc_catalog_pdf' exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm">
-                <i class="fas fa-file-pdf"></i> Catalog</a>
+
+    <div class="d-flex gap-2 flex-column">
+        <div class="d-flex gap-2 flex-wrap justify-content-between">
+            <button type="button" id="btn-update-documents" class="btn btn-dark btn-sm flex-grow-0">
+                <i class="fas fa-sync-alt"></i> Update documents
+            </button>
+
+            <div class="d-flex gap-2 flex-wrap justify-content-end">
+                <a href="{% url 'open_amc_exam_pdf' exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm">
+                    <i class="fas fa-file-pdf"></i> File to print</a>
+                <a href="{% url 'open_amc_catalog_pdf' exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm">
+                    <i class="fas fa-file-pdf"></i> Catalog</a>
+            </div>
         </div>
+
         {% if update_documents_msg %}
             <div class="alert alert-success" id="update-documents-msg" role="alert"
                  style="margin-top:20px;text-align:center;overflow-y: auto;max-height:200px;">{{ update_documents_msg }}</div>

@@ -30,7 +30,6 @@ export default defineConfig({
         "amc/amc_data_capture": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture/index.ts'),
         "amc/amc_markings": resolve(import.meta.dirname, 'src/views/amc/amc_markings/index.ts'),
         "amc/amc_project": resolve(import.meta.dirname, 'src/views/amc/amc_project/index.ts'),
-        "amc/amc_upload_project": resolve(import.meta.dirname, 'src/views/amc/amc_upload_project/index.ts'),
         
         "public/csvgen": resolve(import.meta.dirname, 'src/views/public/csvgen/index.ts'),
         "public/room_plan": resolve(import.meta.dirname, 'src/views/public/room_plan/index.ts'),
@@ -50,6 +49,8 @@ export default defineConfig({
         
         "review/review_group": resolve(import.meta.dirname, 'src/views/review/review_group/index.ts'),
         "review/settings/review_settings": resolve(import.meta.dirname, 'src/views/review/settings/review_settings/index.ts'),
+        "review/settings/_manage_exam_pages_groups": resolve(import.meta.dirname, 'src/views/review/settings/_manage_exam_pages_groups/index.ts'),
+        "review/settings/grading_scheme/_grading_scheme_pages_group": resolve(import.meta.dirname, 'src/views/review/settings/grading_scheme/_grading_scheme_pages_group/index.ts'),
         "review/_review_grading_scheme_panel": resolve(import.meta.dirname, 'src/views/review/_review_grading_scheme_panel/index.ts'),
       },
     },

@@ -5,84 +5,117 @@
     {% vite_asset 'src/views/amc/amc_results/index.ts' %}
 {% endblock %}
 
-<div id="amc-results" style="padding:20px; width:800px;"
+<div id="amc-results"
      data-generate-results-url="{% url 'call_amc_generate_results' exam_selected.pk %}"
      data-annotate-url="{% url 'call_amc_annotate' exam_selected.pk %}"
      data-send-data-url="{% url 'amc_send_annotated_papers_data' exam_selected.pk %}"
-     data-send-url="{% url 'call_amc_send_annotated_papers' exam_selected.pk %}">
-
-    <h6>Results</h6>
-    <div class="mb-3 p-2">
-        <div class="alert alert-warning" id="generate_results_info" role="alert">
-            <p>Before generating the results, please check that the following points have been completed:</p>
-            <ol class="text-start">
-                <li>Pages with “sensitivity” bigger than zero have been checked.</li>
-                <li>Marking has been done, the first time with the "Update Marking Scale" box ticked to update
-                    the scale.
-                </li>
-                <li>The "invalid" boxes have been checked.</li>
-                <li>The "blank" boxes of the open questions have been checked.</li>
-                <li>The marking has been done again after changes done in points 1–4.</li>
-                <li>The automatic/manual association has been made.</li>
-            </ol>
-        </div>
-        <button type="button" class="btn btn-dark btn-sm" id="generate-results-btn">
-            <i class="fas fa-sync-alt fa-lg me-1"></i>Generate Results
-        </button>
-    </div>
+     data-send-url="{% url 'call_amc_send_annotated_papers' exam_selected.pk %}"
+     data-download-zip-url="{% url 'download_annotated_pdf' exam_selected.pk %}">
 
     {% if has_results %}
-        <div class="alert alert-success text-center" id="info_generate_results_msg" role="alert">
+        <div class="alert alert-success text-center" id="info_generate_results_msg" role="alert" style="max-width:fit-content">
+            <i class="fa fa-check"></i>
             Results and statistics have been populated! You can access them by the 'Results|Statistics' left menu!
         </div>
     {% endif %}
 
+    <div class="alert alert-warning" id="generate_results_info" role="alert">
+        <h6 class="alert-heading">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            Before generating the reports, check that:
+        </h6>
+
+        <p class="mb-1 mt-3">
+            <a class="btn btn-sm btn-outline-dark rounded-pill" href="{% url 'amc_view' exam_selected.pk %}?tab=data-capture">
+                <i class="fas fa-file-image" aria-hidden="true"></i> Data capture
+            </a>
+        </p>
+        <ol class="mb-0">
+            <li>The pages with a sensitivity above zero have been checked.</li>
+            <li>The "invalid" boxes have been checked.</li>
+            <li>The "blank" boxes of the open questions have been checked.</li>
+        </ol>
+
+        <p class="mb-1 mt-3">
+            <a class="btn btn-sm btn-outline-dark rounded-pill" href="{% url 'amc_view' exam_selected.pk %}?tab=marking-scheme">
+                <i class="fas fa-list-check" aria-hidden="true"></i> Marking scheme
+            </a>
+        </p>
+        <ol class="mb-0" start="4">
+            <li>The papers are associated with their students (automatically or manually).</li>
+            <li>
+                The marking has been done: the first time with "Reload scoring from the LaTeX source" checked, and again
+                after any correction in Data capture.
+            </li>
+        </ol>
+    </div>
+
+    <button type="button" class="btn btn-dark" id="generate-results-btn">
+        <i class="fas fa-sync-alt"></i> Generate Results
+    </button>
+
     <hr/>
 
-    <h6>Annotated papers</h6>
-    <div class="d-flex flex-column gap-3">
-        <form id="gen_annotated_papers_form" class="col" method="POST" enctype="multipart/form-data">
+    <div class="d-flex flex-column gap-4">
+        {# 1. Generate #}
+        <form id="gen_annotated_papers_form" method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="annotate_option"
-                       id="annotate_one_per_student" checked>
-                <label class="form-check-label" for="annotate_one_per_student">
-                    One file per student
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="annotate_option"
-                       id="annotate_one_all_student">
-                <label class="form-check-label" for="annotate_one_all_student">
-                    One file for all students
-                </label>
-            </div>
+
+            <h4 class="mb-1">Corrected exams</h4>
+            <p class="text-body-secondary mb-3">
+                Each student's exam, with their answers, the correct ones and their marks.
+            </p>
+
+            <fieldset class="mb-3">
+                <legend class="form-label fs-6 mb-1">Files</legend>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="annotate_option" value="per_student"
+                           id="annotate_one_per_student" checked>
+                    <label class="form-check-label" for="annotate_one_per_student">One PDF per student</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="annotate_option" value="single"
+                           id="annotate_one_all_student">
+                    <label class="form-check-label" for="annotate_one_all_student">One PDF with all the students</label>
+                </div>
+            </fieldset>
 
             {% if has_grading_schemes %}
-                <div class="form-check form-switch mt-3">
+                <div class="form-check form-switch mb-3">
                     <input class="form-check-input" type="checkbox" role="switch"
-                           name="annotate_with_grading_scheme" id="annotate_with_grading_scheme">
-                    <label class="form-check-label" for="annotate_with_grading_scheme">
-                        Add grading scheme report with annotations
-                    </label>
+                           name="annotate_with_grading_scheme" id="annotate_with_grading_scheme"
+                           aria-describedby="annotate-grading-scheme-help">
+                    <label class="form-check-label" for="annotate_with_grading_scheme">Include the grading schemes</label>
+                    <div class="form-text" id="annotate-grading-scheme-help">
+                        Adds the marking criteria checked by the reviewers to each open question.
+                    </div>
                 </div>
             {% endif %}
 
-            <button type="button" class="btn btn-dark btn-sm mt-3" id="annotate-btn">
-                <img src="{% static 'img/amc_icons/amc-annotate.svg' %}" width="16" height="16"
-                     class="me-1" alt=""/> Annotate
+            <button id="annotate-btn" type="button"
+                    class="btn btn-dark btn-sm"
+                    {% if annotated_papers_available %}
+                        data-bs-toggle="tooltip"
+                        data-bs-title="Corrected exams were already generated, clicking this button will overwrite them."
+                        data-bs-placement="bottom"
+                    {% endif %}>
+                <img src="{% static 'img/amc_icons/amc-annotate.svg' %}" width="16" height="16" class="me-1" alt="">
+                {% if annotated_papers_available %}Generate again{% else %}Generate corrected exams{% endif %}
             </button>
+
+            {% if annotated_papers_generated_at %}
+                <p class="form-text mb-0">Last generated on {{ annotated_papers_generated_at|date:"j F Y \a\t H:i" }}.</p>
+            {% endif %}
         </form>
 
+        {# 2. Download or send #}
         {% if annotated_papers_available %}
-            <div class="form-group">
-                <a href="{% url 'download_annotated_pdf' exam_selected.pk %}" class="btn btn-dark btn-sm"
-                   role="button" target="_blank">
-                    <i class="fas fa-file-pdf fa-lg me-1"></i> Download annotated papers
-                </a>
-
+            <div class="d-flex flex-wrap gap-2">
+                <button id="download-zip-btn" class="btn btn-dark btn-sm">
+                    <i class="fa-solid fa-file-zipper me-1" aria-hidden="true"></i>Download (ZIP)
+                </button>
                 <button type="button" class="btn btn-dark btn-sm" id="open-send-dialog-btn">
-                    <i class="fas fa-envelope fa-lg me-1"></i> Send annotated papers
+                    <i class="fas fa-envelope me-1" aria-hidden="true"></i>Send to the students by email
                 </button>
             </div>
         {% endif %}

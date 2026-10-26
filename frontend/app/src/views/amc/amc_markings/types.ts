@@ -1,10 +1,3 @@
-/** Endpoints and token used by marking.ts. */
-export interface MarkingConfig {
-    mark: string;
-    /** Sent in the request body, since the marking output is streamed with a plain fetch. */
-    csrfToken: string;
-}
-
 /** Endpoints used by students.ts. */
 export interface StudentsUrls {
     updateFile: string;

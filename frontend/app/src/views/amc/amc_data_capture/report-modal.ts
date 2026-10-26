@@ -14,6 +14,12 @@ export interface ReportModalOptions {
     columns?: ColumnOptions[];
     /** Shown instead of the rows when there are none. */
     emptyMessage?: string;
+
+    /**
+     * Number of rows to show per page.
+     * @default 10
+     */
+    pageLength?: number;
 }
 
 /**
@@ -23,7 +29,7 @@ export interface ReportModalOptions {
 export class ReportModal extends ExamcModal {
     private readonly table: Api<HTMLTableRowElement>;
 
-    public constructor({ title, headers, rows, columns, emptyMessage }: ReportModalOptions) {
+    public constructor({ title, headers, rows, columns, emptyMessage, pageLength = 10 }: ReportModalOptions) {
         super(ExamcModal.createElement({
             extraDialogClass: 'modal-xl',
             bodyContent: `
@@ -52,7 +58,7 @@ export class ReportModal extends ExamcModal {
 
         this.table = new DataTable(tableEl, {
             columns: columns ?? headers.map(() => ({})),
-            pageLength: 10,
+            pageLength,
             lengthMenu: [10, 50, 100, 250],
             scrollY: '69vh',
             order: [], // keep the server's order until the user sorts

@@ -16,102 +16,138 @@
      data-manual-association-data-url="{% url 'amc_manual_association_data' exam_selected.pk %}"
      data-set-manual-association-url="{% url 'amc_set_manual_association' exam_selected.pk %}">
 
-    <div class="marking-panel">
-        <div class="mb-3 marking-actions">
-            <input class="form-check-input" type="checkbox" value="" id="update-marking-scale">
-            <label class="form-check-label" for="update-marking-scale">Update Marking Scale</label>
-            <button type="button" id="btn-mark" class="btn btn-dark btn-sm"><i class="fas fa-calculator fa-lg"></i>Mark</button>
+    {# Marking #}
+    <div class="input-group w-auto">
+        <button type="button" id="btn-mark" class="btn btn-dark">
+            <i class="fas fa-calculator" aria-hidden="true"></i> Mark
+        </button>
+        <div class="input-group-text gap-2"
+             data-bs-toggle="tooltip"
+             data-bs-title="Check it if you changed points or scoring formulas since the last marking.">
+            <input id="update-marking-scale" class="form-check-input mt-0" type="checkbox">
+            <label class="form-check-label" for="update-marking-scale">Reload scoring from the LaTeX source</label>
         </div>
-        {% if mean %}
-            <div class="alert alert-success" id="marking-status" role="alert">
-                <button type="button" class="btn btn-sm marking-done-btn" data-bs-toggle="modal" data-bs-target="#marking-details-modal">
-                    Done !<i class="fas fa-info-circle fa-lg"></i>
-                </button>
-            </div>
-        {% else %}
-            <div class="alert alert-warning" id="marking-status" role="alert">
-                No marks computed!
-            </div>
-        {% endif %}
-        <hr/>
-        <h6>Student identification</h6>
-        <div class="row mb-3">
-            <div class="col-sm-5">Students list : {{ students_list }}</div>
-            <form id="students-list-csv-form" method="POST" enctype="multipart/form-data" hidden>
-                {% csrf_token %}
-                <input type="file" name="students-list-csv" id="students-list-csv" accept=".csv">
-            </form>
-            <button type="button" id="btn-set-students-file" class="btn btn-dark btn-sm col-sm-2"><i class="fas fa-file-csv fa-lg"></i>Set file</button>
-            <button type="button" id="btn-edit-students-list" class="btn btn-dark btn-sm col-sm-2"><i class="fas fa-pencil-alt fa-lg"></i>Edit list</button>
+    </div>
+
+    <hr/>
+
+    {% if mean %}
+        <div class="alert alert-success text-center" id="marking-status" role="alert">
+            <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#marking-details-modal">
+                Done!<i class="fas fa-info-circle fa-lg ms-4" aria-hidden="true"></i>
+            </button>
         </div>
-        <div class="alert alert-danger" id="csv-import-error" role="alert" hidden></div>
-        <div class="row mb-3">
-            <label class="col-sm-5" for="automatic-assoc-primary-key">Primary key from this list</label>
-            <select id="automatic-assoc-primary-key" class="form-select col-sm-4">
+    {% else %}
+        <div class="alert alert-warning text-center" id="marking-status" role="alert">No marks computed!</div>
+    {% endif %}
+
+    <hr/>
+
+    {# Student identification #}
+    <h6>Student identification</h6>
+
+    <div class="row align-items-center mb-3">
+        <div class="col-sm-5">Students list: {{ students_list }}</div>
+        <div class="col-sm-7 d-flex gap-2">
+            <button type="button" id="btn-set-students-file" class="btn btn-dark btn-sm">
+                <i class="fas fa-file-csv fa-lg me-1" aria-hidden="true"></i>Set file
+            </button>
+            <button type="button" id="btn-edit-students-list" class="btn btn-dark btn-sm">
+                <i class="fas fa-pencil-alt fa-lg me-1" aria-hidden="true"></i>Edit list
+            </button>
+        </div>
+        <form id="students-list-csv-form" method="POST" enctype="multipart/form-data" hidden>
+            {% csrf_token %}
+            <input type="file" name="students-list-csv" id="students-list-csv" accept=".csv">
+        </form>
+    </div>
+
+    <div class="alert alert-danger text-center" id="csv-import-error" role="alert" hidden></div>
+
+    <div class="row align-items-center mb-3">
+        <label class="col-sm-5 col-form-label" for="automatic-assoc-primary-key">Primary key from this list</label>
+        <div class="col-sm-4">
+            <select id="automatic-assoc-primary-key" class="form-select">
                 <option value="" {% if not auto_assoc_pk %}selected{% endif %}>Choose...</option>
                 {% for key in students_list_headers %}
-                <option value="{{ key }}" {% if key == auto_assoc_pk %}selected{% endif %}>{{ key }}</option>
+                    <option value="{{ key }}" {% if key == auto_assoc_pk %}selected{% endif %}>{{ key }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="row mb-3 assoc-code-row">
-            <label class="col-sm-5" for="automatic-assoc-code">Code name for automatic association</label>
-            <input class="form-control col-sm-4" type="text" value="{{ auto_assoc_code }}" id="automatic-assoc-code" readonly>
-        </div>
-        <div class="row mb-3">
-            <label class="col-sm-5">Papers/students association</label>
-            <button type="button" id="btn-automatic-association" class="btn btn-dark btn-sm col-sm-2"><img src="{% static 'img/amc_icons/amc-auto-assoc.png' %}" alt=""/>Automatic</button>
-            <button type="button" id="btn-manual-association" class="btn btn-dark btn-sm col-sm-2"><img src="{% static 'img/amc_icons/amc-manual-assoc.png' %}" alt=""/>Manual</button>
-        </div>
-        <hr>
-        {% if count_missing_assoc == 0 %}
-            <div class="alert alert-success" id="association-status" role="alert">
-                All completed answer sheets are associated with a student name!
-            </div>
-        {% else %}
-            <div class="alert alert-warning" id="association-status" role="alert">
-                Missing identification for {{ count_missing_assoc }} copies!
-            </div>
-        {% endif %}
     </div>
 
-    <div class="modal fade" id="marking-details-modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-xl">
+    <div class="row align-items-center mb-3 invisible" data-assoc-code-row>
+        <label class="col-sm-5 col-form-label" for="automatic-assoc-code">Code name for automatic association</label>
+        <div class="col-sm-4">
+            <input class="form-control" type="text" value="{{ auto_assoc_code }}" id="automatic-assoc-code" readonly>
+        </div>
+    </div>
+
+    <div class="row align-items-center mb-3">
+        <span class="col-sm-5">Papers/students association</span>
+        <div class="col-sm-7 d-flex gap-2">
+            <button type="button" id="btn-automatic-association" class="btn btn-dark btn-sm d-inline-flex align-items-center">
+                <img src="{% static 'img/amc_icons/amc-auto-assoc.png' %}" alt="" width="16" height="16" class="me-2">Automatic
+            </button>
+            <button type="button" id="btn-manual-association" class="btn btn-dark btn-sm d-inline-flex align-items-center">
+                <img src="{% static 'img/amc_icons/amc-manual-assoc.png' %}" alt="" width="16" height="16" class="me-2">Manual
+            </button>
+        </div>
+    </div>
+
+    <hr>
+
+    {% if count_missing_assoc == 0 %}
+        <div class="alert alert-success text-center" id="association-status" role="alert">
+            All completed answer sheets are associated with a student name!
+        </div>
+    {% else %}
+        <div class="alert alert-warning text-center" id="association-status" role="alert">
+            Missing identification for {{ count_missing_assoc }} copies!
+        </div>
+    {% endif %}
+
+    {# Marking details #}
+    <div class="modal fade" id="marking-details-modal" tabindex="-1" aria-labelledby="marking-details-title" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Marking details</h6>
+                    <h6 class="modal-title" id="marking-details-title">Marking details</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <table id="table-marking-details" class="table table-sm table-striped">
-                        <thead>
-                        <tr id="table-marking-details-tr-head">
-                            {% for key, value in questions_scoring_details.0.items %}
-                                {% if key == 'questions' %}
-                                    {% for question in value %}
-                                        <th>{{ question.question }} (max={{ question.max_question }})</th>
-                                    {% endfor %}
-                                {% else %}
-                                    <th>{{ key }}</th>
-                                {% endif %}
-                            {% endfor %}
-                        </tr>
-                        </thead>
-                        <tbody id="table-marking-details-tbody">
-                            {% for row in questions_scoring_details %}
+                    <div class="table-responsive">
+                        <table id="table-marking-details" class="table table-sm table-striped">
+                            <thead>
                             <tr>
-                            {% for key, value in row.items %}
-                                {% if key == 'questions' %}
-                                    {% for question in value %}
-                                        <td>{{ question.score }}</td>
-                                    {% endfor %}
-                                {% else %}
-                                    <td>{{ value }}</td>
-                                {% endif %}
-                            {% endfor %}
+                                {% for key, value in questions_scoring_details.0.items %}
+                                    {% if key == 'questions' %}
+                                        {% for question in value %}
+                                            <th>{{ question.question }} (max={{ question.max_question }})</th>
+                                        {% endfor %}
+                                    {% else %}
+                                        <th>{{ key }}</th>
+                                    {% endif %}
+                                {% endfor %}
                             </tr>
+                            </thead>
+                            <tbody>
+                            {% for row in questions_scoring_details %}
+                                <tr>
+                                    {% for key, value in row.items %}
+                                        {% if key == 'questions' %}
+                                            {% for question in value %}
+                                                <td>{{ question.score }}</td>
+                                            {% endfor %}
+                                        {% else %}
+                                            <td>{{ value }}</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
