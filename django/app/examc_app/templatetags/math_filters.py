@@ -4,7 +4,7 @@ register = template.Library()
 
 
 @register.filter
-def substract(value, arg):
+def subtract(value, arg):
     return value - arg
 
 @register.filter
