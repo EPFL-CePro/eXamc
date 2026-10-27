@@ -1,0 +1,51 @@
+{# Shared by both tabs. Expects `form` in the context; `show_prefix_input` adds the prefix field (Manual only). #}
+{% for error in form.non_field_errors %}
+    <div class="alert alert-danger py-2" role="alert">{{ error }}</div>
+{% endfor %}
+
+{# One block per field, id="div-<field name>" so the script can show/hide it #}
+{% for field in form %}
+    {% with kind=field.widget_type %}
+        <div class="mb-4{% if field.name == 'special_file' and not form.initial.special_file %} d-none{% endif %}"
+             id="div-{{ field.html_name }}"
+             {% if kind == 'radioselect' %}role="radiogroup" aria-labelledby="{{ field.auto_id }}_label"{% endif %}>
+
+            {# Label: radio groups get a group title, checkboxes get theirs next to the box #}
+            {% if kind == 'radioselect' %}
+                <div class="form-label" id="{{ field.auto_id }}_label">{{ field.label }}</div>
+            {% elif kind != 'checkbox' %}
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+            {% endif %}
+
+            {# Input #}
+            {% if kind == 'radioselect' %}
+                {% for radio in field %}
+                    <div class="form-check form-check-inline">
+                        {{ radio.tag }}
+                        <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                    </div>
+                {% endfor %}
+            {% elif kind == 'checkbox' %}
+                <div class="form-check">
+                    {{ field }}
+                    <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                </div>
+            {% else %}
+                {{ field }}
+            {% endif %}
+
+            {% if show_prefix_input and field.name == 'numbering_option' %}
+                <input type="text" id="prefix-input" class="form-control mt-2 d-none"
+                       placeholder="Prefix, e.g. MyPrefix-" aria-label="Label prefix">
+            {% endif %}
+
+            {# Ids are the ones Django's aria-describedby points at #}
+            {% if field.help_text %}
+                <div class="form-text" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+                <div class="invalid-feedback d-block" id="{{ field.auto_id }}_error">{{ field.errors|join:" " }}</div>
+            {% endif %}
+        </div>
+    {% endwith %}
+{% endfor %}

@@ -20,6 +20,7 @@ from examc_app.utils.rooms_plans_functions import (
     RoomPlanError,
     generate_plans,
 )
+from examc_app.utils.view_context_helpers import ViewContext
 
 logger = logging.getLogger(__name__)
 
@@ -195,14 +196,22 @@ class GenerateRoomPlanView(FormView):
     form_class = SeatingForm
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.setdefault("curr_tab", "default")
+        base_context = super().get_context_data(**kwargs)
+        view_context = ViewContext(
+            base_dict=base_context,
+            curr_tab="automatic"
+        )
+
+        # non generic context variables
+        view_context.update(
+            forms={
+                "default": base_context["form"],
+                "manual": SeatingSpecialForm(prefix="special")
+            }
+        )
+
         # The prefix keeps the special form's names and ids apart from the default form's
-        context["tabs"] = [
-            ("default", context["form"]),
-            ("special", SeatingSpecialForm(prefix="special")),
-        ]
-        return context
+        return view_context.as_dict()
 
     def form_valid(self, form: SeatingForm) -> HttpResponse:
         data = form.cleaned_data

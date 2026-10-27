@@ -1,0 +1,31 @@
+{# Manual tab: the form is never submitted (the script blocks it), seats are placed by clicking the plans #}
+<div class="d-flex flex-wrap gap-5" data-room-plan-tab="manual">
+    <form id="manual-form" method="post" enctype="multipart/form-data" novalidate
+          class="flex-grow-1" style="max-width: var(--form-base-width)">
+        {% csrf_token %}
+        {% include "public/_rooms_plans/_form_fields.html" with show_prefix_input=True %}
+
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-dark" id="btn-download-plans">
+                <i class="fa-solid fa-download me-1" aria-hidden="true"></i>Download
+            </button>
+            <button type="button" class="btn btn-outline-dark" id="btn-undo-label">
+                <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>Undo
+            </button>
+        </div>
+    </form>
+
+    {# Selected rooms: large clickable plans #}
+    <div class="d-flex flex-column flex-grow-1" style="flex-basis: 30rem">
+        <h5 class="mb-1">Selected rooms</h5>
+        <p class="text-body-secondary mb-0">
+            Select one or more rooms, then click on a plan to place seat numbers.
+        </p>
+
+        <hr>
+
+        <div class="room-plans d-grid gap-3"
+             style="grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr))"
+             aria-live="polite"></div>
+    </div>
+</div>
