@@ -1,4 +1,3 @@
-import { byId } from '@examc/helpers/dom.ts';
 import { postText } from '@examc/helpers/http.ts';
 import { LoadingModal } from '@examc/modals';
 
@@ -64,7 +63,6 @@ function syncOutputs(form: HTMLFormElement): void {
 export function initQuestions({ form, url, csrfToken, examPk }: QuestionsConfig): void {
     // Back from a questions update
     if (sessionStorage.getItem(REGEN_KEY) === examPk) {
-        byId('regen-stats-alert').hidden = false;
         const scroll = Number(sessionStorage.getItem(SCROLL_KEY));
         if (scroll) window.scrollTo(0, scroll);
     }
