@@ -17,8 +17,8 @@
             {% pill_header title="AMC (auto-multiple-choice)" prefix="amc" %}
                 {% pill_tab "project" label="Project" icon="fas fa-edit" %}
                 {% pill_tab "data-capture" label="Data capture" icon="fas fa-file-image" %}
-                {% pill_tab "marking-scheme" label="Marking scheme" icon="fas fa-list-check" disabled=data_capture_missing tooltip="Locked: please import review data first." %}
-                {% pill_tab "reports" label="Reports" icon="fas fa-chart-simple" disabled=data_capture_missing tooltip="Locked: please import review data first." %}
+                {% pill_tab "marking-scheme" label="Marking scheme" icon="fas fa-list-check" disabled=data_capture_missing disabled_tooltip="Locked: please import review data first." %}
+                {% pill_tab "reports" label="Reports" icon="fas fa-chart-simple" disabled=data_capture_missing disabled_tooltip="Locked: please import review data first." %}
 
                 <button id="btn-upload-amc-project" class="btn btn-dark"
                         data-upload-amc-project-url="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}">
