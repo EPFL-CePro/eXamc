@@ -61,7 +61,6 @@ export function createClosedEndedChart({ canvasId, labels, rates, quantities }: 
         },
         options: {
             aspectRatio: 3,
-            animation: false,
             plugins: {
                 legend: { display: false },
                 tooltip: {
