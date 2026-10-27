@@ -35,7 +35,7 @@
                 {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
                     <a href="{% url 'exam_info' exam_selected.pk %}" title="{{ exam_selected.code }}" {% nav_attrs 'exam_info' %}
                        class="sidebar-link mt-3 {% nav_class 'exam_info' %}">
-                        <span class="fa-solid fa-book-open fa-fw" aria-hidden="true"></span>Exam settings
+                        <span class="fa-solid fa-sliders fa-fw" aria-hidden="true"></span>Exam settings
                     </a>
                 {% else %}
                     <div title="{{ exam_selected.code }}" class="sidebar-link fw-bold mt-3">
