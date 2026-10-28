@@ -447,7 +447,7 @@ examc/wsgi.py
 
 # Envs (ne JAMAIS versionner)
 .env
-.env.*         # .env.dev, .env.test, .env.prod, etc.
+.env.*         # .env.dev, .env.prod, etc.
 !.env.example  # on garde un modèle public
 
 # Dumps et seeds (lourds/sensibles)

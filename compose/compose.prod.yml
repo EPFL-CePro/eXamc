@@ -8,6 +8,8 @@ services:
     secrets:
       - tls_crt
       - tls_key
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS}
     ports:
       - "80:80"
       - "443:443"

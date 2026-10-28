@@ -69,8 +69,6 @@ TESTING_MODE_ENABLED = os.getenv("TESTING_MODE_ENABLED", "0") == "1"
 if os.getenv("DJANGO_DOTENV", "0") == "1" or not secret("secret_key"):
     # allows manage.py runserver or migrate, ... locally without Compose
     load_dotenv(BASE_DIR / ".env.dev", override=False)
-elif TESTING_MODE_ENABLED:
-    load_dotenv(BASE_DIR / ".env.test", override=True)
 else:
     # Otherwise (prod/test) set port forwarding
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -269,9 +267,8 @@ STATIC_ROOT = os.environ.get("STATIC_ROOT", "/static")
 STATIC_ASSET_VERSION = env("STATIC_ASSET_VERSION", APP_VERSION)
 
 # Avoid stale client-side assets after deploys:
-# - dev: plain static storage (no manifest requirement)
-# - test/prod: hashed filenames via manifest storage
-if DEBUG:
+# dev/test: plain static storage, prod: hashed filenames via manifest storage
+if DEBUG or TESTING_MODE_ENABLED:
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},

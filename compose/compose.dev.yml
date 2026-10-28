@@ -5,6 +5,8 @@ services:
     extends:
       service: caddy
       file: compose.base.yml
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS}
     ports:
       - "127.0.0.1:${CADDY_PORT:-8443}:${CADDY_PORT:-8443}"
 
@@ -95,15 +97,3 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
-
-secrets:
-  secret_key: { file: "${SECRETS_DIR:-./secrets}/secret_key" }
-  mysql_root_password: { file: "${SECRETS_DIR:-./secrets}/mysql_root_password" }
-  mysql_password: { file: "${SECRETS_DIR:-./secrets}/mysql_password" }
-  redis_password: { file: "${SECRETS_DIR:-./secrets}/redis_password" }
-  redis_acl: { file: "${SECRETS_DIR:-./secrets}/redis_acl" }
-  oidc_rp_client_id: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_id" }
-  oidc_rp_client_secret: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_secret" }
-  tenant_id: { file: "${SECRETS_DIR:?set SECRETS_DIR}/tenant_id" }
-  oasis_base_url: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_base_url" }
-  oasis_bearer: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_bearer" }
