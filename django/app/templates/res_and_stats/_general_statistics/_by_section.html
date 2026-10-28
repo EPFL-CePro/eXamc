@@ -1,0 +1,70 @@
+{% pill_header title="Scales" prefix="stats-by-section" %}
+    {% for scale in exam.scales.all %}
+        {% if scale.final %}
+            {% pill_tab scale.pk label=scale.name icon="fa-solid fa-circle-check" tooltip="The official scale for this exam. You can change it in Exam settings." %}
+        {% else %}
+            {% pill_tab scale.pk label=scale.name %}
+        {% endif %}
+    {% endfor %}
+{% endpill_header %}
+
+
+<div class="tab-content" id="stats-bySection-pills-tabContent" style="max-height:80vh;overflow-y:scroll">
+    {% for scale in exam.scales.all %}
+        {% pill_pane scale.pk prefix="stats-by-section" %}
+
+            <button type="button"
+                    onclick="downloadElementAsPDF({
+                        title:'Statistics by section',
+                        subtitle:'{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} : {{ scale.name }}',
+                        elementId:'stats-bySection-{{ scale.pk }}-table-div',
+                        fileName:'{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_{{ scale.name }}_statistics_sections.pdf'});
+                    "
+                    class="btn btn-primary mb-3">
+                <i class="fas fa-file-pdf"></i> Download as PDF
+            </button>
+            <div class="table-responsive" id="stats-bySection-{{ scale.pk }}-table-div">
+                <table id="bySection_distribution_dt{{ scale.pk }}" class="table table-striped table-sm">
+                    <thead>
+                    <tr>
+                        <th>Section</th>
+                        <th>Average</th>
+                        <th>Median</th>
+                        <th>Stddev</th>
+                        <th>Students</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        {% for grade in grade_list %}
+                            <th>{{ grade }}</th>
+                        {% endfor %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for stat in exam|get_sections_scaleStats_by_examScale:scale %}
+                        <tr>
+                            <th>{{ stat.section }}</th>
+                            <td>{{ stat.average }}</td>
+                            <td>{{ stat.median }}</td>
+                            <td>{{ stat.stddev }}</td>
+                            <td>{{ stat.section_nb_students }}</td>
+                            <td>{{ stat.section_presents }}</td>
+                            <td>{{ stat.section_nb_students|subtract:stat.section_presents }}</td>
+                            {% for distribution in stat.scaleDistributions.all %}
+                                <td>{{ distribution.quantity }}</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td colspan="7"></td>
+                            <td colspan="8">Achievement : {{ stat|get_achievement_by_scalestat }} </td>
+                            <td colspan="8">Non Achievement : {{ stat|get_nonachievement_by_scalestat }}</td>
+                            <td></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                <canvas id="canvas-bySection-{{ scale.pk }}" class="chartjs-render-monitor" style="object-fit: contain;"></canvas>
+            </div>
+        {% endpill_pane %}
+    {% endfor %}
+</div>

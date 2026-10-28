@@ -9,56 +9,28 @@
 
 {% block content %}
     {% if user_allowed %}
-        <h4 class="mb-4"><i class="fas fa-chart-area"></i> Questions Statistics</h4>
+        {% pill_header title="Questions statistics" prefix="questions-stats" icon="fa-solid fa-chart-area" %}
+            {% pill_tab "closed-ended" label="Closed-ended questions" icon="fas fa-square-check" disabled=closed_ended_disabled disabled_tooltip="No closed-ended question found for this exam" %}
+            {% pill_tab "open-ended" label="Open questions" icon="fas fa-square-pen" disabled=open_disabled disabled_tooltip="No open question found for this exam" %}
+            {% pill_tab "by-exam" label="By exam" icon="fas fa-book-open" disabled=by_exam_disabled disabled_tooltip="Only available for common exams." %}
+        {% endpill_header %}
 
         {% if mcq_questions or open_questions %}
             {# Tab navigation #}
             <div id="questions-statistics" data-catalog-url="{% url 'catalog_pdf' exam_selected.pk %}">
-                <div class="d-inline-flex flex-column flex-sm-row align-items-sm-center gap-2 border rounded p-1 mb-4"
-                     style="width: fit-content">
-                    <ul class="nav nav-pills nav-fill flex-column flex-sm-row" id="questions-statistics-pills-tab"
-                        role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link" id="closed-ended-questions-tab" role="tab"
-                                    data-bs-toggle="pill" data-bs-target="#pills-closed-ended-questions"
-                                    aria-controls="pills-closed-ended-questions"
-                                    {% if not mcq_questions %}disabled{% endif %}>Closed-ended questions</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link" id="open-questions-tab" role="tab"
-                                    data-bs-toggle="pill" data-bs-target="#pills-open-questions"
-                                    aria-controls="pills-open-questions"
-                                    {% if not open_questions %}disabled{% endif %}>Open questions</button>
-                        </li>
-                        {% if exam_selected.is_overall %}
-                            <li class="nav-item" role="presentation">
-                                <button type="button" class="nav-link" id="questions-by-exam-tab" role="tab"
-                                        data-bs-toggle="pill" data-bs-target="#pills-questions-by-exam"
-                                        aria-controls="pills-questions-by-exam">By exam</button>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </div>
-
                 <div class="tab-content" id="questions-statistics-tab-content">
                     {# Closed-ended: multiple-choice and true/false questions #}
-                    <div class="tab-pane fade" id="pills-closed-ended-questions" role="tabpanel"
-                         aria-labelledby="closed-ended-questions-tab">
-
-                        <div class="d-flex align-items-center gap-3">
-                            <h4 class="m-0">Closed-ended questions</h4>
-                            {% if mcq_questions %}
-                                <button type="button" class="btn btn-primary" title="Download as PDF" aria-label="Download as PDF"
-                                        data-pdf-element="closed-ended-statistics-div"
-                                        data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Multiple-choice questions stats"
-                                        data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_MCQs_stats.pdf">
-                                    <i class="fa-regular fa-file-pdf"></i> Download as PDF
-                                </button>
-                            {% endif %}
-                        </div>
-
-
+                    {% pill_pane "closed-ended" prefix="questions-stats" %}
                         {% if mcq_questions %}
+                            <button type="button" class="btn btn-primary mb-3"
+                                    title="Download closed-ended questions stats as PDF"
+                                    aria-label="Download closed-ended questions stats as PDF"
+                                    data-pdf-element="closed-ended-statistics-div"
+                                    data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Multiple-choice questions stats"
+                                    data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_MCQs_stats.pdf">
+                                <i class="fa-regular fa-file-pdf"></i> Download closed-ended questions stats as PDF
+                            </button>
+
                             <div id="closed-ended-statistics-div">
                                 {% include 'res_and_stats/_questions_statistics_legend.html' with present_students=exam_selected.present_students %}
 
@@ -95,13 +67,14 @@
                                                 {{ question.tot_answers }}/{{ exam_selected.students.all|length }}
                                             </td>
                                             <td class="align-middle text-center ps-1 py-0">{{ question.correct_answer }}</td>
-                                            <td class="align-middle text-center p-2">
+
+                                            <td class="align-middle text-center p-2" style="width: fit-content">
                                                 {% if question.answerStatistics.all|length <= max_charted_answer_combinations %}
-                                                    <div class="mx-auto">
+                                                    <div class="m-auto" style="max-width: 35rem">
                                                         <canvas id="canvas-{{ question.pk }}"></canvas>
                                                     </div>
                                                 {% else %}
-                                                    <span class="text-muted">Too many answer combinations</span>
+                                                    <span class="text-muted"><i>Too many answer combinations</i></span>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -110,25 +83,20 @@
                                 </table>
                             </div>
                         {% endif %}
-                    </div>
+                    {% endpill_pane %}
 
-                                        {# Open questions #}
-                    <div class="tab-pane fade" id="pills-open-questions" role="tabpanel"
-                         aria-labelledby="open-questions-tab">
-
-                        <div class="d-flex align-items-center gap-3">
-                            <h4 class="m-0">Open questions</h4>
-                            {% if open_questions %}
-                                <button type="button" class="btn btn-primary" title="Download as PDF" aria-label="Download as PDF"
-                                        data-pdf-element="open-questions-statistics-div"
-                                        data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Open questions stats"
-                                        data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_OpenQs_stats.pdf">
-                                    <i class="fa-regular fa-file-pdf"></i> Download as PDF
-                                </button>
-                            {% endif %}
-                        </div>
-
+                    {# Open questions #}
+                    {% pill_pane "open-ended" prefix="questions-stats" %}
                         {% if open_questions %}
+                            <button type="button" class="btn btn-primary mb-3"
+                                    title="Download open-ended questions stats as PDF"
+                                    aria-label="Download open-ended questions stats as PDF"
+                                    data-pdf-element="open-questions-statistics-div"
+                                    data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Open questions stats"
+                                    data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_OpenQs_stats.pdf">
+                                <i class="fa-regular fa-file-pdf"></i> Download open-ended questions stats as PDF
+                            </button>
+
                             <div id="open-questions-statistics-div">
                                 {% include 'res_and_stats/_questions_statistics_legend.html' with present_students=exam_selected.present_students %}
                                 
@@ -170,24 +138,20 @@
                                 </table>
                             </div>
                         {% endif %}
-                    </div>
+                    {% endpill_pane %}
 
                     {# Common exam: each common question's answers, exam by exam #}
-                    {% if exam_selected.is_overall %}
-                        <div class="tab-pane fade" id="pills-questions-by-exam" role="tabpanel"
-                             aria-labelledby="questions-by-exam-tab">
-
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <h4 class="m-0">Questions by exam</h4>
-                                {% if question_stats_by_exam %}
-                                    <button type="button" class="btn btn-primary" title="Download as PDF" aria-label="Download as PDF"
-                                            data-pdf-element="questions-by-exam-statistics-div"
-                                            data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Questions stats by exam"
-                                            data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_questions_stats_by_exam.pdf">
-                                        <i class="fa-regular fa-file-pdf"></i> Download as PDF
-                                    </button>
-                                {% endif %}
-                            </div>
+                    {% pill_pane "by-exam" prefix="questions-stats" %}
+                        {% if exam_selected.is_overall %}
+                            <button type="button" class="btn btn-primary mb-3"
+                                    title="Download by exam stats as PDF"
+                                    aria-label="Download by exam stats as PDF"
+                                    data-pdf-element="questions-by-exam-statistics-div"
+                                    data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Questions stats by exam"
+                                    data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_questions_stats_by_exam.pdf"
+                                    {% if not question_stats_by_exam %}disabled{% endif %}>
+                                <i class="fa-regular fa-file-pdf"></i> Download by exam stats as PDF
+                            </button>
 
                             {% if question_stats_by_exam %}
                                 <div id="questions-by-exam-statistics-div">
@@ -225,9 +189,10 @@
                             {% else %}
                                 <p class="text-body-secondary">No common question.</p>
                             {% endif %}
-                        </div>
-                    {% endif %}
-                </div>
+                        {% endif %}
+                    {% endpill_pane %}
+                {% endpill_pane %}
+
                 <div class="modal fade" id="display-pdf-modal" tabindex="-1" aria-label="Question in the catalog"
                      aria-hidden="true">
                     <div class="modal-dialog modal-xl">
@@ -244,12 +209,11 @@
                 {{ charts|json_script:"questions-stats-charts" }}
             </div>
         {% else %}
-            <div class="alert alert-warning">
-                <h4 class="alert-heading">Warning!</h4>
-                <p class="mb-0">No data was found for this exam. Please begin by
-                    <a href="{% url 'import_data_4_stats' exam_selected.pk %}">importing data</a>, then generate
-                    statistics <a href="{% url 'exam_info' exam_selected.pk %}">in the exam settings page</a>.</p>
-            </div>
+            {% alert "warning" fit=True %}
+                No data was found for this exam. Please begin by
+                <a class="alert-link" href="{% url 'import_data_4_stats' exam_selected.pk %}">importing data</a>, then
+                generate statistics <a class="alert-link" href="{% url 'exam_info' exam_selected.pk %}">in the exam settings page</a>.
+            {% endalert %}
         {% endif %}
     {% else %}
         <h4>You are not allowed to view this page!</h4>

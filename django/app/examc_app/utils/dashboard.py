@@ -238,33 +238,41 @@ def build_exam_card(user: User, exam: Exam) -> dict[str, typing.Any]:
 
     if capabilities["manage"]:
         actions.append({
-            "label": "Info",
+            "label": "Settings",
             "url": reverse("exam_info", kwargs={"exam_pk": exam.pk}),
-            "icon": "fa-book-open",
+            "icon": "fa-sliders",
+            "btn-class": "btn-outline-primary"
         })
+
         if exam.prep_option:
             actions.append({
                 "label": "Prepare",
                 "url": reverse("exam_preparation", kwargs={"exam_pk": exam.pk}),
                 "icon": "fa-edit",
+                "btn-class": "btn-outline-dark"
             })
+
         if exam.amc_option:
             actions.append({
                 "label": "AMC",
                 "url": reverse("amc_view", kwargs={"exam_pk": exam.pk}),
                 "icon": "fa-file-import",
+                "btn-class": "btn-outline-dark"
             })
+
     if exam.review_option and capabilities["review"]:
         actions.append({
             "label": "Review",
             "url": reverse("review_view", kwargs={"exam_pk": exam.pk}),
             "icon": "fa-glasses",
+            "btn-class": "btn-outline-dark"
         })
     if exam.res_and_stats_option and capabilities["results"]:
         actions.append({
             "label": "Results",
             "url": reverse("students_results", kwargs={"exam_pk": exam.pk}),
             "icon": "fa-th-list",
+            "btn-class": "btn-outline-dark"
         })
 
     role = _get_role_label(user, exam_users)

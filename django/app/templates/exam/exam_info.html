@@ -25,7 +25,7 @@
 
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                     <h4 class="m-0 me-auto">
-                        <i class="fa-solid fa-book-open" aria-hidden="true"></i> Exam settings
+                        <i class="fa-solid fa-sliders" aria-hidden="true"></i> Exam settings
                     </h4>
 
                     <a class="btn btn-dark btn-sm" href="{% url 'generate_stats' comex.pk %}">
@@ -91,19 +91,42 @@
                                     </div>
 
                                     {% if comex.common_exams.all %}
-                                        <div class="col-12">
-                                            <span class="form-label d-block">Individual specific: <code>{{ comex.indiv_formula }}</code></span>
+                                        {% alert "info" %}
+                                            Individual points formula: <code>{{ comex.indiv_formula }}</code>
+
                                             <div class="small text-body-secondary mt-1">
-                                                Format: <code>[indiv_max_points];[common_max_points];[formula]</code>,
-                                                with :
+                                                <p class="mb-1">
+                                                    Recalculates each student’s points on the individual questions.
+                                                    The result is added to their common points to compute the grade.
+                                                </p>
+
+                                                <p class="mb-1">
+                                                    Format: <code>individual max points;common max points;formula</code>
+                                                </p>
+
+                                                <hr>
+
+                                                <p class="mb-1">Variables you can use in the formula:</p>
                                                 <ul>
-                                                    <li><code>IP</code>: individual max points</li>
-                                                    <li><code>CP</code>: common max points</li>
-                                                    <li><code>SCP</code>: student's common points</li>
-                                                    <li><code>SIP</code>: student's individual points.</li>
+                                                    <li><code>SIP</code> - student’s raw points on individual questions</li>
+                                                    <li><code>SCP</code> - student’s points on common questions</li>
+                                                    <li><code>IP</code> - individual max points (1st value)</li>
+                                                    <li><code>CP</code> - common max points (2nd value)</li>
                                                 </ul>
+
+                                                <hr>
+
+                                                <p>The result can never exceed the individual max points.</p>
+
+                                                <hr>
+
+                                                <p class="mb-0">
+                                                    Example: <code>10;20;SIP * 2</code>
+                                                    doubles the student’s individual points, up to a maximum of 10.
+                                                    The common points (out of 20) are unchanged.
+                                                </p>
                                             </div>
-                                        </div>
+                                        {% endalert %}
                                     {% endif %}
 
                                     <div class="col-12 d-flex gap-2 border-top pt-3">

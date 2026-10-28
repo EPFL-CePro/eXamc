@@ -8,7 +8,12 @@ from django.contrib.auth.models import Group, User
 from django.core.exceptions import BadRequest
 from django.db import transaction
 from django.db.models import Sum
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import (
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseRedirect,
+    JsonResponse,
+)
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -42,6 +47,30 @@ from examc_app.utils.results_statistics_functions import (
 from examc_app.utils.view_context_helpers import ViewContext
 
 logger = logging.getLogger(__name__)
+
+# Question type IDs (adjust names to match what they really are)
+MULTIPLE_CHOICE = 1
+MULTIPLE_CHOICE_ALT = 2
+TRUE_FALSE = 3
+OPEN = 4
+
+TYPES_WITH_ANSWERS = (MULTIPLE_CHOICE, MULTIPLE_CHOICE_ALT, TRUE_FALSE)
+
+
+def default_nb_answers(new_type, old_type, current_nb_answers):
+    """Return how many answers a question should have after changing type."""
+    if new_type in (MULTIPLE_CHOICE, MULTIPLE_CHOICE_ALT):
+        # Coming from true/false, or no answers yet: start with 4 options
+        if old_type == TRUE_FALSE or current_nb_answers == 0:
+            return 4
+        # Otherwise keep what the question already had
+        return current_nb_answers
+
+    if new_type == TRUE_FALSE:
+        return 2
+
+    # Open questions (and any other type) have no answer options
+    return 0
 
 class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
     model = Exam
@@ -372,26 +401,49 @@ def update_exam_options(request,exam_pk: int):
 @exam_permission_required(['manage'])
 @require_POST
 def update_questions(request, exam_pk: int):
-    data = json.loads(request.POST.get('data'))
+    try:
+        data = json.loads(request.POST['data'])
+        # Normalize keys so "Max Points" and "MAX POINTS" both work
+        data = [{k.upper(): v for k, v in item.items()} for item in data]
+    except (KeyError, ValueError, AttributeError):
+        return HttpResponseBadRequest('Invalid data')
 
-    for question in data:
-        quest = Question.objects.get(pk=question['QUESTION'])
-        if 'ANSWERS' in question:
-            quest.nb_answers = question['ANSWERS']
-        quest.max_points = question['MAX POINTS']
-        if quest.question_type_id != question['TYPE']:
-            old_qtype = quest.question_type_id
-            quest.question_type_id = question['TYPE']
-            if quest.question_type_id in (1,2) and quest.nb_answers == 0 or old_qtype == 3:
-                quest.nb_answers = 4
-            elif quest.question_type_id == 3:
-                quest.nb_answers = 2
-            else:
-                quest.nb_answers = 0
-        if 'COMMON' in question:
-            quest.common = bool(question['COMMON'])
-            quest.removed_from_common = not question['COMMON']
-        quest.save()
+    ids = [int(item['QUESTION']) for item in data]
+    # Adjust "exam_id" to whatever your FK to the exam is called
+    questions = Question.objects.filter(pk__in=ids, exam_id=exam_pk).in_bulk()
+
+    with transaction.atomic():
+        for item in data:
+            quest = questions.get(int(item["QUESTION"]))
+            if quest is None:
+                continue
+
+            quest.max_points = Decimal(item["MAX POINTS"])
+
+            new_type = int(item["TYPE"])
+            if quest.question_type_id != new_type:
+                quest.nb_answers = default_nb_answers(
+                    new_type=new_type,
+                    old_type=quest.question_type_id,
+                    current_nb_answers=quest.nb_answers,
+                )
+                quest.question_type_id = new_type
+
+            # If the client sent a number of answers, use it instead of the default
+            if "ANSWERS" in item and new_type in TYPES_WITH_ANSWERS:
+                quest.nb_answers = int(item["ANSWERS"])
+
+            if 'COMMON' in item:
+                common_raw = item['COMMON']
+                if isinstance(common_raw, str):
+                    common = common_raw.strip().lower() in ("1", "true", "yes", "on")
+                else:
+                    common = bool(common_raw)
+
+                quest.common = common
+                quest.removed_from_common = not common
+
+            quest.save()
 
     return HttpResponse(1)
 

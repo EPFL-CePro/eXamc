@@ -1,0 +1,31 @@
+{# Copied by the script once per selected room, on both tabs. The zoom and maximize buttons are only shown on Manual. #}
+<template id="room-plan-template">
+    <section class="room-plan">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <h6 class="room-plan-title mb-0 me-auto"></h6>
+            <div class="room-plan-zoom btn-group btn-group-sm d-none" role="group" aria-label="Zoom">
+                <button type="button" class="btn btn-outline-secondary" data-zoom="out" aria-label="Zoom out">
+                    <i class="fa-solid fa-magnifying-glass-minus" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-zoom="reset" aria-label="Reset zoom">
+                    <span class="room-plan-zoom-level">100%</span>
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-zoom="in" aria-label="Zoom in">
+                    <i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary maximize-plan"
+                        aria-label="Open in a large view" aria-pressed="false">
+                    <i class="fa-solid fa-expand" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+        <div class="room-plan-error alert alert-danger py-2 d-none" role="alert">
+            This room plan could not be loaded.
+        </div>
+        <div class="room-plan-viewport">
+            <div class="room-plan-frame">
+                <img class="d-none" alt="">
+            </div>
+        </div>
+    </section>
+</template>

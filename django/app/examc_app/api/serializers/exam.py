@@ -1,7 +1,7 @@
 from typing import Any
 
 from django.utils.html import format_html, format_html_join
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 from rest_framework import serializers
 
 from examc_app.models import Exam
@@ -26,24 +26,24 @@ class ExamRowSerializer(serializers.Serializer):
 
 
     # noinspection PyMethodMayBeStatic
-    def get_exam(self, exam):
+    def get_exam(self, exam) -> SafeString:
         return format_html(
             "<strong>{}</strong><br><span class='dashboard-muted'>{}</span>",
             exam.code, exam.name,
         )
 
     # noinspection PyMethodMayBeStatic
-    def get_date(self, exam):
+    def get_date(self, exam) -> str:
         if exam.date is None: return ""
         return exam.date.strftime("%Y-%m-%d")
 
-    def get_role(self, exam):
+    def get_role(self, exam) -> str | None:
         card = self._card(exam)
         if card is None: return None
 
         return card["role"]
 
-    def get_review(self, exam):
+    def get_review(self, exam) -> SafeString | None:
         card = self._card(exam)
         if card is None: return None
 
@@ -62,7 +62,7 @@ class ExamRowSerializer(serializers.Serializer):
             value["graded"], value["total"], bar_class, value["percent"], value["percent"],
         )
 
-    def get_actions(self, exam: Exam):
+    def get_actions(self, exam: Exam) -> SafeString | None:
         card = self._card(exam)
         if card is None: return None
 
@@ -72,13 +72,13 @@ class ExamRowSerializer(serializers.Serializer):
             '<div class="d-flex flex-wrap gap-2" style="min-width: 14rem">{}</div>',
             format_html_join(
                 "",
-                '<a class="btn btn-dark btn-sm" href="{}">'
+                '<a class="btn {} btn-sm" href="{}">'
                 '<i class="fa-solid {} me-1"></i>{}</a>',
-                ((a["url"], a["icon"], a["label"]) for a in value),
-            )
+                ((a["btn-class"], a["url"], a["icon"], a["label"]) for a in value),
+            ),
         )
 
-    def get_DT_RowAttr(self, exam: Exam):
+    def get_DT_RowAttr(self, exam: Exam) -> dict | None:
         card = self._card(exam)
         if card is None: return None
 
