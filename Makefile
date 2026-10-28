@@ -84,7 +84,7 @@ build: ensure-env
 	$(DC) up -d --build
 
 tests:
-	docker compose -f compose/test.yml --env-file .env.test up --force-recreate
+	docker compose -f compose/compose.test.yml --env-file .env.test up --force-recreate
 
 down:
 	$(DC) down

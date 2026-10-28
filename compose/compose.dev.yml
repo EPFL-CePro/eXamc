@@ -4,7 +4,7 @@ services:
   mysql:
     extends:
       service: mysql
-      file: base.yml
+      file: compose.base.yml
     profiles: [ "mysql-dockerized" ] # used to run MySQL outside Docker
     ports:
       - ${DB_PORT:-3307}:3306 # used for local client
@@ -16,12 +16,12 @@ services:
   redis:
     extends:
       service: redis
-      file: base.yml
+      file: compose.base.yml
 
   nginx:
     extends:
       service: nginx
-      file: base.yml
+      file: compose.base.yml
     volumes:
       - ./deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
       - ./data/private_media:/private_media:ro
@@ -40,7 +40,7 @@ services:
   django:
     extends:
       service: django
-      file: base.yml
+      file: compose.base.yml
     build:
       context: ../django
       target: dev
@@ -70,7 +70,7 @@ services:
   celery:
     extends:
       service: celery
-      file: base.yml
+      file: compose.base.yml
     build:
       context: ../django
       target: tooling
@@ -83,7 +83,7 @@ services:
   celery_beat:
     extends:
       service: celery_beat
-      file: base.yml
+      file: compose.base.yml
     build:
       context: ../django
       target: tooling

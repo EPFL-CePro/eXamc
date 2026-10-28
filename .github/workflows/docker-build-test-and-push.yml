@@ -170,7 +170,7 @@ jobs:
           TEST_IMAGE: localhost/examc-django-test
           IMAGE_TAG: latest
           FE_ARTIFACTS_IMAGE_TAG: ${{ needs.meta.outputs.tag }}
-        run: docker compose -f compose/test.yml --env-file .env.test run --rm django
+        run: docker compose -f compose/compose.test.yml --env-file .env.test run --rm django
 
       - name: Build and push production image
         uses: docker/build-push-action@v7

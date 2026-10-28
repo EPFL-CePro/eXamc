@@ -4,7 +4,7 @@ services:
   mysql:
     extends:
       service: mysql
-      file: base.yml
+      file: compose.base.yml
     profiles: [ "mysql-dockerized" ] # used to run MySQL outside Docker
     ports:
       - "127.0.0.1:${DB_PORT:-3306}:3306" # used for local client
@@ -12,12 +12,12 @@ services:
   redis:
     extends:
       service: redis
-      file: base.yml
+      file: compose.base.yml
 
   nginx:
     extends:
       service: nginx
-      file: base.yml
+      file: compose.base.yml
     volumes:
       - ./deploy/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - ./data/private_media:/private_media:ro
@@ -36,7 +36,7 @@ services:
   django:
     extends:
       service: django
-      file: base.yml
+      file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
       - ./data/private_media:/private_media
@@ -51,7 +51,7 @@ services:
   celery:
     extends:
       service: celery
-      file: base.yml
+      file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
       - ./data/private_media:/private_media
@@ -61,7 +61,7 @@ services:
   celery_beat:
     extends:
       service: celery_beat
-      file: base.yml
+      file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
       - ./data/private_media:/private_media

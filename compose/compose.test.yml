@@ -2,17 +2,22 @@ name: examc-test
 
 services:
   fe-artifacts:
-    image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
+    build:
+      context: ../frontend
+      target: artifact
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
+      - ../frontend/app/:/app/frontend:z
       - static_volume:/static
     restart: "no"
 
   django:
     extends:
       service: django
-      file: base.yml
-    image: "${TEST_IMAGE:-localhost/examc-django-test}:${IMAGE_TAG_DJANGO:-latest}"
+      file: compose.base.yml
+    build:
+      context: ../django
+      target: tooling
     command: ["pytest"]
     environment:
       TESTING_MODE_ENABLED: "1"
@@ -21,7 +26,7 @@ services:
       fe-artifacts:
         condition: service_completed_successfully
     volumes:
-      - ../django/app:/app
+      - ../django/app/:/app:z
     restart: no
 
 volumes:
