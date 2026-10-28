@@ -15,8 +15,8 @@
 Dockerized environment for **eXamc** featuring:
 - **Django**, **Gunicorn** (prod) / **runserver** (dev)
 - **Vite** frontend (TypeScript/Sass, pnpm)
-- **MySQL 8.4**
-- **Redis 7** (Celery broker/results)
+- **MySQL**
+- **Redis** (Celery broker/results)
 - **Celery** (worker) + **Celery Beat**
 - **Nginx** (reverse proxy + static dir)
 - **Private media** via **Nginx X-Accel-Redirect**

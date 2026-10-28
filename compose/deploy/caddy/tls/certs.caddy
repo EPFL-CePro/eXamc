@@ -1,0 +1,3 @@
+tls /run/secrets/tls_crt /run/secrets/tls_key {
+	protocols tls1.2 tls1.3
+}

@@ -1,11 +1,17 @@
 name: examc-dev
 
 services:
+  caddy:
+    extends:
+      service: caddy
+      file: compose.base.yml
+    ports:
+      - "127.0.0.1:${CADDY_PORT:-8443}:${CADDY_PORT:-8443}"
+
   mysql:
     extends:
       service: mysql
       file: compose.base.yml
-    profiles: [ "mysql-dockerized" ] # used to run MySQL outside Docker
     ports:
       - ${DB_PORT:-3307}:3306 # used for local client
     env_file:
@@ -17,16 +23,6 @@ services:
     extends:
       service: redis
       file: compose.base.yml
-
-  nginx:
-    extends:
-      service: nginx
-      file: compose.base.yml
-    volumes:
-      - ./deploy/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-      - ./data/private_media:/private_media:ro
-    ports:
-      - "127.0.0.1:8000:80"
 
   fe-runner:
     build:
@@ -94,7 +90,20 @@ services:
       - ../.env.dev
 
 volumes:
+  caddy_data:
+  caddy_config:
   mysql_data:
   redis_data:
   static_volume:
-  client_temp:
+
+secrets:
+  secret_key: { file: "${SECRETS_DIR:-./secrets}/secret_key" }
+  mysql_root_password: { file: "${SECRETS_DIR:-./secrets}/mysql_root_password" }
+  mysql_password: { file: "${SECRETS_DIR:-./secrets}/mysql_password" }
+  redis_password: { file: "${SECRETS_DIR:-./secrets}/redis_password" }
+  redis_acl: { file: "${SECRETS_DIR:-./secrets}/redis_acl" }
+  oidc_rp_client_id: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_id" }
+  oidc_rp_client_secret: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_secret" }
+  tenant_id: { file: "${SECRETS_DIR:?set SECRETS_DIR}/tenant_id" }
+  oasis_base_url: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_base_url" }
+  oasis_bearer: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_bearer" }

@@ -1,7 +1,7 @@
 # =========================
 # 1. BASE — shared deps install (cached layer, only invalidated when lockfile changes)
 # =========================
-FROM node:24-slim AS base
+FROM dhi.io/node:24.22.1 AS base
 
 RUN corepack enable
 
@@ -48,7 +48,7 @@ RUN pnpm run build
 # =========================
 # 4. ARTIFACT — lightweight deploy image, just the built output
 # =========================
-FROM alpine:3 AS artifact
+FROM dhi.io/alpine-base:3.24 AS artifact
 
 ARG UID=1000
 ARG GID=1000
