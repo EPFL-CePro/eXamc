@@ -1,7 +1,7 @@
 # =========================
 # 1. BASE — shared deps install (cached layer, only invalidated when lockfile changes)
 # =========================
-FROM dhi.io/node:24.22.1 AS base
+FROM dhi.io/node:24.22.1-dev AS base
 
 # Corepack keeps the pnpm binary in a shared location (not root's home),
 # so the non-root user of the dev stage can run it too
