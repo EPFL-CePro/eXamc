@@ -1,12 +1,11 @@
 # Base Docker images
-ARG PYTHON_IMAGE="python:3.14-slim-bookworm"
-FROM ghcr.io/astral-sh/uv:0.12 AS uv
+FROM dhi.io/uv:0.13.6 AS uv
 
 
 # =========================
 # UV BASE: uv, build deps and lockfile, shared by both builders
 # =========================
-FROM ${PYTHON_IMAGE} AS uv-base
+FROM dhi.io/python:3.15.2-debian13-dev AS uv-base
 
 COPY --from=uv /uv /uvx /bin/
 
@@ -51,7 +50,7 @@ RUN uv sync --frozen --group test --group docs --group dev --no-install-project
 # =========================
 # RUNTIME BASE: system packages, the app user and its data dirs (no app code)
 # =========================
-FROM ${PYTHON_IMAGE} AS runtime-base
+FROM dhi.io/python:3.15.2-debian13-dev AS runtime-base
 
 ARG UID=1000
 ARG GID=1000

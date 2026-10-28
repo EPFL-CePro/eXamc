@@ -140,7 +140,7 @@ Expected Compose mounts for Nginx:
 
 ## 4) Release cycle
 
-The commands below use `<compose-file>` and `<env-file>` as placeholders (e.g. `compose/prod.yml`, which is also used for staging, and your environment file).
+The commands below use `<compose-file>` and `<env-file>` as placeholders (e.g. `compose/compose.prod.yml`, which is also used for staging, and your environment file).
 
 1. **Prepare artifacts**  
    Git tag (`vX.Y.Z`), build images (django / celery / celery_beat), push to your registry if you use one.

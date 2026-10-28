@@ -1,0 +1,62 @@
+{
+	servers {
+		timeouts {
+			read_body 1h
+			write     1h
+			idle      5m
+		}
+	}
+}
+
+{$SITE_ADDRESS} {
+	import tls/{$CADDY_TLS_MODE:internal}.caddy
+
+	request_body {
+		max_size 15GB
+	}
+
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	handle_path /static/* {
+		root * /static
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+
+	handle /maint-test {
+		root * /var/www/html
+		rewrite * /maintenance.html
+		file_server
+	}
+
+	handle {
+		reverse_proxy django:8000 {
+			transport http {
+				dial_timeout  1s
+				read_timeout  1h
+				write_timeout 1h
+			}
+
+			# Django answered 503 (maintenance mode): serve the static page instead
+			@unavailable status 503
+			handle_response @unavailable {
+				root * /var/www/html
+				rewrite * /index.html
+				header Retry-After 120
+				templates
+				file_server
+			}
+		}
+	}
+
+	# Caddy couldn't reach Django (down, restarting, timeout)
+	handle_errors {
+		root * /var/www/html
+		rewrite * /index.html
+		header Retry-After 120
+		templates
+		file_server
+	}
+}
