@@ -97,3 +97,17 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
+
+secrets:
+  secret_key:            { file: "${SECRETS_DIR:-./secrets}/secret_key" }
+  mysql_root_password:   { file: "${SECRETS_DIR:-./secrets}/mysql_root_password" }
+  mysql_password:        { file: "${SECRETS_DIR:-./secrets}/mysql_password" }
+  redis_password:        { file: "${SECRETS_DIR:-./secrets}/redis_password" }
+  redis_acl:             { file: "${SECRETS_DIR:-./secrets}/redis_acl" }
+  oidc_rp_client_id:     { file: "${SECRETS_DIR:-./secrets}/oidc_rp_client_id" }
+  oidc_rp_client_secret: { file: "${SECRETS_DIR:-./secrets}/oidc_rp_client_secret" }
+  tenant_id:             { file: "${SECRETS_DIR:-./secrets}/tenant_id" }
+  oasis_base_url:        { file: "${SECRETS_DIR:-./secrets}/oasis_base_url" }
+  oasis_bearer:          { file: "${SECRETS_DIR:-./secrets}/oasis_bearer" }
+  tls_crt:               { file: "${SECRETS_DIR:-./secrets}/tls_crt" }
+  tls_key:               { file: "${SECRETS_DIR:-./secrets}/tls_key" }

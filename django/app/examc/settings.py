@@ -3,7 +3,6 @@ Django settings for eXamc
 
 BASE SETTINGS FOR ALL ENV
 """
-import logging
 import os
 import tomllib
 from pathlib import Path
@@ -13,8 +12,6 @@ from urllib.parse import quote, unquote, urlparse
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
-
-logger = logging.getLogger(__name__)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -56,7 +53,7 @@ def redis_url(db: int) -> str:
     host = env("REDIS_HOST", "redis")
     port = env("REDIS_PORT", "6379")
     password = secret("redis_password")
-    logger.critical(f"Redis password: {password}")
+
     if password:
         user = env("REDIS_USER", "examc")
         return f"redis://{quote(user, safe='')}:{quote(password, safe='')}@{host}:{port}/{db}"
