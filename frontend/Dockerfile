@@ -1,7 +1,7 @@
 # =========================
 # 1. BASE — shared deps install (cached layer, only invalidated when lockfile changes)
 # =========================
-FROM node:24-slim AS base
+FROM node:25-slim AS base
 
 RUN corepack enable
 

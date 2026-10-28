@@ -1,6 +1,6 @@
 # Base Docker images
 ARG PYTHON_IMAGE="python:3.14-slim-bookworm"
-FROM ghcr.io/astral-sh/uv:0.12 AS uv
+FROM ghcr.io/astral-sh/uv:0.13 AS uv
 
 
 # =========================
