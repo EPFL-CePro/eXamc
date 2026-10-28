@@ -37,7 +37,7 @@ services:
         condition: service_started
     volumes:
       - static_volume:/static:ro
-      # configuration and private_media are mounted in dev.yml
+      # configuration and private_media are mounted in compose.dev.yml
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
@@ -106,8 +106,8 @@ services:
       EXAM_REVIEWER_GROUP_NAMES: "${EXAM_REVIEWER_GROUP_NAMES:-Reviewer}"
     volumes:
       - static_volume:/static # collectstatic writes hashed assets here
-      # ../django/app is only mounted in dev.yml
-      # /private_media is mounted in dev.yml and prod.yml
+      # ../django/app is only mounted in compose.dev.yml
+      # /private_media is mounted in compose.dev.yml and compose.prod.yml
     healthcheck:
       test: [ "CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1" ]
       interval: 30s

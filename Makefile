@@ -25,7 +25,7 @@ ENV ?= dev
 PROJECT ?= examc
 export ENV_FILE := .env.${ENV}
 
-# Compose files per env (dev = dev.yml ; test/prod add other overrides)
+# Compose files per env (dev = compose.dev.yml ; test/prod add other overrides)
 COMPOSE_FILES := -f compose/$(ENV).yml
 export COMPOSE_PROJECT_NAME := $(PROJECT)
 
@@ -84,7 +84,7 @@ build: ensure-env
 	$(DC) up -d --build
 
 tests:
-	docker compose -f compose/test.yml --env-file .env.test up --force-recreate
+	docker compose -f compose/compose.test.yml --env-file .env.test up --force-recreate
 
 down:
 	$(DC) down

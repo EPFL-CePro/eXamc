@@ -73,10 +73,10 @@ Dockerized environment for **eXamc** featuring:
 │  ├─ pyproject.toml                # Main project configuration
 │  └─ uv.lock
 ├─ compose/                         # Docker Compose configurations
-│  ├─ base.yml                      # Shared service definitions (not used directly)
-│  ├─ dev.yml                       # Development environment
-│  ├─ test.yml                      # Test/CI environment
-│  └─ prod.yml                      # Production environment (also used for staging server)
+│  ├─ compose.base.yml              # Shared service definitions (not used directly)
+│  ├─ compose.dev.yml               # Development environment
+│  ├─ compose.test.yml              # Test/CI environment
+│  └─ compose.prod.yml              # Production environment (also used for staging server)
 ├─ data/                            # Local persistent data
 │  └─ private_media/                # AMC-related files
 ├─ deploy/                          # Deployment-related configuration
@@ -190,8 +190,8 @@ xdg-open http://127.0.0.1:8000  # (use open/start on macOS/Windows)
 This project uses [`uv`](https://docs.astral.sh/uv/) to manage dependencies. `uv` is installed in the `tooling` target of the Dockerfile (used by test and dev environments), and can be called like this :
 
 ```bash
-docker compose -f compose/test.yml run django uv add dependency_name
-docker compose -f compose/dev.yml run django uv update
+docker compose -f compose/compose.test.yml run django uv add dependency_name
+docker compose -f compose/compose.dev.yml run django uv update
 ```
 
 This updates both `app/pyproject.toml` and `app/uv.lock`.
@@ -222,7 +222,7 @@ The Dockerfile uses these groups to build separate environments:
 The tooling image can be built like this if needed:
 
 ```bash
-docker compose -f compose/test.yml build --target tooling django
+docker compose -f compose/compose.test.yml build --target tooling django
 ```
 
 ---
@@ -255,7 +255,7 @@ make rebuild-django # rebuild django service only
 make prune          # prune dangling images
 ```
 
-> For **test/prod**: `make up ENV=test` (uses `.env.test` + `compose/test.yml`), etc.
+> For **test/prod**: `make up ENV=test` (uses `.env.test` + `compose/compose.test.yml`), etc.
 
 ---
 
@@ -317,7 +317,7 @@ Dev connection:
 
 ## TEST / PROD overview
 
-- Overrides: `compose/test.yml`, `compose/prod.yml`
+- Overrides: `compose/compose.test.yml`, `compose/compose.prod.yml`
 - **HTTPS** is managed on the host machine
 - Security: `SECURE_SSL_REDIRECT=1`, cookie `*_SECURE=1`, **HSTS** enabled
 - **Gunicorn** in front (never `runserver`)
@@ -326,7 +326,7 @@ Dev connection:
 Tests can be run with :
 
 ```bash
-docker compose -f compose/test.yml run --rm --remove-orphans django
+docker compose -f compose/compose.test.yml run --rm --remove-orphans django
 ```
 
 ---
