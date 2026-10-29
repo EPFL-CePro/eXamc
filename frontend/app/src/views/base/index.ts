@@ -1,4 +1,3 @@
-import "bootstrap";
 import "./main.scss";
 
 import { Tooltip } from "bootstrap";

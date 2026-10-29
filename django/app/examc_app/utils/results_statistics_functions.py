@@ -42,17 +42,16 @@ SCALE_COPY_FIELDS = (
     "final",
 )
 
+
 class QuestionStats(TypedDict):
     question: Question
     exam_list: list
 
 
-
-
-
 def clone_scale(src: Scale, *, exam) -> Scale:
     data = {f: getattr(src, f) for f in SCALE_COPY_FIELDS}
     return src.__class__(exam=exam, name=src.name, **data)
+
 
 def update_common_exams_scales(overall_exam_pk: int):
     overall_exam = Exam.objects.get(pk=overall_exam_pk)
@@ -92,7 +91,7 @@ def update_common_exams_scales(overall_exam_pk: int):
             src = (
                 overall_exam.scales.model.objects
                 .filter(exam__in=children, name=name)
-                .order_by("exam_id")   # deterministic
+                .order_by("exam_id")  # deterministic
                 .first()
             )
             if src:
@@ -101,6 +100,7 @@ def update_common_exams_scales(overall_exam_pk: int):
     with transaction.atomic():
         if to_create:
             overall_exam.scales.model.objects.bulk_create(to_create)
+
 
 def update_common_exams_users(overall_exam_pk: int):
     overall_exam = Exam.objects.get(pk=overall_exam_pk)
@@ -114,6 +114,7 @@ def update_common_exams_users(overall_exam_pk: int):
                 new_exam_user.save()
                 overall_exam.exam_users.add(new_exam_user)
     overall_exam.save()
+
 
 @transaction.atomic
 def update_common_exams_questions(overall_exam_pk: int):
@@ -184,8 +185,8 @@ def update_common_exams_questions(overall_exam_pk: int):
 
     Question.objects.bulk_create(new_questions, ignore_conflicts=True)
 
-def update_common_exams(overall_pk):
 
+def update_common_exams(overall_pk):
     exam = Exam.objects.get(pk=overall_pk)
     #exam.common_exams.clear()
     #commons = Exam.objects.filter(name=exam.name,year__code=exam.year.code,semester__code=exam.semester.code)
@@ -194,7 +195,7 @@ def update_common_exams(overall_pk):
         common_list.append(exam)
         common_list_bis = common_list
         for common in common_list:
-            if common.pk != exam.pk :
+            if common.pk != exam.pk:
                 new_commons = []
                 for common_bis in common_list_bis:
                     if common_bis.pk != common.pk:
@@ -203,41 +204,47 @@ def update_common_exams(overall_pk):
                 common.save()
     return exam
 
+
 def remove_common_exams(overall_pk):
     return None
+
 
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
-def generate_isa_csv(exam: Exam, scale,folder_path):
-    with open(folder_path+"/"+exam.code+"_"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_ISA.csv", 'w', newline='', encoding='utf-8') as f:
+
+def generate_isa_csv(exam: Exam, scale: Scale, folder_path):
+    with open(folder_path + "/" + exam.code + "_" + exam.code + "_" + exam.date.strftime("%Y%m%d") + "_ISA.csv", 'w',
+              newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
 
         for student in exam.students.all():
             try:
-                grade = StudentScaleGrade.objects.get(student=student,scale__name=scale.name)
-                row = str(student.sciper)+";"+str(grade.grade)
+                grade = StudentScaleGrade.objects.get(student=student, scale__name=scale.name)
+                row = str(student.sciper) + ";" + str(grade.grade)
             except StudentScaleGrade.DoesNotExist:
-                row = str(student.sciper+";NA")
+                row = str(student.sciper + ";NA")
 
             writer.writerow([row])
 
         return True
 
-def generate_scale_pdf(exam: Exam,scale,folder_path):
+
+def generate_scale_pdf(exam: Exam, scale: Scale, folder_path):
     scale_list = {}
-    grade_list = np.arange(float(scale.min_grade),float(scale.max_grade)+0.25,0.25)
+    grade_list = np.arange(float(scale.min_grade), float(scale.max_grade) + 0.25, 0.25)
 
     #get exam max points
-    max_pts = Question.objects.filter(exam=exam).values('max_points').aggregate(Sum('max_points')).get('max_points__sum')
+    max_pts = Question.objects.filter(exam=exam).values('max_points').aggregate(Sum('max_points')).get(
+        'max_points__sum')
     #get max decimal places of students points
-    all_pts = Student.objects.filter(exam=exam).values_list('points',flat=True)
+    all_pts = Student.objects.filter(exam=exam).values_list('points', flat=True)
     max_d = get_max_decimal_places(all_pts)
     max_d = min(max_d, 3)
 
     if max_d > 0:
         decimal_string_from = f"{0.000000:.{max_d}f}"
-        decimal_string_to = f"{0.000000:.{max_d-1}f}1"
+        decimal_string_to = f"{0.000000:.{max_d - 1}f}1"
     else:
         decimal_string_from = "0"
         decimal_string_to = "1"
@@ -253,17 +260,18 @@ def generate_scale_pdf(exam: Exam,scale,folder_path):
             #if point <= 0:
             #    pt_grade = 1
             #else:
-            pt_grade = Decimal(((point+scale.points_to_add) / scale.total_points * 5 + 1)*4).quantize(Decimal('1'),rounding=ROUND_HALF_UP) / 4
+            pt_grade = Decimal(((point + scale.points_to_add) / scale.total_points * 5 + 1) * 4).quantize(Decimal('1'),
+                                                                                                          rounding=ROUND_HALF_UP) / 4
 
             if pt_grade > grade and pt_grade <= scale.max_grade:
-                scale_list[grade] = str(round(last_step,max_d))+"-"+str(round(last_point,max_d))
+                scale_list[grade] = str(round(last_step, max_d)) + "-" + str(round(last_point, max_d))
                 last_step = point
                 break
             last_point = point
 
-    scale_list[grade_list[-1]] = str(round(last_step,2))+"- max"
+    scale_list[grade_list[-1]] = str(round(last_step, 2)) + "- max"
 
-    output_path = folder_path+"/"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_SCALE.pdf"
+    output_path = folder_path + "/" + exam.code + "_" + exam.date.strftime("%Y%m%d") + "_SCALE.pdf"
     styles = getSampleStyleSheet()
     doc = SimpleDocTemplate(
         output_path,
@@ -290,38 +298,41 @@ def generate_scale_pdf(exam: Exam,scale,folder_path):
     ]))
     doc.build([
         Paragraph(str(exam.name), styles["Title"]),
-        Paragraph("Semester "+str(exam.semester.code)+" "+str(exam.year.code), styles["Heading2"]),
+        Paragraph("Semester " + str(exam.semester.code) + " " + str(exam.year.code), styles["Heading2"]),
         Spacer(1, 1 * cm),
         table,
     ])
 
     return True
 
-def generate_students_data_csv(exam,folder_path):
+
+def generate_students_data_csv(exam, folder_path):
     logger.info('start')
-    f = open(folder_path+"/"+exam.code+"_"+exam.code+"_"+exam.date.strftime("%Y%m%d")+"_DATA.csv", 'w', newline='', encoding='utf-8')
+    f = open(folder_path + "/" + exam.code + "_" + exam.code + "_" + exam.date.strftime("%Y%m%d") + "_DATA.csv", 'w',
+             newline='', encoding='utf-8')
     writer = csv.writer(f, delimiter=";")
     data = []
 
     # header
-    row = ["COPIE_NO","SCIPER","NAME","PRESENT","POINTS"]
+    row = ["COPIE_NO", "SCIPER", "NAME", "PRESENT", "POINTS"]
     for q in exam.questions.all():
-        row.append(q.code+":TICKED")
-        row.append(q.code+":POINTS")
+        row.append(q.code + ":TICKED")
+        row.append(q.code + ":POINTS")
     data.append(row)
 
-    i=1
+    i = 1
 
-    students_data = StudentQuestionAnswer.objects.filter(student__in=exam.students.all()).order_by('student__pk', 'question__pk')
+    students_data = StudentQuestionAnswer.objects.filter(student__in=exam.students.all()).order_by('student__pk',
+                                                                                                   'question__pk')
     last_student_pk = 0
     for sd in students_data:
-        i+=1
+        i += 1
         if last_student_pk != sd.student.pk:
             if last_student_pk != 0:
                 data.append(row)
-            row = [str(sd.student.copie_no),str(sd.student.sciper),sd.student.name,str(sd.student.present),str(sd.student.points)]
+            row = [str(sd.student.copie_no), str(sd.student.sciper), sd.student.name, str(sd.student.present),
+                   str(sd.student.points)]
             last_student_pk = sd.student.pk
-
 
         row.append(sd.ticked)
         row.append(sd.points)
@@ -332,18 +343,20 @@ def generate_students_data_csv(exam,folder_path):
 
     return True
 
+
 def zipdir(path, ziph):
     # ziph is zipfile handle
     for root, dirs, files in os.walk(path):
         for file in files:
             ziph.write(os.path.join(root, file),
-            os.path.relpath(os.path.join(root, file),
-            os.path.join(path, '..')))
+                       os.path.relpath(os.path.join(root, file),
+                                       os.path.join(path, '..')))
+
 
 def get_max_decimal_places(data):
     max_d = 0
     for value in data:
-        exp = value.normalize().as_tuple().exponent*-1
+        exp = value.normalize().as_tuple().exponent * -1
         max_d = max(max_d, exp)
 
     return max_d
@@ -353,6 +366,7 @@ def get_max_decimal_places(data):
 def delete_exam_data(exam: Exam):
     Question.objects.filter(exam=exam).delete()
     Student.objects.filter(exam=exam).delete()
+
 
 def get_common_list(exam: Exam):
     common_list = [exam]
@@ -364,11 +378,10 @@ def get_common_list(exam: Exam):
     return common_list
 
 
-
 def get_questions_stats_by_exam(exam: Exam) -> list[QuestionStats]:
     question_stat_list: list[QuestionStats] = []
 
-    com_questions = Question.objects.filter(removed_from_common=False,common=True,exam=exam)
+    com_questions = Question.objects.filter(removed_from_common=False, common=True, exam=exam)
 
     for question in com_questions:
         question_stat: QuestionStats = {
@@ -378,14 +391,17 @@ def get_questions_stats_by_exam(exam: Exam) -> list[QuestionStats]:
 
         for comex in exam.common_exams.all():
             exam_dict = {
-                'exam': comex.code.replace('(','').replace(')','').replace('-','')
+                'exam': comex.code.replace('(', '').replace(')', '').replace('-', '')
             }
 
-            section_list = Student.objects.filter(present=True,exam=comex).values_list('section', flat=True).order_by().distinct()
+            section_list = Student.objects.filter(present=True, exam=comex).values_list('section',
+                                                                                        flat=True).order_by().distinct()
             exam_dict.update({'sections': section_list})
 
             present_students = comex.present_students if comex.present_students > 0 else 1
-            answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True, question__code=question.code).values('ticked').order_by('ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
+            answer_list = StudentQuestionAnswer.objects.filter(student__exam=comex, student__present=True,
+                                                               question__code=question.code).values('ticked').order_by(
+                'ticked').annotate(percent=Cast(100 / present_students * Count('ticked'), FloatField()))
 
             na_answers = 0
             new_answer_list = []
@@ -402,10 +418,9 @@ def get_questions_stats_by_exam(exam: Exam) -> list[QuestionStats]:
                     })
 
             na_answers = na_answers if na_answers > 0 else 1
-            new_answer_list.append({'ticked':'NA','percent':100/present_students*na_answers})
+            new_answer_list.append({'ticked': 'NA', 'percent': 100 / present_students * na_answers})
 
-
-            exam_dict.update({'answers':new_answer_list})
+            exam_dict.update({'answers': new_answer_list})
 
             question_stat["exam_list"].append(exam_dict)
 
@@ -417,6 +432,7 @@ def get_questions_stats_by_exam(exam: Exam) -> list[QuestionStats]:
 class OpenQuestionChartQuarter(TypedDict):
     maxPoints: int
     students: int
+
 
 class OpenQuestionChart(TypedDict):
     canvasId: str
@@ -437,11 +453,10 @@ class ByExamChart(TypedDict):
 
 
 def questions_statistics_charts(
-        exam: Exam,mcq_questions: QuerySet[Question],
+        exam: Exam, mcq_questions: QuerySet[Question],
         open_questions: QuerySet[Question],
         question_stats_by_exam: list[QuestionStats]
 ) -> dict:
-
     """
     Data of the questions statistics page's charts, drawn by its script
     (src/views/res_and_stats/questions_statistics). Each chart names the canvas it's drawn in.
