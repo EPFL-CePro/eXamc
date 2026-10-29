@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-        {% if user_allowed %}
+    {% if user_allowed %}
         {% if exam_selected.is_overall %}
             {# Common exam: one tab per view #}
             {% pill_header title="General statistics" prefix="general-stats" icon="fas fa-chart-line" %}
@@ -54,11 +54,12 @@
             </div>
         {% else %}
             {# Single exam: one view, no tabs #}
-            {% pill_header title="General statistics" prefix="general-stats" icon="fas fa-chart-line" %}
-            {% endpill_header %}
+            {% pill_header title="General statistics" prefix="general-stats" icon="fas fa-chart-line" %}{% endpill_header %}
 
             {% if exam_selected.scaleStatistics.all %}
-                {% include "./_general_statistics/_single_exam.html" %}
+                <div>
+                    {% include "./_general_statistics/_single_exam.html" %}
+                </div>
             {% else %}
                 {% alert "warning" fit=True %}
                     No statistics were found for this exam. Check that it has at least one scale
@@ -205,16 +206,16 @@
                         data: {
                             labels: {{ grade_list }},
                             datasets: [
-                                {% for stat in exam_selected|get_sections_scaleStats_by_examScale:scale %}
+                                {% for stat in exam_selected|section_stats:scale %}
                                     {
                                         label: '{{ stat.section }}',
                                         fill: false,
-                                        backgroundColor: palette('mpn65', {{ exam_selected|get_sections_scaleStats_by_examScale:scale|length }}).map(function (hex) {
+                                        backgroundColor: palette('mpn65', {{ exam_selected|section_stats:scale|length }}).map(function (hex) {
                                             return '#' + hex;
-                                        })[{{ exam_selected|get_sections_scaleStats_by_examScale:scale|get_item_pos:stat }}],
-                                        borderColor: palette('mpn65', {{ exam_selected|get_sections_scaleStats_by_examScale:scale|length }}).map(function (hex) {
+                                        })[{{ exam_selected|section_stats:scale|get_item_pos:stat }}],
+                                        borderColor: palette('mpn65', {{ exam_selected|section_stats:scale|length }}).map(function (hex) {
                                             return '#' + hex;
-                                        })[{{ exam_selected|get_sections_scaleStats_by_examScale:scale|get_item_pos:stat }}],
+                                        })[{{ exam_selected|section_stats:scale|get_item_pos:stat }}],
                                         data: [
                                             {% for dist in stat.scaleDistributions.all %}
                                                 {{ dist.quantity|divide_mult_100:stat.section_nb_students }},
@@ -269,7 +270,7 @@
                 {% endfor %}
 
                 {% for scale in exam_selected.scales.all %}
-                    {% with exam_selected|get_teachers_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
+                    {% with exam_selected|get_com_vs_ind_stats_by_exam:scale as stats %}
                         const general_stats_comVsIndByExam{{ scale.pk }} = {
                             type: 'bar',
                             data: {
@@ -354,7 +355,7 @@
                         };
                     {% endwith %}
 
-                    {% with exam_selected|get_sections_comVsInd_scaleStats_by_overall_examScale:scale as stats %}
+                    {% with exam_selected|get_com_vs_ind_stats_by_section:scale as stats %}
                         const general_stats_comVsIndBySection{{ scale.pk }} = {
                             type: 'bar',
                             data: {

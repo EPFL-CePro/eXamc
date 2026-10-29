@@ -10,7 +10,6 @@ import { applyFinalizedReadOnlyState, initUnlockEditing, stopDragHandleClicks } 
 import { initSavingOverlay } from "./saving-overlay.ts";
 import { initScoringFormulas } from "./scoring-formulas.ts";
 import { initAnswerSortable, initQuestionSortable, initSectionSortable } from "./sortable.ts";
-import { byId } from "@examc/helpers/dom.ts";
 import { manageTabs } from "@examc/helpers/tabs.ts";
 
 initActions();
@@ -27,10 +26,7 @@ document.addEventListener("hidden.bs.modal", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Not rendered when the user isn't allowed or the exam has no AMC project yet.
-    const root = byId<HTMLDivElement>('prep-root');
-
-    manageTabs({ tabId: root.dataset.currentTab ?? '' });
+    manageTabs();
 
     initSectionSortable();
     initQuestionSortable();

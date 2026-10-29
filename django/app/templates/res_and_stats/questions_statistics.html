@@ -12,185 +12,195 @@
         {% pill_header title="Questions statistics" prefix="questions-stats" icon="fa-solid fa-chart-area" %}
             {% pill_tab "closed-ended" label="Closed-ended questions" icon="fas fa-square-check" disabled=closed_ended_disabled disabled_tooltip="No closed-ended question found for this exam" %}
             {% pill_tab "open-ended" label="Open questions" icon="fas fa-square-pen" disabled=open_disabled disabled_tooltip="No open question found for this exam" %}
-            {% pill_tab "by-exam" label="By exam" icon="fas fa-book-open" disabled=by_exam_disabled disabled_tooltip="Only available for common exams." %}
+
+            {% if common_list|length > 1 %}
+                {% pill_tab "by-exam" label="By exams" icon="fas fa-book-open" disabled=by_exam_disabled disabled_tooltip="Select this group’s COMMON exam in the left sidebar to compare its exams." %}
+            {% else %}
+                {% pill_tab "by-exam" label="By exams" icon="fas fa-book-open" disabled=by_exam_disabled disabled_tooltip="Only for common exams. You can make this exam a common one in Exam settings." %}
+            {% endif %}
         {% endpill_header %}
 
         {% if mcq_questions or open_questions %}
             {# Tab navigation #}
             <div id="questions-statistics" data-catalog-url="{% url 'catalog_pdf' exam_selected.pk %}">
-                <div class="tab-content" id="questions-statistics-tab-content">
-                    {# Closed-ended: multiple-choice and true/false questions #}
-                    {% pill_pane "closed-ended" prefix="questions-stats" %}
-                        {% if mcq_questions %}
-                            <button type="button" class="btn btn-primary mb-3"
-                                    title="Download closed-ended questions stats as PDF"
-                                    aria-label="Download closed-ended questions stats as PDF"
-                                    data-pdf-element="closed-ended-statistics-div"
-                                    data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Multiple-choice questions stats"
-                                    data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_MCQs_stats.pdf">
-                                <i class="fa-regular fa-file-pdf"></i> Download closed-ended questions stats as PDF
-                            </button>
+            <div class="tab-content" id="questions-statistics-tab-content">
+                {# Closed-ended: multiple-choice and true/false questions #}
+                {% pill_pane "closed-ended" prefix="questions-stats" %}
+                    {% if mcq_questions %}
+                        <button type="button" class="btn btn-primary mb-3"
+                                title="Download closed-ended questions stats as PDF"
+                                aria-label="Download closed-ended questions stats as PDF"
+                                data-pdf-element="closed-ended-statistics-div"
+                                data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Multiple-choice questions stats"
+                                data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_MCQs_stats.pdf">
+                            <i class="fa-regular fa-file-pdf"></i> Download closed-ended questions stats as PDF
+                        </button>
 
-                            <div id="closed-ended-statistics-div">
-                                {% include 'res_and_stats/_questions_statistics_legend.html' with present_students=exam_selected.present_students %}
+                        <div id="closed-ended-statistics-div">
+                            {% include 'res_and_stats/_questions_statistics_legend.html' with present_students=exam_selected.present_students %}
 
-                                <table id="questions_statistics_mcq_dt" class="table table-striped table-sm" data-stats-table>
-                                    <thead>
-                                        <tr>
-                                            <th data-orderable="false"></th>
-                                            <th>Question</th>
-                                            <th class="text-center">Upper</th>
-                                            <th class="text-center">Lower</th>
-                                            <th class="text-center">DI</th>
-                                            <th class="text-center">Tot. Answers</th>
-                                            <th class="text-center">Correct</th>
-                                            <th class="text-center" data-orderable="false">Answers distribution</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for question in mcq_questions %}
-                                        <tr>
-                                            <td class="align-middle ps-1 py-0">{{ question.remark|safe }}</td>
-                                            <td class="align-middle ps-1 py-0">
-                                                <code>{{ question.code }}</code>
-                                                <button type="button" class="btn btn-link p-0" title="Show the question in the catalog"
-                                                        aria-label="Show {{ question.code }} in the catalog"
-                                                        data-bs-toggle="modal" data-bs-target="#display-pdf-modal"
-                                                        data-question-code="{{ question.code }}">
-                                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                                </button>
-                                            </td>
-                                            <td class="align-middle text-center ps-1 py-0">{{ question.upper_correct }}</td>
-                                            <td class="align-middle text-center ps-1 py-0">{{ question.lower_correct }}</td>
-                                            <td class="align-middle text-center ps-1 py-0">{{ question.di_calculation }}</td>
-                                            <td class="align-middle text-center ps-1 py-0">
-                                                {{ question.tot_answers }}/{{ exam_selected.students.all|length }}
-                                            </td>
-                                            <td class="align-middle text-center ps-1 py-0">{{ question.correct_answer }}</td>
+                            <table id="questions_statistics_mcq_dt" class="table table-striped table-sm"
+                                   data-stats-table>
+                                <thead>
+                                <tr>
+                                    <th data-orderable="false"></th>
+                                    <th>Question</th>
+                                    <th class="text-center">Upper</th>
+                                    <th class="text-center">Lower</th>
+                                    <th class="text-center">DI</th>
+                                    <th class="text-center">Tot. Answers</th>
+                                    <th class="text-center">Correct</th>
+                                    <th class="text-center" data-orderable="false">Answers distribution</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for question in mcq_questions %}
+                                    <tr>
+                                        <td class="align-middle ps-1 py-0">{{ question.remark|safe }}</td>
+                                        <td class="align-middle ps-1 py-0">
+                                            <code>{{ question.code }}</code>
+                                            <button type="button" class="btn btn-link p-0"
+                                                    title="Show the question in the catalog"
+                                                    aria-label="Show {{ question.code }} in the catalog"
+                                                    data-bs-toggle="modal" data-bs-target="#display-pdf-modal"
+                                                    data-question-code="{{ question.code }}">
+                                                <i class="fa-solid fa-magnifying-glass"></i>
+                                            </button>
+                                        </td>
+                                        <td class="align-middle text-center ps-1 py-0">{{ question.upper_correct }}</td>
+                                        <td class="align-middle text-center ps-1 py-0">{{ question.lower_correct }}</td>
+                                        <td class="align-middle text-center ps-1 py-0">{{ question.di_calculation }}</td>
+                                        <td class="align-middle text-center ps-1 py-0">
+                                            {{ question.tot_answers }}/{{ exam_selected.students.all|length }}
+                                        </td>
+                                        <td class="align-middle text-center ps-1 py-0">{{ question.correct_answer }}</td>
 
-                                            <td class="align-middle text-center p-2" style="width: fit-content">
-                                                {% if question.answerStatistics.all|length <= max_charted_answer_combinations %}
-                                                    <div class="m-auto" style="max-width: 35rem">
-                                                        <canvas id="canvas-{{ question.pk }}"></canvas>
-                                                    </div>
-                                                {% else %}
-                                                    <span class="text-muted"><i>Too many answer combinations</i></span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% endif %}
-                    {% endpill_pane %}
-
-                    {# Open questions #}
-                    {% pill_pane "open-ended" prefix="questions-stats" %}
-                        {% if open_questions %}
-                            <button type="button" class="btn btn-primary mb-3"
-                                    title="Download open-ended questions stats as PDF"
-                                    aria-label="Download open-ended questions stats as PDF"
-                                    data-pdf-element="open-questions-statistics-div"
-                                    data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Open questions stats"
-                                    data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_OpenQs_stats.pdf">
-                                <i class="fa-regular fa-file-pdf"></i> Download open-ended questions stats as PDF
-                            </button>
-
-                            <div id="open-questions-statistics-div">
-                                {% include 'res_and_stats/_questions_statistics_legend.html' with present_students=exam_selected.present_students %}
-                                
-                                <table id="questions_statistics_open_dt" class="table table-striped table-sm" data-stats-table>
-                                    <thead>
-                                        <tr>
-                                            <th data-orderable="false"></th>
-                                            <th>Question</th>
-                                            <th class="text-center">Upper mean</th>
-                                            <th class="text-center">Lower mean</th>
-                                            <th class="text-center">DI</th>
-                                            <th class="text-center" data-orderable="false">Points distribution</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for question in open_questions %}
-                                        <tr>
-                                            <td class="align-middle ps-1 py-0">{{ question.remark|safe }}</td>
-                                            <td class="align-middle ps-1 py-0">
-                                                <code>{{ question.code }}</code>
-                                                <button type="button" class="btn btn-link p-0" title="Show the question in the catalog"
-                                                        aria-label="Show {{ question.code }} in the catalog"
-                                                        data-bs-toggle="modal" data-bs-target="#display-pdf-modal"
-                                                        data-question-code="{{ question.code }}">
-                                                    <i class="fa fa-magnifying-glass"></i>
-                                                </button>
-                                            </td>
-                                            <td class="align-middle text-center ps-1 py-0">{{ question.upper_avg }}</td>
-                                            <td class="align-middle text-center ps-1 py-0">{{ question.lower_avg }}</td>
-                                            <td class="align-middle text-center ps-1 py-0">{{ question.di_calculation }}</td>
-                                            <td class="align-middle text-center p-2" style="width:40%;">
-                                                <div class="mx-auto">
+                                        <td class="align-middle text-center p-2" style="width: fit-content">
+                                            {% if question.answerStatistics.all|length <= max_charted_answer_combinations %}
+                                                <div class="m-auto" style="max-width: 35rem">
                                                     <canvas id="canvas-{{ question.pk }}"></canvas>
                                                 </div>
-                                            </td>
+                                            {% else %}
+                                                <span class="text-muted"><i>Too many answer combinations</i></span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                {% endpill_pane %}
+
+                {# Open questions #}
+                {% pill_pane "open-ended" prefix="questions-stats" %}
+                    {% if open_questions %}
+                        <button type="button" class="btn btn-primary mb-3"
+                                title="Download open-ended questions stats as PDF"
+                                aria-label="Download open-ended questions stats as PDF"
+                                data-pdf-element="open-questions-statistics-div"
+                                data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Open questions stats"
+                                data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_OpenQs_stats.pdf">
+                            <i class="fa-regular fa-file-pdf"></i> Download open-ended questions stats as PDF
+                        </button>
+
+                        <div id="open-questions-statistics-div">
+                            {% include 'res_and_stats/_questions_statistics_legend.html' with present_students=exam_selected.present_students %}
+
+                            <table id="questions_statistics_open_dt" class="table table-striped table-sm"
+                                   data-stats-table>
+                                <thead>
+                                <tr>
+                                    <th data-orderable="false"></th>
+                                    <th>Question</th>
+                                    <th class="text-center">Upper mean</th>
+                                    <th class="text-center">Lower mean</th>
+                                    <th class="text-center">DI</th>
+                                    <th class="text-center" data-orderable="false">Points distribution</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for question in open_questions %}
+                                    <tr>
+                                        <td class="align-middle ps-1 py-0">{{ question.remark|safe }}</td>
+                                        <td class="align-middle ps-1 py-0">
+                                            <code>{{ question.code }}</code>
+                                            <button type="button" class="btn btn-link p-0"
+                                                    title="Show the question in the catalog"
+                                                    aria-label="Show {{ question.code }} in the catalog"
+                                                    data-bs-toggle="modal" data-bs-target="#display-pdf-modal"
+                                                    data-question-code="{{ question.code }}">
+                                                <i class="fa fa-magnifying-glass"></i>
+                                            </button>
+                                        </td>
+                                        <td class="align-middle text-center ps-1 py-0">{{ question.upper_avg }}</td>
+                                        <td class="align-middle text-center ps-1 py-0">{{ question.lower_avg }}</td>
+                                        <td class="align-middle text-center ps-1 py-0">{{ question.di_calculation }}</td>
+                                        <td class="align-middle text-center p-2" style="width:40%;">
+                                            <div class="mx-auto">
+                                                <canvas id="canvas-{{ question.pk }}"></canvas>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                {% endpill_pane %}
+
+                {# Common exam: each common question's answers, exam by exam #}
+                {% pill_pane "by-exam" prefix="questions-stats" %}
+                    {% if exam_selected.is_overall %}
+                        <button type="button" class="btn btn-primary mb-3"
+                                title="Download by exam stats as PDF"
+                                aria-label="Download by exam stats as PDF"
+                                data-pdf-element="questions-by-exam-statistics-div"
+                                data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Questions stats by exam"
+                                data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_questions_stats_by_exam.pdf"
+                                {% if not question_stats_by_exam %}disabled{% endif %}>
+                            <i class="fa-regular fa-file-pdf"></i> Download by exam stats as PDF
+                        </button>
+
+                        {% if question_stats_by_exam %}
+                            <div id="questions-by-exam-statistics-div">
+                                <table id="questions_statistics_by_teacher_dt"
+                                       class="table table-striped table-sm table-borderless">
+                                    <tbody>
+                                    {% for qstat in question_stats_by_exam %}
+                                        <tr>
+                                            <th class="text-center pt-4" colspan="{{ qstat.exam_list|length }}">
+                                                <h6 class="mb-0">
+                                                    {{ qstat.question }}
+                                                    <button type="button" class="btn btn-link p-0"
+                                                            title="Show the question in the catalog"
+                                                            aria-label="Show {{ qstat.question.code }} in the catalog"
+                                                            data-bs-toggle="modal" data-bs-target="#display-pdf-modal"
+                                                            data-question-code="{{ qstat.question.code }}">
+                                                        <i class="fa fa-magnifying-glass"></i>
+                                                    </button>
+                                                </h6>
+                                            </th>
+                                        </tr>
+                                        <tr>
+                                            {% for exam in qstat.exam_list %}
+                                                <th class="text-center">
+                                                    {{ exam.exam }}<br>
+                                                    {{ exam.sections|join:"/" }}<br>
+                                                    <div class="mx-auto" style="width:125px">
+                                                        <canvas id="canvas-questionStatByExam{{ qstat.question.pk }}_{{ exam.exam }}"></canvas>
+                                                    </div>
+                                                </th>
+                                            {% endfor %}
                                         </tr>
                                     {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
+                        {% else %}
+                            <p class="text-body-secondary">No common question.</p>
                         {% endif %}
-                    {% endpill_pane %}
-
-                    {# Common exam: each common question's answers, exam by exam #}
-                    {% pill_pane "by-exam" prefix="questions-stats" %}
-                        {% if exam_selected.is_overall %}
-                            <button type="button" class="btn btn-primary mb-3"
-                                    title="Download by exam stats as PDF"
-                                    aria-label="Download by exam stats as PDF"
-                                    data-pdf-element="questions-by-exam-statistics-div"
-                                    data-pdf-title="{{ exam_selected.code }} - {{ exam_selected.date|date:'Y-m-d' }} - Questions stats by exam"
-                                    data-pdf-file="{{ exam_selected.code }}_{{ exam_selected.date|date:'Y-m-d' }}_questions_stats_by_exam.pdf"
-                                    {% if not question_stats_by_exam %}disabled{% endif %}>
-                                <i class="fa-regular fa-file-pdf"></i> Download by exam stats as PDF
-                            </button>
-
-                            {% if question_stats_by_exam %}
-                                <div id="questions-by-exam-statistics-div">
-                                    <table id="questions_statistics_by_teacher_dt" class="table table-striped table-sm table-borderless">
-                                        <tbody>
-                                        {% for qstat in question_stats_by_exam %}
-                                            <tr>
-                                                <th class="text-center pt-4" colspan="{{ qstat.exam_list|length }}">
-                                                    <h6 class="mb-0">
-                                                        {{ qstat.question }}
-                                                        <button type="button" class="btn btn-link p-0" title="Show the question in the catalog"
-                                                                aria-label="Show {{ qstat.question.code }} in the catalog"
-                                                                data-bs-toggle="modal" data-bs-target="#display-pdf-modal"
-                                                                data-question-code="{{ qstat.question.code }}">
-                                                            <i class="fa fa-magnifying-glass"></i>
-                                                        </button>
-                                                    </h6>
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                {% for exam in qstat.exam_list %}
-                                                    <th class="text-center">
-                                                        {{ exam.exam }}<br>
-                                                        {{ exam.sections|join:"/" }}<br>
-                                                        <div class="mx-auto" style="width:125px">
-                                                            <canvas id="canvas-questionStatByExam{{ qstat.question.pk }}_{{ exam.exam }}"></canvas>
-                                                        </div>
-                                                    </th>
-                                                {% endfor %}
-                                            </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <p class="text-body-secondary">No common question.</p>
-                            {% endif %}
-                        {% endif %}
-                    {% endpill_pane %}
+                    {% endif %}
                 {% endpill_pane %}
 
                 <div class="modal fade" id="display-pdf-modal" tabindex="-1" aria-label="Question in the catalog"
@@ -199,7 +209,8 @@
                         <div class="modal-content" style="height:90vh">
                             <div class="modal-header">
                                 <h5 class="modal-title">Catalog</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
                             </div>
                             <div class="modal-body p-0 d-flex" data-pdf-viewer></div>
                         </div>
@@ -212,7 +223,8 @@
             {% alert "warning" fit=True %}
                 No data was found for this exam. Please begin by
                 <a class="alert-link" href="{% url 'import_data_4_stats' exam_selected.pk %}">importing data</a>, then
-                generate statistics <a class="alert-link" href="{% url 'exam_info' exam_selected.pk %}">in the exam settings page</a>.
+                generate statistics
+                <a class="alert-link" href="{% url 'exam_info' exam_selected.pk %}">in the exam settings page</a>.
             {% endalert %}
         {% endif %}
     {% else %}

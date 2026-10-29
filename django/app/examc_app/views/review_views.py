@@ -1083,23 +1083,24 @@ def delete_grading_scheme(request: HttpRequest, exam_pk: int, grading_scheme_id)
 @exam_permission_required(["manage", "review"])
 @block_review_until_unrecognized_scans_assigned
 def review_grading_scheme_panel(
-    request: HttpRequest, exam_pk: int, grading_scheme_id, copy_nr
-):
+    request: HttpRequest, exam_pk: int, grading_scheme_id: int, copy_nr: str
+) -> HttpResponse:
     grading_scheme = get_object_or_404(
         QuestionGradingScheme,
         pk=grading_scheme_id,
         pages_group__exam_id=exam_pk,
     )
 
+    # A copy already graded with another scheme stays on it. Otherwise the requested scheme is the one shown.
     used_grading_scheme = other_grading_scheme_used(grading_scheme, copy_nr)
-
-    if used_grading_scheme:
+    if used_grading_scheme and get_question_points(used_grading_scheme, copy_nr) > 0:
         grading_scheme = used_grading_scheme
 
     points = get_question_points(grading_scheme, copy_nr)
+
+    # Notes are per student, so there is none for copy "0" (the model answer) or without a copy
     note_enabled = str(copy_nr) not in ("0", "None", "")
     student_report_note = ""
-
     if note_enabled:
         note = PagesGroupStudentReportNote.objects.filter(
             pages_group=grading_scheme.pages_group,
@@ -1108,21 +1109,19 @@ def review_grading_scheme_panel(
         if note:
             student_report_note = note.content
 
-    resp = render(
-        request,
-        "review/_review_grading_scheme_panel.html",
-        {
-            "exam_selected": grading_scheme.pages_group.exam,
-            "grading_scheme": grading_scheme,
-            "copy_nr": copy_nr,
-            "points": points,
-            "current_grading_scheme": grading_scheme,
-            "student_report_note": student_report_note,
-            "student_report_note_enabled": note_enabled,
-        },
+    view_context = ViewContext(exam=grading_scheme.pages_group.exam)
+    view_context.update(
+        grading_scheme=grading_scheme,
+        current_grading_scheme=grading_scheme,
+        copy_nr=copy_nr,
+        points=points,
+        student_report_note=student_report_note,
+        student_report_note_enabled=note_enabled,
     )
 
-    # Tell the client which scheme is actually in effect and points:
+    resp = render(request, "review/_review_grading_scheme_panel.html", view_context.as_dict())
+
+    # Tell the client which scheme is actually shown, its points and its correction box
     resp["X-Used-Grading-Scheme-Id"] = str(grading_scheme.id)
     resp["X-Points"] = str(points)
     resp["X-Corr-Box-Index"] = str(get_review_corr_box_index(grading_scheme, copy_nr))

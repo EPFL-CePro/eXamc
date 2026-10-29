@@ -170,7 +170,7 @@ def amc_view(request: HttpRequest, exam_pk: int, task_id: str | None = None):
     if not user_allowed(exam, request.user.id):
         return render(request, 'amc/amc.html', view_context.as_dict())
 
-    view_context.set_exam(exam_pk=exam.pk)
+    view_context.set_exam(exam.pk)
     view_context.set_task_id(task_id)
     view_context.set_user_allowed(True)
 

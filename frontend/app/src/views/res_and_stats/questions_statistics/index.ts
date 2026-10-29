@@ -71,6 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Not rendered when the user isn't allowed or there is no statistic.
     const root = byId('questions-statistics');
 
+    manageTabs({ tabListSelector: "#questions-stats-tabs" });
+
     // Charts
     const charts = parseJson<QuestionsStatsCharts>(byId('questions-stats-charts').textContent);
     if (charts) {
