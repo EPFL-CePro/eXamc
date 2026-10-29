@@ -1,7 +1,6 @@
 from typing import Any, TypedDict
 
 from examc_app.models import Exam, PagesGroup
-from examc_app.utils.results_statistics_functions import get_common_list
 
 
 class ViewTab(TypedDict):
@@ -10,10 +9,19 @@ class ViewTab(TypedDict):
 
 
 class ViewContext:
+    """
+    Builds a view's template context.
+
+    Two exams are kept apart:
+      - `exam_selected`: the exam the page is about (the one in the URL). The sidebar, permissions and data use it.
+      - `exam`: the common exam of its group, or the exam itself when it isn't part of a group.
+    Both are set together by `set_exam`, from the opened exam only: never pass the common exam to it.
+    """
+
     task_id: str | None
 
-    exam: Exam
-    exam_selected: Exam
+    exam: Exam | None
+    exam_selected: Exam | None
 
     user_id: int | None
     user_allowed: bool
@@ -25,13 +33,13 @@ class ViewContext:
 
     pages_group: PagesGroup | None
 
-
     def __init__(
         self,
         base_dict: dict[str, Any] | None = None,
 
         task_id: str | None = None,
 
+        exam: Exam | None = None,
         exam_pk: int | None = None,
 
         user_id: int | None = None,
@@ -42,14 +50,26 @@ class ViewContext:
         tabs: list[ViewTab] | None = None,
         curr_tab: str | None = None,
 
-        pages_group: PagesGroup | None = None
+        pages_group: PagesGroup | None = None,
     ):
+        # Every attribute exists, so reading one that wasn't set gives None instead of an AttributeError
+        self.task_id = None
+        self.exam = None
+        self.exam_selected = None
+        self.user_id = None
+        self.user_allowed = False
+        self.nav_url = None
+        self.tabs = None
+        self.curr_tab = None
+        self.pages_group = None
+
         if base_dict is not None:
             self.update(**base_dict)
 
         self.set_task_id(task_id)
 
-        self.set_exam(exam_pk)
+        # An already loaded exam (e.g. a DetailView's self.object) saves a query
+        self.set_exam(exam if exam is not None else exam_pk)
 
         self.set_user_id(user_id)
         self.set_user_allowed(user_allowed)
@@ -62,7 +82,7 @@ class ViewContext:
         self.set_pages_group(pages_group)
 
     def as_dict(self) -> dict[str, Any]:
-        """Returns the fully built view context as a dictionary."""
+        """Returns the fully built view context as a dictionary, without the values that were never set."""
         return {
             key: value
             for key, value in self.__dict__.items()
@@ -77,15 +97,17 @@ class ViewContext:
             if value is not None
         })
 
-    def set_exam(self, exam_pk: int | None) -> None:
+    def set_exam(self, exam: Exam | int | None) -> None:
         """
-        Sets the opened exam (exam_selected), and the overall exam of its group (exam): the exam itself when it
-        isn't part of a group.
+        Sets the opened exam (exam_selected) and the common exam of its group (exam): the exam itself when it
+        isn't part of a group. Takes the opened exam, or its pk.
         """
-        if exam_pk is None:
+        if exam is None:
             return
 
-        exam = Exam.objects.get(pk=exam_pk)
+        if not isinstance(exam, Exam):
+            exam = Exam.objects.get(pk=exam)
+
         self.exam_selected = exam
         self.exam = exam.get_overall_exam_or_default()
 
@@ -104,21 +126,21 @@ class ViewContext:
             self.nav_url = nav_url
 
     def set_tabs(self, tabs: list[ViewTab] | None = None) -> None:
-        """Manages tabs for display in the view."""
+        """Sets the tabs shown in the view."""
         if tabs is not None:
             self.tabs = tabs
 
     def set_curr_tab(self, curr_tab: str | None = None) -> None:
         """Sets the current tab."""
-        if curr_tab:
+        if curr_tab is not None:
             self.curr_tab = curr_tab
 
-    def set_pages_group(self, pages_group: PagesGroup | None = None):
-        """Sets the pages group"""
+    def set_pages_group(self, pages_group: PagesGroup | None = None) -> None:
+        """Sets the pages group."""
         if pages_group is not None:
             self.pages_group = pages_group
 
-    def set_task_id(self, task_id: str | None = None):
+    def set_task_id(self, task_id: str | None = None) -> None:
         """Sets the task ID."""
         if task_id is not None:
             self.task_id = task_id
