@@ -1,0 +1,212 @@
+name: examc
+
+# Shared service definitions. Not used directly: compose.dev.yml, compose.prod.yml
+# and compose.test.yml pick services from here with `extends`.
+#
+# Defaults below are the PRODUCTION values; each environment's .env only overrides
+# what differs (rendered by Ansible from templates/.env.j2).
+#
+# Secrets are files mounted at /run/secrets/<name> in the services that list them.
+# They are written by Ansible from the vault into SECRETS_DIR (compose/secrets in dev,
+# /srv/examc/secrets on servers), and declared in compose.dev.yml / compose.prod.yml
+# (`extends` does not import top-level secrets).
+
+services:
+  # ---------------------------------------------------------------------------
+  # Caddy (Docker Hardened Image): TLS, static files, reverse proxy to Django
+  # Config: deploy/caddy/Caddyfile (+ tls/*.caddy); maintenance page in deploy/maintenance-page
+  # SITE_ADDRESS (required) is set in compose.dev.yml / compose.prod.yml.
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: dhi.io/caddy:2.11.7
+    environment:
+      CADDY_TLS_MODE: ${CADDY_TLS_MODE:-internal}
+      EXAMC_ENV: ${ENV:-prod}
+    volumes:
+      - ./deploy/caddy:/etc/caddy:ro
+      - ./deploy/maintenance-page:/var/www/html:ro,z
+      - static_volume:/static:ro
+      - caddy_data:/data              # certificates + internal CA (must persist)
+      - caddy_config:/config          # autosaved config
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # MySQL (Docker Hardened Image: runs as nonroot, no shell)
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: dhi.io/mysql:9.7
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      # Only used when initializing an empty data directory.
+      # Database and app user are created by mysql-init (DHI ignores MYSQL_DATABASE/MYSQL_USER).
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets:
+      - mysql_root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      # mysqladmin ping exits 0 whenever the server is up, even without credentials
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  # One-shot job replacing MYSQL_DATABASE / MYSQL_USER / docker-entrypoint-initdb.d.
+  # Idempotent: safe to run on every `up`. Loads /seed/dev-seed.sql.gz only if it is
+  # mounted (dev) and the database is still empty.
+  mysql-init:
+    image: dhi.io/mysql:9.7-dev   # dev variant: has a shell; runs once and exits
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_NAME: ${MYSQL_DATABASE:-examc}
+      APP_USER: ${MYSQL_USER:-examc}
+    secrets:
+      - mysql_root_password
+      - mysql_password
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        export MYSQL_PWD="$$(cat /run/secrets/mysql_root_password)"
+        APP_PASSWORD="$$(cat /run/secrets/mysql_password)"
+        mysql -h mysql -uroot -e "
+          CREATE DATABASE IF NOT EXISTS \`$$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+          CREATE USER IF NOT EXISTS '$$APP_USER'@'%' IDENTIFIED BY '$$APP_PASSWORD';
+          GRANT ALL PRIVILEGES ON \`$$DB_NAME\`.* TO '$$APP_USER'@'%';"
+        if [ -f /seed/dev-seed.sql.gz ] && [ "$$(mysql -h mysql -uroot -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$$DB_NAME'")" = "0" ]; then
+          echo "Loading dev seed..."
+          gunzip -c /seed/dev-seed.sql.gz | mysql -h mysql -uroot "$$DB_NAME"
+        fi
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Redis (Docker Hardened Image), protected mode on.
+  # ACL users (redis_acl secret, rendered by Ansible from templates/redis_acl.j2):
+  #   default:     disabled, no password (unauthenticated clients get NOAUTH)
+  #   healthcheck: PING only, non-secret password, used by the healthcheck below
+  #   examc:       full access, used by Django, Celery and Constance
+  # ---------------------------------------------------------------------------
+  redis:
+    image: dhi.io/redis:8.10
+    command: ["redis-server", "--aclfile", "/run/secrets/redis_acl"]
+    secrets:
+      - redis_acl
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "--user", "healthcheck", "--pass", "healthcheck", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Django (image/build defined per environment)
+  # Secrets are read from /run/secrets by settings.py, falling back to env vars.
+  # ---------------------------------------------------------------------------
+  django:
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      ENV: "${ENV:-prod}"
+
+      # Wait on DB to be ready (managed by entrypoint.sh)
+      # Used instead of depends_on to support a DB server outside Docker
+      WAIT_FOR_DB: "1"
+      WAIT_FOR_DB_TIMEOUT: "600"
+
+      # Django
+      DEBUG: "${DEBUG:-0}"
+      SECURE_SSL_REDIRECT: "${SECURE_SSL_REDIRECT:-1}"
+      SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-1}"
+      CSRF_COOKIE_SECURE: "${CSRF_COOKIE_SECURE:-1}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-https://localhost:8443}"
+      TZ: "${TZ:-Europe/Zurich}"
+      PRIVATE_MEDIA_ROOT: "${PRIVATE_MEDIA_ROOT:-/private_media}"
+
+      # Gunicorn
+      WEB_CONCURRENCY: "6"
+      GUNICORN_THREADS: "4"
+      GUNICORN_WORKER_CLASS: "gthread"
+
+      # MySQL - always define explicitly DB's host and port seen by the containers
+      DB_HOST: "${DB_HOST:-mysql}"
+      DB_PORT: "${DB_PORT:-3306}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-examc}"
+      MYSQL_USER: "${MYSQL_USER:-examc}"
+
+      # Redis host (credentials come from the redis_password secret)
+      REDIS_HOST: "${REDIS_HOST:-redis}"
+      REDIS_PORT: "${REDIS_PORT:-6379}"
+
+      # Celery
+      CELERY_TASK_ALWAYS_EAGER: "${CELERY_TASK_ALWAYS_EAGER:-False}"
+
+      # Exam permission groups
+      EXAM_PERMISSION_MANAGE_GROUP_NAMES: "${EXAM_PERMISSION_MANAGE_GROUP_NAMES:-Teacher,Assistant}"
+      EXAM_PERMISSION_REVIEW_GROUP_NAMES: "${EXAM_PERMISSION_REVIEW_GROUP_NAMES:-Teacher,Reviewer,Assistant}"
+      EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES: "${EXAM_PERMISSION_SEE_RESULTS_GROUP_NAMES:-Teacher,Assistant,Results,Statistics}"
+      COMMON_EXAM_GROUP_NAMES: "${COMMON_EXAM_GROUP_NAMES:-Teacher,Results,Statistics}"
+      EXAM_REVIEWER_GROUP_NAMES: "${EXAM_REVIEWER_GROUP_NAMES:-Reviewer}"
+    secrets:
+      - secret_key
+      - mysql_password
+      - redis_password
+      - oidc_rp_client_id
+      - oidc_rp_client_secret
+      - tenant_id
+      - oasis_base_url
+      - oasis_bearer
+    volumes:
+      - static_volume:/static # collectstatic writes hashed assets here
+      # ../django/app is only mounted in compose.dev.yml
+      # /private_media is mounted in compose.dev.yml and compose.prod.yml,
+      # from PRIVATE_MEDIA_DIR (set in the .env by Ansible)
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  celery:
+    extends:
+      service: django
+    environment:
+      CELERY_LOGLEVEL: "INFO"
+      CELERY_CONCURRENCY: "4"
+    command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/celery.pid && kill -0 $(cat /tmp/celery.pid)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  celery_beat:
+    extends:
+      service: django
+    environment:
+      CELERY_LOGLEVEL: "INFO"
+    command: >
+      celery -A examc beat --loglevel=INFO
+        --scheduler django_celery_beat.schedulers:DatabaseScheduler
+        --pidfile=/tmp/celerybeat.pid
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/celerybeat.pid && kill -0 $(cat /tmp/celerybeat.pid)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mysql_data:
+  redis_data:
+  static_volume:
+  caddy_data:
+  caddy_config:

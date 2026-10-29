@@ -1,0 +1,94 @@
+name: examc-prod
+
+# Staging and prod stack. Variables come from the .env rendered by Ansible:
+# SECRETS_DIR, PRIVATE_MEDIA_DIR, SITE_ADDRESS, CADDY_TLS_MODE, UID/GID, image tags, ...
+
+services:
+  caddy:
+    extends:
+      service: caddy
+      file: compose.base.yml
+    secrets:
+      - tls_crt
+      - tls_key
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+  mysql:
+    extends:
+      service: mysql
+      file: compose.base.yml
+    ports:
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3306}:3306" # used for a SQL client on the server (or via SSH)
+
+  redis:
+    extends:
+      service: redis
+      file: compose.base.yml
+
+  fe-artifacts:
+    image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - static_volume:/static
+    restart: "no"
+
+  django:
+    extends:
+      service: django
+      file: compose.base.yml
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
+    volumes:
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
+    depends_on:
+      fe-artifacts:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  celery:
+    extends:
+      service: celery
+      file: compose.base.yml
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
+    volumes:
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
+
+  celery_beat:
+    extends:
+      service: celery_beat
+      file: compose.base.yml
+    image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
+    volumes:
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
+
+volumes:
+  caddy_data:
+  caddy_config:
+  mysql_data:
+  redis_data:
+  static_volume:
+
+secrets:
+  secret_key:            { file: "${SECRETS_DIR:?set SECRETS_DIR}/secret_key" }
+  mysql_root_password:   { file: "${SECRETS_DIR:?set SECRETS_DIR}/mysql_root_password" }
+  mysql_password:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/mysql_password" }
+  redis_password:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/redis_password" }
+  redis_acl:             { file: "${SECRETS_DIR:?set SECRETS_DIR}/redis_acl" }
+  oidc_rp_client_id:     { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_id" }
+  oidc_rp_client_secret: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_secret" }
+  tenant_id:             { file: "${SECRETS_DIR:?set SECRETS_DIR}/tenant_id" }
+  oasis_base_url:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_base_url" }
+  oasis_bearer:          { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_bearer" }
+  tls_crt:               { file: "${SECRETS_DIR:?set SECRETS_DIR}/tls_crt" }
+  tls_key:               { file: "${SECRETS_DIR:?set SECRETS_DIR}/tls_key" }

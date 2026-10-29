@@ -1,26 +1,26 @@
 [project]
 name = "examc"
-version = "2.0.2"
-requires-python = "==3.14.*"
+version = "2.1.0"
+requires-python = "==3.15.2"
 
 dependencies = [
     "asgiref==3.12.1",
     "celery-progress==0.5",
     "celery-types==0.26.0",
     "celery==5.6.3",
-    "chardet==7.6.0",
+    "chardet==7.7.0",
     "crispy-bootstrap4==2026.2",
     "django-celery-beat==2.9.0",
     "django-constance==4.3.5",
     "django-crispy-forms==2.7",
     "django-extensions==4.1",
-    "django-import-export==4.4.1",
+    "django-import-export==4.4.3",
     "django-maintenance-mode==0.23.0",
     "django-simple-history==3.13.0",
     "django-summernote==0.8.20.0",
-    "django-vite>=3.1.0",
+    "django-vite==3.2.0",
     "django==6.0.9",
-    "djangorestframework>=3.18.1",
+    "djangorestframework==3.18.3",
     "docutils==0.21.2",
     "fpdf2==2.8.9",
     "gunicorn==26.2.0",
@@ -30,13 +30,13 @@ dependencies = [
     "mysqlclient==2.3.0",
     "num2words==0.5.14",
     "numpy==2.5.4",
-    "opencv-python-headless>=5.0.0.93",
+    "opencv-python-headless==5.0.0.93",
     "openpyxl==3.1.5",
     "pandas==3.0.6",
     "pandocfilters==1.5.1",
-    "pillow==12.3.0",
+    "pillow==13.0.0",
     "pypandoc==1.17",
-    "pypdf==6.20.1",
+    "pypdf==6.21.2",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.4",
     "pytz==2026.5",
@@ -100,3 +100,8 @@ DEP002 = [
 
 [tool.uv]
 exclude-newer = "7 days"
+add-bounds = "exact"
+
+[tool.uv.exclude-newer-package]
+pypdf = "2026-10-26T00:00:00Z"
+certifi = "2026-10-26T00:00:00Z"

@@ -58,68 +58,159 @@ It is intentionally generic: adapt hostnames, paths, sizing and tooling to your 
   - production: `examc.example.org`
 
 ---
+## 2) Caddy
 
-## 2) Nginx
+Caddy is the only entry point: it terminates TLS on ports 80/443, redirects HTTP to HTTPS, serves the static files and proxies everything else to Django (Gunicorn). There is no Nginx and no reverse proxy on the host.
 
-Example **vhost** (adapt `server_name` and certificate paths per environment):
+Configuration lives in `compose/deploy/caddy/`, mounted read-only at `/etc/caddy`:
 
-```nginx
-events {}
-http {
-  include       mime.types;
-  default_type  application/octet-stream;
-  sendfile on;
-  server_tokens off;
+```
+compose/deploy/caddy/
+├─ Caddyfile
+└─ tls/
+   ├─ internal.caddy   # dev + staging: certificate from Caddy's internal CA
+   └─ certs.caddy      # prod: certificate from the tls_crt / tls_key secrets
+```
 
-  upstream django_upstream {
-    server django:8000;  # Gunicorn in the 'django' service
-  }
+**`Caddyfile`** (shared by every environment):
 
-  server {
-    listen 443 ssl http2;
-    server_name examc.example.org;
+```caddyfile
+{
+	servers {
+		timeouts {
+			read_body 1h   # slow/big uploads
+			write     1h   # slow downloads
+			idle      5m
+		}
+	}
+}
 
-    ssl_certificate     /etc/nginx/ssl/fullchain.crt;
-    ssl_certificate_key /etc/nginx/ssl/privkey.key;
-    ssl_protocols       TLSv1.2 TLSv1.3;
-    ssl_ciphers         HIGH:!aNULL:!MD5;
+{$SITE_ADDRESS} {
+	import tls/{$CADDY_TLS_MODE:internal}.caddy
 
-    client_max_body_size 50m;
+	request_body {
+		max_size 15GB
+	}
 
-    # Static files (public)
-    location /static/ { alias /static/; access_log off; expires 7d; }
+	handle /healthz {
+		respond "ok" 200
+	}
 
-    # Private media via X-Accel-Redirect
-    location /_protected/ {
-      internal;
-      alias /private_media/;
-    }
+	handle_path /static/* {
+		root * /static
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
 
-    location / {
-      proxy_pass         http://django_upstream;
-      proxy_set_header   Host $host;
-      proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header   X-Forwarded-Proto $scheme;
-      proxy_read_timeout 120s;
-    }
+	handle {
+		reverse_proxy django:8000 {
+			transport http {
+				dial_timeout  1s
+				read_timeout  1h
+				write_timeout 1h
+			}
 
-    location /healthz { return 200 "ok"; }
-  }
+			# Django in maintenance mode (503): show the static maintenance page
+			@unavailable status 503
+			handle_response @unavailable {
+				root * /var/www/html
+				rewrite * /maintenance.html
+				header Retry-After 120
+				templates
+				file_server {
+					status 503
+				}
+			}
+		}
+	}
 
-  # HTTP -> HTTPS redirect
-  server {
-    listen 80;
-    server_name examc.example.org;
-    return 301 https://$host$request_uri;
-  }
+	# Django unreachable (down, restarting, timeout)
+	handle_errors 502 503 504 {
+		root * /var/www/html
+		rewrite * /maintenance.html
+		header Retry-After 120
+		templates
+		file_server
+	}
 }
 ```
 
-Expected Compose mounts for Nginx:
-- `/static:ro`, `/private_media:ro`
-- `/etc/nginx/ssl:ro` (if mounting certificate files)
+**`tls/internal.caddy`:**
 
-> If TLS is terminated on the host or by an upstream load balancer instead, drop the `443`/redirect blocks and make sure `X-Forwarded-Proto` is passed through so Django sees HTTPS.
+```caddyfile
+tls internal
+```
+
+**`tls/certs.caddy`:**
+
+```caddyfile
+tls /run/secrets/tls_crt /run/secrets/tls_key {
+	protocols tls1.2 tls1.3
+}
+```
+
+Caddy forwards the original `Host` and sets `X-Forwarded-For` / `X-Forwarded-Proto` itself; Django trusts them through `SECURE_PROXY_SSL_HEADER` and `USE_X_FORWARDED_HOST`. Request bodies are streamed to Django, not buffered to disk.
+
+### Environment variables
+
+| Variable | Purpose | Example |
+|---|---|---|
+| `SITE_ADDRESS` | Names/IPs Caddy serves, comma-separated (required) | `examc.epfl.ch` / `localhost:8443` |
+| `CADDY_TLS_MODE` | `internal` or `certs` (default `internal`) | `certs` |
+| `CADDY_PORT` | Dev only: port in `SITE_ADDRESS` and the port mapping | `8443` |
+
+On servers, Ansible renders these from `site_hosts`, `caddy_tls_mode` and `caddy_port` (see `templates/.env.j2` in the Ansible repo).
+
+### Certificates
+
+- **dev / staging** (`CADDY_TLS_MODE=internal`): Caddy issues a certificate from its own CA. Browsers warn until you trust the root CA, found in the `caddy_data` volume at `caddy/pki/authorities/local/root.crt`.
+- **prod** (`CADDY_TLS_MODE=certs`): the certificate (**full chain**: your certificate, then the intermediates) and the private key are Compose secrets `tls_crt` / `tls_key`, deployed by Ansible from the vault. The certificate must cover every name in `SITE_ADDRESS`, IP addresses included.
+
+To renew: update `tls_crt` / `tls_key` in the vault and run the playbook (Caddy is recreated).
+
+### Maintenance page
+
+`compose/deploy/maintenance/maintenance.html` is shown when Django is unreachable (502/504) or in maintenance mode (503). It is a Caddy template: it shows the status code and the logo of the current environment (`eXamc-<ENV>.svg`, inlined, so no extra request is needed while Django is down). The folder is mounted at `/var/www/html` and edits apply without restarting Caddy.
+
+Keep the page self-contained (inline CSS, no links to `/static/…`), and avoid `{{` outside template expressions.
+
+### Compose mounts and ports
+
+```yaml
+  caddy:
+    image: dhi.io/caddy:2.11.7
+    volumes:
+      - ./deploy/caddy:/etc/caddy:ro
+      - ./deploy/maintenance:/var/www/html:ro
+      - static_volume:/static:ro
+      - caddy_data:/data        # certificates + internal CA (must persist)
+      - caddy_config:/config
+    secrets:                     # prod only
+      - tls_crt
+      - tls_key
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"            # HTTP/3
+```
+
+In dev, only `127.0.0.1:${CADDY_PORT}:${CADDY_PORT}` is published.
+
+### Troubleshooting
+
+The image is hardened (no shell). To look inside:
+
+```bash
+# Files as Caddy sees them (same mounts, same user)
+docker run --rm -it --volumes-from examc-prod-caddy-1 --user 65532 busybox sh
+
+# Config as loaded
+docker exec examc-prod-caddy-1 caddy adapt --config /etc/caddy/Caddyfile --pretty
+```
+
+For verbose logs, add `debug` to the global options block and restart Caddy.
+
+> **Private media:** files under `/private_media` are served by Django (signed URLs), not by Caddy, which doesn't mount that folder. If you later switch to `X-Accel-Redirect` (`PRIVATE_MEDIA_URL = "/_protected/"`), Caddy needs the folder mounted read-only and a `handle_response` block that serves the path from the header.
 
 ---
 
@@ -140,7 +231,7 @@ Expected Compose mounts for Nginx:
 
 ## 4) Release cycle
 
-The commands below use `<compose-file>` and `<env-file>` as placeholders (e.g. `compose/prod.yml`, which is also used for staging, and your environment file).
+The commands below use `<compose-file>` and `<env-file>` as placeholders (e.g. `compose/compose.prod.yml`, which is also used for staging, and your environment file).
 
 1. **Prepare artifacts**  
    Git tag (`vX.Y.Z`), build images (django / celery / celery_beat), push to your registry if you use one.

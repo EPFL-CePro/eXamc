@@ -1,12 +1,62 @@
 version: 2
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
+  # Python dependencies: uv-managed project (django/app/pyproject.toml + django/app/uv.lock)
+  # Security updates only: open-pull-requests-limit: 0 disables routine
+  # version-update PRs, while security PRs are still opened.
+  - package-ecosystem: "uv"
+    directory: "/django/app"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     open-pull-requests-limit: 0
     groups:
       python-security-updates:
         applies-to: security-updates
+        patterns:
+          - "*"
+
+  # Frontend JS dependencies (pnpm)
+  - package-ecosystem: "npm"
+    directory: "/frontend/app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      npm-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # Base images in django/Dockerfile and frontend/Dockerfile
+  - package-ecosystem: "docker"
+    directories:
+      - "/django"
+      - "/frontend"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    groups:
+      docker-images:
+        patterns:
+          - "*"
+
+  # Service images referenced in compose/compose.*.yml (mysql, redis, nginx)
+  - package-ecosystem: "docker-compose"
+    directory: "/compose"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    groups:
+      compose-images:
+        patterns:
+          - "*"
+
+  # GitHub Actions used in .github/workflows/
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
         patterns:
           - "*"

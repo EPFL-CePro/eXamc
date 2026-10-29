@@ -14,14 +14,21 @@ services:
   django:
     extends:
       service: django
-      file: base.yml
+      file: compose.base.yml
     build:
       context: ../django
       target: tooling
     command: ["pytest"]
+    secrets: !reset [ ]
     environment:
+      ENV: "test"
       TESTING_MODE_ENABLED: "1"
       DJANGO_SETTINGS_MODULE: "examc.settings"
+      SECRET_KEY: "insecure-test-key-not-for-production"
+      SECURE_SSL_REDIRECT: "0"          # the test client uses plain HTTP
+      CELERY_BROKER_URL: "memory://"
+      CELERY_RESULT_BACKEND: "cache+memory://"
+      CELERY_TASK_ALWAYS_EAGER: "False"
     depends_on:
       fe-artifacts:
         condition: service_completed_successfully

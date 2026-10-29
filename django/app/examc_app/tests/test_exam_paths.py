@@ -52,13 +52,14 @@ class ExamSubdirTests(SimpleTestCase):
             self.assertEqual(get_exam_subdir(exam), "2025-2026/1/CS-101_20260109")
 
 class ExamDirsTests(SimpleTestCase):
-    def test_each_root_uses_the_right_subdir(self):
+    def test_each_root_uses_the_id_based_subdir(self):
         with override_settings(
             SCANS_ROOT=Path("/s"), MARKED_SCANS_ROOT=Path("/m"),
             AMC_PROJECTS_ROOT=Path("/a"), CATALOG_ROOT=Path("/c"), AMC_PROJECTS_URL="/amc_projects/",
         ):
-            exam, sub = make_exam(), "2025-2026/1/CS-101_20260109"
-            self.assertEqual(get_exam_scans_dir(exam), Path("/s") / "projects" / str(exam.pk))
+            exam = make_exam()
+            sub = f"projects/{exam.pk}"
+            self.assertEqual(get_exam_scans_dir(exam), Path("/s") / sub)
             self.assertEqual(get_exam_marked_scans_dir(exam), Path("/m") / sub)
             self.assertEqual(get_exam_amc_project_dir(exam), Path("/a") / sub)
             self.assertEqual(get_exam_catalog_dir(exam), Path("/c") / sub)

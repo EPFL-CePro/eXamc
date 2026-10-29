@@ -15,8 +15,8 @@
 Dockerized environment for **eXamc** featuring:
 - **Django**, **Gunicorn** (prod) / **runserver** (dev)
 - **Vite** frontend (TypeScript/Sass, pnpm)
-- **MySQL 8.4**
-- **Redis 7** (Celery broker/results)
+- **MySQL**
+- **Redis** (Celery broker/results)
 - **Celery** (worker) + **Celery Beat**
 - **Nginx** (reverse proxy + static dir)
 - **Private media** via **Nginx X-Accel-Redirect**
@@ -63,37 +63,45 @@ Dockerized environment for **eXamc** featuring:
 
 ```
 .
-├─ app/                             # Django application and Python project
-│  ├─ docs/                         # Sphinx documentation
-│  ├─ examc/                        # Django project: settings/urls/wsgi/asgi/celery
-│  ├─ examc_app/                    # Main Django application
-│  ├─ templates/                    # Django templates
-│  ├─ entrypoint.sh
-│  ├─ gunicorn.conf.py
-│  ├─ pyproject.toml                # Main project configuration
-│  └─ uv.lock
+.
+.
+├─ .github/
+│  ├─ workflows/                    # CI workflows
+│  └─ dependabot.yml                # Dependabot config (uv, pnpm, Docker, Compose, Actions)
 ├─ compose/                         # Docker Compose configurations
-│  ├─ base.yml                      # Shared service definitions (not used directly)
-│  ├─ dev.yml                       # Development environment
-│  ├─ test.yml                      # Test/CI environment
-│  └─ prod.yml                      # Production environment (also used for staging server)
-├─ data/                            # Local persistent data
-│  └─ private_media/                # AMC-related files
-├─ deploy/                          # Deployment-related configuration
-│  ├─ db/
-│  │  └─ init-test-user.sql
-│  └─ nginx/                        # Nginx configurations
-│     ├─ nginx.dev.conf
-│     ├─ nginx.prod.conf
-│     └─ nginx.test.conf
-├─ docker/                          # Docker-specific scripts and patches
-├─ scripts/                         # Development and security scripts
-│  ├─ check_forbidden_calls.py
-│  ├─ check_require_post.py
-│  └─ security_check.sh
+│  ├─ compose.base.yml              # Shared service definitions + third-party image pins (not used directly)
+│  ├─ compose.dev.yml               # Development environment
+│  ├─ compose.test.yml              # Test/CI environment
+│  ├─ compose.prod.yml              # Production environment (also used for staging server)
+│  ├─ data/                         # Local persistent data (not versioned)
+│  │  └─ private_media/             # AMC projects, scans, exports, room plans
+│  └─ deploy/                       # Deployment-related configuration
+│     ├─ db/                        # Database init scripts and dev seed
+│     └─ nginx/                     # Nginx configurations (dev, test, prod)
+├─ django/                          # Backend container
+│  ├─ app/                          # Django application and Python project
+│  │  ├─ docs/                      # Sphinx documentation
+│  │  ├─ examc/                     # Django project: settings/urls/wsgi/asgi/celery
+│  │  ├─ examc_app/                 # Main Django application
+│  │  ├─ templates/                 # Django templates
+│  │  ├─ gunicorn.conf.py
+│  │  ├─ manage.py
+│  │  ├─ pyproject.toml             # Main project configuration
+│  │  └─ uv.lock
+│  ├─ security/                     # Static security checks
+│  │  ├─ check_forbidden_calls.py
+│  │  ├─ check_require_post.py
+│  │  └─ security_check.sh
+│  ├─ Dockerfile                    # Backend image (dev, tooling, prod targets)
+│  ├─ entrypoint.sh
+│  ├─ install-build-deps.sh
+│  └─ sphinx-autobuild.py           # Live-reload docs server (docs service in dev)
+├─ frontend/                        # Frontend container
+│  ├─ app/                          # Frontend source (Vite + TypeScript)
+│  ├─ Dockerfile                    # Frontend image (dev, artifact targets)
+│  └─ deploy-static.sh
 ├─ Security/                        # Security-related documentation
 │  └─ local_security_checks.md
-├─ Dockerfile
 ├─ Makefile
 ├─ CHANGELOG.md
 ├─ CODE_OF_CONDUCT.md
@@ -107,48 +115,29 @@ Dockerized environment for **eXamc** featuring:
 
 ## Environment files
 
-Create one per environment **locally** (not versioned), from `.env.example`:
+Defaults live in `compose/compose.base.yml` (production values). Each environment's `.env` only overrides what differs. Secrets are never in a `.env`: they are files in `SECRETS_DIR`, mounted at `/run/secrets/<name>`.
+
+### Dev
 
 ```bash
 cp .env.example .env.dev
-cp .env.example .env.test
-cp .env.example .env.prod
+ansible-playbook playbooks/dev-secrets.yml   # from the Ansible repo: creates compose/secrets/
+docker compose --env-file .env.dev -f compose/compose.dev.yml up -d
 ```
 
-`.gitignore` excludes: `.env.*` (keep `.env.example`), SQL dumps, `export_tmp/`, `__pycache__`, etc.  
-`.dockerignore` excludes: `.git`, `.env.*`, dumps, caches, etc.
+The app is served on <https://localhost:8443>. Fill in the OIDC and Oasis files in `compose/secrets/` by hand, or put them in a dev vault.
 
-Expected variables (example **.env.dev**):
+> **OIDC:** the Entra ID app registration must list each environment's redirect URI, e.g. `https://localhost:8443/oidc/callback/`.
 
-```env
-ENV=dev
-SECRET_KEY=change-me
-DEBUG=1
-ALLOWED_HOSTS=localhost,127.0.0.1
-CSRF_TRUSTED_ORIGINS=http://localhost,http://127.0.0.1
+### Staging and prod
 
-MYSQL_DATABASE=examc
-MYSQL_USER=examc
-MYSQL_PASSWORD=change-me
-MYSQL_ROOT_PASSWORD=change-me-root
-DB_HOST=mysql
-DB_PORT=3306
+Nothing to create by hand: Ansible renders the `.env` and the secret files on the server from `group_vars/<env>/`. See the [Ansible repository](https://github.com/EPFL-CePro/<ansible-repo>).
 
-REDIS_URL=redis://redis:6379/0
+### Tests
 
-STATIC_ROOT=/static
-PRIVATE_MEDIA_ROOT=/private_media
+No `.env` or secrets needed: values are fixed in `compose/compose.test.yml`. Run them with `make tests`.
 
-# --- Entra ID / OIDC ---
-OIDC_ISSUER=https://login.microsoftonline.com/<TENANT_ID>/v2.0
-OIDC_CLIENT_ID=<app-client-id>
-OIDC_CLIENT_SECRET=<secret>
-OIDC_REDIRECT_URI=http://localhost:8000/oidc/callback
-OIDC_LOGOUT_REDIRECT_URI=http://localhost:8000/
-OIDC_SCOPES=openid,profile,email
-```
-
-> OIDC values must match your **app registration** + **redirect URIs**.
+`.gitignore` excludes `.env.*` (except `.env.example`) and `compose/secrets/`.
 
 ---
 
@@ -190,8 +179,8 @@ xdg-open http://127.0.0.1:8000  # (use open/start on macOS/Windows)
 This project uses [`uv`](https://docs.astral.sh/uv/) to manage dependencies. `uv` is installed in the `tooling` target of the Dockerfile (used by test and dev environments), and can be called like this :
 
 ```bash
-docker compose -f compose/test.yml run django uv add dependency_name
-docker compose -f compose/dev.yml run django uv update
+docker compose -f compose/compose.test.yml run django uv add dependency_name
+docker compose -f compose/compose.dev.yml run django uv update
 ```
 
 This updates both `app/pyproject.toml` and `app/uv.lock`.
@@ -222,7 +211,7 @@ The Dockerfile uses these groups to build separate environments:
 The tooling image can be built like this if needed:
 
 ```bash
-docker compose -f compose/test.yml build --target tooling django
+docker compose -f compose/compose.test.yml build --target tooling django
 ```
 
 ---
@@ -254,8 +243,6 @@ make dbimport FILE=deploy/db/foo.sql.gz  # import .sql(.gz)
 make rebuild-django # rebuild django service only
 make prune          # prune dangling images
 ```
-
-> For **test/prod**: `make up ENV=test` (uses `.env.test` + `compose/test.yml`), etc.
 
 ---
 
@@ -317,7 +304,7 @@ Dev connection:
 
 ## TEST / PROD overview
 
-- Overrides: `compose/test.yml`, `compose/prod.yml`
+- Overrides: `compose/compose.test.yml`, `compose/compose.prod.yml`
 - **HTTPS** is managed on the host machine
 - Security: `SECURE_SSL_REDIRECT=1`, cookie `*_SECURE=1`, **HSTS** enabled
 - **Gunicorn** in front (never `runserver`)
@@ -326,7 +313,7 @@ Dev connection:
 Tests can be run with :
 
 ```bash
-docker compose -f compose/test.yml run --rm --remove-orphans django
+docker compose -f compose/compose.test.yml run --rm --remove-orphans django
 ```
 
 ---
