@@ -1716,36 +1716,35 @@ import { Tooltip } from 'bootstrap';
 
                 const usedLink = document.getElementById('review-scheme-link-' + activeId);
                 const usedName = usedLink ? usedLink.textContent.trim() : `#${activeId}`;
-                const msg = "This scheme can't be used because " + usedName + " is already used !";
+                const msg = `This scheme can't be used because '${usedName}' is already used !`;
+                const item = a.parentNode;
 
-                a.parentNode.setAttribute('data-toggle', 'tooltip');
-                a.parentNode.setAttribute('data-placement', 'top');
-                a.parentNode.setAttribute('title', msg);
+                item.setAttribute('data-bs-toggle', 'tooltip');
+                item.setAttribute('data-bs-placement', 'top');
+                item.setAttribute('data-bs-title', msg);
 
-                let tip = Tooltip.getInstance(a);
-                if (tip) {
-                    tip.setContent({'.tooltip-inner': msg});
-                } else {
-                    tip = new Tooltip(a);
-                }
+                // Replace any previous tooltip, so it shows the current message
+                Tooltip.getInstance(item)?.dispose();
+                new Tooltip(item);
             }
         });
     }
 
-    /**
-     * Re-enable all grading schemes and remove tooltips.
-     */
+    /** Makes every grading scheme selectable */
     function enableAllSchemes() {
-        document.querySelectorAll('#review-scheme-pills .nav-link').forEach(a => {
-            a.classList.remove('disabled');
-            a.removeAttribute('aria-disabled');
-            a.removeAttribute('tabindex');
+        document.querySelectorAll('#review-scheme-pills .nav-link').forEach(link => {
+            link.classList.remove('disabled');
+            link.removeAttribute('aria-disabled');
+            link.removeAttribute('tabindex');
 
-            const tip = Tooltip.getInstance(a);
-            if (tip) tip.dispose();
-            a.parentNode.removeAttribute('data-toggle');
-            a.parentNode.removeAttribute('data-placement');
-            a.parentNode.removeAttribute('title');
+            // The tooltip is on the <li> around the link: a disabled link gets no mouse events
+            const item = link.parentElement;
+            Tooltip.getInstance(item)?.dispose();
+            item.removeAttribute('data-bs-toggle');
+            item.removeAttribute('data-bs-title');
+            item.removeAttribute('title');
+            item.removeAttribute('data-bs-placement');
+            item.removeAttribute('data-placement');
         });
     }
 
@@ -1878,77 +1877,61 @@ import { Tooltip } from 'bootstrap';
         htmx.ajax('GET', url, {target: el, swap: 'innerHTML'});
     }
 
-    /**
-     * Handle click on grading scheme pill:
-     *  - updates HTMX URL with current copy number,
-     *  - loads scheme panel,
-     *  - applies active/disabled state based on server headers.
-     *
-     * NOTE: name kept so Django's inline `onclick="sendScheme(...)"` still works.
-     */
+    /** The afterSwap handler of the latest click; replaced (and removed) by the next click. */
+    let pendingSchemeSwap = null;
+
     function sendScheme(el, evt) {
         if (evt) {
             evt.preventDefault();
             evt.stopPropagation();
         }
 
-        el.classList.add('active');
-        el.setAttribute('aria-selected', 'true');
-
-        let currentUrl = el.getAttribute('hx-get') || '';
         const copyNo = currentSourceIdParts[1];
         if (copyNo == null) return false;
 
-        const updatedUrl = currentUrl.replace(/\/[^/?#]+(?=[?#]|$)/, '/' + encodeURIComponent(copyNo));
+        // The URL's last segment is the copy number
+        const updatedUrl = (el.getAttribute('hx-get') || '')
+            .replace(/\/[^/?#]+(?=[?#]|$)/, '/' + encodeURIComponent(copyNo));
         el.setAttribute('hx-get', updatedUrl);
 
+        el.classList.add('active');
+        el.setAttribute('aria-selected', 'true');
+
+        if (pendingSchemeSwap) document.body.removeEventListener('htmx:afterSwap', pendingSchemeSwap);
+
         const onAfterSwap = (e) => {
-            if (!e.detail || !e.detail.target || e.detail.target.id !== 'review-scheme-panel') return;
-
-            const usedId = e.detail.xhr &&
-                e.detail.xhr.getResponseHeader('X-Used-Grading-Scheme-Id');
-            const corrBoxIndex = e.detail.xhr &&
-                e.detail.xhr.getResponseHeader('X-Corr-Box-Index');
-            const activeId = usedId || el.id.replace('review-scheme-link-', '');
-            currentGradingSchemeId = activeId;
-
-            document.querySelectorAll('#review-scheme-pills .nav-link').forEach(a => {
-                a.classList.remove('active');
-                a.setAttribute('aria-selected', 'false');
-            });
-
-            const points = e.detail.xhr.getResponseHeader('X-Points');
-            if (points !== '' && points > 0) {
-                disableOtherSchemesExcept(usedId);
-            } else {
-                enableAllSchemes();
-            }
-
-            if (corrBoxIndex != null) {
-                applyCorrBoxHighlightToCurrentPage(corrBoxIndex);
-            }
-
-            const toActivate = document.getElementById('review-scheme-link-' + activeId);
-            if (toActivate) {
-                toActivate.classList.add('active');
-                toActivate.setAttribute('aria-selected', 'true');
-            }
-
-            // Checkbox panel is loaded by HTMX from the swapped scheme panel
-            // (`hx-trigger="load once"` in _review_grading_scheme_panel.html).
-            // Avoid firing an extra concurrent request here, which can race
-            // against swaps and produce null-target HTMX errors.
+            // Only the panel loaded by this click (not the checkbox panel loaded from inside it, not an older click)
+            if (e.detail?.target?.id !== 'review-scheme-panel' || e.detail.requestConfig?.elt !== el) return;
 
             document.body.removeEventListener('htmx:afterSwap', onAfterSwap);
+            pendingSchemeSwap = null;
+
+            const xhr = e.detail.xhr;
+            const usedId = xhr?.getResponseHeader('X-Used-Grading-Scheme-Id');
+            const corrBoxIndex = xhr?.getResponseHeader('X-Corr-Box-Index');
+            const points = Number(xhr?.getResponseHeader('X-Points'));
+
+            // A copy graded with a scheme stays on it; otherwise the clicked scheme is the one used
+            const locked = points > 0 && usedId;
+            const activeId = locked ? usedId : el.id.replace('review-scheme-link-', '');
+            currentGradingSchemeId = activeId;
+
+            if (locked) disableOtherSchemesExcept(usedId);
+            else enableAllSchemes();
+
+            document.querySelectorAll('#review-scheme-pills .nav-link').forEach(a => {
+                const isActive = a.id === 'review-scheme-link-' + activeId;
+                a.classList.toggle('active', isActive);
+                a.setAttribute('aria-selected', String(isActive));
+            });
+
+            if (corrBoxIndex != null) applyCorrBoxHighlightToCurrentPage(corrBoxIndex);
         };
+
+        pendingSchemeSwap = onAfterSwap;
         document.body.addEventListener('htmx:afterSwap', onAfterSwap);
 
-        htmx.ajax('GET', updatedUrl, {
-            target: '#review-scheme-panel',
-            swap: 'innerHTML',
-            source: el
-        });
-
+        htmx.ajax('GET', updatedUrl, { target: '#review-scheme-panel', swap: 'innerHTML', source: el });
         return false;
     }
 
