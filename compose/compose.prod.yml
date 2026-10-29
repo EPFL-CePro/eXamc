@@ -1,5 +1,8 @@
 name: examc-prod
 
+# Staging and prod stack. Variables come from the .env rendered by Ansible:
+# SECRETS_DIR, PRIVATE_MEDIA_DIR, SITE_ADDRESS, CADDY_TLS_MODE, UID/GID, image tags, ...
+
 services:
   caddy:
     extends:
@@ -20,7 +23,7 @@ services:
       service: mysql
       file: compose.base.yml
     ports:
-      - "127.0.0.1:${DB_PORT:-3306}:3306" # used for local client
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3306}:3306" # used for a SQL client on the server (or via SSH)
 
   redis:
     extends:
@@ -40,7 +43,7 @@ services:
       file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
-      - ./data/private_media:/private_media
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
     depends_on:
@@ -55,7 +58,7 @@ services:
       file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
-      - ./data/private_media:/private_media
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
 
@@ -65,7 +68,7 @@ services:
       file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
-      - ./data/private_media:/private_media
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
 
@@ -77,15 +80,15 @@ volumes:
   static_volume:
 
 secrets:
-  secret_key:            { file: "${SECRETS_DIR:-./secrets}/secret_key" }
-  mysql_root_password:   { file: "${SECRETS_DIR:-./secrets}/mysql_root_password" }
-  mysql_password:        { file: "${SECRETS_DIR:-./secrets}/mysql_password" }
-  redis_password:        { file: "${SECRETS_DIR:-./secrets}/redis_password" }
-  redis_acl:             { file: "${SECRETS_DIR:-./secrets}/redis_acl" }
-  oidc_rp_client_id:     { file: "${SECRETS_DIR:-./secrets}/oidc_rp_client_id" }
-  oidc_rp_client_secret: { file: "${SECRETS_DIR:-./secrets}/oidc_rp_client_secret" }
-  tenant_id:             { file: "${SECRETS_DIR:-./secrets}/tenant_id" }
-  oasis_base_url:        { file: "${SECRETS_DIR:-./secrets}/oasis_base_url" }
-  oasis_bearer:          { file: "${SECRETS_DIR:-./secrets}/oasis_bearer" }
-  tls_crt:               { file: "${SECRETS_DIR:-./secrets}/tls_crt" }
-  tls_key:               { file: "${SECRETS_DIR:-./secrets}/tls_key" }
+  secret_key:            { file: "${SECRETS_DIR:?set SECRETS_DIR}/secret_key" }
+  mysql_root_password:   { file: "${SECRETS_DIR:?set SECRETS_DIR}/mysql_root_password" }
+  mysql_password:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/mysql_password" }
+  redis_password:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/redis_password" }
+  redis_acl:             { file: "${SECRETS_DIR:?set SECRETS_DIR}/redis_acl" }
+  oidc_rp_client_id:     { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_id" }
+  oidc_rp_client_secret: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_secret" }
+  tenant_id:             { file: "${SECRETS_DIR:?set SECRETS_DIR}/tenant_id" }
+  oasis_base_url:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_base_url" }
+  oasis_bearer:          { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_bearer" }
+  tls_crt:               { file: "${SECRETS_DIR:?set SECRETS_DIR}/tls_crt" }
+  tls_key:               { file: "${SECRETS_DIR:?set SECRETS_DIR}/tls_key" }

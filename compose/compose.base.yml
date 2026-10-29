@@ -3,14 +3,19 @@ name: examc
 # Shared service definitions. Not used directly: compose.dev.yml, compose.prod.yml
 # and compose.test.yml pick services from here with `extends`.
 #
+# Defaults below are the PRODUCTION values; each environment's .env only overrides
+# what differs (rendered by Ansible from templates/.env.j2).
+#
 # Secrets are files mounted at /run/secrets/<name> in the services that list them.
-# Generate them with scripts/gen-secrets.sh. Location: ./secrets in dev,
-# SECRETS_DIR (e.g. /etc/examc/secrets) on staging/prod.
+# They are written by Ansible from the vault into SECRETS_DIR (compose/secrets in dev,
+# /srv/examc/secrets on servers), and declared in compose.dev.yml / compose.prod.yml
+# (`extends` does not import top-level secrets).
 
 services:
   # ---------------------------------------------------------------------------
   # Caddy (Docker Hardened Image): TLS, static files, reverse proxy to Django
-  # Config: deploy/caddy/Caddyfile (+ tls/*.caddy, 503.html)
+  # Config: deploy/caddy/Caddyfile (+ tls/*.caddy); maintenance page in deploy/maintenance-page
+  # SITE_ADDRESS (required) is set in compose.dev.yml / compose.prod.yml.
   # ---------------------------------------------------------------------------
   caddy:
     image: dhi.io/caddy:2.11.7
@@ -79,14 +84,11 @@ services:
     restart: "no"
 
   # ---------------------------------------------------------------------------
-  # Redis (Docker Hardened Image)
-  # ACL users (from the redis_acl secret):
-  #   default: no password, PING only (healthcheck, satisfies protected mode)
-  #   examc:   full access, used by Django, Celery and Constance
-
-  # redis_acl file should look like (with the actual password instead of YOUR_REDIS_PASSWORD):
-  # user default on nopass -@all +ping
-  # user examc on >YOUR_REDIS_PASSWORD ~* &* +@all
+  # Redis (Docker Hardened Image), protected mode on.
+  # ACL users (redis_acl secret, rendered by Ansible from templates/redis_acl.j2):
+  #   default:     disabled, no password (unauthenticated clients get NOAUTH)
+  #   healthcheck: PING only, non-secret password, used by the healthcheck below
+  #   examc:       full access, used by Django, Celery and Constance
   # ---------------------------------------------------------------------------
   redis:
     image: dhi.io/redis:8.10
@@ -96,7 +98,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--no-auth-warning", "--user", "healthcheck", "--pass", "healthcheck", "ping"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -162,7 +164,8 @@ services:
     volumes:
       - static_volume:/static # collectstatic writes hashed assets here
       # ../django/app is only mounted in compose.dev.yml
-      # /private_media is mounted in compose.dev.yml and compose.prod.yml
+      # /private_media is mounted in compose.dev.yml and compose.prod.yml,
+      # from PRIVATE_MEDIA_DIR (set in the .env by Ansible)
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz/ || exit 1"]
       interval: 30s

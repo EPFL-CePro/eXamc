@@ -1,5 +1,8 @@
 name: examc-dev
 
+# Dev stack. Variables come from the .env rendered by Ansible (passed with --env-file):
+# SECRETS_DIR, PRIVATE_MEDIA_DIR, SITE_ADDRESS, CADDY_PORT, DEBUG, ...
+
 services:
   caddy:
     extends:
@@ -15,11 +18,15 @@ services:
       service: mysql
       file: compose.base.yml
     ports:
-      - ${DB_PORT:-3307}:3306 # used for local client
-    env_file:
-      - ../.env.dev
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3307}:3306"   # for a local SQL client
+
+  # Creates the database and app user; loads the dev seed into an empty database
+  mysql-init:
+    extends:
+      service: mysql-init
+      file: compose.base.yml
     volumes:
-      - ./deploy/db/dev-seed.sql.gz:/docker-entrypoint-initdb.d/20-seed.sql.gz:ro
+      - ./deploy/db/dev-seed.sql.gz:/seed/dev-seed.sql.gz:ro
 
   redis:
     extends:
@@ -43,18 +50,15 @@ services:
       context: ../django
       target: dev
     environment:
-      DEBUG: "1"
       VITE_DEV_MODE: "1"
-      COLLECTSTATIC: "0" # in dev, OK
+      COLLECTSTATIC: "0"
     volumes:
       - ../django/app/:/app:z
-      - ./data/private_media:/private_media
+      - ${PRIVATE_MEDIA_DIR:-./data/private_media}:/private_media
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--nothreading"]
     depends_on:
       redis:
         condition: service_healthy
-    env_file:
-      - ../.env.dev
 
   docs:
     extends:
@@ -74,9 +78,7 @@ services:
       target: tooling
     volumes:
       - ../django/app/:/app:z
-      - ./data/private_media:/private_media
-    env_file:
-      - ../.env.dev
+      - ${PRIVATE_MEDIA_DIR:-./data/private_media}:/private_media
 
   celery_beat:
     extends:
@@ -87,9 +89,7 @@ services:
       target: tooling
     volumes:
       - ../django/app/:/app:z
-      - ./data/private_media:/private_media
-    env_file:
-      - ../.env.dev
+      - ${PRIVATE_MEDIA_DIR:-./data/private_media}:/private_media
 
 volumes:
   caddy_data:
