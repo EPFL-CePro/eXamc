@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = requireData(root, 'csrfToken');
     const logFileUrl = requireData(root, 'logFileUrl');
 
-    manageTabs({ tabId: root.dataset.currentTab ?? '' });
+    manageTabs();
 
     // upload AMC project
     const uploadAmcProjectBtn = byId("btn-upload-amc-project");
