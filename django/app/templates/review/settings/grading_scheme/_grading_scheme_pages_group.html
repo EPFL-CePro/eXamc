@@ -1,12 +1,10 @@
-{% with selected_id=current_grading_scheme.id|default:grading_schemes.0.id %}
-    {% load django_vite %}
+{% load django_vite %}
+{% vite_asset 'src/views/review/settings/grading_scheme/_grading_scheme_pages_group/index.ts' %}
 
-    {% block extra_head %}
-        {% vite_asset 'src/views/review/settings/grading_scheme/_grading_scheme_pages_group/index.ts' %}
-    {% endblock %}
-
-    <div class="input-group" style="width: fit-content">
-        {% if grading_schemes %}
+<div class="input-group" style="width: fit-content">
+    {% if grading_schemes %}
+        {# The scheme in use, otherwise the first one; inside the if, so grading_schemes.0 always exists #}
+        {% with selected_id=current_grading_scheme.id|default:grading_schemes.0.id %}
             <label class="input-group-text" for="grading-scheme-selected-grading-scheme">Grading scheme</label>
             <select class="form-select" id="grading-scheme-selected-grading-scheme"
                     hx-get="{% url 'grading_scheme_panel' exam_selected.id selected_id %}"
@@ -22,20 +20,20 @@
                     </option>
                 {% endfor %}
             </select>
-        {% endif %}
+        {% endwith %}
+    {% endif %}
 
-        <button type="button" class="btn btn-outline-success"
-                title="Add grading scheme" aria-label="Add grading scheme"
-                hx-post="{% url 'add_new_grading_scheme' exam_selected.pk pages_group.id %}"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-target="#grading-scheme-panel"
-                hx-swap="innerHTML">
-            <i class="fa-solid fa-circle-plus"></i>
-        </button>
-    </div>
+    <button type="button" class="btn btn-outline-success"
+            title="Add grading scheme" aria-label="Add grading scheme"
+            hx-post="{% url 'add_new_grading_scheme' exam_selected.pk pages_group.id %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-target="#grading-scheme-panel"
+            hx-swap="innerHTML">
+        <i class="fa-solid fa-circle-plus"></i>
+    </button>
+</div>
 
-    <hr>
-{% endwith %}
+<hr>
 
 {% if error_msg %}
     <div class="alert alert-danger mt-2 mb-2" style="max-width: fit-content">
