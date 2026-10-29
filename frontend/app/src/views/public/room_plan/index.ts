@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const template = byId<HTMLTemplateElement>("room-plan-template");
     const mapUrl = requireData(page,"mapUrl");
 
-    manageTabs({ tabId: page.dataset.currentTab ?? "" });
+    manageTabs();
 
 
     // ---------- Default tab ----------

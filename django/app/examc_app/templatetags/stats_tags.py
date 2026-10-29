@@ -8,6 +8,9 @@ from django.db.models.functions import Cast
 from examc_app.models import (
     AnswerStatistic,
     ComVsIndStatistic,
+    Exam,
+    Question,
+    Scale,
     ScaleDistribution,
     ScaleStatistic,
     Student,
@@ -20,38 +23,37 @@ logger = logging.getLogger(__name__)
 # Scale statistics
 
 @register.filter
-def get_scale_stats(exam_pk: int, scale_name):
+def get_scale_stats(exam_pk: int, scale_name: str):
     return ScaleStatistic.objects.get(exam__pk=exam_pk, scale__name=scale_name)
 
 
 @register.filter
-def filter_scales_stats_by_scale(scales_stats, scale_name):
+def filter_scales_stats_by_scale(scales_stats, scale_name: str):
     return scales_stats.filter(scale__name=scale_name)
 
 
 @register.filter
-def get_sections_scaleStats_by_examScale(exam, scale):
+def section_stats(exam: Exam, scale: Scale):
     return (
-        ScaleStatistic.objects.filter(exam=exam, scale=scale)
-        .exclude(section__isnull=True)
-        .exclude(section__exact='')
-        .exclude(section__exact='GLOBAL')
-        .order_by('scale__pk')
+        ScaleStatistic.objects
+            .filter(exam=exam, scale=scale)
+            .exclude(section__isnull=True)
+            .exclude(section__exact='')
+            .exclude(section__exact='GLOBAL')
+            .order_by('scale__pk')
     )
 
 
 # Sections
 
 @register.filter
-def get_section_students_count(exam, section):
-    print(exam)
+def get_section_students_count(exam: Exam, section: str):
     stud_count = Student.objects.filter(exam=exam, section=section).count()
-    print(stud_count)
     return stud_count
 
 
 @register.filter
-def get_sections_by_overall_exam(exam):
+def get_sections_by_overall_exam(exam: Exam):
     return (
         Student.objects.filter(present=True, exam__in=exam.common_exams.all())
         .order_by().values('section').distinct().order_by('section')
@@ -61,14 +63,14 @@ def get_sections_by_overall_exam(exam):
 # Common vs individual
 
 @register.filter
-def get_teachers_comVsInd_scaleStats_by_overall_examScale(overall_exam, scale):
+def get_com_vs_ind_stats_by_exam(overall_exam: Exam, scale: Scale):
     return ComVsIndStatistic.objects.filter(
         exam__in=overall_exam.common_exams.all(), scale=scale, section=''
     ).order_by('exam__code')
 
 
 @register.filter
-def get_sections_comVsInd_scaleStats_by_overall_examScale(overall_exam, scale):
+def get_com_vs_ind_stats_by_section(overall_exam: Exam, scale: Scale):
     return (
         ComVsIndStatistic.objects.filter(exam=overall_exam, scale=scale)
         .exclude(section__isnull=True)
@@ -80,7 +82,7 @@ def get_sections_comVsInd_scaleStats_by_overall_examScale(overall_exam, scale):
 # Questions
 
 @register.filter
-def get_open_question_stats_by_quarter(question):
+def get_open_question_stats_by_quarter(question: Question):
     quarter_list = []
     quarter_points = question.max_points / 4
 
@@ -127,10 +129,10 @@ def _get_achievement_by_scale_stat(
 
 
 @register.filter
-def get_achievement_by_scalestat(scale_stat: ScaleStatistic):
+def achievement(scale_stat: ScaleStatistic):
     return _get_achievement_by_scale_stat(scale_stat, "positive")
 
 
 @register.filter
-def get_nonachievement_by_scalestat(scale_stat: ScaleStatistic):
+def non_achievement(scale_stat: ScaleStatistic):
     return _get_achievement_by_scale_stat(scale_stat, "negative")

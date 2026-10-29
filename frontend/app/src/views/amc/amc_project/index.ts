@@ -25,9 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
         csrfToken,
     };
 
-    const numberOfCopiesEl = byId<HTMLInputElement>('number-of-copies');
     const layoutDetectionMessageEl = byId('layout-detection-msg');
-
-    byId('btn-update-documents').addEventListener('click', () => void updateDocuments({ urls: documentsUrls, nbCopies: numberOfCopiesEl.value }));
     byId('btn-layout-detection').addEventListener('click', () => void runLayoutDetection(documentsUrls, layoutDetectionMessageEl));
+
+    // The number of copies input is hidden for now: "0" means "use the number set in the LaTeX source"
+    const numberOfCopiesEl = document.querySelector<HTMLInputElement>('#number-of-copies');
+    byId('btn-update-documents').addEventListener('click', () =>
+        void updateDocuments({ urls: documentsUrls, nbCopies: numberOfCopiesEl?.value ?? '0' }));
 });

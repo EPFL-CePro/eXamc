@@ -56,8 +56,12 @@
                                 </tr>
                                 <tr>
                                 <td colspan="7"></td>
-                                <td colspan="8">Achievement : {{ scale_stat|get_achievement_by_scalestat }} </td>
-                                <td colspan="8">Non Achievement : {{ scale_stat|get_nonachievement_by_scalestat }}</td>
+                                <td colspan="8">
+                                    Achievement: <span class="text-success">{{ scale_stat|achievement }}</span>
+                                </td>
+                                <td colspan="8">
+                                    Non achievement: <span class="text-danger">{{ scale_stat|non_achievement }}</span>
+                                </td>
                                 <td></td>
                             {% endwith %}
                             </tr>

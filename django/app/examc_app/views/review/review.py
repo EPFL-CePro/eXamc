@@ -13,37 +13,30 @@ from examc_app.views.review_views import ReviewUnrecognizedScansBlockMixin
 
 class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
     model = Exam
-    template_name = 'review/review.html'
-    pk_url_kwarg = 'exam_pk'
-    perm_codenames: ClassVar = ['manage', 'review']
+    template_name = "review/review_summary.html"
+    pk_url_kwarg = "exam_pk"
+    perm_codenames: ClassVar = ["manage", "review"]
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        exam = Exam.objects.get(pk=context.get("object").id)
+        base_context = super().get_context_data(**kwargs)
 
-        if user_allowed(exam, self.request.user.id):
-            pages_groups = None
-            if self.request.user.is_superuser:
-                pages_groups = exam.pagesGroup.all()
-            else:
-                user_exam = ExamUser.objects.filter(exam=exam, user=self.request.user)
-                if user_exam:
-                    pages_groups = user_exam.first().pages_groups.all()
+        view_context = ViewContext(
+            base_dict=base_context, exam=self.object, nav_url="review_view"
+        )
 
-            context['user_allowed'] = True
-            context['nav_url'] = "review_view"
-            context['exam_pages_group_list'] = pages_groups
-            context['exam_selected'] = exam
-            exam = exam.get_overall_exam_or_default()
+        if not user_allowed(self.object, self.request.user.id):
+            return view_context.as_dict()
 
-            context['exam'] = exam
-            return context
+        view_context.set_user_allowed(True)
+
+        if self.request.user.is_superuser:
+            pages_groups = self.object.pagesGroup.all()
         else:
-            context['user_allowed'] = False
-            context['nav_url'] = "review_view"
-            context['exam'] = exam
-            return context
+            exam_user = ExamUser.objects.filter(exam=self.object, user=self.request.user).first()
+            pages_groups = exam_user.pages_groups.all() if exam_user else PagesGroup.objects.none()
 
+        view_context.update(exam_pages_group_list=pages_groups)
+        return view_context.as_dict()
 
 class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
     """

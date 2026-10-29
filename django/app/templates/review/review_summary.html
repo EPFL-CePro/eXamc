@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Review summary{% endblock %}
+
+{% block content %}
+    {% pill_header title="Review summary" prefix="review-summary" icon="fa-solid fa-glasses" %}
+    {% endpill_header %}
+
+    {% if user.pk|is_review_blocked:exam_selected.pk %}
+        {% alert "warning" fit=True %}
+            You are blocked from reviewing this exam. Please contact the teacher to be unblocked.
+        {% endalert %}
+    {% else %}
+        <div class="table-responsive" style="max-width: var(--form-max-width)">
+            <table class="table table-sm align-middle" style="font-variant-numeric: tabular-nums">
+                <thead>
+                <tr>
+                    <th scope="col">Question</th>
+                    <th scope="col" class="text-center">Pages</th>
+                    <th scope="col" style="min-width: 12rem">Graded</th>
+                    <th scope="col">Reviewers</th>
+                    <th scope="col" class="text-center">Comments</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for pages_group in exam_pages_group_list %}
+                    <tr>
+                        <th scope="row" class="fw-semibold">{{ pages_group.group_name }}</th>
+
+                        <td class="text-center">{{ pages_group.nb_pages }}</td>
+
+                        {# Overall progress of the group #}
+                        <td>
+                            {% with progress=pages_group.pk|get_pages_group_graded_count_txt %}
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 0.5rem; min-width: 5rem" role="progressbar"
+                                         aria-label="Graded pages of {{ pages_group.group_name }}"
+                                         aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">
+                                        <div class="progress-bar"
+                                             style="width: {{ progress }}%;
+                                                    --progress: {{ progress }};
+                                                    --tone: color-mix(in oklab, var(--bs-success) calc(var(--progress) * 0.7%), var(--bs-orange));
+                                                    {% if progress == 100 %}--tone: var(--bs-success);{% endif %}
+                                                    background-color: var(--tone)"></div>
+                                    </div>
+
+                                    <span class="fw-semibold text-end" style="width: 3.5rem">{{ progress }}%</span>
+                                    <span class="small text-body-secondary text-nowrap">{{ pages_group.pk|get_pages_group_graded_count_txt:0 }}</span>
+                                </div>
+                            {% endwith %}
+                        </td>
+                        {# Each reviewer of the group, with their own progress #}
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for exam_user in exam_selected.exam_users.all %}
+                                    {% if pages_group in exam_user.pages_groups.all %}
+                                        {% with progress=pages_group.pk|get_pages_group_graded_count_txt:exam_user.user.pk %}
+                                            {# Orange (0%) to yellow-green (99%), green only once complete #}
+                                            <span class="badge rounded-pill fw-normal border"
+                                                  style="--progress: {{ progress }};
+                                                          --tone: color-mix(in oklab, var(--bs-success) calc(var(--progress) * 0.7%), var(--bs-orange));
+                                                          {% if progress == 100 %}--tone: var(--bs-success);{% endif %}
+                                                          border-color: var(--tone) !important;
+                                                          background: color-mix(in srgb, var(--tone) 15%, var(--bs-body-bg));
+                                                          color: var(--bs-emphasis-color)">
+                                                {{ exam_user.user.first_name|slice:":1" }}. {{ exam_user.user.last_name }}
+                                                <span class="fw-semibold ms-1">{{ progress }}%</span>
+                                            </span>
+                                        {% endwith %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </td>
+
+                        <td class="text-center">
+                            {% with nb_comments=pages_group.pagesGroupComments.all|length %}
+                                <span class="{% if not nb_comments %}text-body-secondary{% endif %}">
+                                    <i class="fa-regular fa-comment me-1" aria-hidden="true"></i>{{ nb_comments }}
+                                </span>
+                            {% endwith %}
+                        </td>
+
+                        <td class="text-end">
+                            <a class="btn btn-dark text-nowrap"
+                               href="{% url 'review_group' pages_group.exam.pk pages_group.pk 0 0 %}">
+                                <i class="fa-solid fa-glasses me-1" aria-hidden="true"></i>Review
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-body-secondary">No pages group to review yet.</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

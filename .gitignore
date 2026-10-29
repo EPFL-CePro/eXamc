@@ -273,6 +273,8 @@ celerybeat.pid
 !.env.example
 !.env.test
 
+compose/secrets/
+
 .venv
 env/
 venv/

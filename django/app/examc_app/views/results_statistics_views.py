@@ -431,21 +431,18 @@ def questions_statistics_view(request: HttpRequest, exam_pk: int):
 
     common_list = get_common_list(exam)
 
-    if common_list:
-        curr_exam = exam
-        exam = common_list[0]
-        view_context.set_exam(exam.id)
-
-    discriminatory_factor = Question.objects.filter(exam=curr_exam)[0].discriminatory_factor
+    discriminatory_factor = Question.objects.filter(exam=curr_exam)[
+        0
+    ].discriminatory_factor
     discriminatory_qty = round(curr_exam.present_students * discriminatory_factor / 100)
 
-    question_stats_by_exam = []
-
-    if curr_exam.overall:
-        question_stats_by_exam = get_questions_stats_by_exam(curr_exam)
+    # Only a common exam has stats by exam: the same condition decides whether they're computed and whether the tab is enabled
+    is_common = curr_exam.overall
+    question_stats_by_exam = get_questions_stats_by_exam(curr_exam) if is_common else []
 
     mcq_questions = Question.objects.filter(exam=curr_exam,removed_from_common=False).exclude(question_type__id=4)
     open_questions = Question.objects.filter(exam=curr_exam,question_type__id=4,removed_from_common=False)
+
 
     view_context.update(
         discriminatory_factor=discriminatory_factor,
@@ -454,7 +451,7 @@ def questions_statistics_view(request: HttpRequest, exam_pk: int):
         open_questions=open_questions,
         closed_ended_disabled=not mcq_questions,
         open_disabled=not open_questions,
-        by_exam_disabled=not view_context.exam_selected.is_overall,
+        by_exam_disabled=not is_common,
         max_charted_answer_combinations=MAX_CHARTED_ANSWER_COMBINATIONS,
         question_stats_by_exam=question_stats_by_exam,
         charts=questions_statistics_charts(
