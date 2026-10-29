@@ -1,4 +1,11 @@
 version: 2
+registries:
+  dockerhub:
+    type: docker-registry
+    url: https://registry.hub.docker.com
+    username: ${{secrets.DOCKERHUB_USER}}
+    password: ${{secrets.DOCKERHUB_TOKEN}}
+
 updates:
   # Python dependencies: uv-managed project (django/app/pyproject.toml + django/app/uv.lock)
   # Security updates only: open-pull-requests-limit: 0 disables routine
