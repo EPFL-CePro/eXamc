@@ -1,22 +1,25 @@
 {# Page header: title, the {% pill_tab %}s of the {% pill_header %} block, then the rest of the block. #}
+{# Without a title (e.g. tabs nested in another pane), only the tabs and the block are shown, with no rule below. #}
 <div class="d-flex flex-column flex-md-row flex-wrap
     align-items-start align-items-md-center
     justify-content-center justify-content-md-start
-    gap-3">
-    <h3 class="m-0">{% if icon %}<i class="{{ icon }}"></i> {% endif %}{{ title }}</h3>
+    gap-3{% if not title %} mb-3{% endif %}">
+    {% if title %}
+        <h3 class="m-0">{% if icon %}<i class="{{ icon }}"></i> {% endif %}{{ title }}</h3>
+    {% endif %}
 
     {% if tabs %}
         <div class="d-flex flex-column flex-sm-row align-items-sm-start gap-2 border rounded p-1" style="width: fit-content">
             <div class="nav nav-pills nav-fill flex-column flex-sm-row flex-nowrap" id="{{ prefix }}-tabs" role="tablist">
                 {% for tab in tabs %}
+                    {# tooltip: always shown. disabled_tooltip: shown instead while the tab is disabled. #}
+                    {# The tooltip is on the wrapper: a disabled button gets no mouse events #}
                     <span class="nav-item"
-                          {% if tab.disabled %}
-                              tabindex="0"
-                              {% if tab.tooltip %}
-                                  data-bs-toggle="tooltip"
-                                  data-bs-title="{{ tab.tooltip }}"
-                                  data-bs-placement="bottom"
-                              {% endif %}
+                          {% if tab.disabled %}tabindex="0"{% endif %}
+                          {% if tab.tooltip or tab.disabled and tab.disabled_tooltip %}
+                              data-bs-toggle="tooltip"
+                              data-bs-title="{% if tab.disabled and tab.disabled_tooltip %}{{ tab.disabled_tooltip }}{% else %}{{ tab.tooltip }}{% endif %}"
+                              data-bs-placement="bottom"
                           {% endif %}>
                         <button type="button" role="tab"
                                 class="nav-link w-100{% if tab.key == active %} active{% endif %}"
@@ -37,4 +40,4 @@
     {{ content }}
 </div>
 
-<hr>
+{% if title %}<hr>{% endif %}

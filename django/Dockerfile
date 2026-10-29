@@ -1,20 +1,30 @@
-# Base Docker images
-ARG PYTHON_IMAGE="python:3.14-slim-bookworm"
-FROM ghcr.io/astral-sh/uv:0.12 AS uv
+# Base image: hardened uv on Debian 13, without the app's Python.
+# The app's Python is installed by uv (version from requires-python in pyproject.toml),
+# separately from the system's python3 that some apt packages pull in.
+# The two never replace each other. -dev variant: shell + apt for the RUN steps below.
+FROM dhi.io/uv:0.13.6-debian13-dev AS base
 
 
 # =========================
 # UV BASE: uv, build deps and lockfile, shared by both builders
 # =========================
-FROM ${PYTHON_IMAGE} AS uv-base
+FROM base AS uv-base
 
-COPY --from=uv /uv /uvx /bin/
-
+# Python goes to /opt/uv-python (copied as is into the final images, so the venvs'
+# interpreter link stays valid). only-managed: never use a system python3.
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_NO_CACHE=1
+    UV_NO_CACHE=1 \
+    UV_PYTHON_INSTALL_DIR=/opt/uv-python \
+    UV_PYTHON_PREFERENCE=only-managed
 
 WORKDIR /app
+
+# ca-certificates: uv downloads Python and packages over HTTPS
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates; \
+    rm -rf /var/lib/apt/lists/*
 
 # Build deps: mysqlclient is compiled from source for both venvs
 COPY ./install-build-deps.sh /opt/install-build-deps.sh
@@ -32,6 +42,7 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/venv-prod \
     PATH="/opt/venv-prod/bin:$PATH"
 
 # Build the docs with the docs group, then remove it from the venv
+# (the first sync installs the Python required by pyproject.toml)
 RUN uv sync --frozen --no-dev --group docs --no-install-project
 COPY app/docs/ /app/docs/
 RUN sphinx-build -M html docs/source examc_app/static/docs
@@ -49,9 +60,14 @@ RUN uv sync --frozen --group test --group docs --group dev --no-install-project
 
 
 # =========================
-# RUNTIME BASE: system packages, the app user and its data dirs (no app code)
+# RUNTIME BASE: system packages, the app user and its data dirs (no app code, no app Python)
 # =========================
-FROM ${PYTHON_IMAGE} AS runtime-base
+FROM base AS runtime-base
+
+# The uv base image runs `uv` by default: clear it, so containers run
+# exactly the command they're given (Compose `command:`, `docker run ...`)
+ENTRYPOINT []
+CMD []
 
 ARG UID=1000
 ARG GID=1000
@@ -85,6 +101,7 @@ RUN set -eux; \
         pandoc; \
     test -x /usr/bin/auto-multiple-choice; \
     test -x /usr/bin/pandoc; \
+    ldconfig; \
     rm -rf /var/lib/apt/lists/*
 
 # Root owns the code, examc owns the data.
@@ -97,17 +114,18 @@ RUN groupadd --gid ${GID} examc \
 
 
 # =========================
-# PRODUCTION: code and venv owned by root, read-only for examc
+# PRODUCTION: code, venv and Python owned by root, read-only for examc
 # =========================
 FROM runtime-base AS production
 
-COPY entrypoint.sh /opt/entrypoint.sh
-RUN chmod +x /opt/entrypoint.sh && sed -i 's/\r$//' /opt/entrypoint.sh
+COPY --chmod=0755 entrypoint.sh /opt/entrypoint.sh
+RUN sed -i 's/\r$//' /opt/entrypoint.sh
 
 ENV PATH="/opt/venv-prod/bin:$PATH"
 
 VOLUME /static
 
+COPY --from=builder /opt/uv-python /opt/uv-python
 COPY --from=builder /opt/venv-prod /opt/venv-prod
 COPY --exclude=app/docs ./app /app
 COPY --from=builder /app/examc_app/static/docs /app/examc_app/static/docs
@@ -123,13 +141,17 @@ ENTRYPOINT ["/opt/entrypoint.sh"]
 # =========================
 FROM runtime-base AS tooling
 
+# Same uv settings as the builders, so `uv` run inside dev containers keeps
+# using /opt/uv-python and never the system's python3
 ENV PATH="/opt/venv-tooling/bin:$PATH" \
-    UV_PROJECT_ENVIRONMENT=/opt/venv-tooling
+    UV_PROJECT_ENVIRONMENT=/opt/venv-tooling \
+    UV_PYTHON_INSTALL_DIR=/opt/uv-python \
+    UV_PYTHON_PREFERENCE=only-managed
 
 RUN chown -R examc:examc /app
 
-COPY --from=uv-base /bin/uv /bin/uvx /bin/
 COPY ./sphinx-autobuild.py /opt/sphinx-autobuild.py
+COPY --from=builder-tooling /opt/uv-python /opt/uv-python
 COPY --from=builder-tooling --chown=examc:examc /opt/venv-tooling /opt/venv-tooling
 
 USER examc
@@ -138,7 +160,7 @@ COPY --chown=examc:examc --exclude=app/docs ./app /app
 
 
 # =========================
-# DEV (same as tooling, with build deps installed
+# DEV: same as tooling, with build deps installed (to add packages with uv)
 # =========================
 FROM tooling AS dev
 

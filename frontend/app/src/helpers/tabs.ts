@@ -9,7 +9,7 @@ const TAB_PARAM = "tab";
  */
 export function manageTabs(options?: { tabs?: HTMLButtonElement[]; tabListSelector?: string; tabId?: string }): void {
     const { tabId, tabListSelector = ".nav-pills" } = options || {};
-    let { tabs = [] } = options || {};
+    let { tabs = [] } = options || {};    
 
     // find tabs if none were given
     if (tabs.length === 0) tabs = [...document.querySelectorAll<HTMLButtonElement>(`${tabListSelector} [data-bs-toggle="pill"]`)];

@@ -10,6 +10,11 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  # Docker Hardened Images (base images), pulled with a Docker Hub account managed in GitHub Actions' secrets
+  DHI_REGISTRY: dhi.io
+  # Same IDs as the `examc` user on the servers (Ansible: app_uid / app_gid)
+  APP_UID: "1500"
+  APP_GID: "1500"
 
 permissions:
   contents: read
@@ -113,6 +118,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hardened Images
+        if: needs.meta.outputs.skip_fe != 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.DHI_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Set up Docker Buildx
         if: needs.meta.outputs.skip_fe != 'true'
         uses: docker/setup-buildx-action@v4
@@ -125,6 +138,9 @@ jobs:
           target: artifact
           push: true
           platforms: linux/amd64
+          build-args: |
+            UID=${{ env.APP_UID }}
+            GID=${{ env.APP_GID }}
           tags: ${{ needs.meta.outputs.fe_image }}:${{ needs.meta.outputs.tag }}
           cache-from: type=gha,scope=fe-artifacts
           cache-to: type=gha,mode=max,scope=fe-artifacts
@@ -148,6 +164,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hardened Images
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.DHI_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -161,6 +184,9 @@ jobs:
           load: true
           push: false
           platforms: linux/amd64
+          build-args: |
+            UID=${{ env.APP_UID }}
+            GID=${{ env.APP_GID }}
           tags: ${{ needs.meta.outputs.django_image }}:${{ needs.meta.outputs.tag }}
           cache-from: type=gha,scope=django-production
           cache-to: type=gha,mode=max,scope=django-production
@@ -170,7 +196,7 @@ jobs:
           TEST_IMAGE: localhost/examc-django-test
           IMAGE_TAG: latest
           FE_ARTIFACTS_IMAGE_TAG: ${{ needs.meta.outputs.tag }}
-        run: docker compose -f compose/compose.test.yml --env-file .env.test run --rm django
+        run: docker compose -f compose/compose.test.yml run --rm django
 
       - name: Build and push production image
         uses: docker/build-push-action@v7
@@ -179,6 +205,9 @@ jobs:
           target: production
           push: true
           platforms: linux/amd64
+          build-args: |
+            UID=${{ env.APP_UID }}
+            GID=${{ env.APP_GID }}
           tags: ${{ needs.meta.outputs.django_image }}:${{ needs.meta.outputs.tag }}
           cache-from: |
             type=gha,scope=django-production

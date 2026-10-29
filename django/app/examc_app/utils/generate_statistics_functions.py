@@ -39,9 +39,7 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
     # reset statistic
     reset_statistics(exam)
 
-    scale_statistic_list = []
     student_scales_grades_list = []
-    question_statistic_list = []
     distribution_list_all = []
 
     color_pos = 0
@@ -71,7 +69,7 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
 
             else:
                 process_number += 1
-                progress_recorder.set_progress(process_number, process_count, description='Generating stats for exam : '+exam.code)
+                progress_recorder.set_progress(process_number, process_count, description='Generating stats for exam : ' + exam.code)
 
                 discriminatory_count = round(exam.present_students * 27 / 100)
                 student_list = exam.students.all()
@@ -95,28 +93,18 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
                 distribution_list = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
                 for student in student_list:
-
-                    grade = 0
-
                     if student.present:
-
-                        #Define decimal half rounding up to be sure that x.5 are rounded up and not down as done with round()
-                        #Set grade to 1 if points egal or less than zero
-                        #if student.points <= 0:
-                        #    grade = 1
-                        #else:
-
                         if scale.rounding == 1:
-                            roundint = 4
+                            round_int = 4
                         elif scale.rounding == 2 :
-                            roundint = 2
+                            round_int = 2
                         else :
-                            roundint = 0
+                            round_int = 0
 
-                        if(scale.rounding == 3):
+                        if scale.rounding == 3:
                             grade = Decimal((student.points+scale.points_to_add) / scale.total_points * (scale.max_grade-scale.min_grade) + scale.min_grade)
                         else :
-                            grade = Decimal(((student.points+scale.points_to_add) / scale.total_points * (scale.max_grade-scale.min_grade) + scale.min_grade)*roundint).quantize(Decimal('1'),rounding=ROUND_HALF_UP) / roundint
+                            grade = Decimal(((student.points+scale.points_to_add) / scale.total_points * (scale.max_grade-scale.min_grade) + scale.min_grade)*round_int).quantize(Decimal(1),rounding=ROUND_HALF_UP) / round_int
 
                         # IF COMMON and specific indiv part calculation, recalc with formula
                         # String = "INDIV POINTS;COMMON POINTS;FORMULA with SIP=students indiv points and SCP=students common points from studentsdata"
@@ -150,7 +138,7 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
                             print(indiv_formula)
                             print(indiv_points)
 
-                            grade = Decimal(((indiv_points+common_points+scale.points_to_add) / scale.total_points * (scale.max_grade-scale.min_grade) + scale.min_grade)*roundint).quantize(Decimal(1),rounding=ROUND_HALF_UP) / roundint
+                            grade = Decimal(((indiv_points+common_points+scale.points_to_add) / scale.total_points * (scale.max_grade-scale.min_grade) + scale.min_grade)*round_int).quantize(Decimal(1),rounding=ROUND_HALF_UP) / round_int
 
 
 
@@ -227,7 +215,7 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
                     if question.max_points>0:
                         question.di_calculation = math.ceil((Decimal(question.upper_avg)-Decimal(question.lower_avg)) / question.max_points*100000)/100000
                     else:
-                        question.di_calculation = 0;
+                        question.di_calculation = 0
                 else:
                     if exam.overall:
                         for comex in exam.common_exams.all():
@@ -292,10 +280,10 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
                                            description='Generating stats for exam : ' + exam.code + '(overall stats)')
             if exam.overall:
                 create_dist_stats_by_section(exam)
-                create_stats_comVsInd(exam)
+                create_stats_com_vs_ind(exam)
 
     except IntegrityError as e:
-        print("error :"+e.message)
+        print("error :" + e.message)
 
     return process_number
 
@@ -368,7 +356,7 @@ def create_dist_stats_by_section(exam):
                         g_value=sg.get('quantity')
                         break
 
-                scale_dist.quantity = g_value;
+                scale_dist.quantity = g_value
                 scale_dist.save()
 
             all_grades = StudentScaleGrade.objects.filter(scale__name=scale.name,student__present=True,student__section=section.get('section'),student__exam__in=exam.common_exams.all()).values_list('grade', flat=True).order_by('grade')
@@ -383,11 +371,11 @@ def create_dist_stats_by_section(exam):
                 # Median
                 scale_stat.median = round(stdev(all_grades),5)
             else:
-                scale_stat.median = 0;
+                scale_stat.median = 0
                 # Average
-                scale_stat.average = 0;
+                scale_stat.average = 0
                 # Stddev,
-                scale_stat.stddev = 0;
+                scale_stat.stddev = 0
                 # Median
 
             # nb students
@@ -399,7 +387,7 @@ def create_dist_stats_by_section(exam):
 
     return True
 
-def create_stats_comVsInd(overall_exam):
+def create_stats_com_vs_ind(overall_exam: Exam):
 
     sections = Student.objects.filter(present=True,exam__in=overall_exam.common_exams.all()).order_by().values('section').distinct()
 

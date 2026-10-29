@@ -1,0 +1,41 @@
+{# Default tab: the form is posted to the server, which returns the generated seat maps #}
+<div class="d-flex flex-wrap gap-5" data-room-plan-tab="default">
+    <form id="default-form" method="post" enctype="multipart/form-data" novalidate
+          action="/generate_room_plan/"
+          class="flex-grow-1" style="max-width: var(--form-base-width)">
+        {% csrf_token %}
+        {% include "public/_rooms_plans/_form_fields.html" %}
+
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-dark" name="action" value="download">
+                <i class="fa-solid fa-download me-1" aria-hidden="true"></i>Download seat map
+            </button>
+        </div>
+    </form>
+
+    {# Selected rooms: small previews #}
+    <div class="d-flex flex-column flex-grow-1" style="flex-basis: 15rem">
+        <h5 class="mb-1">Selected rooms</h5>
+        <p class="text-body-secondary mb-0">
+            Select one or more rooms to preview their plans.
+        </p>
+
+        <hr>
+
+        <div class="room-plans d-grid gap-3"
+             style="grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr))"
+             aria-live="polite"></div>
+
+        {% if export_files %}
+            <h5 class="mt-4 mb-3">Generated seat maps</h5>
+            <div class="d-flex flex-wrap gap-3">
+                {% for export_file in export_files %}
+                    <a href="{{ export_file }}" target="_blank" rel="noopener">
+                        <img src="{{ export_file }}" class="img-fluid border rounded" style="width: 10rem"
+                             alt="Seating map {{ forloop.counter }}">
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>

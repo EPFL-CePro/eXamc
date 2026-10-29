@@ -1,53 +1,55 @@
-// Room plan generator (both tabs)
+// Room plan generator (public/room_plan.html)
 
-$label-bg: rgba(0, 0, 0, 0.6);
-$viewport-max-height: 80vh;
+.room-plan {
+    min-width: 0; // a grid item grows to fit the zoomed plan otherwise, instead of scrolling
+}
 
-#rooms-plans-page {
-    // Scrolls when the plan is zoomed in
-    .room-plan-viewport {
-        max-height: $viewport-max-height;
-        overflow: auto;
+// Moved into the PlanModal for the large view, so not nested under .room-plan
+.room-plan-viewport {
+    overflow: auto;   // the plan scrolls when it is bigger than its container
+    max-height: 70vh; // so it also scrolls vertically once zoomed in
+
+    // Large view: as tall as the screen allows, minus the modal's header and the zoom buttons
+    .room-plan-modal & {
+        max-height: calc(100vh - 12rem);
     }
 
-    // Labels are positioned in % of this box, so they follow the plan when it is zoomed.
-    // Its width is set by the zoom buttons (100% = fit).
     .room-plan-frame {
-        position: relative;
-        width: 100%;
+        position: relative; // labels are placed in % of the frame; the zoom sets its width (100% = fits)
 
         img {
             display: block;
             width: 100%;
             height: auto;
+
+            // Manual tab: clicking the plan places a seat label
+            [data-room-plan-tab="manual"] &,
+            .room-plan-modal & {
+                cursor: crosshair;
+            }
         }
     }
+}
 
-    // Manual tab: the plans are clickable
-    #pills-special .room-plan-frame img {
-        cursor: crosshair;
-    }
+// Seat label placed on a plan, centred on the clicked point
+.print-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    padding: 0.1rem 0.3rem;
+    border: 1px solid red;
+    border-radius: 0.2rem;
+    background: white;
+    color: red;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none; // a click on a label goes to the plan below, so labels can be placed close together
+}
 
-    .print-label {
-        position: absolute;
-        transform: translate(-50%, -50%); // centered on the clicked point
-        padding: 2px 5px;
-        border-radius: var(--bs-border-radius-sm);
-        background: $label-bg;
-        color: #fff;
-        font-size: 1rem;
-        line-height: 1.2;
-        white-space: nowrap;
-        pointer-events: none; // clicks go through to the plan
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    // Off-screen copy rendered by html2canvas-pro for the download
-    #export-layout {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-        width: 1000px;
-    }
+// Off-screen copy of a plan rendered by html2canvas for the Manual download
+#export-layout {
+    position: fixed;
+    top: 0;
+    left: -10000px;
 }

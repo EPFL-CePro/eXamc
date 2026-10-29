@@ -46,6 +46,7 @@ class Tab(TypedDict):
     label: str
     icon: NotRequired[str]
     disabled: NotRequired[bool]
+    disabled_tooltip: NotRequired[str]
     tooltip: NotRequired[str]
 
 def _tabs_stack(context: Context) -> list[list[Tab]]:
@@ -170,6 +171,8 @@ class PillTabNode(Node):
             tab["icon"] = icon
         if tooltip := str(_resolve(self.kwargs, "tooltip", context, "")):
             tab["tooltip"] = tooltip
+        if disabled_tooltip := str(_resolve(self.kwargs, "disabled_tooltip", context, "")):
+            tab["disabled_tooltip"] = disabled_tooltip
         if _resolve(self.kwargs, "disabled", context, False):
             tab["disabled"] = True
 
@@ -184,10 +187,10 @@ def pill_tab(parser: Parser, token: Token) -> PillTabNode:
     Usage, inside {% pill_header %}:
       {% pill_tab "grading" label="Grading" icon="fas fa-check" disabled=grading_locked tooltip="Locked." %}
     The first argument is the tab's key; `label` defaults to the title-cased key.
-    `icon`, `disabled` and `tooltip` are optional; a disabled tab is never selected.
+    `icon`, `disabled`, `disabled_tooltip` and `tooltip` are optional; a disabled tab is never selected.
     """
     _, (key,), kwargs = _parse_arguments(
-        parser, token, positional=1, allowed={"label", "icon", "disabled", "tooltip"},
+        parser, token, positional=1, allowed={"label", "icon", "disabled", "tooltip", "disabled_tooltip"},
     )
     return PillTabNode(key, kwargs)
 
@@ -267,10 +270,14 @@ class AlertNode(Node):
         icon = _resolve(self.kwargs, "icon", context, ALERT_ICONS[kind])
         title = str(_resolve(self.kwargs, "title", context, ""))
         dismissible = bool(_resolve(self.kwargs, "dismissible", context, False))
+        margin = bool(_resolve(self.kwargs, "margin", context, True))
 
         classes = ["alert", f"alert-{kind}", str(_resolve(self.kwargs, "class", context, ""))]
         if dismissible:
             classes += ["alert-dismissible", "fade", "show"]
+
+        if not margin:
+            classes += ["m-0"]
 
         attributes = format_html(
             ' class="{}"{}{}{}{}',
@@ -296,17 +303,17 @@ class AlertNode(Node):
 def alert(parser: Parser, token: Token) -> AlertNode:
     """
     Usage:
-      {% alert "warning" title="Before generating" dismissible=True fit=True %}
+      {% alert "warning" title="Before generating" dismissible=True fit=True margin=False %}
           ... any content, links with class="alert-link" ...
       {% endalert %}
     The first argument is the kind: info, success, warning, danger (with an icon), or secondary, light, dark.
     Optional: `title` (a heading, instead of the icon), `icon` (other Font Awesome classes, or False for none),
-    `dismissible` (a close button), `fit` (as wide as its content), `id`, `class` (more classes), `hidden`.
+    `dismissible` (a close button), `fit` (as wide as its content), `id`, `class` (more classes), `hidden`, `margin`.
     Warnings and errors have role="alert", so screen readers announce them as soon as they appear.
     """
     tag_name, (kind,), kwargs = _parse_arguments(
         parser, token, positional=1,
-        allowed={"title", "icon", "dismissible", "fit", "id", "class", "hidden"},
+        allowed={"title", "icon", "dismissible", "fit", "id", "class", "hidden", "margin"},
     )
     nodelist = parser.parse((f"end{tag_name}",))
     parser.delete_first_token()

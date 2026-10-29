@@ -1,30 +1,34 @@
 name: examc-prod
 
+# Staging and prod stack. Variables come from the .env rendered by Ansible:
+# SECRETS_DIR, PRIVATE_MEDIA_DIR, SITE_ADDRESS, CADDY_TLS_MODE, UID/GID, image tags, ...
+
 services:
+  caddy:
+    extends:
+      service: caddy
+      file: compose.base.yml
+    secrets:
+      - tls_crt
+      - tls_key
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
   mysql:
     extends:
       service: mysql
       file: compose.base.yml
-    profiles: [ "mysql-dockerized" ] # used to run MySQL outside Docker
     ports:
-      - "127.0.0.1:${DB_PORT:-3306}:3306" # used for local client
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3306}:3306" # used for a SQL client on the server (or via SSH)
 
   redis:
     extends:
       service: redis
       file: compose.base.yml
-
-  nginx:
-    extends:
-      service: nginx
-      file: compose.base.yml
-    volumes:
-      - ./deploy/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./data/private_media:/private_media:ro
-      - client_temp:/var/cache/nginx/client_temp # see ./deploy/nginx/nginx.prod.conf:8 for usage
-    ports:
-      - "127.0.0.1:8080:80"
-      #- "8443:443"
 
   fe-artifacts:
     image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
@@ -39,7 +43,7 @@ services:
       file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
-      - ./data/private_media:/private_media
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
     depends_on:
@@ -54,7 +58,7 @@ services:
       file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
-      - ./data/private_media:/private_media
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
 
@@ -64,12 +68,27 @@ services:
       file: compose.base.yml
     image: ${DJANGO_IMAGE:-ghcr.io/epfl-cepro/examc-django}:${DJANGO_IMAGE_TAG:-stable}
     volumes:
-      - ./data/private_media:/private_media
+      - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
 
 volumes:
+  caddy_data:
+  caddy_config:
   mysql_data:
   redis_data:
   static_volume:
-  client_temp:
+
+secrets:
+  secret_key:            { file: "${SECRETS_DIR:?set SECRETS_DIR}/secret_key" }
+  mysql_root_password:   { file: "${SECRETS_DIR:?set SECRETS_DIR}/mysql_root_password" }
+  mysql_password:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/mysql_password" }
+  redis_password:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/redis_password" }
+  redis_acl:             { file: "${SECRETS_DIR:?set SECRETS_DIR}/redis_acl" }
+  oidc_rp_client_id:     { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_id" }
+  oidc_rp_client_secret: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_secret" }
+  tenant_id:             { file: "${SECRETS_DIR:?set SECRETS_DIR}/tenant_id" }
+  oasis_base_url:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_base_url" }
+  oasis_bearer:          { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_bearer" }
+  tls_crt:               { file: "${SECRETS_DIR:?set SECRETS_DIR}/tls_crt" }
+  tls_key:               { file: "${SECRETS_DIR:?set SECRETS_DIR}/tls_key" }

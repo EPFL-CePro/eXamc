@@ -33,6 +33,7 @@ from examc_app.utils.results_statistics_functions import (
     questions_statistics_charts,
     zipdir,
 )
+from examc_app.utils.view_context_helpers import ViewContext
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -398,30 +399,34 @@ def questions_statistics_view(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
     curr_exam = exam
 
-    context: dict[str, Any] = {
-        "user_allowed": False,
-        "exam_selected": exam,
-        "discriminatory_factor": None,
-        "discriminatory_qty": None,
-        "questions": None,
-        "nav_url": "questions_stats",
-    }
+    view_context = ViewContext(
+        exam_pk=exam_pk,
+        nav_url="questions_stats",
+    )
+
+    # non-generic view variables
+    view_context.update(
+        discriminatory_factor=None,
+        discriminatory_qty=None,
+        questions=None,
+    )
 
     if not user_allowed(exam,request.user.id):
         return render(
             request,
             "res_and_stats/questions_statistics.html",
-            context
+            view_context.as_dict()
         )
 
+    view_context.set_user_allowed(True)
 
     if not(exam and exam.scaleStatistics.all() and exam.questions.all()):
-        context["user_allowed"] = True
+        view_context.set_user_allowed(True)
 
         return render(
             request,
             "res_and_stats/questions_statistics.html",
-            context
+            view_context.as_dict()
         )
 
     common_list = get_common_list(exam)
@@ -429,7 +434,7 @@ def questions_statistics_view(request: HttpRequest, exam_pk: int):
     if common_list:
         curr_exam = exam
         exam = common_list[0]
-        context["exam"] = exam
+        view_context.set_exam(exam.id)
 
     discriminatory_factor = Question.objects.filter(exam=curr_exam)[0].discriminatory_factor
     discriminatory_qty = round(curr_exam.present_students * discriminatory_factor / 100)
@@ -442,23 +447,26 @@ def questions_statistics_view(request: HttpRequest, exam_pk: int):
     mcq_questions = Question.objects.filter(exam=curr_exam,removed_from_common=False).exclude(question_type__id=4)
     open_questions = Question.objects.filter(exam=curr_exam,question_type__id=4,removed_from_common=False)
 
-    context["user_allowed"] = True
-    context["exam_selected"] = curr_exam
-    context["discriminatory_factor"] = discriminatory_factor
-    context["discriminatory_qty"] = discriminatory_qty
-    context["mcq_questions"] = mcq_questions
-    context["open_questions"] = open_questions
-    context["max_charted_answer_combinations"] = MAX_CHARTED_ANSWER_COMBINATIONS
-    context["question_stats_by_exam"] = question_stats_by_exam
-    context["charts"] = questions_statistics_charts(
-        curr_exam, mcq_questions, open_questions, question_stats_by_exam
+    view_context.update(
+        discriminatory_factor=discriminatory_factor,
+        discriminatory_qty=discriminatory_qty,
+        mcq_questions=mcq_questions,
+        open_questions=open_questions,
+        closed_ended_disabled=not mcq_questions,
+        open_disabled=not open_questions,
+        by_exam_disabled=not view_context.exam_selected.is_overall,
+        max_charted_answer_combinations=MAX_CHARTED_ANSWER_COMBINATIONS,
+        question_stats_by_exam=question_stats_by_exam,
+        charts=questions_statistics_charts(
+            curr_exam, mcq_questions, open_questions, question_stats_by_exam
+        ),
+        common_list=common_list
     )
-    context["common_list"] = common_list
 
     return render(
         request,
         "res_and_stats/questions_statistics.html",
-        context
+        view_context.as_dict()
     )
 
 
