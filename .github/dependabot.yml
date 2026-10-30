@@ -1,10 +1,12 @@
 version: 2
 registries:
-  dockerhub:
+  # Docker Hardened Images: same Docker Hub account as CI
+  dhi:
     type: docker-registry
-    url: https://registry.hub.docker.com
-    username: ${{secrets.DOCKERHUB_USER}}
-    password: ${{secrets.DOCKERHUB_TOKEN}}
+    url: https://dhi.io
+    username: ${{secrets.DHI_REGISTRY_USERNAME}}
+    password: ${{secrets.DHI_REGISTRY_TOKEN}}
+    replaces-base: false
 
 updates:
   # Python dependencies: uv-managed project (django/app/pyproject.toml + django/app/uv.lock)
@@ -38,17 +40,25 @@ updates:
     directories:
       - "/django"
       - "/frontend"
+    registries:
+      - dhi
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
+    ignore:
+      # Stay in the current major version -> LTS changes must be done manually
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
     groups:
       docker-images:
         patterns:
           - "*"
 
-  # Service images referenced in compose/compose.*.yml (mysql, redis, nginx)
+  # Service images referenced in compose/compose.*.yml (mysql, redis, caddy)
   - package-ecosystem: "docker-compose"
     directory: "/compose"
+    registries:
+      - dhi
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
