@@ -95,6 +95,7 @@ RUN set -eux; \
         cm-super \
         lmodern \
         texlive-lang-european \
+        texlive-lang-french \
         latexmk \
         ghostscript \
         poppler-utils \
