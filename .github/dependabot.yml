@@ -40,6 +40,8 @@ updates:
     directories:
       - "/django"
       - "/frontend"
+    registries:
+      - dhi
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
@@ -48,9 +50,11 @@ updates:
         patterns:
           - "*"
 
-  # Service images referenced in compose/compose.*.yml (mysql, redis, nginx)
+  # Service images referenced in compose/compose.*.yml (mysql, redis, caddy)
   - package-ecosystem: "docker-compose"
     directory: "/compose"
+    registries:
+      - dhi
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
