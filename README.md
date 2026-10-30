@@ -434,7 +434,6 @@ Hardened images, Caddy instead of Nginx, secrets as files, new users. From 2.0:
 
 - **`bind source path does not exist: …/secrets/<name>`**: a secret the Compose files mount is missing from the vault. Add it in eXamc.ops and rerun the playbook.
 - **`Permission denied` in the logs** (Django, `collectstatic`, Redis `dump.rdb`, MySQL `binlog.index`): a folder or volume still belongs to the previous user. See [Users and file ownership](#users-and-file-ownership).
-- **`CERTIFICATE_VERIFY_FAILED` on calls to external services** (OASIS): uv's Python looks for certificate authorities in `/etc/ssl/cert.pem`, which the image doesn't have. `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` points it to Debian's bundle.
 - **`the input device is not a TTY`**: use `docker compose exec -T` for non-interactive commands (done in Makefile).
 - **`DB not reachable`**: check the startup order and the healthchecks (`make ps`), and the MySQL logs.
 - **OIDC issues**:
