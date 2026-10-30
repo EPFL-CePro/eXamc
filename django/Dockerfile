@@ -147,7 +147,8 @@ FROM runtime-base AS tooling
 ENV PATH="/opt/venv-tooling/bin:$PATH" \
     UV_PROJECT_ENVIRONMENT=/opt/venv-tooling \
     UV_PYTHON_INSTALL_DIR=/opt/uv-python \
-    UV_PYTHON_PREFERENCE=only-managed
+    UV_PYTHON_PREFERENCE=only-managed \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 RUN chown -R examc:examc /app
 
