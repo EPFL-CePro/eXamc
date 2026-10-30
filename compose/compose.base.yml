@@ -178,6 +178,8 @@ services:
     extends:
       service: django
     environment:
+      MIGRATE: "0"
+      COLLECTSTATIC: "0"
       CELERY_LOGLEVEL: "INFO"
       CELERY_CONCURRENCY: "4"
     command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
@@ -192,6 +194,8 @@ services:
     extends:
       service: django
     environment:
+      MIGRATE: "0"
+      COLLECTSTATIC: "0"
       CELERY_LOGLEVEL: "INFO"
     command: >
       celery -A examc beat --loglevel=INFO
