@@ -20,12 +20,13 @@ It also handles common exams shared by several courses, importing the students l
 - **Vite** frontend (TypeScript/Sass, pnpm)
 - **MySQL** and **Redis** (Celery broker/results)
 - **Celery** (worker) + **Celery Beat**
-- **Caddy** (reverse proxy, HTTPS, static files, private media, maintenance page)
-- Images built on **Docker Hardened Images** (`dhi.io`), running as a non-root user
+- **Caddy** (reverse proxy, HTTPS, static files, maintenance page)
+- Images built on **Docker Hardened Images** (`dhi.io`), running as non-root users
 - **Ansible** for deployment: see [EPFL-CePro/eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops)
 
 > [!IMPORTANT]
-> This app relies on **Entra ID** (Azure AD) configuration. Do **not** commit any real `.env.*` files, secrets (`compose/secrets/`) or DB dumps.
+> This app relies on **Entra ID** (Azure AD) configuration.
+> Do **not** commit any real `.env.*` files, secrets (`compose/secrets/`) or DB dumps.
 
 ---
 
@@ -42,8 +43,10 @@ It also handles common exams shared by several courses, importing the students l
   * [DB seed / import / export (optional)](#db-seed--import--export-optional)
   * [Private media](#private-media)
   * [Users and file ownership](#users-and-file-ownership)
-  * [Migrations & updates](#migrations--updates)
-  * [STAGING / PROD overview](#staging--prod-overview)
+  * [Caddy](#caddy)
+  * [STAGING / PROD](#staging--prod)
+  * [Backups, restore and rollback](#backups-restore-and-rollback)
+  * [Upgrade notes](#upgrade-notes)
   * [Troubleshooting](#troubleshooting)
   * [📄 License](#-license)
   * [🙋 Support](#-support)
@@ -81,7 +84,8 @@ It also handles common exams shared by several courses, importing the students l
 │  │  └─ private_media/             # AMC projects, scans, exports, room plans (dev)
 │  └─ deploy/                       # Deployment-related configuration
 │     ├─ db/                        # Database init scripts and dev seed
-│     └─ caddy/                     # Caddy configuration and maintenance page
+│     ├─ caddy/                     # Caddyfile and TLS modes
+│     └─ maintenance/               # Maintenance page served by Caddy
 ├─ django/                          # Backend container
 │  ├─ app/                          # Django application and Python project
 │  │  ├─ docs/                      # Sphinx documentation
@@ -111,7 +115,6 @@ It also handles common exams shared by several courses, importing the students l
 ├─ CODE_OF_CONDUCT.md
 ├─ LICENSE
 ├─ README.md
-├─ README-deploy.md
 └─ SECURITY.md
 ```
 
@@ -128,7 +131,7 @@ Defaults live in `compose/compose.base.yml` (production values). Each environmen
 
 The `.env` and the secrets of every environment are written by the [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops) playbook, from an Ansible Vault per environment. Nothing is created by hand.
 
-| Environment | `.env`                      | Secrets                                   | Written by                                                      |
+| Environment | `.env`                      | Secrets                                   | Written by          |
 |-------------|-----------------------------|-------------------------------------------|-----------------------------------------------------------------|
 | dev         | `.env.dev` in your checkout | `compose/secrets/`                        | [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops), locally   |
 | staging     | `/opt/examc/.env.staging`   | `/srv/examc/secrets`                      | [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops), over SSH  |
@@ -143,7 +146,7 @@ The `.env` and the secrets of every environment are written by the [eXamc.ops](h
 
 1. **Create/Configure** an application in Azure Entra ID (your tenant).
 2. **Allow** the redirect URI of each environment, including the port:
-   - dev: `https://localhost:8443/oidc/callback/`
+   - dev: `https://localhost:8443/oidc/callback/` (or your `CADDY_PORT`)
    - staging / prod: `https://<host>/oidc/callback/`
 3. **Store** the client ID, the client secret and the tenant ID in the environment's vault in eXamc.ops (`oidc_rp_client_id`, `oidc_rp_client_secret`, `tenant_id`).
 
@@ -163,10 +166,10 @@ make ps                 # all services "healthy"
 make health             # HEAD /healthz → 200
 
 # 3) Open
-xdg-open https://localhost:8443   # (use open/start on macOS/Windows)
+xdg-open https://localhost:8443   # (or your CADDY_PORT; use open/start on macOS/Windows)
 ```
 
-The playbook clones the repository into `checkout` if needed, or switches your checkout to `branch` (without discarding local changes). Rerun it when secrets or settings change. Caddy serves dev with its internal certificate: accept it once in the browser, or trust Caddy's local CA.
+The playbook clones the repository into `checkout` if needed, or switches your checkout to `branch` (without discarding local changes). Rerun it when secrets or settings change. Caddy serves dev with its internal certificate: accept it once in the browser, or trust Caddy's local CA (see [Caddy](#caddy)).
 
 ---
 
@@ -261,8 +264,8 @@ make prune          # prune dangling images
 
 ## Private media
 
-- Stored on the host in `PRIVATE_MEDIA_DIR` (dev: `compose/data/private_media/`; servers: `/srv/examc/private_media`), mounted at **`/private_media`** in the containers.
-- Never served directly: Django checks the user's access, then hands the file over to Caddy.
+- Stored on the host in `PRIVATE_MEDIA_DIR` (dev: `compose/data/private_media/`; servers: `/srv/examc/private_media`), mounted at **`/private_media`** in the Django and Celery containers.
+- Served by Django (signed URLs), never directly by Caddy, which doesn't mount that folder.
 - Each exam's files are under `projects/<exam id>/`. Exams with a legacy `<year>/<semester>/<code>_<date>` folder are moved there the next time their settings are saved.
 - Settings:
   ```python
@@ -275,12 +278,12 @@ make prune          # prune dangling images
 
 The images run as non-root users, so the files they write must belong to them:
 
-| Container          | User (UID:GID)                       | Needs to write                                  |
-|--------------------|--------------------------------------|-------------------------------------------------|
-| django, celery(-beat) | `examc` (1500:1500 on servers; your UID in dev) | private media, the media and static volumes |
-| mysql, redis       | 65532                                | their data volumes                              |
+| Containers                  | User (UID:GID)                                  | Writes to                                     |
+|-----------------------------|-------------------------------------------------|-----------------------------------------------|
+| django, celery, celery_beat | `examc`, 1500:1500 on servers, your UID in dev  | private media, the media and static volumes   |
+| mysql, redis, caddy         | 65532:65532                                     | their own volumes                             |
 
-On servers, [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops) creates the `examc` user and gives it the private media. When moving data from an older setup, change the owner of the volumes too, e.g.:
+On servers, eXamc.ops creates the `examc` user and gives it the private media. Files written by a container running as another user (an older image, a manual `docker run`) keep the wrong owner, and the next start fails with `Permission denied`. Fix the owner of a volume with:
 
 ```bash
 docker run --rm -v examc-prod_static_volume:/data alpine chown -R 1500:1500 /data
@@ -290,36 +293,140 @@ The secrets folder is root only (`0700`) with files readable by all (`0444`): Do
 
 ---
 
-## Migrations & updates
+## Caddy
 
-- **DEV**: entrypoint auto-runs `migrate` (and `collectstatic` if `COLLECTSTATIC=1`).
-- **STAGING/PROD**: **no auto-migrate** at boot. Apply migrations after a deploy:
-  ```bash
-  cd /opt/examc
-  alias dc='docker compose -p examc-prod --env-file .env.prod -f compose/compose.prod.yml'
-  dc exec django python manage.py migrate --noinput
-  ```
+Caddy is the only entry point: it terminates TLS, redirects HTTP to HTTPS, answers `/healthz`, serves `/static/`, and proxies everything else to Gunicorn. No web server runs on the host: a Caddy or Nginx installed on the server itself must be stopped, or it holds ports 80/443.
 
-> [!IMPORTANT]
-> Always use the project name, env file and Compose file of the deploy (the `dc` alias above). Without them, Compose creates a second set of containers.
+Its configuration is in `compose/deploy/caddy/`, mounted read-only at `/etc/caddy`: the `Caddyfile` is shared by every environment, and imports `tls/<CADDY_TLS_MODE>.caddy`.
+
+| Variable         | Purpose                                                | Example                            |
+|------------------|--------------------------------------------------------|------------------------------------|
+| `SITE_ADDRESS`   | Names/IPs Caddy serves, comma-separated (required)     | `examc.epfl.ch` / `localhost:8443` |
+| `CADDY_TLS_MODE` | `internal` or `certs` (default `internal`)             | `certs`                            |
+| `CADDY_PORT`     | Dev only: port in `SITE_ADDRESS` and the port mapping  | `8443`                             |
+
+eXamc.ops renders them from `site_hosts`, `caddy_tls_mode` and `caddy_port`. Caddy sets `X-Forwarded-For` / `X-Forwarded-Proto`, which Django trusts through `SECURE_PROXY_SSL_HEADER` and `USE_X_FORWARDED_HOST`. Uploads up to 15 GB are streamed to Django, with 1 h timeouts.
+
+### Certificates
+
+- **dev / staging** (`internal`): Caddy issues a certificate from its own CA. Browsers warn until you trust its root CA, in the `caddy_data` volume at `caddy/pki/authorities/local/root.crt`. The volume must persist, or the CA changes.
+- **prod** (`certs`): the certificate (**full chain**: your certificate, then the intermediates) and its key are the `tls_crt` / `tls_key` secrets, from the vault. The certificate must cover every name in `SITE_ADDRESS`. To renew, update them in the vault and run the playbook.
+
+### Maintenance page
+
+`compose/deploy/maintenance/maintenance.html` is shown when Django is unreachable (502/504) or in maintenance mode (503). It's a Caddy template that shows the status code and the logo of the environment (`eXamc-<ENV>.svg`, inlined). The folder is mounted at `/var/www/html`: edits apply without restarting Caddy. Keep the page self-contained (inline CSS, no `/static/…` links), and avoid `{{` outside template expressions.
+
+### Looking inside
+
+```bash
+docker exec examc-prod-caddy-1 caddy adapt --config /etc/caddy/Caddyfile --pretty   # config as loaded
+docker run --rm -it --volumes-from examc-prod-caddy-1 --user 65532 busybox sh       # files as Caddy sees them
+```
+
+For verbose logs, add `debug` to the global options block of the `Caddyfile` and restart Caddy.
 
 ---
 
-## STAGING / PROD overview
+## STAGING / PROD
 
 - Compose file: `compose/compose.prod.yml` (staging and prod), images `ghcr.io/epfl-cepro/examc-*` tagged `staging` / `stable`
-- **HTTPS** is handled by the Caddy container (certificates from the vault in prod, internal certificate in staging); no web server runs on the host
+- **HTTPS** is handled by the Caddy container (certificates from the vault in prod, internal certificate in staging)
 - Security: `SECURE_SSL_REDIRECT=1`, cookie `*_SECURE=1`, **HSTS** enabled
 - **Gunicorn** in front (never `runserver`)
 - Deployed with [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops): secrets, `.env`, checkout, `docker compose up --wait`
+
+### Managing the stack by hand
+
+Always use the project name, env file and Compose file of the deploy. Without them, Compose creates a second set of containers:
+
+```bash
+cd /opt/examc
+alias dc='docker compose -p examc-prod --env-file .env.prod -f compose/compose.prod.yml'
+dc ps -a
+dc logs --tail 50 django
+```
+
+Most images have no shell, excepted `django`, `celery` and `celery_beat` which require one. To look inside a container, use BusyBox next to it; its files are under `/proc/1/root`:
+
+```bash
+docker run --rm -it --pid=container:examc-prod-django-1 --network=container:examc-prod-django-1 \
+  --cap-add SYS_PTRACE busybox sh
+```
+
+`docker restart <container>` keeps the container. Anything that recreates it (`dc up`, a new deploy, which uses `--force-recreate`) brings back the image's files: a fix made inside a container must also be committed.
+
+### After a deploy
+
+Migrations aren't run at boot:
+
+```bash
+dc exec django python manage.py migrate --noinput
+```
+
+Then check:
+
+- [ ] `dc ps -a`: every service `running`, and `healthy` where there's a health check
+- [ ] `curl -sSI https://<host>/healthz` → `200`
+- [ ] `dc logs --since 10m | grep -iE "permission denied|error|traceback"`: nothing new
+- [ ] OIDC login, a file from the private media, a Celery task (e.g. generating statistics)
+- [ ] External services: creating an exam loads the teachers from OASIS
 
 Tests run without MySQL and Redis (SQLite and in-memory Celery):
 
 ```bash
 make tests
-# or
-docker compose -f compose/compose.test.yml run --rm --remove-orphans django
 ```
+
+---
+
+## Backups, restore and rollback
+
+Back up the database and the private media (`/srv/examc/private_media`); on staging, also the `caddy_data` volume (its internal CA). Secrets and the `.env` are in eXamc.ops's vault, Redis only holds Celery's queue, and static files are rebuilt.
+
+**Dump the database.** The MySQL image has no shell, so the root password is read on the host. Only dump the app's database: restoring the `mysql` system schema into another MySQL version breaks it.
+
+```bash
+dc exec -T mysql mysqldump -uroot --password="$(sudo cat /srv/examc/secrets/mysql_root_password)" \
+  --single-transaction --routines --triggers --databases examc \
+  | gzip > /srv/examc/backups/examc-$(date +%F-%H%M).sql.gz
+```
+
+**Restore it:**
+
+```bash
+gunzip -c /srv/examc/backups/<dump>.sql.gz \
+  | dc exec -T mysql mysql -uroot --password="$(sudo cat /srv/examc/secrets/mysql_root_password)"
+```
+
+**Roll back** with eXamc.ops: set `repo_branch` to the previous Git tag and the image tags to the matching version, then run the playbook. Restore the dump taken before the deploy if its migrations can't be reversed. If the upgrade changed MySQL's version, the older one can't read the new data: restore the copy of the data volume kept before the upgrade instead.
+
+---
+
+## Upgrade notes
+
+What a version needs on a server, beyond running the playbook.
+
+### 2.1
+
+Hardened images, Caddy instead of Nginx, secrets as files, new users. From 2.0:
+
+1. **Back up first**, with the old stack still running: its MySQL is the only one that can read its data.
+2. **Secrets:** every secret of [Configuration](#configuration-env-and-secrets) must be in the vault, including `oidc_rp_client_id` and `oidc_rp_client_secret`, which were in the old `.env`.
+3. **Host web server:** `sudo systemctl disable --now caddy nginx`.
+4. **Database:** MySQL 9.7 can't upgrade 8.0 data in place. Keep a copy of the data volume, remove it, start the new stack on an empty volume, and restore the dump:
+   ```bash
+   docker volume create examc-prod_mysql_data_before_2_1
+   docker run --rm -v examc-prod_mysql_data:/from:ro -v examc-prod_mysql_data_before_2_1:/to alpine cp -a /from/. /to/
+   docker volume rm examc-prod_mysql_data
+   ```
+5. **Owners:**
+   ```bash
+   docker run --rm -v examc-prod_redis_data:/data alpine chown -R 65532:65532 /data
+   docker run --rm -v examc-prod_media_volume:/data alpine chown -R 1500:1500 /data
+   docker run --rm -v examc-prod_static_volume:/data alpine chown -R 1500:1500 /data
+   ```
+6. **Private media:** if it was elsewhere (e.g. `/opt/examc/compose/data/private_media`), move it to `PRIVATE_MEDIA_DIR` first (`mv` on the same filesystem, otherwise `cp -a`).
+7. **Deploy, restore, migrate**, then run the checks of [After a deploy](#after-a-deploy).
 
 ---
 
@@ -327,12 +434,12 @@ docker compose -f compose/compose.test.yml run --rm --remove-orphans django
 
 - **`bind source path does not exist: …/secrets/<name>`**: a secret the Compose files mount is missing from the vault. Add it in eXamc.ops and rerun the playbook.
 - **`Permission denied` in the logs** (Django, `collectstatic`, Redis `dump.rdb`, MySQL `binlog.index`): a folder or volume still belongs to the previous user. See [Users and file ownership](#users-and-file-ownership).
-- **`/healthz/` answers `301`**: the request reached Django over HTTP without Caddy's `X-Forwarded-Proto`, and `SECURE_SSL_REDIRECT` redirects it.
+- **`CERTIFICATE_VERIFY_FAILED` on calls to external services** (OASIS): uv's Python looks for certificate authorities in `/etc/ssl/cert.pem`, which the image doesn't have. `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` points it to Debian's bundle.
 - **`the input device is not a TTY`**: use `docker compose exec -T` for non-interactive commands (done in Makefile).
-- **`DB not reachable`**: check the startup order and the health checks (`make ps`), and the MySQL logs.
+- **`DB not reachable`**: check the startup order and the healthchecks (`make ps`), and the MySQL logs.
 - **OIDC issues**:
   - The redirect URI must match exactly, including the **port** (`8443` in dev),
-  - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` must match the URL (set from the site hosts in [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops)),
+  - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` must match the URL (set from the site hosts in eXamc.ops),
   - The clock of the machine must be correct (JWTs are time-sensitive).
 
 ## 📄 License
