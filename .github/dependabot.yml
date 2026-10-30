@@ -1,10 +1,12 @@
 version: 2
 registries:
-  dockerhub:
+  # Docker Hardened Images: same Docker Hub account as CI
+  dhi:
     type: docker-registry
-    url: https://registry.hub.docker.com
-    username: ${{secrets.DOCKERHUB_USER}}
+    url: https://dhi.io
+    username: ${{secrets.DOCKERHUB_USERNAME}}
     password: ${{secrets.DOCKERHUB_TOKEN}}
+    replaces-base: false
 
 updates:
   # Python dependencies: uv-managed project (django/app/pyproject.toml + django/app/uv.lock)
