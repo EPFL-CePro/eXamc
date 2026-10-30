@@ -45,6 +45,10 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
+    ignore:
+      # Stay in the current major version -> LTS changes must be done manually
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
     groups:
       docker-images:
         patterns:
