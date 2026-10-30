@@ -42,7 +42,7 @@ It also handles common exams shared by several courses, importing the students l
   * [Makefile commands](#makefile-commands)
   * [DB seed / import / export (optional)](#db-seed--import--export-optional)
   * [Private media](#private-media)
-  * [Users and file ownership](#users-and-file-ownership)
+  * [Containers: startup, users and file ownership](#containers-startup-users-and-file-ownership)
   * [Caddy](#caddy)
   * [STAGING / PROD](#staging--prod)
   * [Backups, restore and rollback](#backups-restore-and-rollback)
@@ -79,7 +79,7 @@ It also handles common exams shared by several courses, importing the students l
 │  ├─ compose.dev.yml               # Development environment
 │  ├─ compose.test.yml              # Test/CI environment (no .env, no secrets)
 │  ├─ compose.prod.yml              # Production environment (also used for the staging server)
-│  ├─ secrets/                      # Dev secrets, one file per secret (not versioned)
+│  ├─ secrets/                      # Dev secrets, one file per secret (not versioned, written by eXamc.ops)
 │  ├─ data/                         # Local persistent data (not versioned)
 │  │  └─ private_media/             # AMC projects, scans, exports, room plans (dev)
 │  └─ deploy/                       # Deployment-related configuration
@@ -100,8 +100,8 @@ It also handles common exams shared by several courses, importing the students l
 │  │  ├─ check_forbidden_calls.py
 │  │  ├─ check_require_post.py
 │  │  └─ security_check.sh
-│  ├─ Dockerfile                    # Backend image (dev, tooling, prod targets)
-│  ├─ entrypoint.sh
+│  ├─ Dockerfile                    # Backend image (production, tooling, dev targets)
+│  ├─ entrypoint.sh                 # Waits for MySQL, migrates, collects static files, then runs the command
 │  ├─ install-build-deps.sh
 │  └─ sphinx-autobuild.py           # Live-reload docs server (docs service in dev)
 ├─ frontend/                        # Frontend container
@@ -131,12 +131,12 @@ Defaults live in `compose/compose.base.yml` (production values). Each environmen
 
 The `.env` and the secrets of every environment are written by the [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops) playbook, from an Ansible Vault per environment. Nothing is created by hand.
 
-| Environment | `.env`                      | Secrets                                   | Written by          |
+| Environment | `.env`                      | Secrets                                   | Written by                                                     |
 |-------------|-----------------------------|-------------------------------------------|-----------------------------------------------------------------|
-| dev         | `.env.dev` in your checkout | `compose/secrets/`                        | [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops), locally   |
-| staging     | `/opt/examc/.env.staging`   | `/srv/examc/secrets`                      | [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops), over SSH  |
-| prod        | `/opt/examc/.env.prod`      | `/srv/examc/secrets`                      | [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops), over SSH  |
-| tests       | none                        | none (fixed values in `compose.test.yml`) | n/a                                                             |
+| dev         | `.env.dev` in your checkout | `compose/secrets/`                        | [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops), locally  |
+| staging     | `/opt/examc/.env.staging`   | `/srv/examc/secrets`                      | [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops), over SSH |
+| prod        | `/opt/examc/.env.prod`      | `/srv/examc/secrets`                      | [eXamc.ops](https://github.com/EPFL-CePro/eXamc.ops), over SSH |
+| tests       | none                        | none (fixed values in `compose.test.yml`) | n/a                                                            |
 
 `.gitignore` excludes `.env.*` (except `.env.example`) and `compose/secrets/`.
 
@@ -206,7 +206,7 @@ The Dockerfile uses these groups to build separate environments:
 
 * **Production**: installs only production dependencies.
 * **Docs**: installs the `docs` group to build the Sphinx documentation. The generated documentation is then included in the production image.
-* **Tooling**: installs both the `dev` and `test` groups for development and testing.
+* **Tooling**: installs the `dev`, `test` and `docs` groups for development and testing.
 
 The tooling image can be built like this if needed:
 
@@ -274,14 +274,30 @@ make prune          # prune dangling images
 
 ---
 
-## Users and file ownership
+## Containers: startup, users and file ownership
+
+### Startup
+
+In the production image (staging and prod), the entrypoint (`django/entrypoint.sh`) waits for MySQL, runs the migrations and `collectstatic`, then the container's command (Gunicorn by default). The dev and test images have no entrypoint: their command runs directly, so in dev run `make migrate` after pulling new migrations.
+
+| Variable              | Default | Purpose                                                        |
+|-----------------------|---------|----------------------------------------------------------------|
+| `MIGRATE`             | `1`     | Run `migrate` at startup                                       |
+| `COLLECTSTATIC`       | `1`     | Run `collectstatic` at startup                                 |
+| `WAIT_FOR_DB`         | `1`     | Wait for MySQL before starting                                 |
+| `WAIT_FOR_DB_TIMEOUT` | `180`   | Seconds to wait for MySQL                                      |
+| `DB_HOST` / `DB_PORT` | `mysql` / `3306` | MySQL address to wait for                             |
+
+Only `django` migrates and collects the static files: `celery` and `celery_beat` set `MIGRATE=0` and `COLLECTSTATIC=0`, so three containers never run the migrations at the same time.
+
+### Users and file ownership
 
 The images run as non-root users, so the files they write must belong to them:
 
-| Containers                  | User (UID:GID)                                  | Writes to                                     |
-|-----------------------------|-------------------------------------------------|-----------------------------------------------|
-| django, celery, celery_beat | `examc`, 1500:1500 on servers, your UID in dev  | private media, the media and static volumes   |
-| mysql, redis, caddy         | 65532:65532                                     | their own volumes                             |
+| Containers                  | User (UID:GID)                                  | Writes to                                     | Shell              |
+|-----------------------------|-------------------------------------------------|-----------------------------------------------|--------------------|
+| django, celery, celery_beat | `examc`, 1500:1500 on servers, your UID in dev  | private media, the media and static volumes   | `bash`             |
+| mysql, redis, caddy         | 65532:65532                                     | their own volumes                             | none (use BusyBox) |
 
 On servers, eXamc.ops creates the `examc` user and gives it the private media. Files written by a container running as another user (an older image, a manual `docker run`) keep the wrong owner, and the next start fails with `Permission denied`. Fix the owner of a volume with:
 
@@ -344,12 +360,13 @@ cd /opt/examc
 alias dc='docker compose -p examc-prod --env-file .env.prod -f compose/compose.prod.yml'
 dc ps -a
 dc logs --tail 50 django
+dc exec django bash
 ```
 
-Most images have no shell, excepted `django`, `celery` and `celery_beat` which require one. To look inside a container, use BusyBox next to it; its files are under `/proc/1/root`:
+`django`, `celery` and `celery_beat` have a shell. MySQL, Redis and Caddy don't: use BusyBox next to them, with their files under `/proc/1/root`:
 
 ```bash
-docker run --rm -it --pid=container:examc-prod-django-1 --network=container:examc-prod-django-1 \
+docker run --rm -it --pid=container:examc-prod-redis-1 --network=container:examc-prod-redis-1 \
   --cap-add SYS_PTRACE busybox sh
 ```
 
@@ -357,15 +374,10 @@ docker run --rm -it --pid=container:examc-prod-django-1 --network=container:exam
 
 ### After a deploy
 
-Migrations aren't run at boot:
-
-```bash
-dc exec django python manage.py migrate --noinput
-```
-
-Then check:
+The `django` container runs the migrations and `collectstatic` when it starts, before Gunicorn. Check that they went through, then that the site works:
 
 - [ ] `dc ps -a`: every service `running`, and `healthy` where there's a health check
+- [ ] `dc logs django | grep -iE "migrat|static files"`: the migrations and static files ran without error
 - [ ] `curl -sSI https://<host>/healthz` → `200`
 - [ ] `dc logs --since 10m | grep -iE "permission denied|error|traceback"`: nothing new
 - [ ] OIDC login, a file from the private media, a Celery task (e.g. generating statistics)
@@ -398,13 +410,17 @@ gunzip -c /srv/examc/backups/<dump>.sql.gz \
   | dc exec -T mysql mysql -uroot --password="$(sudo cat /srv/examc/secrets/mysql_root_password)"
 ```
 
-**Roll back** with eXamc.ops: set `repo_branch` to the previous Git tag and the image tags to the matching version, then run the playbook. Restore the dump taken before the deploy if its migrations can't be reversed. If the upgrade changed MySQL's version, the older one can't read the new data: restore the copy of the data volume kept before the upgrade instead.
+**Roll back** with eXamc.ops: set `repo_branch` to the previous Git tag and the image tags to the matching version, then run the playbook. The previous version doesn't undo the migrations of the new one: restore the dump taken before the deploy if they changed the schema. If the upgrade changed MySQL's version, the older one can't read the new data: restore the copy of the data volume kept before the upgrade instead.
 
 ---
 
 ## Upgrade notes
 
 What a version needs on a server, beyond running the playbook.
+
+### 2.1.4
+
+The images set `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt`. From 2.1.0 to 2.1.3, uv's Python looked for certificate authorities in `/etc/ssl/cert.pem`, which the images don't have, and HTTPS calls to external services (OASIS) failed with `CERTIFICATE_VERIFY_FAILED`. If you added `SSL_CERT_FILE` to `compose.prod.yml` on a server as a workaround, the playbook's checkout replaces it.
 
 ### 2.1
 
@@ -426,7 +442,7 @@ Hardened images, Caddy instead of Nginx, secrets as files, new users. From 2.0:
    docker run --rm -v examc-prod_static_volume:/data alpine chown -R 1500:1500 /data
    ```
 6. **Private media:** if it was elsewhere (e.g. `/opt/examc/compose/data/private_media`), move it to `PRIVATE_MEDIA_DIR` first (`mv` on the same filesystem, otherwise `cp -a`).
-7. **Deploy, restore, migrate**, then run the checks of [After a deploy](#after-a-deploy).
+7. **Deploy, then restore the dump** before using the site. The `django` container migrates the restored database when it restarts (`dc restart django`). Then run the checks of [After a deploy](#after-a-deploy).
 
 ---
 
@@ -434,6 +450,7 @@ Hardened images, Caddy instead of Nginx, secrets as files, new users. From 2.0:
 
 - **`bind source path does not exist: …/secrets/<name>`**: a secret the Compose files mount is missing from the vault. Add it in eXamc.ops and rerun the playbook.
 - **`Permission denied` in the logs** (Django, `collectstatic`, Redis `dump.rdb`, MySQL `binlog.index`): a folder or volume still belongs to the previous user. See [Users and file ownership](#users-and-file-ownership).
+- **A container exits right after starting**: look at its entrypoint's output with `dc logs <service>`. It logs the user it runs as, the database it waits for, the migrations and `collectstatic`, then the command it starts.
 - **`the input device is not a TTY`**: use `docker compose exec -T` for non-interactive commands (done in Makefile).
 - **`DB not reachable`**: check the startup order and the healthchecks (`make ps`), and the MySQL logs.
 - **OIDC issues**:
