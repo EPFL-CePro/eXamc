@@ -1,31 +1,31 @@
-"""(c) All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, VPSI, 2017"""
-from .utils import epfl_api_get
+from urllib.parse import quote
+
+from examc_app.services.epfl_api.people.models import EpflApiPerson
+from examc_app.services.epfl_api.utils import EpflApiException, epfl_api_get
+
+PERSONS_API_BASE_URL = "/persons"
 
 
-def persons_search(**search_params) -> list[dict]:
+def get_multiple_person_by_scipers(sciper_list: list[str]) -> list[EpflApiPerson]:
     """
-    Search the persons directory.
-    Ex: persons_search(query='kermit'), persons_search(email='x@epfl.ch'),
-        persons_search(firstname='Kermit', lastname='Frog')
+    Search the persons directory by a list of SCIPER.
     """
-    data = epfl_api_get("/persons", params=search_params)
+    if not sciper_list: return []
+
+    data = epfl_api_get(path=PERSONS_API_BASE_URL, params={"ids": ",".join(sciper_list)})
     if not isinstance(data, dict): return []
-    return data.get("persons", [])
+
+    persons = data.get("persons")
+    if not isinstance(persons, list): return []
+    return [EpflApiPerson.from_api(p) for p in persons if isinstance(p, dict)]
 
 
-def get_person_by_sciper(sciper: str) -> dict | None:
+def get_person_by_identifier(identifier: str | int) -> EpflApiPerson | None:
     """
-    Return the person with this sciper, or None if it does not exist
+    Get a person by an identifier: SCIPER, Camipro card ID, email or username
     """
-    return epfl_api_get(f'/persons/{sciper}')
+    identifier = str(identifier).strip()
+    if not identifier: return None
 
-
-def get_entry(search_key: str, search_value: str) -> dict | None:
-    """
-    Return the first person matching search_key=search_value, or None
-    """
-    if search_key in ('sciper', 'id', 'uniqueidentifier'):
-        return get_person_by_sciper(search_value)
-
-    persons = persons_search(**{search_key: search_value})
-    return persons[0] if persons else None
+    data = epfl_api_get(f"{PERSONS_API_BASE_URL}/{quote(identifier, safe='')}")
+    return EpflApiPerson.from_api(data) if isinstance(data, dict) else None
