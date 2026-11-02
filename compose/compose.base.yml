@@ -158,6 +158,8 @@ services:
       - redis_password
       - oidc_rp_client_id
       - oidc_rp_client_secret
+      - epfl_api_username
+      - epfl_api_password
       - tenant_id
       - oasis_base_url
       - oasis_bearer

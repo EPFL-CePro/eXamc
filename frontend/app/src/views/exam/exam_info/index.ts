@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (commonForm instanceof HTMLFormElement) initCommonExams(commonForm);
 
     initUsers({
-        searchUrl: requireData(root, 'ldapSearchUrl'),
+        searchUrl: requireData(root, 'personsApiSearchUrl'),
         updateUrl: requireData(root, 'updateUsersUrl'),
         csrfToken,
     });

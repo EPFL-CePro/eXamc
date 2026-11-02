@@ -1,10 +1,11 @@
 import csv
 import json
 
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group, User
 
-from examc_app.models import Exam, Course, AcademicYear, Semester, ExamUser
-from examc_app.utils.epflldap import ldap_search
+from examc_app.models import AcademicYear, Course, Exam, ExamUser, Semester
+from examc_app.services.epfl_api.people.search import get_person_by_identifier
+from examc_app.services.epfl_api.utils import EpflApiException
 
 
 def parse_exams_data_csv(csv_file):
@@ -90,18 +91,14 @@ def parse_courses_data_json(json_byte_data):
 
             teachers_str = ''
             for teacher in line["course"]["professors"]:
-                ldap_teacher = ldap_search.ldap_search_by_sciper(teacher["sciper"])
+                teacher_person = get_person_by_identifier(teacher["sciper"])
 
-                if ldap_teacher:
-                    if teachers_str:
-                        teachers_str += "|"
+                if teacher_person is not None:
+                    if teachers_str: teachers_str += "|"
 
-                    teachers_str += ldap_teacher['uniqueIdentifier'][0] + ";"
-                    if 'mail' in ldap_teacher:
-                        teachers_str += ldap_teacher['mail'][0] + ";"
-                    else:
-                        teachers_str += ";"
-                    teachers_str += ldap_teacher['cn'][0]
+                    teachers_str += teacher_person.id + ";"
+                    teachers_str += (teacher_person.email or "") + ";"
+                    teachers_str += teacher_person.get_full_name()
 
             course.teachers = teachers_str
             course.save()

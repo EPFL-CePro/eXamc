@@ -1,10 +1,11 @@
 import json
 import re
+from collections.abc import Iterable, Mapping
 from http.client import HTTPException
-from typing import Mapping, Any, Iterable
-from urllib.error import URLError, HTTPError
+from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import urlopen, Request
+from urllib.request import Request, urlopen
 
 from django.conf import settings
 
@@ -32,9 +33,9 @@ class OasisError(Exception):
     """Configuration, communication or response OASIS error."""
 
 
-def _validate_year(academic_year):
+def _validate_year(academic_year: str):
     if not isinstance(academic_year, str):
-        raise ValueError("Academic year must be a string.")
+        raise TypeError("Academic year must be a string.")
 
     if not re.fullmatch(r"[0-9]{4}-[0-9]{4}", academic_year):
         raise ValueError("Expected format : 2024-2025.")
@@ -213,7 +214,7 @@ def get_teachers_names_by_course(academic_year):
     }
 
 
-def get_course_students_scipers(academic_year, course_code) -> list[str]:
+def get_course_students_scipers(academic_year: str, course_code: str) -> list[str]:
     """SCIPERs of the students enrolled in a course (IS-Academia), deduplicated, in the OASIS order."""
     _validate_year(academic_year)
 

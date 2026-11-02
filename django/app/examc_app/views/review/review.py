@@ -38,6 +38,7 @@ class ReviewView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMix
         view_context.update(exam_pages_group_list=pages_groups)
         return view_context.as_dict()
 
+
 class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlockMixin, DetailView):
     """
     View for managing review groups for a specific exam.
@@ -59,7 +60,9 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
 
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         pages_group = PagesGroup.objects.get(pk=self.kwargs.get("group_pk"))
-        current_page = self.kwargs["currpage"]
+        query_string = self.request.GET
+
+        page_id = query_string.get("page_id", 0)
 
         # exam_selected is the reviewed exam, exam its group's overall exam (set by ViewContext)
         view_context = ViewContext(
@@ -80,7 +83,7 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         view_context.update(
             copies_pages_list=copies_pages_list,
             json_copies_pages_list=json.dumps(copies_pages_list),
-            currpage=current_page,
+            currpage=page_id,
         )
 
         # grading scheme
@@ -88,13 +91,14 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         if pages_group.use_grading_scheme:
             grading_schemes = pages_group.gradingSchemes.all()
 
-        current_grading_scheme = self.kwargs['current_grading_scheme']
-        if grading_schemes and not current_grading_scheme:
-            current_grading_scheme = grading_schemes.first()
+        # TODO make it do something
+        grading_scheme = query_string.get("grading_scheme", None)
+        if grading_schemes and not grading_scheme:
+            grading_scheme = grading_schemes.first()
 
         view_context.update(
             grading_schemes=grading_schemes,
-            current_grading_scheme=current_grading_scheme
+            current_grading_scheme=grading_scheme
         )
 
         return view_context.as_dict()

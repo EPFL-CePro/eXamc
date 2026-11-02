@@ -648,6 +648,7 @@ def generate_marked_pdfs(
                 continue
 
             pdf.add_page()
+
             img_path = os.path.join(subdir_path, image)
 
             # force image to sRGB if grayscale
