@@ -13,7 +13,7 @@ def get_entry(searchvalue,searchattribute):
     """
     return user ldap entry
     """
-    response = ldap_search.LDAP_search(
+    response = ldap_search.ldap_search(
         pattern_search='('+searchattribute+'={})'.format(searchvalue),
     )
     try:

@@ -14,9 +14,10 @@ def get_optional_env(key):
     the provided default if it's not set.
     """
     environment_variable_value = os.environ.get(key)
+
     if environment_variable_value:
         return environment_variable_value
     elif key in CONSTANTS:
         return CONSTANTS[key]
     else:
-        raise Exception("The variable {1} is not set".format(key))
+        raise Exception(f"The variable {key} is not set")  # noqa: TRY002
