@@ -1,12 +1,15 @@
 import csv
 import json
+import logging
 import os
 import pathlib
 import shutil
 import time
 from functools import lru_cache
+from pathlib import Path
 
 import cv2
+from celery_progress.backend import ProgressRecorder
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum
@@ -34,7 +37,14 @@ from examc_app.services.exam.paths import (
 from examc_app.signing import make_token_for
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_functions import get_amc_project_path
-from examc_app.utils.examc_qr import ScanQr, parse_scan_qr, scan_exams, scan_qr_exam_problem
+from examc_app.utils.examc_qr import (
+    ScanQr,
+    parse_scan_qr,
+    scan_exams,
+    scan_qr_exam_problem,
+)
+
+logger = logging.getLogger(__name__)
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 UNRECOGNIZED_REVIEW_SCAN_DIR = "unrecognized"
@@ -442,46 +452,41 @@ def create_students_from_amc(exam: Exam):
 
 def delete_old_scans(exam):
     scans_dir = str(get_exam_scans_dir(exam))
-    for filename in os.listdir(scans_dir):
-        file_path = os.path.join(scans_dir, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete {}. Reason: {}'.format(file_path, e))
-
     marked_scans_dir = str(get_exam_marked_scans_dir(exam))
-    if os.path.exists(marked_scans_dir):
-        for filename in os.listdir(marked_scans_dir):
+
+    for d in [scans_dir, marked_scans_dir]:
+        if not os.path.exists(d): continue
+
+        for filename in os.listdir(d):
             file_path = os.path.join(scans_dir, filename)
+
             try:
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     os.unlink(file_path)
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
             except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
+                logger.error(f'Failed to delete {file_path}. Reason: {e}')
 
 
-#### TESTING DISPLAYING FULL COPIE JPGS ####
-def get_scans_pathes_by_exam(exam):
+#### TESTING DISPLAYING FULL COPY JPGS ####
+def get_scans_paths_by_exam(exam):
     scans_dir = str(get_exam_scans_dir(exam))
     scans_url = "../../scans/" + get_exam_subdir(exam)
 
     #scans_markers_qs = PageMarkers.objects.filter(exam=exam,copy_no=copy_nr)
-    scans_pathes = []
-    if os.path.exists(scans_dir):
-        for dir in sorted(os.listdir(scans_dir)):
-            if not is_review_copy_dir_name(dir): continue
-            scans_path_dict = {
-                "copy_no": dir,
-                "path": scans_url + "/" + dir + "/" + dir + "_full.jpg"
-            }
-            scans_pathes.append(scans_path_dict)
+    scans_paths = []
 
-    return scans_pathes
+    if os.path.exists(scans_dir):
+        for d in sorted(os.listdir(scans_dir)):
+            if not is_review_copy_dir_name(d): continue
+            scans_path_dict = {
+                "copy_no": d,
+                "path": scans_url + "/" + d + "/" + d + "_full.jpg"
+            }
+            scans_paths.append(scans_path_dict)
+
+    return scans_paths
 
 
 
@@ -604,19 +609,28 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
             head_i = int(head)
         except ValueError:
             head_i = 0
-        return (head_i, tail)
+        return head_i, tail
 
     copies_pages_list.sort(key=lambda k: (int(k["copy_no"]), page_sort_key(k["page_no"])))
     return copies_pages_list
 
 
-def generate_marked_pdfs(exam, files_path, with_comments=False, progress_recorder=None):
+def generate_marked_pdfs(
+        exam: Exam,
+        files_path: Path,
+        progress_recorder: ProgressRecorder,
+        with_comments: bool | int = False
+):
+    unreadable: list[str] = []
+
     scans_count = len(os.listdir(files_path))
 
     process_count = scans_count
     process_number = 1
     progress_recorder.set_progress(0, process_count, description='')
+
     time.sleep(2)
+
     progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
         process_count) + ' - Extracting zip files...')
 
@@ -625,39 +639,61 @@ def generate_marked_pdfs(exam, files_path, with_comments=False, progress_recorde
             process_count) + ' - Generating pdfs files...')
 
         pdf = FPDF(orientation='P', unit='mm', format='A4')
-        pdf.set_auto_page_break(0)
+        pdf.set_auto_page_break(False)
         pdf.set_margins(0, 0, 0)
         for image in sorted(os.listdir(files_path + "/" + subdir)):
             if pathlib.Path(image).suffix.lower() not in IMAGE_EXTENSIONS:
                 continue
 
             pdf.add_page()
+            img_path = os.path.join(files_path, subdir, image)
 
             # force image to sRGB if grayscale
-            img_path = files_path + "/" + subdir + "/" + image
             if is_grayscale(img_path):
                 img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-                img_path = files_path + "/" + subdir + "/rgb" + image
-                img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-                cv2.imwrite(img_path, img_rgb)
-                pdf.image(img_path, 0, 0, pdf.epw)
+                if img is None:
+                    logger.error(
+                        "Unreadable scan %s of copy %s (exam %s)",
+                        image,
+                        subdir,
+                        exam.pk,
+                    )
+                    unreadable.append(f"copy {subdir}: {image}")
+                    # A visible page instead of a silently missing one
+                    pdf.set_font("Helvetica", "B", 16)
+                    pdf.set_xy(20, 120)
+                    pdf.multi_cell(
+                        0,
+                        10,
+                        f"Scan {image} could not be read.\nPlease contact the exam organisers.",
+                    )
+                    continue
+
+                rgb_path = os.path.join(files_path, subdir, "rgb" + image)
+                cv2.imwrite(rgb_path, cv2.cvtColor(img, cv2.COLOR_GRAY2RGB))
+                img_path = rgb_path
 
             pdf.image(img_path, w=pdf.epw)
 
-        if with_comments == '1':
-
+        if with_comments == '1' or with_comments == True:
             pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam, copy_no=subdir).order_by(
                 'copy_no', 'pages_group__group_name', 'parent_id')
             if pages_comments:
                 pdf.add_page()
 
             pdf.set_font("Helvetica", "", 8)
-            pdf.set_auto_page_break(1)
+            pdf.set_auto_page_break(True)
             generate_comments_pdf_pages(exam, None, subdir, pdf)
 
-        pdf.output(files_path + "/copy_" + subdir + ".pdf", "F")
+        pdf.output(name=f"{files_path}/copy_{subdir}.pdf")
 
         process_number += 1
+
+    if unreadable:
+        return (
+            f" Process finished with {len(unreadable)} unreadable scan(s): "
+            + "; ".join(unreadable)
+        )
 
     return ' Process finished. '
 
