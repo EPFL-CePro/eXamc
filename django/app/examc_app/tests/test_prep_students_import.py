@@ -1,5 +1,5 @@
 import io
-from unittest.mock import patch
+from unittest.mock import MagicMock, call, patch
 
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
@@ -29,6 +29,10 @@ DIRECTORY = {
     "456789": DirectoryPerson("456789", "Charles", "Babbage", None, "IN"),
 }
 
+API_GETS = (
+    "examc_app.services.epfl_api.people.search.epfl_api_get",
+    "examc_app.services.epfl_api.accreds.search.epfl_api_get",
+)
 
 def make_xlsx(rows: list[list]) -> bytes:
     workbook = Workbook()
@@ -39,9 +43,21 @@ def make_xlsx(rows: list[list]) -> bytes:
     return buffer.getvalue()
 
 
+def patch_api(api_get):
+    """Patch epfl_api_get in every search module with the same mock."""
+    persons_target, accreds_target = API_GETS
+    return patch(persons_target, api_get), patch(accreds_target, api_get)
+
 def fake_directory(scipers):
     return {sciper: DIRECTORY[sciper] for sciper in scipers if sciper in DIRECTORY}
 
+def fake_api(responses):
+    """Return a mock of epfl_api_get answering each API path with its canned response."""
+
+    def _fake_get(path, params=None):
+        return responses[path]
+
+    return MagicMock(side_effect=_fake_get)
 
 class ReadStudentsFileTestCase(SimpleTestCase):
     def test_xlsx_numbers_are_read_as_integers_text(self):
@@ -223,32 +239,50 @@ class GetCourseStudentsScipersTestCase(SimpleTestCase):
 
 
 class GetPeopleBySciperTestCase(SimpleTestCase):
-    @patch("examc_app.services.person_directory.LDAP_search")
-    def test_one_query_per_batch_and_first_entry_kept(self, ldap_search):
-        ldap_search.return_value = [
-            {"dn": "cn=Ada Lovelace,ou=lab,ou=sti,o=epfl,c=ch",
-             "attributes": {"uniqueIdentifier": ["123456"], "givenName": ["Ada"], "sn": ["Lovelace"],
-                            "mail": ["ada.lovelace@epfl.ch"], "ou": ["LAB-X"]}},
-            # Second accreditation of the same person: her student entry gives the section
-            {"dn": "cn=Ada Lovelace,ou=mx-ba1,ou=mx-s,ou=etu,o=epfl,c=ch",
-             "attributes": {"uniqueIdentifier": ["123456"], "givenName": ["Other"], "sn": ["Entry"], "mail": [],
-                            "ou": ["MX-BA1", "Section Science et génie des matériaux - Bachelor semestre 1"]}},
-            {"dn": "cn=Alan Turing,ou=cepro,ou=avp,o=epfl,c=ch",
-             "attributes": {"uniqueIdentifier": ["234567"], "givenName": ["Alan"], "sn": ["Turing"],
-                            "mail": ["not-an-email"], "ou": ["AVP-E-CEPRO"]}},
-        ]
+    def test_one_query_per_batch_and_section_from_student_accred(self):
+        api_get = fake_api({
+            "/persons": {"persons": [
+                {"id": "123456", "sciper": "123456", "firstname": "Ada", "lastname": "Lovelace",
+                 "email": "ada.lovelace@epfl.ch"},
+                {"id": "234567", "sciper": "234567", "firstname": "Alan", "lastname": "Turing",
+                 "email": "not-an-email"},
+            ]},
+            "/accreds": {"accreds": [
+                {"persid": 123456, "unit": {"name": "LAB-X"}},
+                # Second accreditation of the same person: her student accreditation gives the section
+                {"persid": 123456, "unit": {"name": "MX-BA1"}},
+                {"persid": 234567, "unit": {"name": "AVP-E-CEPRO"}},
+            ]},
+        })
+        patch_persons, patch_accreds = patch_api(api_get)
 
-        people = get_people_by_sciper(["234567", 123456, "123456"])
+        with patch_persons, patch_accreds:
+            people = get_people_by_sciper(["234567", 123456, "123456"])
 
-        ldap_search.assert_called_once_with(pattern_search="(|(uniqueIdentifier=123456)(uniqueIdentifier=234567))")
+        # One query per endpoint for the whole batch, scipers deduplicated and sorted
+        self.assertCountEqual(
+            api_get.call_args_list,
+            [
+                call(path="/persons", params={"ids": "123456,234567"}),
+                call(
+                    path="/accreds",
+                    params={"persid": "123456,234567", "pageindex": 0, "pagesize": 100},
+                ),
+            ],
+        )
         self.assertEqual(people["123456"], DirectoryPerson("123456", "Ada", "Lovelace", "ada.lovelace@epfl.ch", "MX"))
         self.assertIsNone(people["234567"].email)
         # Not a student: no section
         self.assertIsNone(people["234567"].section)
 
-    def test_invalid_sciper_is_refused_before_ldap(self):
-        with self.assertRaises(ValueError):
+    def test_invalid_sciper_is_refused_before_api_call(self):
+        api_get = MagicMock()
+        patch_persons, patch_accreds = patch_api(api_get)
+
+        with patch_persons, patch_accreds, self.assertRaises(ValueError):
             get_people_by_sciper(["12345)(uid=*"])
+
+        api_get.assert_not_called()
 
 
 class ReplacePrepStudentsTestCase(TestCase):
