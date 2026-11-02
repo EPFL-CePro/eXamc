@@ -210,6 +210,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
                 "message": "",
                 "amc_ok": amc_ok,
                 "nav_url": "upload_scans",
+                "unrecognized_review_scans": build_unrecognized_review_scan_context(exam_selected),
                 **get_upload_scan_pending_context(
                     request, exam_selected.pk, task_id=task_id
                 ),
@@ -228,6 +229,7 @@ def upload_scans(request: HttpRequest, exam_pk: int):
             "amc_ok": amc_ok,
             "files": [],
             "nav_url": "upload_scans",
+            "unrecognized_review_scans": build_unrecognized_review_scan_context(exam_selected),
             **get_upload_scan_pending_context(
                 request, exam_selected.pk, task_id=task_id
             ),
