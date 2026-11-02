@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
 
   # One-shot job replacing MYSQL_DATABASE / MYSQL_USER / docker-entrypoint-initdb.d.
-  # Idempotent: safe to run on every `up`. Loads /seed/dev-seed.sql.gz only if it is
+  # Idempotent: safe to run on every `up`. Loads /seed/dev-seed.sql only if it is
   # mounted (dev) and the database is still empty.
   mysql-init:
     image: dhi.io/mysql:9.7-dev   # dev variant: has a shell; runs once and exits
@@ -77,9 +77,9 @@ services:
           CREATE DATABASE IF NOT EXISTS \`$$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
           CREATE USER IF NOT EXISTS '$$APP_USER'@'%' IDENTIFIED BY '$$APP_PASSWORD';
           GRANT ALL PRIVILEGES ON \`$$DB_NAME\`.* TO '$$APP_USER'@'%';"
-        if [ -f /seed/dev-seed.sql.gz ] && [ "$$(mysql -h mysql -uroot -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$$DB_NAME'")" = "0" ]; then
+        if [ -f /seed/dev-seed.sql ] && [ "$$(mysql -h mysql -uroot -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$$DB_NAME'")" = "0" ]; then
           echo "Loading dev seed..."
-          gunzip -c /seed/dev-seed.sql.gz | mysql -h mysql -uroot "$$DB_NAME"
+          mysql -h mysql -uroot "$$DB_NAME" < /seed/dev-seed.sql
         fi
     restart: "no"
 
