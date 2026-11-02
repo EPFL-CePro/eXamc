@@ -1,5 +1,5 @@
 import { byId } from '@examc/helpers/dom.ts';
-import { postForm, postText } from '@examc/helpers/http.ts';
+import { HttpError, postForm, postText } from '@examc/helpers/http.ts';
 import { LoadingModal } from '@examc/modals';
 
 interface UsersConfig {
@@ -130,7 +130,7 @@ export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): voi
     searchForm.addEventListener('submit', (event) => {
         event.preventDefault();
         showError(null);
-        const email = emailInput.value.trim();
+        const email = personsApiIdInput.value.trim();
 
         void (async () => {
             let result: string;
@@ -138,7 +138,11 @@ export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): voi
                 result = await postText(searchUrl, { csrfmiddlewaretoken: csrfToken, email });
             } catch (error) {
                 console.error(error);
-                showError("Cannot find a user with this email address in EPFL's Online People Directory!");
+                showError(
+                    error instanceof HttpError && error.status === 503
+                        ? "The EPFL directory can't be reached, please try again later."
+                        : "Cannot find a user with this email address in EPFL's Online People Directory!"
+                );
                 return;
             }
 

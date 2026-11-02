@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+import logging
+from collections.abc import Callable
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Final, TypedDict
@@ -17,6 +18,8 @@ from examc_app.services.epfl_api.people.search import (
     get_person_by_identifier,
 )
 from examc_app.services.epfl_api.utils import EpflApiException
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Types
@@ -189,22 +192,22 @@ def import_students(
     )
 
     students: list[StudentRow] = []
+    directory_unavailable = False
+
     if df is not None:
         for index, (_, row) in enumerate(df.iterrows(), start=1):
             if pd.isna(row.get("sciper")):
                 messages.error(request, "Missing sciper value in file.", extra_tags="safe")
                 continue
 
-            sciper = str(row["sciper"]).strip().removesuffix(".0")
+            sciper = str(row["sciper"]).strip()
 
             try:
                 entry = get_person_by_identifier(sciper)
-            except EpflApiException as e:
-                messages.error(
-                    request,
-                    f"error: {e}"
-                )
-                continue
+            except EpflApiException:
+                logger.exception("EPFL API unreachable while importing students")
+                directory_unavailable = True
+                break
 
             if not entry:
                 messages.error(
@@ -214,7 +217,12 @@ def import_students(
                 )
                 continue
 
-            students.append(config["build_row"](row, index, _identity(entry), str(sciper)))
+            students.append(config["build_row"](row, index, _identity(entry), sciper))
+
+    if directory_unavailable:
+        messages.error(request, "The EPFL directory can't be reached, please try again later.")
+        # No partial list: the user would get a CSV missing students without noticing
+        students = []
 
     return ImportResult(
         students=students,

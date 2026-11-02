@@ -146,10 +146,12 @@ def search_exam_user(request: HttpRequest, exam_pk: int):
 
     try:
         user_entry = get_person_by_identifier(email)
-    except EpflApiException as e:
+    except EpflApiException:
+        logger.exception("EPFL API unreachable while searching exam user %s", email)
         return JsonResponse(
-            {"error": str(e)},
-            status=400
+            {"error": "directory_unavailable",
+             "message": "The EPFL directory can't be reached, please try again later."},
+            status=503,
         )
 
     if user_entry:
