@@ -141,21 +141,24 @@ def search_exam_user(request: HttpRequest, exam_pk: int):
 
     django_user = User.objects.filter(email=email).first()
     if django_user:
-        entry_str = f"{django_user.username};{django_user.first_name};{django_user.last_name};{email}"
-        return HttpResponse(entry_str)
+        entry_str = f"{django_user.username};{django_user.first_name};{django_user.last_name};{django_user.email}"
+        return HttpResponse(entry_str, content_type="text/plain; charset=utf-8")
 
     try:
         user_entry = get_person_by_identifier(email)
     except EpflApiException:
         logger.exception("EPFL API unreachable while searching exam user %s", email)
         return JsonResponse(
-            {"error": "directory_unavailable",
-             "message": "The EPFL directory can't be reached, please try again later."},
+            {
+                "error": "directory_unavailable",
+                "message": "The EPFL directory can't be reached, please try again later.",
+            },
             status=503,
         )
 
     if user_entry:
-        return HttpResponse(f"{user_entry.sciper or user_entry.id};{user_entry.firstname};{user_entry.lastname};{user_entry.email}")
+        entry_str = f"{user_entry.sciper or user_entry.id};{user_entry.firstname};{user_entry.lastname};{user_entry.email}"
+        return HttpResponse(entry_str, content_type="text/plain; charset=utf-8")
     else:
         return JsonResponse(
             {"error": "not_found"},
