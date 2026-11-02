@@ -5,7 +5,7 @@
 {% block content %}
     <h1>Search people</h1>
     {% alert "info" fit=True %}
-        The Excel file must contain either SCIPERs, emails and usernames. Mixing SCIPERs and emails is supported.
+        The first column of the Excel file must contain SCIPERs, emails or usernames. They can be mixed
     {% endalert %}
 
     <form method="post" enctype="multipart/form-data" style="max-width: var(--form-max-width)">

@@ -9,8 +9,6 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 
-from examc_app.models import AcademicYear
-
 OASIS_TIMEOUT_SECONDS = 20
 
 def _is_complete_teacher(row):
