@@ -1,12 +1,17 @@
 import json
 from typing import Any, ClassVar
 
+from django.contrib import messages
 from django.views.generic import DetailView
 
 from examc_app.mixins import ExamPermissionAndRedirectMixin
 from examc_app.models import Exam, ExamUser, PagesGroup
 from examc_app.utils.global_functions import user_allowed
-from examc_app.utils.review_functions import get_copies_pages_by_group
+from examc_app.utils.review_functions import (
+    find_copy_position_in_group,
+    get_adjacent_pages_group,
+    get_copies_pages_by_group,
+)
 from examc_app.utils.view_context_helpers import ViewContext
 from examc_app.views.review_views import ReviewUnrecognizedScansBlockMixin
 
@@ -80,6 +85,19 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
 
         # Get scans file path dict by pages groups
         copies_pages_list = get_copies_pages_by_group(pages_group)
+
+        # ?copy_no= opens a given copy (used by the previous/next question buttons); it takes precedence over page_id
+        copy_no = query_string.get("copy_no")
+        if copy_no:
+            position = find_copy_position_in_group(copies_pages_list, copy_no)
+            if position is None:
+                messages.warning(
+                    self.request,
+                    f"Copy {copy_no} has no page in {pages_group.group_name}: opened at the first copy.",
+                )
+            else:
+                page_id = position
+
         view_context.update(
             copies_pages_list=copies_pages_list,
             json_copies_pages_list=json.dumps(copies_pages_list),
@@ -98,7 +116,9 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
 
         view_context.update(
             grading_schemes=grading_schemes,
-            current_grading_scheme=grading_scheme
+            current_grading_scheme=grading_scheme,
+            next_pages_group=get_adjacent_pages_group(pages_group, 1, self.request.user),
+            previous_pages_group=get_adjacent_pages_group(pages_group, -1, self.request.user),
         )
 
         return view_context.as_dict()

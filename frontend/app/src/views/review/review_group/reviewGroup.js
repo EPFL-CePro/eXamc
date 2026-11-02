@@ -314,6 +314,7 @@ import { Tooltip } from 'bootstrap';
         // manages URL changes
         const url = new URL(window.location);
         url.searchParams.set('page_id', currentPage);
+        url.searchParams.delete('copy_no'); // one-shot, page_id takes over once the copy is resolved
         history.replaceState(null, '', url);
 
         const container = document.getElementById("pagination");
@@ -1686,6 +1687,23 @@ import { Tooltip } from 'bootstrap';
     document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(currentZoom + ZOOM_STEP));
     document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(currentZoom - ZOOM_STEP));
     document.getElementById('btn-zoom-reset').addEventListener('click', () => setZoom(1));
+
+    // ---------------------------------------------------------------------------
+    // Previous / next question for the same student (the server resolves the copy from ?copy_no=)
+    // ---------------------------------------------------------------------------
+
+    ['btn-previous-question', 'btn-next-question'].forEach(id => {
+        const button = document.getElementById(id);
+        if (!button) return;
+
+        button.addEventListener('click', () => {
+            const baseUrl = button.dataset.stepUrl;
+            const copyNo = currentReviewCopyNo();
+            if (!baseUrl || !copyNo) return;
+
+            window.location.assign(`${baseUrl}?copy_no=${encodeURIComponent(copyNo)}`);
+        });
+    });
 
     // ---------------------------------------------------------------------------
     // Grading schemes (pills + checkboxes + HTMX panel)

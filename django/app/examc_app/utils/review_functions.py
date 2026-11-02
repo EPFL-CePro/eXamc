@@ -20,6 +20,7 @@ from pyzbar import pyzbar
 
 from examc_app.models import (
     Exam,
+    ExamUser,
     PageMarkers,
     PagesGroup,
     PagesGroupComment,
@@ -927,3 +928,49 @@ def get_question_points(grading_scheme: QuestionGradingScheme, copy_nr: str):
         pass
 
     return points
+
+
+def get_accessible_pages_groups(exam: Exam, user):
+    """Pages groups of the exam the user may review, ordered by pk (same rule as the review summary)."""
+    if user.is_superuser:
+        pages_groups = PagesGroup.objects.filter(exam=exam)
+    else:
+        exam_user = ExamUser.objects.filter(exam=exam, user=user).first()
+        pages_groups = exam_user.pages_groups.filter(exam=exam) if exam_user else PagesGroup.objects.none()
+    return pages_groups.order_by("pk")
+
+
+def get_adjacent_pages_group(pages_group: PagesGroup, direction: int, user):
+    """
+    Neighbouring pages group the user may review, or None when there is none.
+
+    :param direction: +1 for the next group (next pk), -1 for the previous one. No wrap-around.
+    """
+    if direction not in (1, -1):
+        raise ValueError("direction must be 1 or -1")
+
+    accessible = get_accessible_pages_groups(pages_group.exam, user)
+    if direction == 1:
+        return accessible.filter(pk__gt=pages_group.pk).first()
+    return accessible.filter(pk__lt=pages_group.pk).last()
+
+
+
+def find_copy_position_in_group(copies_pages_list: list[dict], copy_no) -> int | None:
+    """
+    1-based position (the `currpage` of the review_group URL) of the first page of a copy in a group's
+    copies/pages list, or None when the copy has no page in that group. Copy numbers are compared as integers.
+    """
+    try:
+        target = int(copy_no)
+    except (TypeError, ValueError):
+        return None
+
+    for index, entry in enumerate(copies_pages_list, start=1):
+        try:
+            if int(entry["copy_no"]) == target:
+                return index
+        except (TypeError, ValueError, KeyError):
+            continue
+    return None
+
