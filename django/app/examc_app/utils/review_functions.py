@@ -643,12 +643,12 @@ def generate_marked_pdfs(
         pdf.set_margins(0, 0, 0)
 
         subdir_path = os.path.join(files_path, subdir)
-        for image in sorted(subdir_path):
+        for image in sorted(os.listdir(subdir_path)):
             if pathlib.Path(image).suffix.lower() not in IMAGE_EXTENSIONS:
                 continue
 
             pdf.add_page()
-            img_path = os.path.join(files_path, subdir, image)
+            img_path = os.path.join(subdir_path, image)
 
             # force image to sRGB if grayscale
             if is_grayscale(img_path):
@@ -671,7 +671,7 @@ def generate_marked_pdfs(
                     )
                     continue
 
-                rgb_path = os.path.join(files_path, subdir, "rgb" + image)
+                rgb_path = os.path.join(subdir_path, "rgb" + image)
                 cv2.imwrite(rgb_path, cv2.cvtColor(img, cv2.COLOR_GRAY2RGB))
                 img_path = rgb_path
 
