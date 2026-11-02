@@ -25,7 +25,6 @@ dependencies = [
     "fpdf2==2.8.9",
     "gunicorn==26.2.0",
     "img2pdf==0.6.3",
-    "ldap3==2.9.1",  # TODO : replace with more up-to-date python-ldap
     "mozilla-django-oidc==5.0.2",
     "mysqlclient==2.3.0",
     "num2words==0.5.14",
@@ -36,7 +35,7 @@ dependencies = [
     "pandocfilters==1.5.1",
     "pillow==13.0.0",
     "pypandoc==1.17",
-    "pypdf==6.21.2",
+    "pypdf==6.21.4",
     "python-dateutil==2.9.0.post0",
     "python-dotenv==1.2.4",
     "pytz==2026.5",
@@ -103,5 +102,5 @@ exclude-newer = "7 days"
 add-bounds = "exact"
 
 [tool.uv.exclude-newer-package]
-pypdf = "2026-10-26T00:00:00Z"
+pypdf = "2026-11-01T00:00:00Z"
 certifi = "2026-10-26T00:00:00Z"
