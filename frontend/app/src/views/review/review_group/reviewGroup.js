@@ -310,6 +310,11 @@ import { Tooltip } from 'bootstrap';
         if (currentPage < 1) currentPage = 1;
         if (currentPage > totalPages) currentPage = totalPages;
 
+        // manages URL changes
+        const url = new URL(window.location);
+        url.searchParams.set('page_id', currentPage);
+        history.replaceState(null, '', url);
+
         const container = document.getElementById("pagination");
         if (!container) return;
 
@@ -485,6 +490,7 @@ import { Tooltip } from 'bootstrap';
     function navigateStudentByOffset(offset) {
         const targetIndex = findStudentTargetIndex(offset);
         if (targetIndex === -1) return;
+
         createPagination(copiesPagesList.length, targetIndex + 1);
     }
 
@@ -1412,7 +1418,7 @@ import { Tooltip } from 'bootstrap';
         markedInfoEl.innerHTML = "";
         if (marked) {
             markedInfoEl.innerHTML =
-                '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
+                '<i class="fa-solid fa-circle-check fa-lg"></i>';
         }
     }
 
@@ -1716,11 +1722,11 @@ import { Tooltip } from 'bootstrap';
 
                 const usedLink = document.getElementById('review-scheme-link-' + activeId);
                 const usedName = usedLink ? usedLink.textContent.trim() : `#${activeId}`;
-                const msg = `This scheme can't be used because '${usedName}' is already used !`;
+                const msg = `This student is already graded with "${usedName}" for this question. Remove that grading to use this scheme.`;
                 const item = a.parentNode;
 
                 item.setAttribute('data-bs-toggle', 'tooltip');
-                item.setAttribute('data-bs-placement', 'top');
+                item.setAttribute('data-bs-placement', 'bottom');
                 item.setAttribute('data-bs-title', msg);
 
                 // Replace any previous tooltip, so it shows the current message
