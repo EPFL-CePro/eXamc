@@ -34,7 +34,7 @@ services:
   # MySQL (Docker Hardened Image: runs as nonroot, no shell)
   # ---------------------------------------------------------------------------
   mysql:
-    image: dhi.io/mysql:9.7
+    image: dhi.io/mysql:9.7.2
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       # Only used when initializing an empty data directory.
@@ -57,7 +57,7 @@ services:
   # Idempotent: safe to run on every `up`. Loads /seed/dev-seed.sql.gz only if it is
   # mounted (dev) and the database is still empty.
   mysql-init:
-    image: dhi.io/mysql:9.7-dev   # dev variant: has a shell; runs once and exits
+    image: dhi.io/mysql:9.7.2-dev   # dev variant: has a shell; runs once and exits
     depends_on:
       mysql:
         condition: service_healthy
@@ -91,7 +91,7 @@ services:
   #   examc:       full access, used by Django, Celery and Constance
   # ---------------------------------------------------------------------------
   redis:
-    image: dhi.io/redis:8.10
+    image: dhi.io/redis:8.10.3
     command: ["redis-server", "--aclfile", "/run/secrets/redis_acl"]
     secrets:
       - redis_acl
