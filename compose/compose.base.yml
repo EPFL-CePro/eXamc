@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
 
   # One-shot job replacing MYSQL_DATABASE / MYSQL_USER / docker-entrypoint-initdb.d.
-  # Idempotent: safe to run on every `up`. Loads /seed/dev-seed.sql.gz only if it is
+  # Idempotent: safe to run on every `up`. Loads /seed/dev-seed.sql only if it is
   # mounted (dev) and the database is still empty.
   mysql-init:
     image: dhi.io/mysql:9.7-dev   # dev variant: has a shell; runs once and exits
@@ -77,9 +77,9 @@ services:
           CREATE DATABASE IF NOT EXISTS \`$$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
           CREATE USER IF NOT EXISTS '$$APP_USER'@'%' IDENTIFIED BY '$$APP_PASSWORD';
           GRANT ALL PRIVILEGES ON \`$$DB_NAME\`.* TO '$$APP_USER'@'%';"
-        if [ -f /seed/dev-seed.sql.gz ] && [ "$$(mysql -h mysql -uroot -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$$DB_NAME'")" = "0" ]; then
+        if [ -f /seed/dev-seed.sql ] && [ "$$(mysql -h mysql -uroot -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$$DB_NAME'")" = "0" ]; then
           echo "Loading dev seed..."
-          gunzip -c /seed/dev-seed.sql.gz | mysql -h mysql -uroot "$$DB_NAME"
+          mysql -h mysql -uroot "$$DB_NAME" < /seed/dev-seed.sql
         fi
     restart: "no"
 
@@ -158,6 +158,8 @@ services:
       - redis_password
       - oidc_rp_client_id
       - oidc_rp_client_secret
+      - epfl_api_username
+      - epfl_api_password
       - tenant_id
       - oasis_base_url
       - oasis_bearer
@@ -178,6 +180,8 @@ services:
     extends:
       service: django
     environment:
+      MIGRATE: "0"
+      COLLECTSTATIC: "0"
       CELERY_LOGLEVEL: "INFO"
       CELERY_CONCURRENCY: "4"
     command: celery -A examc worker --loglevel=INFO --pidfile=/tmp/celery.pid
@@ -192,6 +196,8 @@ services:
     extends:
       service: django
     environment:
+      MIGRATE: "0"
+      COLLECTSTATIC: "0"
       CELERY_LOGLEVEL: "INFO"
     command: >
       celery -A examc beat --loglevel=INFO

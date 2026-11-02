@@ -61,7 +61,7 @@ Users
 ^^^^^
 The **Users** section manages exam access. Existing users can be removed or assigned another role. New users are added by searching for their email address.
 
-The search uses both the LDAP directory and the application database. If the user is not an EPFL member, contact the eXamc administrator.
+The search uses both the Online People Directory and the application database. If the user is not an EPFL member, contact the eXamc administrator.
 
 Roles determine which sidebar modules and actions are available to the user.
 

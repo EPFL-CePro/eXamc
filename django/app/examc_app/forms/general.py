@@ -1,4 +1,4 @@
-from typing import Any, Collection
+from typing import Any, Collection, ClassVar
 
 from django import forms
 from django.utils.safestring import mark_safe
@@ -85,3 +85,18 @@ class SelectWithDisabledOptions(forms.Select):
         if not selected and str(value) in self.disabled_values:
             option["attrs"]["disabled"] = True
         return option
+
+class FileInputWidget(forms.FileInput):
+    """
+    Usage: FileInputWidget(accept=[".xlsx"]), FileInputWidget(accept=["image/*"], size="sm")
+    """
+
+    SIZES: ClassVar = {"sm": "form-control-sm", "lg": "form-control-lg"}
+
+    def __init__(self, attrs=None, accept: Collection[str] = (), size: str | None = None) -> None:
+        attrs = dict(attrs or {})
+        classes = ["form-control", attrs.pop("class", ""), self.SIZES.get(size or "", "")]
+        attrs["class"] = " ".join(c for c in classes if c)
+        if accept:
+            attrs["accept"] = ",".join(accept)
+        super().__init__(attrs)

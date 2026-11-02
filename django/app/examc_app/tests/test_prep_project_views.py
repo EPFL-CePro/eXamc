@@ -143,14 +143,14 @@ class CreateExamProjectTestCase(PrepViewsTestCase):
         teacher = User.objects.create(username="ada", first_name="Ada", last_name="Lovelace", email="ada@epfl.ch")
         Group.objects.get_or_create(pk=2, defaults={"name": "teacher"})
 
-        with patch("examc_app.views.preparation.project.add_course_teachers_ldap", return_value=[teacher]) as ldap:
+        with patch("examc_app.views.preparation.project.add_course_teachers", return_value=[teacher]) as add_course_teacher:
             response = self.post()
 
         exam = Exam.objects.get(code="MATH-101")
         self.assertRedirects(response, reverse("exam_info", kwargs={"exam_pk": exam.pk}), fetch_redirect_response=False)
         self.assertEqual((exam.name, exam.date, exam.semester, exam.year),
                          ("Analyse I", date(2026, 6, 20), self.exam.semester, self.exam.year))
-        ldap.assert_called_once_with(["123456"])
+        add_course_teacher.assert_called_once_with(["123456"])
         self.assertEqual(list(ExamUser.objects.filter(exam=exam).values_list("user__username", "group_id")),
                          [("ada", 2)])
         self.assertTrue((Path(ensure_amc_project(exam)) / "exam.tex").exists())
@@ -159,7 +159,7 @@ class CreateExamProjectTestCase(PrepViewsTestCase):
         Exam.objects.create(code="MATH-101", name="Analyse I", semester=self.exam.semester, year=self.exam.year,
                             date=date(2026, 6, 20))
 
-        with patch("examc_app.views.preparation.project.add_course_teachers_ldap", return_value=[]):
+        with patch("examc_app.views.preparation.project.add_course_teachers", return_value=[]):
             response = self.post()
 
         self.assertEqual(response.status_code, 200)
@@ -167,7 +167,7 @@ class CreateExamProjectTestCase(PrepViewsTestCase):
         self.assertEqual(Exam.objects.filter(code="MATH-101").count(), 1)
 
     def test_a_course_that_is_not_offered_is_refused(self):
-        with patch("examc_app.views.preparation.project.add_course_teachers_ldap", return_value=[]):
+        with patch("examc_app.views.preparation.project.add_course_teachers", return_value=[]):
             response = self.post(course="NOPE-000")
 
         self.assertEqual(response.status_code, 200)

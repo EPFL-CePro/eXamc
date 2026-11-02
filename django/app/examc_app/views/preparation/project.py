@@ -15,7 +15,7 @@ from examc_app.forms.preparation import CreateExamProjectForm, ExamFirstPageForm
 from examc_app.models import AcademicYear, Exam, ExamUser, Semester
 from examc_app.services.oasis import get_courses, get_teachers_names_by_course
 from examc_app.signing import make_token_for
-from examc_app.utils.global_functions import add_course_teachers_ldap
+from examc_app.utils.global_functions import add_course_teachers
 from examc_app.utils.preparation_functions import (
     build_sections_list_context,
     ensure_exam_not_finalized,
@@ -110,7 +110,7 @@ def create_exam_project(request):
         semester_id = form.cleaned_data['semester']
 
         semester = Semester.objects.get(pk=semester_id)
-        teachers = add_course_teachers_ldap(teacher_scipers)
+        teachers = add_course_teachers(teacher_scipers)
 
         exam = Exam()
         exam.code = course_code

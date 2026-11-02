@@ -341,7 +341,11 @@ LOGOUT_REDIRECT_URL = "/"
 OIDC_SUPERUSER_GROUPS = [group for group in env("OIDC_SUPERUSER_GROUPS", "CePro_admin_IT_AppGrpU").split(",") if group]
 OIDC_STAFF_GROUPS = [group for group in env("OIDC_STAFF_GROUPS", "CePro_admin_IT_AppGrpU").split(",") if group]
 
-# OASIS
+# EPFL - api.epfl.ch API
+EPFL_API_USERNAME = secret("epfl_api_username", "")
+EPFL_API_PASSWORD = secret("epfl_api_password", "")
+
+# EPFL - Oasis API
 OASIS_BASE_URL = (secret("oasis_base_url", "") or "").rstrip("/")
 OASIS_BEARER = secret("oasis_bearer", "")
 

@@ -69,11 +69,11 @@ import { Tooltip } from 'bootstrap';
     /** Coordinates for corrector boxes, each item is {x, y, corner}. */
     let correctorBoxesData = [];
 
-    /** Magnifier on/off state. */
-    let magnifierActive = false;
-
-    /** Function that destroys the current magnifier, if any. */
-    let destroyMagnifierFn = null;
+    /** Zoom of the marker area (1 = fit width). Kept across pages. */
+    let currentZoom = 1;
+    const ZOOM_STEP = 0.25;
+    const ZOOM_MIN = 0.5;
+    const ZOOM_MAX = 4;
 
     // ---------------------------------------------------------------------------
     // Marker.js setup
@@ -210,6 +210,7 @@ import { Tooltip } from 'bootstrap';
         }
 
         const mounted = mountCorrBoxOverlayInStage();
+        applyZoom();
 
         if (mounted && correctorBoxesData?.length) {
             drawCorrectorBoxes();
@@ -309,6 +310,11 @@ import { Tooltip } from 'bootstrap';
         let currentPage = Number(page) || 1;
         if (currentPage < 1) currentPage = 1;
         if (currentPage > totalPages) currentPage = totalPages;
+
+        // manages URL changes
+        const url = new URL(window.location);
+        url.searchParams.set('page_id', currentPage);
+        history.replaceState(null, '', url);
 
         const container = document.getElementById("pagination");
         if (!container) return;
@@ -485,6 +491,7 @@ import { Tooltip } from 'bootstrap';
     function navigateStudentByOffset(offset) {
         const targetIndex = findStudentTargetIndex(offset);
         if (targetIndex === -1) return;
+
         createPagination(copiesPagesList.length, targetIndex + 1);
     }
 
@@ -1412,7 +1419,7 @@ import { Tooltip } from 'bootstrap';
         markedInfoEl.innerHTML = "";
         if (marked) {
             markedInfoEl.innerHTML =
-                '<i class="fa-solid fa-circle-check fa-lg" style="padding-left:25px;">';
+                '<i class="fa-solid fa-circle-check fa-lg"></i>';
         }
     }
 
@@ -1605,99 +1612,80 @@ import { Tooltip } from 'bootstrap';
     });
 
     // ---------------------------------------------------------------------------
-    // Magnifier (zoom glass)
+    // Zoom (+ / - buttons)
     // ---------------------------------------------------------------------------
 
     /**
-     * Create a magnifier glass over given element.
-     *
-     * @param {string} elementID - Id of the element to attach magnifier to.
-     * @param {number} zoom      - Zoom factor.
-     * @returns {Function} destroyMagnifier - Cleanup function.
+     * Apply the current zoom to the MarkerArea. The corrector boxes overlay lives inside
+     * the markerjs transformed stage, so it is scaled together with the image/markers.
      */
-    function createDivMagnifier(elementID, zoom) {
-        const elem = document.getElementById(elementID);
-
-        const glass = document.createElement("div");
-        glass.classList.add("magnifier-glass");
-        elem.parentElement.insertBefore(glass, elem);
-
-        glass.style.backgroundImage = `url('${sourceImage.src}')`;
-        glass.style.backgroundRepeat = "no-repeat";
-        glass.style.backgroundSize =
-            (markerArea.targetWidth * zoom) + "px " + (markerArea.targetHeight * zoom) + "px";
-
-        const borderWidth = 3;
-        const halfWidth = glass.offsetWidth / 2;
-        const halfHeight = glass.offsetHeight / 2;
-
-        function getCursorPos(e) {
-            e = e || window.event;
-            const rect = elem.getBoundingClientRect();
-            const x = e.pageX - rect.left - window.pageXOffset;
-            const y = e.pageY - rect.top - window.pageYOffset;
-            return {x, y};
-        }
-
-        function moveMagnifier(e) {
-            e.preventDefault();
-            const pos = getCursorPos(e);
-            let x = pos.x;
-            let y = pos.y;
-
-            if (x > elem.offsetWidth - halfWidth / zoom) x = elem.offsetWidth - halfWidth / zoom;
-            if (x < halfWidth / zoom) x = halfWidth / zoom;
-            if (y > elem.offsetHeight - halfHeight / zoom) y = elem.offsetHeight - halfHeight / zoom;
-            if (y < halfHeight / zoom) y = halfHeight / zoom;
-
-            glass.style.left = (x - halfWidth) + "px";
-            glass.style.top = (y - halfHeight) + "px";
-
-            glass.style.backgroundPosition =
-                "-" + ((x * zoom) - halfWidth + borderWidth) + "px " +
-                "-" + ((y * zoom) - halfHeight + borderWidth) + "px";
-        }
-
-        elem.addEventListener("mousemove", moveMagnifier);
-        elem.addEventListener("touchmove", moveMagnifier);
-        elem.addEventListener("mouseenter", (e) => moveMagnifier(e));
-
-        return function destroyMagnifier() {
-            elem.removeEventListener("mousemove", moveMagnifier);
-            elem.removeEventListener("touchmove", moveMagnifier);
-            glass.remove();
-        };
+    function applyZoom() {
+        markerArea.zoomLevel = currentZoom;
+        const label = document.getElementById('btn-zoom-reset');
+        if (label) label.textContent = `${Math.round(currentZoom * 100)}%`;
     }
 
-    // Toggle magnifier button
-    document.getElementById("btn-magnify").addEventListener("click", function () {
-        if (!magnifierActive) {
-            destroyMagnifierFn = createDivMagnifier("marker-wrapper", 2);
-            magnifierActive = true;
-            document.getElementById("magnify-help").classList.remove("d-none");
-        } else {
-            if (destroyMagnifierFn) destroyMagnifierFn();
-            magnifierActive = false;
-            document.getElementById("magnify-help").classList.add("d-none");
+    /** @param {number} zoom - New zoom level (clamped). */
+    function setZoom(zoom) {
+        currentZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(zoom * 100) / 100));
+        applyZoom();
+    }
+
+    // Pan tool ("hand"): drag the zoomed image with mouse/finger, no wheel needed.
+    // The zoom is a CSS scale, so the wrapper has nothing to scroll: we move markerjs' own
+    // pan offsets (private _panX/_panY + applyTransform(), guarded below). Capture phase on
+    // the wrapper so markers are not created/moved while panning.
+    const panButton = document.getElementById('btn-pan');
+    let panMode = false;
+    let panLast = null;
+
+    function setPanMode(on) {
+        panMode = on;
+        panButton.classList.toggle('active', on);
+        markerWrapper.style.cursor = on ? 'grab' : '';
+        if (on) {
+            markerArea.switchToSelectMode?.();
         }
-    });
+    }
 
-    // Disable magnifier when clicking outside
-    document.addEventListener("click", function (e) {
-        if (!magnifierActive) return;
+    panButton.addEventListener('click', () => setPanMode(!panMode));
+    // Picking any marker tool leaves the pan mode
+    for (const btn of [pointerButton, textMarkerButton, frameMarkerButton, freehandMarkerButton]) {
+        btn?.addEventListener('click', () => setPanMode(false));
+    }
 
-        const zoomElem = document.getElementById("marker-wrapper");
-        const magnifyBtn = document.getElementById("btn-magnify");
-        const clicked = e.target;
+    markerWrapper.addEventListener('pointerdown', (e) => {
+        if (!panMode || typeof markerArea.applyTransform !== 'function') return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        panLast = {x: e.clientX, y: e.clientY};
+        markerWrapper.setPointerCapture(e.pointerId);
+        markerWrapper.style.cursor = 'grabbing';
+    }, {capture: true});
 
-        if (zoomElem.contains(clicked) || magnifyBtn.contains(clicked)) {
-            return;
-        }
+    markerWrapper.addEventListener('pointermove', (e) => {
+        if (!panLast) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        markerArea._panX += e.clientX - panLast.x;
+        markerArea._panY += e.clientY - panLast.y;
+        panLast = {x: e.clientX, y: e.clientY};
+        markerArea.applyTransform();
+    }, {capture: true});
 
-        if (destroyMagnifierFn) destroyMagnifierFn();
-        magnifierActive = false;
-        document.getElementById("magnify-help").classList.add("d-none");
-    });
+    function endPan(e) {
+        if (!panLast) return;
+        e.stopImmediatePropagation();
+        panLast = null;
+        markerWrapper.style.cursor = panMode ? 'grab' : '';
+    }
+
+    markerWrapper.addEventListener('pointerup', endPan, {capture: true});
+    markerWrapper.addEventListener('pointercancel', endPan, {capture: true});
+
+    document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(currentZoom + ZOOM_STEP));
+    document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(currentZoom - ZOOM_STEP));
+    document.getElementById('btn-zoom-reset').addEventListener('click', () => setZoom(1));
 
     // ---------------------------------------------------------------------------
     // Grading schemes (pills + checkboxes + HTMX panel)
@@ -1716,11 +1704,11 @@ import { Tooltip } from 'bootstrap';
 
                 const usedLink = document.getElementById('review-scheme-link-' + activeId);
                 const usedName = usedLink ? usedLink.textContent.trim() : `#${activeId}`;
-                const msg = `This scheme can't be used because '${usedName}' is already used !`;
+                const msg = `This student is already graded with "${usedName}" for this question. Remove that grading to use this scheme.`;
                 const item = a.parentNode;
 
                 item.setAttribute('data-bs-toggle', 'tooltip');
-                item.setAttribute('data-bs-placement', 'top');
+                item.setAttribute('data-bs-placement', 'bottom');
                 item.setAttribute('data-bs-title', msg);
 
                 // Replace any previous tooltip, so it shows the current message

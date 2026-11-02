@@ -34,10 +34,11 @@ from examc_app.models import (
     Scale,
     Semester,
 )
+from examc_app.services.epfl_api.people.search import get_person_by_identifier
+from examc_app.services.epfl_api.utils import EpflApiException
 from examc_app.services.exam.common import build_overall_exam_code
 from examc_app.services.exam.paths import get_exam_subdir, update_exam_folders
 from examc_app.tasks import generate_statistics
-from examc_app.utils.epflldap import ldap_search
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.results_statistics_functions import (
     update_common_exams_questions,
@@ -119,12 +120,12 @@ class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
 
 @exam_permission_required(['manage'])
 @require_POST
-def ldap_search_exam_user_by_email(request, exam_pk: int):
+def search_exam_user(request: HttpRequest, exam_pk: int):
     """
-    Search in LDAP by email.
+    Search EPFL Persons API by email.
 
-    This function is used to search for a new reviewer in the ldap database. The email of the reviewer will
-    give the complete name of the user and his email.
+    This function is used to search for a new reviewer in the api.epfl.ch/persons database. The email of the reviewer
+    will give the complete name of the user and his email.
 
     Args:
         request: The HTTP request object containing the email address ('email') and the exam ID ('pk').
@@ -140,14 +141,24 @@ def ldap_search_exam_user_by_email(request, exam_pk: int):
 
     django_user = User.objects.filter(email=email).first()
     if django_user:
-        entry_str = f"{django_user.username};{django_user.first_name};{django_user.last_name};{email}"
-        return HttpResponse(entry_str)
+        entry_str = f"{django_user.username};{django_user.first_name};{django_user.last_name};{django_user.email}"
+        return HttpResponse(entry_str, content_type="text/plain; charset=utf-8")
 
-    user_entry = ldap_search.get_entry(email, 'mail')
+    try:
+        user_entry = get_person_by_identifier(email)
+    except EpflApiException:
+        logger.exception("EPFL API unreachable while searching exam user %s", email)
+        return JsonResponse(
+            {
+                "error": "directory_unavailable",
+                "message": "The EPFL directory can't be reached, please try again later.",
+            },
+            status=503,
+        )
+
     if user_entry:
-        entry_str = user_entry['uniqueidentifier'][0] + ";"  + user_entry['givenName'][0] + ";" + user_entry['sn'][
-            0] + ";" + email
-        return HttpResponse(entry_str)
+        entry_str = f"{user_entry.sciper or user_entry.id};{user_entry.firstname};{user_entry.lastname};{user_entry.email}"
+        return HttpResponse(entry_str, content_type="text/plain; charset=utf-8")
     else:
         return JsonResponse(
             {"error": "not_found"},

@@ -322,9 +322,7 @@ class TestReviewGroupView(TestCase):
                 "review_group",
                 kwargs={
                     "exam_pk": self.exam.pk,
-                    "group_pk": self.pages_group.pk,
-                    "currpage": 1,
-                    "current_grading_scheme": 0,
+                    "group_pk": self.pages_group.pk
                 },
             )
         )
