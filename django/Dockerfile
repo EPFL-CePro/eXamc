@@ -6,6 +6,24 @@ FROM dhi.io/uv:0.13.6-debian13-dev AS base
 
 
 # =========================
+# TECTONIC: official release binary, verified against a pinned SHA-256
+# =========================
+FROM base AS tectonic
+
+# Update both together: https://github.com/tectonic-typesetting/tectonic/releases
+# The SHA256 of the file tectonic-<TECTONIC_VERSION>-x86_64-unknown-linux-musl.tar.gz
+# a GitHub action runs every monday looking for new versions, and does a pull request if one is found
+ARG TECTONIC_VERSION=0.16.9
+ARG TECTONIC_SHA256=60b13a0826ae7ad9ce34b4a2df06bff2cfcfa6dda8a915477c0cbb84e1a4a902
+
+# Downloaded, checked against the SHA-256 (the build fails on a mismatch), and unpacked by BuildKit
+ADD --checksum=sha256:${TECTONIC_SHA256} --unpack=true \
+    "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40${TECTONIC_VERSION}/tectonic-${TECTONIC_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+    /opt/tectonic/
+
+RUN /opt/tectonic/tectonic --version
+
+# =========================
 # UV BASE: uv, build deps and lockfile, shared by both builders
 # =========================
 FROM base AS uv-base
@@ -78,31 +96,29 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# get the tectonic binary from its stage
+COPY --from=tectonic /opt/tectonic/tectonic /usr/local/bin/tectonic
+
 # cm-super: Type 1 (vector) versions of the EC fonts used by the exams (fontenc T1). Only recommended by
 # texlive-fonts-extra, so not installed with --no-install-recommends: pdflatex then generated bitmap fonts
 # with METAFONT at each worker start.
+COPY amc-dummy.control /tmp/amc-dummy/DEBIAN/control
+
 RUN set -eux; \
+    # Empty package providing AMC's unused dependencies (see amc-dummy.control)
+    dpkg-deb --build /tmp/amc-dummy /tmp/amc-dummy.deb; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        libmariadb3 libzbar0 tzdata ca-certificates curl gnupg \
-        libgl1 libglib2.0-0 libsm6 libxext6 mariadb-client \
-        fonts-dejavu-core fonts-liberation fonts-noto-core \
+        /tmp/amc-dummy.deb \
+        libmariadb3 libzbar0 tzdata ca-certificates curl \
+        libglib2.0-0 \
+        fonts-dejavu-core \
         auto-multiple-choice \
-        texlive-xetex \
-        texlive-latex-recommended \
-        texlive-latex-extra \
-        texlive-fonts-recommended \
-        texlive-fonts-extra \
-        cm-super \
-        lmodern \
-        texlive-lang-european \
-        texlive-lang-french \
-        latexmk \
         ghostscript \
-        poppler-utils \
-        pandoc; \
+        poppler-utils; \
+    rm -rf /tmp/amc-dummy /tmp/amc-dummy.deb; \
     test -x /usr/bin/auto-multiple-choice; \
-    test -x /usr/bin/pandoc; \
+    ! dpkg -l | grep -qE '^ii +(texlive-|libgtk-3)'; \
     ldconfig; \
     rm -rf /var/lib/apt/lists/*
 

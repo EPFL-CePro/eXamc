@@ -1,0 +1,9 @@
+Package: examc-amc-dummy
+Version: 1.0
+Architecture: all
+Maintainer: eXamc <cepro-exams@epfl.ch>
+Provides: texlive-fonts-extra, texlive-fonts-recommended, texlive-latex-base,
+ texlive-latex-extra, texlive-latex-recommended,
+ libgtk3-perl, gnome-icon-theme-symbolic, librsvg2-common
+Description: dependencies of auto-multiple-choice that eXamc doesn't need
+ TeX Live (eXamc compiles with Tectonic) and the GTK interface (never displayed).

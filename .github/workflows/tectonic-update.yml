@@ -1,0 +1,91 @@
+# Opens a PR on main when a new Tectonic release is out: new version and checksum in django/Dockerfile
+
+name: Tectonic update
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday
+  workflow_dispatch:
+
+permissions:
+  contents: write       # push the deps/tectonic branch
+  pull-requests: write  # open or update the PR
+  actions: write        # start CI on the PR branch
+
+env:
+  BASE_BRANCH: experiment/replace-texlive-by-tectonic # TODO, change to main when the changes are merged
+  PR_BRANCH: deps/tectonic
+  CI_WORKFLOW: docker-build-test-and-push.yml
+  DOCKERFILE: django/Dockerfile
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.BASE_BRANCH }} # the branch the PR targets
+
+      - name: Find the latest release and its checksum
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # The release GitHub marks as "Latest" (tag tectonic@<version>)
+          release=$(gh release view --repo tectonic-typesetting/tectonic --json tagName,assets)
+          tag=$(jq -r .tagName <<<"$release")
+          version="${tag#tectonic@}"
+
+          # The Linux x86_64 musl archive
+          asset=$(jq -c '.assets[] | select(.name | test("x86_64-unknown-linux-musl\\.tar\\.gz$"))' <<<"$release")
+          if [ -z "$asset" ]; then
+            echo "No x86_64-unknown-linux-musl.tar.gz asset in ${tag}" >&2
+            exit 1
+          fi
+          url=$(jq -r .url <<<"$asset")
+          published=$(jq -r '.digest // empty' <<<"$asset")
+
+          sha=$(curl -fsSL "$url" | sha256sum | cut -d' ' -f1)
+          if [ -n "$published" ] && [ "$published" != "sha256:${sha}" ]; then
+            echo "Checksum mismatch: downloaded ${sha}, GitHub publishes ${published}" >&2
+            exit 1
+          fi
+
+          # Both lines must exist, or sed would silently change nothing
+          grep -q '^ARG TECTONIC_VERSION=' "$DOCKERFILE"
+          grep -q '^ARG TECTONIC_SHA256=' "$DOCKERFILE"
+
+          sed -i \
+            -e "s/^ARG TECTONIC_VERSION=.*/ARG TECTONIC_VERSION=${version}/" \
+            -e "s/^ARG TECTONIC_SHA256=.*/ARG TECTONIC_SHA256=${sha}/" \
+            "$DOCKERFILE"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - uses: peter-evans/create-pull-request@v7
+        id: pr
+        with:
+          # No token: the run's GITHUB_TOKEN
+          branch: ${{ env.PR_BRANCH }}
+          base: ${{ env.BASE_BRANCH }}
+          title: "Bump Tectonic to ${{ steps.latest.outputs.version }}"
+          commit-message: "build(django): bump Tectonic to ${{ steps.latest.outputs.version }}"
+          body: |
+            New Tectonic release: https://github.com/tectonic-typesetting/tectonic/releases/tag/${{ steps.latest.outputs.tag }}
+
+            SHA-256 of `tectonic-${{ steps.latest.outputs.version }}-x86_64-unknown-linux-musl.tar.gz`: `${{ steps.latest.outputs.sha }}`
+            (computed from the download, and checked against GitHub's digest when it publishes one).
+
+            CI was started on this branch by the workflow: see its run in the checks below, or in Actions.
+          delete-branch: true
+
+      # PRs opened with GITHUB_TOKEN don't trigger `pull_request` CI: start it explicitly
+      - name: Start CI on the PR branch
+        if: steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run "$CI_WORKFLOW" --ref "$PR_BRANCH"
