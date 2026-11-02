@@ -454,19 +454,19 @@ def delete_old_scans(exam):
     scans_dir = str(get_exam_scans_dir(exam))
     marked_scans_dir = str(get_exam_marked_scans_dir(exam))
 
-    for d in [scans_dir, marked_scans_dir]:
-        if not os.path.exists(d): continue
+    for directory in (scans_dir, marked_scans_dir):
+        if not os.path.exists(directory):
+            continue
 
-        for filename in os.listdir(d):
-            file_path = os.path.join(scans_dir, filename)
-
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
             try:
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     os.unlink(file_path)
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
-            except Exception as e:
-                logger.error(f'Failed to delete {file_path}. Reason: {e}')
+            except OSError:
+                logger.exception("Failed to delete %s", file_path)
 
 
 #### TESTING DISPLAYING FULL COPY JPGS ####
@@ -619,7 +619,7 @@ def generate_marked_pdfs(
         exam: Exam,
         files_path: Path,
         progress_recorder: ProgressRecorder,
-        with_comments: bool | int = False
+        with_comments: bool = False
 ):
     unreadable: list[str] = []
 
@@ -641,7 +641,9 @@ def generate_marked_pdfs(
         pdf = FPDF(orientation='P', unit='mm', format='A4')
         pdf.set_auto_page_break(False)
         pdf.set_margins(0, 0, 0)
-        for image in sorted(os.listdir(files_path + "/" + subdir)):
+
+        subdir_path = os.path.join(files_path, subdir)
+        for image in sorted(subdir_path):
             if pathlib.Path(image).suffix.lower() not in IMAGE_EXTENSIONS:
                 continue
 
@@ -675,7 +677,7 @@ def generate_marked_pdfs(
 
             pdf.image(img_path, w=pdf.epw)
 
-        if with_comments == '1' or with_comments == True:
+        if with_comments:
             pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam, copy_no=subdir).order_by(
                 'copy_no', 'pages_group__group_name', 'parent_id')
             if pages_comments:

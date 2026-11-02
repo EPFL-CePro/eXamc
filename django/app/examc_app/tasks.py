@@ -352,7 +352,7 @@ def import_exam_scans(self, zip_file_path, exam_pk: int, delete_old):
     return 'upload_scans_ok'
 
 @shared_task(bind=True)
-def generate_marked_files_zip(self, exam_pk: int,  export_type, with_comments):
+def generate_marked_files_zip(self, exam_pk: int,  export_type, with_comments: bool):
     try:
         exam = Exam.objects.get(pk=exam_pk)
         scans_dir = str(get_exam_scans_dir(exam))
@@ -416,7 +416,8 @@ def generate_marked_files_zip(self, exam_pk: int,  export_type, with_comments):
                     shutil.rmtree(os.path.join(root, name))
 
         # zip folder
-        zipf = zipfile.ZipFile(export_tmp_dir / ".zip", 'w', zipfile.ZIP_DEFLATED)
+        zip_path = export_tmp_dir.parent / f"{export_tmp_dir.name}.zip"
+        zipf = zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED)
         zipdir(export_tmp_dir, zipf)
         zipf.close()
 
