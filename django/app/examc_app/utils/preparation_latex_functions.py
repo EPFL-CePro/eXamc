@@ -6,8 +6,8 @@ from functools import lru_cache
 from pathlib import Path
 
 import pypandoc
-
 from django.conf import settings
+
 from examc_app.models import (
     BOX_TYPE_CHOICES,
     Exam,

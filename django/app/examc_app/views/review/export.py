@@ -36,12 +36,16 @@ def generate_marked_files(
             form = ExportMarkedFilesForm(request.POST, exam=exam)
 
             if form.is_valid():
+                # From the validated form: an unticked checkbox isn't in request.POST at all
+                export_type = int(form.cleaned_data["export_type"])
+                with_comments = form.cleaned_data.get("with_comments") in (True, "1", "True", "true", "on")
+
                 task = generate_marked_files_zip.delay(
-                    exam.pk, request.POST["export_type"], request.POST["with_comments"]
+                    exam.pk, export_type, with_comments
                 )
                 task_id = task.task_id
 
-                form = ExportMarkedFilesForm()
+                form = ExportMarkedFilesForm(exam=exam)
 
                 exam_selected = exam
                 exam = exam.get_overall_exam_or_default()

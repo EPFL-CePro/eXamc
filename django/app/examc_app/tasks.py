@@ -352,7 +352,7 @@ def import_exam_scans(self, zip_file_path, exam_pk: int, delete_old):
     return 'upload_scans_ok'
 
 @shared_task(bind=True)
-def generate_marked_files_zip(self,exam_pk: int,  export_type, with_comments):
+def generate_marked_files_zip(self, exam_pk: int,  export_type, with_comments: bool):
     try:
         exam = Exam.objects.get(pk=exam_pk)
         scans_dir = str(get_exam_scans_dir(exam))
@@ -360,7 +360,7 @@ def generate_marked_files_zip(self,exam_pk: int,  export_type, with_comments):
         task_token = str(self.request.id or uuid.uuid4()).replace("-", "")
         export_subdir = 'marked_'+str(exam.year.code) + "_" + str(exam.semester.code) + "_" + exam.code + "_" + datetime.now().strftime('%Y%m%d%H%M%S%f') + "_" + task_token[:12]
         export_subdir = export_subdir.replace(" ","_")
-        export_tmp_dir = (str(settings.EXPORT_TMP_ROOT) + "/" + export_subdir)
+        export_tmp_dir = pathlib.Path(f"{settings.EXPORT_TMP_ROOT}/{export_subdir}")
 
         progress_recorder = ProgressRecorder(self)
 
@@ -378,40 +378,50 @@ def generate_marked_files_zip(self,exam_pk: int,  export_type, with_comments):
 
         # list files from normal copy scan dirs
         for dir_entry in iter_review_copy_dirs(scans_dir):
-            dir = dir_entry.name
+            d = dir_entry.name
 
-            copy_export_subdir = export_tmp_dir + "/" + dir
+            copy_export_subdir = f"{export_tmp_dir}/{d}"
 
             if not os.path.exists(copy_export_subdir):
                 os.mkdir(copy_export_subdir)
 
-            for filename in sorted(os.listdir(scans_dir + "/" + dir)):
+            for filename in sorted(os.listdir(f"{scans_dir}/{d}")):
                 if pathlib.Path(filename).suffix.lower() not in IMAGE_EXTENSIONS:
                     continue
 
                 # check if a marked file exist, if yes copy it, or copy original scans
 
                 scan_filename = pathlib.Path(filename)
-                marked_file_path = pathlib.Path(marked_dir) / dir / f"marked_{scan_filename.stem}.png"
+                marked_file_path = pathlib.Path(f"{marked_dir}/{d}/marked_{scan_filename.stem}.png")
+                
                 if os.path.exists(marked_file_path):
-                    shutil.copyfile(marked_file_path, copy_export_subdir + "/" + scan_filename.with_suffix(".png").name)
+                    shutil.copyfile(marked_file_path, f"{copy_export_subdir}/{scan_filename.with_suffix(".png").name}")
                 else:
-                    shutil.copyfile(scans_dir + "/" + dir + "/" + filename, copy_export_subdir + "/" + filename)
+                    shutil.copyfile(
+                        f"{scans_dir}/{d}/{filename}",
+                        f"{copy_export_subdir}/{filename}",
+                    )
 
         if int(export_type) > 1:
-            generate_marked_pdfs(exam,export_tmp_dir, with_comments, progress_recorder)
+            generate_marked_pdfs(
+                exam=exam,
+                files_path=export_tmp_dir,
+                progress_recorder=progress_recorder,
+                with_comments=with_comments
+            )
 
-            #remove subfolders with img
+            # remove subfolders with img
             for root, dirs, files in os.walk(export_tmp_dir):
                 for name in dirs:
                     shutil.rmtree(os.path.join(root, name))
 
         # zip folder
-        zipf = zipfile.ZipFile(export_tmp_dir + ".zip", 'w', zipfile.ZIP_DEFLATED)
+        zip_path = export_tmp_dir.parent / f"{export_tmp_dir.name}.zip"
+        zipf = zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED)
         zipdir(export_tmp_dir, zipf)
         zipf.close()
 
-        #remove tmp folder not zipped
+        # remove tmp folder not zipped
         shutil.rmtree(export_tmp_dir)
 
         return export_subdir+'.zip'
