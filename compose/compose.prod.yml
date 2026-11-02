@@ -87,6 +87,8 @@ secrets:
   redis_acl:             { file: "${SECRETS_DIR:?set SECRETS_DIR}/redis_acl" }
   oidc_rp_client_id:     { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_id" }
   oidc_rp_client_secret: { file: "${SECRETS_DIR:?set SECRETS_DIR}/oidc_rp_client_secret" }
+  epfl_api_password:     { file: "${SECRETS_DIR:?set SECRETS_DIR}/epfl_api_password" }
+  epfl_api_username:     { file: "${SECRETS_DIR:?set SECRETS_DIR}/epfl_api_username" }
   tenant_id:             { file: "${SECRETS_DIR:?set SECRETS_DIR}/tenant_id" }
   oasis_base_url:        { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_base_url" }
   oasis_bearer:          { file: "${SECRETS_DIR:?set SECRETS_DIR}/oasis_bearer" }
