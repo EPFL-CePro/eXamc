@@ -47,7 +47,7 @@ TARGET_URL_NAMES = {
     "save_pages_group_student_report_note",
     "update_pages_group_check_box",
     # exam_views.py
-    "ldap_search_exam_user_by_email",
+    "search_exam_user",
     "update_exam_users",
     "update_exam_info",
     "delete_exam_scale",

@@ -17,7 +17,7 @@
                  data-update-info-url="{% url 'update_exam_info' comex.pk %}"
                  data-update-options-url="{% url 'update_exam_options' comex.pk %}"
                  data-update-questions-url="{% url 'update_questions' comex.pk %}"
-                 data-ldap-search-url="{% url 'ldap_search_exam_user_by_email' comex.pk %}"
+                 data-persons-api-search-url="{% url 'search_exam_user' comex.pk %}"
                  data-update-users-url="{% url 'update_exam_users' comex.pk %}"
                  data-create-scale-url="{% url 'create_scale' comex.pk %}"
                  data-catalog-url="{% url 'catalog_pdf' comex.pk %}"
@@ -468,14 +468,14 @@
                                     {% endfor %}
                                 </ul>
 
-                                <form id="ldap-search-form">
+                                <form id="persons-api-search-form">
                                     <div class="input-group">
                                         <div class="input-group-text">
-                                            <label for="ldap-email">Add users to the exam</label>
+                                            <label for="persons-api-email">Add users to the exam</label>
                                         </div>
-                                        <input id="ldap-email" type="email" class="form-control"
-                                               placeholder="New user's email"
-                                               aria-label="New user's email" required>
+                                        <input id="persons-api-email" type="email" class="form-control"
+                                               placeholder="User's email"
+                                               aria-label="User's email" required>
                                         <button type="submit" class="btn btn-dark">
                                             <i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Search
                                         </button>

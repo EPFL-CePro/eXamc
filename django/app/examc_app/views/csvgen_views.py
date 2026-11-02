@@ -12,25 +12,28 @@ from django.core.files.uploadedfile import UploadedFile
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from examc_app.utils.epflldap import ldap_search
+from examc_app.services.epfl_api.people.models import EpflApiPerson
+from examc_app.services.epfl_api.people.search import (
+    get_person_by_identifier,
+)
+from examc_app.services.epfl_api.utils import EpflApiException
 
 # ---------------------------------------------------------------------------
 # Types
 # ---------------------------------------------------------------------------
 
-LdapEntry = Mapping[str, Sequence[str]]
 StudentRow = dict[str, Any]
 StudentsFile = UploadedFile | list[dict[str, Any]]
 ColumnCheck = bool | None
 
 
-class Person(TypedDict):
+class CsvGenViewPerson(TypedDict):
     first_name: str
     last_name: str
     email: str
 
 
-RowBuilder = Callable[[pd.Series, int, Person, str], StudentRow]
+RowBuilder = Callable[[pd.Series, int, CsvGenViewPerson, str], StudentRow]
 
 
 class CsvTypeConfig(TypedDict):
@@ -57,20 +60,17 @@ def _value_or[T](row: pd.Series, key: str, default: T) -> Any | T:
     return value if pd.notna(value) and value != "" else default
 
 
-def _ldap_identity(entry: LdapEntry) -> Person:
-    """Extract first name (first word only), last name and email from an LDAP entry."""
+def _identity(entry: EpflApiPerson) -> CsvGenViewPerson:
+    """Extract first name (first word only), last name and email from a EPFL Persons API entry."""
 
-    def first(attr: str) -> str:
-        return (entry.get(attr) or [""])[0]
-
-    return Person(
-        first_name=first("givenName").split(" ")[0],
-        last_name=first("sn"),
-        email=first("mail"),
+    return CsvGenViewPerson(
+        first_name=entry.firstname.split(" ")[0],
+        last_name=entry.lastname,
+        email=entry.email
     )
 
 
-def _amc_row(row: pd.Series, index: int, person: Person, sciper: str) -> StudentRow:
+def _amc_row(row: pd.Series, index: int, person: CsvGenViewPerson, sciper: str) -> StudentRow:
     return {
         "id": index,
         "Sciper": sciper,
@@ -81,7 +81,7 @@ def _amc_row(row: pd.Series, index: int, person: Person, sciper: str) -> Student
     }
 
 
-def _ans_row(row: pd.Series, index: int, person: Person, sciper: str) -> StudentRow:
+def _ans_row(row: pd.Series, index: int, person: CsvGenViewPerson, sciper: str) -> StudentRow:
     return {
         "class name": _value_or(row, "class name", None),
         "email": person["email"],
@@ -195,17 +195,26 @@ def import_students(
                 messages.error(request, "Missing sciper value in file.", extra_tags="safe")
                 continue
 
-            sciper = int(row["sciper"])
-            entry: LdapEntry | None = ldap_search.get_entry(sciper, "uniqueIdentifier")
+            sciper = str(row["sciper"]).strip().removesuffix(".0")
+
+            try:
+                entry = get_person_by_identifier(sciper)
+            except EpflApiException as e:
+                messages.error(
+                    request,
+                    f"error: {e}"
+                )
+                continue
+
             if not entry:
                 messages.error(
                     request,
-                    f"Student with sciper {sciper} not found in LDAP.",
+                    f"Student with sciper {sciper} not found.",
                     extra_tags="safe",
                 )
                 continue
 
-            students.append(config["build_row"](row, index, _ldap_identity(entry), str(sciper)))
+            students.append(config["build_row"](row, index, _identity(entry), str(sciper)))
 
     return ImportResult(
         students=students,

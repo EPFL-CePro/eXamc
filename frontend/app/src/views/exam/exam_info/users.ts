@@ -63,7 +63,7 @@ function setDeleted(item: HTMLElement, deleted: boolean): void {
 }
 
 /**
- * The list item of a user found in the LDAP, with the group choices of the page.
+ * The list item of a user found in the Online People Directory, with the group choices of the page.
  *
  * @param {UserInfo} user - The user.
  * @param {HTMLTemplateElement} groupsTemplate - The group radios.
@@ -100,15 +100,15 @@ function newUserItem(user: UserInfo, groupsTemplate: HTMLTemplateElement): HTMLL
 }
 
 /**
- * The users section: remove current users, add users found in the LDAP, choose their groups,
+ * The users section: remove current users, add users found in EPFL's Online People Directory, choose their groups,
  * then save everything with "Validate".
  */
 export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): void {
     const currentList = byId('current-users');
     const newUsers = byId('new-users');
     const newUsersList = byId('new-users-list');
-    const searchForm = byId<HTMLFormElement>('ldap-search-form');
-    const emailInput = byId<HTMLInputElement>('ldap-email');
+    const searchForm = byId<HTMLFormElement>('persons-api-search-form');
+    const personsApiIdInput = byId<HTMLInputElement>('persons-api-email');
     const errorBox = byId('users-error');
     const groupsTemplate = byId<HTMLTemplateElement>('user-groups-template');
 
@@ -138,7 +138,7 @@ export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): voi
                 result = await postText(searchUrl, { csrfmiddlewaretoken: csrfToken, email });
             } catch (error) {
                 console.error(error);
-                showError('Cannot find a user with this email address in the EPFL LDAP!');
+                showError("Cannot find a user with this email address in EPFL's Online People Directory!");
                 return;
             }
 
@@ -155,14 +155,14 @@ export function initUsers({ searchUrl, updateUrl, csrfToken }: UsersConfig): voi
             newUsersList.append(
                 newUserItem({ username, firstName, lastName, email: userEmail }, groupsTemplate)
             );
-            emailInput.value = '';
+            personsApiIdInput.value = '';
         })();
     });
 
     byId('btn-cancel-users').addEventListener('click', () => {
         for (const item of userItems(currentList)) setDeleted(item, false);
         newUsersList.replaceChildren();
-        emailInput.value = '';
+        personsApiIdInput.value = '';
         showError(null);
     });
 

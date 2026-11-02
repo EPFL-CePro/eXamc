@@ -1,9 +1,12 @@
+import logging
+
 from django.contrib.auth.models import User
 from django.db.models import Q
 
 from examc_app.models import Exam, ExamUser
-from examc_app.utils.epflldap.ldap_search import ldap_search_by_sciper
+from examc_app.services.person_directory import get_people_by_sciper
 
+logger = logging.getLogger(__name__)
 
 def user_allowed(exam: Exam, user_id):
     user = User.objects.get(pk=user_id)
@@ -20,22 +23,28 @@ def get_course_teachers_string(teachers):
             teachers_str += t.split(';')[2]
     return teachers_str
 
-def add_course_teachers_ldap(scipers):
+def add_course_teachers(scipers):
+    """
+    Return the users of the given teachers, creating the missing ones from the EPFL directory.
+    Teachers not found in the directory or without a valid email are skipped.
+    """
+    scipers = [str(sciper).strip() for sciper in scipers if sciper]
+    people = get_people_by_sciper(scipers)
+
     teachers_list = []
     for sciper in scipers:
-        if not sciper:
+        person = people.get(sciper)
+        if person is None or not person.email:
+            logger.warning("Teacher %s not found in the EPFL directory or without email: skipped", sciper)
             continue
 
-        user_entry = ldap_search_by_sciper(sciper)
-        email = user_entry['mail'][0]
-
-        user = User.objects.filter(email=email).first()
+        user = User.objects.filter(email__iexact=person.email).first()
         if user is None:
             user = User.objects.create(
-                username=user_entry['uniqueidentifier'][0],
-                first_name=user_entry['givenName'][0],
-                last_name=user_entry['sn'][0],
-                email=email,
+                username=person.sciper,
+                first_name=person.first_name,
+                last_name=person.last_name,
+                email=person.email,
                 is_active=True,
             )
 
