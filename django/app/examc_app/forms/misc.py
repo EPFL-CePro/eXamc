@@ -1,7 +1,11 @@
 from pathlib import Path
+from typing import ClassVar
 
 from django import forms
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
+
+from examc_app.forms.general import FileInputWidget, InlineRadioSelect
 
 ROOMS_PLANS_ROOT = Path(settings.ROOMS_PLANS_ROOT)
 CSV_DIR = ROOMS_PLANS_ROOT / "csv"
@@ -29,8 +33,6 @@ def room_select(**attrs: str | int) -> forms.SelectMultiple:
     return forms.SelectMultiple(attrs={"class": "form-select", "size": 8, "data-room-select": "", **attrs})
 
 
-RADIO = forms.RadioSelect(attrs={"class": "form-check-input"})
-
 ROOM_HELP = "Select one or more rooms (Ctrl/Cmd + click). Rooms are used in alphabetical order."
 
 
@@ -48,7 +50,7 @@ class SeatingForm(forms.Form):
         help_text="Select how seats are numbered. The special option is used for student needs: upload a .csv "
                   "with the special numbers, fill in the first and last number, then download. The numbers "
                   "will be the ones in the special file.",
-        widget=RADIO,
+        widget=InlineRadioSelect,
         initial="continuous",
     )
 
@@ -56,7 +58,7 @@ class SeatingForm(forms.Form):
         choices=[("noskip", "No skip"), ("skip", "Skip")],
         label="Skip option",
         help_text="Choose whether to skip seats. Upload a .csv with the numbers to skip.",
-        widget=RADIO,
+        widget=InlineRadioSelect,
         initial="noskip",
     )
 
@@ -93,7 +95,7 @@ class SeatingForm(forms.Form):
         choices=[("circle", "Circle"), ("square", "Square")],
         label="Shape to draw",
         help_text="Choose the shape drawn around each number.",
-        widget=RADIO,
+        widget=InlineRadioSelect,
         initial="circle",
     )
 
@@ -111,22 +113,13 @@ class SeatingSpecialForm(forms.Form):
         label="Numbering option",
         help_text="Select how seats are numbered. The Prefix option lets you choose the text before each "
                   "number, e.g. MyPrefix-13.",
-        widget=RADIO,
+        widget=InlineRadioSelect,
         initial="numbers",
     )
 
-
-class LdapForm(forms.Form):
-    LDAP_SEARCH_CHOICES = [
-        ("uniqueidentifier", "Sciper"),
-        ("displayName", "Name"),
-        ("mail", "Email"),
-        ("uid", "User ID (gaspar)"),
-    ]
-
-    choice = forms.ChoiceField(
-        choices=LDAP_SEARCH_CHOICES,
-        label="To search in LDAP",
-        widget=RADIO,
-        initial="uniqueidentifier",
+class PeopleSearchForm(forms.Form):
+    file = forms.FileField(
+        label="Excel file (.xlsx)",
+        validators=[FileExtensionValidator(allowed_extensions=["xlsx"])],
+        widget=FileInputWidget(accept=[".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"])
     )

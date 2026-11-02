@@ -89,7 +89,7 @@ urlpatterns = [
 
     # REVIEW
     path('review/<int:exam_pk>', views.ReviewView.as_view(), name="review_view"),
-    path('review_group/<int:exam_pk>/<int:group_pk>/<str:currpage>/<int:current_grading_scheme>', views.ReviewGroupView.as_view(), name="review_group"),
+    path('review_group/<int:exam_pk>/<int:group_pk>', views.ReviewGroupView.as_view(), name="review_group"),
     path('save_markers/<int:exam_pk>', views.save_markers, name="save_markers"),
     path('get_markers_and_comments/<int:exam_pk>', views.get_markers_and_comments, name="get_markers_and_comments"),
     path('save_comment/<int:exam_pk>', views.save_comment, name="save_comment"),
@@ -162,11 +162,11 @@ urlpatterns = [
     # path('export_csv/', views.export_csv, name="export_csv"),
     path('import_students_excel/', views.import_students_excel, name="import_students_excel"),
 
-    # SEARCH LDAP
+    # SEARCH PERSONS VIEW
     path('search/', views.upload_excel_generate_csv, name='search_people'),
 
-    # EPFL LDAP
-    path('ldap_search_exam_user_by_email/<int:exam_pk>', views.ldap_search_exam_user_by_email, name="ldap_search_exam_user_by_email"),
+    # EPFL Persons API
+    path('search_exam_user/<int:exam_pk>', views.search_exam_user, name="search_exam_user"),
 
     # # CKEDITOR5
     # path("ckeditor5/", include('django_ckeditor_5.urls')),
