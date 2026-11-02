@@ -16,7 +16,6 @@ $carousel-bg: #343a40;
 $carousel-list-bg: #bdbdbd;
 $carousel-active-bg: #f5e58b;
 
-$magnify-help-bg: #f1de94;
 $popover-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 
 $header-height: 140px;        // page header + hint row above the editor
@@ -24,10 +23,8 @@ $hide-hints-below: 1200px;
 
 // Stacking order, lowest to highest
 $z-block-overlay: 10;
-$z-magnifier: 999;
 $z-carousel: 1000;
 $z-color-dialog: 9999;
-$z-magnify-help: 9999;
 $z-mini-dialog: 999999;
 
 // Bootstrap's pressed/focused states on the editor's light buttons
@@ -162,21 +159,6 @@ $z-mini-dialog: 999999;
                 .toolbar-right {
                     flex: 1;
                     justify-content: flex-end;
-
-                    #magnify-help {
-                        position: fixed; // relative to the viewport, not the toolbar
-                        top: 10px;
-                        left: 50%;
-                        z-index: $z-magnify-help;
-                        max-width: 260px;
-                        padding: 6px 10px;
-                        border-radius: 4px;
-                        background: $magnify-help-bg;
-                        color: #5c4a00;
-                        font-size: 0.8rem;
-                        transform: translateX(-50%);
-                        pointer-events: none; // clicks go through
-                    }
                 }
             }
 
@@ -291,17 +273,6 @@ $z-mini-dialog: 999999;
 // Script-created elements whose parent isn't in the template
 // (nest them under their container once you know where the script inserts them)
 // ===========================================================================
-
-.magnifier-glass {
-    position: absolute;
-    z-index: $z-magnifier;
-    width: 250px;
-    height: 250px;
-    border: 3px solid #000;
-    border-radius: 50%;
-    cursor: none;
-    pointer-events: none;
-}
 
 .mini-dialog {
     position: absolute;
