@@ -903,7 +903,7 @@ import { Tooltip } from 'bootstrap';
         // Button
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'btn btn-sm btn-dark w-100';
+        button.className = 'btn btn-light w-100';
         button.textContent = `page ${currentPageNo}`;
         wrapper.appendChild(button);
 
@@ -1530,6 +1530,7 @@ import { Tooltip } from 'bootstrap';
         // Keyboard navigation:
         // Left/Right = previous/next page
         // Up/Down = previous/next student (copy)
+        // Shift+Left/Right = same student, previous/next question (the << and >> buttons)
         // Shift+V/T/R/F = select/text/rectangle/freehand tools
         $('#reviewGroup_div').on('keydown', function (event) {
             const key = String(event.key || '');
@@ -1541,6 +1542,15 @@ import { Tooltip } from 'bootstrap';
 
             if (isArrowKey) {
                 if (shouldIgnoreReviewNavigationShortcut(event)) {
+                    return;
+                }
+
+                if (event.shiftKey && (key === "ArrowLeft" || key === "ArrowRight")) {
+                    const button = document.getElementById(key === "ArrowLeft" ? 'btn-previous-question' : 'btn-next-question');
+                    if (button && !button.disabled) {
+                        goToQuestion(button.dataset.stepUrl);
+                    }
+                    event.preventDefault();
                     return;
                 }
 
@@ -1692,16 +1702,18 @@ import { Tooltip } from 'bootstrap';
     // Previous / next question for the same student (the server resolves the copy from ?copy_no=)
     // ---------------------------------------------------------------------------
 
-    ['btn-previous-question', 'btn-next-question'].forEach(id => {
-        const button = document.getElementById(id);
-        if (!button) return;
+    /** Open the same student's copy in the question behind `baseUrl` (the server resolves it from ?copy_no=). */
+    function goToQuestion(baseUrl) {
+        const copyNo = currentReviewCopyNo();
+        if (!baseUrl || !copyNo) return;
 
-        button.addEventListener('click', () => {
-            const baseUrl = button.dataset.stepUrl;
-            const copyNo = currentReviewCopyNo();
-            if (!baseUrl || !copyNo) return;
+        window.location.assign(`${baseUrl}?copy_no=${encodeURIComponent(copyNo)}`);
+    }
 
-            window.location.assign(`${baseUrl}?copy_no=${encodeURIComponent(copyNo)}`);
+    document.querySelectorAll('#btn-previous-question, #btn-next-question, .js-question-link').forEach(element => {
+        element.addEventListener('click', event => {
+            event.preventDefault();
+            goToQuestion(element.dataset.stepUrl);
         });
     });
 

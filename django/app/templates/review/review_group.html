@@ -54,30 +54,18 @@
                             </span>
                             <span>student</span>
                         </span>
+                        <span class="hint-item">
+                            <span class="hint-icons" aria-hidden="true">
+                                <span>shift</span>
+                                <i class="fa-solid fa-arrow-left"></i>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </span>
+                            <span>question</span>
+                        </span>
                     </div>
                 </div>
             {% endif %}
         </div>
-
-        {% if not user.pk|is_review_blocked:exam_selected.pk and copies_pages_list %}
-            {# Same student's copy in the previous / next question (pages group), top right #}
-            <div class="d-flex align-items-center gap-2 ms-3">
-                <button type="button" class="btn btn-dark btn-sm" id="btn-previous-question"
-                        data-step-url="{% if previous_pages_group %}{% url 'review_group' exam_selected.pk previous_pages_group.pk %}{% endif %}"
-                        title="{% if previous_pages_group %}Same student, previous question ({{ previous_pages_group.group_name }}){% else %}No previous question{% endif %}"
-                        aria-label="Previous student question"
-                        {% if not previous_pages_group %}disabled{% endif %}>
-                    <i class="fa-solid fa-angles-left me-2"></i> Previous student question
-                </button>
-                <button type="button" class="btn btn-dark btn-sm" id="btn-next-question"
-                        data-step-url="{% if next_pages_group %}{% url 'review_group' exam_selected.pk next_pages_group.pk %}{% endif %}"
-                        title="{% if next_pages_group %}Same student, next question ({{ next_pages_group.group_name }}){% else %}No next question{% endif %}"
-                        aria-label="Next student question"
-                        {% if not next_pages_group %}disabled{% endif %}>
-                    Next student question <i class="fa-solid fa-angles-right ms-2"></i>
-                </button>
-            </div>
-        {% endif %}
     </div>
 
     {% if user.pk|is_review_blocked:exam_selected.pk %}
@@ -150,7 +138,6 @@
             {# Center: page viewer and annotation tools #}
             <div class="d-flex flex-column position-relative h-100 ms-1" id="review-center-div" style="width:60vw;">
                 <div class="list-group list-group-horizontal" id="pagination"></div>
-                <div id="copy_page_select" class="position-absolute" style="z-index:99;margin-top:100px;right:20px;"></div>
                 <div id="markerjs_div">
                     <div class="markerjs-toolbar d-flex" id="mjs-toolbar">
                         <div class="toolbar-left d-flex">
@@ -158,6 +145,37 @@
                                     title="Clear all markers" aria-label="Clear all markers">
                                 <i class="fa-solid fa-broom fa-lg" aria-hidden="true"></i>
                             </button>
+                        </div>
+                        <div class="toolbar-nav d-flex align-items-center" id="mjs-toolbar-nav">
+                            {% if copies_pages_list %}
+                                {# Same student's copy in the previous / next question (pages group) #}
+                                <button type="button" class="btn btn-icon btn-light" id="btn-previous-question"
+                                        data-step-url="{% if previous_pages_group %}{% url 'review_group' exam_selected.pk previous_pages_group.pk %}{% endif %}"
+                                        title="{% if previous_pages_group %}Same student, previous question ({{ previous_pages_group.group_name }}){% else %}No previous question{% endif %}"
+                                        aria-label="Previous student question"
+                                        {% if not previous_pages_group %}disabled{% endif %}>&lt;&lt;</button>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-light dropdown-toggle" id="btn-question-select"
+                                            data-bs-toggle="dropdown" aria-expanded="false"
+                                            title="Same student, go to another question" aria-label="Go to question">
+                                        {{ pages_group.group_name }}
+                                    </button>
+                                    <ul class="dropdown-menu question-select-menu" aria-labelledby="btn-question-select">
+                                        {% for group in question_pages_groups %}
+                                            <li>
+                                                <a href="#" class="dropdown-item js-question-link{% if group.pk == pages_group.pk %} active{% endif %}"
+                                                   data-step-url="{% url 'review_group' exam_selected.pk group.pk %}">{{ group.group_name }}</a>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                <button type="button" class="btn btn-icon btn-light" id="btn-next-question"
+                                        data-step-url="{% if next_pages_group %}{% url 'review_group' exam_selected.pk next_pages_group.pk %}{% endif %}"
+                                        title="{% if next_pages_group %}Same student, next question ({{ next_pages_group.group_name }}){% else %}No next question{% endif %}"
+                                        aria-label="Next student question"
+                                        {% if not next_pages_group %}disabled{% endif %}>&gt;&gt;</button>
+                                <div id="copy_page_select"></div>
+                            {% endif %}
                         </div>
                         <div class="toolbar-center d-flex" id="mjs-toolbar-center">
                             <button type="button" class="btn btn-icon" id="btn-pointer"

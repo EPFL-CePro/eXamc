@@ -9,6 +9,7 @@ from examc_app.models import Exam, ExamUser, PagesGroup
 from examc_app.utils.global_functions import user_allowed
 from examc_app.utils.review_functions import (
     find_copy_position_in_group,
+    get_accessible_pages_groups,
     get_adjacent_pages_group,
     get_copies_pages_by_group,
 )
@@ -119,6 +120,7 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
             current_grading_scheme=grading_scheme,
             next_pages_group=get_adjacent_pages_group(pages_group, 1, self.request.user),
             previous_pages_group=get_adjacent_pages_group(pages_group, -1, self.request.user),
+            question_pages_groups=get_accessible_pages_groups(pages_group.exam, self.request.user),
         )
 
         return view_context.as_dict()

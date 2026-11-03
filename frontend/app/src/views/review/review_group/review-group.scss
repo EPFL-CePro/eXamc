@@ -50,8 +50,8 @@ $z-mini-dialog: 999999;
     .review-shortcuts-hint {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 4px 8px;
+        gap: 20px;
+        padding: 4px 12px;
         border-radius: 6px;
         background: $hint-bg;
         color: $hint-fg;
@@ -73,6 +73,12 @@ $z-mini-dialog: 999999;
             display: inline-flex;
             align-items: center;
             gap: 4px;
+
+            // Thin divider so the three shortcuts read as separate groups
+            & + .hint-item {
+                padding-left: 20px;
+                border-left: 1px solid $hint-top-border;
+            }
         }
 
         .hint-icons {
@@ -135,14 +141,34 @@ $z-mini-dialog: 999999;
                     cursor: pointer;
                 }
 
-                // Three zones, each taking a third and aligning its own buttons
-                .toolbar-left {
+                // Zones, each taking an equal share and aligning its own buttons
+                .toolbar-nav {
                     flex: 1;
+                    justify-content: center;
+                    white-space: nowrap;
+
+                    .dropdown-menu {
+                        max-height: 50vh;
+                        overflow-y: auto;
+                        font-size: 0.85rem;
+                    }
+
+                    // The dropdown items are links, not toolbar buttons
+                    .dropdown-item.active {
+                        background-color: $editor-active-bg;
+                        color: $editor-fg;
+                    }
+                }
+
+                // The left and centre zones only take the width of their buttons: the navigation zone takes
+                // what is left between the broom and the tools, and centres its content in it
+                .toolbar-left {
+                    flex: 0 0 auto;
                     justify-content: flex-start;
                 }
 
                 .toolbar-center {
-                    flex: 1;
+                    flex: 0 0 auto;
                     justify-content: center;
 
                     // Highlight the selected tool
