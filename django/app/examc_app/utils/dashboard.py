@@ -406,8 +406,6 @@ def _add_review_todos(todos: list[DashboardTodo], user: User, exam: Exam, exam_u
                         kwargs={
                             "exam_pk": exam.pk,
                             "group_pk": pages_group.pk,
-                            "currpage": "0",
-                            "current_grading_scheme": 0,
                         },
                     ),
                     "fa-glasses",

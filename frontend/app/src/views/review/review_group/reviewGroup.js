@@ -314,6 +314,7 @@ import { Tooltip } from 'bootstrap';
         // manages URL changes
         const url = new URL(window.location);
         url.searchParams.set('page_id', currentPage);
+        url.searchParams.delete('copy_no'); // one-shot, page_id takes over once the copy is resolved
         history.replaceState(null, '', url);
 
         const container = document.getElementById("pagination");
@@ -902,7 +903,7 @@ import { Tooltip } from 'bootstrap';
         // Button
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'btn btn-sm btn-dark w-100';
+        button.className = 'btn btn-light w-100';
         button.textContent = `page ${currentPageNo}`;
         wrapper.appendChild(button);
 
@@ -1529,6 +1530,7 @@ import { Tooltip } from 'bootstrap';
         // Keyboard navigation:
         // Left/Right = previous/next page
         // Up/Down = previous/next student (copy)
+        // Shift+Left/Right = same student, previous/next question (the << and >> buttons)
         // Shift+V/T/R/F = select/text/rectangle/freehand tools
         $('#reviewGroup_div').on('keydown', function (event) {
             const key = String(event.key || '');
@@ -1540,6 +1542,15 @@ import { Tooltip } from 'bootstrap';
 
             if (isArrowKey) {
                 if (shouldIgnoreReviewNavigationShortcut(event)) {
+                    return;
+                }
+
+                if (event.shiftKey && (key === "ArrowLeft" || key === "ArrowRight")) {
+                    const button = document.getElementById(key === "ArrowLeft" ? 'btn-previous-question' : 'btn-next-question');
+                    if (button && !button.disabled) {
+                        goToQuestion(button.dataset.stepUrl);
+                    }
+                    event.preventDefault();
                     return;
                 }
 
@@ -1686,6 +1697,25 @@ import { Tooltip } from 'bootstrap';
     document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(currentZoom + ZOOM_STEP));
     document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(currentZoom - ZOOM_STEP));
     document.getElementById('btn-zoom-reset').addEventListener('click', () => setZoom(1));
+
+    // ---------------------------------------------------------------------------
+    // Previous / next question for the same student (the server resolves the copy from ?copy_no=)
+    // ---------------------------------------------------------------------------
+
+    /** Open the same student's copy in the question behind `baseUrl` (the server resolves it from ?copy_no=). */
+    function goToQuestion(baseUrl) {
+        const copyNo = currentReviewCopyNo();
+        if (!baseUrl || !copyNo) return;
+
+        window.location.assign(`${baseUrl}?copy_no=${encodeURIComponent(copyNo)}`);
+    }
+
+    document.querySelectorAll('#btn-previous-question, #btn-next-question, .js-question-link').forEach(element => {
+        element.addEventListener('click', event => {
+            event.preventDefault();
+            goToQuestion(element.dataset.stepUrl);
+        });
+    });
 
     // ---------------------------------------------------------------------------
     // Grading schemes (pills + checkboxes + HTMX panel)
