@@ -355,7 +355,7 @@ def _add_manage_todos(todos: list[DashboardTodo], exam: Exam):
                 todos,
                 f"{exam.code}: import result data",
                 "Results are enabled but no student data is available.",
-                reverse("import_data_4_stats", kwargs={"exam_pk": exam.pk}),
+                f"{reverse('import', kwargs={'exam_pk': exam.pk})}?tab=results",
                 "fa-cloud-upload-alt",
             )
 

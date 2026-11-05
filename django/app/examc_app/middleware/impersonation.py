@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 
-
 IMPERSONATOR_SESSION_KEY = "impersonator_user_id"
 IMPERSONATED_SESSION_KEY = "impersonated_user_id"
 

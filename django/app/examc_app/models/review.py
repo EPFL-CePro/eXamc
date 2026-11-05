@@ -7,7 +7,8 @@ from django.contrib.auth.models import Group, User
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from examc_app.models import Exam, Student
+from .exam import Exam
+from .results_statistics import Student
 
 
 class PagesGroup(models.Model):

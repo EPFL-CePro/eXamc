@@ -4,11 +4,10 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/EPFL-CePro/eXamc/docker-build-test-and-push.yml?branch=main&label=CI)
 ![GitHub Issues](https://img.shields.io/github/issues/EPFL-CePro/eXamc)
 
-<div style="text-align: center;">
+<p align="center">
     <img width="400" src="https://raw.githubusercontent.com/EPFL-CePro/eXamc/refs/heads/main/django/app/examc_app/static/img/eXamc.svg" alt="eXamc logo">
-</div>
-
----
+</p>
+<hr>
 
 **eXamc** is a web application for written exams, from preparation to grades. Teachers write the exam and its scoring in the browser, generate the printable copies with [Auto Multiple Choice (AMC)](https://www.auto-multiple-choice.net/), upload the scans, and correct the open questions online with their reviewers. eXamc then computes the marks and grades, and gives the results and statistics by exam, section and question.
 

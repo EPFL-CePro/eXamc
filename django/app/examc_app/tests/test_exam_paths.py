@@ -6,9 +6,7 @@ from types import SimpleNamespace
 from django.test import SimpleTestCase, override_settings
 
 from examc_app.exceptions.exam import (
-    ExamDateMissingError,
     ExamFolderConflictError,
-    ExamFolderNameInvalidError,
 )
 from examc_app.services.exam.paths import (
     get_exam_amc_project_dir,

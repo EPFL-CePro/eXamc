@@ -1,0 +1,133 @@
+{% if unrecognized_review_scans %}
+<div class="card">
+    <div class="card-header d-flex flex-wrap align-items-center gap-2">
+        <h5 class="card-title mb-0 me-auto">
+            <i class="fa-solid fa-circle-question me-2" aria-hidden="true"></i>Unrecognized scans
+            <span class="badge text-bg-danger fw-normal ms-1">{{ unrecognized_review_scans|length }}</span>
+        </h5>
+        <form id="deleteSelectedUnrecognizedScansForm" method="post" class="js-delete-selected-scans"
+              action="{% url 'delete_unrecognized_review_scans' exam_pk=exam_selected.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm js-delete-selected-scans-button" disabled>
+                <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete selected scans
+                (<span class="js-selected-scan-count" aria-live="polite">0</span>)
+            </button>
+        </form>
+    </div>
+
+    <div class="card-body pb-3">
+        <p class="card-text text-body-secondary">
+            These scans couldn't be matched to a copy and page. Compare each one with the scans recognized
+            before and after it, then assign it to a copy and page, or delete it. Click a scan to see it full size.
+        </p>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+            <tr>
+                <th class="text-center ps-3" style="width:1rem">
+                    <input type="checkbox" class="form-check-input js-select-all-unrecognized-scans"
+                           aria-label="Select all unrecognized scans" title="Select all unrecognized scans">
+                </th>
+                <th>Previous recognized page</th>
+                <th>Unrecognized page</th>
+                <th>Next recognized page</th>
+                <th class="pe-3">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for scan in unrecognized_review_scans %}
+                <tr class="js-unrecognized-scan-row">
+                    <td class="text-center ps-3" style="width:1rem">
+                        <input type="checkbox" class="form-check-input js-select-unrecognized-scan" name="scan_ids"
+                               value="{{ scan.id }}" form="deleteSelectedUnrecognizedScansForm"
+                               aria-label="Select {{ scan.filename }}">
+                    </td>
+
+                    <td class="align-top">
+                        {% if scan.previous_url %}
+                            <button type="button" class="btn btn-link p-0 js-unrecognized-scan-preview"
+                                    data-img-url="{{ scan.previous_url }}" data-title="{{ scan.previous_label }}">
+                                <img src="{{ scan.previous_url }}" alt="{{ scan.previous_label }}" class="img-thumbnail"
+                                     style="max-width:140px;max-height:180px">
+                            </button>
+                            <div class="small text-break">{{ scan.previous_label }}</div>
+                        {% else %}
+                            <span class="text-body-secondary">None</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="align-top">
+                        <button type="button" class="btn btn-link p-0 js-unrecognized-scan-preview"
+                                data-img-url="{{ scan.scan_url }}" data-title="{{ scan.filename }}">
+                            <img src="{{ scan.scan_url }}" alt="{{ scan.filename }}" class="img-thumbnail border-danger"
+                                 style="max-width:140px;max-height:180px">
+                        </button>
+                        <div class="small text-break">{{ scan.filename }}</div>
+                        {% if scan.original_filename %}
+                            <div class="small text-body-secondary text-break">{{ scan.original_filename }}</div>
+                        {% endif %}
+                        {% if scan.reason %}
+                            <div class="small text-danger">{{ scan.reason|capfirst }}</div>
+                        {% endif %}
+                    </td>
+
+                    <td class="align-top">
+                        {% if scan.next_url %}
+                            <button type="button" class="btn btn-link p-0 js-unrecognized-scan-preview"
+                                    data-img-url="{{ scan.next_url }}" data-title="{{ scan.next_label }}">
+                                <img src="{{ scan.next_url }}" alt="{{ scan.next_label }}" class="img-thumbnail"
+                                     style="max-width:140px;max-height:180px">
+                            </button>
+                            <div class="small text-break">{{ scan.next_label }}</div>
+                        {% else %}
+                            <span class="text-body-secondary">None</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="pe-3">
+                        <form method="post" class="js-assign-unrecognized-scan"
+                              action="{% url 'assign_unrecognized_review_scan' exam_pk=exam_selected.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="scan_id" value="{{ scan.id }}">
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small mb-1" for="copy_no_{{ scan.id }}">Copy</label>
+                                    <input id="copy_no_{{ scan.id }}" name="copy_no" type="number" min="1"
+                                           class="form-control form-control-sm" value="{{ scan.assignment_copy_no }}" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small mb-1" for="page_no_{{ scan.id }}">Page</label>
+                                    <input id="page_no_{{ scan.id }}" name="page_no" type="number" min="1"
+                                           class="form-control form-control-sm" value="{{ scan.assignment_page_no }}" required>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1" for="assignment_mode_{{ scan.id }}">Mode</label>
+                                <select id="assignment_mode_{{ scan.id }}" name="assignment_mode" class="form-select form-select-sm">
+                                    <option value="normal" {% if scan.assignment_mode == "normal" %}selected{% endif %}>Normal page</option>
+                                    <option value="extra" {% if scan.assignment_mode == "extra" %}selected{% endif %}>Extra page</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-dark btn-sm">
+                                <i class="fa-solid fa-check me-1" aria-hidden="true"></i>Assign
+                            </button>
+                        </form>
+                        <form method="post" class="mt-2 js-delete-unrecognized-scan"
+                              action="{% url 'delete_unrecognized_review_scan' exam_pk=exam_selected.pk %}"
+                              data-filename="{{ scan.filename }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="scan_id" value="{{ scan.id }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete scan
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}

@@ -33,21 +33,29 @@
             {% if exam_selected %}
                 {# Exam settings #}
                 {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
-                    <a href="{% url 'exam_info' exam_selected.pk %}" title="{{ exam_selected.code }}" {% nav_attrs 'exam_info' %}
+                    <a href="{% url 'exam_info' exam_selected.pk %}"  {% nav_attrs 'exam_info' %}
                        class="sidebar-link mt-3 {% nav_class 'exam_info' %}">
                         <span class="fa-solid fa-sliders fa-fw" aria-hidden="true"></span>Exam settings
                     </a>
                 {% else %}
-                    <div title="{{ exam_selected.code }}" class="sidebar-link fw-bold mt-3">
+                    <div class="sidebar-link fw-bold mt-3">
                         <span class="fa-solid fa-book-open fa-fw" aria-hidden="true"></span>
                         {% if exam_selected.is_overall %}{{ exam_selected.name }}{% else %}{{ exam_selected.code }}{% endif %}
                     </div>
                 {% endif %}
 
+                {# Import #}
+                {% if user|more_arg:exam_selected|is_allowed:'preparation' %}
+                    <a href="{% url 'import' exam_selected.pk %}" {% nav_attrs 'import' %}
+                       class="sidebar-link mb-3 {% nav_class 'import' %}">
+                        <span class="fa-solid fa-upload fa-fw" aria-hidden="true"></span>Import
+                    </a>
+                {% endif %}
+
                 {# Preparation #}
                 {% if exam_selected.has_prep_option and user|more_arg:exam_selected|is_allowed:'preparation' %}
-                    <a href="{% url 'preparation' exam_selected.pk %}" title="{{ exam_selected.code }}" {% nav_attrs 'preparation' %}
-                       class="sidebar-link mt-3 {% nav_class 'preparation' %}">
+                    <a href="{% url 'preparation' exam_selected.pk %}" {% nav_attrs 'preparation' %}
+                       class="sidebar-link {% nav_class 'preparation' %}">
                         <span class="fa-solid fa-pen-to-square fa-fw" aria-hidden="true"></span>Preparation
                     </a>
                 {% endif %}
@@ -55,7 +63,7 @@
                 {# AMC #}
                 {% if exam_selected.has_amc_option and user|more_arg:exam_selected|is_allowed:'amc' %}
                     <a href="{% url 'amc_view' exam_pk=exam_selected.pk %}" {% nav_attrs 'amc_view' %}
-                       class="sidebar-link mt-3 {% nav_class 'amc_view' %}">
+                       class="sidebar-link {% nav_class 'amc_view' %}">
                         <img src="{% static 'img/amc_icons/amc.ico' %}" alt="" width="16" height="16">AMC</a>
                 {% endif %}
 
@@ -63,7 +71,7 @@
                 {% if exam_selected.has_review_option and user|more_arg:exam_selected|is_allowed:'review' %}
                     <div class="dropend">
                         <button type="button" id="sidebar-review-menu" data-bs-toggle="dropdown" aria-expanded="false"
-                                class="sidebar-menu-toggle {% nav_parent_class 'review_view' 'review_settings_view' 'upload_scans' 'generate_marked_files' %}">
+                                class="sidebar-menu-toggle {% nav_parent_class 'review_view' 'review_settings_view' 'generate_marked_files' %}">
                             <span class="fa-solid fa-glasses fa-fw" aria-hidden="true"></span>Review
                         </button>
                         <ul class="dropdown-menu sidebar-menu" aria-labelledby="sidebar-review-menu">
@@ -75,9 +83,6 @@
                                    class="dropdown-item sidebar-menu-item {% nav_class 'review_settings_view' %}">
                                 <span class="fa-solid fa-gears fa-fw" aria-hidden="true"></span>Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a href="{% url 'upload_scans' exam_selected.pk %}" {% nav_attrs 'upload_scans' %}
-                                   class="dropdown-item sidebar-menu-item {% nav_class 'upload_scans' %}">
-                                <span class="fa-solid fa-cloud-arrow-up fa-fw" aria-hidden="true"></span>Upload scans</a></li>
                             <li><a href="{% url 'generate_marked_files' exam_selected.pk %}" {% nav_attrs 'generate_marked_files' %}
                                    class="dropdown-item sidebar-menu-item {% nav_class 'generate_marked_files' %}">
                                 <span class="fa-solid fa-cloud-arrow-down fa-fw" aria-hidden="true"></span>Export marked scans</a></li>
@@ -89,7 +94,7 @@
                 {% if exam_selected.has_res_and_stats_option and user|more_arg:exam_selected|is_allowed:'res_and_stats' %}
                     <div class="dropend">
                         <button type="button" id="sidebar-results-menu" data-bs-toggle="dropdown" aria-expanded="false"
-                                class="sidebar-menu-toggle {% nav_parent_class 'students_results' 'general_stats' 'questions_stats' 'import_data_4_stats' 'export_results' %}">
+                                class="sidebar-menu-toggle {% nav_parent_class 'students_results' 'general_stats' 'questions_stats' 'export_results' %}">
                             <span class="fa-solid fa-chart-simple fa-fw" aria-hidden="true"></span>Results
                         </button>
                         <ul class="dropdown-menu sidebar-menu" aria-labelledby="sidebar-results-menu">
@@ -104,10 +109,6 @@
                                 <li><a href="{% url 'questions_stats' exam_selected.pk %}" {% nav_attrs 'questions_stats' %}
                                        class="dropdown-item sidebar-menu-item {% nav_class 'questions_stats' %}">
                                     <span class="fa-solid fa-chart-area fa-fw" aria-hidden="true"></span>Questions statistics</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a href="{% url 'import_data_4_stats' exam_selected.pk %}" {% nav_attrs 'import_data_4_stats' %}
-                                       class="dropdown-item sidebar-menu-item {% nav_class 'import_data_4_stats' %}">
-                                    <span class="fa-solid fa-cloud-arrow-up fa-fw" aria-hidden="true"></span>Import data</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a href="{% url 'export_results' exam_selected.pk %}" {% nav_attrs 'export_results' %}
                                        class="dropdown-item sidebar-menu-item {% nav_class 'export_results' %}">

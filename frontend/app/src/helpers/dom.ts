@@ -1,3 +1,5 @@
+export class DataAttributeNotFoundError extends Error {}
+
 /**
  * Retrieves an HTMLElement by its ID, casting it to the specified type.
  * Throws an error if no element with the given ID is found.
@@ -20,7 +22,7 @@ export function byId<T extends HTMLElement = HTMLElement>(id: string): T {
  */
 export function requireData(element: HTMLElement, key: string): string {
     const value = element.dataset[key];
-    if (!value) throw new Error(`Missing data attribute "${key}" on #${element.id}`);
+    if (!value) throw new DataAttributeNotFoundError(`Missing data attribute "${key}" on #${element.id}`);
     return value;
 }
 

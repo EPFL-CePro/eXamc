@@ -9,10 +9,9 @@
 {% endpill_header %}
 
 
-<div class="tab-content" id="stats-byExam-pills-tabContent" style="max-height:80vh;overflow-y:scroll">
+{% tab_content prefix="stats-by-exam" style="max-height:80vh;overflow-y:scroll" %}
     {% for scale in exam.scales.all %}
-        {% pill_pane scale.pk prefix="stats-by-exam" %}
-
+        {% tab_pane scale.pk %}
             <button type="button"
                     onclick="downloadElementAsPDF({
                         title:'Statistics by exam',
@@ -71,6 +70,6 @@
 
                 <canvas id="canvas-byExam-{{ scale.pk }}" class="chartjs-render-monitor" style="object-fit: contain;"></canvas>
             </div>
-        {% endpill_pane %}
+        {% endtab_pane %}
     {% endfor %}
-</div>
+{% endtab_content %}

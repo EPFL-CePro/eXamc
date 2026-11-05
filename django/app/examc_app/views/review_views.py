@@ -7,14 +7,18 @@ import logging
 import math
 import os
 import pathlib
+import uuid
+import zipfile
 from datetime import datetime
 from functools import wraps
+from typing import Any
 
+from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -41,7 +45,8 @@ from examc_app.models import (
     Student,
     UnrecognizedReviewScan,
 )
-from examc_app.services.celery_tasks import is_celery_task_active
+from examc_app.services.celery_tasks import ACTIVE_CELERY_STATES, is_celery_task_active
+from examc_app.services.import_data.upload import get_upload_scan_pending_context
 from examc_app.services.review.grading import (
     get_amc_question_layout_and_marks,
     get_review_corr_box_index,
@@ -50,16 +55,13 @@ from examc_app.services.review.locks import cleanup_expired_review_locks
 from examc_app.services.review.unrecognized_scans import (
     build_unrecognized_review_scan_context,
 )
-from examc_app.services.review.upload import get_upload_scan_pending_context
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.tasks import import_exam_scans
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import (
-    get_amc_layout_detection_info,
     get_amc_marks_positions_data,
     get_amc_project_path,
-    get_amc_update_document_info,
 )
 from examc_app.utils.marker_rendering import (
     build_scan_path_for_copy_page,
@@ -111,8 +113,7 @@ def _get_unrecognized_review_block_response(request: HttpRequest, exam: Exam):
 
     messages.warning(request, message)
 
-    return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
-
+    return redirect(f"{reverse('import', kwargs={'exam_pk': exam.pk})}?tab=review")
 
 def block_review_until_unrecognized_scans_assigned(view_func):
     @wraps(view_func)
@@ -143,223 +144,315 @@ def get_locked_pages_group_ids_for_exam(exam):
     ]
 
 
+@require_POST
 @exam_permission_required(["manage"])
-def upload_scans(request: HttpRequest, exam_pk: int):
+def upload_scans(request: HttpRequest, exam_pk: int) -> JsonResponse:
     """
-    Handles the upload of scanned files for a specific exam.
+    Receives a zip of scanned copies and starts importing it in the background.
 
-    This function is responsible for processing the upload of scanned files for a particular exam. It receives a POST
-    request containing a zip file containing scanned images, extracts the images, and imports them into the system for
-    further processing.
-
-    :param request: TThe HTTP request object.
+    :param request: The HTTP request, with the zip in ``exams_zip_file`` and optionally ``delete_old_data=on``.
     :param exam_pk: The primary key of the exam.
 
-    :return: A rendered HTML page displaying the upload status and any error messages.
+    :return: 202 with ``message``, ``task_id``, ``status_url`` and ``cancel_url`` once the import has started,
+        or an error status with ``error`` (409 when an import is already running).
     """
+    exam = get_object_or_404(Exam, pk=exam_pk)
 
-    exam = Exam.objects.get(pk=exam_pk)
-    task_id = None
+    view_context = ViewContext(exam=exam)
 
-    # check if amc project exists and documents are compiled. if not, inform the the user, and set field to read only
-    amc_ok = True
-    amc_proj_path = get_amc_project_path(exam, False)
-    if not amc_proj_path:
-        amc_ok = False
-    else:
-        amc_update_documents_msg = get_amc_update_document_info(exam)
-        amc_layout_detection_msg = get_amc_layout_detection_info(exam)
-        if not amc_update_documents_msg or not amc_layout_detection_msg:
-            amc_ok = False
-
-    if request.method == "POST":
-        delete_old_data = False
-        if (
-            "delete_old_data" in request.POST
-            and request.POST["delete_old_data"] == "on"
-        ):
-            delete_old_data = True
-        if "exams_zip_file" not in request.FILES:
-            messages.error(request, "No zip file provided.")
-            return redirect(f"../upload_scans/{exam.pk}")
-
-        zip_file = request.FILES["exams_zip_file"]
-        file_name = f"exam_{exam.pk}.zip"
-        temp_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, file_name)
-
-        os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
-
-        with open(temp_file_path, "wb") as temp_file:
-            temp_file.writelines(zip_file.chunks())
-
-        task = import_exam_scans.delay(temp_file_path, exam_pk, delete_old_data)
-        task_id = task.task_id
-        set_pending_amc_import(request, exam_pk, upload_task_id=task_id)
-        # message = start_upload_scans(request, exam.pk, temp_file_path)
-
-        exam_selected = exam
-        exam = exam.get_overall_exam_or_default()
-
-        return render(
-            request,
-            "review/import/upload_scans.html",
+    if get_upload_scan_pending_context(request, exam.pk)["upload_task_active"]:
+        return JsonResponse(
             {
-                "exam": exam,
-                "exam_selected": exam_selected,
-                "files": [],
-                "message": "",
-                "amc_ok": amc_ok,
-                "nav_url": "upload_scans",
-                "unrecognized_review_scans": build_unrecognized_review_scan_context(exam_selected),
-                **get_upload_scan_pending_context(
-                    request, exam_selected.pk, task_id=task_id
-                ),
+                "error": "Scans are already being imported for this exam. Wait for that import, or cancel it."
             },
+            status=409,
         )
 
-    exam_selected = exam
-    exam = exam.get_overall_exam_or_default()
+    if not view_context.project_imported:
+        return JsonResponse(
+            {"error": "Import and compile the AMC project before uploading scans."},
+            status=409,
+        )
 
-    return render(
-        request,
-        "review/import/upload_scans.html",
-        {
-            "exam": exam,
-            "exam_selected": exam_selected,
-            "amc_ok": amc_ok,
-            "files": [],
-            "nav_url": "upload_scans",
-            "unrecognized_review_scans": build_unrecognized_review_scan_context(exam_selected),
-            **get_upload_scan_pending_context(
-                request, exam_selected.pk, task_id=task_id
-            ),
-        },
+    zip_file = request.FILES.get("exams_zip_file")
+    if zip_file is None:
+        return JsonResponse({"error": "No zip file provided."}, status=400)
+    if not zipfile.is_zipfile(zip_file):
+        return JsonResponse(
+            {"error": "This file isn't a valid .zip archive."}, status=400
+        )
+
+    delete_old_data = request.POST.get("delete_old_data") == "on"
+
+    temp_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, f"exam_{exam.pk}.zip")
+    os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
+    with open(temp_file_path, "wb") as temp_file:
+        temp_file.writelines(zip_file.chunks())
+
+    # The page sends the task id it will follow, so it can show the import's progress while this request
+    # still runs (in eager mode, until the import is over). Anything that isn't an unused UUID is replaced.
+    try:
+        task_id = str(uuid.UUID(request.POST.get("task_id", "")))
+    except ValueError:
+        task_id = str(uuid.uuid4())
+    if AsyncResult(task_id).state != "PENDING":  # already used by another task
+        task_id = str(uuid.uuid4())
+
+    set_pending_amc_import(request, exam.pk, upload_task_id=task_id)
+    request.session.save()
+    import_exam_scans.apply_async(
+        args=(temp_file_path, exam.pk, delete_old_data), task_id=task_id
     )
+
+    return JsonResponse(
+        {
+            "message": "Upload received. The scans are being imported.",
+            "task_id": task_id,
+            "status_url": reverse("upload_scans_status", kwargs={"exam_pk": exam.pk, "task_id": task_id}),
+            "cancel_url": reverse("cancel_upload_scans", kwargs={"exam_pk": exam.pk, "task_id": task_id}),
+        },
+        status=202,
+    )
+
+
+@require_GET
+@exam_permission_required(["manage"])
+def upload_scans_status(
+    request: HttpRequest, exam_pk: int, task_id: str
+) -> JsonResponse:
+    """
+    Reports where a scans import task is: ``running``, ``done`` or ``failed``.
+
+    :param request: The HTTP request.
+    :param exam_pk: The primary key of the exam.
+    :param task_id: The id returned by ``upload_scans``.
+
+    :return: ``status``, plus ``cancel_url`` while it runs, ``progress`` (``current``, ``total``, ``description``)
+        while the task reports it, and ``error`` and ``cancelled`` when it failed.
+    """
+    result = AsyncResult(task_id)
+    if result.state == "SUCCESS":
+        status = "done"
+    elif result.state in ACTIVE_CELERY_STATES:
+        status = "running"
+    else:
+        status = "failed"
+
+    body: dict[str, Any] = {
+        "status": status,
+        "unrecognized_count": UnrecognizedReviewScan.objects.filter(
+            exam_id=exam_pk, resolved=False
+        ).count(),
+    }
+
+    if status == "running":
+        body["cancel_url"] = reverse(
+            "cancel_upload_scans", kwargs={"exam_pk": exam_pk, "task_id": task_id}
+        )
+
+    # Set by the task's celery_progress ProgressRecorder: current, total and description.
+    info = result.info if isinstance(result.info, dict) else {}
+    current, total = info.get("current"), info.get("total")
+    if (
+        status == "running"
+        and isinstance(current, int)
+        and isinstance(total, int)
+        and total > 0
+    ):
+        body["progress"] = {
+            "current": current,
+            "total": total,
+            "description": info.get("description") or "",
+        }
+
+    if status == "failed":
+        if result.state == "REVOKED":
+            body["cancelled"] = True
+            body["error"] = "The scans import was cancelled."
+        else:
+            # The exception stays in the logs: it can contain paths and other server details.
+            logger.error(
+                "Scans import %s for exam %s failed: %r",
+                task_id,
+                exam_pk,
+                result.result,
+            )
+            body["error"] = (
+                "The scans couldn't be imported. Check the zip file and try again."
+            )
+    return JsonResponse(body)
+
+
+@require_POST
+@exam_permission_required(["manage"])
+def cancel_upload_scans(
+    request: HttpRequest, exam_pk: int, task_id: str
+) -> JsonResponse:
+    """
+    Stops a scans import task.
+
+    :return: ``message`` once stopped, or 409 with ``error`` when the task isn't running anymore.
+    """
+    if not is_celery_task_active(task_id):
+        return JsonResponse(
+            {"error": "This scans import isn't running anymore."}, status=409
+        )
+
+    # A waiting task won't start; a running one has its worker process stopped.
+    AsyncResult(task_id).revoke(terminate=True)
+    logger.info(
+        "Scans import %s for exam %s cancelled by %s", task_id, exam_pk, request.user
+    )
+
+    return JsonResponse({"message": "The scans import was cancelled."})
 
 
 @exam_permission_required(["manage"])
 @require_GET
 def unrecognized_review_scans_table(request: HttpRequest, exam_pk: int):
     exam = get_object_or_404(Exam, pk=exam_pk)
+
+    view_context = ViewContext(exam=exam)
+    view_context.update(
+        unrecognized_review_scans=build_unrecognized_review_scan_context(exam)
+    )
     return render(
         request,
-        "review/import/_unrecognized_review_scans_table.html",
-        {
-            "exam_selected": exam,
-            "unrecognized_review_scans": build_unrecognized_review_scan_context(exam),
-        },
+        "import/_import_types/_unrecognized_review_scans_table.html",
+        view_context.as_dict(),
     )
 
 
-@exam_permission_required(["manage"])
 @require_POST
-def assign_unrecognized_review_scan(request: HttpRequest, exam_pk: int):
+@exam_permission_required(["manage"])
+def assign_unrecognized_review_scan(request: HttpRequest, exam_pk: int) -> JsonResponse:
+    """
+    Assigns an unrecognized scan to a copy and page.
+
+    :param request: The HTTP request, with ``scan_id``, ``copy_no``, ``page_no`` and ``assignment_mode``.
+    :param exam_pk: The primary key of the exam.
+
+    :return: ``message`` once assigned, or an error status with ``error``.
+    """
     exam = get_object_or_404(Exam, pk=exam_pk)
-    unrecognized_scan = get_object_or_404(
-        UnrecognizedReviewScan,
-        pk=request.POST.get("scan_id"),
-        exam=exam,
-        resolved=False,
-    )
+
+    # Numbers: positive integers only, so nothing else reaches the query or the file paths built from them.
+    numbers = {}
+    for field, label in (("scan_id", "scan"), ("copy_no", "copy"), ("page_no", "page")):
+        value = request.POST.get(field, "").strip()
+        if not value.isdecimal() or int(value) < 1:
+            return JsonResponse({"error": f"The {label} number must be a whole number of 1 or more."}, status=400)
+        numbers[field] = int(value)
+
+    # The modes offered in the table's select.
+    assignment_mode = request.POST.get("assignment_mode", "")
+    if assignment_mode not in ("normal", "extra"):
+        return JsonResponse({"error": "The mode must be a normal page or an extra page."}, status=400)
+
+    unrecognized_scan = UnrecognizedReviewScan.objects.filter(
+        pk=numbers["scan_id"], exam=exam, resolved=False
+    ).first()
+    if unrecognized_scan is None:
+        return JsonResponse({"error": "This scan doesn't exist or was already assigned or deleted."}, status=404)
 
     try:
         assigned_scan = assign_unrecognized_review_scan_file(
             unrecognized_scan,
-            request.POST.get("copy_no"),
-            request.POST.get("page_no"),
-            request.POST.get("assignment_mode"),
+            numbers["copy_no"],
+            numbers["page_no"],
+            assignment_mode,
             resolved_by=request.user,
         )
     except ValueError as exc:
-        messages.error(request, str(exc))
-        return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
+        # Raised for assignments that can't be made, with a message meant for the user.
+        return JsonResponse({"error": str(exc)}, status=400)
 
     if assigned_scan.assigned_mode == UnrecognizedReviewScan.ASSIGNMENT_MODE_EXTRA:
-        page_label = pathlib.Path(assigned_scan.assigned_relative_path).stem.rsplit(
-            "_", 1
-        )[-1]
+        page_label = pathlib.Path(assigned_scan.assigned_relative_path).stem.rsplit("_", 1)[-1]
     else:
         page_label = assigned_scan.assigned_page_no
 
-    messages.success(
-        request,
-        f"Assigned {assigned_scan.filename} to copy {assigned_scan.assigned_copy_no}, page {page_label}.",
-    )
-
-    return _redirect_after_unrecognized_review_scan_resolution(exam)
+    return JsonResponse({
+        "message": (
+            f"Assigned {assigned_scan.filename} to copy {assigned_scan.assigned_copy_no}, page {page_label}."
+        ),
+    })
 
 
 @exam_permission_required(["manage"])
 @require_POST
-def delete_unrecognized_review_scan(request: HttpRequest, exam_pk: int):
+def delete_unrecognized_review_scan(request: HttpRequest, exam_pk: int) -> JsonResponse:
+    """
+    Deletes one unrecognized scan.
+
+    :param request: The HTTP request, with ``scan_id``.
+    :param exam_pk: The primary key of the exam.
+
+    :return: ``message`` once deleted, or an error status with ``error``.
+    """
     exam = get_object_or_404(Exam, pk=exam_pk)
-    unrecognized_scan = get_object_or_404(
-        UnrecognizedReviewScan,
-        pk=request.POST.get("scan_id"),
-        exam=exam,
-        resolved=False,
-    )
+
+    # A positive integer only, so nothing else reaches the query.
+    scan_id = request.POST.get("scan_id", "").strip()
+    if not scan_id.isdecimal() or int(scan_id) < 1:
+        return JsonResponse({"error": "The scan number must be a whole number of 1 or more."}, status=400)
+
+    unrecognized_scan = UnrecognizedReviewScan.objects.filter(
+        pk=int(scan_id), exam=exam, resolved=False
+    ).first()
+    if unrecognized_scan is None:
+        return JsonResponse({"error": "This scan doesn't exist or was already assigned or deleted."}, status=404)
 
     try:
-        deleted_scan = delete_unrecognized_review_scan_file(
-            unrecognized_scan, resolved_by=request.user
-        )
+        deleted_scan = delete_unrecognized_review_scan_file(unrecognized_scan, resolved_by=request.user)
     except ValueError as exc:
-        messages.error(request, str(exc))
-        return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
+        # Raised for scans that can't be deleted, with a message meant for the user.
+        return JsonResponse({"error": str(exc)}, status=400)
     except OSError:
-        logger.exception(
-            "Unable to delete unrecognized review scan pk=%s", unrecognized_scan.pk
-        )
-        messages.error(request, "Unable to delete this scan file. Please try again.")
-        return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
+        logger.exception("Unable to delete unrecognized review scan pk=%s", unrecognized_scan.pk)
+        return JsonResponse({"error": "Unable to delete this scan file. Please try again."}, status=500)
 
-    messages.success(request, f"Deleted {deleted_scan.filename}.")
-    return _redirect_after_unrecognized_review_scan_resolution(exam)
+    return JsonResponse({"message": f"Deleted {deleted_scan.filename}."})
 
 
 @exam_permission_required(["manage"])
 @require_POST
-def delete_unrecognized_review_scans(request: HttpRequest, exam_pk: int):
+def delete_unrecognized_review_scans(request: HttpRequest, exam_pk: int) -> JsonResponse:
+    """
+    Deletes the selected unrecognized scans.
+
+    :param request: The HTTP request, with the selected scans' ids in ``scan_ids``.
+    :param exam_pk: The primary key of the exam.
+
+    :return: ``message`` and the ``errors`` of the scans that couldn't be deleted, once at least one is deleted;
+        otherwise an error status with ``error`` (and ``errors``).
+    """
     exam = get_object_or_404(Exam, pk=exam_pk)
     form = DeleteUnrecognizedReviewScansForm(request.POST, exam=exam)
     if not form.is_valid():
-        messages.error(
-            request, "Select valid unresolved scans for this exam, then try again."
-        )
-        return redirect(reverse("upload_scans", kwargs={"exam_pk": exam.pk}))
+        return JsonResponse({"error": "Select valid unresolved scans for this exam, then try again."}, status=400)
 
     deleted_count = 0
+    errors: list[str] = []
     # Each file has its own transaction: a later failure must not undo the audit
     # records for files that have already been removed from disk.
     for scan in form.cleaned_data["scan_ids"]:
         try:
             delete_unrecognized_review_scan_file(scan, resolved_by=request.user)
-        except ValueError, UnrecognizedReviewScan.DoesNotExist:
-            messages.error(
-                request,
-                f"Could not delete {scan.filename}. Refresh the list and try again.",
-            )
+        except (ValueError, UnrecognizedReviewScan.DoesNotExist):
+            errors.append(f"Could not delete {scan.filename}. Refresh the list and try again.")
         except OSError:
             logger.exception("Unable to delete unrecognized review scan pk=%s", scan.pk)
-            messages.error(
-                request, f"Unable to delete {scan.filename}. Please try again."
-            )
+            errors.append(f"Unable to delete {scan.filename}. Please try again.")
         else:
             deleted_count += 1
 
-    if deleted_count:
-        messages.success(request, f"Deleted {deleted_count} selected scan(s).")
-    return _redirect_after_unrecognized_review_scan_resolution(exam)
+    if not deleted_count:
+        return JsonResponse({"error": "No scan could be deleted.", "errors": errors}, status=400)
+
+    return JsonResponse({"message": f"Deleted {deleted_count} selected scan(s).", "errors": errors})
 
 
-def _redirect_after_unrecognized_review_scan_resolution(exam):
-    redirect_url = reverse("upload_scans", kwargs={"exam_pk": exam.pk})
-
-    if not UnrecognizedReviewScan.objects.filter(exam=exam, resolved=False).exists():
-        redirect_url += "?start_amc_import=1"
-
-    return redirect(redirect_url)
 
 
 @exam_permission_required(["manage", "review"])

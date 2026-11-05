@@ -1,12 +1,14 @@
+from typing import ClassVar
+
 from django.conf import settings
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from examc_app.models import Exam
+from .exam import Exam
 
 
 class ExamBuild(models.Model):
-    STATUS_CHOICES = [
+    STATUS_CHOICES: ClassVar = [
         ("draft", "Draft"),
         ("building", "Building"),
         ("ready", "Ready"),

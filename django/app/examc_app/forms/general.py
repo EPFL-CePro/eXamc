@@ -1,4 +1,5 @@
-from typing import Any, Collection, ClassVar
+from collections.abc import Collection
+from typing import Any, ClassVar
 
 from django import forms
 from django.utils.safestring import mark_safe

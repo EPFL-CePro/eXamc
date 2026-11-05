@@ -13,11 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = requireData(root, 'csrfToken');
     const finalScaleBtns = root.querySelectorAll<HTMLButtonElement>("button[data-final-scale-one-url]");
 
+    // doesn't use requireData, as it is not guaranteed that the project is imported yet.
+    const catalogUrl = root.dataset["catalogUrl"];
+
     initAccordion(byId('exam-info-accordion'));
 
     initExamInfo(byId<HTMLFormElement>('exam-info-form'), requireData(root, 'updateInfoUrl'));
     initExamOptions(byId<HTMLFormElement>('exam-options-form'), requireData(root, 'updateOptionsUrl'));
-    initCatalog({ button: byId<HTMLButtonElement>("btn-show-catalog"), url: requireData(root, 'catalogUrl')});
+
+    if (catalogUrl) initCatalog({ button: byId<HTMLButtonElement>("btn-show-catalog"), url: catalogUrl});
 
     initScales({ createScaleUrl: requireData(root, 'createScaleUrl'), finalScaleBtns, csrfToken });
 

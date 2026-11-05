@@ -8,8 +8,8 @@ import { byId } from "@examc/helpers/dom.ts";
 // Final generation: a Celery task followed in the dialog and, when the dialog is closed or the page
 // reloaded while it runs, in #final-generation-banner. The task goes on on the server in any case.
 
-const DIALOG = "#generate_final_exam_files_dialog";
-const SUCCESS = `${DIALOG} #generate_final_success`;
+const DIALOG = "generate_final_exam_files_dialog";
+const SUCCESS = `#${DIALOG} #generate_final_success`;
 
 interface Summary {
     copies?: number;

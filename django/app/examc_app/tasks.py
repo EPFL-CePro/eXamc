@@ -5,7 +5,6 @@ import shutil
 import time
 import uuid
 import zipfile
-from contextlib import closing
 from datetime import datetime, timedelta
 
 from celery import shared_task
@@ -40,7 +39,7 @@ from examc_app.utils.amc.amc_layout_functions import (
 )
 from examc_app.utils.amc_functions import (
     amc_annotate,
-    amc_automatic_datacapture_subprocess,
+    amc_automatic_data_capture_subprocess,
     get_amc_project_path,
 )
 from examc_app.utils.generate_statistics_functions import generate_exam_stats
@@ -199,7 +198,6 @@ def import_csv_data(self, temp_csv_file_path, exam_pk: int):
                                         question.save()
                                         update_question = False
 
-
                     print(student)
                     if line_nr > 1:
                         student.save()
@@ -243,113 +241,71 @@ def import_csv_data(self, temp_csv_file_path, exam_pk: int):
     return ' Process finished.'
 
 
+
 @shared_task(bind=True)
-def import_exam_scans(self, zip_file_path, exam_pk: int, delete_old):
+def import_exam_scans(self, zip_file_path: str, exam_pk: int, delete_old: bool) -> str:
     """
-    Extracts and imports scanned files for an exam upload.
+    Extracts a zip of scanned copies and imports them for an exam.
 
-    This function is responsible for extracting scanned files from a zip archive and importing them into the system
-    for a specific exam upload process.
+    Progress is reported through celery_progress (``current``, ``total`` and ``description``),
+    which ``upload_scans_status`` passes on to the page.
 
-    Args:
-        request: TThe HTTP request object.
-        pk: The primary key of the exam.
-        zip_file_path: The file path of the zip archive containing the scanned files.
-
-    Returns:
-        return: A message indicating the success or failure of the upload process.
+    :param zip_file_path: The uploaded zip. Removed once the task is over, whether it worked or not.
+    :param exam_pk: The primary key of the exam.
+    :param delete_old: Whether to delete the existing scans, with their annotations and comments, first.
+    :return: ``"upload_scans_ok"``.
     """
+    progress = ProgressRecorder(self)
+    extract_root = None
 
     try:
-        progress_recorder = ProgressRecorder(self)
-
         exam = Exam.objects.get(pk=exam_pk)
-        scans_count = 0
-        with closing(zipfile.ZipFile(zip_file_path)) as archive:
-            scans_count = len(archive.infolist())
-        print(scans_count)
+        extract_root = os.path.join(
+            str(settings.AUTOUPLOAD_ROOT),
+            f"{exam.year.code}_{exam.semester.code}_{exam.code}",
+        )
+        tmp_extract_path = os.path.join(extract_root, "tmp_extract")
 
-        process_count = scans_count+7
-        process_number = 1
-        progress_recorder.set_progress(0, process_count, description='')
-        time.sleep(2)
+        with zipfile.ZipFile(zip_file_path) as archive:
+            # Folders are entries too, but aren't scans.
+            scans_count = sum(1 for info in archive.infolist() if not info.is_dir())
 
-        # remove
-        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
-            process_count) + ' - Extracting zip files...')
+            # Extracting, starting the import, one step per scan (in import_scans), cleaning up.
+            total = scans_count + 3
+            step = 1
+            progress.set_progress(step, total, description="Extracting the zip file…")
 
-        zip_path = str(settings.AUTOUPLOAD_ROOT) + "/" + str(exam.year.code) + "_" + str(
-            exam.semester.code) + "_" + exam.code
-
-        if os.path.exists(zip_path):
-            shutil.rmtree(zip_path)
-        tmp_extract_path = zip_path + "/tmp_extract"
-
-        # extract zip file in tmp dir
-        with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-            print("start extraction")
+            # Leftovers from an earlier upload of this exam.
+            shutil.rmtree(extract_root, ignore_errors=True)
             # Security hardening: validated extraction (no traversal/symlink/oversized archive).
-            safe_extract_zip(zip_ref, tmp_extract_path)
+            safe_extract_zip(archive, tmp_extract_path)
 
-        dirs = [entry for entry in os.listdir(tmp_extract_path) if os.path.isdir(os.path.join(tmp_extract_path, entry))]
-
+        # A zip of a folder: import what's inside it.
+        dirs = [
+            entry
+            for entry in os.listdir(tmp_extract_path)
+            if os.path.isdir(os.path.join(tmp_extract_path, entry))
+        ]
         if dirs:
             tmp_extract_path = os.path.join(tmp_extract_path, dirs[0])
 
-        process_number += 1
-        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
-            process_count) + ' - Importing scans...')
+        step += 1
+        progress.set_progress(step, total, description="Importing the scans…")
+        nb_copies, step = import_scans(
+            exam, tmp_extract_path, delete_old, progress, total, step
+        )
+        logger.info("Imported %s copies for exam %s", nb_copies, exam_pk)
 
-        result = import_scans(exam, tmp_extract_path,delete_old,progress_recorder,process_count,process_number)
+        progress.set_progress(total, total, description="Removing temporary files…")
+    finally:
+        # Celery records the failure itself when an exception goes through here.
+        if os.path.exists(zip_file_path):
+            os.remove(zip_file_path)
+        if extract_root:
+            shutil.rmtree(extract_root, ignore_errors=True)
 
-        process_number = result[1]
-        print('******** import and split ok : ')
-        nb_copies = result[0]
+    return "upload_scans_ok"
 
-        # if isinstance(result, tuple) and len(result) == 2:
-        #     message, files = result
-        # elif isinstance(result, str):
-        #     message, files = result, []
-        # else:
-        #     message, files = "An unexpected error occurred during the upload.", []
-
-        process_number += 1
-        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
-            process_count) + ' - Removing tmp files...')
-
-        # remove imported Files (zip + extracted)
-        for filename in os.listdir(zip_path):
-            file_path = os.path.join(zip_path, filename)
-
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-
-        process_number += 1
-        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
-            process_count) + ' - AMC Automatic datacapture...')
-        print('*********** start amc datacapture')
-
-        # file_list_path = scans_folder_path + "/list-file"
-        # tmp_file_list = open(file_list_path, "a+")
-        #
-        # files = glob.glob(scans_folder_path + '/**/*.*', recursive=True)
-        # for file in files:
-        #     tmp_file_list.write(file + "\n")
-        # print('start amc automatic data capture')
-        # tmp_file_list.close()
-        #result = amc_automatic_data_capture(exam,scans_folder_path,True,file_list_path)
-        #print('end amc automatic data capture')
-        os.remove(zip_file_path)
-        shutil.rmtree(zip_path)
-
-    except Exception as exception:
-        self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during import "+str(exception)})
-        os.remove(zip_file_path)
-        raise exception
-
-    return 'upload_scans_ok'
 
 @shared_task(bind=True)
 def generate_marked_files_zip(self, exam_pk: int,  export_type, with_comments: bool):
@@ -367,7 +323,7 @@ def generate_marked_files_zip(self, exam_pk: int,  export_type, with_comments: b
         if not os.path.exists(export_tmp_dir):
             os.mkdir(export_tmp_dir)
 
-        total_markers = regenerate_marked_scans_for_exam(
+        regenerate_marked_scans_for_exam(
             exam,
             progress_callback=lambda index, total: progress_recorder.set_progress(
                 index,
@@ -618,7 +574,7 @@ def amc_import_from_review_task(self, exam_pk: int, scans_list=None):
             f"AMC file list written ({file_count} file(s), {marked_count} marked scan(s)).",
         )
 
-        for line in amc_automatic_datacapture_subprocess(None, exam, None, True, file_list_path=file_list_path):
+        for line in amc_automatic_data_capture_subprocess(None, exam, None, True, file_list_path=file_list_path):
             _append_amc_import_line(self, lines, line)
 
         _append_amc_import_line(self, lines, "AMC import from review completed.")
@@ -978,3 +934,4 @@ def generate_final_exam_files_task(self, job_id):
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message", "updated_at"])
         raise
+

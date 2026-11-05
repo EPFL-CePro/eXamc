@@ -5,7 +5,6 @@ from django.contrib.auth.models import Group, User
 
 from examc_app.models import AcademicYear, Course, Exam, ExamUser, Semester
 from examc_app.services.epfl_api.people.search import get_person_by_identifier
-from examc_app.services.epfl_api.utils import EpflApiException
 
 
 def parse_exams_data_csv(csv_file):

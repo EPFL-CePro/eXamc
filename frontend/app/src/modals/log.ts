@@ -1,6 +1,6 @@
 import type { ExamcModalOptions } from "@examc/types/modals";
-import { ExamcModal } from "@examc/modals/base";
-import { getCodeFontFamily } from "@examc/helpers/fonts";
+import { ExamcModal } from "@examc/modals/base.ts";
+import { getCodeFontFamily } from "@examc/helpers/fonts.ts";
 
 /** Distance from the bottom (in px) under which the output still counts as scrolled to its end. */
 const END_THRESHOLD_PX = 20;

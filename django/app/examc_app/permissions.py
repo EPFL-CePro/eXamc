@@ -1,11 +1,11 @@
-from typing import Iterable, TypeAlias
+from collections.abc import Iterable
+from typing import TypeAlias
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models.query import QuerySet
 
-from examc_app.models import ExamUser, Exam
-
+from examc_app.models import Exam, ExamUser
 
 GroupNames: TypeAlias = str | Iterable[str] | None
 

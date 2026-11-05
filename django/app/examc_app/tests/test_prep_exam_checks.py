@@ -3,7 +3,13 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.urls import reverse
 
-from examc_app.models import PrepQuestion, PrepQuestionAnswer, PrepSection, PrepStudent, QuestionType
+from examc_app.models import (
+    PrepQuestion,
+    PrepQuestionAnswer,
+    PrepSection,
+    PrepStudent,
+    QuestionType,
+)
 from examc_app.services.preparation.exam_checks import check_exam_content
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 

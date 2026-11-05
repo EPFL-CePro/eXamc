@@ -104,7 +104,7 @@ def create_exam_project(request):
         course_code = form.cleaned_data['course']
         course_name = form.courses_by_code[course_code]["coursNomFr"]
         course_teachers = form.teachers_by_course.get(course_code, [])
-        teacher_scipers = [t["sciper"] for t in course_teachers]
+        teacher_scipers: list[str] = [t["sciper"] for t in course_teachers]
 
         date = form.cleaned_data['date']
         semester_id = form.cleaned_data['semester']

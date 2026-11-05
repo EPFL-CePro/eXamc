@@ -66,36 +66,6 @@ def update_student_present(request, exam_pk: int, student_pk: int, value: int):
 
 
 @exam_permission_required(["manage"])
-def import_data_4_stats(request, exam_pk: int, task_id=None):
-    exam = Exam.objects.get(pk=exam_pk)
-    exam_selected = exam
-
-    common_list = get_common_list(exam)
-
-    if exam.is_overall():
-        exam_selected = common_list[1]
-        common_list.remove(exam)
-    elif common_list:
-        exam_selected = exam
-        exam = common_list[0]
-        if len(common_list) > 1:
-            common_list.remove(exam)
-
-    return render(
-        request,
-        "res_and_stats/import_data.html",
-        {
-            "user_allowed": user_allowed(exam, request.user.id),
-            "exam": exam,
-            "exam_selected": exam_selected,
-            "common_list": common_list,
-            "nav_url": "import_data_4_stats",
-            "task_id": task_id,
-        },
-    )
-
-
-@exam_permission_required(["manage"])
 @require_POST
 def upload_amc_csv(request, exam_pk: int):
     csv_file = request.FILES["amc_csv_file"]
@@ -112,9 +82,8 @@ def upload_amc_csv(request, exam_pk: int):
     task = import_csv_data.delay(temp_csv_file_path, exam_pk)
     task_id = task.task_id
 
-    url = reverse("import_data_4_stats", kwargs={"exam_pk": exam_pk})
+    url = f"{reverse('import', kwargs={'exam_pk': exam_pk})}?tab=results"
     return redirect(f"{url}?task_id={task_id}")
-    # return import_data_4_stats(request,exam_pk,task_id)#redirect('../import_data_4_stats/' + str(exam.pk) + '/'+str(task_id))
 
 
 @exam_permission_required(["manage"])
@@ -140,8 +109,7 @@ def upload_catalog_pdf(request, exam_pk: int):
     exam.pdf_catalog_name = filename
     exam.save()
 
-    return redirect("../import_data_4_stats/" + str(exam.pk))
-
+    return redirect(f"{reverse('import', kwargs={'exam_pk': exam.pk})}?tab=results")
 
 @exam_permission_required(["manage", "see_results"])
 def export_results(request, exam_pk: int):

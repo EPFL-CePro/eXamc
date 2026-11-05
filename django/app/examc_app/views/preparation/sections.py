@@ -13,8 +13,8 @@ from examc_app.utils.preparation_functions import (
     build_sections_list_context,
     create_prep_section,
     ensure_exam_not_finalized,
-    is_exam_locked,
     get_questions,
+    is_exam_locked,
     renumber_sections,
 )
 from examc_app.utils.preparation_latex_functions import update_exam_latex

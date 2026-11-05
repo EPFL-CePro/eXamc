@@ -6,14 +6,26 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from examc_app.forms.preparation import PrepScoringFormulaForm
-from examc_app.models import PrepQuestion, PrepQuestionAnswer, PrepScoringFormula, PrepSection, QuestionType
-from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
+from examc_app.models import (
+    PrepQuestion,
+    PrepQuestionAnswer,
+    PrepScoringFormula,
+    PrepSection,
+    QuestionType,
+)
 from examc_app.templatetags.prep_tags import prep_scoring_badge, prep_scoring_info
+from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 from examc_app.utils.preparation_functions import (
-    get_applied_scorings, scoring_badge_text, scoring_badges, scoring_info_text,
+    get_applied_scorings,
+    scoring_badge_text,
+    scoring_badges,
+    scoring_info_text,
 )
 from examc_app.utils.preparation_latex_functions import (
-    question_scoring_tex, scoring_formulas_by_type, update_exam_latex, write_global_scoring_file,
+    question_scoring_tex,
+    scoring_formulas_by_type,
+    update_exam_latex,
+    write_global_scoring_file,
 )
 
 

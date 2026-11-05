@@ -1,0 +1,107 @@
+<div style="max-width: 65rem">
+    {# ---- AMC CSV ---- #}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-file-csv me-2"></i>AMC .csv file
+            </h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text text-body-secondary">
+                The AMC export is the main import: it creates the exam's questions with their types and
+                loads every student's answers and results. Make sure it follows the export requirements
+                below so everything is imported correctly.
+            </p>
+            <form action="{% url 'upload_amc_csv' exam_selected.pk %}" method="POST"
+                  enctype="multipart/form-data">
+                {% csrf_token %}
+                {# Disabled while scans are imported (see import.html) #}
+                <fieldset class="border-0 p-0 m-0" data-import-lock {% if upload_task_active %}disabled{% endif %}>
+                    <label for="import-amc-csv-file" class="form-label visually-hidden">AMC CSV file</label>
+                    <div class="input-group">
+                        <input type="file" accept=".csv" name="amc_csv_file" id="import-amc-csv-file"
+                               class="form-control" required>
+                        <button type="submit" class="btn btn-dark">
+                            <i class="fas fa-upload me-1"></i> Upload csv
+                        </button>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+
+        {# Requirements #}
+        <div class="card-body border-top bg-warning-subtle small">
+            <div class="row g-4">
+                <div class="col-md-5">
+                    <h6 class="text-warning-emphasis">
+                        <i class="fas fa-triangle-exclamation me-1"></i> AMC export options
+                    </h6>
+                    <ul class="mb-0 ps-3">
+                        <li>Format: CSV</li>
+                        <li>Sorting: line in students list</li>
+                        <li>Include absentees: yes</li>
+                        <li>Separator: "<code>;</code>"</li>
+                        <li>Ticked boxes: "Yes: AB"</li>
+                        <li>Columns: <code>ID</code>, <code>SCIPER</code>, <code>NAME</code>,
+                            <code>SECTION</code>, <code>EMAIL</code></li>
+                    </ul>
+                </div>
+                <div class="col-md-7">
+                    <h6 class="text-warning-emphasis">
+                        <i class="fas fa-tag me-1"></i> Question ID prefixes
+                    </h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-1">
+                            <code>SCQ-</code> single choice
+                            <span class="text-body-secondary">· <code>\begin{question}{SCQ-01}</code></span>
+                        </li>
+                        <li class="mb-1">
+                            <code>MCQ-</code> multiple choice
+                            <span class="text-body-secondary">· <code>\begin{questionmult}{MCQ-01}</code></span>
+                        </li>
+                        <li class="mb-1">
+                            <code>TF-</code> true-false
+                            <span class="text-body-secondary">· <code>\begin{question}{TF-01}</code></span>
+                        </li>
+                        <li>
+                            <code>OPEN-</code> open (optional)
+                            <span class="text-body-secondary">· <code>\correctorFour{OPEN-A}{~}</code></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ---- Exam catalog PDF ---- #}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0 d-flex align-items-center">
+                <i class="fas fa-file-pdf me-2"></i>Exam catalog PDF file
+                <span class="badge text-bg-secondary fw-normal ms-2">Optional</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text text-body-secondary">
+                The exam catalog is only used for display: it lets you preview the catalog alongside
+                students' answers in the review view. It doesn't create questions or import any results,
+                so you can skip it if you don't need the preview.
+            </p>
+            <form action="{% url 'upload_catalog_pdf' exam_selected.pk %}" method="POST"
+                  enctype="multipart/form-data">
+                {% csrf_token %}
+                {# Disabled while scans are imported (see import.html) #}
+                <fieldset class="border-0 p-0 m-0" data-import-lock {% if upload_task_active %}disabled{% endif %}>
+                    <label for="import-catalog-pdf-file" class="form-label visually-hidden">Catalog PDF file</label>
+                    <div class="input-group">
+                        <input type="file" accept=".pdf" name="catalog_pdf_file" id="import-catalog-pdf-file"
+                               class="form-control" required>
+                        <button type="submit" class="btn btn-dark">
+                            <i class="fas fa-upload me-1"></i> Upload pdf
+                        </button>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>

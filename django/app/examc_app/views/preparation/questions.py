@@ -10,8 +10,10 @@ from examc_app.decorators import exam_permission_required
 from examc_app.forms.preparation import CreatePrepQuestionForm
 from examc_app.models import Exam, PrepQuestion, PrepSection
 from examc_app.services.preparation.questions_import import (
-    QuestionsImportError,
     TEMPLATE_PATH as QUESTIONS_TEMPLATE_PATH,
+)
+from examc_app.services.preparation.questions_import import (
+    QuestionsImportError,
     decode_questions_file,
     import_questions,
     parse_questions_tex,
@@ -20,9 +22,9 @@ from examc_app.utils.preparation_functions import (
     build_question_form,
     create_prep_question,
     ensure_exam_not_finalized,
-    is_exam_locked,
     get_answers,
     get_questions,
+    is_exam_locked,
     renumber_questions,
     update_open_answers,
 )

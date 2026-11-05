@@ -21,8 +21,8 @@
                 {% endif %}
             {% endpill_header %}
 
-            <div class="tab-content">
-                {% pill_pane "common" prefix="general-stats" %}
+            {% tab_content prefix="general-stats" %}
+                {% tab_pane "common" %}
                     {% if exam_selected.scaleStatistics.all %}
                         {% include "./_general_statistics/_single_exam.html" %}
                     {% else %}
@@ -32,29 +32,30 @@
                             then generate the statistics.
                         {% endalert %}
                     {% endif %}
-                {% endpill_pane %}
+                {% endtab_pane %}
 
-                {% pill_pane "by-exam" prefix="general-stats" %}
+                {% tab_pane "by-exam" %}
                     {% include "./_general_statistics/_by_exam.html" %}
-                {% endpill_pane %}
+                {% endtab_pane %}
 
-                {% pill_pane "by-section" prefix="general-stats" %}
+                {% tab_pane "by-section" %}
                     {% include "./_general_statistics/_by_section.html" %}
-                {% endpill_pane %}
+                {% endtab_pane %}
 
-                {% pill_pane "common-vs-individual" prefix="general-stats" %}
+                {% tab_pane "common-vs-individual" %}
                     {% include "./_general_statistics/_common_vs_individual.html" %}
-                {% endpill_pane %}
+                {% endtab_pane %}
 
                 {% if correlation_list %}
-                    {% pill_pane "common-vs-individual-correlation" prefix="general-stats" %}
+                    {% tab_pane "common-vs-individual-correlation" %}
                         {% include "./_general_statistics/_common-vs-individual-correlation.html" %}
-                    {% endpill_pane %}
+                    {% endtab_pane %}
                 {% endif %}
-            </div>
+            {% endtab_content %}
         {% else %}
             {# Single exam: one view, no tabs #}
-            {% pill_header title="General statistics" prefix="general-stats" icon="fas fa-chart-line" %}{% endpill_header %}
+            {% title "General statistics" icon="fas fa-chart-line" %}
+            <hr>
 
             {% if exam_selected.scaleStatistics.all %}
                 <div>

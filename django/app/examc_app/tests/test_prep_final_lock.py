@@ -8,7 +8,11 @@ from django.urls import reverse
 from examc_app.models import ExamAMCJob, PrepStudent
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 from examc_app.utils.amc.amc_build_functions import (
-    BuildCancelled, _run_latex, _should_cancel, _report_progress)
+    BuildCancelled,
+    _report_progress,
+    _run_latex,
+    _should_cancel,
+)
 from examc_app.utils.preparation_functions import is_exam_locked
 
 

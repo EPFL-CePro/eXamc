@@ -20,11 +20,6 @@
                 {% pill_tab "marking-scheme" label="Marking scheme" icon="fas fa-list-check" disabled=data_capture_missing disabled_tooltip="Locked: please import review data first." %}
                 {% pill_tab "reports" label="Reports" icon="fas fa-chart-simple" disabled=data_capture_missing disabled_tooltip="Locked: please import review data first." %}
 
-                <button id="btn-upload-amc-project" class="btn btn-dark"
-                        data-upload-amc-project-url="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}">
-                    <i class="fa-solid fa-cloud-arrow-up me-1" aria-hidden="true"></i>Upload AMC project
-                </button>
-
                 {% if project_dir_dict %}
                     <button id="btn-view-log-file" type="button" class="btn btn-outline-secondary">
                         <i class="fa-solid fa-file-lines" aria-hidden="true"></i> See AMC logs
@@ -33,23 +28,23 @@
             {% endpill_header %}
 
             {% if project_dir_dict %}
-                <div class="tab-content" id="amc-tab-content" style="max-width: 55rem">
-                    {% pill_pane "project" prefix="amc" %}
+                {% tab_content prefix="amc" style="max-width:55rem" %}
+                    {% tab_pane "project" %}
                         {% include "./amc_project.html" %}
-                    {% endpill_pane %}
+                    {% endtab_pane %}
 
-                    {% pill_pane "data-capture" prefix="amc" %}
+                    {% tab_pane "data-capture" %}
                         {% include "./amc_data_capture.html" %}
-                    {% endpill_pane %}
+                    {% endtab_pane %}
 
-                    {% pill_pane "marking-scheme" prefix="amc" %}
+                    {% tab_pane "marking-scheme" %}
                         {% include "./amc_marking.html" %}
-                    {% endpill_pane %}
+                    {% endtab_pane %}
 
-                    {% pill_pane "reports" prefix="amc" %}
+                    {% tab_pane "reports" %}
                         {% include "./amc_results.html" %}
-                    {% endpill_pane %}
-                </div>
+                    {% endtab_pane %}
+                {% endtab_content %}
             {% else %}
                 <div class="alert alert-warning text-center mt-3" id="no-amc-project-dir-msg" role="alert">
                     There is no AMC project directory. Please upload an AMC project directory from the left panel to be

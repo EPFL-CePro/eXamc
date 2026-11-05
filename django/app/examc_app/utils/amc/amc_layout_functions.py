@@ -46,7 +46,6 @@ class LayoutExtractionError(Exception):
     """
     Raised when AMC layout extraction or page analysis cannot be completed.
     """
-    pass
 
 
 @dataclass
@@ -302,8 +301,7 @@ def get_subject_copy_and_page_counts_from_xy(xy_path):
 
         if copy_number and copy_number > max_copy:
             max_copy = copy_number
-        if page_number > max_page:
-            max_page = page_number
+        max_page = max(max_page, page_number)
 
     if max_copy == 0 or max_page == 0:
         raise LayoutExtractionError(f"Could not determine copy/page counts from XY file: {xy_path}")

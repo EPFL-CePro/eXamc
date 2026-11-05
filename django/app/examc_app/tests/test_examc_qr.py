@@ -6,7 +6,12 @@ from django.test import SimpleTestCase, TestCase
 
 from examc_app.tests.helpers.models import create_mock_exam
 from examc_app.utils.examc_qr import (
-    ScanQr, parse_scan_qr, qr_exam_code, qr_exam_fields, scan_exams, scan_qr_exam_problem,
+    ScanQr,
+    parse_scan_qr,
+    qr_exam_code,
+    qr_exam_fields,
+    scan_exams,
+    scan_qr_exam_problem,
 )
 from examc_app.utils.preparation_latex_functions import write_exam_generated_vars
 

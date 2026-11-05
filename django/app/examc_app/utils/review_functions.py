@@ -307,7 +307,7 @@ def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count
 
         process_number += 1
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
-            process_count) + ' - Splitting scans by copy :' + filename)
+            process_count) + ' - Splitting scans by copy: ' + filename)
 
         f = os.path.join(tmp_extract_path, filename)
         # checking if it is a jpeg file
@@ -389,7 +389,14 @@ def split_scans_by_copy(exam, tmp_extract_path, progress_recorder, process_count
     return [copy_count, process_number]
 
 
-def import_scans(exam, path, delete_old, progress_recorder, process_count, process_number):
+def import_scans(
+        exam: Exam,
+        path,
+        delete_old,
+        progress_recorder: ProgressRecorder,
+        process_count,
+        process_number
+):
     print("* Start importing scans")
     scans_dir = str(get_exam_scans_dir(exam))
     os.makedirs(scans_dir, exist_ok=True)
@@ -451,7 +458,8 @@ def create_students_from_amc(exam: Exam):
                         Student.objects.get_or_create(copie_no=copy_no, sciper=sciper, name=name, exam=exam)
 
 
-def delete_old_scans(exam):
+def delete_old_scans(exam: Exam):
+    # TODO see why it doesnt delete the files
     scans_dir = str(get_exam_scans_dir(exam))
     marked_scans_dir = str(get_exam_marked_scans_dir(exam))
 
@@ -761,7 +769,7 @@ def zipdir(path, ziph):
 def updateCorrectorBoxMarked(pageMarkers):
     markers = json.loads(pageMarkers.markers)['markers']
     for marker in markers:
-        return None
+        return
 
 
 def get_exam_copies_from_to(exam):

@@ -20,7 +20,7 @@
                  data-persons-api-search-url="{% url 'search_exam_user' comex.pk %}"
                  data-update-users-url="{% url 'update_exam_users' comex.pk %}"
                  data-create-scale-url="{% url 'create_scale' comex.pk %}"
-                 data-catalog-url="{% url 'catalog_pdf' comex.pk %}"
+                 {% if project_imported %}data-catalog-url="{% url 'catalog_pdf' comex.pk %}"{% endif %}
                  style="max-width: var(--form-max-width)">
 
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
@@ -32,9 +32,17 @@
                         <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Regen statistics
                     </a>
 
-                    <button type="button" class="btn btn-outline-danger btn-sm" id="btn-show-catalog">
-                        <i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Catalog
-                    </button>
+                    <span {% if not project_imported %}
+                        data-bs-toggle="tooltip"
+                        data-bs-title="Cannot preview the catalog, as no project has been imported yet."
+                        {% endif %}>
+                        <button id="btn-show-catalog"
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                {% if not project_imported %}disabled{% endif %}>
+                            <i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Catalog
+                        </button>
+                    </span>
                 </div>
 
                 <div class="accordion" id="exam-info-accordion">
@@ -432,7 +440,6 @@
                         <div id="section-users" class="accordion-collapse collapse">
                             <div class="accordion-body">
                                 <h6>Current users</h6>
-                                <div id="users-error"></div>
                                 <ul class="list-group mb-4" id="current-users">
                                     {% for exam_user in comex.exam_users.all %}
                                         <li class="list-group-item d-flex flex-wrap align-items-center gap-2"
@@ -486,6 +493,8 @@
                                     <h6 class="mt-4">The following users will be added:</h6>
                                     <ul class="list-group" id="new-users-list"></ul>
                                 </div>
+
+                                <div id="users-error" class="mt-2 text-danger"></div>
 
                                 {# Group choices of a newly added user; TS sets their names and ids #}
                                 <template id="user-groups-template">
