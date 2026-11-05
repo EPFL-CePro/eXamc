@@ -18,19 +18,19 @@
     {% if not user_allowed %}
         {% alert "danger" %}You are not allowed to view this page!{% endalert %}
     {% elif exam_pages_groups_formset %}
-        <div class="tab-content" id="review-settings-tab-content">
-            {% pill_pane "questions" prefix="review-settings" %}
+        {% tab_content prefix="review-settings" %}
+            {% tab_pane "questions" %}
                 {% include "review/settings/_manage_exam_questions.html" %}
-            {% endpill_pane %}
+            {% endtab_pane %}
 
-            {% pill_pane "exam-reviewers" prefix="review-settings" %}
+            {% tab_pane "exam-reviewers" %}
                 {% include "review/settings/_manage_exam_reviewers.html" %}
-            {% endpill_pane %}
+            {% endtab_pane %}
 
-            {% pill_pane "grading-schemes" prefix="review-settings" %}
+            {% tab_pane "grading-schemes" %}
                 {% include "review/settings/_manage_grading_schemes.html" %}
-            {% endpill_pane %}
-        </div>
+            {% endtab_pane %}
+        {% endtab_content %}
     {% else %}
         <div class="alert alert-warning">
             <h4 class="alert-heading">Warning!</h4>

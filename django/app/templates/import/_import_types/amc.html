@@ -1,0 +1,41 @@
+{% if message %}
+    <div class="alert alert-info py-2" role="status">{{ message }}</div>
+{% endif %}
+
+<div style="max-width: 65rem">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fa-solid fa-file-zipper me-2" aria-hidden="true"></i>AMC project (.zip file)
+            </h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text text-body-secondary">
+                Imports a whole AMC project in one go, starting with the exam's questions and their types.
+                If the project already contains scanned copies, students' answers or results, they're
+                imported too, but they aren't needed: you can import the scans later from the
+                <a href="{% url "import" exam_selected.pk %}?tab=review">review tab</a>.
+            </p>
+
+            <form id="upload-amc-project-form" method="post" enctype="multipart/form-data"
+                  action="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}">
+                {% csrf_token %}
+                <label id="amc-project-zip-file-label" for="amc-project-zip-file"
+                       class="form-label visually-hidden">
+                    AMC project (.zip file)
+                </label>
+                <div class="input-group">
+                    <input type="file" class="form-control" id="amc-project-zip-file"
+                           name="amc_project_zip_file" accept=".zip,application/zip" required
+                           aria-describedby="amc-project-zip-file-help">
+                    <button class="btn btn-dark" type="submit">
+                        <i class="fa-solid fa-upload me-1" aria-hidden="true"></i> Upload zip
+                    </button>
+                </div>
+                <div id="amc-project-zip-file-help" class="form-text">
+                     Right-click your exam's AMC project folder and compress it. Upload the created .zip file.
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

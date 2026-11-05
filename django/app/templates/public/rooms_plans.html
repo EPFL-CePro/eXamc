@@ -25,15 +25,15 @@
             {% endalert %}
         {% endpill_header %}
 
-        <div class="tab-content" id="rooms-plans-tab-content">
-            {% pill_pane "automatic" prefix="room-plan-generator" %}
+        {% tab_content prefix="room-plan-generator" %}
+            {% tab_pane "automatic" %}
                 {% include "public/_rooms_plans/default.html" with form=forms.default %}
-            {% endpill_pane %}
+            {% endtab_pane %}
 
-            {% pill_pane "manual" prefix="room-plan-generator" %}
+            {% tab_pane "manual" %}
                 {% include "public/_rooms_plans/manual.html" with form=forms.manual %}
-            {% endpill_pane %}
-        </div>
+            {% endtab_pane %}
+        {% endtab_content %}
 
         {# Off-screen copy rendered by the script for the Manual download #}
         <div id="export-layout" aria-hidden="true"></div>
