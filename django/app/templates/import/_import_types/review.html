@@ -1,0 +1,114 @@
+{% load django_vite %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/import/_import_types/review/index.ts' %}
+{% endblock %}
+
+{# Shown as toasts by upload-scans/index.ts #}
+<div id="pageMessages" hidden>
+    {% for message in messages %}
+        <span data-tags="{{ message.tags }}">{{ message }}</span>
+    {% endfor %}
+    {% if message %}
+        <span data-tags="info">{{ message }}</span>
+    {% endif %}
+</div>
+
+{# The running scans import (task id, state, status URLs) is on #import-page, in import.html #}
+<div id="uploadScansDiv" class="p-2 w-100"
+     data-csrf-token="{{ csrf_token }}"
+     data-pending-amc-import="{{ pending_amc_import|yesno:'true,false' }}"
+     data-import-scans-url="{% url 'import_scans_from_review' exam_selected.pk %}"
+     data-call-amc-mark-url="{% url 'call_amc_mark' exam_selected.pk %}">
+    <div class="card mb-4" style="max-width: 65rem">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fa-solid fa-file-zipper me-2" aria-hidden="true"></i>Scanned copies (.zip file)
+            </h5>
+        </div>
+
+        {% if not project_imported %}
+            <div class="card-body">
+                <div class="alert alert-warning mb-0" role="alert">
+                    <h6 class="alert-heading">
+                        <i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>
+                        No AMC project found
+                    </h6>
+                    <p class="mb-2">
+                        Before importing scans, import an AMC project from the
+                        <a class="alert-link" href="{% url 'import' exam_selected.pk %}?tab=amc">AMC tab</a>.
+                        The project must also be compiled and valid. To check, open <em>AMC → AMC</em>,
+                        <em>Project</em> tab: you should see two green banners, "Working documents last update …"
+                        and "Processed XX pages".
+                    </p>
+                    <p class="mb-0">
+                        If they're missing, click <em>Update documents</em>, then <em>Layout detection</em>.
+                    </p>
+                </div>
+            </div>
+        {% else %}
+            <form id="uploadScansForm" method="post" action="{% url 'upload_scans' exam_pk=exam_selected.pk %}"
+                  enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="card-body">
+                    <p class="card-text text-body-secondary">
+                        Upload a .zip of the scanned exam copies. Every page must show its eXamc QR code: it's
+                        how each scan is matched to its copy and page. Scans that can't be matched are listed
+                        below this card so you can assign or delete them. Once every scan is assigned, AMC data
+                        capture and marking start automatically.
+                    </p>
+
+                    <div class="border border-danger-subtle bg-danger-subtle rounded p-3 mb-3">
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" role="switch" name="delete_old_data"
+                                   id="delete_old_data" aria-describedby="delete_old_data_help">
+                            <label class="form-check-label fw-semibold text-danger-emphasis" for="delete_old_data">
+                                Delete existing scans before upload
+                            </label>
+                        </div>
+                        <div id="delete_old_data_help" class="small text-danger-emphasis">
+                            This permanently deletes the current scans and their annotations and comments.
+                            To keep a copy, export them first from <em>Review → Export marked scans</em>.
+                        </div>
+                    </div>
+
+                    <label class="form-label visually-hidden" for="exams_zip_file">Scanned copies (.zip file)</label>
+                    <div class="input-group">
+                        <input type="file" name="exams_zip_file" id="exams_zip_file" accept=".zip" required
+                               class="form-control">
+                        <button class="btn btn-dark" type="submit">
+                            <i class="fa-solid fa-upload me-1" aria-hidden="true"></i> Upload zip
+                        </button>
+                    </div>
+
+                    <div id="uploadScansProgress" class="mt-3" hidden>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span data-progress-label aria-live="polite"></span>
+                            <span class="text-body-secondary" data-progress-detail></span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" role="progressbar" aria-label="Scans upload progress"
+                                 aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar"></div>
+                            </div>
+                            {# Stays out of the form's locking: it's the only way out while the import runs #}
+                            <button type="button" id="uploadScansCancel" class="btn btn-outline-danger btn-sm">
+                                <i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+
+    <div id="pendingAmcImportNotice" class="alert alert-info" role="status" hidden style="max-width: fit-content"></div>
+    {# Shown by review/index.ts when the running import finds scans that aren't in the table yet #}
+    <button type="button" id="moreUnrecognizedScansButton" class="btn btn-warning btn-sm mb-3" hidden>
+        <i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>More unrecognized scans were found
+    </button>
+    <div id="unrecognizedReviewScansTable"
+         data-refresh-url="{% url 'unrecognized_review_scans_table' exam_pk=exam_selected.pk %}">
+        {% include "import/_import_types/_unrecognized_review_scans_table.html" %}
+    </div>
+</div>

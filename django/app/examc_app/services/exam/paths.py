@@ -11,7 +11,6 @@ from pathlib import Path
 from django.conf import settings
 
 from examc_app.exceptions.exam import (
-    ExamDateMissingError,
     ExamFolderConflictError,
     ExamFolderNameInvalidError,
 )

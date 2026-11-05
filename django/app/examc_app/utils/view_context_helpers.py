@@ -1,6 +1,8 @@
 from typing import Any, TypedDict
 
+from examc_app.exceptions.amc import AmcProjectPathNotFoundError
 from examc_app.models import Exam, PagesGroup
+from examc_app.utils.amc_functions import get_amc_project_path
 
 
 class ViewTab(TypedDict):
@@ -32,6 +34,9 @@ class ViewContext:
     curr_tab: str | None
 
     pages_group: PagesGroup | None
+
+    project_imported: bool
+    "The AMC project has been imported and compiled."
 
     def __init__(
         self,
@@ -81,6 +86,8 @@ class ViewContext:
 
         self.set_pages_group(pages_group)
 
+        self.set_project_imported()
+
     def as_dict(self) -> dict[str, Any]:
         """Returns the fully built view context as a dictionary, without the values that were never set."""
         return {
@@ -111,6 +118,11 @@ class ViewContext:
         self.exam_selected = exam
         self.exam = exam.get_overall_exam_or_default()
 
+    def set_task_id(self, task_id: str | None = None) -> None:
+        """Sets the task ID."""
+        if task_id is not None:
+            self.task_id = task_id
+
     def set_user_id(self, user_id: int | None = None) -> None:
         """Sets the user ID."""
         if user_id is not None:
@@ -140,7 +152,17 @@ class ViewContext:
         if pages_group is not None:
             self.pages_group = pages_group
 
-    def set_task_id(self, task_id: str | None = None) -> None:
-        """Sets the task ID."""
-        if task_id is not None:
-            self.task_id = task_id
+
+
+    def set_project_imported(self) -> None:
+        """Sets whether the opened exam's AMC project was imported."""
+        exam = self.exam_selected or self.exam
+        if not exam:
+            return
+
+        try:
+            # try getting the AMC project path, if an exception is raised, the project was not imported yet.
+            get_amc_project_path(exam)
+            self.project_imported = True
+        except AmcProjectPathNotFoundError:
+            self.project_imported = False

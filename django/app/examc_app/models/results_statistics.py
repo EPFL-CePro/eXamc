@@ -1,10 +1,12 @@
 ########################
 # RESULTS & STATISTICS
 ########################
+from typing import ClassVar
+
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from examc_app.models import Exam, Question
+from .exam import Exam, Question
 
 
 class Scale(models.Model):
@@ -21,7 +23,7 @@ class Scale(models.Model):
     history = HistoricalRecords()
 
     class Meta:
-        constraints = [
+        constraints: ClassVar = [
             models.UniqueConstraint(fields=["exam", "name"], name="uniq_scale_name_per_exam"),
         ]
 

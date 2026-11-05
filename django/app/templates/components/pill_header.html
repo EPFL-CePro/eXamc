@@ -5,7 +5,7 @@
     justify-content-center justify-content-md-start
     gap-3{% if not title %} mb-3{% endif %}">
     {% if title %}
-        <h3 class="m-0">{% if icon %}<i class="{{ icon }}"></i> {% endif %}{{ title }}</h3>
+        {% title title icon=icon %}
     {% endif %}
 
     {% if tabs %}

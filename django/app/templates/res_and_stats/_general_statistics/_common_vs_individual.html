@@ -9,9 +9,9 @@
 {% endpill_header %}
 
 
-<div class="tab-content" id="stats-comVsInd-pills-tabContent">
+{% tab_content prefix="stats-com-vs-ind" %}
     {% for scale in exam.scales.all %}
-        {% pill_pane scale.pk prefix="stats-com-vs-ind" %}
+        {% tab_pane scale.pk %}
 
             {# By exam / by section, for this scale. The prefix gives the same ids as before: comVsInd-<pk>-exam-tab, pills-comVsInd-<pk>-exam... #}
             {% with pk_str=scale.pk|stringformat:"s" %}
@@ -21,11 +21,9 @@
                         {% pill_tab "section" label="By section" %}
                     {% endpill_header %}
 
-                    <div class="tab-content" id="comVsInd-{{ scale.pk }}-tabContent"
-                         style="max-height:75vh;overflow-y:scroll">
-
+                    {% tab_content id="comVsInd-"|add:pk_str|add:"-tabContent" prefix=sub_prefix style="max-height:75vh;overflow-y:scroll" %}
                         {# ---------- By exam ---------- #}
-                        {% pill_pane "exam" prefix=sub_prefix %}
+                        {% tab_pane "exam" %}
 
                             <button type="button"
                                     onclick="downloadElementAsPDF({
@@ -69,11 +67,10 @@
                                 <canvas id="canvas-comVsIndByExam-{{ scale.pk }}" class="chartjs-render-monitor"
                                         style="object-fit: contain;"></canvas>
                             </div>
-                        {% endpill_pane %}
+                        {% endtab_pane %}
 
                         {# ---------- By section ---------- #}
-                        {% pill_pane "section" prefix=sub_prefix %}
-
+                        {% tab_pane "section" %}
                             <button type="button"
                                     onclick="downloadElementAsPDF({
                                             title:'Common vs individual statistics by section',
@@ -116,11 +113,10 @@
                                 <canvas id="canvas-comVsIndBySection-{{ scale.pk }}" class="chartjs-render-monitor"
                                         style="object-fit: contain;"></canvas>
                             </div>
-                        {% endpill_pane %}
-
-                    </div>
+                        {% endtab_pane %}
+                    {% endtab_content %}
                 {% endwith %}
             {% endwith %}
-        {% endpill_pane %}
+        {% endtab_pane %}
     {% endfor %}
-</div>
+{% endtab_content %}

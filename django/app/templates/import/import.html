@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load django_vite %}
+
+{% block title %}Import{% endblock %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/import/import/index.ts' %}
+{% endblock %}
+
+{% block content %}
+    {% if user_allowed %}
+        {# The scans import running for this exam, if any: read by every tab, as no other import can run meanwhile #}
+        <div id="import-page"
+             data-upload-task-id="{{ task_id|default:'' }}"
+             data-upload-task-active="{{ upload_task_active|yesno:'true,false' }}"
+             data-upload-status-url="{{ upload_status_url|default:'' }}"
+             data-upload-status-url-template="{{ upload_status_url_template }}">
+            {% pill_header title="Import" prefix="import" icon="fas fa-upload" %}
+                {% pill_tab "amc" label="AMC" enabled=exam_selected.has_amc_option disabled_tooltip="Enable the AMC module to import ZIP archives of full AMC projects." %}
+                {% pill_tab "review" label="Review" icon="fas fa-glasses" enabled=exam.review_option disabled_tooltip="This import requires the Review module. Enable it in Exam settings to import scanned copies of the exam." %}
+                {% pill_tab "results" label="Results" icon="fas fa-chart-simple" enabled=exam_selected.res_and_stats_option disabled=data_capture_missing disabled_tooltip="This import requires the Results module. Enable it in Exam settings to import CSV and PDF files and generate statistics." %}
+            {% endpill_header %}
+
+            {# Shown on every tab while scans are imported; hidden and shown again by review/index.ts #}
+            {% alert "warning" id="importRunningNotice" fit=True icon=False visible=upload_task_active %}
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                Scanned copies are being imported for this exam. Other imports are disabled until it's done. Progress
+                and cancellation option are shown in the <a class="alert-link" href="?tab=review">Review tab</a>.
+            {% endalert %}
+
+            {% tab_content prefix="import" %}
+                {% tab_pane "amc" %}
+                    {% include "./_import_types/amc.html" %}
+                {% endtab_pane %}
+
+                {% tab_pane "review" %}
+                    {% include "./_import_types/review.html" %}
+                {% endtab_pane %}
+
+                {% tab_pane "results" %}
+                    {% include "./_import_types/results.html" %}
+                {% endtab_pane %}
+            {% endtab_content %}
+        </div>
+    {% else %}
+        {% alert "danger" %}
+            You are not allowed to view this page!
+        {% endalert %}
+    {% endif %}
+{% endblock %}

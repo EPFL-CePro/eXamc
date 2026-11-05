@@ -260,7 +260,7 @@ def generate_scale_pdf(exam: Exam, scale: Scale, folder_path):
             #if point <= 0:
             #    pt_grade = 1
             #else:
-            pt_grade = Decimal(((point + scale.points_to_add) / scale.total_points * 5 + 1) * 4).quantize(Decimal('1'),
+            pt_grade = Decimal(((point + scale.points_to_add) / scale.total_points * 5 + 1) * 4).quantize(Decimal(1),
                                                                                                           rounding=ROUND_HALF_UP) / 4
 
             if pt_grade > grade and pt_grade <= scale.max_grade:

@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from django.db.models import Model, Q, F
-from django.db.models import QuerySet
+from django.db.models import F, Model, Q, QuerySet
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import BaseFilterBackend
 from rest_framework.pagination import BasePagination
@@ -35,7 +34,7 @@ class DataTablesRequest:
     order_desc: bool
 
     @classmethod
-    def from_query_params(cls, params) -> "DataTablesRequest":
+    def from_query_params(cls, params) -> DataTablesRequest:
         order_column = params.get("order[0][column]")
         return cls(
             draw=_int(params, "draw", 1),

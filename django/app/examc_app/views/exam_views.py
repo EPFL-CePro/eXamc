@@ -73,9 +73,9 @@ def default_nb_answers(new_type, old_type, current_nb_answers):
     # Open questions (and any other type) have no answer options
     return 0
 
-class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
+class ExamSettingsView(ExamPermissionAndRedirectMixin, DetailView):
     model = Exam
-    template_name = "exam/exam_info.html"
+    template_name = "exam/exam_settings.html"
     perm_codenames: ClassVar = ["manage"]
     pk_url_kwarg = "exam_pk"
     redirect_enabled = True
@@ -109,6 +109,7 @@ class ExamInfoView(ExamPermissionAndRedirectMixin, DetailView):
         view_context.set_task_id(self.kwargs.get("task_id"))
         view_context.set_user_allowed(True)
 
+        # non-standard view context arguments
         view_context.update(
             question_types=QuestionType.objects.all(),
             sum_questions_points=overall.questions.filter(removed_from_common=False).aggregate(Sum("max_points")),

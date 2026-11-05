@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import ClassVar
 
 from django import forms
 from django.conf import settings

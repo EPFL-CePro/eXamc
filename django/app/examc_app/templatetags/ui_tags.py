@@ -10,6 +10,7 @@ from django.template.base import (
     Node,
     NodeList,
     Parser,
+    Template,
     Token,
     token_kwargs,
 )
@@ -19,6 +20,14 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
 register = template.Library()
+
+
+def _get_template_from_context(context: Context) -> Template:
+    context_template = context.template
+    if not isinstance(context_template, Template):
+        raise TemplateSyntaxError("Template not available in context")
+
+    return context_template
 
 
 @register.simple_tag
@@ -32,14 +41,14 @@ def get_logo_url() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Pill tabs: {% pill_header %} with its {% pill_tab %}s, then a {% pill_pane %} per tab
+# Pill tabs: {% pill_header %} with its {% pill_tab %}s, then a {% tab_pane %} per tab
 # ---------------------------------------------------------------------------
 
 TAB_PARAM = "tab"
 
 # Where the tabs of the {% pill_header %} being rendered register themselves (a stack, for nested headers)
 _TABS_KEY = "pill_header_tabs"
-
+_TAB_PREFIX_KEY = "_tab_content_prefix"
 
 class Tab(TypedDict):
     key: str
@@ -91,11 +100,15 @@ def _parse_arguments(
 
     return tag_name, args, kwargs
 
+def _resolve_str(kwargs: dict[str, FilterExpression], name: str, context: Context, default: str = "") -> str:
+    """A keyword argument's value as a string, or `default` when it isn't given or is empty."""
+    value = kwargs[name].resolve(context) if name in kwargs else default
+    return str(value) if value not in (None, "") else default
 
-def _resolve(kwargs: dict[str, FilterExpression], name: str, context: Context, default: object = None) -> object:
-    """A keyword argument's value, or `default` when it isn't given."""
-    return kwargs[name].resolve(context) if name in kwargs else default
 
+def _resolve_bool(kwargs: dict[str, FilterExpression], name: str, context: Context, default: bool = False) -> bool:
+    """A keyword argument's truthiness, or `default` when it isn't given."""
+    return bool(kwargs[name].resolve(context)) if name in kwargs else default
 
 class PillHeaderNode(Node):
     def __init__(self, nodelist: NodeList, kwargs: dict[str, FilterExpression]) -> None:
@@ -103,7 +116,7 @@ class PillHeaderNode(Node):
         self.kwargs = kwargs
 
     def render(self, context: Context) -> SafeString:
-        prefix = str(_resolve(self.kwargs, "prefix", context))
+        prefix = _resolve_str(self.kwargs, "prefix", context)
 
         # The tabs register themselves while the block renders; the rest of the block is the content
         stack = _tabs_stack(context)
@@ -117,16 +130,18 @@ class PillHeaderNode(Node):
         enabled = [tab["key"] for tab in tabs if not tab.get("disabled")]
         request: HttpRequest | None = context.get("request")
         requested = request.GET.get(TAB_PARAM) if request is not None else None
-        active = _resolve(self.kwargs, "active", context)
+        active = _resolve_str(self.kwargs, "active", context)
         selected = next((key for key in (requested, active) if key in enabled), enabled[0] if enabled else None)
 
-        # For the {% pill_pane %}s that follow
+        # For the {% tab_pane %}s that follow
         context[f"{prefix}_active_tab"] = selected
 
-        component = context.template.engine.get_template("components/pill_header.html")
+        context_template = _get_template_from_context(context)
+        component = context_template.engine.get_template("components/pill_header.html")
+
         with context.push(
-            title=_resolve(self.kwargs, "title", context),
-            icon=_resolve(self.kwargs, "icon", context, ""),
+            title=_resolve_str(self.kwargs, "title", context),
+            icon=_resolve_str(self.kwargs, "icon", context, ""),
             prefix=prefix,
             active=selected,
             tabs=tabs,
@@ -145,7 +160,7 @@ def pill_header(parser: Parser, token: Token) -> PillHeaderNode:
           ... anything else, shown after the tabs ...
       {% endpill_header %}
     The selected tab is ?tab= if valid, else `active` if valid, else the first tab; never a disabled one.
-    Sets `<prefix>_active_tab` in the page context, for the {% pill_pane %}s that follow.
+    Sets `<prefix>_active_tab` in the page context, for the {% tab_pane %}s that follow.
     """
     tag_name, _, kwargs = _parse_arguments(
         parser, token, allowed={"title", "prefix", "icon", "active"}, required={"title", "prefix"},
@@ -166,14 +181,15 @@ class PillTabNode(Node):
             raise TemplateSyntaxError("{% pill_tab %} must be inside a {% pill_header %} block.")
 
         key = str(self.key.resolve(context))
-        tab: Tab = {"key": key, "label": str(_resolve(self.kwargs, "label", context, "")) or key.title()}
-        if icon := str(_resolve(self.kwargs, "icon", context, "")):
+        tab: Tab = {"key": key, "label": _resolve_str(self.kwargs, "label", context, "") or key.title()}
+        if icon := _resolve_str(self.kwargs, "icon", context, ""):
             tab["icon"] = icon
-        if tooltip := str(_resolve(self.kwargs, "tooltip", context, "")):
+        if tooltip := _resolve_str(self.kwargs, "tooltip", context, ""):
             tab["tooltip"] = tooltip
-        if disabled_tooltip := str(_resolve(self.kwargs, "disabled_tooltip", context, "")):
+        if disabled_tooltip := _resolve_str(self.kwargs, "disabled_tooltip", context, ""):
             tab["disabled_tooltip"] = disabled_tooltip
-        if _resolve(self.kwargs, "disabled", context, False):
+        if (_resolve_bool(self.kwargs, "disabled", context, False)
+                or not _resolve_bool(self.kwargs, "enabled", context, True)):
             tab["disabled"] = True
 
         # Rendered by the header, with the other tabs: nothing here
@@ -188,51 +204,117 @@ def pill_tab(parser: Parser, token: Token) -> PillTabNode:
       {% pill_tab "grading" label="Grading" icon="fas fa-check" disabled=grading_locked tooltip="Locked." %}
     The first argument is the tab's key; `label` defaults to the title-cased key.
     `icon`, `disabled`, `disabled_tooltip` and `tooltip` are optional; a disabled tab is never selected.
+    `enabled` does the opposite of `disabled`, it's used to simplify templates markup.
     """
     _, (key,), kwargs = _parse_arguments(
-        parser, token, positional=1, allowed={"label", "icon", "disabled", "tooltip", "disabled_tooltip"},
+        parser, token, positional=1, allowed={"label", "icon", "enabled", "disabled", "tooltip", "disabled_tooltip"},
     )
     return PillTabNode(key, kwargs)
 
-
-class PillPaneNode(Node):
-    def __init__(self, nodelist: NodeList, tab: FilterExpression, kwargs: dict[str, FilterExpression]) -> None:
+class TabContentNode(Node):
+    def __init__(self, nodelist: NodeList, kwargs: dict[str, FilterExpression]) -> None:
         self.nodelist = nodelist
-        self.tab = tab
         self.kwargs = kwargs
 
     def render(self, context: Context) -> SafeString:
-        value = self.tab.resolve(context)
-        key = str(value["key"] if isinstance(value, dict) else value)
-        prefix = str(_resolve(self.kwargs, "prefix", context))
+        prefix = str(self.kwargs["prefix"].resolve(context))
+        div_id = _resolve_str(self.kwargs, "id", context, "") or f"{prefix}-tab-content"
+        style = _resolve_str(self.kwargs, "style", context, "")
 
-        content = self.nodelist.render(context)
+        # A nested {% tab_content %} pushes its own prefix, and pops it when done
+        with context.push({_TAB_PREFIX_KEY: prefix}):
+            content = self.nodelist.render(context)
 
         return format_html(
-            '<div class="tab-pane fade{}" id="pills-{}-{}" role="tabpanel" aria-labelledby="{}-{}-tab" tabindex="0">{}</div>',
-            " show active" if context.get(f"{prefix}_active_tab") == key else "",
-            prefix, key, prefix, key,
+            '<div class="tab-content" id="{}"{}>{}</div>',
+            div_id,
+            format_html(' style="{}"', style) if style else "",
             content,
         )
 
 
+class TabPaneNode(Node):
+    def __init__(self, nodelist: NodeList, key: FilterExpression) -> None:
+        self.nodelist = nodelist
+        self.key = key
+
+    def render(self, context: Context) -> SafeString:
+        prefix = context.get(_TAB_PREFIX_KEY)
+        if prefix is None:
+            raise TemplateSyntaxError("{% tab_pane %} must be inside a {% tab_content %} block.")
+
+        value = self.key.resolve(context)
+        key = str(value["key"] if isinstance(value, dict) else value)
+
+        # Set by the {% pill_header %} with the same prefix
+        active = context.get(f"{prefix}_active_tab") == key
+
+        return format_html(
+            '<div class="tab-pane fade{}" id="pills-{}-{}" role="tabpanel" '
+            'aria-labelledby="{}-{}-tab" tabindex="0">{}</div>',
+            " show active" if active else "",
+            prefix, key, prefix, key,
+            self.nodelist.render(context),
+        )
+
+
 @register.tag
-def pill_pane(parser: Parser, token: Token) -> PillPaneNode:
+def tab_content(parser: Parser, token: Token) -> TabContentNode:
     """
-    Usage:
-      {% pill_pane "grading" prefix="preparation" disabled=is_locked tooltip="Locked: review data already exists." %}
-          ...
-      {% endpill_pane %}
-    The first argument is the tab's key, or a Tab dict.
-    `disabled` (optional) makes the content visible but unusable; `tooltip` (optional) explains why.
-    Must come after the matching {% pill_header %}, which sets `<prefix>_active_tab`.
+    Usage, after the {% pill_header %} with the same prefix:
+      {% tab_content prefix="import" id="example" style="max-width: 20rem" %}
+          {% tab_pane "amc-csv" %} ... {% endtab_pane %}
+      {% endtab_content %}
+    The {% tab_pane %}s inside, at any depth, use this prefix; a nested {% tab_content %} sets its own.
     """
-    tag_name, (tab,), kwargs = _parse_arguments(
-        parser, token, positional=1, allowed={"prefix"}, required={"prefix"},
-    )
+    tag_name, _, kwargs = _parse_arguments(parser, token, allowed={"prefix", "id", "style"}, required={"prefix"})
     nodelist = parser.parse((f"end{tag_name}",))
     parser.delete_first_token()
-    return PillPaneNode(nodelist, tab, kwargs)
+    return TabContentNode(nodelist, kwargs)
+
+
+@register.tag
+def tab_pane(parser: Parser, token: Token) -> TabPaneNode:
+    """
+    Usage, inside {% tab_content %}:
+      {% tab_pane "amc-csv" %} ... {% endtab_pane %}
+    The argument is the key of the matching {% pill_tab %}; the prefix comes from the enclosing {% tab_content %}.
+    """
+    tag_name, (key,), _ = _parse_arguments(parser, token, positional=1)
+    nodelist = parser.parse((f"end{tag_name}",))
+    parser.delete_first_token()
+    return TabPaneNode(nodelist, key)
+
+
+# ---------------------------------------------------------------------------
+# Titles: {% title "Exam" icon="fas fa-book-open" %}
+# ---------------------------------------------------------------------------
+
+class TitleNode(Node):
+    def __init__(self, text: FilterExpression, kwargs: dict[str, FilterExpression]) -> None:
+        self.text = text
+        self.kwargs = kwargs
+
+    def render(self, context: Context) -> str:
+        context_template = _get_template_from_context(context)
+                
+        component = context_template.engine.get_template("components/title.html")
+        with context.push(
+            title=self.text.resolve(context),
+            icon=_resolve_str(self.kwargs, "icon", context),
+        ):
+            return component.render(context)
+
+
+@register.tag
+def title(parser: Parser, token: Token) -> TitleNode:
+    """
+    Usage:
+      {% title "Import" icon="fas fa-upload" %}
+    The first argument is the title's text; `icon` (Font Awesome classes) is optional.
+    """
+    _, (text,), kwargs = _parse_arguments(parser, token, positional=1, allowed={"icon"})
+    return TitleNode(text, kwargs)
 
 
 
@@ -252,7 +334,7 @@ ALERT_ICONS: dict[str, str] = {
 }
 
 # Kinds that need the user's attention: announced by screen readers as soon as they appear (role="alert")
-_URGENT_KINDS = {"warning", "danger"}
+_ALERT_URGENT_KINDS = {"warning", "danger"}
 
 
 class AlertNode(Node):
@@ -267,32 +349,38 @@ class AlertNode(Node):
             raise TemplateSyntaxError(f"Unknown alert kind {kind!r}: use one of {', '.join(ALERT_ICONS)}.")
 
         # icon="..." replaces the kind's icon, icon=False removes it
-        icon = _resolve(self.kwargs, "icon", context, ALERT_ICONS[kind])
-        title = str(_resolve(self.kwargs, "title", context, ""))
-        dismissible = bool(_resolve(self.kwargs, "dismissible", context, False))
-        margin = bool(_resolve(self.kwargs, "margin", context, True))
+        icon = _resolve_str(self.kwargs, "icon", context, ALERT_ICONS[kind])
+        alert_title = _resolve_str(self.kwargs, "title", context, "")
+        dismissible = _resolve_bool(self.kwargs, "dismissible", context, False)
+        margin = _resolve_bool(self.kwargs, "margin", context, True)
 
-        classes = ["alert", f"alert-{kind}", str(_resolve(self.kwargs, "class", context, ""))]
+        classes: list[str] = ["alert", f"alert-{kind}", _resolve_str(self.kwargs, "class", context, "")]
         if dismissible:
             classes += ["alert-dismissible", "fade", "show"]
 
         if not margin:
             classes += ["m-0"]
 
+        # hidden=True hides the alert; visible=False does too (visible defaults to True)
+        is_hidden = (
+            _resolve_bool(self.kwargs, "hidden", context, False)
+            or not _resolve_bool(self.kwargs, "visible", context, True)
+        )
+
         attributes = format_html(
             ' class="{}"{}{}{}{}',
             " ".join(filter(None, classes)),
-            format_html(' id="{}"', _resolve(self.kwargs, "id", context)) if "id" in self.kwargs else "",
-            SafeString(' role="alert"') if kind in _URGENT_KINDS else "",
-            SafeString(' style="max-width: fit-content"') if _resolve(self.kwargs, "fit", context, False) else "",
-            SafeString(" hidden") if _resolve(self.kwargs, "hidden", context, False) else "",
+            format_html(' id="{}"', _resolve_str(self.kwargs, "id", context)) if "id" in self.kwargs else "",
+            SafeString(' role="alert"') if kind in _ALERT_URGENT_KINDS else "",
+            SafeString(' style="max-width: fit-content"') if _resolve_bool(self.kwargs, "fit", context, False) else "",
+            SafeString(" hidden") if is_hidden else "",
         )
 
         return format_html(
             "<div{}>{}{}{}{}</div>",
             attributes,
-            format_html('<h6 class="alert-heading">{}</h6>', title) if title else "",
-            format_html('<i class="{} me-1" aria-hidden="true"></i>', icon) if icon and not title else "",
+            format_html('<h6 class="alert-heading">{}</h6>', alert_title) if alert_title else "",
+            format_html('<i class="{} me-1" aria-hidden="true"></i>', icon) if icon and not alert_title else "",
             self.nodelist.render(context),
             SafeString('<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>')
             if dismissible else "",
@@ -309,11 +397,12 @@ def alert(parser: Parser, token: Token) -> AlertNode:
     The first argument is the kind: info, success, warning, danger (with an icon), or secondary, light, dark.
     Optional: `title` (a heading, instead of the icon), `icon` (other Font Awesome classes, or False for none),
     `dismissible` (a close button), `fit` (as wide as its content), `id`, `class` (more classes), `hidden`, `margin`.
+    `visible` does the opposite of hidden.
     Warnings and errors have role="alert", so screen readers announce them as soon as they appear.
     """
     tag_name, (kind,), kwargs = _parse_arguments(
         parser, token, positional=1,
-        allowed={"title", "icon", "dismissible", "fit", "id", "class", "hidden", "margin"},
+        allowed={"title", "icon", "dismissible", "fit", "id", "class", "hidden", "visible", "margin"},
     )
     nodelist = parser.parse((f"end{tag_name}",))
     parser.delete_first_token()

@@ -2,7 +2,10 @@ from django.test import TestCase
 
 from examc_app.models import ExamBuild
 from examc_app.tests.helpers.models import create_mock_exam
-from examc_app.utils.amc.amc_build_retention import cleanup_exam_builds, get_exam_build_retention_decisions
+from examc_app.utils.amc.amc_build_retention import (
+    cleanup_exam_builds,
+    get_exam_build_retention_decisions,
+)
 
 
 class BuildRetentionTestCase(TestCase):

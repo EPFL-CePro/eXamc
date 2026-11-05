@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 tabKey: "scale"
             },
             {
-                tabListSelectors: ["#stats-comVsInd-pills-tabContent", ],
+                tabListSelectors: ["#stats-com-vs-ind-tab-content" ],
                 tabKey: "by"
             }
         ]

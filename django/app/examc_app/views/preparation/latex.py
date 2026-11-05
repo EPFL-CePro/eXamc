@@ -11,7 +11,10 @@ from examc_app.decorators import exam_permission_required
 from examc_app.models import Exam
 from examc_app.utils.amc_functions import ensure_amc_project
 from examc_app.utils.preparation_functions import ensure_exam_not_finalized
-from examc_app.utils.preparation_latex_functions import extract_used_packages, list_available_latex_packages
+from examc_app.utils.preparation_latex_functions import (
+    extract_used_packages,
+    list_available_latex_packages,
+)
 
 
 @exam_permission_required(['manage'])

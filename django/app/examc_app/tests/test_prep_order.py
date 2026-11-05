@@ -2,7 +2,11 @@ from django.test import TestCase
 from django.urls import reverse
 
 from examc_app.models import PrepStudent
-from examc_app.services.student.prep_order import StudentsOrderError, move_prep_student, reorder_prep_students
+from examc_app.services.student.prep_order import (
+    StudentsOrderError,
+    move_prep_student,
+    reorder_prep_students,
+)
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 
 # copy_no, sciper, last name, first name, section, room, seat

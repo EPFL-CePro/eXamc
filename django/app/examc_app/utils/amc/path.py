@@ -7,7 +7,7 @@ def resolve_amc_path(raw: str, project_path: str) -> Path:
     """
     Turn a file path stored in an AMC database into an absolute filesystem path.
 
-    AMC stores paths with placeholders: ``%PROJET`` stands for the project
+    AMC stores paths with placeholders: ``%PROJET`` (NOT %PROJECT) stands for the project
     directory, and older records may start with ``%HOME/html/eXamc``, the
     app's previous install location, which now lives under PRIVATE_MEDIA_ROOT.
 

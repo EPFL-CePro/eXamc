@@ -43,7 +43,7 @@ class ExamPermissionAndRedirectMixin(AccessMixin):
         def has(codename_list):
             return exam_group_names_allow(group_names, codename_list)
 
-        # 3a) Redirect mode (ExamInfoView)
+        # 3a) Redirect mode (ExamSettingsView)
         if self.redirect_enabled:
             # manage → let them in
             if has(['manage']):

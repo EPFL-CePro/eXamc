@@ -4,7 +4,13 @@ from django.test import TestCase
 from django.urls import reverse
 
 from examc_app.models import (
-    ExamAMCJob, PrepQuestion, PrepQuestionAnswer, PrepScoringFormula, PrepSection, QuestionType)
+    ExamAMCJob,
+    PrepQuestion,
+    PrepQuestionAnswer,
+    PrepScoringFormula,
+    PrepSection,
+    QuestionType,
+)
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 
 

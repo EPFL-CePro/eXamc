@@ -10,11 +10,20 @@ from pypdf import PdfReader
 
 from examc_app.forms.preparation import PrepQuestionAnswerForm, PrepQuestionForm
 from examc_app.models import ExamUser, PrepQuestion, PrepQuestionAnswer, PrepStudent
-from examc_app.services.preparation.questions_import import import_questions, parse_questions_tex
+from examc_app.services.preparation.questions_import import (
+    import_questions,
+    parse_questions_tex,
+)
 from examc_app.services.student.prep_amc_csv import write_students_csv
 from examc_app.tests.helpers.prep import PrepViewsTestCase
-from examc_app.utils.amc.amc_build_functions import compile_exam_in_workspace, copy_project_to_workspace
-from examc_app.utils.preparation_functions import create_prep_question, create_prep_section
+from examc_app.utils.amc.amc_build_functions import (
+    compile_exam_in_workspace,
+    copy_project_to_workspace,
+)
+from examc_app.utils.preparation_functions import (
+    create_prep_question,
+    create_prep_section,
+)
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 
 

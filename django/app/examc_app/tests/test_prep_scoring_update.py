@@ -133,7 +133,7 @@ class ScoringOfAFinalExamTestCase(ScoringFormulaFormMixin, PrepViewsTestCase):
         self.assertEqual((job.status, job.error_message), ("error", "The update was interrupted."))
 
     def scoring_button(self, html) -> str:
-        return re.search(r'<button[^>]*id="openScoringFormulasModal"[^>]*>', html, flags=re.S).group(0)
+        return re.search(r'<button[^>]*id="openScoringFormulasModal"[^>]*>', html, flags=re.DOTALL).group(0)
 
     def test_the_scoring_buttons_stay_enabled_on_a_final_exam(self):
         question = self.question("SCQ", 2)

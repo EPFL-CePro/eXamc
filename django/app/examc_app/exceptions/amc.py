@@ -8,7 +8,7 @@ class AmcProjectPathNotFoundError(UserFacingError):
     title = "AMC project not found"
     message = (
         'The selected exam "{{ exam.pk|get_exam_name }}" has no AMC project yet. Please import one first '
-        "<a href=\"{% url 'amc_view' exam.pk %}\">in the AMC module</a>."
+        "<a href=\"{% url 'import' exam.pk %}?tab=amc\">in the AMC module</a>."
     )
     status_code = 404
 
@@ -16,7 +16,10 @@ class AmcProjectPathNotFoundError(UserFacingError):
 class AmcDbManagerError(UserFacingError):
     """Raised when reading or writing an AMC database fails."""
     title = "AMC data unavailable"
-    message = "The AMC data of this exam could not be read. Please contact support if this persists."
+    message = (
+        "The AMC data for this exam couldn’t be read. Make sure you’ve imported an AMC project from the Import page "
+        "in the sidebar, then try again. If the problem continues, please contact support."
+    )
     status_code = 500
     log_level = logging.ERROR
 

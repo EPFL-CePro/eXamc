@@ -72,14 +72,14 @@
         </div>
 
         {# Tab content #}
-        <div class="tab-content" id="preparation-tab-content">
-            {% pill_pane "exam" prefix="preparation" %}
+        {% tab_content prefix="preparation" %}
+            {% tab_pane "exam" %}
                 {% include "exam/preparation/preparation_exam.html" %}
-            {% endpill_pane %}
+            {% endtab_pane %}
 
-            {% pill_pane "students" prefix="preparation" %}
+            {% tab_pane "students" %}
                 {% include "exam/preparation/preparation_students.html" %}
-            {% endpill_pane %}
-        </div>
+            {% endtab_pane %}
+        {% endtab_content %}
     </div>
 {% endblock %}

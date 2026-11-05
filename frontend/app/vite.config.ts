@@ -43,6 +43,10 @@ export default defineConfig({
         "home": resolve(import.meta.dirname, 'src/views/home/index.ts'),
 
         "impersonation/select_user": resolve(import.meta.dirname, 'src/views/impersonation/select_user/index.ts'),
+        
+        "import/import": resolve(import.meta.dirname, 'src/views/import/import/index.ts'),
+        "import/_import_types/review": resolve(import.meta.dirname, 'src/views/import/_import_types/review/index.ts'),
+        "import/_import_types/amc": resolve(import.meta.dirname, 'src/views/import/_import_types/amc/index.ts'),
 
         "res_and_stats/students_results": resolve(import.meta.dirname, 'src/views/res_and_stats/students_results/index.ts'),
         "res_and_stats/general_statistics": resolve(import.meta.dirname, 'src/views/res_and_stats/general_statistics/index.ts'),

@@ -16,9 +16,9 @@ from .latex import (
 from .preview import exam_preview_pdf_file, exam_preview_start, exam_preview_status
 from .project import (
     create_exam_project,
-    preparation_view,
     prep_first_page_panel,
     prep_print_settings,
+    preparation_view,
     unlock_exam_editing,
 )
 from .questions import (
@@ -66,7 +66,6 @@ __all__ = [
     "download_prep_students_template",
     "edit_latex_file",
     "edit_latex_packages",
-    "preparation_view",
     "exam_preview_pdf_file",
     "exam_preview_start",
     "exam_preview_status",
@@ -79,6 +78,7 @@ __all__ = [
     "prep_print_settings",
     "prep_question_panel",
     "prep_section_panel",
+    "preparation_view",
     "reorder_prep_answers",
     "reorder_prep_questions",
     "reorder_prep_sections",

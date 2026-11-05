@@ -4,6 +4,7 @@ import html
 import io
 import logging
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -63,6 +64,7 @@ from examc_app.services.exam.paths import (
     get_exam_auto_upload_dir,
 )
 from examc_app.signing import make_token_for, verify_and_get_path
+from examc_app.utils.amc.path import resolve_amc_path
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
@@ -278,9 +280,9 @@ def amc_layout_detection(exam: Exam):
         return result.stdout
 
 
-def amc_automatic_datacapture_subprocess(request, exam: Exam, file_path, from_review, file_list_path=None):
+def amc_automatic_data_capture_subprocess(request, exam: Exam, file_path, from_review, file_list_path=None):
     logger.info(
-        "AMC datacapture started exam=%s from_review=%s file_list_path=%s",
+        "AMC data capture started exam=%s from_review=%s file_list_path=%s",
         exam.pk,
         from_review,
         file_list_path,
@@ -295,13 +297,13 @@ def amc_automatic_datacapture_subprocess(request, exam: Exam, file_path, from_re
                 try:
                     shutil.rmtree(tmp_dir_path)
                 except Exception:
-                    logger.exception("AMC datacapture failed removing tmp dir exam=%s path=%s", exam.pk, tmp_dir_path)
+                    logger.exception("AMC data capture failed removing tmp dir exam=%s path=%s", exam.pk, tmp_dir_path)
             os.mkdir(tmp_dir_path)
 
             tmp_extract_path = tmp_dir_path + "/tmp_extract"
             file_name = f"exam_{exam.pk}_amc_scans.zip"
             tmp_file_path = tmp_dir_path + "/" + file_name
-            logger.info("AMC datacapture upload extraction started exam=%s tmp_file=%s", exam.pk, tmp_file_path)
+            logger.info("AMC data capture upload extraction started exam=%s tmp_file=%s", exam.pk, tmp_file_path)
             with open(tmp_file_path, 'wb') as temp_file:
                 temp_file.writelines(file_path.chunks())
                 # extract zip file in tmp dir
@@ -317,7 +319,7 @@ def amc_automatic_datacapture_subprocess(request, exam: Exam, file_path, from_re
 
                 tmp_file_list.close()
                 logger.info(
-                    "AMC datacapture upload extraction completed exam=%s extracted_count=%s file_list_path=%s",
+                    "AMC data capture upload extraction completed exam=%s extracted_count=%s file_list_path=%s",
                     exam.pk,
                     len(files),
                     file_list_path,
@@ -328,36 +330,38 @@ def amc_automatic_datacapture_subprocess(request, exam: Exam, file_path, from_re
         if not from_review:
             command.extend(["--copy-to", f"{project_path}/scans"])
 
-        logger.info("AMC datacapture getimages started exam=%s command=%s", exam.pk, command)
-        yield "Getting images ...\n"
-        getimages_result = subprocess.run(command, capture_output=True, text=True)
+        logger.info("AMC data capture getimages started exam=%s command=%s", exam.pk, command)
+        yield "Getting images ... (this can take a while)\n"
+
+        get_images_result = subprocess.run(command, check=False, capture_output=True, text=True)
+
         logger.info(
-            "AMC datacapture getimages completed exam=%s returncode=%s stdout_len=%s stderr_len=%s",
+            "AMC data capture getimages completed exam=%s returncode=%s stdout_len=%s stderr_len=%s",
             exam.pk,
-            getimages_result.returncode,
-            len(getimages_result.stdout or ""),
-            len(getimages_result.stderr or ""),
+            get_images_result.returncode,
+            len(get_images_result.stdout or ""),
+            len(get_images_result.stderr or ""),
         )
-        if getimages_result.stderr:
-            logger.warning("AMC datacapture getimages stderr exam=%s stderr=%s", exam.pk, getimages_result.stderr)
+        if get_images_result.stderr:
+            logger.warning("AMC data capture getimages stderr exam=%s stderr=%s", exam.pk, get_images_result.stderr)
 
         os.rename(file_list_path, file_list_path + ".txt")
         file_list_path += ".txt"
-        logger.info("AMC datacapture file list renamed exam=%s file_list_path=%s", exam.pk, file_list_path)
+        logger.info("AMC data capture file list renamed exam=%s file_list_path=%s", exam.pk, file_list_path)
 
         box_prop = get_amc_option_by_key(exam, "box_size_proportion")
 
         # analyse scans
         command = [
             "auto-multiple-choice", "analyse",
-            "--prop", box_prop,
-            "--data", f"{project_path}/data/",
-            "--projet", project_path,
-            "--liste-fichiers", file_list_path,
-            "--try-three",
+                "--prop", box_prop,
+                "--data", f"{project_path}/data/",
+                "--projet", project_path,
+                "--liste-fichiers", file_list_path,
+                "--try-three",
         ]
 
-        logger.info("AMC datacapture analyse started exam=%s command=%s", exam.pk, command)
+        logger.info("AMC data capture analyse started exam=%s command=%s", exam.pk, command)
         yield "Automatic data capture ...\n"
         errors = ''
         with subprocess.Popen(
@@ -367,74 +371,93 @@ def amc_automatic_datacapture_subprocess(request, exam: Exam, file_path, from_re
                 bufsize=1,
                 universal_newlines=True,
         ) as process:
-            for line in process.stdout:
-                logger.info("AMC analyse exam=%s output=%s", exam.pk, line.strip())
-                if "ERR:" in line:
-                    errors += line
-                yield line
+            stdout = process.stdout
+            if stdout is None:
+                logger.error("AMC analyse exam=%s stdout is None", exam.pk)
+            else:
+                for line in stdout:
+                    logger.info("AMC analyse exam=%s output=%s", exam.pk, line.strip())
+                    if "ERR:" in line:
+                        errors += line
+                    yield line
 
-            returncode = process.wait()
-            logger.info("AMC datacapture analyse completed exam=%s returncode=%s", exam.pk, returncode)
-            if returncode:
-                raise subprocess.CalledProcessError(returncode, process.args)
+            return_code = process.wait()
+            logger.info("AMC data capture analyse completed exam=%s returncode=%s", exam.pk, return_code)
+            if return_code:
+                raise subprocess.CalledProcessError(return_code, process.args)
 
         # check consistency between AMC page recognition and review pages
-        logger.info("AMC datacapture consistency check started exam=%s", exam.pk)
+        logger.info("AMC data capture consistency check started exam=%s", exam.pk)
         yield "Checking data consistency ...\n"
         check_pages_recognition_consistency(exam)
-        logger.info("AMC datacapture consistency check completed exam=%s", exam.pk)
+        logger.info("AMC data capture consistency check completed exam=%s", exam.pk)
 
         if tmp_dir_path:
             shutil.rmtree(tmp_dir_path)
-            logger.info("AMC datacapture tmp dir removed exam=%s path=%s", exam.pk, tmp_dir_path)
+            logger.info("AMC data capture tmp dir removed exam=%s path=%s", exam.pk, tmp_dir_path)
         # if file_list_path:
         #     os.remove(file_list_path)
         if errors:
-            logger.warning("AMC datacapture analyse reported errors exam=%s errors=%s", exam.pk, errors)
+            logger.warning("AMC data capture analyse reported errors exam=%s errors=%s", exam.pk, errors)
             yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
-        logger.info("AMC datacapture completed exam=%s from_review=%s", exam.pk, from_review)
+        logger.info("AMC data capture completed exam=%s from_review=%s", exam.pk, from_review)
     except GeneratorExit:
-        logger.warning("AMC datacapture client disconnected exam=%s from_review=%s", exam.pk, from_review)
+        logger.warning("AMC data capture client disconnected exam=%s from_review=%s", exam.pk, from_review)
         raise
     except (BrokenPipeError, ConnectionResetError):
-        logger.warning("AMC datacapture connection interrupted exam=%s from_review=%s", exam.pk, from_review,
+        logger.warning("AMC data capture connection interrupted exam=%s from_review=%s", exam.pk, from_review,
                        exc_info=True)
         raise
     except Exception:
-        logger.exception("AMC datacapture failed exam=%s from_review=%s file_list_path=%s", exam.pk, from_review,
-                         file_list_path)
+        logger.exception(
+            "AMC data capture failed exam=%s from_review=%s file_list_path=%s",
+            exam.pk, from_review, file_list_path
+        )
         raise
 
 
 def check_pages_recognition_consistency(exam: Exam):
     """
-    Check if page recognition is consistent with the database.
+    Renames each recognized scan to ``copy_<student>_<page>.<extension>``, on disk and in AMC's capture database.
+
+    AMC stores scan paths with placeholders (see ``resolve_amc_path``): they're resolved to move the files,
+    and kept in the paths written back to the database, as AMC expects.
     """
-    project_path = get_amc_project_path(exam, False)
+    project_path = get_amc_project_path(exam)
 
-    with AmcCaptureDbManager(amc_data_path=f"{project_path}/data/") as amc_capture_db_manager:
-        capture_pages = amc_capture_db_manager.select_capture_pages()
+    with AmcCaptureDbManager(
+        amc_data_path=f"{project_path}/data/"
+    ) as amc_capture_db_manager:
+        for capture_page in amc_capture_db_manager.select_capture_pages():
+            src = capture_page["src"]
+            directory, filename = posixpath.split(src)
 
-        for capture_page in capture_pages:
-            #yield " -- copy "+ str(capture_page['student']) + " page " + str(capture_page['page']) + "\n"
-            filename = capture_page['src'].split("/")[-1]
-            filename_split = filename.split('.')
-            if len(filename_split) > 2:
-                new_filename_path = capture_page['src'].replace(filename, '')
-                new_filename = 'copy_' + str(capture_page['student']).zfill(4) + "_" + str(capture_page['page']).zfill(
-                    2) + "." + filename_split[2]
-                new_filename = new_filename_path + new_filename
-                if '%HOME' in new_filename:
-                    shutil.move(capture_page['src'].replace('%HOME', str(Path.home())),
-                                new_filename.replace('%HOME', str(Path.home())))
-                else:
-                    shutil.move(capture_page['src'], new_filename)
+            # Only scans still named after the uploaded file are renamed, e.g. "scan.pdf-page-01_0001.pdf.png".
+            # Renamed ones ("copy_0001_01.png") have a single dot.
+            if filename.count(".") < 2:
+                continue
 
-                amc_capture_db_manager.update_capture_page_src(
-                    student=capture_page['student'],
-                    page=capture_page['page'],
-                    new_filename=new_filename
+            extension = filename.rsplit(".", 1)[1]
+            student = str(capture_page["student"]).zfill(4)
+            page = str(capture_page["page"]).zfill(2)
+            new_src = posixpath.join(directory, f"copy_{student}_{page}.{extension}")
+
+            src_path = resolve_amc_path(src, project_path)
+            new_path = resolve_amc_path(new_src, project_path)
+
+            if src_path.exists():
+                shutil.move(src_path, new_path)
+            elif not new_path.exists():
+                raise FileNotFoundError(
+                    f"Scan not found for copy {student}, page {page}: {src_path}"
                 )
+            # Otherwise an earlier run moved the file but stopped before updating the database.
+
+            amc_capture_db_manager.update_capture_page_src(
+                student=capture_page["student"],
+                page=capture_page["page"],
+                new_filename=new_src,
+            )
 
 
 def amc_automatic_data_capture(exam: Exam, file_path, from_review, file_list_path=None):
@@ -445,8 +468,8 @@ def amc_automatic_data_capture(exam: Exam, file_path, from_review, file_list_pat
         if os.path.exists(tmp_dir_path):
             try:
                 shutil.rmtree(tmp_dir_path)
-            except Exception as e:
-                t = ''
+            except Exception:
+                pass
         os.mkdir(tmp_dir_path)
 
         tmp_extract_path = tmp_dir_path + "/tmp_extract"
@@ -789,7 +812,6 @@ def add_unrecognized_page_to_project(exam: Exam, copy, page, extra, img_filename
 
         # #list files and get last extraNumber
         last_ex_num = 0
-        #
         for f in os.listdir(copy_extra_folder_path):
             curr_page = int(f.split('_')[-1].split(".")[0])
             curr_ex_num = int(f.split(".")[1])
@@ -835,87 +857,66 @@ def get_automatic_association_code(exam: Exam):
     return None
 
 
-def amc_mark(exam: Exam, update_scoring_strategy):
-    print("************** Start marking")
-    if update_scoring_strategy == 'true':
-        result = amc_update_documents(exam, None, True)
+def amc_mark_subprocess(exam: Exam, update_scoring_strategy: bool):
+    if update_scoring_strategy:
+        # Runs AMC's "prepare" in scoring mode, so the marking uses the current scoring strategy.
+        yield "Updating the scoring strategy ...\n"
+        update_output = amc_update_documents(exam, None, True)
+        if update_output:
+            yield update_output
 
-    project_path = get_amc_project_path(exam, False)
-    threshold = get_amc_option_by_key(exam, "seuil")
-    threshold_up = get_amc_option_by_key(exam, 'seuil_up')
-    grain = get_amc_option_by_key(exam, "note_grain")
-    round_grade = get_amc_option_by_key(exam, "note_arrondi")
-    notemin = get_amc_option_by_key(exam, "note_min")
-    notemax = get_amc_option_by_key(exam, "note_max")
-    plafond = get_amc_option_by_key(exam, "note_max_plafond")
-    yield "Start marking ...\n"
+    project_path = get_amc_project_path(exam)
 
-    command = [
-        "auto-multiple-choice", "note",
-        "--data", f"{project_path}/data/",
-        "--seuil", threshold,
-        "--seuil-up", threshold_up,
-        "--grain", grain,
-        "--arrondi", round_grade,
-        "--notemin", notemin,
-        "--notemax", notemax,
-        "--plafond", plafond,
-    ]
-    errors = ''
-    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
-        with open(project_path + '/amc-compiled.amc', 'r') as file:
-            # Read each line in the file
+    # AMC "note" option -> key in the project's options. A missing option is left out: AMC uses its default.
+    option_keys = {
+        "--seuil": "seuil",
+        "--seuil-up": "seuil_up",
+        "--grain": "note_grain",
+        "--arrondi": "note_arrondi",
+        "--notemin": "note_min",
+        "--notemax": "note_max",
+    }
+    command = ["auto-multiple-choice", "note", "--data", f"{project_path}/data/"]
+    missing = []
+    for flag, key in option_keys.items():
+        value = get_amc_option_by_key(exam, key)
+        if value is None or value == "":
+            missing.append(key)
+        else:
+            command += [flag, str(value)]
+    if missing:
+        yield f"Not set in the AMC project, AMC's defaults are used: {', '.join(missing)}\n"
+
+
+    # The students being marked, from the compiled document
+    compiled_path = os.path.join(project_path, "amc-compiled.amc")
+    if os.path.exists(compiled_path):
+        with open(compiled_path) as file:
             for line in file:
-                if 'ETU' in line:
-                    info_str = 'Student Nr. ' + line.split('=')[1].split('}')[0] + ' \n'
-                    print(info_str)
-                    yield info_str
+                if "ETU" in line:
+                    yield "Student Nr. " + line.split("=")[1].split("}")[0] + " \n"
 
-        if process.returncode and process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, process.args)
+    return_code = None
+    # AMC's own output, as it comes; errors are merged in so they show in the log too
+    with subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
+    ) as process:
+        stdout = process.stdout
+        if stdout is None:
+            logger.error("AMC note command's stdout is None")
+        else:
+            for line in stdout:
+                yield line
 
-    if errors:
-        yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
+        return_code = process.wait()
 
-
-def amc_mark_subprocess(request, exam: Exam, update_scoring_strategy):
-    if update_scoring_strategy == 'true':
-        result = amc_update_documents(exam, None, True)
-
-    project_path = get_amc_project_path(exam, False)
-    threshold = get_amc_option_by_key(exam, "seuil")
-    threshold_up = get_amc_option_by_key(exam, 'seuil_up')
-    grain = get_amc_option_by_key(exam, "note_grain")
-    round_grade = get_amc_option_by_key(exam, "note_arrondi")
-    notemin = get_amc_option_by_key(exam, "note_min")
-    notemax = get_amc_option_by_key(exam, "note_max")
-    plafond = get_amc_option_by_key(exam, "note_max_plafond")
-
-    command = [
-        "auto-multiple-choice", "note",
-        "--data", f"{project_path}/data/",
-        "--seuil", threshold,
-        "--seuil-up", threshold_up,
-        "--grain", grain,
-        "--arrondi", round_grade,
-        "--notemin", notemin,
-        "--notemax", notemax,
-    ]
-    errors = ''
-    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as process:
-        with open(project_path + '/amc-compiled.amc', 'r') as file:
-            # Read each line in the file
-            for line in file:
-                if 'ETU' in line:
-                    info_str = 'Student Nr. ' + line.split('=')[1].split('}')[0] + ' \n'
-                    print(info_str)
-                    yield info_str
-
-        if process.returncode and process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, process.args)
-
-    if errors:
-        yield "\n\n**************************\nERRORS: \n-------\n\n" + errors + "\n**************************\n\n"
+    if return_code != 0:
+        logger.error("AMC marking failed for exam %s with exit code %s", exam.pk, return_code)
+        yield (
+            "\n\n**************************\nERRORS: \n-------\n\n"
+            f"AMC marking failed (exit code {return_code}). See the output above.\n"
+            "**************************\n\n"
+        )
 
 
 def get_amc_mean(exam: Exam):

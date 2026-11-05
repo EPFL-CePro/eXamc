@@ -23,9 +23,9 @@
         {% if mcq_questions or open_questions %}
             {# Tab navigation #}
             <div id="questions-statistics" data-catalog-url="{% url 'catalog_pdf' exam_selected.pk %}">
-            <div class="tab-content" id="questions-statistics-tab-content">
+            {% tab_content prefix="questions-stats" %}
                 {# Closed-ended: multiple-choice and true/false questions #}
-                {% pill_pane "closed-ended" prefix="questions-stats" %}
+                {% tab_pane "closed-ended" %}
                     {% if mcq_questions %}
                         <button type="button" class="btn btn-primary mb-3"
                                 title="Download closed-ended questions stats as PDF"
@@ -90,10 +90,10 @@
                             </table>
                         </div>
                     {% endif %}
-                {% endpill_pane %}
+                {% endtab_pane %}
 
                 {# Open questions #}
-                {% pill_pane "open-ended" prefix="questions-stats" %}
+                {% tab_pane "open-ended" %}
                     {% if open_questions %}
                         <button type="button" class="btn btn-primary mb-3"
                                 title="Download open-ended questions stats as PDF"
@@ -147,10 +147,10 @@
                             </table>
                         </div>
                     {% endif %}
-                {% endpill_pane %}
+                {% endtab_pane %}
 
                 {# Common exam: each common question's answers, exam by exam #}
-                {% pill_pane "by-exam" prefix="questions-stats" %}
+                {% tab_pane "by-exam" %}
                     {% if exam_selected.is_overall %}
                         <button type="button" class="btn btn-primary mb-3"
                                 title="Download by exam stats as PDF"
@@ -201,7 +201,7 @@
                             <p class="text-body-secondary">No common question.</p>
                         {% endif %}
                     {% endif %}
-                {% endpill_pane %}
+                {% endtab_pane %}
 
                 <div class="modal fade" id="display-pdf-modal" tabindex="-1" aria-label="Question in the catalog"
                      aria-hidden="true">
@@ -218,11 +218,11 @@
                 </div>
 
                 {{ charts|json_script:"questions-stats-charts" }}
-            </div>
+            {% endtab_content %}
         {% else %}
             {% alert "warning" fit=True %}
                 No data was found for this exam. Please begin by
-                <a class="alert-link" href="{% url 'import_data_4_stats' exam_selected.pk %}">importing data</a>, then
+                <a class="alert-link" href="{% url 'import' exam_selected.pk %}?tab=results">importing data</a>, then
                 generate statistics
                 <a class="alert-link" href="{% url 'exam_info' exam_selected.pk %}">in the exam settings page</a>.
             {% endalert %}
