@@ -23,7 +23,7 @@ def get_course_teachers_string(teachers):
             teachers_str += t.split(';')[2]
     return teachers_str
 
-def add_course_teachers(scipers):
+def add_course_teachers(scipers: list[str]) -> list[User]:
     """
     Return the users of the given teachers, creating the missing ones from the EPFL directory.
     Teachers not found in the directory or without a valid email are skipped.
@@ -49,6 +49,7 @@ def add_course_teachers(scipers):
             )
 
         teachers_list.append(user)
+
     return teachers_list
 
 def search_and_replace(file_path, search_word, replace_word):
