@@ -305,7 +305,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
             for key, value in row.items():
                 if type(value) is not float:
                     raise AmcDbManagerError(
-                        f"zone {zoneid}: {key} expected float, got {type(value).__name__} ({value!r})"
+                        f"zone {zoneid}: {key} expected float, got {type(value).__name__} ({value!r})",
                     )
 
         return rows
@@ -390,7 +390,7 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
         return row["count"] if row and row["count"] else 0
 
-    def select_unrecognized_pages(self) -> list[dict[str, str]]:
+    def select_unrecognized_pages(self) -> list[dict[str, Any]]:
         """
         Select the scans that AMC could not recognize.
         :return: Dicts with keys filename (base name) and filepath (as stored by AMC).

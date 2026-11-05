@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from django.conf import settings
-from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
+from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from django.utils.http import urlencode
 
 # salt isolates this signer from any others you might use
@@ -23,38 +23,37 @@ def b64url_encode(s: str) -> str:
 
 def make_token_for(rel_path: str, type_root: str, token_type: str | None = None, copy_page_in_url: bool = True) -> str:
     """
-    Creates a signed token that embarks {type, path} and sends back an URL like this: /protected/?token=<TOKEN>
+    Creates a signed token holding {type, path}, and returns a URL like /protected/<copy_page>/?token=<TOKEN>.
+
+    :param rel_path: The file's path, relative to ``type_root``.
+    :param type_root: The folder the path is relative to. Its name is the token's type unless ``token_type`` is given:
+        "scans", "marked_scans", "amc_projects"…
+    :param token_type: Overrides the type taken from ``type_root``.
+    :param copy_page_in_url: Whether to put the file's name (without extension) in the URL, e.g. "copy_0002_02".
     """
-    root_str = str(type_root)
+    root = Path(type_root)
+    type_name = token_type or root.name
 
-    type_name = token_type or Path(root_str).name # "scans" | "marked_scans" | "amc_projects" | ...
-
-    payload = {
-        "type": type_name,
-        "path": rel_path
-    }
-
+    path = rel_path
     if type_name == "extra":
-        payload["path"] = root_str.replace(str(settings.AMC_PROJECTS_ROOT), "").lstrip("/") + rel_path
+        # Extra pages are served from AMC_PROJECTS_ROOT: the path starts with the project's folders.
+        project_part = root.relative_to(settings.AMC_PROJECTS_ROOT).as_posix()
+        path = f"{project_part}/{rel_path}"
 
-
-    if type_name == 'extra': payload['path'] = type_root.replace(str(settings.AMC_PROJECTS_ROOT), "")[1:] + rel_path
+    payload = {"type": type_name, "path": path}
 
     # JSON -> base64url for a compact token and no special characters
     msg = b64url_encode(json.dumps(payload, separators=(",", ":")))
     token = signer.sign(msg)  # TimestampSigner
 
     base_url = str(settings.SIGNED_FILES_URL).rstrip("/") + "/"
+    query = urlencode({"token": token})
 
-    if type_name in {"amc_document"}:
-        return f"{base_url}?{urlencode({'token': token})}"
+    if type_name == "amc_document" or not copy_page_in_url:
+        return f"{base_url}?{query}"
 
-    copy_page = ""
-    if copy_page_in_url:
-        copy_page = rel_path.split('.jpg')[0].split("/").pop()
-        copy_page += "/"
+    return f"{base_url}{Path(rel_path).stem}/?{query}"
 
-    return f"{settings.SIGNED_FILES_URL}{copy_page}?{urlencode({'token': token})}"
 
 def verify_and_get_path(token: str, max_age=None) -> Path:
     """
