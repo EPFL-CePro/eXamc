@@ -7,7 +7,11 @@ from django.db import transaction
 
 from examc_app.models import PrepQuestion, PrepSection, QuestionType
 from examc_app.utils.preparation_functions import (
-    create_prep_answer, create_prep_question, renumber_answers, update_open_answers)
+    create_prep_answer,
+    create_prep_question,
+    renumber_answers,
+    update_open_answers,
+)
 
 TEMPLATE_PATH = Path(__file__).with_name("questions_import_template.tex")
 
@@ -126,7 +130,7 @@ def _parse_open_options(raw: str | None, label: str, errors: list[str]) -> dict[
 
     try:
         points, increment = Decimal(options["points"]), Decimal(options["increment"])
-        if points < 0 or increment not in (Decimal("0.5"), Decimal("1")):
+        if points < 0 or increment not in (Decimal("0.5"), Decimal(1)):
             errors.append(f"{label}: points must be 0 or more and increment 0.5 or 1.")
         elif points % increment != 0:
             errors.append(f"{label}: points must be a multiple of the increment.")

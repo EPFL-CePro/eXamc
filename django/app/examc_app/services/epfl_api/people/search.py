@@ -1,7 +1,7 @@
 from urllib.parse import quote
 
 from examc_app.services.epfl_api.people.models import EpflApiPerson
-from examc_app.services.epfl_api.utils import EpflApiException, epfl_api_get
+from examc_app.services.epfl_api.utils import epfl_api_get
 
 PERSONS_API_BASE_URL = "/persons"
 

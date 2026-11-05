@@ -360,7 +360,7 @@ def render_text_marker(base_img: Image.Image, marker: dict, scale_x: float, scal
     base_img.alpha_composite(overlay)
 
 
-def render_marker(base_img: Image.Image, marker: dict, scale_x: float| int, scale_y: float) -> None:
+def render_marker(base_img: Image.Image, marker: dict, scale_x: float, scale_y: float) -> None:
     """
     Dispatch rendering based on markerjs3 `typeName`.
     """

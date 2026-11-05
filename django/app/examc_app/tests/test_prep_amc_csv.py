@@ -5,7 +5,10 @@ from django.test import TestCase
 
 from examc_app.models import PrepStudent
 from examc_app.services.student.prep_amc_csv import (
-    StudentsCsvError, build_students_csv, students_csv_problems, write_students_csv,
+    StudentsCsvError,
+    build_students_csv,
+    students_csv_problems,
+    write_students_csv,
 )
 from examc_app.tests.helpers.models import create_mock_exam
 from examc_app.utils.amc.amc_build_functions import compute_exam_source_hash

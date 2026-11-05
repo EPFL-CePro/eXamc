@@ -1,14 +1,12 @@
 import logging
 from typing import Final, TypedDict
 
-from celery.result import AsyncResult
 from django.http import HttpRequest
 from django.utils import timezone
 
 from examc_app.services.celery_tasks import (
-    is_celery_task_active,
-    get_celery_task_status,
     ACTIVE_CELERY_STATES,
+    get_celery_task_status,
 )
 
 logger = logging.getLogger(__name__)

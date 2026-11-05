@@ -16,7 +16,6 @@ from examc_app.models import Exam, PrepStudent
 from examc_app.services.oasis import get_course_students_scipers
 from examc_app.services.person_directory import get_people_by_sciper
 
-
 # Column header shown to the users (template file order) -> PrepStudent field.
 # Names, email and section come from the EPFL directory (see complete_from_directory),
 # the copy numbers follow the order of the rows.

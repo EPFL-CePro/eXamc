@@ -4,7 +4,7 @@ import logging
 import re
 
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
 from examc_app.decorators import exam_permission_required
@@ -29,7 +29,6 @@ from examc_app.services.student.prep_seats import (
 )
 from examc_app.utils.preparation_functions import (
     ensure_exam_not_finalized,
-    is_exam_locked,
 )
 
 logger = logging.getLogger(__name__)

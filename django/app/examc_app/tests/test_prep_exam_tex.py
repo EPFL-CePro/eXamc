@@ -11,7 +11,10 @@ from examc_app.models import QuestionType
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 from examc_app.utils.amc_functions import ensure_amc_project
 from examc_app.utils.preparation_functions import (
-    compile_exam_preview, create_prep_question, create_prep_section)
+    compile_exam_preview,
+    create_prep_question,
+    create_prep_section,
+)
 from examc_app.utils.preparation_latex_functions import update_exam_latex
 
 

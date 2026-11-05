@@ -12,8 +12,8 @@ from examc_app.utils.preparation_functions import (
     build_answer_form,
     create_prep_answer,
     ensure_exam_not_finalized,
-    is_exam_locked,
     get_answers,
+    is_exam_locked,
     renumber_answers,
 )
 from examc_app.utils.preparation_latex_functions import update_exam_latex

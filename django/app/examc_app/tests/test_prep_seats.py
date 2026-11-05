@@ -3,7 +3,10 @@ from django.urls import reverse
 
 from examc_app.models import PrepStudent
 from examc_app.services.student.prep_seats import (
-    SeatsAssignmentError, assign_rooms_and_seats, check_seat_pattern, format_seat,
+    SeatsAssignmentError,
+    assign_rooms_and_seats,
+    check_seat_pattern,
+    format_seat,
 )
 from examc_app.tests.helpers.models import create_mock_exam, create_mock_user
 

@@ -1,6 +1,5 @@
 import time
 
-
 REVIEW_UPLOAD_PENDING_AMC_IMPORT_SESSION_KEY = "review_upload_pending_amc_imports"
 REVIEW_UPLOAD_PENDING_TTL_SECONDS = 24 * 3600
 

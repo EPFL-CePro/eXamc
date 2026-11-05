@@ -1,6 +1,7 @@
 # examc_app/management/commands/cleanup_exam_builds.py
 
 from django.core.management.base import BaseCommand, CommandError
+
 from examc_app.models import Exam
 from examc_app.utils.amc.amc_build_retention import cleanup_exam_builds
 

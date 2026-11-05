@@ -11,13 +11,13 @@ from examc_app.api.serializers.prep_student import (
     PrepStudentUpdateSerializer,
 )
 from examc_app.models import Exam, PrepStudent
-from examc_app.utils.preparation_functions import exam_lock_reason
 from examc_app.services.person_directory import PersonDirectoryError
 from examc_app.services.student.prep_import import (
     StudentsFileError,
     correct_prep_student,
 )
 from examc_app.services.student.prep_order import StudentsOrderError, move_prep_student
+from examc_app.utils.preparation_functions import exam_lock_reason
 
 
 class PrepStudentViewSet(viewsets.ViewSet):

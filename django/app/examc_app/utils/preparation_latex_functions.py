@@ -514,8 +514,7 @@ def get_tex_search_paths() -> list[str]:
         p = os.path.expanduser(p)
 
         # Skip kpathsea path modifiers / non-real entries
-        if p.startswith("!!"):
-            p = p[2:]
+        p = p.removeprefix("!!")
 
         # Ignore unresolved brace-ish or recursive markers if present
         if p in {"", ".", "//"}:

@@ -1,8 +1,8 @@
+import logging
+
+from django.conf import settings
 from django.contrib.auth.models import User
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
-from django.conf import settings
-
-import logging
 
 logger = logging.getLogger(__name__)
 

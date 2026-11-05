@@ -1,10 +1,12 @@
 import datetime
+
 from django.conf import settings
-from django.shortcuts import redirect
 from django.contrib.auth import logout
+from django.shortcuts import redirect
 from django.utils import timezone
 
 from examc_app.models import ReviewLock
+
 
 class AutoLogoutMiddleware:
     def __init__(self, get_response):
