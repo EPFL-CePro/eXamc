@@ -2,7 +2,7 @@ import DataTable, { type Api } from 'datatables.net-bs5';
 import 'datatables.net-bs5/css';
 
 import { setupDatatables } from '@examc/helpers/datatables.ts';
-import { byId, requireData } from '@examc/helpers/dom.ts';
+import {byId, requireData} from '@examc/helpers/dom.ts';
 import { parseJson } from '@examc/helpers/http.ts';
 
 import { createByExamChart, createClosedEndedChart, createOpenChart } from './charts.ts';
@@ -90,5 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     tables.forEach((table) => table.columns.adjust());
 
     initPdfDownloads(root);
-    initCatalogDialog(byId('display-pdf-modal'), requireData(root, 'catalogUrl'));
+
+    // doesn't use requireData, as it is not guaranteed that the project is imported yet.
+    const catalogUrl = root.dataset["catalogUrl"];
+    if (catalogUrl) initCatalogDialog(byId('display-pdf-modal'), catalogUrl);
 });

@@ -13,17 +13,20 @@ urlpatterns = [
     path('impersonate/<int:user_pk>/start/', views.impersonate_start, name="impersonate_start"),
     path('impersonate/stop/', views.impersonate_stop, name="impersonate_stop"),
 
-    # EXAM INFO
+    # EXAM SETTINGS
     path('update_exam_users/<int:exam_pk>', views.update_exam_users, name="update_exam_users"),
     path('update_exam_info/<int:exam_pk>', views.update_exam_info, name="update_exam_info"),
-    path('exam_info/<int:exam_pk>', views.ExamInfoView.as_view(), name="exam_info"),
-    path('exam_info/<int:exam_pk>/<str:task_id>', views.ExamInfoView.as_view(), name="exam_info_with_task"),
+    path('exam_settings/<int:exam_pk>', views.ExamSettingsView.as_view(), name="exam_info"),
+    path('exam_settings/<int:exam_pk>/<str:task_id>', views.ExamSettingsView.as_view(), name="exam_info_with_task"),
     path('update_exam_options/<int:exam_pk>', views.update_exam_options, name='update_exam_options'),
     path('create_scale/<int:exam_pk>', views.ScaleCreateView.as_view(), name="create_scale"),
     path('delete_exam_scale/<int:scale_pk>/<int:exam_pk>', views.delete_exam_scale, name="delete_exam_scale"),
     path('set_final_scale/<int:scale_pk>/<int:exam_pk>/<int:all_common>', views.set_final_scale, name="set_final_scale"),
     path('validate_common_exams_settings/<int:exam_pk>',views.validate_common_exams_settings, name="validate_common_exams_settings"),
     path('set_common_exam/<int:exam_pk>', views.set_common_exam, name="set_common_exam"),
+
+    # IMPORT
+    path('import/<int:exam_pk>', views.import_views.ExamImportView.as_view(), name="import"),
 
     # PREPARATION
     path("preparation/<int:exam_pk>/", views.preparation_view, name="preparation"),
@@ -69,6 +72,9 @@ urlpatterns = [
 
     # REVIEW SETTINGS
     path('upload_scans/<int:exam_pk>', views.upload_scans, name="upload_scans"),
+    path("upload_scans/<int:exam_pk>/status/<str:task_id>/", views.upload_scans_status, name="upload_scans_status"),
+    path("upload_scans/<int:exam_pk>/cancel/<str:task_id>/", views.cancel_upload_scans, name="cancel_upload_scans"),
+
     path('unrecognized_review_scans_table/<int:exam_pk>', views.unrecognized_review_scans_table, name="unrecognized_review_scans_table"),
     path('assign_unrecognized_review_scan/<int:exam_pk>', views.assign_unrecognized_review_scan, name="assign_unrecognized_review_scan"),
     path('delete_unrecognized_review_scan/<int:exam_pk>', views.delete_unrecognized_review_scan, name="delete_unrecognized_review_scan"),
@@ -148,7 +154,6 @@ urlpatterns = [
     path('students_results/<int:exam_pk>', views.students_results_view, name="students_results"),
     path('questions_stats/<int:exam_pk>', views.questions_statistics_view, name="questions_stats"),
     path('export_results/<int:exam_pk>', views.export_results, name="export_results"),
-    path('import_data_4_stats/<int:exam_pk>', views.import_data_4_stats, name="import_data_4_stats"),
     path('upload_amc_csv/<int:exam_pk>', views.upload_amc_csv, name="upload_amc_csv"),
     path('upload_catalog_pdf/<int:exam_pk>', views.upload_catalog_pdf, name="upload_catalog_pdf"),
 
