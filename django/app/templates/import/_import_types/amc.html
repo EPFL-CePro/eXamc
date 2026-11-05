@@ -1,5 +1,11 @@
+{% load django_vite %}
+
+{% block extra_head %}
+    {% vite_asset 'src/views/import/_import_types/amc/index.ts' %}
+{% endblock %}
+
 {% if message %}
-    <div class="alert alert-info py-2" role="status">{{ message }}</div>
+    {% alert "info" %}{{ message }}{% endalert %}
 {% endif %}
 
 <div style="max-width: 65rem">
@@ -11,31 +17,37 @@
         </div>
         <div class="card-body">
             <p class="card-text text-body-secondary">
-                Imports a whole AMC project in one go, starting with the exam's questions and their types.
-                If the project already contains scanned copies, students' answers or results, they're
-                imported too, but they aren't needed: you can import the scans later from the
-                <a href="{% url "import" exam_selected.pk %}?tab=review">review tab</a>.
+                Imports a whole AMC project in one go, starting with the exam's questions and their types. If the
+                project already contains students' answers or results, they're imported too. Scanned copies aren't
+                imported from the project: import them from the
+                <a href="{% url "import" exam_selected.pk %}?tab=review">review tab</a> instead.
             </p>
 
             <form id="upload-amc-project-form" method="post" enctype="multipart/form-data"
                   action="{% url 'upload_amc_project' exam_pk=exam_selected.pk %}">
                 {% csrf_token %}
-                <label id="amc-project-zip-file-label" for="amc-project-zip-file"
-                       class="form-label visually-hidden">
-                    AMC project (.zip file)
-                </label>
-                <div class="input-group">
-                    <input type="file" class="form-control" id="amc-project-zip-file"
-                           name="amc_project_zip_file" accept=".zip,application/zip" required
-                           aria-describedby="amc-project-zip-file-help">
-                    <button class="btn btn-dark" type="submit">
-                        <i class="fa-solid fa-upload me-1" aria-hidden="true"></i> Upload zip
-                    </button>
-                </div>
-                <div id="amc-project-zip-file-help" class="form-text">
-                     Right-click your exam's AMC project folder and compress it. Upload the created .zip file.
-                </div>
+                {# Disabled while scans are imported (see import.html) #}
+                <fieldset class="border-0 p-0 m-0" data-import-lock {% if upload_task_active %}disabled{% endif %}>
+                    <label id="amc-project-zip-file-label" for="amc-project-zip-file"
+                           class="form-label visually-hidden">
+                        AMC project (.zip file)
+                    </label>
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="amc-project-zip-file"
+                               name="amc_project_zip_file" accept=".zip,application/zip" required
+                               aria-describedby="amc-project-zip-file-help">
+                        <button class="btn btn-dark" type="submit">
+                            <i class="fa-solid fa-upload me-1" aria-hidden="true"></i> Upload zip
+                        </button>
+                    </div>
+                    <div id="amc-project-zip-file-help" class="form-text">
+                         Right-click your exam's AMC project folder and compress it. Upload the created .zip file.
+                    </div>
+                </fieldset>
             </form>
+
+            {# Filled by import-amc-project/index.ts once the project is imported #}
+            <div id="amc-project-upload-result" class="mt-3" hidden></div>
         </div>
     </div>
 </div>

@@ -4,12 +4,12 @@ import logging
 import os
 import pathlib
 import shutil
+import zipfile
 from typing import Any, Final
 
 import celery
 from celery.result import AsyncResult
 from django.conf import settings
-from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import UploadedFile
 from django.http import (
@@ -35,6 +35,7 @@ from examc_app.models import Exam, PageMarkers, PagesGroup, UnrecognizedReviewSc
 from examc_app.services.amc.data_capture.manual import get_amc_data_capture_manual_data
 from examc_app.services.amc_jobs import AmcJobsManager
 from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
+from examc_app.services.import_data.upload import get_upload_scan_pending_context
 from examc_app.signing import make_token_for
 from examc_app.tasks import (
     amc_annotate_task,
@@ -48,7 +49,7 @@ from examc_app.utils.amc_functions import (
     add_unrecognized_page_to_project,
     amc_annotate,
     amc_automatic_association,
-    amc_automatic_datacapture_subprocess,
+    amc_automatic_data_capture_subprocess,
     amc_generate_results,
     amc_layout_detection,
     amc_mark_subprocess,
@@ -141,20 +142,51 @@ def _job_response(status_url_name: str, exam_pk: int, job_id: str, existing: boo
 
 @exam_permission_required(["manage"])
 @require_POST
-def upload_amc_project(request: HttpRequest, exam_pk: int) -> HttpResponse:
-    """Replaces the exam's AMC project by the uploaded .zip of its directory, then goes back to the AMC page."""
+def upload_amc_project(request: HttpRequest, exam_pk: int) -> JsonResponse:
+    """
+    Replaces the exam's AMC project by the uploaded .zip of its directory.
+
+    :return: ``message`` and ``amc_url`` (the AMC page) once imported, or an error status with ``error``.
+    """
     exam = get_object_or_404(Exam, pk=exam_pk)
+
+    # Replacing the project while scans are imported into it would break that import.
+    if get_upload_scan_pending_context(request, exam.pk)["upload_task_active"]:
+        return JsonResponse(
+            {
+                "error": "Scans are being imported for this exam. Wait for that import, or cancel it."
+            },
+            status=409,
+        )
 
     zip_file = request.FILES.get("amc_project_zip_file")
     if zip_file is None:
-        messages.error(request, "No .zip file was provided.")
-    else:
+        return JsonResponse({"error": "No .zip file was provided."}, status=400)
+    if not zipfile.is_zipfile(zip_file):
+        return JsonResponse(
+            {"error": "This file isn't a valid .zip archive."}, status=400
+        )
+    zip_file.seek(0)
+
+    try:
         create_amc_project_dir_from_zip(exam, zip_file)
         create_students_from_amc(exam)
-        messages.success(request, "The AMC project was uploaded.")
+    except Exception:
+        # The details stay in the logs: they can contain paths and other server details.
+        logger.exception("AMC project import failed for exam %s", exam.pk)
+        return JsonResponse(
+            {
+                "error": "The AMC project couldn't be imported. Check the .zip file and try again."
+            },
+            status=500,
+        )
 
-    # Redirected after a POST: reloading the page won't upload the file again
-    return redirect("amc_view", exam_pk=exam.pk)
+    return JsonResponse(
+        {
+            "message": "The AMC project was imported.",
+            "amc_url": reverse("amc_view", kwargs={"exam_pk": exam.pk}),
+        }
+    )
 
 
 @exam_permission_required(['manage'])
@@ -297,39 +329,44 @@ def get_amc_marks_positions(request: HttpRequest, exam_pk: int):
 
     return HttpResponse(json.dumps(data_positions))
 
-
 @require_POST
 @exam_permission_required(['manage'])
 def get_unrecognized_pages(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-    amc_project_path = get_amc_project_path(exam, False)
-    unrecognized_pages = None
-    if amc_project_path:
-        amc_data_path = f"{amc_project_path}/data/"
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    try:
+        project_path = get_amc_project_path(exam)
+    except AmcProjectPathNotFoundError:
+        return JsonResponse(None, safe=False)  # no project: same answer as before
 
-        with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
-            unrecognized_pages = amc_capture_db_manager.select_unrecognized_pages()
+    project_scans = pathlib.Path(project_path, 'scans')
 
-            for unrecognized_page in unrecognized_pages:
-                file_path = unrecognized_page['filepath']
-                if '%HOME' in file_path:
-                    print("******************* " + str(pathlib.Path.home()) + " **************************")
+    # (folder the scan must be in, folder its token's path is relative to), as in scan_url.
+    # Project scans get an "amc_projects" token, relative to AMC_PROJECTS_ROOT.
+    allowed = [
+        (pathlib.Path(settings.MARKED_SCANS_ROOT), pathlib.Path(settings.MARKED_SCANS_ROOT)),
+        (pathlib.Path(settings.SCANS_ROOT), pathlib.Path(settings.SCANS_ROOT)),
+        (project_scans, pathlib.Path(settings.AMC_PROJECTS_ROOT)),
+    ]
 
-                    app_home_path = str(settings.BASE_DIR).replace(str(pathlib.Path.home()), '%HOME')
-                    file_path = file_path.replace(app_home_path + '/', '')
-                    print("******************* " + file_path + " **************************")
+    with AmcCaptureDbManager(amc_data_path=f"{project_path}/data/") as amc_capture_db_manager:
+        unrecognized_pages = amc_capture_db_manager.select_unrecognized_pages()
 
-                    # change old file path (www/html/...) to new (srv/examc/private_media/...) from amc db
-                    file_path = file_path.replace('%HOME/html/eXamc', str(settings.PRIVATE_MEDIA_ROOT))
+    for unrecognized_page in unrecognized_pages:
+        # Resolves %PROJET, and the old %HOME/html/eXamc location, to real folders.
+        file_path = resolve_amc_path(unrecognized_page['filepath'], project_path)
+        root = next(
+            (token_root.resolve() for folder, token_root in allowed if file_path.is_relative_to(folder.resolve())),
+            None,
+        )
 
-                file_root = str(settings.SCANS_ROOT)
-                if file_path.startswith(str(settings.MARKED_SCANS_ROOT)):
-                    file_root = str(settings.MARKED_SCANS_ROOT)
-                file_path = make_token_for(os.path.relpath(file_path, file_root), file_root)
+        if root is None:
+            logger.error('Unrecognized page outside the allowed folders: %s', file_path)
+            unrecognized_page['filepath'] = None
+            continue
 
-                unrecognized_page['filepath'] = file_path
+        unrecognized_page['filepath'] = make_token_for(file_path.relative_to(root).as_posix(), str(root))
 
-    return HttpResponse(json.dumps(unrecognized_pages))
+    return JsonResponse(unrecognized_pages, safe=False)
 
 
 @exam_permission_required(['manage'])
@@ -454,7 +491,7 @@ def call_amc_automatic_data_capture(request: HttpRequest, exam_pk: int, from_rev
 
     return streaming_text_response(
         logged_stream(
-            amc_automatic_datacapture_subprocess(request, exam, zip_file, from_review, file_list_path=None),
+            amc_automatic_data_capture_subprocess(request, exam, zip_file, from_review, file_list_path=None),
             "automatic_data_capture_upload",
             exam.pk,
             request.user,
@@ -574,7 +611,7 @@ def stream_import_scans_from_review_pages(request: HttpRequest, exam, scans_list
         file_list_count,
     )
 
-    yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
+    yield from amc_automatic_data_capture_subprocess(request, exam, None, True, file_list_path=file_list_path)
 
 
 @exam_permission_required(['manage'])
@@ -753,7 +790,7 @@ def stream_import_scans_from_review(request: HttpRequest, exam):
             marked_file_count,
         )
 
-        yield from amc_automatic_datacapture_subprocess(request, exam, None, True, file_list_path=file_list_path)
+        yield from amc_automatic_data_capture_subprocess(request, exam, None, True, file_list_path=file_list_path)
 
 
 @exam_permission_required(['manage'])
@@ -817,12 +854,12 @@ def add_unrecognized_page(request: HttpRequest, exam_pk: int):
 @require_POST
 def call_amc_mark(request: HttpRequest, exam_pk: int):
     exam = Exam.objects.get(pk=exam_pk)
-    update_scoring_strategy = request.POST['update_scoring_strategy']
 
-    return streaming_text_response(amc_mark_subprocess(request, exam, update_scoring_strategy))
+    update_scoring_strategy = bool(request.POST['update_scoring_strategy'] == "true")
+
+    return streaming_text_response(amc_mark_subprocess(exam, update_scoring_strategy))
 
 
-# result = amc_mark(exam,update_scoring_strategy)
 
 
 @exam_permission_required(['manage'])
@@ -1077,21 +1114,25 @@ def call_amc_send_annotated_papers(request: HttpRequest, exam_pk: int):
     result = amc_send_annotated_papers(exam, selected_students, email_subject, email_body, email_column)
     return HttpResponse(json.dumps(result))
 
-
 @require_POST
 @exam_permission_required(['manage'])
 def get_amc_scan_url(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-    copy_nr = request.POST['copy']
-    page_nr = request.POST['page']
-    project_path = get_amc_project_path(exam, False)
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    copy_nr = request.POST.get('copy', '')
+    page_nr = request.POST.get('page', '')
+    if not copy_nr or not page_nr:
+        return HttpResponseBadRequest('Missing copy or page')
 
-    if not project_path:
+    try:
+        project_path = get_amc_project_path(exam)
+    except AmcProjectPathNotFoundError:
         return HttpResponseNotFound('No AMC project')
+
+    project_scans = pathlib.Path(project_path, 'scans')
 
     if '.' in page_nr:  # extra page
         c = copy_nr.zfill(4)
-        scan_path = pathlib.Path(project_path, 'scans', 'extra', c, f'copy_{c}_{page_nr}.jpg').resolve()
+        scan_path = (project_scans / 'extra' / c / f'copy_{c}_{page_nr}.jpg').resolve()
     else:
         with AmcCaptureDbManager(amc_data_path=f'{project_path}/data/') as amc_capture_db_manager:
             raw_scan_path = amc_capture_db_manager.select_amc_scan_path(copy_nr, page_nr)
@@ -1101,11 +1142,20 @@ def get_amc_scan_url(request: HttpRequest, exam_pk: int):
 
         scan_path = resolve_amc_path(raw_scan_path, project_path)
 
-    roots = [pathlib.Path(settings.MARKED_SCANS_ROOT), pathlib.Path(settings.SCANS_ROOT), pathlib.Path(project_path, 'scans', 'extra')]
-    root = next((r.resolve() for r in roots if scan_path.is_relative_to(r.resolve())), None)
+    # (folder the scan must be in, folder its token's path is relative to).
+    # Project scans, extra pages included, get an "amc_projects" token, relative to AMC_PROJECTS_ROOT.
+    allowed = [
+        (pathlib.Path(settings.MARKED_SCANS_ROOT), pathlib.Path(settings.MARKED_SCANS_ROOT)),
+        (pathlib.Path(settings.SCANS_ROOT), pathlib.Path(settings.SCANS_ROOT)),
+        (project_scans, pathlib.Path(settings.AMC_PROJECTS_ROOT)),
+    ]
+    root = next((token_root.resolve() for folder, token_root in allowed if scan_path.is_relative_to(folder.resolve())), None)
 
-    if root is None or not scan_path.is_file():
+    if root is None:
+        logger.warning('Scan outside the allowed folders: copy=%s page=%s path=%s', copy_nr, page_nr, scan_path)
+        return HttpResponseNotFound('Scan file not found')
+    if not scan_path.is_file():
         logger.warning('Scan not found: copy=%s page=%s path=%s', copy_nr, page_nr, scan_path)
         return HttpResponseNotFound('Scan file not found')
 
-    return HttpResponse(make_token_for(str(scan_path.relative_to(root)), str(root)))
+    return HttpResponse(make_token_for(scan_path.relative_to(root).as_posix(), str(root)))

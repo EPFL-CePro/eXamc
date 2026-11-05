@@ -78,5 +78,5 @@ export function showToast(message: string, { error = false, title, delay, autohi
     });
 
     toastContainer().prepend(element);
-    new Toast(element, { autohide, delay: delay ?? (error ? 8000 : 4000) }).show();
+    new Toast(element, { autohide, delay: delay ?? (error ? 16000 : 8000) }).show();
 }

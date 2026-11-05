@@ -1,5 +1,4 @@
 <div style="max-width: 65rem">
-
     {# ---- AMC CSV ---- #}
     <div class="card mb-4">
         <div class="card-header">
@@ -16,14 +15,17 @@
             <form action="{% url 'upload_amc_csv' exam_selected.pk %}" method="POST"
                   enctype="multipart/form-data">
                 {% csrf_token %}
-                <label for="import-amc-csv-file" class="form-label visually-hidden">AMC CSV file</label>
-                <div class="input-group">
-                    <input type="file" accept=".csv" name="amc_csv_file" id="import-amc-csv-file"
-                           class="form-control" required>
-                    <button type="submit" class="btn btn-dark">
-                        <i class="fas fa-upload me-1"></i> Upload csv
-                    </button>
-                </div>
+                {# Disabled while scans are imported (see import.html) #}
+                <fieldset class="border-0 p-0 m-0" data-import-lock {% if upload_task_active %}disabled{% endif %}>
+                    <label for="import-amc-csv-file" class="form-label visually-hidden">AMC CSV file</label>
+                    <div class="input-group">
+                        <input type="file" accept=".csv" name="amc_csv_file" id="import-amc-csv-file"
+                               class="form-control" required>
+                        <button type="submit" class="btn btn-dark">
+                            <i class="fas fa-upload me-1"></i> Upload csv
+                        </button>
+                    </div>
+                </fieldset>
             </form>
         </div>
 
@@ -88,14 +90,17 @@
             <form action="{% url 'upload_catalog_pdf' exam_selected.pk %}" method="POST"
                   enctype="multipart/form-data">
                 {% csrf_token %}
-                <label for="import-catalog-pdf-file" class="form-label visually-hidden">Catalog PDF file</label>
-                <div class="input-group">
-                    <input type="file" accept=".pdf" name="catalog_pdf_file" id="import-catalog-pdf-file"
-                           class="form-control" required>
-                    <button type="submit" class="btn btn-dark">
-                        <i class="fas fa-upload me-1"></i> Upload pdf
-                    </button>
-                </div>
+                {# Disabled while scans are imported (see import.html) #}
+                <fieldset class="border-0 p-0 m-0" data-import-lock {% if upload_task_active %}disabled{% endif %}>
+                    <label for="import-catalog-pdf-file" class="form-label visually-hidden">Catalog PDF file</label>
+                    <div class="input-group">
+                        <input type="file" accept=".pdf" name="catalog_pdf_file" id="import-catalog-pdf-file"
+                               class="form-control" required>
+                        <button type="submit" class="btn btn-dark">
+                            <i class="fas fa-upload me-1"></i> Upload pdf
+                        </button>
+                    </div>
+                </fieldset>
             </form>
         </div>
     </div>
