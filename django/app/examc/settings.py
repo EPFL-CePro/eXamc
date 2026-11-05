@@ -423,6 +423,7 @@ CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", redis_url(0))
 
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", "0")
+CELERY_TASK_STORE_EAGER_RESULT = True
 CELERY_BEAT_SCHEDULER = env("CELERY_BEAT_SCHEDULER", "django_celery_beat.schedulers:DatabaseScheduler")
 
 # Optional configuration (you can tweak toolbar, height, etc.)

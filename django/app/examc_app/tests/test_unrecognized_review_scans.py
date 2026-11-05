@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth.models import Group, User
-from django.contrib.messages import get_messages
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
@@ -39,6 +38,16 @@ def qr_payload(payload):
 
 
 class UnrecognizedReviewScansTestCase(TestCase):
+    def assertJson(self, response, status_code: int) -> dict:
+        """Checks the response's status and that it's JSON, and returns its body."""
+        self.assertEqual(response.status_code, status_code, response.content)
+        self.assertEqual(response["Content-Type"], "application/json")
+        return response.json()
+
+    def unresolved_scans(self):
+        """The exam's scans still to assign or delete: the page starts the AMC import when there are none."""
+        return UnrecognizedReviewScan.objects.filter(exam=self.exam, resolved=False)
+
     def setUp(self):
         self.scans_root = TemporaryDirectory()
         self.extract_root = TemporaryDirectory()
@@ -320,7 +329,10 @@ class UnrecognizedReviewScansTestCase(TestCase):
             reverse("delete_unrecognized_review_scan", args=[self.exam.pk]), {"scan_id": scan.pk},
         )
 
-        self.assertRedirects(response, reverse("upload_scans", args=[self.exam.pk]) + "?start_amc_import=1", fetch_redirect_response=False)
+        body = self.assertJson(response, 200)
+        self.assertEqual(body["message"], f"Deleted {scan.filename}.")
+        self.assertFalse(self.unresolved_scans().exists())
+
         scan.refresh_from_db()
         self.assertEqual(scan.resolved_by, self.user)
         self.assertIsNotNone(scan.deleted_at)
@@ -335,7 +347,8 @@ class UnrecognizedReviewScansTestCase(TestCase):
             reverse("delete_unrecognized_review_scan", args=[self.exam.pk]), {"scan_id": scan.pk},
         )
 
-        self.assertRedirects(response, reverse("upload_scans", args=[self.exam.pk]), fetch_redirect_response=False)
+        self.assertJson(response, 200)
+        self.assertEqual(self.unresolved_scans().count(), 1)
 
     @override_settings(EXAM_PERMISSION_GROUP_NAMES={"manage": ["scan-managers"]})
     def test_amc_import_is_unblocked_after_deletion(self):
@@ -352,7 +365,7 @@ class UnrecognizedReviewScansTestCase(TestCase):
             delay.assert_called_once_with(self.exam.pk)
 
     @override_settings(EXAM_PERMISSION_GROUP_NAMES={"manage": ["scan-managers"]})
-    def test_assignment_still_starts_amc_after_last_scan(self):
+    def test_assigning_last_scan_leaves_none_unresolved(self):
         self.login_manager()
         scan = self.create_unrecognized_scan()
         self.create_copy_file("0001", "01")
@@ -362,10 +375,15 @@ class UnrecognizedReviewScansTestCase(TestCase):
             {"scan_id": scan.pk, "copy_no": "1", "page_no": "2", "assignment_mode": "normal"},
         )
 
-        self.assertRedirects(response, reverse("upload_scans", args=[self.exam.pk]) + "?start_amc_import=1", fetch_redirect_response=False)
+        body = self.assertJson(response, 200)
+        self.assertIn("copy 0001, page 02", body["message"])
+
         scan.refresh_from_db()
         self.assertTrue(scan.resolved)
         self.assertIsNone(scan.deleted_at)
+
+        # Nothing left to assign: the page starts the AMC import once it reloads the table.
+        self.assertFalse(self.unresolved_scans().exists())
 
     @override_settings(EXAM_PERMISSION_GROUP_NAMES={"manage": ["scan-managers"]})
     def test_delete_view_rejects_other_exam_and_resolved_scan(self):
@@ -406,15 +424,22 @@ class UnrecognizedReviewScansTestCase(TestCase):
         self.login_manager()
         scan = self.create_unrecognized_scan()
 
-        with patch.object(Path, "unlink", side_effect=PermissionError("Access denied")):
-            # Parent logger: catches the error whether the view or the review service logs it.
-            with self.assertLogs("examc_app", level="ERROR"):
-                response = self.client.post(
-                    reverse("delete_unrecognized_review_scan", args=[self.exam.pk]), {"scan_id": scan.pk},
-                )
+        # Parent logger: catches the error whether the view or the review service logs it.
+        with (
+            patch.object(Path, "unlink", side_effect=PermissionError("Access denied")),
+            self.assertLogs("examc_app", level="ERROR"),
+        ):
+            response = self.client.post(
+                reverse("delete_unrecognized_review_scan", args=[self.exam.pk]),
+                {"scan_id": scan.pk},
+            )
 
-        self.assertRedirects(response, reverse("upload_scans", args=[self.exam.pk]), fetch_redirect_response=False)
-        self.assertIn("Unable to delete this scan file", str(list(get_messages(response.wsgi_request))[0]))
+        body = self.assertJson(response, 500)
+        self.assertEqual(
+            body["error"], "Unable to delete this scan file. Please try again."
+        )
+        self.assertTrue(self.unresolved_scans().filter(pk=scan.pk).exists())
+
         scan.refresh_from_db()
         self.assertFalse(scan.resolved)
 
@@ -438,7 +463,10 @@ class UnrecognizedReviewScansTestCase(TestCase):
             {"scan_ids": [scans[0].pk, scans[2].pk]},
         )
 
-        self.assertRedirects(response, reverse("upload_scans", args=[self.exam.pk]), fetch_redirect_response=False)
+        body = self.assertJson(response, 200)
+        self.assertEqual(body["message"], "Deleted 2 selected scan(s).")
+        self.assertEqual(body["errors"], [])
+
         for index, scan in enumerate(scans):
             scan.refresh_from_db()
             self.assertEqual(scan.resolved, index != 1)
@@ -446,7 +474,6 @@ class UnrecognizedReviewScansTestCase(TestCase):
             if index != 1:
                 self.assertEqual(scan.resolved_by, self.user)
                 self.assertIsNotNone(scan.deleted_at)
-        self.assertIn("Deleted 2 selected scan(s).", [str(message) for message in get_messages(response.wsgi_request)])
 
     @override_settings(EXAM_PERMISSION_GROUP_NAMES={"manage": ["scan-managers"]})
     def test_bulk_delete_last_scans_starts_amc_and_deduplicates_selection(self):
@@ -459,9 +486,11 @@ class UnrecognizedReviewScansTestCase(TestCase):
             {"scan_ids": [first.pk, second.pk, first.pk]},
         )
 
-        self.assertRedirects(response, reverse("upload_scans", args=[self.exam.pk]) + "?start_amc_import=1", fetch_redirect_response=False)
-        self.assertFalse(UnrecognizedReviewScan.objects.filter(exam=self.exam, resolved=False).exists())
-        self.assertIn("Deleted 2 selected scan(s).", [str(message) for message in get_messages(response.wsgi_request)])
+        body = self.assertJson(response, 200)
+        # first.pk is sent twice, but deleted once
+        self.assertEqual(body["message"], "Deleted 2 selected scan(s).")
+        self.assertFalse(self.unresolved_scans().exists())
+
 
     @override_settings(EXAM_PERMISSION_GROUP_NAMES={"manage": ["scan-managers"]})
     def test_bulk_delete_rejects_entire_invalid_selection(self):
@@ -482,8 +511,13 @@ class UnrecognizedReviewScansTestCase(TestCase):
                 response = self.client.post(
                     reverse("delete_unrecognized_review_scans", args=[self.exam.pk]), {"scan_ids": selection},
                 )
-                self.assertRedirects(response, reverse("upload_scans", args=[self.exam.pk]), fetch_redirect_response=False)
-                self.assertTrue(any(message.level_tag == "error" for message in get_messages(response.wsgi_request)))
+
+                body = self.assertJson(response, 400)
+                self.assertEqual(
+                    body["error"],
+                    "Select valid unresolved scans for this exam, then try again.",
+                )
+
                 scan.refresh_from_db()
                 self.assertFalse(scan.resolved)
                 for protected_scan in (scan, resolved_scan, foreign_scan):
@@ -501,23 +535,27 @@ class UnrecognizedReviewScansTestCase(TestCase):
                 raise PermissionError("Access denied")
             return original_unlink(path, *args, **kwargs)
 
-        with patch.object(Path, "unlink", new=unlink):
-            # Parent logger: catches the error whether the view or the review service logs it.
-            with self.assertLogs("examc_app", level="ERROR"):
-                response = self.client.post(
-                    reverse("delete_unrecognized_review_scans", args=[self.exam.pk]),
-                    {"scan_ids": [scan.pk for scan in scans]},
-                )
+        # Parent logger: catches the error whether the view or the review service logs it.
+        with (
+            patch.object(Path, "unlink", new=unlink),
+            self.assertLogs("examc_app", level="ERROR"),
+        ):
+            response = self.client.post(
+                reverse("delete_unrecognized_review_scans", args=[self.exam.pk]),
+                {"scan_ids": [scan.pk for scan in scans]},
+            )
 
-        self.assertRedirects(response, reverse("upload_scans", args=[self.exam.pk]), fetch_redirect_response=False)
+        body = self.assertJson(response, 200)
+        self.assertEqual(body["message"], "Deleted 2 selected scan(s).")
+        self.assertEqual(
+            body["errors"], [f"Unable to delete {scans[1].filename}. Please try again."]
+        )
+
         for index, scan in enumerate(scans):
             scan.refresh_from_db()
             self.assertEqual(scan.resolved, index != 1)
             self.assertEqual(scan.deleted_at is None, index == 1)
             self.assertEqual((Path(self.scans_root.name) / scan.relative_path).exists(), index == 1)
-        messages = [str(message) for message in get_messages(response.wsgi_request)]
-        self.assertIn("Deleted 2 selected scan(s).", messages)
-        self.assertIn("Unable to delete scan_1.jpg. Please try again.", messages)
 
     @override_settings(EXAM_PERMISSION_GROUP_NAMES={"manage": ["scan-managers"]})
     def test_bulk_delete_requires_manage_post_and_csrf(self):
