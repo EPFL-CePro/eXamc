@@ -5,10 +5,10 @@ import math
 from decimal import ROUND_HALF_UP, Decimal
 from statistics import mean, median, stdev
 
+import mpmath as mp
 import numpy as np
 from django.db import IntegrityError, transaction
 from django.db.models import Count, FloatField, Max, Q, Sum
-from scipy import stats
 
 from examc_app.utils.safe_math import safe_eval_decimal_expression
 
@@ -525,7 +525,9 @@ def get_comVsInd_correlation(overall_exam):
             sample_size = len(common_pts_list)
             df = 2*sample_size-2
             tscore = r*np.sqrt(288)/np.sqrt(1-r**2)
-            pvalue = stats.t.sf(abs(tscore), df=df)*2
+            pvalue = float(
+                mp.betainc(df / 2, 0.5, 0, df / (df + tscore**2), regularized=True)
+            )
             correlation_list.append([comex,r,tscore, f"{pvalue:.10E}",graph_data])
 
     return correlation_list
