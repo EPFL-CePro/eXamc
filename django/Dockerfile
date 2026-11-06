@@ -2,7 +2,7 @@
 # The app's Python is installed by uv (version from requires-python in pyproject.toml),
 # separately from the system's python3 that some apt packages pull in.
 # The two never replace each other. -dev variant: shell + apt for the RUN steps below.
-FROM dhi.io/uv:0.13.6-debian13-dev AS base
+FROM dhi.io/uv:0.13.7-debian13-dev AS base
 
 
 # =========================
