@@ -91,7 +91,6 @@ TARGET_URL_NAMES = {
     "import_scans_from_review_pages",
     "import_scans_from_review",
     "view_amc_log_file",
-    "get_amc_zooms",
     "add_unrecognized_page",
     "call_amc_mark",
     "call_amc_automatic_association",

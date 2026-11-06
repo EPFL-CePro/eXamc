@@ -114,7 +114,6 @@ urlpatterns = [
 
     # AMC
     path('amc_view/<int:exam_pk>', views.amc_view, name="amc_view"),
-    path('amc_data_capture_manual/<int:exam_pk>', views.amc_data_capture_manual, name="amc_data_capture_manual"),
     path('get_amc_marks_positions/<int:exam_pk>', views.get_amc_marks_positions, name="get_amc_marks_positions"),
     path('update_amc_mark_zone/<int:exam_pk>', views.update_amc_mark_zone, name="update_amc_mark_zone"),
     path('edit_amc_file/<int:exam_pk>', views.edit_amc_file, name="edit_amc_file"),
@@ -131,7 +130,6 @@ urlpatterns = [
     path('open_amc_catalog_pdf/<int:exam_pk>', views.open_amc_catalog_pdf, name="open_amc_catalog_pdf"),
     path('upload_amc_project/<int:exam_pk>', views.upload_amc_project, name="upload_amc_project"),
     path('view_amc_log_file/<int:exam_pk>', views.view_amc_log_file, name="view_amc_log_file"),
-    path('get_amc_zooms/<int:exam_pk>', views.get_amc_zooms, name="get_amc_zooms"),
     path('add_unrecognized_page/<int:exam_pk>', views.add_unrecognized_page, name="add_unrecognized_page"),
     path('call_amc_mark/<int:exam_pk>', views.call_amc_mark, name="call_amc_mark"),
     path('call_amc_automatic_association/<int:exam_pk>', views.call_amc_automatic_association, name="call_amc_automatic_association"),

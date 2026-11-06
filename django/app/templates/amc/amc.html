@@ -28,21 +28,21 @@
             {% endpill_header %}
 
             {% if project_dir_dict %}
-                {% tab_content prefix="amc" style="max-width:55rem" %}
+                {% tab_content prefix="amc" %}
                     {% tab_pane "project" %}
-                        {% include "./amc_project.html" %}
+                        {% include "./_project.html" %}
                     {% endtab_pane %}
 
                     {% tab_pane "data-capture" %}
-                        {% include "./amc_data_capture.html" %}
+                        {% include "./_data_capture.html" %}
                     {% endtab_pane %}
 
                     {% tab_pane "marking-scheme" %}
-                        {% include "./amc_marking.html" %}
+                        {% include "./_marking.html" %}
                     {% endtab_pane %}
 
                     {% tab_pane "reports" %}
-                        {% include "./amc_results.html" %}
+                        {% include "./_reports.html" %}
                     {% endtab_pane %}
                 {% endtab_content %}
             {% else %}

@@ -1,0 +1,49 @@
+{% if data_pages %}
+    <div id="amc-manual-data-capture" class="d-flex gap-3 align-items-start"
+         data-scan-url="{% url 'api-amc-data-capture-manual-scan-url' exam_selected.pk %}"
+         data-marks-url="{% url 'get_amc_marks_positions' exam_selected.pk %}"
+         data-update-zone-url="{% url 'update_amc_mark_zone' exam_selected.pk %}">
+
+        <examc-page-viewer id="scan-viewer" class="flex-shrink-0 border bg-body-tertiary"
+                           style="height: 84vh; aspect-ratio: 210 / 297; min-width: 240px; max-width: calc(100% - 320px)">
+            <li slot="help"><b>Click</b> a box to check or uncheck it</li>
+            <li slot="help"><b>Arrows</b>: previous / next page</li>
+        </examc-page-viewer>
+
+        <examc-resize-handle for="scan-viewer" class="align-self-stretch" aria-label="Resize the scan viewer"></examc-resize-handle>
+
+        <div class="flex-grow-1" style="min-width: 0">
+            {# DataTables reads the inline width to size the table, so keep it rather than w-100 #}
+            <table id="table-copies-pages" class="table" style="width: 100%"
+                   data-api-url="{% url 'api-amc-data-capture-manual-list' exam_pk=exam_selected.pk %}"
+                   data-locate-url="{% url 'api-amc-data-capture-manual-locate' exam_pk=exam_selected.pk %}">
+                <thead>
+                    <tr>
+                        <th>Copy</th>
+                        <th>Page</th>
+                        <th>
+                            <span>MSE</span>
+                            <i class="fa-regular fa-circle-question text-muted"
+                               data-bs-title="An indicator for the alignment during the scan. If the value is too high,
+                                the detection could be wrong."
+                               data-bs-toggle="tooltip"></i>
+                        </th>
+                        <th>Sensitivity</th>
+                        <th>
+                            <span>Edited</span>
+                            <i class="fa-regular fa-circle-question text-muted"
+                               data-bs-title="Pages where boxes were checked or unchecked manually"
+                               data-bs-toggle="tooltip"></i>
+                        </th>
+                        <th>State</th>
+                        <th>Questions</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+{% else %}
+    {% alert "warning" fit=True %}
+        No scans were imported for this exam. Please import them from the <a class="alert-link" href="{% url 'import' exam_selected.pk %}?tab=review">Import page</a>.
+    {% endalert %}
+{% endif %}

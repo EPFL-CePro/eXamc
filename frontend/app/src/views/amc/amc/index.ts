@@ -8,7 +8,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = requireData(root, 'csrfToken');
     const logFileUrl = requireData(root, 'logFileUrl');
 
-    manageTabs();
+    manageTabs({ 
+        tabListSelector: "#amc-tabs",
+        additionalTabs: [
+            {
+                tabListSelectors: ["#data-capture-type-tabs"],
+                tabKey: "type"
+            }
+        ]
+     });
+
 
     // open logs
     document.querySelector('#btn-view-log-file')?.addEventListener('click', () => {

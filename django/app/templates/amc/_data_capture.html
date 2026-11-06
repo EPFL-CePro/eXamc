@@ -1,0 +1,245 @@
+{% load static %}
+{% load django_vite %}
+
+<div id="amc-data-capture"
+     data-exam-pk="{{ exam_selected.pk }}"
+     data-zip-import-url="{% url 'call_amc_automatic_data_capture' exam_selected.pk %}"
+     data-import-all-url="{% url 'import_scans_from_review' exam_selected.pk %}"
+     data-import-pages-url="{% url 'import_scans_from_review_pages' exam_selected.pk %}"
+     data-unrecognized-url="{% url 'get_unrecognized_pages' exam_selected.pk %}">
+
+    {# Data for the scripts #}
+    {{ scans_list_json|json_script:"json-scans-list" }}
+    {{ missing_pages|default_if_none:""|json_script:"json-missing-pages" }}
+    {{ overwritten_pages|default_if_none:""|json_script:"json-overwritten-pages" }}
+
+    {% pill_header prefix="data-capture-type" %}
+        {% pill_tab "manual" label="Manual data capture" icon="fas fa-marker" %}
+        {% pill_tab "automatic" label="Automatic data capture" icon="fas fa-wand-magic-sparkles" %}
+
+        <div class="alert alert-light m-0 py-2" role="status" style="max-width: fit-content">
+            <ul class="list-unstyled m-0 d-flex flex-wrap align-items-center column-gap-3 row-gap-2">
+                <li class="d-flex align-items-center gap-2 text-nowrap">
+                    {% if not data_pages %}
+                        <i class="fa-solid fa-circle-exclamation fa-fw text-warning" aria-hidden="true"></i>
+                        <span>No scans captured yet</span>
+                    {% elif nb_incomplete_copies %}
+                        <i class="fa-solid fa-circle-check fa-fw text-success" aria-hidden="true"></i>
+                        <span>{{ nb_complete_copies }} cop{{ nb_complete_copies|pluralize:"y,ies" }} fully captured</span>
+                    {% else %}
+                        <i class="fa-solid fa-circle-check fa-fw text-success" aria-hidden="true"></i>
+                        <span>All {{ nb_complete_copies }} cop{{ nb_complete_copies|pluralize:"y,ies" }} captured, no missing pages</span>
+                    {% endif %}
+                </li>
+
+                {% if nb_incomplete_copies %}
+                    <li class="d-flex align-items-center gap-2 text-nowrap border-start ps-3">
+                        <i class="fa-solid fa-circle-exclamation fa-fw text-danger" aria-hidden="true"></i>
+                        <span>{{ nb_incomplete_copies }} cop{{ nb_incomplete_copies|pluralize:"y,ies" }} with missing pages</span>
+                        <button type="button" class="btn btn-outline-danger btn-sm py-0" data-report="missing">See missing pages</button>
+                    </li>
+                {% endif %}
+
+                {% if nb_unrecognized_pages > 0 %}
+                    <li class="d-flex align-items-center gap-2 text-nowrap border-start ps-3">
+                        <i class="fa-solid fa-triangle-exclamation fa-fw text-danger" aria-hidden="true"></i>
+                        <span class="text-danger">{{ nb_unrecognized_pages }} scan{{ nb_unrecognized_pages|pluralize }} not matched to a copy</span>
+                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold py-0" data-report="unrecognized">Manage conflicts</button>
+                    </li>
+                {% endif %}
+
+                {% if overwritten_pages %}
+                    <li class="d-flex align-items-center gap-2 text-nowrap border-start ps-3">
+                        <i class="fa-solid fa-circle-info fa-fw text-info" aria-hidden="true"></i>
+                        <span>{{ overwritten_pages|length }} page{{ overwritten_pages|length|pluralize }} overwritten</span>
+                        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold py-0" data-report="overwritten">Details</button>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    {% endpill_header %}
+
+    <hr/>
+
+    {% tab_content prefix="data-capture-type" %}
+        {% tab_pane "manual" %}
+            {% include "./_data_capture/_manual.html" %}
+        {% endtab_pane %}
+
+        {% tab_pane "automatic" %}
+            {% include "./_data_capture/_automatic.html" %}
+        {% endtab_pane %}
+    {% endtab_content %}
+
+    {% vite_asset 'src/views/amc/_data_capture/index.ts' %}
+</div>
+
+{# ---------------------------------------------------------------- Automatic data capture #}
+<div class="modal fade" id="confirmAutomaticDataCaptureModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Automatic Data Capture</h6>
+            </div>
+            <div class="modal-body" style="padding:20px;">
+                <p>From where do you want to import scans?</p>
+                <hr/>
+                <div style="margin-top:50px;">
+                    <h6>Local file system</h6>
+                    <p>(.zip)</p>
+                    <form id="amcScansFromLocalFrm" method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="form-group align-items-center">
+                            <div class="col-md-10">
+                                <label for="amc_scans_zip_file" class="custom-file-label form-control-sm">Select scans</label>
+                                <input type="file" class="custom-file-input" name="amc_scans_zip_file"
+                                       id="amc_scans_zip_file" accept=".zip" required/>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-md-8">
+                                <button class="btn btn-primary btn-sm" type="submit">Import</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <hr/>
+                <div style="margin-top:50px;">
+                    <h6>eXamc Review (this app)</h6>
+                    <div class="form-group">
+                        <button id="import-all-from-review-btn" type="button" class="btn btn-primary btn-sm">Import All</button>
+                        <hr/>
+                        <h6>Select pages to import</h6>
+                        <div class="row">
+                            <div class="col"><h6>Copy</h6></div>
+                            <div class="col"><h6>Page <sup style="text-transform: lowercase">*annotated</sup></h6></div>
+                            <div style="width:70px!important;"></div>
+                            <div class="col"><h6>Selected pages</h6></div>
+                        </div>
+
+                        <div class="row" style="max-width:1500px;">
+                            <div class="col">
+                                <select id="scans-copies-list" class="form-control" size="8" aria-label="Copies"></select>
+                            </div>
+                            <div class="col">
+                                <select id="scans_to_import_multiselect" class="form-control" size="8" multiple aria-label="Pages"></select>
+                            </div>
+                            <div style="width:70px!important;">
+                                <button type="button" id="scans_to_import_multiselect_rightAll" class="btn" aria-label="Add all"><i class="fa-solid fa-angles-right"></i></button>
+                                <button type="button" id="scans_to_import_multiselect_rightSelected" class="btn" aria-label="Add selected"><i class="fa-solid fa-angle-right"></i></button>
+                                <button type="button" id="scans_to_import_multiselect_leftSelected" class="btn" aria-label="Remove selected"><i class="fa-solid fa-angle-left"></i></button>
+                                <button type="button" id="scans_to_import_multiselect_leftAll" class="btn" aria-label="Remove all"><i class="fa-solid fa-angles-left"></i></button>
+                            </div>
+                            <div class="col">
+                                <select id="scans_to_import_multiselect_to" class="form-control" size="8" multiple aria-label="Selected pages"></select>
+                            </div>
+                        </div>
+                        <button id="importSelectedPagesBt" type="button" class="btn btn-primary btn-sm mt-2" disabled>Import selected</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ---------------------------------------------------------------- Reports (missing / unrecognized / overwritten) #}
+<div class="modal fade" id="error-data-capture-dialog" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="error-data-capture-dialog-title"></h6>
+            </div>
+            <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead id="error-data-capture-dialog-thead"></thead>
+                    <tbody id="error-data-capture-dialog-tbody"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ---------------------------------------------------------------- Add unrecognized page #}
+<div class="modal fade" id="add-unrecognized-page-dialog" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Add unrecognized page to...</h6>
+            </div>
+            <div class="modal-body" style="padding:20px;max-height:50vh;overflow-y: auto;">
+                <form id="add-unrecognized-page-form" method="POST" action="{% url 'add_unrecognized_page' exam_selected.pk %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="inputGroupSelectCopy">Copy Nr.</label>
+                        <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectCopy" name="copy" required>
+                            {% for copy in data_copies %}
+                                <option value="{{ copy }}">{{ copy }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputGroupSelectPage">Page</label>
+                        <select class="form-control" size="5" data-live-search="true" id="inputGroupSelectPage" name="unrec_page" required>
+                            {% for page in exam_nb_pages %}
+                                <option value="{{ page }}">Page {{ page }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="extra">add as extra page</label>
+                        <input type="checkbox" id="extra" name="extra" checked disabled>
+                    </div>
+                    <input type="hidden" id="unrecognized-img-src" name="unrecognized-img-src"/>
+                    <input type="hidden" name="exam_pk" value="{{ exam_selected.pk }}"/>
+                    <div class="form-group" style="text-align:right;">
+                        <button class="btn btn-primary btn-sm" type="submit">Validate</button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ---------------------------------------------------------------- Box zooms #}
+<div class="modal fade" id="zoom-data-capture-diagnosis-dialog" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Zooms</h6>
+            </div>
+            <div class="modal-body" style="padding:20px;max-height:70vh;overflow-y: auto;">
+                <div class="d-flex justify-content-center align-items-center">
+                    <button id="zoomDataCapturePreviousBt" type="button" class="btn btn-dark btn-sm" aria-label="Previous page">
+                        <i class="fas fa-chevron-left fa-2x"></i>
+                    </button>
+                    <h6 id="zoom-data-capture-diagnosis-dialog-header" style="text-align: center;width:250px;margin:0 50px;"></h6>
+                    <button id="zoomDataCaptureNextBt" type="button" class="btn btn-dark btn-sm" aria-label="Next page">
+                        <i class="fas fa-chevron-right fa-2x"></i>
+                    </button>
+                </div>
+                <div style="padding:20px;">
+                    <h6>Unchecked boxes</h6>
+                    <div id="zoom-unchecked-boxes" class="zoom-grid"></div>
+                    <hr/>
+                    <h6>Checked boxes</h6>
+                    <div id="zoom-checked-boxes" class="zoom-grid"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="zoom-dialog-close-btn" type="button" class="btn btn-secondary btn-sm"
+                        data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+

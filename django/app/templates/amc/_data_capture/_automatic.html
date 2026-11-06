@@ -1,0 +1,103 @@
+<div class="d-flex flex-column gap-3" style="max-width: 65rem">
+    {# Local scans (.zip) #}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fa-solid fa-file-zipper me-2" aria-hidden="true"></i>Scans from your computer (.zip file)
+            </h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text text-body-secondary">
+                Imports scanned copies from a .zip file and runs the automatic data capture on them. Pages already
+                captured are replaced by the new scans.
+            </p>
+
+            <form id="amcScansFromLocalFrm" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <fieldset class="border-0 p-0 m-0" data-import-lock {% if upload_task_active %}disabled{% endif %}>
+                    <label for="amc_scans_zip_file" class="form-label visually-hidden">Scans (.zip file)</label>
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="amc_scans_zip_file"
+                               name="amc_scans_zip_file" accept=".zip,application/zip" required
+                               aria-describedby="amc-scans-zip-file-help">
+                        <button class="btn btn-dark" type="submit">
+                            <i class="fa-solid fa-upload me-1" aria-hidden="true"></i> Upload zip
+                        </button>
+                    </div>
+                    <div id="amc-scans-zip-file-help" class="form-text">
+                        Put the scanned pages (images or PDFs) in a folder, compress it and upload the created .zip file.
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+
+    {# Scans already in eXamc Review #}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fa-solid fa-images me-2" aria-hidden="true"></i>Scans from eXamc Review
+            </h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text text-body-secondary">
+                {% if exam_selected.review_option %}
+                    Imports the scans already uploaded in the <a href="{% url 'review_view' exam_selected.pk %}">review module</a>, either
+                    all of them or only the pages you choose. Annotated pages are marked with an asterisk.
+                {% else %}
+                    The review module is not enabled for this exam. Please enable it in the
+                    <a href="{% url 'exam_info' exam.pk %}">exam settings</a>, then import scans in the
+                    <a href="{% url 'import' exam.pk %}?tab=review">import page</a>.
+                {% endif %}
+            </p>
+
+            <fieldset class="border-0 p-0 m-0" data-import-lock {% if not exam.review_option %}disabled{% endif %}>
+                <button id="import-all-from-review-btn" type="button" class="btn btn-dark">
+                    <i class="fa-solid fa-file-import me-1" aria-hidden="true"></i> Import all
+                </button>
+
+                <hr>
+
+                <h6 class="mb-3">Or select pages to import</h6>
+                <div class="row g-3">
+                    <div class="col">
+                        <label for="scans-copies-list" class="form-label fw-semibold">Copy</label>
+                        <select id="scans-copies-list" class="form-select" size="8"></select>
+                    </div>
+                    <div class="col">
+                        <label for="scans_to_import_multiselect" class="form-label fw-semibold">
+                            Page <small class="fw-normal text-body-secondary">(* annotated)</small>
+                        </label>
+                        <select id="scans_to_import_multiselect" class="form-select" size="8" multiple></select>
+                    </div>
+                    <div class="col-auto d-flex flex-column justify-content-center gap-1 pt-4">
+                        <button type="button" id="scans_to_import_multiselect_rightAll"
+                                class="btn btn-outline-secondary btn-sm" aria-label="Add all" title="Add all">
+                            <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" id="scans_to_import_multiselect_rightSelected"
+                                class="btn btn-outline-secondary btn-sm" aria-label="Add selected" title="Add selected">
+                            <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" id="scans_to_import_multiselect_leftSelected"
+                                class="btn btn-outline-secondary btn-sm" aria-label="Remove selected" title="Remove selected">
+                            <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" id="scans_to_import_multiselect_leftAll"
+                                class="btn btn-outline-secondary btn-sm" aria-label="Remove all" title="Remove all">
+                            <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="col">
+                        <label for="scans_to_import_multiselect_to" class="form-label fw-semibold">Selected pages</label>
+                        <select id="scans_to_import_multiselect_to" class="form-select" size="8" multiple></select>
+                    </div>
+                </div>
+
+                <button id="importSelectedPagesBt" type="button" class="btn btn-dark mt-3" disabled>
+                    <i class="fa-solid fa-file-import me-1" aria-hidden="true"></i> Import selected
+                </button>
+            </fieldset>
+        </div>
+    </div>
+</div>

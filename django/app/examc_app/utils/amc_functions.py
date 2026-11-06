@@ -780,27 +780,6 @@ def get_automatic_data_capture_summary(exam: Exam):
         return [nb_copies, incomplete_copies, nb_unrecognized_pages, data_overwritten_pages]
 
 
-def get_copy_page_zooms(exam: Exam, copy, page):
-    amc_project_path = get_amc_project_path(exam, False)
-
-    if not amc_project_path:
-        return None
-
-    amc_data_path = f"{amc_project_path}/data/"
-
-    with AmcCaptureDbManager(amc_data_path=amc_data_path) as amc_capture_db_manager:
-        zooms_data = amc_capture_db_manager.select_copy_page_zooms(copy, page)
-
-        threshold = float(get_amc_option_by_key(exam, "seuil"))
-
-        for item in zooms_data:
-            imagedata = item["imagedata"]
-            item["imagedata"] = base64.b64encode(imagedata).decode("ascii") if imagedata is not None else None
-            item["checked"] = (item["manual"] == -1.0 and item["bvalue"] >= threshold) or item["manual"] == 1.0
-
-        return zooms_data
-
-
 def add_unrecognized_page_to_project(exam: Exam, copy, page, extra, img_filename):
     amc_project_path = get_amc_project_path(exam, False)
 

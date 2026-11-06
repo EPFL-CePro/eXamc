@@ -73,7 +73,6 @@ from examc_app.utils.amc_functions import (
     get_annotated_papers_generated_at,
     get_automatic_association_code,
     get_automatic_data_capture_summary,
-    get_copy_page_zooms,
     get_project_dir_info,
     get_questions_scoring_details_list,
     get_students_csv_headers,
@@ -227,14 +226,9 @@ def amc_view(request: HttpRequest, exam_pk: int, task_id: str | None = None):
         data_capture_manual = get_amc_data_capture_manual_data(exam)
         amc_data_capture_summary = get_automatic_data_capture_summary(exam)
         number_of_copies = amc_data_capture_summary[0]
-        number_of_incomplete_copies = len(amc_data_capture_summary[1])
         missing_pages = amc_data_capture_summary[1]
-        if number_of_incomplete_copies > 0:
-            data_capture_message = "Data capture from " + str(
-                number_of_copies - number_of_incomplete_copies) + " complete and " + str(
-                number_of_incomplete_copies) + " incomplete papers"
-        else:
-            data_capture_message = "Data capture from " + str(number_of_copies) + " complete papers"
+        nb_incomplete_copies = len(missing_pages)
+        nb_complete_copies = number_of_copies - nb_incomplete_copies
 
         nb_unrecognized_pages = amc_data_capture_summary[2]
         overwritten_pages = amc_data_capture_summary[3]
@@ -250,11 +244,11 @@ def amc_view(request: HttpRequest, exam_pk: int, task_id: str | None = None):
 
         exam_nb_pages = 1
 
-        pages: list = []
+        data_pages: list = []
         if data_capture_manual is not None:
-            pages = data_capture_manual.get("pages") or []
+            data_pages = data_capture_manual.get("pages") or []
             # No pages yet (e.g. layout not detected): keep the default of 1 page.
-            exam_nb_pages = max((float(page["page"]) for page in pages), default=exam_nb_pages)
+            exam_nb_pages = max((float(page["page"]) for page in data_pages), default=exam_nb_pages)
             view_context.update(
                 data_questions=data_capture_manual.get("questions") or [],
                 data_copies=data_capture_manual.get("copies") or [],
@@ -264,8 +258,8 @@ def amc_view(request: HttpRequest, exam_pk: int, task_id: str | None = None):
 
         # sets non-generic context variables
         view_context.update(
-            data_pages=pages,
-            data_capture_missing=not pages,
+            data_pages=data_pages,
+            data_capture_missing=not data_pages,
             number_of_copies_param=amc_option_nb_copies,
             copy_count=number_of_copies,
             catalog_pdf_path=amc_catalog_pdf_path,
@@ -273,7 +267,8 @@ def amc_view(request: HttpRequest, exam_pk: int, task_id: str | None = None):
             layout_detection_msg=amc_layout_detection_msg,
             project_dir_dict=project_dir_dict,
             project_dir_files_list=project_dir_files_list,
-            data_capture_message=data_capture_message,
+            nb_complete_copies=nb_complete_copies,
+            nb_incomplete_copies=nb_incomplete_copies,
             missing_pages=missing_pages,
             nb_unrecognized_pages=nb_unrecognized_pages,
             overwritten_pages=overwritten_pages,
@@ -294,28 +289,6 @@ def amc_view(request: HttpRequest, exam_pk: int, task_id: str | None = None):
 
     return render(request, 'amc/amc.html', view_context.as_dict())
 
-
-@exam_permission_required(['manage'])
-def amc_data_capture_manual(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-
-    context: dict[str, Any] = {'nav_url': 'amc_data_capture_manual'}
-
-    if user_allowed(exam, request.user.id):
-        context['exam_selected'] = exam
-
-        exam = exam.get_overall_exam_or_default()
-
-        context['exam'] = exam
-        context['user_allowed'] = True
-    else:
-        context['user_allowed'] = False
-
-    return render(
-        request,
-        'amc/amc_data_capture_manual.html',
-        context
-    )
 
 
 @exam_permission_required(['manage'])
@@ -823,19 +796,6 @@ def view_amc_log_file(request: HttpRequest, exam_pk: int):
         file_contents = f.read()
         f.close()
         return HttpResponse(file_contents)
-
-
-@exam_permission_required(['manage'])
-@require_POST
-def get_amc_zooms(request: HttpRequest, exam_pk: int):
-    exam = Exam.objects.get(pk=exam_pk)
-    copy = request.POST['copy']
-    page = request.POST['page']
-
-    zooms_data = get_copy_page_zooms(exam, copy, page)
-
-    return HttpResponse(json.dumps(zooms_data))
-
 
 @exam_permission_required(['manage'])
 @require_POST
