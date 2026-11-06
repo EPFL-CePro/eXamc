@@ -72,39 +72,47 @@ CMD []
 ARG UID=1000
 ARG GID=1000
 
+# TeX Live isn't in this image: Compose's texlive service copies it from the official TeX Live
+# image into the texlive volume, mounted at /opt/texlive (see compose.base.yml). Its binaries for
+# either architecture go on the PATH, and TEXMFAUXTREES adds the TeX trees installed by apt
+# packages (auto-multiple-choice's automultiplechoice.sty in /usr/share/texmf).
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    PATH="/opt/texlive/bin/x86_64-linux:/opt/texlive/bin/aarch64-linux:$PATH" \
+    TEXMFAUXTREES="/usr/share/texmf,"
 
 WORKDIR /app
 
-# cm-super: Type 1 (vector) versions of the EC fonts used by the exams (fontenc T1). Only recommended by
-# texlive-fonts-extra, so not installed with --no-install-recommends: pdflatex then generated bitmap fonts
-# with METAFONT at each worker start.
+# System libraries and tools only: TeX Live (incl. latexmk, cm-super, lmodern) comes from the
+# TeX Live image. auto-multiple-choice depends on Debian's texlive-* packages:
+# texlive-local (an empty package built from texlive-local.ctl) "provides" them, so apt
+# doesn't pull them in.
+COPY texlive-local.ctl /tmp/texlive-local/DEBIAN/control
 RUN set -eux; \
+    dpkg-deb --build --root-owner-group /tmp/texlive-local /tmp/texlive-local.deb; \
+    dpkg -i /tmp/texlive-local.deb; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         libmariadb3 libzbar0 tzdata ca-certificates curl gnupg \
         libgl1 libglib2.0-0 libsm6 libxext6 mariadb-client \
         fonts-dejavu-core fonts-liberation fonts-noto-core \
         auto-multiple-choice \
-        texlive-xetex \
-        texlive-latex-recommended \
-        texlive-latex-extra \
-        texlive-fonts-recommended \
-        texlive-fonts-extra \
-        cm-super \
-        lmodern \
-        texlive-lang-european \
-        texlive-lang-french \
-        latexmk \
         ghostscript \
         poppler-utils \
         pandoc; \
     test -x /usr/bin/auto-multiple-choice; \
     test -x /usr/bin/pandoc; \
+    if dpkg-query -W -f='${Package} ${Status}\n' 'texlive-*' 2>/dev/null \
+        | grep -v '^texlive-local ' | grep -q ' installed$'; then \
+        echo "Debian TeX Live got installed: add the missing package to texlive-local.ctl" >&2; exit 1; \
+    fi; \
     ldconfig; \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* /tmp/texlive-local /tmp/texlive-local.deb
+
+# TeX Live's fonts (OpenType, TrueType) for fontconfig, so tools outside TeX (pango in AMC's
+# annotations, XeTeX's lookups by font name) find them too
+COPY texlive-fonts.conf /etc/fonts/conf.d/09-texlive-fonts.conf
 
 # Root owns the code, examc owns the data.
 # The data dirs exist in the image so new named volumes start owned by examc
