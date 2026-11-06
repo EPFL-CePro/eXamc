@@ -18,7 +18,7 @@ services:
   # SITE_ADDRESS (required) is set in compose.dev.yml / compose.prod.yml.
   # ---------------------------------------------------------------------------
   caddy:
-    image: dhi.io/caddy:2.11.7
+    image: dhi.io/caddy:2.11.9
     environment:
       CADDY_TLS_MODE: ${CADDY_TLS_MODE:-internal}
       EXAMC_ENV: ${ENV:-prod}
