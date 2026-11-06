@@ -40,18 +40,22 @@
             </h5>
         </div>
         <div class="card-body">
-            <p class="card-text text-body-secondary">
+            <div class="card-text">
                 {% if exam_selected.review_option %}
-                    Imports the scans already uploaded in the <a href="{% url 'review_view' exam_selected.pk %}">review module</a>, either
-                    all of them or only the pages you choose. Annotated pages are marked with an asterisk.
+                    <p class="text-body-secondary">
+                        Imports the scans already uploaded in the <a href="{% url 'review_view' exam_selected.pk %}">review module</a>, either
+                        all of them or only the pages you choose. Annotated pages are marked with an asterisk.
+                    </p>
                 {% else %}
-                    The review module is not enabled for this exam. Please enable it in the
-                    <a href="{% url 'exam_info' exam.pk %}">exam settings</a>, then import scans in the
-                    <a href="{% url 'import' exam.pk %}?tab=review">import page</a>.
+                    {% alert "info" fit=True %}
+                        The review module is not enabled for this exam. Please enable it in the
+                        <a class="alert-link" href="{% url 'exam_info' exam_selected.pk %}">exam settings</a>, then import scans in the
+                        <a class="alert-link" href="{% url 'import' exam_selected.pk %}?tab=review">import page</a>.
+                    {% endalert %}
                 {% endif %}
-            </p>
+            </div>
 
-            <fieldset class="border-0 p-0 m-0" data-import-lock {% if not exam.review_option %}disabled{% endif %}>
+            <fieldset class="border-0 p-0 m-0" data-import-lock {% if not exam_selected.review_option %}disabled{% endif %}>
                 <button id="import-all-from-review-btn" type="button" class="btn btn-dark">
                     <i class="fa-solid fa-file-import me-1" aria-hidden="true"></i> Import all
                 </button>
