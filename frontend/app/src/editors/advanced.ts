@@ -71,10 +71,9 @@ function normalizeMarkdown(markdown: string): string {
     return markdown.replace(/\s+$/, '');
 }
 
-// eslint-disable-next-line no-undef
+
 function createElement<K extends keyof HTMLElementTagNameMap>(
     tag: K, className: string, text?: string,
-    // eslint-disable-next-line no-undef
 ): HTMLElementTagNameMap[K] {
     const element = document.createElement(tag);
     element.className = className;
