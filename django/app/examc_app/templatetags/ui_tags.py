@@ -163,7 +163,7 @@ def pill_header(parser: Parser, token: Token) -> PillHeaderNode:
     Sets `<prefix>_active_tab` in the page context, for the {% tab_pane %}s that follow.
     """
     tag_name, _, kwargs = _parse_arguments(
-        parser, token, allowed={"title", "prefix", "icon", "active"}, required={"title", "prefix"},
+        parser, token, allowed={"title", "prefix", "icon", "active"}, required={"prefix"},
     )
     nodelist = parser.parse((f"end{tag_name}",))
     parser.delete_first_token()

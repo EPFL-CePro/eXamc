@@ -15,7 +15,7 @@
 </div>
 
 {# The running scans import (task id, state, status URLs) is on #import-page, in import.html #}
-<div id="uploadScansDiv" class="p-2 w-100"
+<div id="uploadScansDiv" class="w-100"
      data-csrf-token="{{ csrf_token }}"
      data-pending-amc-import="{{ pending_amc_import|yesno:'true,false' }}"
      data-import-scans-url="{% url 'import_scans_from_review' exam_selected.pk %}"

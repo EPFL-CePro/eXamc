@@ -25,11 +25,10 @@ export default defineConfig({
 
         // Entries used by single views
         "amc/amc": resolve(import.meta.dirname, 'src/views/amc/amc/index.ts'),
-        "amc/amc_results": resolve(import.meta.dirname, 'src/views/amc/amc_results/index.ts'),
-        "amc/amc_data_capture_manual": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture_manual/index.ts'),
-        "amc/amc_data_capture": resolve(import.meta.dirname, 'src/views/amc/amc_data_capture/index.ts'),
-        "amc/amc_markings": resolve(import.meta.dirname, 'src/views/amc/amc_markings/index.ts'),
-        "amc/amc_project": resolve(import.meta.dirname, 'src/views/amc/amc_project/index.ts'),
+        "amc/_reports": resolve(import.meta.dirname, 'src/views/amc/_reports/index.ts'),
+        "amc/_data_capture": resolve(import.meta.dirname, 'src/views/amc/_data_capture/index.ts'),
+        "amc/_markings": resolve(import.meta.dirname, 'src/views/amc/_markings/index.ts'),
+        "amc/_project": resolve(import.meta.dirname, 'src/views/amc/_project/index.ts'),
         
         "public/csvgen": resolve(import.meta.dirname, 'src/views/public/csvgen/index.ts'),
         "public/room_plan": resolve(import.meta.dirname, 'src/views/public/room_plan/index.ts'),
