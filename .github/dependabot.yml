@@ -13,6 +13,7 @@ updates:
   # Security updates only: open-pull-requests-limit: 0 disables routine
   # version-update PRs, while security PRs are still opened.
   - package-ecosystem: "uv"
+    target-branch: "staging"
     directory: "/django/app"
     schedule:
       interval: "daily"
@@ -25,6 +26,7 @@ updates:
 
   # Frontend JS dependencies (pnpm)
   - package-ecosystem: "npm"
+    target-branch: "staging"
     directory: "/frontend/app"
     schedule:
       interval: "weekly"
@@ -37,6 +39,7 @@ updates:
 
   # Base images in django/Dockerfile and frontend/Dockerfile
   - package-ecosystem: "docker"
+    target-branch: "staging"
     directories:
       - "/django"
       - "/frontend"
@@ -56,6 +59,7 @@ updates:
 
   # Service images referenced in compose/compose.*.yml (mysql, redis, caddy)
   - package-ecosystem: "docker-compose"
+    target-branch: "staging"
     directory: "/compose"
     registries:
       - dhi
@@ -69,6 +73,7 @@ updates:
 
   # GitHub Actions used in .github/workflows/
   - package-ecosystem: "github-actions"
+    target-branch: "staging"
     directory: "/"
     schedule:
       interval: "daily"
