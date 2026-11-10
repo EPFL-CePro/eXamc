@@ -105,6 +105,33 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
+  # TeX Live: one-shot job copying TeX Live from the official image (Island of TeX: full
+  # scheme, no docs/sources) into the texlive volume, which the Django services mount.
+  # Keeps TeX Live out of the Django image (CI never builds or pushes it).
+  # Copies only when the image's TeX Live differs from the volume's (its package database
+  # changed): otherwise it exits in a second. The year folder (/usr/local/texlive/2026)
+  # is found with a wildcard. Image pinned by digest, updated by Dependabot.
+  # ---------------------------------------------------------------------------
+  texlive:
+    image: texlive/texlive:latest@sha256:07e8062637249c4f780ca59f42cc2ed592bc2dc1db4320769406aee3f98aa70e
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        src="$$(ls -d /usr/local/texlive/20*/ | tail -n 1)"
+        if cmp -s "$${src}tlpkg/texlive.tlpdb" /opt/texlive/tlpkg/texlive.tlpdb; then
+          echo "TeX Live is up to date"
+          exit 0
+        fi
+        echo "Copying TeX Live from $${src} ..."
+        find /opt/texlive -mindepth 1 -delete
+        cp -a "$${src}." /opt/texlive/
+        echo "Done"
+    volumes:
+      - texlive:/opt/texlive
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
   # Django (image/build defined per environment)
   # Secrets are read from /run/secrets by settings.py, falling back to env vars.
   # ---------------------------------------------------------------------------
@@ -165,6 +192,7 @@ services:
       - oasis_bearer
     volumes:
       - static_volume:/static # collectstatic writes hashed assets here
+      - texlive:/opt/texlive:ro # filled by the texlive service
       # ../django/app is only mounted in compose.dev.yml
       # /private_media is mounted in compose.dev.yml and compose.prod.yml,
       # from PRIVATE_MEDIA_DIR (set in the .env by Ansible)
@@ -216,3 +244,4 @@ volumes:
   static_volume:
   caddy_data:
   caddy_config:
+  texlive:

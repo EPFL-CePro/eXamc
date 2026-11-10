@@ -346,30 +346,6 @@ class AmcCaptureDbManager(AbstractAmcDbManager):
 
         return update_count
 
-    def select_copy_page_zooms(self, copy, page) -> list[dict[str, Any]]:
-        """
-        Select the answer box zones of a page of a copy, with their images.
-        :param copy: The copy (student) identifier.
-        :param page: The page number.
-        :return: Dicts with keys zoneid, bvalue, imagedata, black, manual.
-        """
-        query_str = (
-            "SELECT zoneid, "
-            "       CASE WHEN total > 0 THEN CAST(black AS REAL) / total ELSE 0.0 END AS bvalue, "
-            "       imagedata, black, manual "
-            "FROM capture_zone "
-            "WHERE student = :copy AND page = :page AND type = :zone_type "
-            "ORDER BY zoneid"
-        )
-        query_params = {"copy": copy, "page": page, "zone_type": ZONE_BOX}
-
-        cursor = self._execute(
-            query_str, query_params,
-            error=f"Couldn't select zooms (copy={copy}, page={page})"
-        )
-
-        return self._rows_as_dicts(cursor)
-
     # ------------------------------------------------------------------
     # capture_failed
     # ------------------------------------------------------------------

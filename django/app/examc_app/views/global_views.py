@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 from django.conf import settings
-from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.signing import BadSignature, SignatureExpired
@@ -19,6 +18,7 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
+from examc_app.middleware.auto_logout import LOGOUT_PENDING_KEY
 from examc_app.middleware.impersonation import (
     IMPERSONATED_SESSION_KEY,
     IMPERSONATOR_SESSION_KEY,
@@ -213,5 +213,9 @@ def serve_signed_file(request, file_hint=None):
 
 
 def force_oidc_logout(request):
-    if request.user.is_authenticated: logout(request)
-    return render(request, 'oidc_auto_logout.html')
+    if request.user.is_authenticated:
+        if request.session.get(LOGOUT_PENDING_KEY):
+            return render(request, 'oidc_auto_logout.html', {'logging_out': True})
+        return redirect('home')  # a new session reusing this URL: nothing to log out
+
+    return render(request, 'oidc_auto_logout.html', {'logging_out': False})

@@ -30,6 +30,11 @@ services:
       service: redis
       file: compose.base.yml
 
+  texlive:
+    extends:
+      service: texlive
+      file: compose.base.yml
+
   fe-artifacts:
     image: ${FE_ARTIFACTS_IMAGE:-ghcr.io/epfl-cepro/examc-fe-artifacts}:${FE_ARTIFACTS_IMAGE_TAG:-stable}
     user: "${UID:-1000}:${GID:-1000}"
@@ -47,6 +52,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
     depends_on:
+      texlive:
+        condition: service_completed_successfully
       fe-artifacts:
         condition: service_completed_successfully
       redis:
@@ -61,6 +68,9 @@ services:
       - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
+    depends_on:
+      texlive:
+        condition: service_completed_successfully
 
   celery_beat:
     extends:
@@ -71,6 +81,9 @@ services:
       - ${PRIVATE_MEDIA_DIR:?set PRIVATE_MEDIA_DIR}:/private_media
     extra_hosts:
       - "host.docker.internal:host-gateway" # Used to access host machine from inside Docker
+    depends_on:
+      texlive:
+        condition: service_completed_successfully
 
 volumes:
   caddy_data:
@@ -78,6 +91,7 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
+  texlive:
 
 secrets:
   secret_key:            { file: "${SECRETS_DIR:?set SECRETS_DIR}/secret_key" }

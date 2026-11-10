@@ -33,6 +33,11 @@ services:
       service: redis
       file: compose.base.yml
 
+  texlive:
+    extends:
+      service: texlive
+      file: compose.base.yml
+
   fe-runner:
     build:
       context: ../frontend
@@ -57,6 +62,8 @@ services:
       - ${PRIVATE_MEDIA_DIR:-./data/private_media}:/private_media
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     depends_on:
+      texlive:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
@@ -85,6 +92,9 @@ services:
     volumes:
       - ../django/app/:/app:z
       - ${PRIVATE_MEDIA_DIR:-./data/private_media}:/private_media
+    depends_on:
+      texlive:
+        condition: service_completed_successfully
 
   celery_beat:
     extends:
@@ -96,6 +106,9 @@ services:
     volumes:
       - ../django/app/:/app:z
       - ${PRIVATE_MEDIA_DIR:-./data/private_media}:/private_media
+    depends_on:
+      texlive:
+        condition: service_completed_successfully
 
 volumes:
   caddy_data:
@@ -103,6 +116,7 @@ volumes:
   mysql_data:
   redis_data:
   static_volume:
+  texlive:
 
 secrets:
   secret_key:            { file: "${SECRETS_DIR:-./secrets}/secret_key" }

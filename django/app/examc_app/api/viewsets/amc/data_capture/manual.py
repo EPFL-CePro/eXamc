@@ -30,8 +30,20 @@ from examc_app.utils.global_functions import user_allowed
 logger = logging.getLogger(__name__)
 
 # Question states, with the label shown in the State column's list
-QUESTION_STATES = {"invalid": "Invalid", "empty": "Empty"}
+QUESTION_STATES = {
+    "invalid": "Invalid",
+    "invalid_corrected": "Invalid (corrected)",
+    "empty": "Empty",
+    "empty_corrected": "Empty (corrected)",
+}
 
+
+def _filter_state(row: dict[str, Any], question: dict[str, Any]) -> str | None:
+    """A question's value for the State filter, or None if it isn't flagged."""
+    state = question["state"]
+    if not state:
+        return None
+    return f"{state}_corrected" if row["timestamp_manual"] else state
 
 def _num_key(value: Any) -> tuple[int, ...]:
     """Sort key for AMC copy/page numbers: 3 / '3' -> (3,), '3.1' -> (3, 1).
@@ -114,13 +126,17 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
 
         # Questions + State lists (ColumnControl): keep pages having a question matching both.
         # Several values in one list are combined with OR.
-        question_ids = {int(v) for v in _column_list(params, "page_questions") if v.isdigit()}
+        question_ids = {
+            int(v) for v in _column_list(params, "page_questions") if v.isdigit()
+        }
         states = {v for v in _column_list(params, "states") if v in QUESTION_STATES}
         if question_ids or states:
             rows = [
-                r for r in rows
+                r
+                for r in rows
                 if any(
-                    (not question_ids or q["id"] in question_ids) and (not states or q["state"] in states)
+                    (not question_ids or q["id"] in question_ids)
+                    and (not states or _filter_state(r, q) in states)
                     for q in r["page_questions"]
                 )
             ]
@@ -204,3 +220,27 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
                 copy_page_in_url=False
             )
         })
+
+    @action(detail=False, methods=["get"], url_path="locate")
+    @exam_permission_required(["manage"])
+    def locate(self, request: Request, exam_pk: str) -> Response:
+        """Position of a copy/page in the default (unfiltered, copy-ordered) list."""
+        if not user_allowed(self.exam, request.user.id):
+            raise PermissionDenied("Not allowed for this exam.")
+
+        data = get_amc_data_capture_manual_data(self.exam)
+        if data is None:
+            raise NotFound("No AMC project found for this exam.")
+
+        copy = request.query_params.get("copy", "")
+        page = request.query_params.get("page", "")
+
+        # Same order as list() with the table's default ordering (copy asc)
+        rows = sorted(data["pages"], key=_copy_page)
+        index = next(
+            (i for i, r in enumerate(rows) if str(r["copy"]) == copy and str(r["page"]) == page),
+            None,
+        )
+        if index is None:
+            raise NotFound("This copy/page is not in the list.")
+        return Response({"index": index})

@@ -16,7 +16,7 @@
             {# By exam / by section, for this scale. The prefix gives the same ids as before: comVsInd-<pk>-exam-tab, pills-comVsInd-<pk>-exam... #}
             {% with pk_str=scale.pk|stringformat:"s" %}
                 {% with sub_prefix="comVsInd-"|add:pk_str %}
-                    {% pill_header title="" prefix=sub_prefix %}
+                    {% pill_header prefix=sub_prefix %}
                         {% pill_tab "exam" label="By exam" %}
                         {% pill_tab "section" label="By section" %}
                     {% endpill_header %}

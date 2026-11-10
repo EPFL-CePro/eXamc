@@ -1,0 +1,74 @@
+# Build context of the Django image (django/). Keeps local, generated and secret files out of
+# the context (faster builds) and out of the images (COPY ./app /app copies the whole folder).
+# Needed by the build, so NOT ignored: Dockerfile, entrypoint.sh, install-build-deps.sh,
+# sphinx-autobuild.py, texlive-local.ctl, texlive-fonts.conf, app/ (incl. app/docs,
+# app/pyproject.toml and app/uv.lock).
+
+# --- Docker ------------------------------------------------------------------
+# (Docker still reads the Dockerfile and this file; they just aren't copied into the image)
+.dockerignore
+**/Dockerfile*
+**/compose*.yml
+
+# --- Version control ---------------------------------------------------------
+**/.git
+**/.gitignore
+**/.gitattributes
+
+# --- Python virtualenvs (the image has its own in /opt) ----------------------
+**/.venv
+app/venv
+app/env
+
+# --- Python caches and build output ------------------------------------------
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+**/.eggs
+app/build
+app/dist
+
+# --- Tests, coverage, type checkers, linters ---------------------------------
+**/.pytest_cache
+**/.coverage
+**/.coverage.*
+**/coverage.xml
+**/htmlcov
+**/.tox
+**/.nox
+**/.mypy_cache
+**/.ruff_cache
+**/.pyre
+**/.hypothesis
+
+# --- Documentation built locally (the builder stage builds it from app/docs) --
+app/docs/build
+app/examc_app/static/docs
+
+# --- Front-end (built by the frontend image, not this one) -------------------
+**/node_modules
+
+# --- Local data, logs, media -------------------------------------------------
+**/*.log
+**/*.sqlite3
+# (at the app's root only: folders with these names inside the code are kept)
+app/media
+app/private_media
+app/data
+app/staticfiles
+
+# --- Secrets and local settings ----------------------------------------------
+**/.env
+**/.env.*
+**/secrets
+**/*.pem
+**/*.key
+
+# --- Editors and OS files ----------------------------------------------------
+**/.idea
+**/.vscode
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+**/Thumbs.db
