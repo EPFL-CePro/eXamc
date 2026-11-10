@@ -7,13 +7,19 @@ import type { PageShape, PageViewerElement } from '@examc/components/page-viewer
 import type { MarkPosition, PagePosition, PageRow, ScanUrls, Zone } from './types.ts';
 
 const PLACEHOLDER = 'Select a page in the table to show its scan.';
-
-/** Ticked boxes are filled; flagged questions get the table badges' colours, dashed. */
-const TICKED_FILL = 'rgba(13, 110, 253, 0.35)';
-const OUTLINES: Record<string, Pick<PageShape, 'stroke' | 'dash' | 'strokeWidth'>> = {
-    E: { stroke: '#dc3545', dash: [6, 3], strokeWidth: 3 }, // invalid
-    V: { stroke: '#ffc107', dash: [6, 3], strokeWidth: 3 }, // empty
+/**
+ * AMC's colours. Box: thin blue frame, red when ticked. Around the boxes of a flagged
+ * question, a thicker outer frame: yellow = invalid answer (e.g. two boxes ticked),
+ * light blue = no box ticked.
+ */
+const BOX = {
+    unchecked: { stroke: '#33a3ff', strokeWidth: 1 },
+    checked: { stroke: '#ff0000', strokeWidth: 3 },
 };
+const FLAG_COLOURS: Record<string, string> = { E: '#ffff33', V: '#00ffff' };
+const FLAG_FRAME = { strokeWidth: 5, gap: 4 }; // gap: between box and frame, in scan pixels
+
+
 
 let viewer: PageViewerElement | null = null;
 let urls: ScanUrls | null = null;
@@ -21,6 +27,16 @@ let urls: ScanUrls | null = null;
 let current: PagePosition | null = null;
 /** Incremented on every request, so responses for a page the user already left are dropped. */
 let loadToken = 0;
+
+/** Moves each corner of a (roughly rectangular) box outwards by `by` on both axes. */
+function grow(points: number[], by: number): number[] {
+    const average = (axis: 0 | 1): number => {
+        const values = points.filter((_, i) => i % 2 === axis);
+        return values.reduce((sum, v) => sum + v, 0) / values.length;
+    };
+    const centre = [average(0), average(1)] as const;
+    return points.map((v, i) => v + Math.sign(v - centre[i % 2 as 0 | 1]) * by);
+}
 
 /** Sets the viewer and the API endpoints, and shows the placeholder. */
 export function initScan(pageViewer: PageViewerElement, endpoints: ScanUrls): void {
@@ -61,20 +77,23 @@ async function fetchShapes({ copy, page }: PagePosition): Promise<PageShape<Zone
     return toShapes(marks);
 }
 
-/** Groups the mark corners (4 rows per zone) into one shape per zone, styled by its state. */
+
+/** One shape per box, plus an outer frame under it when its question is flagged. */
 function toShapes(marks: MarkPosition[]): PageShape<Zone>[] {
     const byZone = new Map<number, MarkPosition[]>();
     for (const mark of marks) byZone.set(mark.zoneid, [...(byZone.get(mark.zoneid) ?? []), mark]);
 
-    return [...byZone.values()].map((corners) => {
+    return [...byZone.values()].flatMap((corners) => {
         corners.sort((a, b) => a.corner - b.corner);
         const first = corners[0]!;
-        return {
-            points: corners.flatMap((c) => [c.x, c.y]),
-            data: { zoneid: first.zoneid, corner: first.corner },
-            ...(first.why ? OUTLINES[first.why] : undefined),
-            ...(first.checked ? { fill: TICKED_FILL } : undefined),
-        };
+        const points = corners.flatMap((c) => [c.x, c.y]);
+        const data = { zoneid: first.zoneid, corner: first.corner };
+        const box: PageShape<Zone> = { points, data, ...(first.checked ? BOX.checked : BOX.unchecked) };
+
+        const flag = first.why ? FLAG_COLOURS[first.why] : undefined;
+        if (!flag) return [box];
+        // Drawn first, so the box stays on top (and gets the clicks inside it)
+        return [{ points: grow(points, FLAG_FRAME.gap), data, stroke: flag, strokeWidth: FLAG_FRAME.strokeWidth }, box];
     });
 }
 
