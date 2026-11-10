@@ -1,11 +1,11 @@
-<form id="oidc-logout-form" method="post" action="{% url 'oidc_logout' %}">
-  {% csrf_token %}
-</form>
-
-<script>
-  document.getElementById('oidc-logout-form').submit();
-
-  setTimeout(() => {
-    window.location.href = '/';
-  }, 500);
-</script>
+{% if logging_out %}
+    <p>Your session has expired. Logging you out…</p>
+    <form id="oidc-logout-form" method="post" action="{% url 'oidc_logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-dark">Log out</button>  {# if JavaScript is off #}
+    </form>
+    <script>document.getElementById('oidc-logout-form').submit();</script>
+{% else %}
+    <p>You have been logged out after a period of inactivity.</p>
+    <a class="btn btn-dark" href="{% url 'oidc_authentication_init' %}">Log in again</a>
+{% endif %}

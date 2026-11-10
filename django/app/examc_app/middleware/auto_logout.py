@@ -1,44 +1,46 @@
 import datetime
 
 from django.conf import settings
-from django.contrib.auth import logout
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
 
 from examc_app.models import ReviewLock
+
+# Set when the session expired: only the logout page and the OIDC logout are reachable then
+LOGOUT_PENDING_KEY = 'auto_logout_pending'
+
+
+def _session_expired(request) -> bool:
+    last_activity = request.session.get('last_activity')
+    if not last_activity:
+        return False
+    try:
+        last = datetime.datetime.fromisoformat(last_activity)
+    except ValueError:
+        return False
+    if timezone.is_naive(last):
+        last = timezone.make_aware(last, timezone.get_current_timezone())
+    return (timezone.now() - last).total_seconds() > settings.AUTO_LOGOUT_DELAY
 
 
 class AutoLogoutMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
+        self.allowed_paths: set[str] | None = None  # resolved on first use (URLconf loaded)
 
     def __call__(self, request):
         if request.user.is_authenticated:
-            now = timezone.now()
-            last_activity = request.session.get('last_activity')
+            if self.allowed_paths is None:
+                self.allowed_paths = {reverse('force_oidc_logout'), reverse('oidc_logout')}
 
-            if last_activity:
-                try:
-                    last_activity_dt = datetime.datetime.fromisoformat(last_activity)
-                except ValueError:
-                    last_activity_dt = None
-
-                if last_activity_dt and timezone.is_naive(last_activity_dt):
-                    last_activity_dt = timezone.make_aware(last_activity_dt, timezone.get_current_timezone())
-
-                if last_activity_dt:
-                    elapsed = (now - last_activity_dt).total_seconds()
-                else:
-                    elapsed = 0
-
-                if elapsed > settings.AUTO_LOGOUT_DELAY:
-
-                    # Remove review locks if exist
+            if request.session.get(LOGOUT_PENDING_KEY) or _session_expired(request):
+                if not request.session.get(LOGOUT_PENDING_KEY):
                     ReviewLock.objects.filter(user=request.user).delete()
-
-                    logout(request)
+                    request.session[LOGOUT_PENDING_KEY] = True
+                if request.path not in self.allowed_paths:
                     return redirect('force_oidc_logout')
-
-            request.session['last_activity'] = now.isoformat()
+            else:
+                request.session['last_activity'] = timezone.now().isoformat()
 
         return self.get_response(request)

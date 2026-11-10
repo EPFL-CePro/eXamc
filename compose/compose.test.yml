@@ -32,7 +32,9 @@ services:
     depends_on:
       fe-artifacts:
         condition: service_completed_successfully
-    volumes:
+    # !override: replace the base volumes instead of merging them, to leave out TeX Live
+    volumes: !override
+      - static_volume:/static
       - ../django/app/:/app:z
     restart: no
 
