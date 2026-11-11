@@ -101,6 +101,16 @@ $z-mini-dialog: 999999;
         outline: none;
     }
 
+    // Highlight the selected tool
+    .btn.btn-light {
+        &.active,
+        &:active,
+        &:focus {
+            background-color: $editor-active-bg !important;
+            color: $editor-fg !important;
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Center column
     // -----------------------------------------------------------------------
@@ -170,16 +180,6 @@ $z-mini-dialog: 999999;
                 .toolbar-center {
                     flex: 0 0 auto;
                     justify-content: center;
-
-                    // Highlight the selected tool
-                    .btn.btn-light {
-                        &.active,
-                        &:active,
-                        &:focus {
-                            background-color: $editor-active-bg !important;
-                            color: $editor-fg !important;
-                        }
-                    }
                 }
 
                 .toolbar-right {

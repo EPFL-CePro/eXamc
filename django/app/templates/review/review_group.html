@@ -178,7 +178,7 @@
                             {% endif %}
                         </div>
                         <div class="toolbar-center d-flex" id="mjs-toolbar-center">
-                            <button type="button" class="btn btn-icon" id="btn-pointer"
+                            <button type="button" class="btn btn-icon btn-light" id="btn-pointer"
                                     title="Select (Shift+V)" aria-label="Select (Shift+V)">
                                 <i class="fa-solid fa-arrow-pointer fa-lg" aria-hidden="true"></i>
                             </button>
@@ -236,7 +236,7 @@
 
             {# Right: discussion button and grading schemes #}
             <div class="h-100">
-                {% if pages_group.use_grading_scheme %}
+                {% if pages_group.use_grading_scheme and grading_schemes|length > 0 %}
                     <div id="grading-scheme-div" class="position-relative h-100 bg-body-tertiary p-1 pt-2">
                         <h6>Grading Schemes</h6>
 
@@ -291,7 +291,7 @@
             window.REVIEW_GROUP_CONFIG = {
                 examId: {{ exam_selected.pk }},
                 pagesGroupId: {{ pages_group.id }},
-                useGradingScheme: {{ pages_group.use_grading_scheme|yesno:"true,false" }},
+                useGradingScheme: {{ use_grading_scheme}},
                 userId: {{ user.id }},
                 currPage: {{ currpage|default:"0" }},
                 csrfToken: "{{ csrf_token }}",

@@ -42,3 +42,7 @@ class AmcProjectNotInZipError(UserFacingError):
         "Please make sure it includes the options.xml file of the project."
     )
     status_code = 400
+
+
+class AmcAnnotateError(UserFacingError):
+    """AMC couldn't generate the corrected exams; the message is shown to the user."""
