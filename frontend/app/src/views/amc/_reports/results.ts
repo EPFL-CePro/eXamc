@@ -1,6 +1,6 @@
-import { postText } from '@examc/helpers/http.ts';
+import { postJson } from '@examc/helpers/http.ts';
+
 import { ModuleUninitialized } from './errors.ts';
-import { showInfo } from './info.ts';
 import type { ResultsUrls } from './types.ts';
 
 let urls: ResultsUrls | null = null;
@@ -11,16 +11,13 @@ export function initResults(endpoints: ResultsUrls): void {
 }
 
 /**
- * Generates the results, then reloads the page to show them.
+ * Generates the results and statistics; the server then imports them in the background.
+ *
+ * @return {Promise<string>} The page to go to, following that import.
+ * @throws {HttpError} If the generation fails (its body holds the `error`).
  */
-export async function generateResults(): Promise<void> {
+export async function generateResults(): Promise<string> {
     if (!urls) throw new ModuleUninitialized('results.ts', 'initResults');
-
-    try {
-        await postText(urls.generate, {});
-        window.location.reload();
-    } catch (error) {
-        console.error(error);
-        showInfo('Failed to generate results.');
-    }
+    const { redirect } = await postJson<{ redirect: string }>(urls.generate, {});
+    return redirect;
 }

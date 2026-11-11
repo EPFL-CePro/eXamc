@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function follow(statusUrl: string): Promise<void> {
         setAnnotateBusy('Generating…');
         lockAmcView(true, 'Corrected exams are being generated for this exam');
-        annotateProgress.show('Generating the corrected exams…');
+        annotateProgress.show('Generating the corrected exams… This can take a while.');
         try {
             const job = await followAnnotation(statusUrl,
                 (text) => annotateProgress.show('Generating the corrected exams…', undefined, text));

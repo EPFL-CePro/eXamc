@@ -352,7 +352,12 @@ class AlertNode(Node):
         icon = _resolve_str(self.kwargs, "icon", context, ALERT_ICONS[kind])
         alert_title = _resolve_str(self.kwargs, "title", context, "")
         dismissible = _resolve_bool(self.kwargs, "dismissible", context, False)
+
+        style = _resolve_str(self.kwargs, "style", context, "")
+
+        fit = _resolve_bool(self.kwargs, "fit", context, False)
         margin = _resolve_bool(self.kwargs, "margin", context, True)
+        center = _resolve_bool(self.kwargs, "center", context, False)
 
         classes: list[str] = ["alert", f"alert-{kind}", _resolve_str(self.kwargs, "class", context, "")]
         if dismissible:
@@ -360,6 +365,19 @@ class AlertNode(Node):
 
         if not margin:
             classes += ["m-0"]
+
+        if center:
+            classes += ["text-center"]
+
+        # manage style
+        style_val = ""
+
+        if style:
+            style_val = f"{style};"
+
+        if fit:
+            style_val += " max-width: fit-content"
+
 
         # hidden=True hides the alert; visible=False does too (visible defaults to True)
         is_hidden = (
@@ -372,7 +390,7 @@ class AlertNode(Node):
             " ".join(filter(None, classes)),
             format_html(' id="{}"', _resolve_str(self.kwargs, "id", context)) if "id" in self.kwargs else "",
             SafeString(' role="alert"') if kind in _ALERT_URGENT_KINDS else "",
-            SafeString(' style="max-width: fit-content"') if _resolve_bool(self.kwargs, "fit", context, False) else "",
+            SafeString(f' style="{style_val}"') if style_val else "",
             SafeString(" hidden") if is_hidden else "",
         )
 
@@ -396,13 +414,14 @@ def alert(parser: Parser, token: Token) -> AlertNode:
       {% endalert %}
     The first argument is the kind: info, success, warning, danger (with an icon), or secondary, light, dark.
     Optional: `title` (a heading, instead of the icon), `icon` (other Font Awesome classes, or False for none),
-    `dismissible` (a close button), `fit` (as wide as its content), `id`, `class` (more classes), `hidden`, `margin`.
+    `dismissible` (a close button), `fit` (as wide as its content), `id`, `class` (more classes), `hidden`, `margin`,
+    `center`.
     `visible` does the opposite of hidden.
     Warnings and errors have role="alert", so screen readers announce them as soon as they appear.
     """
     tag_name, (kind,), kwargs = _parse_arguments(
         parser, token, positional=1,
-        allowed={"title", "icon", "dismissible", "fit", "id", "class", "hidden", "visible", "margin"},
+        allowed={"title", "icon", "dismissible", "fit", "id", "class", "hidden", "visible", "margin", "center", "style"},
     )
     nodelist = parser.parse((f"end{tag_name}",))
     parser.delete_first_token()

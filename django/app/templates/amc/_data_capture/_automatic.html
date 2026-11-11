@@ -14,7 +14,8 @@
 
             <form id="amcScansFromLocalFrm" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                <fieldset class="border-0 p-0 m-0" data-import-lock {% if upload_task_active %}disabled{% endif %}>
+                {# Disabled while a job uses the project, e.g. a scans import (see amc.html) #}
+                <fieldset class="border-0 p-0 m-0" data-import-lock data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
                     <label for="amc_scans_zip_file" class="form-label visually-hidden">Scans (.zip file)</label>
                     <div class="input-group">
                         <input type="file" class="form-control" id="amc_scans_zip_file"
@@ -55,52 +56,55 @@
                 {% endif %}
             </div>
 
-            <fieldset class="border-0 p-0 m-0" data-import-lock {% if not exam_selected.review_option %}disabled{% endif %}>
-                <button id="import-all-from-review-btn" type="button" class="btn btn-dark">
-                    <i class="fa-solid fa-file-import me-1" aria-hidden="true"></i> Import all
-                </button>
+            {# Two separate reasons: the outer one follows the lock (toggled by the scripts), the inner one stays #}
+            <fieldset class="border-0 p-0 m-0" data-import-lock data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
+                <fieldset class="border-0 p-0 m-0" {% if not exam_selected.review_option %}disabled{% endif %}>
+                    <button id="import-all-from-review-btn" type="button" class="btn btn-dark">
+                        <i class="fa-solid fa-file-import me-1" aria-hidden="true"></i> Import all
+                    </button>
 
-                <hr>
+                    <hr>
 
-                <h6 class="mb-3">Or select pages to import</h6>
-                <div class="row g-3">
-                    <div class="col">
-                        <label for="scans-copies-list" class="form-label fw-semibold">Copy</label>
-                        <select id="scans-copies-list" class="form-select" size="8"></select>
+                    <h6 class="mb-3">Or select pages to import</h6>
+                    <div class="row g-3">
+                        <div class="col">
+                            <label for="scans-copies-list" class="form-label fw-semibold">Copy</label>
+                            <select id="scans-copies-list" class="form-select" size="8"></select>
+                        </div>
+                        <div class="col">
+                            <label for="scans_to_import_multiselect" class="form-label fw-semibold">
+                                Page <small class="fw-normal text-body-secondary">(* annotated)</small>
+                            </label>
+                            <select id="scans_to_import_multiselect" class="form-select" size="8" multiple></select>
+                        </div>
+                        <div class="col-auto d-flex flex-column justify-content-center gap-1 pt-4">
+                            <button type="button" id="scans_to_import_multiselect_rightAll"
+                                    class="btn btn-outline-secondary btn-sm" aria-label="Add all" title="Add all">
+                                <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" id="scans_to_import_multiselect_rightSelected"
+                                    class="btn btn-outline-secondary btn-sm" aria-label="Add selected" title="Add selected">
+                                <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" id="scans_to_import_multiselect_leftSelected"
+                                    class="btn btn-outline-secondary btn-sm" aria-label="Remove selected" title="Remove selected">
+                                <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" id="scans_to_import_multiselect_leftAll"
+                                    class="btn btn-outline-secondary btn-sm" aria-label="Remove all" title="Remove all">
+                                <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="col">
+                            <label for="scans_to_import_multiselect_to" class="form-label fw-semibold">Selected pages</label>
+                            <select id="scans_to_import_multiselect_to" class="form-select" size="8" multiple></select>
+                        </div>
                     </div>
-                    <div class="col">
-                        <label for="scans_to_import_multiselect" class="form-label fw-semibold">
-                            Page <small class="fw-normal text-body-secondary">(* annotated)</small>
-                        </label>
-                        <select id="scans_to_import_multiselect" class="form-select" size="8" multiple></select>
-                    </div>
-                    <div class="col-auto d-flex flex-column justify-content-center gap-1 pt-4">
-                        <button type="button" id="scans_to_import_multiselect_rightAll"
-                                class="btn btn-outline-secondary btn-sm" aria-label="Add all" title="Add all">
-                            <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" id="scans_to_import_multiselect_rightSelected"
-                                class="btn btn-outline-secondary btn-sm" aria-label="Add selected" title="Add selected">
-                            <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" id="scans_to_import_multiselect_leftSelected"
-                                class="btn btn-outline-secondary btn-sm" aria-label="Remove selected" title="Remove selected">
-                            <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" id="scans_to_import_multiselect_leftAll"
-                                class="btn btn-outline-secondary btn-sm" aria-label="Remove all" title="Remove all">
-                            <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                    <div class="col">
-                        <label for="scans_to_import_multiselect_to" class="form-label fw-semibold">Selected pages</label>
-                        <select id="scans_to_import_multiselect_to" class="form-select" size="8" multiple></select>
-                    </div>
-                </div>
 
-                <button id="importSelectedPagesBt" type="button" class="btn btn-dark mt-3" disabled>
-                    <i class="fa-solid fa-file-import me-1" aria-hidden="true"></i> Import selected
-                </button>
+                    <button id="importSelectedPagesBt" type="button" class="btn btn-dark mt-3" disabled>
+                        <i class="fa-solid fa-file-import me-1" aria-hidden="true"></i> Import selected
+                    </button>
+                </fieldset>
             </fieldset>
         </div>
     </div>

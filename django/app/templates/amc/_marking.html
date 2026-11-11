@@ -17,29 +17,35 @@
      data-set-manual-association-url="{% url 'amc_set_manual_association' exam_selected.pk %}"
      style="max-width: 64rem">
 
-    {# Marking #}
-    <div class="input-group w-auto">
-        <button type="button" id="btn-mark" class="btn btn-dark">
-            <i class="fas fa-calculator" aria-hidden="true"></i> Mark
-        </button>
-        <div class="input-group-text gap-2"
-             data-bs-toggle="tooltip"
-             data-bs-title="Check it if you changed points or scoring formulas since the last marking.">
-            <input id="update-marking-scale" class="form-check-input mt-0" type="checkbox">
-            <label class="form-check-label" for="update-marking-scale">Reload scoring from the LaTeX source</label>
+    {# Marking. Disabled while a job uses the project (see amc.html) #}
+    <fieldset class="border-0 p-0 m-0" data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
+        <div class="input-group w-auto">
+            <button type="button" id="btn-mark" class="btn btn-dark">
+                <i class="fas fa-calculator" aria-hidden="true"></i> Mark
+            </button>
+            <div class="input-group-text gap-2"
+                 data-bs-toggle="tooltip"
+                 data-bs-title="Check it if you changed points or scoring formulas since the last marking.">
+                <input id="update-marking-scale" class="form-check-input mt-0" type="checkbox">
+                <label class="form-check-label" for="update-marking-scale">Reload scoring from the LaTeX source</label>
+            </div>
         </div>
-    </div>
+    </fieldset>
 
     <hr/>
 
     {% if mean %}
-        <div class="alert alert-success text-center" id="marking-status" role="alert">
-            <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#marking-details-modal">
-                Done!<i class="fas fa-info-circle fa-lg ms-4" aria-hidden="true"></i>
+        {% alert "success" center=True %}
+            Marking is done!
+            <button type="button" class="btn btn-outline-success btn-sm fw-bold ms-2" data-bs-toggle="modal"
+                    data-bs-target="#marking-details-modal">
+                See details
             </button>
-        </div>
+        {% endalert %}
     {% else %}
-        <div class="alert alert-warning text-center" id="marking-status" role="alert">No marks computed!</div>
+        {% alert "warning" center=True %}
+            No marks computed!
+        {% endalert %}
     {% endif %}
 
     <hr/>
@@ -47,68 +53,71 @@
     {# Student identification #}
     <h6>Student identification</h6>
 
-    <div class="row align-items-center mb-3">
-        <div class="col-sm-5">Students list: {{ students_list }}</div>
-        <div class="col-sm-7 d-flex gap-2">
-            <button type="button" id="btn-set-students-file" class="btn btn-dark btn-sm">
-                <i class="fas fa-file-csv fa-lg me-1" aria-hidden="true"></i>Set file
-            </button>
-            <button type="button" id="btn-edit-students-list" class="btn btn-dark btn-sm">
-                <i class="fas fa-pencil-alt fa-lg me-1" aria-hidden="true"></i>Edit list
-            </button>
+    <fieldset class="border-0 p-0 m-0" data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
+        <div class="row align-items-center mb-3">
+            <div class="col-sm-5">Students list: {{ students_list }}</div>
+            <div class="col-sm-7 d-flex gap-2">
+                <button type="button" id="btn-set-students-file" class="btn btn-dark btn-sm">
+                    <i class="fas fa-file-csv fa-lg me-1" aria-hidden="true"></i>Set file
+                </button>
+                <button type="button" id="btn-edit-students-list" class="btn btn-dark btn-sm">
+                    <i class="fas fa-pencil-alt fa-lg me-1" aria-hidden="true"></i>Edit list
+                </button>
+            </div>
         </div>
-        <form id="students-list-csv-form" method="POST" enctype="multipart/form-data" hidden>
-            {% csrf_token %}
-            <input type="file" name="students-list-csv" id="students-list-csv" accept=".csv">
-        </form>
-    </div>
 
-    <div class="alert alert-danger text-center" id="csv-import-error" role="alert" hidden></div>
-
-    <div class="row align-items-center mb-3">
-        <label class="col-sm-5 col-form-label" for="automatic-assoc-primary-key">Primary key from this list</label>
-        <div class="col-sm-4">
-            <select id="automatic-assoc-primary-key" class="form-select">
-                <option value="" {% if not auto_assoc_pk %}selected{% endif %}>Choose...</option>
-                {% for key in students_list_headers %}
-                    <option value="{{ key }}" {% if key == auto_assoc_pk %}selected{% endif %}>{{ key }}</option>
-                {% endfor %}
-            </select>
+        <div class="row align-items-center mb-3">
+            <label class="col-sm-5 col-form-label" for="automatic-assoc-primary-key">Primary key from this list</label>
+            <div class="col-sm-4">
+                <select id="automatic-assoc-primary-key" class="form-select">
+                    <option value="" {% if not auto_assoc_pk %}selected{% endif %}>Choose...</option>
+                    {% for key in students_list_headers %}
+                        <option value="{{ key }}" {% if key == auto_assoc_pk %}selected{% endif %}>{{ key }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
-    </div>
 
-    <div class="row align-items-center mb-3 invisible" data-assoc-code-row>
-        <label class="col-sm-5 col-form-label" for="automatic-assoc-code">Code name for automatic association</label>
-        <div class="col-sm-4">
-            <input class="form-control" type="text" value="{{ auto_assoc_code }}" id="automatic-assoc-code" readonly>
+        <div class="row align-items-center mb-3 invisible" data-assoc-code-row>
+            <label class="col-sm-5 col-form-label" for="automatic-assoc-code">Code name for automatic association</label>
+            <div class="col-sm-4">
+                <input class="form-control" type="text" value="{{ auto_assoc_code }}" id="automatic-assoc-code" readonly>
+            </div>
         </div>
-    </div>
 
-    <div class="row align-items-center mb-3">
-        <span class="col-sm-5">Papers/students association</span>
-        <div class="col-sm-7 d-flex gap-2">
-            <button type="button" id="btn-automatic-association" class="btn btn-dark btn-sm d-inline-flex align-items-center">
-                <img src="{% static 'img/amc_icons/amc-auto-assoc.png' %}" alt="" width="16" height="16" class="me-2">Automatic
-            </button>
-            <button type="button" id="btn-manual-association" class="btn btn-dark btn-sm d-inline-flex align-items-center">
-                <img src="{% static 'img/amc_icons/amc-manual-assoc.png' %}" alt="" width="16" height="16" class="me-2">Manual
-            </button>
+        <div class="row align-items-center mb-3">
+            <span class="col-sm-5">Papers/students association</span>
+            <div class="col-sm-7 d-flex gap-2">
+                <button type="button" id="btn-automatic-association" class="btn btn-dark btn-sm d-inline-flex align-items-center">
+                    <img src="{% static 'img/amc_icons/amc-auto-assoc.png' %}" alt="" width="16" height="16" class="me-2">Automatic
+                </button>
+                <button type="button" id="btn-manual-association" class="btn btn-dark btn-sm d-inline-flex align-items-center">
+                    <img src="{% static 'img/amc_icons/amc-manual-assoc.png' %}" alt="" width="16" height="16" class="me-2">Manual
+                </button>
+            </div>
         </div>
-    </div>
+    </fieldset>
+
+    <form id="students-list-csv-form" method="POST" enctype="multipart/form-data" hidden>
+        {% csrf_token %}
+        <input type="file" name="students-list-csv" id="students-list-csv" accept=".csv">
+    </form>
+
+    {% alert "warning" id="csv-import-error" center=True hidden=True %}{% endalert %}
 
     <hr>
 
     {% if count_missing_assoc == 0 %}
-        <div class="alert alert-success text-center" id="association-status" role="alert">
+        {% alert "success" center=True %}
             All completed answer sheets are associated with a student name!
-        </div>
+        {% endalert %}
     {% else %}
-        <div class="alert alert-warning text-center" id="association-status" role="alert">
+        {% alert "warning" center=True %}
             Missing identification for {{ count_missing_assoc }} copies!
-        </div>
+        {% endalert %}
     {% endif %}
 
-    {# Marking details #}
+    {# Marking details (read-only: stays available) #}
     <div class="modal fade" id="marking-details-modal" tabindex="-1" aria-labelledby="marking-details-title" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">

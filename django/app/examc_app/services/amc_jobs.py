@@ -1,7 +1,8 @@
 import logging
-from typing import Final, TypedDict
+from typing import Final, Protocol, TypedDict
 
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
+from django.urls import reverse
 from django.utils import timezone
 
 from examc_app.services.celery_tasks import (
@@ -21,6 +22,12 @@ class AmcJob(TypedDict):
 # Jobs stored by job_id.
 AmcJobs = dict[str, AmcJob]
 
+
+
+class ProgressCallback(Protocol):
+    """Reports the progress of a long AMC operation."""
+
+    def __call__(self, done: int | None = None, total: int | None = None, message: str = "") -> None: ...
 
 class AmcJobsManager:
     """
@@ -98,3 +105,15 @@ class AmcJobsManager:
             if job_state in ACTIVE_CELERY_STATES:
                 return job_id
         return None
+
+    def status_url(self, exam_pk: int, job_id: str) -> str:
+        """URL where the frontend follows the job."""
+        return reverse(self.status_url_name, args=[exam_pk, job_id])
+
+    def job_response(self, exam_pk: int, job_id: str, existing: bool = False) -> JsonResponse:
+        """202 response pointing the frontend to the job's status URL."""
+        return JsonResponse({
+            "job_id": job_id,
+            "status_url": self.status_url(exam_pk, job_id),
+            "existing": existing,
+        }, status=202)

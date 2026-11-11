@@ -107,9 +107,7 @@ TARGET_URL_NAMES = {
 
 # Hardening-critical views with no urls.py entry (dead code, not reachable
 # via HTTP) - tracked by function name directly since there is no URL name.
-ORPHANED_VIEWS = {
-    "old_call_amc_annotate",  # amc_views.py - superseded by call_amc_annotate
-}
+ORPHANED_VIEWS: set[str] = set()
 
 URLS_FILE = "app/examc_app/urls.py"
 VIEWS_DIR = "app/examc_app/views"

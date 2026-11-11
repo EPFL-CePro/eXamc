@@ -17,11 +17,12 @@
     {{ project_dir_dict|json_script:"amc-project-dir" }}
     {{ project_dir_files_list|json_script:"amc-project-dir-files" }}
 
-    <div class="mb-3">
+    {# Disabled while a job uses the project (see amc.html) #}
+    <fieldset class="border-0 p-0 m-0 mb-3" data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
         <button type="button" id="btn-edit-source-files" class="btn btn-dark">
-            <i class="fas fa-pencil-alt"></i> Edit LaTeX source files
+            <i class="fas fa-pencil-alt" aria-hidden="true"></i> Edit LaTeX source files
         </button>
-    </div>
+    </fieldset>
 
     <hr/>
 
@@ -36,15 +37,18 @@
 
     <div class="d-flex gap-2 flex-column">
         <div class="d-flex gap-2 flex-wrap justify-content-between">
-            <button type="button" id="btn-update-documents" class="btn btn-dark btn-sm flex-grow-0">
-                <i class="fas fa-sync-alt"></i> Update documents
-            </button>
+            <fieldset class="border-0 p-0 m-0" data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
+                <button type="button" id="btn-update-documents" class="btn btn-dark btn-sm">
+                    <i class="fas fa-sync-alt" aria-hidden="true"></i> Update documents
+                </button>
+            </fieldset>
 
+            {# Read-only: stay available #}
             <div class="d-flex gap-2 flex-wrap justify-content-end">
                 <a href="{% url 'open_amc_exam_pdf' exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm">
-                    <i class="fas fa-file-pdf"></i> File to print</a>
+                    <i class="fas fa-file-pdf" aria-hidden="true"></i> File to print</a>
                 <a href="{% url 'open_amc_catalog_pdf' exam_selected.pk %}" target="_blank" class="btn btn-dark btn-sm">
-                    <i class="fas fa-file-pdf"></i> Catalog</a>
+                    <i class="fas fa-file-pdf" aria-hidden="true"></i> Catalog</a>
             </div>
         </div>
 
@@ -60,10 +64,11 @@
     <hr/>
 
     <div class="mb-3">
-        <button type="button" id="btn-layout-detection" class="btn btn-dark btn-sm">
-            <i class="fas fa-ruler-combined"></i> Layout detection
-        </button>
-        <br>
+        <fieldset class="border-0 p-0 m-0" data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
+            <button type="button" id="btn-layout-detection" class="btn btn-dark btn-sm">
+                <i class="fas fa-ruler-combined" aria-hidden="true"></i> Layout detection
+            </button>
+        </fieldset>
         {% if layout_detection_msg %}
             <div class="alert alert-success" id="layout-detection-msg" role="alert"
                  style="margin-top:20px;text-align:center;">{{ layout_detection_msg }}</div>
