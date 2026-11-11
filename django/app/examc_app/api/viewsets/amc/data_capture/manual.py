@@ -2,13 +2,13 @@ import logging
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Counter
 
 from django.conf import settings
 from django.http import QueryDict
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -244,3 +244,50 @@ class AmcDataCaptureManualViewSet(ExamScopedViewMixin, viewsets.ViewSet):
         if index is None:
             raise NotFound("This copy/page is not in the list.")
         return Response({"index": index})
+
+    @action(detail=False, methods=["get"], url_path="sequence")
+    @exam_permission_required(["manage"])
+    def sequence(self, request: Request, exam_pk: str) -> Response:
+        """
+        A slice of every captured page, copy after copy (the scan viewer's document), from `offset`,
+        at most `limit` pages. Each page says where it stands in its copy, and its copy among the copies.
+        """
+        if not user_allowed(self.exam, request.user.id):
+            raise PermissionDenied("Not allowed for this exam.")
+
+        try:
+            offset = max(0, int(request.query_params.get("offset", 0)))
+            limit = min(max(1, int(request.query_params.get("limit", 50))), 200)
+        except ValueError:
+            raise ValidationError("offset and limit must be integers.")
+
+        data = get_amc_data_capture_manual_data(self.exam)
+        if data is None:
+            raise NotFound("No AMC project found for this exam.")
+
+        # Same order as locate(): copy, then page
+        rows = sorted(data["pages"], key=_copy_page)
+        copies = list(dict.fromkeys(str(r["copy"]) for r in rows))
+        copy_indexes = {copy: i for i, copy in enumerate(copies)}
+        page_counts = Counter(str(r["copy"]) for r in rows)
+
+        # Position of each page in its copy: rows are sorted, so a copy's pages are consecutive
+        page_indexes: list[int] = []
+        for i, row in enumerate(rows):
+            same_copy = i > 0 and str(rows[i - 1]["copy"]) == str(row["copy"])
+            page_indexes.append(page_indexes[-1] + 1 if same_copy else 0)
+
+        return Response({
+            "total": len(rows),
+            "copy_count": len(copies),
+            "pages": [
+                {
+                    "copy": str(row["copy"]),
+                    "page": str(row["page"]),
+                    "copy_index": copy_indexes[str(row["copy"])],
+                    "page_index": page_indexes[i],
+                    "page_count": page_counts[str(row["copy"])],
+                }
+                for i, row in enumerate(rows[offset:offset + limit], start=offset)
+            ],
+        })
