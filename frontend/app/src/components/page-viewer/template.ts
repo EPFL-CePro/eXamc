@@ -4,9 +4,10 @@ import { Popover } from 'bootstrap';
 export interface ViewerParts {
     stage: HTMLDivElement;
     message: HTMLElement;
+    pageIndicator: HTMLElement;
 }
 
-/** Frosted glass behind the toolbar: the page shows through, blurred, under the outline buttons. */
+/** Frosted glass behind the toolbars: the page shows through, blurred. */
 const FROSTED = 'background: #ffffffa3; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);';
 
 const TEMPLATE = `
@@ -20,7 +21,7 @@ const TEMPLATE = `
         <button type="button" class="btn btn-outline-dark" data-command="zoom-out" aria-label="Zoom out" title="Zoom out (−)">
             <i class="fa-solid fa-magnifying-glass-minus" aria-hidden="true"></i>
         </button>
-        <button type="button" class="btn btn-outline-dark" data-command="fit" aria-label="Whole page" title="Whole page (0)">
+        <button type="button" class="btn btn-outline-dark" data-command="fit" aria-label="Fit" title="Fit (0)">
             <i class="fa-solid fa-arrows-to-dot" aria-hidden="true"></i>
         </button>
         <button type="button" class="btn btn-outline-dark" data-part="help" aria-label="How to navigate"
@@ -28,6 +29,9 @@ const TEMPLATE = `
             <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
         </button>
     </div>
+    <div data-part="page-indicator" hidden aria-live="polite"
+         class="position-absolute bottom-0 start-50 translate-middle-x mb-2 z-1 px-2 py-1 rounded shadow-sm small pe-none"
+         style="${FROSTED}"></div>
     <div data-part="message" hidden
          class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center
                 text-center text-body-secondary p-3 pe-none"></div>
@@ -35,10 +39,12 @@ const TEMPLATE = `
 
 /** Help lines; Bootstrap's popover sanitizer only keeps basic tags (no <kbd>). */
 const HELP = `
-    <li><b>Drag</b> to move the page</li>
-    <li><b>Wheel</b> or <b>+ / −</b> to zoom</li>
-    <li><b>0</b> or double-click: whole page</li>
-    <li><b>Shift + arrows</b> to move the page</li>
+    <li><b>Drag</b> to move the pages</li>
+    <li><b>Wheel</b>: scroll</li>
+    <li><b>Ctrl/Cmd + wheel</b> or <b>+ / −</b> to zoom</li>
+    <li><b>0</b> or double-click: fit</li>
+    <li><b>Page Up / Down</b>, <b>Home / End</b>: other pages</li>
+    <li><b>Shift + arrows</b> to move the pages</li>
 `;
 
 /**
@@ -65,5 +71,5 @@ export function render(host: HTMLElement): ViewerParts {
     helpButton.dataset['bsContent'] = `<ul class="list-unstyled small lh-lg mb-0">${helpLines}</ul>`;
     Popover.getOrCreateInstance(helpButton);
 
-    return { stage: part('stage') as HTMLDivElement, message: part('message') };
+    return { stage: part('stage') as HTMLDivElement, message: part('message'), pageIndicator: part('page-indicator') };
 }

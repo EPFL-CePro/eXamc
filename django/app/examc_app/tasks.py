@@ -14,6 +14,9 @@ from django.contrib.sessions.models import Session
 from django.db.models import Sum
 from django.utils import timezone
 
+from examc_app.exceptions.amc import (
+    AmcAnnotateError,
+)
 from examc_app.models import (
     Exam,
     ExamAMCJob,
@@ -595,31 +598,17 @@ def amc_import_from_review_task(self, exam_pk: int, scans_list=None):
             },
         )
         raise
-
-
 @shared_task(bind=True)
-def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_report: bool):
+def amc_annotate_task(
+    self,
+    exam_pk: int,
+    single_file: bool,
+    add_grading_scheme_report: bool,
+    # Defaults: tasks queued before this change (during a deploy) still run
+    include_grading_scheme_description: bool = False,
+    include_student_comments: bool = False,
+):
     last_progress = {"progress": ""}
-
-    def set_progress(progress, done=None, total=None, message=""):
-        last_progress["progress"] = progress
-        logger.info(
-            "AMC annotate task progress exam=%s progress=%s done=%s total=%s message=%s",
-            exam_pk,
-            progress,
-            done,
-            total,
-            message,
-        )
-        self.update_state(
-            state="PROGRESS",
-            meta={
-                "progress": progress,
-                "done": done,
-                "total": total,
-                "message": message,
-            },
-        )
 
     def progress_callback(done=None, total=None, message=""):
         if message:
@@ -628,43 +617,45 @@ def amc_annotate_task(self, exam_pk: int, single_file: bool, add_grading_scheme_
             progress = f"{done}/{total} files generated"
         else:
             progress = "Processing annotated PDFs..."
-        set_progress(progress, done=done, total=total, message=message)
-
-    try:
-        exam = Exam.objects.get(pk=exam_pk)
+        last_progress["progress"] = progress
         logger.info(
-            "AMC annotate task started exam=%s single_file=%s add_grading_scheme_report=%s",
-            exam_pk,
-            single_file,
-            add_grading_scheme_report,
+            "AMC annotate task progress exam=%s progress=%s done=%s total=%s",
+            exam_pk, progress, done, total,
+        )
+        self.update_state(
+            state="PROGRESS",
+            meta={"progress": progress, "done": done, "total": total, "message": message},
         )
 
-        progress_callback(message="Starting AMC annotation...")
+    exam = Exam.objects.get(pk=exam_pk)
+    logger.info(
+        "AMC annotate task started exam=%s single_file=%s grading_scheme=%s description=%s comments=%s",
+        exam_pk, single_file, add_grading_scheme_report,
+        include_grading_scheme_description, include_student_comments,
+    )
+
+    progress_callback(message="Starting AMC annotation...")
+    try:
         result = amc_annotate(
             exam,
             single_file,
             add_grading_scheme_report,
+            include_grading_scheme_description=include_grading_scheme_description,
+            include_student_comments=include_student_comments,
             progress_callback=progress_callback,
         )
-        if isinstance(result, str) and result.startswith("ERR:"):
-            logger.error("AMC annotate task completed with AMC error exam=%s result=%s", exam_pk, result)
-        else:
-            logger.info("AMC annotate task completed exam=%s", exam_pk)
-        return {
-            "output": result,
-            "progress": last_progress["progress"],
-        }
-    except Exception as exception:
+    except Exception:
         logger.exception("AMC annotate task failed exam=%s", exam_pk)
-        self.update_state(
-            state="FAILURE",
-            meta={
-                "exc_type": type(exception).__name__,
-                "exc_message": str(exception),
-                "progress": "Failed",
-            },
-        )
         raise
+
+    # AMC reports some failures as an "ERR:" result rather than an exception: make it a failed job
+    if isinstance(result, str) and result.startswith("ERR:"):
+        logger.error("AMC annotate task completed with AMC error exam=%s result=%s", exam_pk, result)
+        raise AmcAnnotateError(result.removeprefix("ERR:").strip() or "AMC couldn't generate the corrected exams.")
+
+    logger.info("AMC annotate task completed exam=%s", exam_pk)
+    return {"output": result, "progress": last_progress["progress"]}
+
 
 @shared_task(bind=True)
 def compile_exam_preview_task(self, job_id):

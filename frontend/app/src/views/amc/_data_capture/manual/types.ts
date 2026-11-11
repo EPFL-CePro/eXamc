@@ -1,6 +1,9 @@
 /** A question state that needs attention. */
 export type QuestionState = 'invalid' | 'empty';
 
+/** AMC's "why" code of a flagged question: E = erreur (invalid answer), V = vide (no answer). */
+export type QuestionStateWhy = 'E' | 'V';
+
 /** A question on a page, with its special state if any. */
 export interface PageQuestion {
     id: number;
@@ -31,7 +34,7 @@ export interface MarkPosition {
     corner: number; // 1..4
     x: number; // scan image pixels
     y: number;
-    why?: string | null; // 'E' = invalid, 'V' = empty
+    why?: QuestionStateWhy | null;
     checked?: boolean;
 }
 
@@ -41,9 +44,32 @@ export interface Zone {
     corner: number;
 }
 
+/** A page of the whole capture (all copies, copy after copy), as returned by the sequence endpoint. */
+export interface SequencePage {
+    copy: string;
+    page: string;
+    /** Position of its copy among all copies, from 0. */
+    copy_index: number;
+    /** Position of the page in its copy, from 0. */
+    page_index: number;
+    /** Number of pages of its copy. */
+    page_count: number;
+}
+
+/** A slice of the sequence endpoint (?offset=&limit=). */
+export interface SequenceSlice {
+    total: number;
+    copy_count: number;
+    pages: SequencePage[];
+}
+
 /** Endpoints read from the root element's data attributes. */
 export interface ScanUrls {
     scanUrl: string;
     marks: string;
     updateZone: string;
+    /** A slice of all the pages, copy after copy (?offset=&limit=). */
+    sequence: string;
+    /** Index of a copy/page in that sequence (?copy=&page=). */
+    locate: string;
 }

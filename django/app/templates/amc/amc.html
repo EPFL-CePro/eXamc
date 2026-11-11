@@ -27,6 +27,13 @@
                 {% endif %}
             {% endpill_header %}
 
+            {# While a job uses the AMC project, everything that changes it is disabled: the <fieldset data-amc-lock>s #}
+            {% alert "info" id="amc-job-banner" icon=False visible=amc_lock_reason fit=True %}
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span data-amc-lock-reason>{{ amc_lock_reason }}</span>
+                <span>: the AMC project can't be changed until it's done.</span>
+            {% endalert %}
+
             {% if project_dir_dict %}
                 {% tab_content prefix="amc" %}
                     {% tab_pane "project" %}
