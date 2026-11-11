@@ -5,15 +5,16 @@ import 'datatables.net-columncontrol-bs5/css';
 
 import { setupDatatables } from '@examc/helpers/datatables.ts';
 import { requireData } from '@examc/helpers/dom.ts';
+import { amcEmptyBoxFlagColor, amcInvalidBoxFlagColor } from '@examc/helpers/amc.ts';
 
-import { clearPage, loadPage } from './scan.ts';
-import type { PageQuestion, PageRow, QuestionState } from './types.ts';
+import { clearPage, showPage } from './scan.ts';
+import type { PagePosition, PageQuestion, PageRow, QuestionState } from './types.ts';
 
 const PAGE_LENGTH = 500;
 
-const STATE_LABELS: Record<QuestionState, { label: string; class: string }> = {
-    invalid: { label: 'Invalid', class: 'text-bg-danger' },
-    empty: { label: 'Empty', class: 'text-bg-warning' },
+const STATE_LABELS: Record<QuestionState, { label: string; background: string; color: string }> = {
+    invalid: { label: 'Invalid', background: amcInvalidBoxFlagColor(), color: 'black' },
+    empty: { label: 'Empty', background: amcEmptyBoxFlagColor(), color: 'black' },
 };
 
 /** A copy/page from the URL, and its position in the default (unfiltered) list. */
@@ -36,8 +37,8 @@ let lastFilterKey: string | null = null;
 
 /** Badge for a flagged state; green once the page was checked manually. */
 function stateBadge(state: QuestionState, text: string, checked: boolean): string {
-    const { label, class: cls } = STATE_LABELS[state];
-    if (!checked) return `<span class="badge rounded-pill ${cls}" title="${label}">${text}</span>`;
+    const { label, background, color } = STATE_LABELS[state];
+    if (!checked) return `<span class="badge rounded-pill" style="background:${background};color:${color}" title="${label}">${text}</span>`;
     return '<span class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle"'
         + ` title="${label}, checked manually"><i class="fa-solid fa-check fa-xs"></i> ${text}</span>`;
 }
@@ -155,17 +156,16 @@ function onDraw(): void {
 
     const initial = pendingInitial;
     pendingInitial = null;
-    const rows = pageRows();
-    const match = initial && rows.find((r) => {
-        const data = rowData(r);
-        return data && String(data.copy) === initial.copy && String(data.page) === initial.page;
-    });
+    const match = initial && findRow(initial);
 
     if (match) select(match, true);
-    else if (rows[0] && rowData(rows[0])) select(rows[0]);
     else {
-        currentRow = null;
-        clearPage();
+        const first = pageRows().find((row) => rowData(row));
+        if (first) select(first);
+        else {
+            currentRow = null;
+            clearPage();
+        }
     }
 }
 
@@ -182,20 +182,27 @@ function rowData(row: HTMLTableRowElement): PageRow | undefined {
     return table?.row(row).data() as PageRow | undefined;
 }
 
+/** The row of a copy/page on the current table page, if it's there (filters can hide it). */
+function findRow({ copy, page }: PagePosition): HTMLTableRowElement | undefined {
+    return pageRows().find((row) => {
+        const data = rowData(row);
+        return data && String(data.copy) === copy && String(data.page) === page;
+    });
+}
+
 /**
- * Highlights a row, loads its page and puts its copy/page in the URL.
+ * Highlights a row and puts its copy/page in the URL.
  *
  * @param {HTMLTableRowElement} row - A data row.
  * @param {boolean} scroll - Whether to scroll it to the middle of the table.
  */
-function select(row: HTMLTableRowElement, scroll = false): void {
+function highlight(row: HTMLTableRowElement, scroll: boolean): PageRow | undefined {
     const data = rowData(row);
-    if (!data) return;
+    if (!data) return undefined;
 
     currentRow?.classList.remove('table-active');
     row.classList.add('table-active');
     currentRow = row;
-    void loadPage(data);
 
     if (scroll) {
         const body = row.closest<HTMLElement>('.dt-scroll-body');
@@ -206,6 +213,24 @@ function select(row: HTMLTableRowElement, scroll = false): void {
     url.searchParams.set('copy', String(data.copy));
     url.searchParams.set('page', String(data.page));
     history.replaceState(null, '', url);
+    return data;
+}
+
+/** Highlights a row and shows its page in the viewer (with the rest of its copy). */
+function select(row: HTMLTableRowElement, scroll = false): void {
+    const data = highlight(row, scroll);
+    if (data) void showPage(data);
+}
+
+/**
+ * Follows the viewer: highlights the row of the page scrolled to, without reloading anything.
+ * Pages hidden by the filters, or on another table page, leave the highlight as it is.
+ *
+ * @param {PagePosition} position - The page now in the middle of the viewer.
+ */
+export function followViewer(position: PagePosition): void {
+    const row = findRow(position);
+    if (row && row !== currentRow) highlight(row, true);
 }
 
 /**
@@ -237,10 +262,15 @@ export function navigate(step: 1 | -1): void {
     table.page(nextPage).draw('page');
 }
 
-/** Marks the current row as manually edited and re-renders it (its badges turn green). */
-export function markCurrentRowEdited(): void {
-    if (!table || !currentRow) return;
-    const row = table.row(currentRow);
+/**
+ * Marks a page's row as manually edited and re-renders it (its badges turn green).
+ *
+ * @param {PagePosition} position - The page whose box was toggled.
+ */
+export function markRowEdited(position: PagePosition): void {
+    const node = findRow(position);
+    if (!table || !node) return;
+    const row = table.row(node);
     const data = row.data() as PageRow | undefined;
     if (!data) return;
     data.timestamp_manual = Math.floor(Date.now() / 1000);
