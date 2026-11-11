@@ -1,42 +1,49 @@
 import { isExamcError } from '@examc/exceptions/shared.ts';
 import { buildApiError } from '@examc/exceptions/api.ts';
 import { buildFrontendError } from '@examc/exceptions/frontend.ts';
-import { parseJson, postText } from '@examc/helpers/http.ts';
-import type { PageShape, PageViewerElement } from '@examc/components/page-viewer/index.ts';
+import { getJson, parseJson, postText } from '@examc/helpers/http.ts';
+import type { PageShape, PageViewerElement, ViewerPage } from '@examc/components/page-viewer/index.ts';
+import { AMC_CHECKED_BOX, AMC_EMPTY_BOX_FLAG, AMC_INVALID_BOX_FLAG, AMC_UNCHECKED_BOX, type AmcBoxFlag } from '@examc/helpers/amc.ts';
 
-import type { MarkPosition, PagePosition, PageRow, ScanUrls, Zone } from './types.ts';
+import type {
+    MarkPosition, PagePosition, PageRow, QuestionState, QuestionStateWhy, ScanUrls, SequencePage, SequenceSlice, Zone,
+} from './types.ts';
 
 const PLACEHOLDER = 'Select a page in the table to show its scan.';
-/**
- * AMC's colours. Box: thin blue frame, red when ticked. Around the boxes of a flagged
- * question, a thicker outer frame: yellow = invalid answer (e.g. two boxes ticked),
- * light blue = no box ticked.
- */
-const BOX = {
-    unchecked: { stroke: '#33a3ff', strokeWidth: 1 },
-    checked: { stroke: '#ff0000', strokeWidth: 3 },
+/** Pages per request to the sequence endpoint. */
+const CHUNK = 50;
+
+/** AMC's "why" codes are French: E = erreur (invalid answer), V = vide (no answer). */
+const WHY_STATES: Record<QuestionStateWhy, QuestionState> = { E: 'invalid', V: 'empty' };
+
+/** The outer frame drawn around the boxes of a flagged question. */
+const FLAGS: Record<QuestionState, AmcBoxFlag> = {
+    invalid: AMC_INVALID_BOX_FLAG,
+    empty: AMC_EMPTY_BOX_FLAG,
 };
-const FLAG_COLOURS: Record<string, string> = { E: '#ffff33', V: '#00ffff' };
-const FLAG_FRAME = { strokeWidth: 5, gap: 4 }; // gap: between box and frame, in scan pixels
 
-
+/**
+ * The viewer's document: every captured page, copy after copy. Its pages are described by the sequence
+ * endpoint a chunk at a time, as the viewer needs them.
+ */
+interface Sequence {
+    total: number;
+    copyCount: number;
+    /** Requests by chunk start, so each chunk is asked for once. */
+    chunks: Map<number, Promise<void>>;
+    /** The pages described so far, by index. */
+    pages: Map<number, SequencePage>;
+    /** Index of each page described so far, by "copy/page". */
+    indexes: Map<string, number>;
+}
 
 let viewer: PageViewerElement | null = null;
 let urls: ScanUrls | null = null;
-/** The page shown in the viewer. */
-let current: PagePosition | null = null;
-/** Incremented on every request, so responses for a page the user already left are dropped. */
+let sequence: Sequence | null = null;
+/** Incremented when the document is (re)opened or cleared, so stale answers are dropped. */
 let loadToken = 0;
-
-/** Moves each corner of a (roughly rectangular) box outwards by `by` on both axes. */
-function grow(points: number[], by: number): number[] {
-    const average = (axis: 0 | 1): number => {
-        const values = points.filter((_, i) => i % 2 === axis);
-        return values.reduce((sum, v) => sum + v, 0) / values.length;
-    };
-    const centre = [average(0), average(1)] as const;
-    return points.map((v, i) => v + Math.sign(v - centre[i % 2 as 0 | 1]) * by);
-}
+/** Per page, incremented on every toggle, so only the latest toggle redraws its boxes. */
+const toggleTokens = new Map<number, number>();
 
 /** Sets the viewer and the API endpoints, and shows the placeholder. */
 export function initScan(pageViewer: PageViewerElement, endpoints: ScanUrls): void {
@@ -49,6 +56,8 @@ function requireUrls(): ScanUrls {
     if (!urls) throw new Error('initScan() must be called first');
     return urls;
 }
+
+const positionKey = ({ copy, page }: PagePosition): string => `${copy}/${page}`;
 
 // ---------------------------------------------------------------------------
 // Requests
@@ -77,6 +86,24 @@ async function fetchShapes({ copy, page }: PagePosition): Promise<PageShape<Zone
     return toShapes(marks);
 }
 
+function fetchSlice(offset: number, limit: number): Promise<SequenceSlice> {
+    const query = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+    return getJson<SequenceSlice>(`${requireUrls().sequence}?${query}`);
+}
+
+// ---------------------------------------------------------------------------
+// Shapes
+// ---------------------------------------------------------------------------
+
+/** Moves each corner of a (roughly rectangular) box outwards by `by` on both axes. */
+function grow(points: number[], by: number): number[] {
+    const average = (axis: 0 | 1): number => {
+        const values = points.filter((_, i) => i % 2 === axis);
+        return values.reduce((sum, v) => sum + v, 0) / values.length;
+    };
+    const centre = [average(0), average(1)];
+    return points.map((v, i) => v + Math.sign(v - centre[i % 2]!) * by);
+}
 
 /** One shape per box, plus an outer frame under it when its question is flagged. */
 function toShapes(marks: MarkPosition[]): PageShape<Zone>[] {
@@ -88,13 +115,80 @@ function toShapes(marks: MarkPosition[]): PageShape<Zone>[] {
         const first = corners[0]!;
         const points = corners.flatMap((c) => [c.x, c.y]);
         const data = { zoneid: first.zoneid, corner: first.corner };
-        const box: PageShape<Zone> = { points, data, ...(first.checked ? BOX.checked : BOX.unchecked) };
+        const box: PageShape<Zone> = { points, data, ...(first.checked ? AMC_CHECKED_BOX : AMC_UNCHECKED_BOX) };
 
-        const flag = first.why ? FLAG_COLOURS[first.why] : undefined;
+        const flag = first.why ? FLAGS[WHY_STATES[first.why]] : undefined;
         if (!flag) return [box];
+
         // Drawn first, so the box stays on top (and gets the clicks inside it)
-        return [{ points: grow(points, FLAG_FRAME.gap), data, stroke: flag, strokeWidth: FLAG_FRAME.strokeWidth }, box];
+        return [{ points: grow(points, flag.gap), data, stroke: flag.stroke, strokeWidth: flag.strokeWidth }, box];
     });
+}
+
+// ---------------------------------------------------------------------------
+// Sequence
+// ---------------------------------------------------------------------------
+
+/** Records a slice's pages in the sequence. */
+function remember(seq: Sequence, offset: number, pages: SequencePage[]): void {
+    pages.forEach((page, i) => {
+        seq.pages.set(offset + i, page);
+        seq.indexes.set(positionKey(page), offset + i);
+    });
+}
+
+/** Describes a page of the sequence, asking for its chunk if needed. */
+async function describe(seq: Sequence, index: number): Promise<SequencePage> {
+    const known = seq.pages.get(index);
+    if (known) return known;
+
+    const start = Math.floor(index / CHUNK) * CHUNK;
+    let chunk = seq.chunks.get(start);
+    if (!chunk) {
+        chunk = fetchSlice(start, CHUNK).then((slice) => remember(seq, start, slice.pages));
+        chunk.catch(() => seq.chunks.delete(start)); // asked again next time
+        seq.chunks.set(start, chunk);
+    }
+    await chunk;
+
+    const page = seq.pages.get(index);
+    if (!page) throw new Error(`Page ${index} is not in the sequence`);
+    return page;
+}
+
+/** Index of a copy/page in the sequence: known already, or asked to the locate endpoint. */
+async function indexOf(seq: Sequence, position: PagePosition): Promise<number> {
+    const known = seq.indexes.get(positionKey(position));
+    if (known !== undefined) return known;
+    const { index } = await getJson<{ index: number }>(`${requireUrls().locate}?${new URLSearchParams({ ...position })}`);
+    return index;
+}
+
+/** "Copy 12 / 220 · Page 2 / 6", with the AMC copy number when it isn't the copy's position. */
+function pageLabel(page: SequencePage, copyCount: number): string {
+    const number = page.copy_index + 1;
+    const copy = String(number) === page.copy ? `Copy ${number} / ${copyCount}` : `Copy ${page.copy} (${number} / ${copyCount})`;
+    return `${copy} · Page ${page.page_index + 1} / ${page.page_count}`;
+}
+
+/** Loads a page of the sequence for the viewer: its scan and boxes, label, and a divider where its copy starts. */
+async function loadSequencePage(seq: Sequence, index: number): Promise<ViewerPage<Zone>> {
+    const page = await describe(seq, index);
+    const [image, shapes, previous] = await Promise.all([
+        fetchScanUrl(page).then(loadImage),
+        fetchShapes(page),
+        page.page_index === 0 && index > 0 ? describe(seq, index - 1) : Promise.resolve(null),
+    ]);
+
+    const pages = `${page.page_count} page${page.page_count === 1 ? '' : 's'}`;
+    return {
+        image,
+        shapes,
+        label: pageLabel(page, seq.copyCount),
+        divider: previous
+            ? { end: `End of copy ${previous.copy}`, start: `Copy ${page.copy} · ${page.copy_index + 1} / ${seq.copyCount} · ${pages}` }
+            : undefined,
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -102,42 +196,72 @@ function toShapes(marks: MarkPosition[]): PageShape<Zone>[] {
 // ---------------------------------------------------------------------------
 
 /**
- * Loads a page's scan and boxes into the viewer.
+ * Shows a page in the viewer. The viewer's document is the whole capture, copy after copy, with a divider
+ * between copies: opened the first time, then only scrolled. Pages are loaded as they come near the view.
  *
  * @param {PageRow} row - The page's row data.
  */
-export async function loadPage(row: PageRow): Promise<void> {
-    const token = ++loadToken;
+export async function showPage(row: PageRow): Promise<void> {
     const position = { copy: String(row.copy), page: String(row.page) };
+    let token = loadToken;
 
     try {
-        const [image, shapes] = await Promise.all([fetchScanUrl(position).then(loadImage), fetchShapes(position)]);
-        if (token !== loadToken) return;
+        if (sequence) {
+            const index = await indexOf(sequence, position);
+            if (token === loadToken) viewer?.scrollToPage(index);
+            return;
+        }
 
-        current = position;
+        // First page shown: open the document on it
+        const openToken = token = ++loadToken;
+        const first = await fetchSlice(0, CHUNK);
+        const seq: Sequence = {
+            total: first.total, copyCount: first.copy_count, chunks: new Map(), pages: new Map(), indexes: new Map(),
+        };
+        remember(seq, 0, first.pages);
+        seq.chunks.set(0, Promise.resolve());
+        const index = await indexOf(seq, position);
+        if (openToken !== loadToken) return;
+
+        sequence = seq;
+        toggleTokens.clear();
         viewer?.showMessage(null);
-        viewer?.setImage(image);
-        viewer?.setShapes(shapes);
+        await viewer?.setPages(seq.total, (i) => loadSequencePage(seq, i), index);
     } catch (error: unknown) {
-        if (token !== loadToken) return;
-        current = null;
+        if (token !== loadToken) return; // a newer open or a clear took over
+        sequence = null;
         viewer?.clear();
         if (!isExamcError(error)) console.error(error);
         const { detail, message } = (error ?? {}) as { detail?: unknown; message?: unknown };
-        viewer?.showMessage(String(detail ?? message ?? 'The scan could not be loaded.'));
+        viewer?.showMessage(String(detail ?? message ?? 'The scans could not be loaded.'));
     }
 }
 
 /**
- * Toggles a box on the server, then redraws the page's boxes (the scan and zoom stay as they are).
+ * The copy/page shown at an index of the viewer, once it's known.
+ *
+ * @param {number} index - The page's index in the viewer.
+ * @return {PagePosition | null} Its position, or null.
+ */
+export function positionAt(index: number): PagePosition | null {
+    const page = sequence?.pages.get(index);
+    return page ? { copy: page.copy, page: page.page } : null;
+}
+
+/**
+ * Toggles a box on the server, then redraws its page's boxes (the view stays as it is).
  * Rejects if the update failed.
  *
  * @param {Zone} zone - The clicked box.
+ * @param {number} index - Index, in the viewer, of the page the box is on.
+ * @return {Promise<PagePosition | null>} The page that changed.
  */
-export async function toggleZone(zone: Zone): Promise<void> {
-    if (!current) return;
-    const position = current;
-    const token = ++loadToken;
+export async function toggleZone(zone: Zone, index: number): Promise<PagePosition | null> {
+    const position = positionAt(index);
+    if (!position) return null;
+    const token = loadToken;
+    const toggleToken = (toggleTokens.get(index) ?? 0) + 1;
+    toggleTokens.set(index, toggleToken);
 
     await postText(requireUrls().updateZone, {
         zoneid: String(zone.zoneid),
@@ -146,13 +270,15 @@ export async function toggleZone(zone: Zone): Promise<void> {
     });
 
     const shapes = await fetchShapes(position);
-    if (token === loadToken) viewer?.setShapes(shapes);
+    // Same document still shown, and no later toggle on this page
+    if (token === loadToken && toggleTokens.get(index) === toggleToken) viewer?.setShapes(shapes, index);
+    return position;
 }
 
-/** Empties the viewer and shows the placeholder. */
+/** Empties the viewer and shows the placeholder; the next page shown opens the document again. */
 export function clearPage(): void {
     ++loadToken;
-    current = null;
+    sequence = null;
     viewer?.clear();
     viewer?.showMessage(PLACEHOLDER);
 }

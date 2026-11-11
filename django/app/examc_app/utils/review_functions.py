@@ -498,6 +498,30 @@ def get_scans_paths_by_exam(exam):
     return scans_paths
 
 
+def get_graded_copies(pages_group: PagesGroup, user_id: int | None = None) -> set[str]:
+    """
+    Copies (zero-padded, "0007") graded in a pages group, the way the review lists them as marked:
+    a page with markers and its corrector box ticked, or, with a grading scheme, checked boxes.
+
+    :param user_id: only what this user graded; None for everyone.
+    """
+    marked_pages = PageMarkers.objects.filter(exam=pages_group.exam, pages_group=pages_group, correctorBoxMarked=True)
+    if user_id:
+        marked_pages = marked_pages.filter(pageMarkers_users__user__id=user_id)
+    graded = {
+        str(copie_no).zfill(4)
+        for copie_no, markers in marked_pages.values_list("copie_no", "markers").distinct()
+        if markers  # ticked without any marker isn't graded (same rule as get_copies_pages_by_group)
+    }
+
+    if pages_group.use_grading_scheme:
+        checked = PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=pages_group)
+        if user_id:
+            checked = checked.filter(user_id=user_id)
+        graded |= {str(copy_nr).zfill(4) for copy_nr in checked.values_list("copy_nr", flat=True).distinct()}
+
+    return graded
+
 
 def get_copies_pages_by_group(pages_group: PagesGroup):
     print('********************* START GET COPIES')

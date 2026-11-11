@@ -5,7 +5,9 @@
     {% vite_asset 'src/views/amc/_reports/index.ts' %}
 {% endblock %}
 
+{# Long actions show their progress in bars added by index.ts under their section, and errors as toasts #}
 <div id="amc-results"
+     data-annotate-job-status-url="{{ annotate_job_status_url|default:'' }}"
      data-generate-results-url="{% url 'call_amc_generate_results' exam_selected.pk %}"
      data-annotate-url="{% url 'call_amc_annotate' exam_selected.pk %}"
      data-send-data-url="{% url 'amc_send_annotated_papers_data' exam_selected.pk %}"
@@ -14,51 +16,56 @@
      style="max-width: 64rem">
 
     {% if has_results %}
-        <div class="alert alert-success text-center" id="info_generate_results_msg" role="alert" style="max-width:fit-content">
-            <i class="fa fa-check"></i>
-            Results and statistics have been populated! You can access them by the 'Results|Statistics' left menu!
-        </div>
+        {% alert "success" id="info_generate_results_msg" fit=True %}
+            Results and statistics have been populated! You can access them from the "Results | Statistics" menu on the left.
+        {% endalert %}
     {% endif %}
 
-    <div class="alert alert-warning" id="generate_results_info" role="alert">
-        <h6 class="alert-heading">
-            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-            Before generating the reports, check that:
-        </h6>
+    {% alert "warning" id="generate_results_info" %}
+        <h6 class="alert-heading">Before generating the reports, check that:</h6>
 
-        <p class="mb-1 mt-3">
-            <a class="btn btn-sm btn-outline-dark rounded-pill" href="{% url 'amc_view' exam_selected.pk %}?tab=data-capture">
-                <i class="fas fa-file-image" aria-hidden="true"></i> Data capture
-            </a>
-        </p>
-        <ol class="mb-0">
-            <li>The pages with a sensitivity above zero have been checked.</li>
-            <li>The "invalid" boxes have been checked.</li>
-            <li>The "blank" boxes of the open questions have been checked.</li>
-        </ol>
+        {# Two checklists, side by side from md up, stacked on smaller screens. #}
+        <div class="row row-cols-1 row-cols-md-2 g-3 mt-0">
+            <div class="col">
+                <button type="button" class="btn btn-outline-dark btn-sm fw-bold mb-2"
+                        data-href="{% url 'amc_view' exam_selected.pk %}?tab=data-capture">
+                    <i class="fas fa-file-image" aria-hidden="true"></i> Data capture
+                </button>
+                <ol class="mb-0">
+                    <li>The pages with a sensitivity above zero have been checked.</li>
+                    <li>The "invalid" boxes have been checked.</li>
+                    <li>The "blank" boxes of the open questions have been checked.</li>
+                </ol>
+            </div>
 
-        <p class="mb-1 mt-3">
-            <a class="btn btn-sm btn-outline-dark rounded-pill" href="{% url 'amc_view' exam_selected.pk %}?tab=marking-scheme">
-                <i class="fas fa-list-check" aria-hidden="true"></i> Marking scheme
-            </a>
-        </p>
-        <ol class="mb-0" start="4">
-            <li>The papers are associated with their students (automatically or manually).</li>
-            <li>
-                The marking has been done: the first time with "Reload scoring from the LaTeX source" checked, and again
-                after any correction in Data capture.
-            </li>
-        </ol>
-    </div>
+            <div class="col">
+                <button type="button" class="btn btn-outline-dark btn-sm fw-bold mb-2"
+                        data-href="{% url 'amc_view' exam_selected.pk %}?tab=marking-scheme">
+                    <i class="fas fa-list-check" aria-hidden="true"></i> Marking scheme
+                </button>
+                <ol class="mb-0" start="4">
+                    <li>The papers are associated with their students (automatically or manually).</li>
+                    <li>
+                        The marking has been done: the first time with "Reload scoring from the LaTeX source"
+                        checked, and again after any correction in Data capture.
+                    </li>
+                </ol>
+            </div>
+        </div>
+    {% endalert %}
 
-    <button type="button" class="btn btn-dark" id="generate-results-btn">
-        <i class="fas fa-sync-alt"></i> Generate Results
-    </button>
+    {# The page goes to the results once they're generated. Disabled while a job uses the project (see amc.html) #}
+    <fieldset class="border-0 p-0 m-0" data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
+        <button type="button" class="btn btn-dark" id="generate-results-btn">
+            <i class="fas fa-sync-alt" aria-hidden="true"></i> Generate Results
+        </button>
+    </fieldset>
 
     <hr/>
 
     <div class="d-flex flex-column gap-4">
-        {# 1. Generate #}
+        {# 1. Generate (the page reloads once they're ready). #}
+        {# Field names match AnnotateForm: index.ts posts the form as is (unchecked boxes and disabled fields are left out: off) #}
         <form id="gen_annotated_papers_form" method="POST" enctype="multipart/form-data">
             {% csrf_token %}
 
@@ -67,58 +74,87 @@
                 Each student's exam, with their answers, the correct ones and their marks.
             </p>
 
-            <fieldset class="mb-3">
-                <legend class="form-label fs-6 mb-1">Files</legend>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="annotate_option" value="per_student"
-                           id="annotate_one_per_student" checked>
-                    <label class="form-check-label" for="annotate_one_per_student">One PDF per student</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="annotate_option" value="single"
-                           id="annotate_one_all_student">
-                    <label class="form-check-label" for="annotate_one_all_student">One PDF with all the students</label>
+            {# Disabled while a job uses the project (see amc.html) #}
+            <fieldset class="border-0 p-0 m-0 d-flex flex-column gap-3" data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
+                <fieldset>
+                    <legend class="fs-6 fw-semibold mb-2">Files</legend>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="single_file" value="false"
+                               id="annotate-one-per-student" checked>
+                        <label class="form-check-label" for="annotate-one-per-student">One PDF per student</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="single_file" value="true"
+                               id="annotate-single-file">
+                        <label class="form-check-label" for="annotate-single-file">One PDF with all the students</label>
+                    </div>
+                </fieldset>
+
+                {% if has_grading_schemes %}
+                    <fieldset>
+                        <legend class="fs-6 fw-semibold mb-2">Grading schemes</legend>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" value="true"
+                                   name="add_grading_scheme_report" id="annotate-with-grading-scheme"
+                                   aria-describedby="annotate-with-grading-scheme-help"
+                                   aria-controls="annotate-grading-scheme-options">
+                            <label class="form-check-label" for="annotate-with-grading-scheme">Include the grading schemes</label>
+                            <div class="form-text mt-0" id="annotate-with-grading-scheme-help">
+                                Adds the marking criteria checked by the reviewers to each open question.
+                            </div>
+                        </div>
+
+                        {# Only meaningful with the grading schemes: enabled by the switch above (index.ts) #}
+                        <fieldset id="annotate-grading-scheme-options" class="border-start ms-2 ps-3 mt-2" disabled>
+                            <legend class="visually-hidden">Grading scheme details</legend>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" value="true"
+                                       name="include_grading_scheme_description"
+                                       id="annotate-include-grading-scheme-description">
+                                <label class="form-check-label" for="annotate-include-grading-scheme-description">
+                                    Include the grading schemes' description
+                                </label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" value="true"
+                                       name="include_student_comments" id="annotate-include-students-comments">
+                                <label class="form-check-label" for="annotate-include-students-comments">
+                                    Include the reviewers' comments for the student
+                                </label>
+                            </div>
+                        </fieldset>
+                    </fieldset>
+                {% endif %}
+
+                <div>
+                    <button id="annotate-btn" type="button"
+                            class="btn btn-dark btn-sm"
+                            {% if annotated_papers_available %}
+                                data-bs-toggle="tooltip"
+                                data-bs-title="Corrected exams were already generated, clicking this button will overwrite them."
+                                data-bs-placement="bottom"
+                            {% endif %}>
+                        <img src="{% static 'img/amc_icons/amc-annotate.svg' %}" width="16" height="16" class="me-1" alt="">
+                        {% if annotated_papers_available %}Generate again{% else %}Generate corrected exams{% endif %}
+                    </button>
+                    {% if annotated_papers_generated_at %}
+                        <p class="form-text mb-0">Last generated on {{ annotated_papers_generated_at|date:"j F Y \a\t H:i" }}.</p>
+                    {% endif %}
                 </div>
             </fieldset>
-
-            {% if has_grading_schemes %}
-                <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" role="switch"
-                           name="annotate_with_grading_scheme" id="annotate_with_grading_scheme"
-                           aria-describedby="annotate-grading-scheme-help">
-                    <label class="form-check-label" for="annotate_with_grading_scheme">Include the grading schemes</label>
-                    <div class="form-text" id="annotate-grading-scheme-help">
-                        Adds the marking criteria checked by the reviewers to each open question.
-                    </div>
-                </div>
-            {% endif %}
-
-            <button id="annotate-btn" type="button"
-                    class="btn btn-dark btn-sm"
-                    {% if annotated_papers_available %}
-                        data-bs-toggle="tooltip"
-                        data-bs-title="Corrected exams were already generated, clicking this button will overwrite them."
-                        data-bs-placement="bottom"
-                    {% endif %}>
-                <img src="{% static 'img/amc_icons/amc-annotate.svg' %}" width="16" height="16" class="me-1" alt="">
-                {% if annotated_papers_available %}Generate again{% else %}Generate corrected exams{% endif %}
-            </button>
-
-            {% if annotated_papers_generated_at %}
-                <p class="form-text mb-0">Last generated on {{ annotated_papers_generated_at|date:"j F Y \a\t H:i" }}.</p>
-            {% endif %}
         </form>
 
-        {# 2. Download or send #}
+        {# 2. Download or send (index.ts adds the progress bar and the send result after this row) #}
         {% if annotated_papers_available %}
-            <div class="d-flex flex-wrap gap-2">
-                <button id="download-zip-btn" class="btn btn-dark btn-sm">
+            <fieldset id="annotated-papers-actions" class="d-flex flex-wrap gap-2 border-0 p-0 m-0"
+                      data-amc-lock {% if amc_lock_reason %}disabled{% endif %}>
+                <button type="button" id="download-zip-btn" class="btn btn-dark btn-sm">
                     <i class="fa-solid fa-file-zipper me-1" aria-hidden="true"></i>Download (ZIP)
                 </button>
                 <button type="button" class="btn btn-dark btn-sm" id="open-send-dialog-btn">
                     <i class="fas fa-envelope me-1" aria-hidden="true"></i>Send to the students by email
                 </button>
-            </div>
+            </fieldset>
         {% endif %}
     </div>
 </div>
