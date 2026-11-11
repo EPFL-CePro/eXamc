@@ -2,7 +2,8 @@
     <div id="amc-manual-data-capture" class="d-flex gap-3 align-items-start"
          data-scan-url="{% url 'api-amc-data-capture-manual-scan-url' exam_selected.pk %}"
          data-marks-url="{% url 'get_amc_marks_positions' exam_selected.pk %}"
-         data-update-zone-url="{% url 'update_amc_mark_zone' exam_selected.pk %}">
+         data-update-zone-url="{% url 'update_amc_mark_zone' exam_selected.pk %}"
+         data-sequence-url="{% url 'api-amc-data-capture-manual-sequence' exam_selected.pk %}">
 
         <examc-page-viewer id="scan-viewer" class="flex-shrink-0 border bg-body-tertiary"
                            style="height: 84vh; aspect-ratio: 210 / 297; min-width: 240px; max-width: calc(100% - 320px)">
