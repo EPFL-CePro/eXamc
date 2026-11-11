@@ -30,7 +30,7 @@ Score: %S/%M</defaut_verdict>
   <delimiteur_decimal>,</delimiteur_decimal>
   <embedded_format>jpeg</embedded_format>
   <embedded_jpeg_quality>75</embedded_jpeg_quality>
-  <embedded_max_size>1000x1500</embedded_max_size>
+  <embedded_max_size>2100x3000</embedded_max_size>
   <encodage_interne>UTF-8</encodage_interne>
   <encodage_latex>UTF-8</encodage_latex>
   <force_convert />

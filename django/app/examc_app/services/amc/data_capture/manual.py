@@ -1,19 +1,18 @@
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
+from examc_app.exceptions.amc import AmcProjectPathNotFoundError
 from examc_app.models import Exam
 from examc_app.services.amc.AmcDb import AmcDb
 from examc_app.services.exam.paths import get_exam_amc_project_url
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager
-from examc_app.utils.amc_functions import (
-    get_amc_option_by_key,
-    get_amc_project_path,
-    get_extra_pages,
-)
+from examc_app.utils.amc_functions import get_amc_option_by_key, get_amc_project_path, get_extra_pages
 
-# AMC "why" codes -> marker appended after the question id
-_WHY_STATES = {"E": "invalid", "V": "empty"}
+QuestionState = Literal["invalid", "empty"]
+
+# AMC's "why" codes are French: E = erreur (invalid answer), V = vide (no answer)
+_WHY_STATES: dict[str, QuestionState] = {"E": "invalid", "V": "empty"}
 
 PageKey = tuple[int, int]  # (copy, page)
 QuestionRow = dict[str, Any]
@@ -123,33 +122,23 @@ def select_manual_data_capture_questions_by_page(amc_data_path: str) -> dict[Pag
 # Service
 # ---------------------------------------------------------------------------
 
-def _build_questions_ids(question_rows: list[QuestionRow] | None) -> str:
-    """Encode a page's questions as '%12%|INV|%13%...%'."""
-    parts: list[str] = []
-    for row in question_rows or []:
-        parts.append(f"%{row['question_id']}%")
-        if flag := _WHY_STATES.get(row.get("why")):
-            parts.append(flag)
-    return "".join(parts) + "%"
-
-
 def _page_questions(question_rows: list[QuestionRow] | None, names: dict[int, str]) -> list[dict[str, Any]]:
-    """A page's questions as [{id, name, state}], state being 'invalid', 'empty' or None."""
+    """A page's questions as [{id, name, state}], state being "invalid", "empty" or None."""
     return [
         {
             "id": row["question_id"],
             "name": names.get(row["question_id"], str(row["question_id"])),
-            "state": _WHY_STATES.get(row.get("why")),
+            "state": _WHY_STATES.get(row.get("why") or ""),
         }
         for row in question_rows or []
     ]
 
 
-
 def get_amc_data_capture_manual_data(exam: Exam) -> AmcDataCaptureManualData | None:
     """Pages, questions, and copies needing manual capture; None if the exam has no AMC project."""
-    amc_project_path = get_amc_project_path(exam, False)
-    if not amc_project_path:
+    try:
+        amc_project_path = get_amc_project_path(exam)
+    except AmcProjectPathNotFoundError:
         return None
 
     amc_data_path = f"{amc_project_path}/data/"
@@ -162,7 +151,6 @@ def get_amc_data_capture_manual_data(exam: Exam) -> AmcDataCaptureManualData | N
 
     with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
         questions = amc_layout_db_manager.select_questions()
-
     question_names = {q["question"]: q["name"] for q in questions}
 
     questions_by_page = select_manual_data_capture_questions_by_page(amc_data_path)
@@ -173,7 +161,7 @@ def get_amc_data_capture_manual_data(exam: Exam) -> AmcDataCaptureManualData | N
             question_names,
         )
         page["page_questions"] = page_questions
-        page["states"] = [s for s in ("invalid", "empty") if any(q["state"] == s for q in page_questions)]
+        page["states"] = [s for s in _WHY_STATES.values() if any(q["state"] == s for q in page_questions)]
 
     return AmcDataCaptureManualData(
         pages=pages,

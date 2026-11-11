@@ -1,6 +1,6 @@
 import DataTable from 'datatables.net-bs5';
 import 'datatables.net-bs5/css';
-import { MarkerArea } from '@markerjs/markerjs3';
+import { MarkerArea, MarkerBaseEditor, TextMarkerEditor } from '@markerjs/markerjs3';
 import {setupDatatables} from "@examc/helpers/datatables.ts";
 import { Tooltip } from 'bootstrap';
 
@@ -82,7 +82,8 @@ import { Tooltip } from 'bootstrap';
     const mjs3App = document.querySelector("#mjsapp");
     const markerWrapper = document.querySelector("#marker-wrapper");
     const colorInput = document.getElementById('color-input');
-    const markerToolbarCenter = document.getElementById('mjs-toolbar-center');
+    const markerToolbar = document.getElementById('mjs-toolbar');
+
     const clearMarkersButton = document.getElementById('btn-clear');
     const pointerButton = document.getElementById('btn-pointer');
     const textMarkerButton = document.getElementById('btn-text-marker');
@@ -96,13 +97,13 @@ import { Tooltip } from 'bootstrap';
 
     /** @type {HTMLImageElement} */
     let sourceImage = new Image();
+    
+    /** @type {'select'|'pan'|'select'|'text'|'rectangle'|'freehand'} */
+    let currentTool = 'select';
 
-    /**
-     * Name of the currently selected marker editor (e.g. 'TextMarker', 'FreehandMarker'),
-     * or null when pointer/select mode is active.
-     * @type {string|null}
-     */
-    let selectedMarkerEditor = null;
+    /**@type {MarkerBaseEditor} */
+    let currentMarker = undefined;
+
     let markerToolbarDomBound = false;
     let deleteKeyHandlerBound = false;
     let suppressMarkerPersistence = 0;
@@ -427,6 +428,7 @@ import { Tooltip } from 'bootstrap';
             highlightMarkers.forEach(el => {
                 el.style.display = "none";
             });
+            
             if(useGradingScheme) {
                 setGradingSchemeBlockActive(true);
             }
@@ -497,9 +499,7 @@ import { Tooltip } from 'bootstrap';
     }
 
     function shouldIgnoreReviewNavigationShortcut(event) {
-        if (selectedMarkerEditor === 'TextMarker') {
-            return true;
-        }
+        if (currentTool === 'text') return true;
 
         const target = event.target;
         if (!(target instanceof Element)) return false;
@@ -611,22 +611,30 @@ import { Tooltip } from 'bootstrap';
     /**
      * Update toolbar active button and bottom bar visibility based on selected editor.
      */
-    function updateMarkerToolbarSelection() {
-        const buttons = markerToolbarCenter.querySelectorAll('.btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
-
-        switch (selectedMarkerEditor) {
-            case 'TextMarker':
+    function updateMarkerToolbarSelection(currentTool) {
+        const buttons = markerToolbar.querySelectorAll('.btn');
+        buttons.forEach(btn => btn.classList.remove('active'));        
+        
+        switch (currentTool) {
+            case 'text':
                 textMarkerButton.classList.add('active');
                 showBottomBar(true);
                 break;
-            case 'FrameMarker':
+            case 'rectangle':
                 frameMarkerButton.classList.add('active');
                 showBottomBar(true);
                 break;
-            case 'FreehandMarker':
+            case 'freehand':
                 freehandMarkerButton.classList.add('active');
                 showBottomBar(true);
+                break;
+            case "pan":
+                panButton.classList.add('active');
+                setPanMode(true);
+                break;
+            case "select":
+                pointerButton.classList.add('active');
+                showBottomBar(false);
                 break;
             default:
                 pointerButton.classList.add('active');
@@ -676,19 +684,23 @@ import { Tooltip } from 'bootstrap';
         markerToolbarDomBound = true;
 
         textMarkerButton.addEventListener('click', function () {
-            activateMarkerTool('text');
+            activateTool('text');
         });
 
         frameMarkerButton.addEventListener('click', function () {
-            activateMarkerTool('rectangle');
+            activateTool('rectangle');
         });
 
         freehandMarkerButton.addEventListener('click', function () {
-            activateMarkerTool('freehand');
+            activateTool('freehand');
         });
 
         pointerButton.addEventListener('click', function () {
-            activateMarkerTool('select');
+            activateTool("select");
+        });
+
+        panButton.addEventListener('click', function () {
+            activateTool("pan")
         });
 
         clearMarkersButton.addEventListener('click', function () {
@@ -712,10 +724,14 @@ import { Tooltip } from 'bootstrap';
             colorInput.click();
         });
 
+
         if (!deleteKeyHandlerBound) {
             deleteKeyHandlerBound = true;
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Delete' || e.key === 'Backspace') {
+                // only manage delete and backspace if the current marker is NOT the text marker editor
+                const usingTextEditor = currentMarker && currentMarker.is(TextMarkerEditor)
+                
+                if (e.key === 'Delete' || e.key === 'Backspace' && !usingTextEditor ) {
                     const activeElement = document.activeElement;
                     const tag = activeElement && activeElement.tagName;
                     if (tag === 'INPUT' || tag === 'TEXTAREA' || activeElement?.isContentEditable) {
@@ -731,62 +747,36 @@ import { Tooltip } from 'bootstrap';
     /**
      * Activate a marker tool exactly like toolbar button clicks.
      *
-     * @param {'select'|'text'|'rectangle'|'freehand'} tool
+     * @param {'select'|'pan'|'select'|'text'|'rectangle'|'freehand'} tool
      */
-    function activateMarkerTool(tool) {
+    function activateTool(tool) {
+        if (tool === "text") {
+            deleteKeyHandlerBound = true;
+        } else {
+            deleteKeyHandlerBound = false;
+        }
+        
         switch (tool) {
+            case 'select':
+                currentMarker = undefined;
+                markerArea.switchToSelectMode();
+                break;
+            case 'pan':
+                currentMarker = undefined;
+                setPanMode(true);
+                break;
             case 'text':
-                markerArea.createMarker("TextMarker");
-                selectedMarkerEditor = "TextMarker";
+                currentMarker = markerArea.createMarker("TextMarker");
                 break;
             case 'rectangle':
-                markerArea.createMarker("FrameMarker");
-                selectedMarkerEditor = "FrameMarker";
+                currentMarker = markerArea.createMarker("FrameMarker");
                 break;
             case 'freehand':
-                markerArea.createMarker("FreehandMarker");
-                selectedMarkerEditor = "FreehandMarker";
-                break;
-            case 'select':
-            default:
-                markerArea.switchToSelectMode();
-                selectedMarkerEditor = null;
+                currentMarker = markerArea.createMarker("FreehandMarker");
                 break;
         }
 
-        updateMarkerToolbarSelection();
-    }
-
-    /**
-     * Attach per-MarkerArea listeners. Called each time a new MarkerArea instance is created.
-     */
-    function bindMarkerAreaInstanceEvents() {
-        markerArea.addEventListener('markerdeselect', (ev) => {
-            if (selectedMarkerEditor === ev.detail.markerEditor.marker.typeName) {
-                selectedMarkerEditor = null;
-                showBottomBar(false);
-            }
-            onMarkerChange();
-        });
-
-        markerArea.addEventListener("markerdelete", () => {
-            onMarkerChange({allowHighlightOnly: true, allowEmpty: true});
-            showBottomBar(false);
-        });
-
-        markerArea.addEventListener('markerselect', (e) => {
-            syncColorUIFromEditor(e.detail.markerEditor);
-            selectedMarkerEditor = e.detail.markerEditor.marker.typeName;
-            showBottomBar(true);
-        });
-
-        markerArea.addEventListener('markercreate', (e) => {
-            syncColorUIFromEditor(e.detail.markerEditor);
-        });
-
-        markerArea.addEventListener('markerchange', (e) => {
-            syncColorUIFromEditor(e.detail.markerEditor);
-        });
+        updateMarkerToolbarSelection(tool);
     }
 
     function restoreMarkerAreaState(state) {
@@ -837,7 +827,6 @@ import { Tooltip } from 'bootstrap';
         markerArea = new MarkerArea();
         markerWrapper.appendChild(markerArea);
         bindMarkerToolbarDomEvents();
-        bindMarkerAreaInstanceEvents();
         updateMarkerToolbarSelection();
 
         const ok = fetchMarkersAndComments(examId, copyNo, pageNo, fromCopy);
@@ -861,14 +850,17 @@ import { Tooltip } from 'bootstrap';
      * Called whenever markers change: saves current marker state to backend.
      */
     async function onMarkerChange(options = {}) {
-        if (suppressMarkerPersistence > 0) {
+        const forceSave = options.forceSave === true;
+
+        if (suppressMarkerPersistence > 0 && !forceSave) {
             return;
         }
+
         const stateSnapshot = markerArea.getState();
+
         const allowHighlightOnly = options.allowHighlightOnly === true;
         const allowEmpty = options.allowEmpty === true;
-        // Grading/corr-box restore can transiently produce a highlight-only state.
-        // Do not let that overwrite a page that already has real annotations.
+
         if (
             hasOnlyHighlightMarkers(stateSnapshot) &&
             hasNonHighlightMarkers(lastPersistedMarkerState) &&
@@ -877,10 +869,19 @@ import { Tooltip } from 'bootstrap';
         ) {
             return;
         }
+
         allowHighlightOnlySaveOnce = false;
         markerState = stateSnapshot;
-        persistMarkers(stateSnapshot, examId, pagesGroupId, allowHighlightOnly, allowEmpty);
+
+        await persistMarkers(
+            stateSnapshot,
+            examId,
+            pagesGroupId,
+            allowHighlightOnly,
+            allowEmpty
+        );
     }
+
 
     // ---------------------------------------------------------------------------
     // Copy/page dropdown
@@ -939,7 +940,7 @@ import { Tooltip } from 'bootstrap';
             item.addEventListener('click', () => {
                 setActive(index);              // mark selected
                 button.textContent = `page ${item.dataset.pageNo}`;
-                changeCopyPage(examId, item.dataset.copyNo, item.dataset.pageNo);
+                changeCopyPage(item.dataset.copyNo, item.dataset.pageNo);
                 hideCarousel();
             });
 
@@ -1002,6 +1003,7 @@ import { Tooltip } from 'bootstrap';
 
     function setGradingSchemeBlockActive(isActive) {
       const overlay = document.getElementById('grading-scheme-block-overlay');
+      if (!overlay) return;
 
       if (isActive) {
         overlay.style.display = 'none';   // show overlay, block interaction
@@ -1014,7 +1016,7 @@ import { Tooltip } from 'bootstrap';
     /**
      * Request a new copy/page from backend and update MarkerArea accordingly.
      */
-    function changeCopyPage(examIdParam, copyNo, pageNo) {
+    function changeCopyPage(copyNo, pageNo) {
         $.ajax({
             url: urls.getCopyPage,
             type: "POST",
@@ -1124,6 +1126,7 @@ import { Tooltip } from 'bootstrap';
 
         const boxesSvg = document.createElementNS(svgns, 'svg');
         boxesSvg.id = 'corrector_boxes_svg';
+        
         boxesSvg.setAttribute('width', `${markerArea.targetWidth}`);
         boxesSvg.setAttribute('height', `${markerArea.targetHeight}`);
         boxesSvg.setAttribute('viewBox', `0 0 ${markerArea.targetWidth} ${markerArea.targetHeight}`);
@@ -1172,11 +1175,19 @@ import { Tooltip } from 'bootstrap';
                 polygon.setAttribute('opacity', '0.7');
                 polygon.setAttribute('data-bounds', `${clickLeft},${clickTop},${clickWidth},${clickHeight}`);
                 polygon.style.pointerEvents = 'none';
+                
+                polygon.style.pointerEvents = 'all';
 
                 if (!useGradingScheme) {
-                    polygon.style.pointerEvents = 'auto';
-                    polygon.addEventListener('click', () => {
-                        createMarker4CorrBox(clickLeft, clickTop, clickWidth, clickHeight);
+                    polygon.addEventListener('click', (event) => {
+                        event.stopPropagation();
+
+                        createMarker4CorrBox(
+                            clickLeft,
+                            clickTop,
+                            clickWidth,
+                            clickHeight
+                        );
                     });
                 }
 
@@ -1290,7 +1301,7 @@ import { Tooltip } from 'bootstrap';
         // Remove existing HighlightMarker and decide if we add a new one
         for (let i = markers.length - 1; i >= 0; i--) {
             const m = markers[i];
-
+            
             if (m.typeName === 'HighlightMarker') {
                 shouldAddMarker = useGradingScheme || (left !== -1 &&
                         (m.left !== left ||
@@ -1318,8 +1329,12 @@ import { Tooltip } from 'bootstrap';
         const newState = {...state, markers};
         markerState = newState;
         restoreMarkerAreaState(newState);
+
         if (persist) {
-            onMarkerChange();
+            onMarkerChange({
+                forceSave: true,
+                allowHighlightOnly: true
+            });
         }
     }
 
@@ -1589,22 +1604,22 @@ import { Tooltip } from 'bootstrap';
 
             switch (key.toLowerCase()) {
                 case "v": {
-                    activateMarkerTool('select');
+                    activateTool('select');
                     event.preventDefault();
                     break;
                 }
                 case "t": {
-                    activateMarkerTool('text');
+                    activateTool('text');
                     event.preventDefault();
                     break;
                 }
                 case "r": {
-                    activateMarkerTool('rectangle');
+                    activateTool('rectangle');
                     event.preventDefault();
                     break;
                 }
                 case "f": {
-                    activateMarkerTool('freehand');
+                    activateTool('freehand');
                     event.preventDefault();
                     break;
                 }
@@ -1652,14 +1667,13 @@ import { Tooltip } from 'bootstrap';
 
     function setPanMode(on) {
         panMode = on;
-        panButton.classList.toggle('active', on);
         markerWrapper.style.cursor = on ? 'grab' : '';
         if (on) {
             markerArea.switchToSelectMode?.();
         }
     }
 
-    panButton.addEventListener('click', () => setPanMode(!panMode));
+    
     // Picking any marker tool leaves the pan mode
     for (const btn of [pointerButton, textMarkerButton, frameMarkerButton, freehandMarkerButton]) {
         btn?.addEventListener('click', () => setPanMode(false));

@@ -1,5 +1,5 @@
 import json
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 from django.contrib import messages
 from django.views.generic import DetailView
@@ -106,18 +106,22 @@ class ReviewGroupView(ExamPermissionAndRedirectMixin, ReviewUnrecognizedScansBlo
         )
 
         # grading scheme
-        grading_schemes = None
+        use_grading_scheme: Literal["true", "false"] = "false"
         if pages_group.use_grading_scheme:
             grading_schemes = pages_group.gradingSchemes.all()
+            
+            if len(grading_schemes) > 0:
+                grading_scheme = grading_schemes.first()
 
-        # TODO make it do something
-        grading_scheme = query_string.get("grading_scheme", None)
-        if grading_schemes and not grading_scheme:
-            grading_scheme = grading_schemes.first()
+                use_grading_scheme = "true"
+
+                view_context.update(
+                    grading_schemes=grading_schemes,
+                    current_grading_scheme=grading_scheme,
+                )
 
         view_context.update(
-            grading_schemes=grading_schemes,
-            current_grading_scheme=grading_scheme,
+            use_grading_scheme=use_grading_scheme,
             next_pages_group=get_adjacent_pages_group(pages_group, 1, self.request.user),
             previous_pages_group=get_adjacent_pages_group(pages_group, -1, self.request.user),
             question_pages_groups=get_accessible_pages_groups(pages_group.exam, self.request.user),

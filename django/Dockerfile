@@ -101,6 +101,8 @@ RUN set -eux; \
         ghostscript \
         poppler-utils \
         pandoc; \
+    update-mime-database /usr/share/mime; \
+      test -s /usr/share/mime/globs2; \
     test -x /usr/bin/auto-multiple-choice; \
     test -x /usr/bin/pandoc; \
     if dpkg-query -W -f='${Package} ${Status}\n' 'texlive-*' 2>/dev/null \

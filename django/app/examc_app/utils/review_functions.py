@@ -600,7 +600,13 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
                 copy_no_z4 = str(copy_no).zfill(4)
                 page_no_norm = str(page_no_real).zfill(2).replace(".", "x")
                 if pages_group.use_grading_scheme:
-                    marked = copy_no_z4 in grading_scheme_marked_copies and page_no_int == from_p
+                    # Support both of the ways of defining a question as marked :
+                    # For questions using grading scheme, we need to check if the copy is marked in the grading scheme
+                    # For question without grading scheme, we need to check if the copy is marked in the markers_idx
+                    marked: bool = (
+                        (copy_no_z4 in grading_scheme_marked_copies and page_no_int == from_p)
+                        or markers_idx.get((copy_no_z4, page_no_norm), False)
+                    )
                 else:
                     marked = markers_idx.get((copy_no_z4, page_no_norm), False)
                 copies_pages_list.append({
