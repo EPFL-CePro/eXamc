@@ -5,6 +5,11 @@
 
 {% block extra_head %}
     {% vite_asset 'src/views/home/index.ts' %}
+
+    {# Black Friday gag: home page, admins and non-admin CePro team member only #}
+    {% if user.is_superuser or user.pk == 48 or user.pk == 31 %}
+        {% vite_asset 'src/views/black-friday/index.ts' %}
+    {% endif %}
 {% endblock %}
 
 {% block content %}
