@@ -93,6 +93,7 @@ import { Tooltip } from 'bootstrap';
 
     /** @type {MarkerArea} */
     let markerArea = new MarkerArea();
+    bindMarkerAreaEvents(markerArea);
     markerWrapper.appendChild(markerArea);
 
     /** @type {HTMLImageElement} */
@@ -731,7 +732,7 @@ import { Tooltip } from 'bootstrap';
                 // only manage delete and backspace if the current marker is NOT the text marker editor
                 const usingTextEditor = currentMarker && currentMarker.is(TextMarkerEditor)
                 
-                if (e.key === 'Delete' || e.key === 'Backspace' && !usingTextEditor ) {
+                if ((e.key === 'Delete' || e.key === 'Backspace') && !usingTextEditor ) {
                     const activeElement = document.activeElement;
                     const tag = activeElement && activeElement.tagName;
                     if (tag === 'INPUT' || tag === 'TEXTAREA' || activeElement?.isContentEditable) {
@@ -792,6 +793,20 @@ import { Tooltip } from 'bootstrap';
         }
     }
 
+    /**
+     * Saves the markers whenever the user creates, changes or deletes one.
+     * Attached to each new MarkerArea (setMarkerArea creates one per page).
+     */
+    function bindMarkerAreaEvents(area) {
+        const save = () => onMarkerChange();
+        area.addEventListener('markercreate', save);
+        area.addEventListener('markerchange', save);
+        area.addEventListener('markerdelete', save);
+
+        // Keeps the colour picker in step with the selected marker
+        area.addEventListener('markerselect', (event) => syncColorUIFromEditor(event.detail.markerEditor));
+    }
+
     function hasNonHighlightMarkers(state) {
         return Boolean(state?.markers?.some(marker => marker.typeName !== 'HighlightMarker'));
     }
@@ -825,6 +840,7 @@ import { Tooltip } from 'bootstrap';
             markerWrapper.removeChild(markerArea);
         }
         markerArea = new MarkerArea();
+        bindMarkerAreaEvents(markerArea);
         markerWrapper.appendChild(markerArea);
         bindMarkerToolbarDomEvents();
         updateMarkerToolbarSelection();
