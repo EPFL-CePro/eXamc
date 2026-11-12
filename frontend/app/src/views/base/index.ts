@@ -4,6 +4,7 @@ import { Tooltip } from "bootstrap";
 import { initTooltips } from "./tooltips";
 import { byId } from "@examc/helpers/dom";
 import { setSidebarToggleOpen } from "./sidebar";
+import { initBlackFridayPopup } from "./black-friday";
 
 
 // The page on load (without htmx, or before htmx processes it), then each piece of content htmx inserts.
@@ -17,6 +18,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // tooltips init
     initTooltips(document.body);
+
+    // black friday gag
+    if (new Date() < new Date('2026-12-01')) initBlackFridayPopup();
 });
 
 document.addEventListener("htmx:load", (event: Event) => {
