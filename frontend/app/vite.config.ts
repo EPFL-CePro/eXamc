@@ -23,6 +23,9 @@ export default defineConfig({
         // Entries shared by multiple views
         "base": resolve(import.meta.dirname, 'src/views/base/index.ts'),
 
+        // joke entry
+        "black-friday": resolve(import.meta.dirname, 'src/views/black-friday/index.ts'),
+
         // Entries used by single views
         "amc/amc": resolve(import.meta.dirname, 'src/views/amc/amc/index.ts'),
         "amc/_reports": resolve(import.meta.dirname, 'src/views/amc/_reports/index.ts'),
