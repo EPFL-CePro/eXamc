@@ -1,73 +1,90 @@
-<style>
-    .table-no-right-pad :is(th, td) {
-        padding-inline-end: 0; /* = padding-right in LTR, padding-left in RTL */
-    }
-    /* remove top border for the first body row */
-    .table-no-right-pad tbody tr:first-child > th,
-    .table-no-right-pad tbody tr:first-child > td {
-        border-top: 0 !important;
-    }
+<div class="d-flex flex-column h-100">
 
-    .review-checkbox-row {
-        cursor: pointer;
-    }
-</style>
-<table class="table table-md table-fixed-cols table-no-right-pad" id="review-grading-scheme-checkboxes-dt">
-    <colgroup>
-        <col style="width:50px;">
-        <col style="width:50px;">
-        <col>
-    </colgroup>
-    <tbody>
-    {% for gsc in grading_scheme_checkboxes %}
-        <tr class="review-checkbox-row"
-            onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
-            <td style="padding-bottom: 0;">
-                <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" role="switch"
-                           id="check-{{ gsc.ref }}-{{ gsc.item_id }}"
-                           name="check-{{ gsc.ref }}-{{ gsc.item_id }}"
-                           {% if gsc.checked %}checked{% endif %}
-                           onchange="updatePagesGroupCheckBox(this.id, this.checked, null,{% if gsc.name == 'ZERO' %} true {% else %} false {% endif %},{% if gsc.name == 'FULL' %} true {% else %} false {% endif %})"/>
-                    <label class="form-check-label visually-hidden" for="check-{{ gsc.ref }}-{{ gsc.item_id }}">{{ gsc.name }}</label>
-                </div>
-            </td>
-            {% if gsc.name == 'ADJ' %}
-                <td colspan="2" style="padding-bottom: 0;">
-                    <input class="form-control form-control-sm d-inline-block w-auto me-2" type="number"
-                           id="adj-{{ gsc.ref }}-{{ gsc.item_id }}"
-                           name="adj-{{ gsc.ref }}-{{ gsc.item_id }}"
-                           step="0.01"
-                           style="width:100px;"
-                           onchange="updatePagesGroupCheckBox(this.id, null, this.value,false,false)"
-                           value="{{ gsc.adjustment }}"/> {{ gsc.description }}
-                </td>
-                </tr>
-            {% elif gsc.name == "ZERO" or gsc.name == "FULL" %}
-                <td colspan="3" style="padding-bottom: 0;">
-                {{ gsc.description }}
-                </td>
-                </tr>
-            {% else %}
-                <td style="padding-bottom: 0;">
-                    {{ gsc.points }}
-                </td>
-                <td style="padding-right:20px;">
-                    {{ gsc.name }}
-                </td>
-            </tr>
-            <tr>
-                <td colspan="3"
-                    style="border-top:None;padding-top:0;padding-left:70px;padding-right:20px;"
-                    class="review-checkbox-row"
-                    onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">{{ gsc.description|safe }}</td>
-            </tr>
-            {% endif %}
+    {# Table area: fills the remaining height of the pane and scrolls on its own #}
+    <div class="flex-grow-1 overflow-y-auto" style="min-height: 0;">
+        <table class="table table-md table-fixed-cols mb-0" id="review-grading-scheme-checkboxes-dt">
+            <colgroup>
+                <col style="width:50px;">
+                <col style="width:50px;">
+                <col>
+            </colgroup>
+            <tbody>
 
-    {% endfor %}
+            {% for gsc in grading_scheme_checkboxes %}
+                {% with ref=gsc.ref|stringformat:"s" item_id=gsc.item_id|stringformat:"s" %}
+                {% with check_box_id="adj-"|add:ref|add:"-"|add:item_id first_row=forloop.first %}
+                    <tr style="cursor: pointer;"
+                        onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
+                        <td class="pe-0 pb-0{% if first_row %} border-top-0{% endif %}{% if gsc.name != 'ADJ' and gsc.name != 'ZERO' and gsc.name != 'FULL' %} border-bottom-0{% endif %}">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       id="check-{{ gsc.ref }}-{{ gsc.item_id }}"
+                                       name="check-{{ gsc.ref }}-{{ gsc.item_id }}"
+                                       {% if gsc.checked %}checked{% endif %}
+                                       onchange="updatePagesGroupCheckBox(this.id, this.checked, null,{% if gsc.name == 'ZERO' %} true {% else %} false {% endif %},{% if gsc.name == 'FULL' %} true {% else %} false {% endif %})"/>
+                                <label class="form-check-label visually-hidden"
+                                       for="check-{{ gsc.ref }}-{{ gsc.item_id }}">{{ gsc.name }}</label>
+                            </div>
+                        </td>
 
-    </tbody>
-</table>
+                        {% if gsc.name == 'ADJ' %}
+                            <td colspan="2" class="pe-0 pb-0{% if first_row %} border-top-0{% endif %}">
+                                <input class="form-control form-control-sm d-inline-block me-2" type="number"
+                                       id="{{ check_box_id }}"
+                                       name="{{ check_box_id }}"
+                                       step="0.01"
+                                       style="width:100px;"
+                                       onchange="updatePagesGroupCheckBox(this.id, null, this.value,false,false)"
+                                       value="{{ gsc.adjustment }}"/> {{ gsc.description }}
+                            </td>
+
+                        {% elif gsc.name == "ZERO" or gsc.name == "FULL" %}
+                            <td colspan="2" class="pe-0 pb-0{% if first_row %} border-top-0{% endif %}">
+                                <label for="{{ check_box_id }}">{{ gsc.description }}</label>
+                            </td>
+
+                        {% else %}
+                            <td class="pe-0 pb-0 border-bottom-0{% if first_row %} border-top-0{% endif %}">
+                                {{ gsc.points }}
+                            </td>
+                            <td class="pe-4 border-bottom-0{% if first_row %} border-top-0{% endif %}">
+                                <label for="{{ check_box_id }}">{{ gsc.name }}</label>
+                            </td>
+                        </tr>
+                        {# Description gets its own full-width row so it never overflows sideways #}
+                        <tr style="cursor: pointer;"
+                            onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
+                            <td colspan="3" class="border-top-0 pt-0 pe-4" style="padding-left:70px;">
+                                {{ gsc.description|safe }}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endwith %}
+                {% endwith %}
+            {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+
+    {# Note: always visible at the bottom, never shrinks #}
+    <div class="flex-shrink-0 pt-2">
+        <hr class="mt-0"/>
+        <div class="mb-1">
+            <label for="student-report-note-{{ grading_scheme.pages_group.id }}" class="form-label mb-1">
+                Note for student
+            </label>
+            <textarea
+                    id="student-report-note-{{ grading_scheme.pages_group.id }}"
+                    class="form-control form-control-sm js-student-report-note"
+                    data-pages-group-id="{{ grading_scheme.pages_group.id }}"
+                    rows="4"
+                    placeholder="Visible in AMC annotated PDF when enabling 'Add grading scheme report with annotations'."
+                    {% if not student_report_note_enabled %}disabled{% endif %}>{{ student_report_note }}</textarea>
+        </div>
+    </div>
+
+</div>
 
 <script>
     window.toggleReviewCheckboxFromRow = window.toggleReviewCheckboxFromRow || function (event, checkboxId) {
@@ -85,17 +102,3 @@
         checkbox.dispatchEvent(new Event('change', {bubbles: true}));
     };
 </script>
-
-<hr/>
-<div class="mb-1">
-    <label for="student-report-note-{{ grading_scheme.pages_group.id }}" class="form-label mb-1">
-        Note for student
-    </label>
-    <textarea
-            id="student-report-note-{{ grading_scheme.pages_group.id }}"
-            class="form-control form-control-sm js-student-report-note"
-            data-pages-group-id="{{ grading_scheme.pages_group.id }}"
-            rows="4"
-            placeholder="Visible in AMC annotated PDF when enabling 'Add grading scheme report with annotations'."
-            {% if not student_report_note_enabled %}disabled{% endif %}>{{ student_report_note }}</textarea>
-</div>
