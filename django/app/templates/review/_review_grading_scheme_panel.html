@@ -1,42 +1,37 @@
-{% load django_vite %}
+{# One grading scheme, loaded by htmx into #review-scheme-panel of the "Grading schemes" card. #}
+{# Points and description on top (description scrolls past 7rem), then the checkboxes filling the rest (lazy). #}
 
-{% block extra_head %}
-    {% vite_asset 'src/views/review/_review_grading_scheme_panel/index.ts' %}
-{% endblock %}
+<div class="d-flex flex-column h-100 gap-0" id="scheme-wrapper-{{ grading_scheme.id }}">
 
-<div class="review-grading-scheme-split-vert" id="scheme-wrapper-{{ grading_scheme.id }}">
-    <div class="pane">
-        <div class="card" style="min-height: 100%;">
-            <div class="card-body">
-                <h6 id="gsc-points-{{ grading_scheme.id }}">{{ points }} / {{ grading_scheme.max_points }}</h6>
-                <p class="mb-0">{{ grading_scheme.description }}</p>
-            </div>
-        </div>
+    {# Top: points and graded status #}
+    <div class="flex-shrink-0 d-flex justify-content-between align-items-center gap-3">
+        <span class="fw-semibold">Points:</span>
+        <span class="d-flex align-items-center gap-1">
+            <span class="badge rounded-pill {% if graded %}text-bg-success{% else %}text-bg-secondary{% endif %}"
+                  id="gsc-status-{{ grading_scheme.id }}">
+                {% if graded %}Graded{% else %}Ungraded{% endif %}
+            </span>
+            <span id="gsc-points-{{ grading_scheme.id }}">{{ points }} / {{ grading_scheme.max_points }}</span>
+        </span>
     </div>
 
-    <!-- Draggable divider -->
-    <div class="divider d-flex align-items-center justify-content-center text-body-secondary"
-         id="scheme-divider"
-         role="separator"
-         aria-orientation="horizontal"
-         aria-label="Resize panels"
-         title="Drag to resize">
-        <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i>
-    </div>
-
-    <!-- Checkboxes (lazy) -->
-    <div class="pane">
-        <div class="card h-100">
-            <div class="card-header fw-semibold">Points</div>
-            <div class="card-body overflow-hidden"
-                 id="chk-panel-{{ grading_scheme.id }}"
-                 style="min-height: 0;"
-                 hx-get="{% url 'review_grading_scheme_checkboxes' exam_selected.id grading_scheme.id copy_nr %}"
-                 hx-trigger="load once"
-                 hx-target="this"
-                 hx-swap="innerHTML">
-                <div class="text-muted">Loading…</div>
-            </div>
+    {# Description: only when it has real text, as tall as its content up to 7rem #}
+    {% if grading_scheme.description.strip %}
+        <div class="flex-shrink-0 overflow-y-auto small text-body-secondary" style="max-height: 7rem;">
+            {{ grading_scheme.description|linebreaksbr }}
         </div>
+    {% endif %}
+
+    <hr class="flex-shrink-0">
+
+    {# Bottom: checkboxes and student note (lazy), filling the remaining height #}
+    <div class="flex-grow-1"
+         id="chk-panel-{{ grading_scheme.id }}"
+         style="min-height: 0;"
+         hx-get="{% url 'review_grading_scheme_checkboxes' exam_selected.id grading_scheme.id copy_nr %}"
+         hx-trigger="load once"
+         hx-target="this"
+         hx-swap="innerHTML">
+        <div class="text-muted">Loading…</div>
     </div>
 </div>

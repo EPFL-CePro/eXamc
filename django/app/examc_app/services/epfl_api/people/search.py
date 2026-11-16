@@ -3,7 +3,7 @@ from urllib.parse import quote
 from examc_app.services.epfl_api.people.models import EpflApiPerson
 from examc_app.services.epfl_api.utils import epfl_api_get
 
-PERSONS_API_BASE_URL = "/persons"
+PERSONS_API_BASE_URL = "/v1/persons"
 
 
 def get_multiple_person_by_scipers(sciper_list: list[str]) -> list[EpflApiPerson]:

@@ -1,5 +1,30 @@
 <div class="d-flex flex-column h-100">
 
+    {# Whole-copy shortcuts; each sends the same request as the checkbox it replaces #}
+    <div class="flex-shrink-0 d-flex flex-wrap gap-2 mb-3">
+        {% if zero_checkbox %}
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                    id="check-{{ zero_checkbox.ref }}-{{ zero_checkbox.item_id }}"
+                    onclick="updatePagesGroupCheckBox(this.id, true, null, true, false)"
+                    {% if zero_checkbox.checked %}disabled{% endif %}
+                    data-bs-toggle="tooltip"
+                    data-bs-title="Unticks every mark and sets this copy's score to 0">
+                <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                {% if zero_checkbox.checked %}Zero points given{% else %}Give zero points{% endif %}
+            </button>
+        {% endif %}
+
+        <button type="button" class="btn btn-outline-success btn-sm"
+                id="check-full-0"
+                onclick="updatePagesGroupCheckBox(this.id, true, null, false, true)"
+                {% if full_points_given %}disabled{% endif %}
+                data-bs-toggle="tooltip"
+                data-bs-title="Ticks every positive mark and sets this copy's score to the maximum">
+            <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+            {% if full_points_given %}Full points given{% else %}Give full points{% endif %}
+        </button>
+    </div>
+
     {# Table area: fills the remaining height of the pane and scrolls on its own #}
     <div class="flex-grow-1 overflow-y-auto" style="min-height: 0;">
         <table class="table table-md table-fixed-cols mb-0" id="review-grading-scheme-checkboxes-dt">
@@ -12,54 +37,50 @@
 
             {% for gsc in grading_scheme_checkboxes %}
                 {% with ref=gsc.ref|stringformat:"s" item_id=gsc.item_id|stringformat:"s" %}
-                {% with check_box_id="adj-"|add:ref|add:"-"|add:item_id first_row=forloop.first %}
-                    <tr style="cursor: pointer;"
-                        onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
-                        <td class="pe-0 pb-0{% if first_row %} border-top-0{% endif %}{% if gsc.name != 'ADJ' and gsc.name != 'ZERO' and gsc.name != 'FULL' %} border-bottom-0{% endif %}">
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" role="switch"
-                                       id="check-{{ gsc.ref }}-{{ gsc.item_id }}"
-                                       name="check-{{ gsc.ref }}-{{ gsc.item_id }}"
-                                       {% if gsc.checked %}checked{% endif %}
-                                       onchange="updatePagesGroupCheckBox(this.id, this.checked, null,{% if gsc.name == 'ZERO' %} true {% else %} false {% endif %},{% if gsc.name == 'FULL' %} true {% else %} false {% endif %})"/>
-                                <label class="form-check-label visually-hidden"
-                                       for="check-{{ gsc.ref }}-{{ gsc.item_id }}">{{ gsc.name }}</label>
-                            </div>
-                        </td>
-
-                        {% if gsc.name == 'ADJ' %}
-                            <td colspan="2" class="pe-0 pb-0{% if first_row %} border-top-0{% endif %}">
-                                <input class="form-control form-control-sm d-inline-block me-2" type="number"
-                                       id="{{ check_box_id }}"
-                                       name="{{ check_box_id }}"
-                                       step="0.01"
-                                       style="width:100px;"
-                                       onchange="updatePagesGroupCheckBox(this.id, null, this.value,false,false)"
-                                       value="{{ gsc.adjustment }}"/> {{ gsc.description }}
-                            </td>
-
-                        {% elif gsc.name == "ZERO" or gsc.name == "FULL" %}
-                            <td colspan="2" class="pe-0 pb-0{% if first_row %} border-top-0{% endif %}">
-                                <label for="{{ check_box_id }}">{{ gsc.description }}</label>
-                            </td>
-
-                        {% else %}
-                            <td class="pe-0 pb-0 border-bottom-0{% if first_row %} border-top-0{% endif %}">
-                                {{ gsc.points }}
-                            </td>
-                            <td class="pe-4 border-bottom-0{% if first_row %} border-top-0{% endif %}">
-                                <label for="{{ check_box_id }}">{{ gsc.name }}</label>
-                            </td>
-                        </tr>
-                        {# Description gets its own full-width row so it never overflows sideways #}
+                    {% with check_box_id="adj-"|add:ref|add:"-"|add:item_id first_row=forloop.first %}
                         <tr style="cursor: pointer;"
                             onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
-                            <td colspan="3" class="border-top-0 pt-0 pe-4" style="padding-left:70px;">
-                                {{ gsc.description|safe }}
+                            <td class="pe-0 pb-0{% if gsc.name != 'ADJ' %} border-bottom-0{% endif %}">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                           id="check-{{ gsc.ref }}-{{ gsc.item_id }}"
+                                           name="check-{{ gsc.ref }}-{{ gsc.item_id }}"
+                                           {% if gsc.checked %}checked{% endif %}
+                                           onchange="updatePagesGroupCheckBox(this.id, this.checked, null, false, false)"/>
+                                    <label class="form-check-label visually-hidden"
+                                           for="check-{{ gsc.ref }}-{{ gsc.item_id }}">{{ gsc.name }}</label>
+                                </div>
                             </td>
-                        {% endif %}
-                    </tr>
-                {% endwith %}
+
+                            {% if gsc.name == 'ADJ' %}
+                                <td colspan="2" class="pe-0 pb-0{% if first_row %} border-top-0{% endif %}">
+                                    <input class="form-control form-control-sm d-inline-block me-2" type="number"
+                                           id="{{ check_box_id }}"
+                                           name="{{ check_box_id }}"
+                                           step="0.01"
+                                           style="width:100px;"
+                                           aria-label="{{ gsc.description }}"
+                                           onchange="updatePagesGroupCheckBox(this.id, null, this.value, false, false)"
+                                           value="{{ gsc.adjustment }}"/> {{ gsc.description }}
+                                </td>
+
+                            {% else %}
+                                <td class="pe-0 pb-0 border-bottom-0{% if first_row %} border-top-0{% endif %}">
+                                    {{ gsc.points }}
+                                </td>
+                                <td class="pe-4 border-bottom-0{% if first_row %} border-top-0{% endif %}">
+                                    <span>{{ gsc.name }}</span>
+                                </td>
+                                </tr>
+                                {# Description gets its own full-width row so it never overflows sideways #}
+                                <tr style="cursor: pointer;"
+                                    onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
+                                <td colspan="3" class="pt-0 pe-4" style="padding-left:70px;">
+                                    {{ gsc.description|safe }}
+                                </td>
+                            {% endif %}
+                            </tr>
+                    {% endwith %}
                 {% endwith %}
             {% endfor %}
 
@@ -83,13 +104,12 @@
                     {% if not student_report_note_enabled %}disabled{% endif %}>{{ student_report_note }}</textarea>
         </div>
     </div>
-
 </div>
 
 <script>
     window.toggleReviewCheckboxFromRow = window.toggleReviewCheckboxFromRow || function (event, checkboxId) {
-        const target = event && event.target instanceof Element ? event.target : null;
-        if (target && target.closest('input, label, button, a, textarea, select')) {
+        const target = event && event.target instanceof HTMLElement ? event.target : null;
+        if (target && target.closest('input, button, a, textarea, select')) {
             return;
         }
 

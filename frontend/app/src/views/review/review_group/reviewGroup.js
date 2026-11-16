@@ -712,7 +712,7 @@ import { Tooltip } from 'bootstrap';
             requestAnimationFrame(() => {
                 onMarkerChange({allowHighlightOnly: true, allowEmpty: true});
                 if (useGradingScheme) {
-                    const active = document.querySelector('a[id^="review-scheme-link-"].active');
+                    const active = document.querySelector('[id^="review-scheme-link-"].active');
                     if (active) {
                         setTimeout(() => sendScheme(active), 0);
                     }
@@ -798,12 +798,20 @@ import { Tooltip } from 'bootstrap';
      * Attached to each new MarkerArea (setMarkerArea creates one per page).
      */
     function bindMarkerAreaEvents(area) {
-        const save = () => onMarkerChange();
+        // markerchange doesn't fire for markers restored from the server, so areastatechange
+        // catches their moves; the debounce merges the events of a single action into one save
+        let saveTimer = null;
+        const save = () => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => onMarkerChange(), 150);
+        };
+
         area.addEventListener('markercreate', save);
         area.addEventListener('markerchange', save);
         area.addEventListener('markerdelete', save);
+        area.addEventListener('areastatechange', save);
 
-        // Keeps the colour picker in step with the selected marker
+        // Keeps the color picker in step with the selected marker
         area.addEventListener('markerselect', (event) => syncColorUIFromEditor(event.detail.markerEditor));
     }
 
@@ -873,6 +881,11 @@ import { Tooltip } from 'bootstrap';
         }
 
         const stateSnapshot = markerArea.getState();
+
+        // Nothing changed since the last save (e.g. several events for one action)
+        if (!forceSave && JSON.stringify(stateSnapshot) === JSON.stringify(lastPersistedMarkerState)) {
+            return;
+        }
 
         const allowHighlightOnly = options.allowHighlightOnly === true;
         const allowEmpty = options.allowEmpty === true;
@@ -1098,9 +1111,10 @@ import { Tooltip } from 'bootstrap';
                                 initCopyPagesSelectpicker(pages, pageNo);
 
                                 // Refresh grading scheme panel
+                                const schemeTabs = document.getElementById('review-scheme-tabs');
                                 const active =
-                                    document.querySelector('a[id^="review-scheme-link-"].active') ||
-                                    document.querySelector('a[id^="review-scheme-link-"]');
+                                    schemeTabs?.querySelector('.js-scheme-link.active:not(:disabled)') ??
+                                    schemeTabs?.querySelector('.js-scheme-link:not(:disabled)');
                                 if (active) {
                                     setTimeout(() => sendScheme(active), 0);
                                 }
@@ -1646,11 +1660,27 @@ import { Tooltip } from 'bootstrap';
     });
 
     // Expand/collapse left group list panel
-    document.getElementById("expand-collapse-group-list-bt").addEventListener("click", (event) => {
+    document.getElementById("pages-group-list-header").addEventListener("click", (event) => {
         const collapsed = document.getElementById("pages-group-list-table-div").classList.toggle("d-none");
         event.currentTarget.setAttribute("aria-expanded", String(!collapsed));
         document.getElementById("expand-group-list-icon").classList.toggle("d-none", !collapsed);
         document.getElementById("collapse-group-list-icon").classList.toggle("d-none", collapsed);
+
+        // Collapsed: the header becomes a narrow vertical strip, expand button on top, title rotated
+        const header = document.getElementById("pages-group-list-header");
+        header.classList.toggle("flex-column-reverse", collapsed);   // button (last in the markup) on top
+        header.classList.toggle("justify-content-end", collapsed);
+        header.classList.toggle("justify-content-between", !collapsed);
+        header.classList.toggle("flex-grow-1", collapsed);           // the strip runs the full card height
+        header.classList.toggle("border-bottom-0", collapsed);
+        header.classList.toggle("px-1", collapsed);
+        header.classList.toggle("py-2", collapsed);
+        header.classList.toggle("py-1", !collapsed);
+
+        // Reads bottom to top, like a spine label
+        const title = document.getElementById("pages-group-list-title");
+        title.style.writingMode = collapsed ? "vertical-rl" : "";
+        title.style.transform = collapsed ? "rotate(180deg)" : "";
     });
 
     // ---------------------------------------------------------------------------
@@ -1750,49 +1780,57 @@ import { Tooltip } from 'bootstrap';
     // ---------------------------------------------------------------------------
     // Grading schemes (pills + checkboxes + HTMX panel)
     // ---------------------------------------------------------------------------
+    /**
+     * Locks or unlocks one grading scheme tab. A locked tab can't be clicked or focused,
+     * and its wrapper shows a tooltip explaining why.
+     */
+    function setSchemeTabLocked(link, locked, message = '') {
+        // Schemes the template disabled (marks can't reach the maximum) stay disabled, with their own tooltip
+        if (link.dataset.invalid === 'true') return;
+
+        link.disabled = locked;
+        link.setAttribute('aria-disabled', String(locked));
+        link.tabIndex = locked ? -1 : 0;
+
+        const wrapper = link.parentElement;
+        const tooltip = Tooltip.getInstance(wrapper);
+        if (locked) {
+            wrapper.tabIndex = 0;
+            if (tooltip) tooltip.setContent({'.tooltip-inner': message});
+            else new Tooltip(wrapper, {title: message, placement: 'bottom'});
+        } else {
+            tooltip?.dispose();
+            wrapper.removeAttribute('tabindex');
+        }
+    }
+
+    // Tabs disabled by the template are invalid schemes: remember it, and activate their tooltips
+    document.querySelectorAll('#review-scheme-tabs .js-scheme-link:disabled').forEach((link) => {
+        link.dataset.invalid = 'true';
+    });
+    document.querySelectorAll('#review-scheme-tabs [data-bs-toggle="tooltip"]').forEach((el) => {
+        Tooltip.getOrCreateInstance(el);
+    });
 
     /**
-     * Disable all grading schemes except the active one, with tooltip explanation.
+     * The copy has points in this scheme: every other scheme is locked.
      */
-    function disableOtherSchemesExcept(activeId) {
-        document.querySelectorAll('#review-scheme-pills .nav-link').forEach(a => {
-            const id = a.id.replace('review-scheme-link-', '');
-            if (id !== String(activeId)) {
-                a.classList.add('disabled');
-                a.setAttribute('aria-disabled', 'true');
-                a.setAttribute('tabindex', '-1');
+    function disableOtherSchemesExcept(gradingSchemeId) {
+        const usedLink = document.getElementById('review-scheme-link-' + gradingSchemeId);
+        const usedName = usedLink ? usedLink.textContent.trim() : 'another grading scheme';
+        const message = `This copy is already graded with "${usedName}". Remove its marks to switch grading scheme.`;
 
-                const usedLink = document.getElementById('review-scheme-link-' + activeId);
-                const usedName = usedLink ? usedLink.textContent.trim() : `#${activeId}`;
-                const msg = `This student is already graded with "${usedName}" for this question. Remove that grading to use this scheme.`;
-                const item = a.parentNode;
-
-                item.setAttribute('data-bs-toggle', 'tooltip');
-                item.setAttribute('data-bs-placement', 'bottom');
-                item.setAttribute('data-bs-title', msg);
-
-                // Replace any previous tooltip, so it shows the current message
-                Tooltip.getInstance(item)?.dispose();
-                new Tooltip(item);
-            }
+        document.querySelectorAll('#review-scheme-tabs .js-scheme-link').forEach((link) => {
+            setSchemeTabLocked(link, link !== usedLink, message);
         });
     }
 
-    /** Makes every grading scheme selectable */
+    /**
+     * The copy has no points: every scheme can be chosen.
+     */
     function enableAllSchemes() {
-        document.querySelectorAll('#review-scheme-pills .nav-link').forEach(link => {
-            link.classList.remove('disabled');
-            link.removeAttribute('aria-disabled');
-            link.removeAttribute('tabindex');
-
-            // The tooltip is on the <li> around the link: a disabled link gets no mouse events
-            const item = link.parentElement;
-            Tooltip.getInstance(item)?.dispose();
-            item.removeAttribute('data-bs-toggle');
-            item.removeAttribute('data-bs-title');
-            item.removeAttribute('title');
-            item.removeAttribute('data-bs-placement');
-            item.removeAttribute('data-placement');
+        document.querySelectorAll('#review-scheme-tabs .js-scheme-link').forEach((link) => {
+            setSchemeTabLocked(link, false);
         });
     }
 
@@ -1843,8 +1881,20 @@ import { Tooltip } from 'bootstrap';
     }
 
     /**
-     * Called when a grading scheme checkbox or its adjustment changes.
-     * Updates backend, points display, highlight, and corrector box highlight.
+     * Shows "Graded" or "Ungraded" next to a scheme's points.
+     */
+    function setGradedStatus(gradingSchemeId, graded) {
+        const statusEl = document.getElementById('gsc-status-' + gradingSchemeId);
+        if (!statusEl) return;
+
+        statusEl.textContent = graded ? 'Graded' : 'Ungraded';
+        statusEl.classList.toggle('text-bg-success', graded);
+        statusEl.classList.toggle('text-bg-secondary', !graded);
+    }
+
+    /**
+     * Called when a grading scheme checkbox or its adjustment changes, or a full/zero points button is clicked.
+     * Updates backend, points display, graded status, highlight, and corrector box highlight.
      *
      * NOTE: name kept so Django's inline `onchange="updatePagesGroupCheckBox(...)"` still works.
      */
@@ -1872,7 +1922,7 @@ import { Tooltip } from 'bootstrap';
                 'pages_group_id': pagesGroupId,
                 'grading_scheme_id': currentGradingSchemeId,
                 'zero': zero,
-                'full':full
+                'full': full
             },
             success: (response) => {
                 if (response === '') return;
@@ -1882,8 +1932,10 @@ import { Tooltip } from 'bootstrap';
                 const points = respData[1];
                 const maxPointsRaw = respData[2];
                 const marked = respData[3];
+
                 if (typeof marked !== 'undefined') {
                     setCurrentPageMarkedIcon(Boolean(marked));
+                    setGradedStatus(currentGradingSchemeId, Boolean(marked));
                 }
 
                 if (points !== '') {
@@ -1904,12 +1956,10 @@ import { Tooltip } from 'bootstrap';
                 if (corrBoxIndex === -1) {
                     createMarker4CorrBox(-1, -1, -1, -1);
                 } else {
-                    if (!applyCorrBoxHighlightToCurrentPage(corrBoxIndex)) {
-                        reloadGradingSchemeCheckboxPanel(currentGradingSchemeId);
-                        return;
-                    }
+                    applyCorrBoxHighlightToCurrentPage(corrBoxIndex);
                 }
 
+                // Also refreshes the full/zero points buttons' state
                 reloadGradingSchemeCheckboxPanel(currentGradingSchemeId);
             }
         });
@@ -1927,12 +1977,25 @@ import { Tooltip } from 'bootstrap';
 
     /** The afterSwap handler of the latest click; replaced (and removed) by the next click. */
     let pendingSchemeSwap = null;
+    /**
+     * Marks one grading scheme tab as selected and every other one as not.
+     */
+    function setActiveSchemeTab(gradingSchemeId) {
+        document.querySelectorAll('#review-scheme-tabs .js-scheme-link').forEach((link) => {
+            const isActive = link.id === 'review-scheme-link-' + gradingSchemeId;
+            link.classList.toggle('active', isActive);
+            link.setAttribute('aria-selected', String(isActive));
+        });
+    }
 
     function sendScheme(el, evt) {
         if (evt) {
             evt.preventDefault();
             evt.stopPropagation();
         }
+
+        // Locked: invalid scheme, or the copy is graded with another scheme
+        if (el.disabled) return false;
 
         const copyNo = currentSourceIdParts[1];
         if (copyNo == null) return false;
@@ -1942,8 +2005,8 @@ import { Tooltip } from 'bootstrap';
             .replace(/\/[^/?#]+(?=[?#]|$)/, '/' + encodeURIComponent(copyNo));
         el.setAttribute('hx-get', updatedUrl);
 
-        el.classList.add('active');
-        el.setAttribute('aria-selected', 'true');
+        // Select the clicked tab right away; the response may move the selection to the scheme actually used
+        setActiveSchemeTab(el.id.replace('review-scheme-link-', ''));
 
         if (pendingSchemeSwap) document.body.removeEventListener('htmx:afterSwap', pendingSchemeSwap);
 
@@ -1967,11 +2030,7 @@ import { Tooltip } from 'bootstrap';
             if (locked) disableOtherSchemesExcept(usedId);
             else enableAllSchemes();
 
-            document.querySelectorAll('#review-scheme-pills .nav-link').forEach(a => {
-                const isActive = a.id === 'review-scheme-link-' + activeId;
-                a.classList.toggle('active', isActive);
-                a.setAttribute('aria-selected', String(isActive));
-            });
+            setActiveSchemeTab(activeId);
 
             if (corrBoxIndex != null) applyCorrBoxHighlightToCurrentPage(corrBoxIndex);
         };
@@ -1983,83 +2042,14 @@ import { Tooltip } from 'bootstrap';
         return false;
     }
 
-    // ---------------------------------------------------------------------------
-    // Splitter for grading scheme panel (vertical)
-    // ---------------------------------------------------------------------------
-
-    (function () {
-        const MIN_TOP = 80;   // px
-        const MIN_BOT = 120;  // px
-
-        /**
-         * Initialize vertical splitters inside root (or document by default).
-         */
-        function initSplitters(root = document) {
-            const splits = root.querySelectorAll('.review-grading-scheme-split-vert');
-            splits.forEach(split => {
-                const handle = split.querySelector('.divider');
-                if (!handle) return;
-                if (handle.__splitBound) return;
-                handle.__splitBound = true;
-
-                let startY, startTop, maxTop;
-
-                const getY = (e) => ('touches' in e ? e.touches[0].clientY : e.clientY);
-                const px = (n) => `${n}px`;
-
-                function onDown(e) {
-                    const rect = split.getBoundingClientRect();
-                    startY = getY(e);
-
-                    const cs = getComputedStyle(split);
-                    const varTop = parseFloat(cs.getPropertyValue('--top')) || NaN;
-                    const row0 = parseFloat(cs.gridTemplateRows.split(' ')[0]);
-                    startTop = isNaN(varTop) ? row0 : varTop;
-
-                    maxTop = rect.height - MIN_BOT - handle.offsetHeight;
-
-                    document.body.classList.add('dragging');
-
-                    window.addEventListener('mousemove', onMove, {passive: false});
-                    window.addEventListener('touchmove', onMove, {passive: false});
-                    window.addEventListener('mouseup', onUp, {once: true});
-                    window.addEventListener('touchend', onUp, {once: true});
-
-                    e.preventDefault();
-                }
-
-                function onMove(e) {
-                    const dy = getY(e) - startY;
-                    let newTop = Math.min(Math.max(startTop + dy, MIN_TOP), maxTop);
-                    split.style.setProperty('--top', px(newTop));
-                    e.preventDefault();
-                }
-
-                function onUp() {
-                    document.body.classList.remove('dragging');
-                    window.removeEventListener('mousemove', onMove);
-                    window.removeEventListener('touchmove', onMove);
-                }
-
-                handle.addEventListener('mousedown', onDown);
-                handle.addEventListener('touchstart', onDown, {passive: false});
-            });
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => initSplitters());
-        } else {
-            initSplitters();
-        }
-
-        // Re-init splitters when grading scheme panel is swapped by HTMX
-        document.body.addEventListener('htmx:afterSwap', (evt) => {
-            if (evt.target && evt.target.id === 'review-scheme-panel') {
-                initSplitters(evt.target);
-                initStudentReportNoteFields(evt.target);
-            }
-        });
-    })();
+    // Tooltips inside htmx-loaded panels: activate them, and remove them before their content is replaced
+    document.body.addEventListener('htmx:beforeSwap', (evt) => {
+        evt.target.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => Tooltip.getInstance(el)?.dispose());
+    });
+    document.body.addEventListener('htmx:afterSwap', (evt) => {
+        evt.target.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => Tooltip.getOrCreateInstance(el));
+        initStudentReportNoteFields(evt.target);
+    });
 
     document.body.addEventListener('change', (event) => {
         const target = event.target;

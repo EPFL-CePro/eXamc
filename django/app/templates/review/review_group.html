@@ -75,61 +75,67 @@
     {% elif copies_pages_list %}
         <div class="d-flex gap-3" id="reviewGroup_div" style="height:92vh;" tabindex="0">
             {# Left: list of copies and pages #}
-            <div id="pages-group-list"
-                 class="d-flex flex-column bg-body-tertiary">
-                <button type="button" class="btn btn-icon btn-link text-secondary float-end m-1 p-0"
-                        id="expand-collapse-group-list-bt"
-                        aria-controls="pages-group-list-table-div" aria-expanded="true"
-                        aria-label="Show or hide the list of pages">
-                    <i class="fa-solid fa-table-list fa-lg d-none" id="expand-group-list-icon" aria-hidden="true"></i>
-                    <i class="fa-solid fa-angle-double-left me-3" id="collapse-group-list-icon" aria-hidden="true"></i>
-                </button>
+            <div id="pages-group-list" class="card h-100">
+                <div id="pages-group-list-header"
+                     class="card-header d-flex align-items-center justify-content-between gap-2 py-1"
+                     style="cursor: pointer">
+                    <h6 class="m-0" id="pages-group-list-title">Pages</h6>
+                    <button type="button" class="btn btn-icon btn-link text-secondary p-0"
+                            id="expand-collapse-group-list-bt"
+                            aria-controls="pages-group-list-table-div" aria-expanded="true"
+                            aria-label="Show or hide the list of pages">
+                        <i class="fa-solid fa-table-list fa-lg d-none" id="expand-group-list-icon"
+                           aria-hidden="true"></i>
+                        <i class="fa-solid fa-angle-double-left" id="collapse-group-list-icon" aria-hidden="true"></i>
+                    </button>
+                </div>
 
-                <div id="pages-group-list-table-div">
-                    <table class="table table-striped table-sm" id="table-copies-pages">
-                        <thead>
-                            <tr>
-                                <th scope="col">
-                                    <i class="fa-solid fa-lock fa-xs" aria-hidden="true"></i>
-                                    <span class="visually-hidden">Locked</span>
-                                </th>
-                                <th scope="col">ID</th>
-                                <th scope="col">Copy</th>
-                                <th scope="col">Page</th>
-                                <th scope="col">Graded</th>
-                                <th scope="col">
-                                    <i class="fa-solid fa-comments" aria-hidden="true"></i>
-                                    <span class="visually-hidden">Comments</span>
-                                </th>
-                            </tr>
+                <div id="pages-group-list-table-div" class="card-body p-0 flex-grow-1 overflow-auto"
+                     style="min-height: 0;">
+                    <table class="table table-striped table-sm mb-0" id="table-copies-pages">
+                        <thead class="sticky-top">
+                        <tr>
+                            <th scope="col">
+                                <i class="fa-solid fa-lock fa-xs" aria-hidden="true"></i>
+                                <span class="visually-hidden">Locked</span>
+                            </th>
+                            <th scope="col">ID</th>
+                            <th scope="col">Copy</th>
+                            <th scope="col">Page</th>
+                            <th scope="col">Graded</th>
+                            <th scope="col">
+                                <i class="fa-solid fa-comments" aria-hidden="true"></i>
+                                <span class="visually-hidden">Comments</span>
+                            </th>
+                        </tr>
                         </thead>
                         <tbody>
-                            {% for page in copies_pages_list %}
-                                <tr id="copy_{{ page.copy_no }}_{{ page.page_no }}">
-                                    <td>
-                                        {# Shown by the script when another user has the page open #}
-                                        <i class="fa-solid fa-lock fa-xs" id="copy_{{ page.copy_no }}_{{ page.page_no }}_id"
-                                           name="{{ forloop.counter }}" style="display:none; color:#df8134;"
-                                           aria-hidden="true"></i>
-                                    </td>
-                                    <td class="text-start">{{ forloop.counter }}</td>
-                                    <td class="text-start">{{ page.copy_no }}</td>
-                                    <td class="text-center">{{ page.page_no }}</td>
-                                    <td class="text-center" id="copy_{{ page.copy_no }}_{{ page.page_no }}_marked"
-                                        data-order="{% if page.marked %}1{% else %}0{% endif %}">
-                                        {% if page.marked %}
-                                            <i class="fa-solid fa-circle-check fa-lg" aria-hidden="true"></i>
-                                            <span class="visually-hidden">Graded</span>
-                                        {% endif %}
-                                    </td>
-                                    <td data-order="{% if page.comment %}1{% else %}0{% endif %}">
-                                        {% if page.comment %}
-                                            <i class="fa-solid fa-comments fa-lg" aria-hidden="true"></i>
-                                            <span class="visually-hidden">Has comments</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                        {% for page in copies_pages_list %}
+                            <tr id="copy_{{ page.copy_no }}_{{ page.page_no }}">
+                                <td>
+                                    {# Shown by the script when another user has the page open #}
+                                    <i class="fa-solid fa-lock fa-xs" id="copy_{{ page.copy_no }}_{{ page.page_no }}_id"
+                                       name="{{ forloop.counter }}" style="display:none; color:#df8134;"
+                                       aria-hidden="true"></i>
+                                </td>
+                                <td class="text-start">{{ forloop.counter }}</td>
+                                <td class="text-start">{{ page.copy_no }}</td>
+                                <td class="text-center">{{ page.page_no }}</td>
+                                <td class="text-center" id="copy_{{ page.copy_no }}_{{ page.page_no }}_marked"
+                                    data-order="{% if page.marked %}1{% else %}0{% endif %}">
+                                    {% if page.marked %}
+                                        <i class="fa-solid fa-circle-check fa-lg" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Graded</span>
+                                    {% endif %}
+                                </td>
+                                <td data-order="{% if page.comment %}1{% else %}0{% endif %}">
+                                    {% if page.comment %}
+                                        <i class="fa-solid fa-comments fa-lg" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Has comments</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -153,17 +159,20 @@
                                         data-step-url="{% if previous_pages_group %}{% url 'review_group' exam_selected.pk previous_pages_group.pk %}{% endif %}"
                                         title="{% if previous_pages_group %}Same student, previous question ({{ previous_pages_group.group_name }}){% else %}No previous question{% endif %}"
                                         aria-label="Previous student question"
-                                        {% if not previous_pages_group %}disabled{% endif %}>&lt;&lt;</button>
+                                        {% if not previous_pages_group %}disabled{% endif %}>&lt;&lt;
+                                </button>
                                 <div class="dropdown">
                                     <button type="button" class="btn btn-light dropdown-toggle" id="btn-question-select"
                                             data-bs-toggle="dropdown" aria-expanded="false"
                                             title="Same student, go to another question" aria-label="Go to question">
                                         {{ pages_group.group_name }}
                                     </button>
-                                    <ul class="dropdown-menu question-select-menu" aria-labelledby="btn-question-select">
+                                    <ul class="dropdown-menu question-select-menu"
+                                        aria-labelledby="btn-question-select">
                                         {% for group in question_pages_groups %}
                                             <li>
-                                                <a href="#" class="dropdown-item js-question-link{% if group.pk == pages_group.pk %} active{% endif %}"
+                                                <a href="#"
+                                                   class="dropdown-item js-question-link{% if group.pk == pages_group.pk %} active{% endif %}"
                                                    data-step-url="{% url 'review_group' exam_selected.pk group.pk %}">{{ group.group_name }}</a>
                                             </li>
                                         {% endfor %}
@@ -173,7 +182,8 @@
                                         data-step-url="{% if next_pages_group %}{% url 'review_group' exam_selected.pk next_pages_group.pk %}{% endif %}"
                                         title="{% if next_pages_group %}Same student, next question ({{ next_pages_group.group_name }}){% else %}No next question{% endif %}"
                                         aria-label="Next student question"
-                                        {% if not next_pages_group %}disabled{% endif %}>&gt;&gt;</button>
+                                        {% if not next_pages_group %}disabled{% endif %}>&gt;&gt;
+                                </button>
                                 <div id="copy_page_select"></div>
                             {% endif %}
                         </div>
@@ -207,7 +217,8 @@
                                 <i class="fa-solid fa-magnifying-glass-minus fa-lg" aria-hidden="true"></i>
                             </button>
                             <button type="button" class="btn btn-light" id="btn-zoom-reset"
-                                    title="Reset zoom" aria-label="Reset zoom">100%</button>
+                                    title="Reset zoom" aria-label="Reset zoom">100%
+                            </button>
                             <button type="button" class="btn btn-icon btn-light" id="btn-zoom-in"
                                     title="Zoom in" aria-label="Zoom in">
                                 <i class="fa-solid fa-magnifying-glass-plus fa-lg" aria-hidden="true"></i>
@@ -234,31 +245,56 @@
                 </div>
             </div>
 
-            {# Right: discussion button and grading schemes #}
+            {# Right: grading schemes #}
             <div class="h-100">
                 {% if pages_group.use_grading_scheme and grading_schemes|length > 0 %}
-                    <div id="grading-scheme-div" class="position-relative h-100 bg-body-tertiary p-1 pt-2">
-                        <h6>Grading Schemes</h6>
+                    <div id="grading-scheme-div" class="card position-relative h-100" style="width: 28rem">
+                        <div class="card-header">
+                            <h6 class="mb-0">Grading schemes</h6>
+                        </div>
 
-                        <ul class="nav nav-pills flex-column flex-md-row border" id="review-scheme-pills" role="tablist">
-                            {% for gs in grading_schemes %}
-                                <li class="nav-item" role="presentation">
-                                    {# Kept as <a>: reviewGroup.js selects a[id^="review-scheme-link-"] #}
-                                    <a href="#" role="tab"
-                                       class="nav-link js-scheme-link {% if current_grading_scheme and current_grading_scheme.id == gs.id %}active{% endif %}"
-                                       id="review-scheme-link-{{ gs.id }}"
-                                       aria-selected="{% if current_grading_scheme and current_grading_scheme.id == gs.id %}true{% else %}false{% endif %}"
-                                       aria-controls="review-scheme-panel"
-                                       data-exam-id="{{ exam_selected.id }}"
-                                       hx-get="{% url 'review_grading_scheme_panel' exam_selected.id gs.id 0 %}"
-                                       hx-trigger="never"
-                                       onclick="return sendScheme(this, event)">
-                                        {{ gs.name }}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        <div class="tab-content" id="review-scheme-panel" role="tabpanel"></div>
+                        <div class="card-body d-flex flex-column align-items-start gap-0 p-2" style="min-height: 0;">
+                            <div class="nav nav-pills flex-wrap gap-1 border rounded p-1"
+                                 id="review-scheme-tabs"
+                                 role="tablist">
+                                {% for tab in scheme_tabs %}
+                                    {% with gs=tab.scheme %}
+                                        {# The tooltip goes on the wrapper: a disabled button gets no mouse events #}
+                                        <span class="nav-item" role="presentation"
+                                              {% if tab.invalid_reason %}
+                                                  tabindex="0"
+                                                  data-bs-toggle="tooltip"
+                                                  data-bs-title="{{ tab.invalid_reason }}"
+                                                  data-bs-placement="bottom"
+                                              {% endif %}>
+                                            <button type="button" role="tab"
+                                                    class="nav-link text-nowrap js-scheme-link{% if current_grading_scheme.id == gs.id %} active{% endif %}"
+                                                    id="review-scheme-link-{{ gs.id }}"
+                                                    aria-selected="{% if current_grading_scheme.id == gs.id %}true{% else %}false{% endif %}"
+                                                    aria-controls="review-scheme-panel"
+                                                    data-exam-id="{{ exam_selected.id }}"
+                                                    hx-get="{% url 'review_grading_scheme_panel' exam_selected.id gs.id 0 %}"
+                                                    hx-trigger="never"
+                                                    onclick="return sendScheme(this, event)"
+                                                    {% if tab.invalid_reason %}disabled aria-disabled="true" tabindex="-1"{% endif %}>
+                                                {{ gs.name }}
+                                            </button>
+                                        </span>
+                                    {% endwith %}
+                                {% endfor %}
+                            </div>
+
+                            <hr class="w-100">
+
+                            {# Filled by htmx; the grid stretches the loaded panel to the remaining height #}
+                            <div id="review-scheme-panel" role="tabpanel"
+                                 class="d-grid w-100"
+                                 style="flex: 1 1 auto; min-height: 0;
+                                        grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr);">
+                                <div class="text-muted">Loading…</div>
+                            </div>
+                        </div>
+
                         {# Shown by the script when the current page isn't part of the review group #}
                         <div class="alert alert-warning block-overlay" id="grading-scheme-block-overlay">
                             <span>Please return to a page linked to the review group to use the grading schemes.</span>
@@ -268,7 +304,8 @@
             </div>
         </div>
 
-        <div class="modal fade" id="commentsModal" tabindex="-1" aria-labelledby="commentsModalLabel" aria-hidden="true">
+        <div class="modal fade" id="commentsModal" tabindex="-1" aria-labelledby="commentsModalLabel"
+             aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header handle">
@@ -281,7 +318,8 @@
                         <div id="comments-container" class="p-1"></div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-icon btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-icon btn-secondary btn-sm" data-bs-dismiss="modal">Close
+                        </button>
                     </div>
                 </div>
             </div>

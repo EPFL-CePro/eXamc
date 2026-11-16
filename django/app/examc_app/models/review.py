@@ -178,13 +178,13 @@ class ReviewLock(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        constraints = [
+        constraints: ClassVar = [
             models.UniqueConstraint(
                 fields=['pages_group', 'copy_no'],
                 name='uniq_review_lock_pages_group_copy',
             ),
         ]
-        indexes = [
+        indexes: ClassVar = [
             models.Index(fields=['updated_at'], name='review_lock_updated_idx'),
         ]
 
@@ -234,7 +234,7 @@ class UnrecognizedReviewScan(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["exam_id", "upload_order", "id"]
+        ordering: ClassVar = ["exam_id", "upload_order", "id"]
 
     def __str__(self):
         return f"{self.exam.code} - {self.filename}"
