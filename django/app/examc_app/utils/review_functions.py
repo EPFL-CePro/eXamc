@@ -871,7 +871,7 @@ def get_scan_url(exam: Exam, copy_nr, page_nr) -> str:
 def get_grading_scheme_checkboxes(grading_scheme_id: int, copy_nr: str):
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
     grading_scheme_checkboxes_qs = QuestionGradingSchemeCheckBox.objects.filter(
-        questionGradingScheme=grading_scheme).order_by('adjustment', 'id')
+        questionGradingScheme=grading_scheme).order_by('adjustment', 'position')
     grading_scheme_checkboxes_list = []
 
     # Full points checkbox
