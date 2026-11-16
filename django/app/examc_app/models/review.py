@@ -81,11 +81,11 @@ class PagesGroupStudentReportNote(models.Model):
     history = HistoricalRecords()
 
     class Meta:
-        constraints = [
+        constraints: ClassVar = [
             models.UniqueConstraint(
-                fields=['pages_group', 'copy_nr'],
-                name='uniq_pages_group_student_report_note_copy',
-            ),
+                fields=["pages_group", "copy_nr"],
+                name="uniq_pages_group_student_report_note_copy",
+            )
         ]
 
 
@@ -101,6 +101,14 @@ class PageMarkers(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='pageMarkers')
     correctorBoxMarked = models.BooleanField(default=False)
     history = HistoricalRecords()
+
+    class Meta:
+        constraints: ClassVar = [
+            models.UniqueConstraint(
+                fields=["exam", "pages_group", "copie_no", "page_no"],
+                name="uniq_pages_group_student_report_note_copy_user",
+            )
+        ]
 
     def __str__(self):
         return self.copie_no + " - " + self.filename + " " + self.exam.code
