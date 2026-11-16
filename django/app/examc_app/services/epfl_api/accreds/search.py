@@ -1,7 +1,7 @@
 from examc_app.services.epfl_api.accreds.models import EpflApiAccred
 from examc_app.services.epfl_api.utils import epfl_api_get
 
-ACCREDS_API_BASE_URL = "/accreds"
+ACCREDS_API_BASE_URL = "/v2/accreds"
 ACCREDS_PAGE_SIZE = 100
 
 # Safety net against a wrong "count": 100 pages of 100 accreds
