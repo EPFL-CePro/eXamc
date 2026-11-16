@@ -1,12 +1,19 @@
 import math
 from typing import Any
 
-from examc_app.models import Exam, PagesGroupGradingSchemeCheckedBox
+from examc_app.models import (
+    Exam,
+    PagesGroupGradingSchemeCheckedBox,
+    PagesGroupStudentReportNote,
+)
 from examc_app.utils.amc_db_queries.capture import AmcCaptureDbManager
 from examc_app.utils.amc_db_queries.layout import AmcLayoutDbManager, get_amc_copy_nr
 from examc_app.utils.amc_db_queries.scoring import AmcScoringDbManager
 from examc_app.utils.amc_functions import get_amc_project_path
-from examc_app.utils.review_functions import get_question_points
+from examc_app.utils.review_functions import (
+    get_question_points,
+    other_grading_scheme_used,
+)
 
 
 def get_amc_question_layout_and_marks(exam : Exam, copy_nr, pages_group ) -> dict[str, Any]:
@@ -66,3 +73,34 @@ def get_review_corr_box_index(grading_scheme, copy_nr):
         gradingSchemeCheckBox__name='ZERO'
     ).exists()
     return 0 if zero_checked else -1
+
+
+def get_student_report_note(pages_group, copy_nr) -> tuple[str, bool]:
+    """
+    Return the student's report note for a pages group, and whether notes can be written for this copy.
+
+    Notes are per student, so there is none for copy "0" (the model answer) or without a copy.
+
+    :param pages_group: The pages group the note belongs to.
+    :param copy_nr: The copy number.
+    :return: (note content, note enabled)
+    """
+    note_enabled = str(copy_nr) not in ("0", "None", "")
+    if not note_enabled:
+        return "", False
+
+    note = PagesGroupStudentReportNote.objects.filter(
+        pages_group=pages_group,
+        copy_nr=copy_nr,
+    ).first()
+    return (note.content if note else ""), True
+
+
+def get_shown_grading_scheme(grading_scheme, copy_nr):
+    """
+    A copy already graded with another scheme stays on it. Otherwise the requested scheme is the one shown.
+    """
+    used_grading_scheme = other_grading_scheme_used(grading_scheme, copy_nr)
+    if used_grading_scheme and get_question_points(used_grading_scheme, copy_nr) > 0:
+        return used_grading_scheme
+    return grading_scheme

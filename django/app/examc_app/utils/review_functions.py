@@ -523,6 +523,19 @@ def get_graded_copies(pages_group: PagesGroup, user_id: int | None = None) -> se
     return graded
 
 
+def copy_nr_at(copies_pages_list, page_id) -> str:
+    """
+    Return the copy number shown at position page_id of copies_pages_list, or "0" if there is none.
+
+    ASSUMPTION: each entry of get_copies_pages_by_group() holds its copy number under "copy_no".
+    Use the same key as find_copy_position_in_group().
+    """
+    try:
+        entry = copies_pages_list[int(page_id)]
+    except IndexError, KeyError, TypeError, ValueError:
+        return "0"
+    return str(entry["copy_no"])
+
 def get_copies_pages_by_group(pages_group: PagesGroup):
     print('********************* START GET COPIES')
     exam = pages_group.exam
@@ -868,65 +881,84 @@ def get_scan_url(exam: Exam, copy_nr, page_nr) -> str:
     return scan_url
 
 
-def get_grading_scheme_checkboxes(grading_scheme_id: int, copy_nr: str):
+def get_reachable_points(grading_scheme: QuestionGradingScheme):
+    """Points a copy gets with every positive mark ticked (ZERO and ADJ don't count)."""
+    return QuestionGradingSchemeCheckBox.objects.filter(
+        questionGradingScheme=grading_scheme,
+        points__gt=0,
+    ).exclude(name__in=("ZERO", "ADJ")).aggregate(total=Sum("points"))["total"] or 0
+
+
+def get_grading_scheme_invalid_reason(grading_scheme: QuestionGradingScheme) -> str:
+    """Why the scheme can't be used for grading, or "" if it can."""
+    max_points = grading_scheme.max_points or 0
+    if max_points <= 0:
+        return "Its maximum is 0 points: set the question's maximum before grading with it."
+
+    reachable = get_reachable_points(grading_scheme)
+    if reachable <= 0:
+        return "None of its marks gives points: add points to at least one mark."
+
+    if reachable < max_points:
+        return (
+            f"Its marks add up to {reachable:g} points at most, "
+            f"below the question's maximum of {max_points:g}."
+        )
+
+    return ""
+
+def has_full_points(grading_scheme: QuestionGradingScheme, copy_nr: str) -> bool:
+    """Whether the copy's checked boxes already add up to the scheme's maximum."""
+    points = (
+        PagesGroupGradingSchemeCheckedBox.objects.filter(
+            pages_group=grading_scheme.pages_group,
+            copy_nr=copy_nr,
+        ).aggregate(total=Sum("gradingSchemeCheckBox__points"))["total"]
+        or 0
+    )
+    return points >= grading_scheme.max_points
+
+
+def get_grading_scheme_checkboxes(grading_scheme_id: int, copy_nr: str) -> list[dict]:
+    """
+    The scheme's checkboxes for a copy, ZERO first, then by adjustment and position.
+    "Full points" is not part of the list: see has_full_points().
+    """
+
     grading_scheme = QuestionGradingScheme.objects.get(pk=grading_scheme_id)
-    grading_scheme_checkboxes_qs = QuestionGradingSchemeCheckBox.objects.filter(
-        questionGradingScheme=grading_scheme).order_by('adjustment', 'position')
-    grading_scheme_checkboxes_list = []
+    checkboxes = QuestionGradingSchemeCheckBox.objects.filter(
+        questionGradingScheme=grading_scheme,
+    ).order_by("adjustment", "position")
 
-    # Full points checkbox
-    points = (PagesGroupGradingSchemeCheckedBox.objects.filter(pages_group=grading_scheme.pages_group,
-                                                               copy_nr=copy_nr).aggregate(
-        total=Sum("gradingSchemeCheckBox__points"))["total"]) or 0
-    checked = False
-    if points == grading_scheme.max_points:
-        checked = True
-
-    grading_scheme_checkbox = {
-        "item_id": 0,
-        "ref": "full",
-        "points": grading_scheme.max_points,
-        "name": "FULL",
-        "description": "Full points",
-        "checked": checked,
-        "adjustment": ''
+    # One query for every checked box of this copy, instead of one per checkbox
+    checked_boxes = {
+        checked.gradingSchemeCheckBox_id: checked
+        for checked in PagesGroupGradingSchemeCheckedBox.objects.filter(
+            pages_group=grading_scheme.pages_group,
+            copy_nr=copy_nr,
+            gradingSchemeCheckBox__in=checkboxes,
+        )
     }
 
-    grading_scheme_checkboxes_list.append(grading_scheme_checkbox)
-
-    for checkbox in grading_scheme_checkboxes_qs:
-        try:
-            pggsc = PagesGroupGradingSchemeCheckedBox.objects.get(
-                pages_group=grading_scheme.pages_group,
-                copy_nr=copy_nr,
-                gradingSchemeCheckBox=checkbox
-            )
-            checked = True
-            item_id = pggsc.id
-            adjustment = pggsc.adjustment
-            ref = "pggsc"
-        except PagesGroupGradingSchemeCheckedBox.DoesNotExist:
-            checked = False
-            item_id = checkbox.id
-            adjustment = 0
-            ref = "gsc"
-
-        grading_scheme_checkbox = {
-            "item_id": item_id,
-            "ref": ref,
+    grading_scheme_checkboxes = []
+    for checkbox in checkboxes:
+        checked = checked_boxes.get(checkbox.id)
+        item = {
+            "item_id": checked.id if checked else checkbox.id,
+            "ref": "pggsc" if checked else "gsc",
             "points": checkbox.points,
             "name": checkbox.name,
             "description": checkbox.description,
-            "checked": checked,
-            "adjustment": adjustment
+            "checked": checked is not None,
+            "adjustment": checked.adjustment if checked else 0,
         }
 
-        if checkbox.name == 'ZERO':
-            grading_scheme_checkboxes_list.insert(0, grading_scheme_checkbox)
+        if checkbox.name == "ZERO":
+            grading_scheme_checkboxes.insert(0, item)
         else:
-            grading_scheme_checkboxes_list.append(grading_scheme_checkbox)
+            grading_scheme_checkboxes.append(item)
 
-    return grading_scheme_checkboxes_list
+    return grading_scheme_checkboxes
 
 
 def other_grading_scheme_used(grading_scheme: QuestionGradingScheme, copy_nr: str) -> QuestionGradingScheme | None:
