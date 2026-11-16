@@ -6,29 +6,35 @@
 
 <div class="review-grading-scheme-split-vert" id="scheme-wrapper-{{ grading_scheme.id }}">
     <div class="pane">
-        <div class="card">
+        <div class="card" style="min-height: 100%;">
             <div class="card-body">
                 <h6 id="gsc-points-{{ grading_scheme.id }}">{{ points }} / {{ grading_scheme.max_points }}</h6>
-                <p>{{ grading_scheme.description }}</p>
+                <p class="mb-0">{{ grading_scheme.description }}</p>
             </div>
         </div>
     </div>
 
     <!-- Draggable divider -->
-    <div class="divider" id="scheme-divider" aria-label="Resize panels" role="separator"></div>
+    <div class="divider d-flex align-items-center justify-content-center text-body-secondary"
+         id="scheme-divider"
+         role="separator"
+         aria-orientation="horizontal"
+         aria-label="Resize panels"
+         title="Drag to resize">
+        <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i>
+    </div>
 
     <!-- Checkboxes (lazy) -->
     <div class="pane">
-        <div class="card" style="height:99%;">
+        <div class="card h-100">
             <div class="card-header fw-semibold">Points</div>
-            <div class="card-body"
+            <div class="card-body overflow-hidden"
                  id="chk-panel-{{ grading_scheme.id }}"
+                 style="min-height: 0;"
                  hx-get="{% url 'review_grading_scheme_checkboxes' exam_selected.id grading_scheme.id copy_nr %}"
                  hx-trigger="load once"
                  hx-target="this"
-                 hx-swap="innerHTML"
-                 style="overflow-y:auto"
-            >
+                 hx-swap="innerHTML">
                 <div class="text-muted">Loading…</div>
             </div>
         </div>
