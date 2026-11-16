@@ -6,6 +6,8 @@ from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 
 from examc_app.models import PrepStudent
+from examc_app.services.epfl_api.accreds.search import ACCREDS_API_BASE_URL
+from examc_app.services.epfl_api.people.search import PERSONS_API_BASE_URL
 from examc_app.services.oasis import OasisError, get_course_students_scipers
 from examc_app.services.person_directory import DirectoryPerson, get_people_by_sciper
 from examc_app.services.student.prep_import import (
@@ -241,13 +243,13 @@ class GetCourseStudentsScipersTestCase(SimpleTestCase):
 class GetPeopleBySciperTestCase(SimpleTestCase):
     def test_one_query_per_batch_and_section_from_student_accred(self):
         api_get = fake_api({
-            "/persons": {"persons": [
+            PERSONS_API_BASE_URL: {"persons": [
                 {"id": "123456", "sciper": "123456", "firstname": "Ada", "lastname": "Lovelace",
                  "email": "ada.lovelace@epfl.ch"},
                 {"id": "234567", "sciper": "234567", "firstname": "Alan", "lastname": "Turing",
                  "email": "not-an-email"},
             ]},
-            "/accreds": {"accreds": [
+            ACCREDS_API_BASE_URL: {"accreds": [
                 {"persid": 123456, "unit": {"name": "LAB-X"}},
                 # Second accreditation of the same person: her student accreditation gives the section
                 {"persid": 123456, "unit": {"name": "MX-BA1"}},
@@ -263,9 +265,9 @@ class GetPeopleBySciperTestCase(SimpleTestCase):
         self.assertCountEqual(
             api_get.call_args_list,
             [
-                call(path="/persons", params={"ids": "123456,234567"}),
+                call(path=PERSONS_API_BASE_URL, params={"ids": "123456,234567"}),
                 call(
-                    path="/accreds",
+                    path=ACCREDS_API_BASE_URL,
                     params={"persid": "123456,234567", "pageindex": 0, "pagesize": 100},
                 ),
             ],
