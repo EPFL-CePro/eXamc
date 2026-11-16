@@ -109,7 +109,6 @@ def _resolve_str(kwargs: dict[str, FilterExpression], name: str, context: Contex
 def _resolve_bool(kwargs: dict[str, FilterExpression], name: str, context: Context, default: bool = False) -> bool:
     """A keyword argument's truthiness, or `default` when it isn't given."""
     return bool(kwargs[name].resolve(context)) if name in kwargs else default
-
 class PillHeaderNode(Node):
     def __init__(self, nodelist: NodeList, kwargs: dict[str, FilterExpression]) -> None:
         self.nodelist = nodelist
@@ -141,6 +140,8 @@ class PillHeaderNode(Node):
 
         with context.push(
             title=_resolve_str(self.kwargs, "title", context),
+            # Passed to {% title %} as its heading level; "" keeps the title's default (h3)
+            title_size=_resolve_str(self.kwargs, "title_size", context, ""),
             icon=_resolve_str(self.kwargs, "icon", context, ""),
             prefix=prefix,
             active=selected,
@@ -154,16 +155,17 @@ class PillHeaderNode(Node):
 def pill_header(parser: Parser, token: Token) -> PillHeaderNode:
     """
     Usage:
-      {% pill_header title="Preparation" prefix="preparation" icon="fas fa-edit" active="exam" %}
+      {% pill_header title="Preparation" title_size=4 prefix="preparation" icon="fas fa-edit" active="exam" %}
           {% pill_tab "exam" label="Exam" icon="fas fa-book-open" %}
           {% pill_tab "students" %}
           ... anything else, shown after the tabs ...
       {% endpill_header %}
+    `title_size` is the title's heading level, 1 to 6 (default 3).
     The selected tab is ?tab= if valid, else `active` if valid, else the first tab; never a disabled one.
     Sets `<prefix>_active_tab` in the page context, for the {% tab_pane %}s that follow.
     """
     tag_name, _, kwargs = _parse_arguments(
-        parser, token, allowed={"title", "prefix", "icon", "active"}, required={"prefix"},
+        parser, token, allowed={"title", "title_size", "prefix", "icon", "active"}, required={"prefix"},
     )
     nodelist = parser.parse((f"end{tag_name}",))
     parser.delete_first_token()
@@ -287,8 +289,11 @@ def tab_pane(parser: Parser, token: Token) -> TabPaneNode:
 
 
 # ---------------------------------------------------------------------------
-# Titles: {% title "Exam" icon="fas fa-book-open" %}
+# Titles: {% title "Exam" icon="fas fa-book-open" size=4 %}
 # ---------------------------------------------------------------------------
+
+DEFAULT_TITLE_SIZE = 3
+
 
 class TitleNode(Node):
     def __init__(self, text: FilterExpression, kwargs: dict[str, FilterExpression]) -> None:
@@ -297,23 +302,40 @@ class TitleNode(Node):
 
     def render(self, context: Context) -> str:
         context_template = _get_template_from_context(context)
-                
+
         component = context_template.engine.get_template("components/title.html")
         with context.push(
             title=self.text.resolve(context),
             icon=_resolve_str(self.kwargs, "icon", context),
+            size=self._resolve_size(context),
         ):
             return component.render(context)
+
+    def _resolve_size(self, context: Context) -> int:
+        """Heading level from 1 to 6; DEFAULT_TITLE_SIZE when unset."""
+        expression = self.kwargs.get("size")
+        size = expression.resolve(context) if expression else None
+        if size in (None, ""):
+            return DEFAULT_TITLE_SIZE
+
+        try:
+            size = int(size)
+        except (TypeError, ValueError):
+            raise TemplateSyntaxError(f"title size must be a heading level from 1 to 6, got {size!r}") from None
+        if not 1 <= size <= 6:
+            raise TemplateSyntaxError(f"title size must be a heading level from 1 to 6, got {size}")
+        return size
 
 
 @register.tag
 def title(parser: Parser, token: Token) -> TitleNode:
     """
     Usage:
-      {% title "Import" icon="fas fa-upload" %}
-    The first argument is the title's text; `icon` (Font Awesome classes) is optional.
+      {% title "Import" icon="fas fa-upload" size=4 %}
+    The first argument is the title's text; `icon` (Font Awesome classes) is optional;
+    `size` is the heading level, 1 to 6 (default 3).
     """
-    _, (text,), kwargs = _parse_arguments(parser, token, positional=1, allowed={"icon"})
+    _, (text,), kwargs = _parse_arguments(parser, token, positional=1, allowed={"icon", "size"})
     return TitleNode(text, kwargs)
 
 

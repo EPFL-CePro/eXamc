@@ -3,9 +3,9 @@
 <div class="d-flex flex-column flex-md-row flex-wrap
     align-items-start align-items-md-center
     justify-content-center justify-content-md-start
-    gap-3{% if not title %} mb-3{% endif %}">
+    gap-3">
     {% if title %}
-        {% title title icon=icon %}
+        {% title title icon=icon size=title_size %}
     {% endif %}
 
     {% if tabs %}
