@@ -46,6 +46,7 @@ from reportlab.platypus import (
 )
 
 from examc_app.exceptions.amc import (
+    AmcDbManagerError,
     AmcProjectNotInZipError,
     AmcProjectPathNotFoundError,
     AmcProjectZipInvalidError,
@@ -1352,8 +1353,14 @@ def copy_number_candidates(copy_nr):
     ]))
 
 
+def report_row_copie_no(report_row):
+    """The eXamc copy number (Student.copie_no) of an AMC report row: the student it's associated with."""
+    return report_row.get("associated_student")
+
+
 def report_row_amc_copy_nr(report_row):
-    return report_row.get("associated_student")#report_row.get("amc_copy") or report_row.get("student")
+    """AMC's own copy number of a report row, the one its layout and scoring data are indexed by."""
+    return report_row.get("amc_copy") or report_row.get("student")
 
 
 def find_student_for_association_value(exam: Exam, assoc_primary_key, associated_student):
@@ -1437,33 +1444,38 @@ def empty_student_amc_id(value):
     return value is None or str(value).strip() in ("", "0", "None")
 
 
-def student_amc_copy_nr(student):
-    if not empty_student_amc_id(student.amc_id):
-        return student.amc_id
-    return student.copie_no
-
-
-def update_student_amc_id_if_missing(student, amc_copy_nr):
-    if empty_student_amc_id(student.amc_id) and amc_copy_nr not in (None, "", "0"):
-        student.amc_id = str(amc_copy_nr)
-        student.save(update_fields=["amc_id"])
-        logger.info(
-            "Backfilled student AMC id student_pk=%s copy=%s amc_id=%s",
-            student.pk,
-            student.copie_no,
-            student.amc_id,
-        )
+def sync_student_amc_id(student, amc_copy_nr):
+    """
+    Keeps the student's AMC copy number in line with AMC's data: fills it when missing, and
+    corrects it when AMC now gives another one (e.g. after a new association).
+    """
+    if empty_student_amc_id(amc_copy_nr):
+        return
+    amc_copy_nr = str(amc_copy_nr).strip()
+    if not empty_student_amc_id(student.amc_id) and str(student.amc_id).strip().lstrip("0") == amc_copy_nr.lstrip("0"):
+        return
+    previous_amc_id = student.amc_id
+    student.amc_id = amc_copy_nr
+    student.save(update_fields=["amc_id"])
+    logger.info(
+        "Updated student AMC id student_pk=%s copy=%s amc_id=%s previous=%s",
+        student.pk,
+        student.copie_no,
+        student.amc_id,
+        previous_amc_id,
+    )
 
 
 def find_student_for_amc_report(exam: Exam, report_row):
     assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
+    copie_no = report_row_copie_no(report_row)
     amc_copy_nr = report_row_amc_copy_nr(report_row)
-    student = Student.objects.filter(exam=exam, copie_no=amc_copy_nr).first()
+    student = Student.objects.filter(exam=exam, copie_no=copie_no).first()
     if student:
-        update_student_amc_id_if_missing(student, report_row.get("student"))
+        sync_student_amc_id(student, amc_copy_nr)
         return student
     else:
-        raise Exception(f"Student not found for AMC report: exam={exam.pk} copie_no={amc_copy_nr}")
+        raise Exception(f"Student not found for AMC report: exam={exam.pk} copie_no={copie_no}")
     # amc_copy_candidates = copy_number_candidates(amc_copy_nr)
     # if amc_copy_candidates:
     #     student = (
@@ -1478,7 +1490,7 @@ def find_student_for_amc_report(exam: Exam, report_row):
     if associated_student:
         student = find_student_for_association_value(exam, assoc_primary_key, associated_student)
         if student:
-            update_student_amc_id_if_missing(student, amc_copy_nr)
+            sync_student_amc_id(student, amc_copy_nr)
             return student
 
     copy_candidates = []
@@ -1493,7 +1505,7 @@ def find_student_for_amc_report(exam: Exam, report_row):
         .first()
     )
     if student:
-        update_student_amc_id_if_missing(student, amc_copy_nr)
+        sync_student_amc_id(student, amc_copy_nr)
     return student
 
 
@@ -1524,11 +1536,10 @@ def add_grading_schemes_reports(
         exam_pk, single_file, report_type, len(report_rows), include_description, include_student_comments,
     )
 
-    def report_pdf(student: Student, amc_copy_nr: int) -> bytes:
+    def report_pdf(student: Student) -> bytes:
         return build_grading_report_pdf_bytes(
             exam_pk,
             student.id,
-            amc_copy_nr=amc_copy_nr,
             include_description=include_description,
             include_student_comments=include_student_comments,
         )
@@ -1555,22 +1566,19 @@ def add_grading_schemes_reports(
         annotated_pdf_path = existing_pdf(filename)
         if report_rows:
             rows = sorted(report_rows, key=lambda r: (int(r.get("student") or 0), int(r.get("copy") or 0)))
-            student_reports = [(student_of(row), report_row_amc_copy_nr(row)) for row in rows]
+            students = [student_of(row) for row in rows]
         else:
-            student_reports = [
-                (student, student_amc_copy_nr(student))
-                for student in Student.objects.filter(exam=exam).order_by("copie_no", "pk")
-            ]
+            students = list(Student.objects.filter(exam=exam).order_by("copie_no", "pk"))
 
-        total = len(student_reports)
+        total = len(students)
         report_progress(0, total)
         pdf_parts = [annotated_pdf_path.read_bytes()]
-        for index, (student, amc_copy_nr) in enumerate(student_reports, start=1):
-            pdf_parts.append(report_pdf(student, amc_copy_nr))
+        for index, student in enumerate(students, start=1):
+            pdf_parts.append(report_pdf(student))
             logger.info(
                 "AMC grading scheme report generated exam=%s mode=single student_pk=%s student_copy=%s "
                 "amc_copy=%s index=%s total=%s",
-                exam_pk, student.pk, student.copie_no, amc_copy_nr, index, total,
+                exam_pk, student.pk, student.copie_no, student.amc_id, index, total,
             )
             report_progress(index, total)
 
@@ -1589,14 +1597,13 @@ def add_grading_schemes_reports(
     report_progress(0, total)
     for index, row in enumerate(report_rows, start=1):
         student = student_of(row)
-        amc_copy_nr = report_row_amc_copy_nr(row)
         annotated_pdf_path = existing_pdf(row.get("file"))
 
-        annotated_pdf_path.write_bytes(concat_pdfs(annotated_pdf_path.read_bytes(), report_pdf(student, amc_copy_nr)))
+        annotated_pdf_path.write_bytes(concat_pdfs(annotated_pdf_path.read_bytes(), report_pdf(student)))
         logger.info(
             "AMC grading scheme report appended exam=%s student_pk=%s student_copy=%s amc_copy=%s "
             "index=%s total=%s target=%s",
-            exam_pk, student.pk, student.copie_no, amc_copy_nr, index, total, annotated_pdf_path,
+            exam_pk, student.pk, student.copie_no, student.amc_id, index, total, annotated_pdf_path,
         )
         report_progress(index, total)
 
@@ -1902,11 +1909,33 @@ def build_long_table(rows, col_widths, repeat_rows=1):
         return LongTable(rows, colWidths=col_widths, repeatRows=repeat_rows, splitByRow=1)
 
 
+def grading_report_question_number(amc_data_path: str, student: Student, pages_group: PagesGroup) -> str:
+    """
+    Number of a question in the student's AMC copy, as shown in their grading report. The layout is
+    indexed by AMC's copy number (``student.amc_id``), not by the eXamc copy. When it can't be found,
+    the question's name is shown instead, so a single missing question doesn't fail the whole report.
+    """
+    if empty_student_amc_id(student.amc_id):
+        logger.warning(
+            "No AMC copy number for grading report question student_pk=%s copy=%s pages_group=%s",
+            student.pk, student.copie_no, pages_group.pk,
+        )
+        return pages_group.group_name
+    try:
+        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
+            return str(amc_layout_db_manager.get_question_number(int(student.amc_id), pages_group.group_name))
+    except (AmcDbManagerError, ValueError):
+        logger.warning(
+            "Grading report question not found in AMC layout student_pk=%s copy=%s amc_copy=%s question=%s",
+            student.pk, student.copie_no, student.amc_id, pages_group.group_name, exc_info=True,
+        )
+        return pages_group.group_name
+
+
 def build_grading_report_pdf_bytes(
     exam_pk: int,
     student_pk,
-    amc_copy_nr=None,
-    review_copy_nr=None,
+    copie_no=None,
     *,
     include_description: bool = True,
     include_student_comments: bool = True,
@@ -1914,6 +1943,10 @@ def build_grading_report_pdf_bytes(
     """
     Generate a student's grading report and return the PDF's content.
 
+    Two copy numbers are involved: the review's checked boxes are stored under the eXamc copy
+    (``copie_no``), while AMC's layout is indexed by AMC's own copy number (``student.amc_id``).
+
+    :param copie_no: the eXamc copy the checked boxes are stored under; the student's by default.
     :param include_description: show each criterion's description (the "Text" column).
     :param include_student_comments: show the reviewers' comment for the student under each question.
     """
@@ -1921,11 +1954,8 @@ def build_grading_report_pdf_bytes(
     amc_data_path = f"{get_amc_project_path(exam)}/data/"
 
     student = Student.objects.get(pk=student_pk)
-    review_copy_nr = str(review_copy_nr if review_copy_nr is not None else student.copie_no)
-    amc_copy_nr = str(amc_copy_nr if amc_copy_nr is not None else student_amc_copy_nr(student))
-    copy_candidates = list(dict.fromkeys(
-        copy_number_candidates(review_copy_nr) + copy_number_candidates(amc_copy_nr)
-    ))
+    copie_no = str(copie_no if copie_no is not None else student.copie_no)
+    copy_candidates = copy_number_candidates(copie_no)
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -2005,7 +2035,7 @@ def build_grading_report_pdf_bytes(
         if not first_checked_box:
             logger.warning(
                 "Skipping grading report section without valid checked boxes exam=%s student=%s pages_group=%s copy_nr=%s",
-                exam_pk, student_pk, pages_group.pk, amc_copy_nr,
+                exam_pk, student_pk, pages_group.pk, copie_no,
             )
             continue
         grading_copy_nr = first_checked_box.copy_nr
@@ -2062,9 +2092,9 @@ def build_grading_report_pdf_bytes(
             report_paragraph(points, total_center_style),
         ))
 
-        with AmcLayoutDbManager(amc_data_path=amc_data_path) as amc_layout_db_manager:
-            question_num = amc_layout_db_manager.get_question_number(amc_copy_nr, pages_group.group_name)
-        story.append(Paragraph(f"Question {question_num}:", question_style))
+        story.append(Paragraph(
+            f"Question {grading_report_question_number(amc_data_path, student, pages_group)}:", question_style,
+        ))
 
         table = build_long_table(table_rows, col_widths)
         table.setStyle(TableStyle([
