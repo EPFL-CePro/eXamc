@@ -1975,6 +1975,19 @@ import { Tooltip } from 'bootstrap';
         htmx.ajax('GET', url, {target: el, swap: 'innerHTML'});
     }
 
+    // Keep the grading scheme checkboxes' scroll position across htmx swaps (ticks and page changes)
+    let checkboxesScroll = 0;
+
+    document.body.addEventListener('htmx:beforeSwap', (event) => {
+        const list = document.getElementById('review-grading-scheme-checkboxes-dt');
+        if (list && event.detail.target.contains(list)) checkboxesScroll = list.scrollTop;
+    });
+
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        const list = document.getElementById('review-grading-scheme-checkboxes-dt');
+        if (list && event.detail.target.contains(list)) list.scrollTop = checkboxesScroll;
+    });
+
     /** The afterSwap handler of the latest click; replaced (and removed) by the next click. */
     let pendingSchemeSwap = null;
     /**
@@ -2025,6 +2038,8 @@ import { Tooltip } from 'bootstrap';
             // A copy graded with a scheme stays on it; otherwise the clicked scheme is the one used
             const locked = points > 0 && usedId;
             const activeId = locked ? usedId : el.id.replace('review-scheme-link-', '');
+
+            if (activeId !== currentGradingSchemeId) checkboxesScroll = 0; // another scheme: start at the top
             currentGradingSchemeId = activeId;
 
             if (locked) disableOtherSchemesExcept(usedId);
@@ -2038,7 +2053,7 @@ import { Tooltip } from 'bootstrap';
         pendingSchemeSwap = onAfterSwap;
         document.body.addEventListener('htmx:afterSwap', onAfterSwap);
 
-        htmx.ajax('GET', updatedUrl, { target: '#review-scheme-panel', swap: 'innerHTML', source: el });
+        htmx.ajax('GET', updatedUrl, {target: '#review-scheme-panel', swap: 'innerHTML transition:true', source: el});
         return false;
     }
 

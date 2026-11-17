@@ -103,7 +103,7 @@
                             <th scope="col">Copy</th>
                             <th scope="col">Page</th>
                             <th scope="col">Graded</th>
-                            <th scope="col">
+                            <th class="text-center" scope="col">
                                 <i class="fa-solid fa-comments" aria-hidden="true"></i>
                                 <span class="visually-hidden">Comments</span>
                             </th>
@@ -128,7 +128,7 @@
                                         <span class="visually-hidden">Graded</span>
                                     {% endif %}
                                 </td>
-                                <td data-order="{% if page.comment %}1{% else %}0{% endif %}">
+                                <td class="text-center" data-order="{% if page.comment %}1{% else %}0{% endif %}">
                                     {% if page.comment %}
                                         <i class="fa-solid fa-comments fa-lg" aria-hidden="true"></i>
                                         <span class="visually-hidden">Has comments</span>
