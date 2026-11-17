@@ -1353,7 +1353,7 @@ def copy_number_candidates(copy_nr):
 
 
 def report_row_amc_copy_nr(report_row):
-    return report_row.get("amc_copy") or report_row.get("student")
+    return report_row.get("associated_student")#report_row.get("amc_copy") or report_row.get("student")
 
 
 def find_student_for_association_value(exam: Exam, assoc_primary_key, associated_student):
@@ -1458,15 +1458,21 @@ def update_student_amc_id_if_missing(student, amc_copy_nr):
 def find_student_for_amc_report(exam: Exam, report_row):
     assoc_primary_key = get_amc_option_by_key(exam, "liste_key")
     amc_copy_nr = report_row_amc_copy_nr(report_row)
-    amc_copy_candidates = copy_number_candidates(amc_copy_nr)
-    if amc_copy_candidates:
-        student = (
-            Student.objects
-            .filter(exam=exam, amc_id__in=amc_copy_candidates)
-            .first()
-        )
-        if student:
-            return student
+    student = Student.objects.filter(exam=exam, copie_no=amc_copy_nr).first()
+    if student:
+        update_student_amc_id_if_missing(student, report_row.get("student"))
+        return student
+    else:
+        raise Exception(f"Student not found for AMC report: exam={exam.pk} copie_no={amc_copy_nr}")
+    # amc_copy_candidates = copy_number_candidates(amc_copy_nr)
+    # if amc_copy_candidates:
+    #     student = (
+    #         Student.objects
+    #         .filter(exam=exam, amc_id__in=amc_copy_candidates)
+    #         .first()
+    #     )
+    #     if student:
+    #         return student
 
     associated_student = report_row.get("associated_student")
     if associated_student:
@@ -1547,7 +1553,6 @@ def add_grading_schemes_reports(
         # One PDF for everyone: the reports all go at its end, in copy order
         filename = next((row.get("file") for row in report_rows if row.get("file")), "annotated_papers.pdf")
         annotated_pdf_path = existing_pdf(filename)
-
         if report_rows:
             rows = sorted(report_rows, key=lambda r: (int(r.get("student") or 0), int(r.get("copy") or 0)))
             student_reports = [(student_of(row), report_row_amc_copy_nr(row)) for row in rows]
@@ -1964,10 +1969,12 @@ def build_grading_report_pdf_bytes(
     def row(title, description, points, validated):
         return [title, description, points, validated] if include_description else [title, points, validated]
 
+    header_title = f"Grading Report ({student.name})" if student.name else "Grading Report"
+
     def draw_header_footer(canvas_obj, doc_obj):
         canvas_obj.saveState()
         canvas_obj.setFont("Helvetica-Bold", 18)
-        canvas_obj.drawString(doc.leftMargin, height - 2 * cm, "Grading Report")
+        canvas_obj.drawString(doc.leftMargin, height - 2 * cm, header_title)
         canvas_obj.setLineWidth(1)
         canvas_obj.line(doc.leftMargin, height - 2.4 * cm, width - doc.rightMargin, height - 2.4 * cm)
         canvas_obj.setFont("Helvetica", 10)
