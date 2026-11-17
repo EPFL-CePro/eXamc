@@ -34,56 +34,51 @@
                 <col>
             </colgroup>
             <tbody>
+                {# Marks: one grid per mark (switch | points | name); the description goes on a second line, under points and name #}
+                <div class="flex-grow-1 overflow-y-auto" style="min-height: 0;" id="review-grading-scheme-checkboxes-dt">
+                    {% for gsc in grading_scheme_checkboxes %}
+                        {% with ref=gsc.ref|stringformat:"s" item_id=gsc.item_id|stringformat:"s" %}
+                        {% with check_id="check-"|add:ref|add:"-"|add:item_id adj_id="adj-"|add:ref|add:"-"|add:item_id %}
 
-            {% for gsc in grading_scheme_checkboxes %}
-                {% with ref=gsc.ref|stringformat:"s" item_id=gsc.item_id|stringformat:"s" %}
-                    {% with check_box_id="adj-"|add:ref|add:"-"|add:item_id first_row=forloop.first %}
-                        <tr style="cursor: pointer;"
-                            onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
-                            <td class="pe-0 pb-0{% if gsc.name != 'ADJ' %} border-bottom-0{% endif %}">
-                                <div class="form-check form-switch mb-3">
+                            <div class="d-grid align-items-center column-gap-2 row-gap-1 py-2{% if not forloop.last %} border-bottom{% endif %}"
+                                 style="grid-template-columns: 2.5rem 3rem 1fr; cursor: pointer;"
+                                 onclick="toggleReviewCheckboxFromRow(event, '{{ check_id }}')">
+
+                                <div class="form-check form-switch m-0">
                                     <input class="form-check-input" type="checkbox" role="switch"
-                                           id="check-{{ gsc.ref }}-{{ gsc.item_id }}"
-                                           name="check-{{ gsc.ref }}-{{ gsc.item_id }}"
+                                           id="{{ check_id }}" name="{{ check_id }}"
                                            {% if gsc.checked %}checked{% endif %}
                                            onchange="updatePagesGroupCheckBox(this.id, this.checked, null, false, false)"/>
-                                    <label class="form-check-label visually-hidden"
-                                           for="check-{{ gsc.ref }}-{{ gsc.item_id }}">{{ gsc.name }}</label>
+                                    <label class="form-check-label visually-hidden" for="{{ check_id }}">{{ gsc.name }}</label>
                                 </div>
-                            </td>
 
-                            {% if gsc.name == 'ADJ' %}
-                                <td colspan="2" class="pe-0 pb-0{% if first_row %} border-top-0{% endif %}">
-                                    <input class="form-control form-control-sm d-inline-block me-2" type="number"
-                                           id="{{ check_box_id }}"
-                                           name="{{ check_box_id }}"
-                                           step="0.01"
-                                           style="width:100px;"
-                                           aria-label="{{ gsc.description }}"
-                                           onchange="updatePagesGroupCheckBox(this.id, null, this.value, false, false)"
-                                           value="{{ gsc.adjustment }}"/> {{ gsc.description }}
-                                </td>
+                                {% if gsc.name == 'ADJ' %}
+                                    {# Adjustment: the input and its description share the points and name columns #}
+                                    <div class="d-flex align-items-center gap-2" style="grid-column: 2 / span 2;">
+                                        <input class="form-control form-control-sm" type="number"
+                                               id="{{ adj_id }}" name="{{ adj_id }}"
+                                               step="0.01" style="width: 100px;"
+                                               aria-label="{{ gsc.description }}"
+                                               onchange="updatePagesGroupCheckBox(this.id, null, this.value, false, false)"
+                                               value="{{ gsc.adjustment }}"/>
+                                        <span class="small text-body-secondary">{{ gsc.description }}</span>
+                                    </div>
+                                {% else %}
+                                    <div><b>{{ gsc.points }}</b></div>
+                                    <div>{{ gsc.name }}</div>
 
-                            {% else %}
-                                <td class="pe-0 pb-0 border-bottom-0{% if first_row %} border-top-0{% endif %}">
-                                    {{ gsc.points }}
-                                </td>
-                                <td class="pe-4 border-bottom-0{% if first_row %} border-top-0{% endif %}">
-                                    <span>{{ gsc.name }}</span>
-                                </td>
-                                </tr>
-                                {# Description gets its own full-width row so it never overflows sideways #}
-                                <tr style="cursor: pointer;"
-                                    onclick="toggleReviewCheckboxFromRow(event, 'check-{{ gsc.ref }}-{{ gsc.item_id }}')">
-                                <td colspan="3" class="pt-0 pe-4" style="padding-left:70px;">
-                                    {{ gsc.description|safe }}
-                                </td>
-                            {% endif %}
-                            </tr>
-                    {% endwith %}
-                {% endwith %}
-            {% endfor %}
+                                    {% if gsc.show_description %}
+                                        <div class="small text-body-secondary" style="grid-column: 2 / span 2;">
+                                            {{ gsc.description|safe }}
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
 
+                        {% endwith %}
+                        {% endwith %}
+                    {% endfor %}
+                </div>
             </tbody>
         </table>
     </div>
