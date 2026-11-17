@@ -75,7 +75,7 @@
     {% elif copies_pages_list %}
         <div class="d-flex gap-3" id="reviewGroup_div" style="height:92vh;" tabindex="0">
             {# Left: list of copies and pages #}
-            <div id="pages-group-list" class="card h-100">
+            <div id="pages-group-list" class="card flex-shrink-0 h-100">
                 <div id="pages-group-list-header"
                      class="card-header d-flex align-items-center justify-content-between gap-2 py-1"
                      style="cursor: pointer">
@@ -90,7 +90,7 @@
                     </button>
                 </div>
 
-                <div id="pages-group-list-table-div" class="card-body p-0 flex-grow-1 overflow-auto"
+                <div id="pages-group-list-table-div" class="card-body p-0"
                      style="min-height: 0;">
                     <table class="table table-striped table-sm mb-0" id="table-copies-pages">
                         <thead class="sticky-top">

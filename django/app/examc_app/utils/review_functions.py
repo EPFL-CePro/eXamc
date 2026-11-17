@@ -14,6 +14,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.html import strip_tags
 from fpdf import FPDF
 from PIL import Image, ImageStat
 from pyzbar import pyzbar
@@ -892,19 +893,21 @@ def get_reachable_points(grading_scheme: QuestionGradingScheme):
 def get_grading_scheme_invalid_reason(grading_scheme: QuestionGradingScheme) -> str:
     """Why the scheme can't be used for grading, or "" if it can."""
     max_points = grading_scheme.max_points or 0
+    message = "Disabled: "
     if max_points <= 0:
-        return "Its maximum is 0 points: set the question's maximum before grading with it."
+        return f"{message}Its maximum is 0 points: set the question's maximum before grading with it."
 
     reachable = get_reachable_points(grading_scheme)
     if reachable <= 0:
-        return "None of its marks gives points: add points to at least one mark."
+        return f"{message}None of its marks gives points: add points to at least one mark."
 
     if reachable < max_points:
         return (
-            f"Its marks add up to {reachable:g} points at most, "
+            f"{message}Its marks add up to {reachable:g} points at most, "
             f"below the question's maximum of {max_points:g}."
         )
 
+    # valid, return empty string
     return ""
 
 def has_full_points(grading_scheme: QuestionGradingScheme, copy_nr: str) -> bool:
@@ -943,12 +946,16 @@ def get_grading_scheme_checkboxes(grading_scheme_id: int, copy_nr: str) -> list[
     grading_scheme_checkboxes = []
     for checkbox in checkboxes:
         checked = checked_boxes.get(checkbox.id)
+        description_text = strip_tags(checkbox.description or "").replace("&nbsp;", " ").strip()
+        show_description = checkbox.name != "ADJ" and bool(description_text)
+
         item = {
             "item_id": checked.id if checked else checkbox.id,
             "ref": "pggsc" if checked else "gsc",
             "points": checkbox.points,
             "name": checkbox.name,
             "description": checkbox.description,
+            "show_description": show_description,
             "checked": checked is not None,
             "adjustment": checked.adjustment if checked else 0,
         }
