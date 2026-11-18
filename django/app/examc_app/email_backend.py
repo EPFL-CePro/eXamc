@@ -14,6 +14,6 @@ class ConstanceEmailBackend(EmailBackend):
         kwargs.setdefault("username", config.EMAIL_HOST_USER)
         kwargs.setdefault("password", config.EMAIL_HOST_PASSWORD)
         kwargs.setdefault("use_ssl", config.EMAIL_USE_SSL)
-        # you can also wire use_tls here if you add a separate Constance flag
+        kwargs.setdefault("use_tls", config.EMAIL_USE_TLS)
 
         super().__init__(fail_silently=fail_silently, **kwargs)
