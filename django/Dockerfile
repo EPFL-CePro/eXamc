@@ -124,6 +124,14 @@ RUN groupadd --gid ${GID} examc \
     && mkdir -p /static /media /private_media \
     && chown -R examc:examc /static /media /private_media
 
+# AMC's global profile, read by every AMC command run as examc. It links to eXamc's own
+# amc_config.xml, so AMC uses eXamc's settings (bw_threshold, ignore_red, tolerance_marque...)
+# and not its built-in defaults (bw_threshold 0.6 under-counts lightly ticked boxes).
+# /app is copied (production) or mounted (dev) later: the link is valid in the final image.
+RUN mkdir -p /home/examc/.AMC.d \
+    && ln -sf /app/examc_app/amc_templates/config/amc_config.xml /home/examc/.AMC.d/cf.default.xml \
+    && chown -R examc:examc /home/examc/.AMC.d
+
 
 # =========================
 # PRODUCTION: code, venv and Python owned by root, read-only for examc
