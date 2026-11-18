@@ -518,10 +518,11 @@ CONSTANCE_CONFIG = {
     # Mail server configuration
     "EMAIL_HOST": ("smtp_myhost", "smtp server host", str),
     "EMAIL_PORT": (587, "SMTP server port (587 for TLS, 465 for SSL)", int),
-    "EMAIL_USE_SSL": (True, "True for SSL, false for TLS", bool),
+    "EMAIL_USE_SSL": (False, "Implicit SSL/TLS from the first byte (usually port 465). Mutually exclusive with EMAIL_USE_TLS", bool),
+    "EMAIL_USE_TLS": (True, "STARTTLS upgrade of a plain connection (usually port 587). Mutually exclusive with EMAIL_USE_SSL", bool),
     "EMAIL_HOST_USER": ("user", "server username", str),
     "EMAIL_HOST_PASSWORD": ("", "server password", str),
-    "DEFAULT_FROM_EMAIL": ("sender email", "Default sender email address", str),
+    "DEFAULT_FROM_EMAIL": ("noreply-cepro-exams@epfl.ch", "Default sender email address", str),
 }
 
 CONSTANCE_CONFIG_FIELDSETS = {
@@ -535,6 +536,7 @@ CONSTANCE_CONFIG_FIELDSETS = {
         "EMAIL_HOST",
         "EMAIL_PORT",
         "EMAIL_USE_SSL",
+        "EMAIL_USE_TLS",
         "EMAIL_HOST_USER",
         "EMAIL_HOST_PASSWORD",
         "DEFAULT_FROM_EMAIL",

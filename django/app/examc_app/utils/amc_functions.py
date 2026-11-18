@@ -23,6 +23,7 @@ import chardet
 import img2pdf
 import pandas as pd
 import xmltodict
+from constance import config
 from django.conf import settings
 from django.contrib.admin.utils import unquote
 from django.core.exceptions import ValidationError
@@ -1825,7 +1826,7 @@ def amc_send_annotated_papers(exam: Exam, selected_students, email_subject, emai
                 email = EmailMessage(
                     email_subject,  # Subject
                     email_body,  # HTML content
-                    'noreply-cepro-exams@epfl.ch',  # From email address
+                    config.DEFAULT_FROM_EMAIL,  # From email address
                     [student['email']]  # To email addresses
                 )
 
