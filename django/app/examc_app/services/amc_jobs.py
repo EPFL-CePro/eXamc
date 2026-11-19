@@ -1,5 +1,5 @@
 import logging
-from typing import Final, Protocol, TypedDict
+from typing import Final, TypedDict
 
 from django.http import HttpRequest, JsonResponse
 from django.urls import reverse
@@ -12,6 +12,7 @@ from examc_app.services.celery_tasks import (
 
 logger = logging.getLogger(__name__)
 
+
 AMC_JOB_TTL_SECONDS: Final = 24 * 3600
 AMC_JOB_MAX_TRACKED: Final = 200
 
@@ -23,11 +24,6 @@ class AmcJob(TypedDict):
 AmcJobs = dict[str, AmcJob]
 
 
-
-class ProgressCallback(Protocol):
-    """Reports the progress of a long AMC operation."""
-
-    def __call__(self, done: int | None = None, total: int | None = None, message: str = "") -> None: ...
 
 class AmcJobsManager:
     """

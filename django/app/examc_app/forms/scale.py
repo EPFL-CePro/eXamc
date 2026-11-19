@@ -17,7 +17,7 @@ class ScaleForm(forms.ModelForm):
         }
         help_texts: ClassVar = {
             "points_to_add": "Added to every student's points before computing the grade.",
-            "rounding": "Precision of the grades, e.g. 0.25 for quarter points.",
+            "rounding": "Precision of the grades (quarter points, half points, or no rounding).",
         }
         widgets: ClassVar = {
             "name": forms.TextInput(attrs={"placeholder": "e.g. Standard scale"}),
@@ -25,7 +25,7 @@ class ScaleForm(forms.ModelForm):
             "points_to_add": forms.NumberInput(attrs={"step": "any"}),
             "min_grade": forms.NumberInput(attrs={"step": "0.25"}),
             "max_grade": forms.NumberInput(attrs={"step": "0.25"}),
-            "rounding": forms.NumberInput(attrs={"step": "any", "min": 0}),
+            "rounding": forms.Select(),
         }
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -35,8 +35,12 @@ class ScaleForm(forms.ModelForm):
             css = "form-select" if isinstance(field.widget, forms.Select) else "form-control"
             field.widget.attrs["class"] = f"{field.widget.attrs.get('class', '')} {css}".strip()
 
-    def clean(self) -> dict[str, Any]:
+    def clean(self) -> dict[str, Any] | None:
         cleaned = super().clean()
+        if cleaned is None:
+            self.add_error(None, "Invalid form data.")
+            return None
+
         min_grade, max_grade = cleaned.get("min_grade"), cleaned.get("max_grade")
         if min_grade is not None and max_grade is not None and min_grade >= max_grade:
             self.add_error("max_grade", "The maximum grade must be above the minimum grade.")
