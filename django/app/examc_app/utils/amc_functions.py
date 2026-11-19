@@ -1,4 +1,3 @@
-import base64
 import csv
 import html
 import io
@@ -58,12 +57,12 @@ from examc_app.models import (
     QuestionGradingSchemeCheckBox,
     Student,
 )
-from examc_app.services.amc_jobs import ProgressCallback
 from examc_app.services.exam.paths import (
     get_exam_amc_project_dir,
     get_exam_amc_project_url,
     get_exam_auto_upload_dir,
 )
+from examc_app.services.jobs import ProgressCallback
 from examc_app.signing import make_token_for, verify_and_get_path
 from examc_app.utils.amc.path import resolve_amc_path
 from examc_app.utils.amc_db_queries.association import AmcAssociationDbManager

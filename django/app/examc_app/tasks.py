@@ -27,6 +27,7 @@ from examc_app.models import (
     StudentQuestionAnswer,
 )
 from examc_app.services.exam.paths import get_exam_marked_scans_dir, get_exam_scans_dir
+from examc_app.services.jobs import fail_if_stale, update_job_progress
 from examc_app.utils.amc.amc_build_functions import (
     AmcStepError,
     BuildCancelled,
@@ -66,6 +67,15 @@ from examc_app.utils.zip_security import safe_extract_zip
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
+
+@shared_task
+def fail_stale_jobs() -> int:
+    """Marks the jobs that stopped reporting progress as failed; returns how many."""
+    backend = fail_stale_jobs.app.backend
+    return sum(
+        fail_if_stale(key.decode().removeprefix("celery-task-meta-"))
+        for key in backend.client.scan_iter(match="celery-task-meta-*")
+    )
 
 @shared_task(bind=True)
 def import_csv_data(self, temp_csv_file_path, exam_pk: int):
@@ -235,11 +245,12 @@ def import_csv_data(self, temp_csv_file_path, exam_pk: int):
         progress_recorder.set_progress(process_number, process_count, description=str(process_number)+'/'+str(process_count)+' - Process finished!')
 
     except Exception as exception:
-        self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during import "+str(exception)})
-        os.remove(temp_csv_file_path)
-        raise exception
-
-    os.remove(temp_csv_file_path)
+        logger.exception("Import failed for exam %s", exam_pk)
+        update_job_progress(self, error=f"Error during import: {exception}", error_type=type(exception).__name__)
+    finally:
+        # The temporary CSV goes, whatever happened (update_job_progress above ends the task by raising)
+        if os.path.exists(temp_csv_file_path):
+            os.remove(temp_csv_file_path)
 
     return ' Process finished.'
 
@@ -385,10 +396,9 @@ def generate_marked_files_zip(self, exam_pk: int,  export_type, with_comments: b
 
         return export_subdir+'.zip'
 
-    except Exception as e:
-        self.update_state(state='FAILURE', meta={'exc_type': type(e).__name__, 'exc_message': "Error during export "+str(e)})
-        print(e)
-        raise
+    except Exception as exception:
+        logger.exception("Export failed")
+        update_job_progress(self, error=f"Error during export: {exception}", error_type=type(exception).__name__)
 
 @shared_task(bind=True)
 def generate_statistics(self,exam_pk: int):
@@ -425,9 +435,8 @@ def generate_statistics(self,exam_pk: int):
         return ' Process finished.'
 
     except Exception as exception:
-        self.update_state(state='FAILURE', meta={'exc_type': type(exception).__name__, 'exc_message': "Error during stats generation "+str(exception)})
-        print(exception)
-        raise
+        logger.exception("Stats generation failed")
+        update_job_progress(self, error=f"Error during stats generation: {exception}", error_type=type(exception).__name__)
 
 @shared_task
 def cleanup_review_locks():
@@ -586,18 +595,18 @@ def amc_import_from_review_task(self, exam_pk: int, scans_list=None):
             "output": "".join(lines[-500:]),
             "line_count": len(lines),
         }
+
     except Exception as exception:
+        logger.exception("AMC import from review failed exam=%s", exam_pk)
         _append_amc_import_line(self, lines, f"AMC import from review failed: {type(exception).__name__}: {exception}")
-        self.update_state(
-            state="FAILURE",
-            meta={
-                "exc_type": type(exception).__name__,
-                "exc_message": str(exception),
-                "output": "".join(lines[-500:]),
-                "line_count": len(lines),
-            },
+        update_job_progress(
+            self,
+            error=f"AMC import from review failed: {exception}",
+            error_type=type(exception).__name__,
+            output="".join(lines[-500:]),
+            line_count=len(lines)
         )
-        raise
+    
 @shared_task(bind=True)
 def amc_annotate_task(
     self,
@@ -622,10 +631,7 @@ def amc_annotate_task(
             "AMC annotate task progress exam=%s progress=%s done=%s total=%s",
             exam_pk, progress, done, total,
         )
-        self.update_state(
-            state="PROGRESS",
-            meta={"progress": progress, "done": done, "total": total, "message": message},
-        )
+        update_job_progress(self, progress=progress, done=done, total=total, message=message)
 
     exam = Exam.objects.get(pk=exam_pk)
     logger.info(
