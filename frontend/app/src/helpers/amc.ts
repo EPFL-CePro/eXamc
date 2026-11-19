@@ -18,23 +18,23 @@ export interface AmcBoxFlag {
 // AMC boxes colors
 // ====================
 export function amcUncheckedBoxColor(opacity: number = 1): string {
+    // blue
     return `rgba(51, 163, 255, ${opacity})`;
 }
 
 export function amcCheckedBoxColor(opacity: number = 1): string {
+    // red
     return `rgba(255, 0, 0, ${opacity})`;
 }
 
-export function amcErrorBoxColor(opacity: number = 1): string {
-    return `rgb(255, 255, 51, ${opacity})`;
-}
-
 export function amcInvalidBoxFlagColor(opacity: number = 1): string {
-    return `rgba(0, 255, 255, ${opacity})`;
+    // yellow
+    return `rgb(255, 255, 31, ${opacity})`;
 }
 
 export function amcEmptyBoxFlagColor(opacity: number = 1 ): string {
-    return `rgb(255, 255, 31, ${opacity})`;
+    // blue
+    return `rgba(0, 255, 255, ${opacity})`;
 }
 
 
@@ -58,12 +58,6 @@ export const AMC_CHECKED_BOX: AmcBox = {
     fill: "transparent"
 };
 
-
-export const AMC_ERROR_BOX: AmcBox = {
-    stroke: amcErrorBoxColor(boxOpacity),
-    strokeWidth: 5,
-    fill: "transparent"
-};
 
 
 // ====================
