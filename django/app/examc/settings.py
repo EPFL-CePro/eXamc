@@ -425,6 +425,9 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", "0")
 CELERY_TASK_STORE_EAGER_RESULT = True
 CELERY_BEAT_SCHEDULER = env("CELERY_BEAT_SCHEDULER", "django_celery_beat.schedulers:DatabaseScheduler")
+CELERY_BEAT_SCHEDULE = {
+    "fail-stale-jobs": {"task": "examc_app.tasks.fail_stale_jobs", "schedule": 300}, # every 5 minutes
+}
 
 # Optional configuration (you can tweak toolbar, height, etc.)
 SUMMERNOTE_CONFIG = {

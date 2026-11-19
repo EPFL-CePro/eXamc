@@ -16,7 +16,7 @@ class Scale(models.Model):
     points_to_add = models.DecimalField(max_digits=6, decimal_places=2, default=0.0)
     min_grade = models.DecimalField(max_digits=6, decimal_places=2, default=1.0)
     max_grade = models.DecimalField(max_digits=6, decimal_places=2, default=6.0)
-    rounding = models.IntegerField(choices=((1, "1/4"), (2, "1/2"), (3, "None")), default=1)
+    rounding = models.IntegerField(choices=((1, "0.25"), (2, "0.5"), (3, "None")), default=1)
     formula = models.CharField(max_length=250, blank=True)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='scales', null=True)
     final = models.BooleanField(default=0)
