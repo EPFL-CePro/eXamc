@@ -1,22 +1,23 @@
 import csv
+import io
 import json
 import logging
 import os
 import pathlib
 import shutil
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
 from pathlib import Path
 
 import cv2
 from celery_progress.backend import ProgressRecorder
 from django.conf import settings
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Sum
 from django.utils import timezone
 from django.utils.html import strip_tags
 from fpdf import FPDF
-from PIL import Image, ImageStat
+from PIL import Image, UnidentifiedImageError
 from pyzbar import pyzbar
 
 from examc_app.models import (
@@ -51,6 +52,20 @@ logger = logging.getLogger(__name__)
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 UNRECOGNIZED_REVIEW_SCAN_DIR = "unrecognized"
 
+# JPEG quality of the scans in the marked PDFs: 90 keeps handwriting and marks crisp
+MARKED_SCAN_JPEG_QUALITY = 90
+
+# Copies built at the same time: one per CPU core (the work is mostly JPEG encoding, done outside the GIL)
+MARKED_PDF_WORKERS = os.cpu_count() or 4
+
+
+def scan_as_jpeg(path: str) -> io.BytesIO:
+    """A scan as JPEG data, for fpdf2 to embed as is (it embeds PNGs losslessly, several times bigger)."""
+    with Image.open(path) as image:
+        output = io.BytesIO()
+        image.convert("RGB").save(output, "JPEG", quality=MARKED_SCAN_JPEG_QUALITY, optimize=True)
+        output.seek(0)
+        return output
 
 def get_scan_relative_path(path: str) -> str:
     return pathlib.Path(path).relative_to(pathlib.Path(settings.SCANS_ROOT)).as_posix()
@@ -524,19 +539,6 @@ def get_graded_copies(pages_group: PagesGroup, user_id: int | None = None) -> se
     return graded
 
 
-def copy_nr_at(copies_pages_list, page_id) -> str:
-    """
-    Return the copy number shown at position page_id of copies_pages_list, or "0" if there is none.
-
-    ASSUMPTION: each entry of get_copies_pages_by_group() holds its copy number under "copy_no".
-    Use the same key as find_copy_position_in_group().
-    """
-    try:
-        entry = copies_pages_list[int(page_id)]
-    except IndexError, KeyError, TypeError, ValueError:
-        return "0"
-    return str(entry["copy_no"])
-
 def get_copies_pages_by_group(pages_group: PagesGroup):
     print('********************* START GET COPIES')
     exam = pages_group.exam
@@ -667,30 +669,10 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
     copies_pages_list.sort(key=lambda k: (int(k["copy_no"]), page_sort_key(k["page_no"])))
     return copies_pages_list
 
-
-def generate_marked_pdfs(
-        exam: Exam,
-        files_path: Path,
-        progress_recorder: ProgressRecorder,
-        with_comments: bool = False
-):
+def _generate_copy_pdf(exam: Exam, files_path: Path, subdir: str, with_comments: bool) -> list[str]:
+    """Builds one copy's marked PDF; returns the scans it couldn't read."""
     unreadable: list[str] = []
-
-    scans_count = len(os.listdir(files_path))
-
-    process_count = scans_count
-    process_number = 1
-    progress_recorder.set_progress(0, process_count, description='')
-
-    time.sleep(2)
-
-    progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
-        process_count) + ' - Extracting zip files...')
-
-    for subdir in sorted(os.listdir(files_path)):
-        progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(
-            process_count) + ' - Generating pdfs files...')
-
+    try:
         pdf = FPDF(orientation='P', unit='mm', format='A4')
         pdf.set_auto_page_break(False)
         pdf.set_margins(0, 0, 0)
@@ -701,56 +683,53 @@ def generate_marked_pdfs(
                 continue
 
             pdf.add_page()
-
-            img_path = os.path.join(subdir_path, image)
-
-            # force image to sRGB if grayscale
-            if is_grayscale(img_path):
-                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-                if img is None:
-                    logger.error(
-                        "Unreadable scan %s of copy %s (exam %s)",
-                        image,
-                        subdir,
-                        exam.pk,
-                    )
-                    unreadable.append(f"copy {subdir}: {image}")
-                    # A visible page instead of a silently missing one
-                    pdf.set_font("Helvetica", "B", 16)
-                    pdf.set_xy(20, 120)
-                    pdf.multi_cell(
-                        0,
-                        10,
-                        f"Scan {image} could not be read.\nPlease contact the exam organisers.",
-                    )
-                    continue
-
-                rgb_path = os.path.join(subdir_path, "rgb" + image)
-                cv2.imwrite(rgb_path, cv2.cvtColor(img, cv2.COLOR_GRAY2RGB))
-                img_path = rgb_path
-
-            pdf.image(img_path, w=pdf.epw)
+            try:
+                scan = scan_as_jpeg(os.path.join(subdir_path, image))
+            except (OSError, UnidentifiedImageError):
+                logger.exception("Unreadable scan %s of copy %s (exam %s)", image, subdir, exam.pk)
+                unreadable.append(f"copy {subdir}: {image}")
+                # A visible page instead of a silently missing one
+                pdf.set_font("Helvetica", "B", 16)
+                pdf.set_xy(20, 120)
+                pdf.multi_cell(0, 10, f"Scan {image} could not be read.\nPlease contact the exam organisers.")
+                continue
+            pdf.image(scan, w=pdf.epw)
 
         if with_comments:
             pages_comments = PagesGroupComment.objects.filter(pages_group__exam=exam, copy_no=subdir).order_by(
                 'copy_no', 'pages_group__group_name', 'parent_id')
             if pages_comments:
                 pdf.add_page()
-
             pdf.set_font("Helvetica", "", 8)
             pdf.set_auto_page_break(True)
             generate_comments_pdf_pages(exam, None, subdir, pdf)
 
         pdf.output(name=f"{files_path}/copy_{subdir}.pdf")
+        return unreadable
+    finally:
+        connection.close()  # each thread gets its own database connection: don't leave it open
 
-        process_number += 1
+
+def generate_marked_pdfs(
+        exam: Exam,
+        files_path: Path,
+        progress_recorder: ProgressRecorder,
+        with_comments: bool = False
+):
+    subdirs = sorted(entry for entry in os.listdir(files_path) if os.path.isdir(os.path.join(files_path, entry)))
+    total = len(subdirs)
+    progress_recorder.set_progress(0, total, description=f"0/{total} - Generating pdf files...")
+
+    unreadable: list[str] = []
+    with ThreadPoolExecutor(max_workers=MARKED_PDF_WORKERS) as executor:
+        futures = [executor.submit(_generate_copy_pdf, exam, files_path, subdir, with_comments) for subdir in subdirs]
+        # Progress from this thread only, as copies finish (in any order)
+        for done, future in enumerate(as_completed(futures), start=1):
+            unreadable += future.result()
+            progress_recorder.set_progress(done, total, description=f"{done}/{total} - Generating pdf files...")
 
     if unreadable:
-        return (
-            f" Process finished with {len(unreadable)} unreadable scan(s): "
-            + "; ".join(unreadable)
-        )
-
+        return f" Process finished with {len(unreadable)} unreadable scan(s): " + "; ".join(sorted(unreadable))
     return ' Process finished. '
 
 
@@ -793,14 +772,6 @@ def generate_comments_pdf_pages(exam, parent, copy_no, pdf, margin_left=10):
         last_pages_group_id = comment.pages_group_id
 
 
-def is_grayscale(path):
-    im = Image.open(path).convert("RGB")
-    stat = ImageStat.Stat(im)
-    if sum(stat.sum) / 3 == stat.sum[0]:  #check the avg with any element value
-        return True  #if grayscale
-    else:
-        return False  #else its colour
-
 
 def zipdir(path, ziph):
     # ziph is zipfile handle
@@ -808,19 +779,6 @@ def zipdir(path, ziph):
         for file in files:
             ziph.write(os.path.join(root, file),
                        os.path.relpath(os.path.join(root, file), os.path.join(path, '..')))
-
-
-def updateCorrectorBoxMarked(pageMarkers):
-    markers = json.loads(pageMarkers.markers)['markers']
-    for marker in markers:
-        return
-
-
-def get_exam_copies_from_to(exam):
-    scans_dir = str(get_exam_scans_dir(exam))
-    copies_folders = [entry.name for entry in iter_review_copy_dirs(scans_dir)]
-    copies = [copy.lstrip('0') for copy in copies_folders]
-    return copies
 
 
 def get_scans_list(exam):
