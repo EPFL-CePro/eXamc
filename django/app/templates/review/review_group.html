@@ -18,54 +18,29 @@
 {% block title %}Review {{ pages_group }}{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between mb-3">
-        <div class="d-flex align-items-center gap-5">
-            <h3 class="mb-0">
-                <i class="fa-solid fa-glasses me-2"></i> Review {{ pages_group.group_name }}
-            </h3>
+    {# Tooltips: every element with data-bs-title gets a Bootstrap tooltip #}
+    <div class="d-flex align-items-center gap-4 mb-3">
+        <h3 class="mb-0">
+            <i class="fa-solid fa-glasses me-2" aria-hidden="true"></i> Review {{ pages_group.group_name }}
+        </h3>
 
-            <a class="btn btn-icon btn-dark btn-sm" href="{% url 'review_view' exam_selected.pk %}">
-                <i class="fa-solid fa-arrow-left fa-lg me-2"></i> Back to Summary
-            </a>
+        <a class="btn btn-icon btn-dark btn-sm" href="{% url 'review_view' exam_selected.pk %}">
+            <i class="fa-solid fa-arrow-left fa-lg me-2" aria-hidden="true"></i> Back to Summary
+        </a>
 
-            {% if not user.pk|is_review_blocked:exam_selected.pk and copies_pages_list %}
-                <div class="d-flex justify-content-end me-3">
-                    <button type="button" class="btn btn-dark btn-sm js-toggle-comments"
-                            data-bs-toggle="modal" data-bs-target="#commentsModal"
-                            title="Discussion" aria-label="Discussion">
-                        <i class="fa-solid fa-comments fa-lg me-2"></i> See comments
-                    </button>
-                </div>
+        {% if not user.pk|is_review_blocked:exam_selected.pk and copies_pages_list %}
+            <button type="button" class="btn btn-dark btn-sm js-toggle-comments"
+                    data-bs-toggle="modal" data-bs-target="#commentsModal"
+                    data-bs-title="Discussion about this copy" data-bs-placement="bottom">
+                <i class="fa-solid fa-comments fa-lg me-2" aria-hidden="true"></i> See comments
+            </button>
 
-                <div class="review-shortcuts-hint-row">
-                    <div class="review-shortcuts-hint review-shortcuts-hint-top" id="navigation-shortcuts-help"
-                         role="note" aria-label="Navigation shortcuts">
-                        <span class="hint-item">
-                            <span class="hint-icons" aria-hidden="true">
-                                <i class="fa-solid fa-arrow-left"></i>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </span>
-                            <span>page</span>
-                        </span>
-                        <span class="hint-item">
-                            <span class="hint-icons" aria-hidden="true">
-                                <i class="fa-solid fa-arrow-up"></i>
-                                <i class="fa-solid fa-arrow-down"></i>
-                            </span>
-                            <span>student</span>
-                        </span>
-                        <span class="hint-item">
-                            <span class="hint-icons" aria-hidden="true">
-                                <span>shift</span>
-                                <i class="fa-solid fa-arrow-left"></i>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </span>
-                            <span>question</span>
-                        </span>
-                    </div>
-                </div>
-            {% endif %}
-        </div>
+            {# Opens the keyboard shortcuts list (a popover, so no tooltip on this one); also the ? key #}
+            <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" id="btn-shortcuts"
+                    aria-haspopup="dialog">
+                <i class="fa-regular fa-circle-question me-1" aria-hidden="true"></i> Help
+            </button>
+        {% endif %}
     </div>
 
     {% if user.pk|is_review_blocked:exam_selected.pk %}
@@ -73,239 +48,308 @@
             You are currently blocked for Review!<br><br>Please contact the teacher to be unblocked.
         </div>
     {% elif copies_pages_list %}
-        <div class="d-flex gap-3" id="reviewGroup_div" style="height:92vh;" tabindex="0">
-            {# Left: list of copies and pages #}
-            <div id="pages-group-list" class="card flex-shrink-0 h-100">
+        <div class="d-flex gap-1" id="reviewGroup_div" style="height: 92vh;">
+
+            {# ---------------------------------------------------------------- Left: the question's pages #}
+            <div id="pages-group-list" class="card h-100 flex-shrink-0"
+                 style="min-width: 10rem; max-width: 30vw;">
                 <div id="pages-group-list-header"
                      class="card-header d-flex align-items-center justify-content-between gap-2 py-1"
-                     style="cursor: pointer">
-                    <h6 class="m-0" id="pages-group-list-title">Pages</h6>
+                     style="cursor: pointer;">
+                    <h6 class="m-0 text-nowrap" id="pages-group-list-title">Pages</h6>
                     <button type="button" class="btn btn-icon btn-link text-secondary p-0"
                             id="expand-collapse-group-list-bt"
                             aria-controls="pages-group-list-table-div" aria-expanded="true"
-                            aria-label="Show or hide the list of pages">
-                        <i class="fa-solid fa-table-list fa-lg d-none" id="expand-group-list-icon"
-                           aria-hidden="true"></i>
+                            aria-label="Show or hide the list of pages"
+                            data-bs-title="Show or hide the list of pages" data-bs-placement="right">
+                        <i class="fa-solid fa-table-list fa-lg d-none" id="expand-group-list-icon" aria-hidden="true"></i>
                         <i class="fa-solid fa-angle-double-left" id="collapse-group-list-icon" aria-hidden="true"></i>
                     </button>
                 </div>
 
-                <div id="pages-group-list-table-div" class="card-body p-0"
-                     style="min-height: 0;">
-                    <table class="table table-striped table-sm mb-0" id="table-copies-pages">
+                <div id="pages-group-list-table-div" class="card-body p-0" style="min-height: 0;">
+                    <table class="table table-sm table-hover mb-0" id="table-copies-pages">
                         <thead class="sticky-top">
-                        <tr>
-                            <th scope="col">
-                                <i class="fa-solid fa-lock fa-xs" aria-hidden="true"></i>
-                                <span class="visually-hidden">Locked</span>
-                            </th>
-                            <th scope="col">ID</th>
-                            <th scope="col">Copy</th>
-                            <th scope="col">Page</th>
-                            <th scope="col">Graded</th>
-                            <th class="text-center" scope="col">
-                                <i class="fa-solid fa-comments" aria-hidden="true"></i>
-                                <span class="visually-hidden">Comments</span>
-                            </th>
-                        </tr>
+                            <tr>
+                                <th scope="col">
+                                    <i class="fa-solid fa-lock fa-xs" aria-hidden="true"></i>
+                                    <span class="visually-hidden">Locked</span>
+                                </th>
+                                <th scope="col">#</th>
+                                <th scope="col">Copy</th>
+                                <th scope="col">Page</th>
+                                <th scope="col">Graded</th>
+                                <th class="text-center" scope="col">
+                                    <i class="fa-solid fa-comments" aria-hidden="true"></i>
+                                    <span class="visually-hidden">Comments</span>
+                                </th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {% for page in copies_pages_list %}
-                            <tr id="copy_{{ page.copy_no }}_{{ page.page_no }}">
-                                <td>
-                                    {# Shown by the script when another user has the page open #}
-                                    <i class="fa-solid fa-lock fa-xs" id="copy_{{ page.copy_no }}_{{ page.page_no }}_id"
-                                       name="{{ forloop.counter }}" style="display:none; color:#df8134;"
-                                       aria-hidden="true"></i>
-                                </td>
-                                <td class="text-start">{{ forloop.counter }}</td>
-                                <td class="text-start">{{ page.copy_no }}</td>
-                                <td class="text-center">{{ page.page_no }}</td>
-                                <td class="text-center" id="copy_{{ page.copy_no }}_{{ page.page_no }}_marked"
-                                    data-order="{% if page.marked %}1{% else %}0{% endif %}">
-                                    {% if page.marked %}
-                                        <i class="fa-solid fa-circle-check fa-lg" aria-hidden="true"></i>
-                                        <span class="visually-hidden">Graded</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center" data-order="{% if page.comment %}1{% else %}0{% endif %}">
-                                    {% if page.comment %}
-                                        <i class="fa-solid fa-comments fa-lg" aria-hidden="true"></i>
-                                        <span class="visually-hidden">Has comments</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
+                            {% for page in copies_pages_list %}
+                                {# data-index: the page's position in the question, opened when its row is clicked #}
+                                <tr id="copy_{{ page.copy_no }}_{{ page.page_no }}" data-index="{{ forloop.counter0 }}" style="cursor: pointer;">
+                                    <td>
+                                        {# Shown by the script when another reviewer has the copy open #}
+                                        <i class="fa-solid fa-lock fa-xs" id="copy_{{ page.copy_no }}_{{ page.page_no }}_id"
+                                           style="display: none; color: #df8134;" aria-hidden="true"></i>
+                                    </td>
+                                    <td class="text-start text-body-secondary">{{ forloop.counter }}</td>
+                                    {# Numbers without leading zeros, as in the page indicator under the page #}
+                                    <td class="text-start">{{ page.copy_no|add:0 }}</td>
+                                    <td class="text-center">{{ page.page_no|add:0 }}</td>
+                                    <td class="text-center" id="copy_{{ page.copy_no }}_{{ page.page_no }}_marked"
+                                        data-order="{% if page.marked %}1{% else %}0{% endif %}">
+                                        {% if page.marked %}
+                                            <i class="fa-solid fa-circle-check fa-lg" aria-hidden="true"></i>
+                                            <span class="visually-hidden">Graded</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center" data-order="{% if page.comment %}1{% else %}0{% endif %}">
+                                        {% if page.comment %}
+                                            <i class="fa-solid fa-comments fa-lg" aria-hidden="true"></i>
+                                            <span class="visually-hidden">Has comments</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {# Center: page viewer and annotation tools #}
-            <div class="d-flex flex-column position-relative h-100 ms-1" id="review-center-div" style="width:60vw;">
-                <div class="list-group list-group-horizontal" id="pagination"></div>
-                <div id="markerjs_div">
-                    <div class="markerjs-toolbar d-flex" id="mjs-toolbar">
-                        <div class="toolbar-left d-flex">
-                            <button type="button" class="btn btn-icon btn-light" id="btn-clear"
-                                    title="Clear all markers" aria-label="Clear all markers">
-                                <i class="fa-solid fa-broom fa-lg" aria-hidden="true"></i>
+            <examc-resize-handle for="pages-group-list" id="pages-group-list-resize"></examc-resize-handle>
+
+            {# ---------------------------------------------------------------- Center: the page, with its controls floating over it #}
+            <div class="d-flex flex-column position-relative h-100 flex-grow-1" id="review-center-div" style="min-width: 0;">
+                <div id="markerjs_div" class="d-flex flex-column flex-grow-1" style="min-height: 0;">
+                    {# A tinted area, so the page (white, with a shadow) stands out from it #}
+                    <div id="mjsapp" class="position-relative flex-grow-1 bg-body-tertiary rounded" style="min-height: 0;">
+
+                        {# marker.js fills the whole area; the page is fitted inside it, clear of the top and bottom bars #}
+                        <div id="marker-wrapper" class="position-absolute top-0 start-0 w-100 h-100"></div>
+
+                        {# Top center: drawing tools #}
+                        <div class="btn-group position-absolute top-0 start-50 translate-middle-x mt-2 z-1 rounded shadow-sm bg-body bg-opacity-75"
+                             style="backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);"
+                             id="mjs-tools" role="toolbar" aria-label="Drawing tools">
+                            <button type="button" class="btn btn-outline-dark" id="btn-pointer"
+                                    aria-label="Select" data-bs-title="Select (Shift+V)" data-bs-placement="top">
+                                <i class="fa-solid fa-arrow-pointer" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" id="btn-text-marker"
+                                    aria-label="Text" data-bs-title="Text (Shift+T)" data-bs-placement="top">
+                                <i class="fa-solid fa-t" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" id="btn-frame-marker"
+                                    aria-label="Rectangle" data-bs-title="Rectangle (Shift+R)" data-bs-placement="top">
+                                <i class="fa-regular fa-square" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" id="btn-freehand-marker"
+                                    aria-label="Freehand" data-bs-title="Freehand (Shift+F)" data-bs-placement="top">
+                                <i class="fa-solid fa-signature" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" id="btn-pan"
+                                    aria-label="Move the page" data-bs-title="Move the page (Shift+H)" data-bs-placement="top">
+                                <i class="fa-solid fa-hand" aria-hidden="true"></i>
                             </button>
                         </div>
-                        <div class="toolbar-nav d-flex align-items-center" id="mjs-toolbar-nav">
-                            {% if copies_pages_list %}
-                                {# Same student's copy in the previous / next question (pages group) #}
-                                <button type="button" class="btn btn-icon btn-light" id="btn-previous-question"
-                                        data-step-url="{% if previous_pages_group %}{% url 'review_group' exam_selected.pk previous_pages_group.pk %}{% endif %}"
-                                        title="{% if previous_pages_group %}Same student, previous question ({{ previous_pages_group.group_name }}){% else %}No previous question{% endif %}"
-                                        aria-label="Previous student question"
-                                        {% if not previous_pages_group %}disabled{% endif %}>&lt;&lt;
+
+                        {# Color of the active marker tool: a swatch the script places right under that tool #}
+                        <div class="position-absolute z-1 d-none" id="color-swatch">
+                            <button type="button" class="btn rounded-circle border border-2 border-white shadow-sm p-0 d-block" id="btn-color"
+                                    style="width: 1.5rem; height: 1.5rem;"
+                                    aria-label="Marker color" data-bs-title="Marker color" data-bs-placement="bottom"></button>
+
+                            {# Opened by the swatch; laid under it so the browser opens its picker next to it #}
+                            <input type="color" id="color-input" value="#CCCCCC" tabindex="-1" aria-hidden="true"
+                                   class="position-absolute top-0 start-0 w-100 h-100 opacity-0 pe-none">
+                        </div>
+
+                        {# Top right: page view #}
+                        <div class="btn-group-vertical position-absolute top-0 end-0 m-2 z-1 rounded shadow-sm bg-body bg-opacity-75"
+                             style="backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);"
+                             role="toolbar" aria-label="Page view">
+                            <button type="button" class="btn btn-outline-dark" id="btn-zoom-in"
+                                    aria-label="Zoom in" data-bs-title="Zoom in (+)" data-bs-placement="left">
+                                <i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" id="btn-zoom-out"
+                                    aria-label="Zoom out" data-bs-title="Zoom out (−)" data-bs-placement="left">
+                                <i class="fa-solid fa-magnifying-glass-minus" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" id="btn-zoom-reset"
+                                    aria-label="Fit" data-bs-title="Fit (0)" data-bs-placement="left">
+                                <i class="fa-solid fa-arrows-to-dot" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        {# Bottom left: clear, apart from the tools so it isn't hit by mistake #}
+                        <div class="btn-group-vertical position-absolute bottom-0 start-0 m-2 z-1 rounded shadow-sm bg-body bg-opacity-75"
+                             style="backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);">
+                            <button type="button" class="btn btn-outline-danger" id="btn-clear"
+                                    aria-label="Clear all markers" data-bs-title="Clear all markers" data-bs-placement="right">
+                                <i class="fa-solid fa-broom" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        {# Bottom center: the page shown and its neighbours, then the same student in other questions #}
+                        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2 z-1 d-flex gap-2"
+                             id="mjs-toolbar-nav" role="toolbar" aria-label="Navigation">
+
+                            <div class="btn-group rounded shadow-sm bg-body bg-opacity-75" role="group" aria-label="Pages"
+                                 style="backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);">
+                                <button type="button" class="btn btn-outline-dark" id="btn-previous-page"
+                                        aria-label="Previous page" data-bs-title="Previous page (←)" data-bs-placement="top">
+                                    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
                                 </button>
-                                <div class="dropdown">
-                                    <button type="button" class="btn btn-light dropdown-toggle" id="btn-question-select"
+
+                                {# The page shown ("Copy 2, page 12"); the menu lists the copy's pages. Filled by the script. #}
+                                <div class="btn-group dropup" role="group">
+                                    <button type="button" class="btn btn-outline-dark dropdown-toggle text-nowrap" id="btn-page-select"
                                             data-bs-toggle="dropdown" aria-expanded="false"
-                                            title="Same student, go to another question" aria-label="Go to question">
+                                            data-bs-title="This copy's pages" data-bs-placement="top">
+                                        …
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end overflow-y-auto" id="page-select-menu"
+                                        aria-labelledby="btn-page-select" style="max-height: 50vh;"></ul>
+                                </div>
+
+                                <button type="button" class="btn btn-outline-dark" id="btn-next-page"
+                                        aria-label="Next page" data-bs-title="Next page (→)" data-bs-placement="top">
+                                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                                </button>
+                            </div>
+
+                            <div class="btn-group rounded shadow-sm bg-body bg-opacity-75" role="group" aria-label="Questions"
+                                 style="backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);">
+                                {# Disabled buttons get no mouse events: the wrapper carries their tooltip #}
+                                <span class="btn-group" tabindex="{% if previous_pages_group %}-1{% else %}0{% endif %}"
+                                      data-bs-title="{% if previous_pages_group %}Same student, previous question ({{ previous_pages_group.group_name }}){% else %}No previous question{% endif %}"
+                                      data-bs-placement="top">
+                                    <button type="button" class="btn btn-outline-dark" id="btn-previous-question"
+                                            data-step-url="{% if previous_pages_group %}{% url 'review_group' exam_selected.pk previous_pages_group.pk %}{% endif %}"
+                                            aria-label="Previous question, same student"
+                                            {% if not previous_pages_group %}disabled{% endif %}>
+                                        <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+                                    </button>
+                                </span>
+
+                                <div class="btn-group dropup" role="group">
+                                    <button type="button" class="btn btn-outline-dark dropdown-toggle text-truncate" style="max-width: 16rem;"
+                                            id="btn-question-select" data-bs-toggle="dropdown" aria-expanded="false"
+                                            data-bs-title="Same student, another question" data-bs-placement="top">
                                         {{ pages_group.group_name }}
                                     </button>
-                                    <ul class="dropdown-menu question-select-menu"
-                                        aria-labelledby="btn-question-select">
+                                    <ul class="dropdown-menu question-select-menu" aria-labelledby="btn-question-select">
                                         {% for group in question_pages_groups %}
                                             <li>
-                                                <a href="#"
-                                                   class="dropdown-item js-question-link{% if group.pk == pages_group.pk %} active{% endif %}"
+                                                <a href="#" class="dropdown-item js-question-link{% if group.pk == pages_group.pk %} active{% endif %}"
+                                                   {% if group.pk == pages_group.pk %}aria-current="page"{% endif %}
                                                    data-step-url="{% url 'review_group' exam_selected.pk group.pk %}">{{ group.group_name }}</a>
                                             </li>
                                         {% endfor %}
                                     </ul>
                                 </div>
-                                <button type="button" class="btn btn-icon btn-light" id="btn-next-question"
-                                        data-step-url="{% if next_pages_group %}{% url 'review_group' exam_selected.pk next_pages_group.pk %}{% endif %}"
-                                        title="{% if next_pages_group %}Same student, next question ({{ next_pages_group.group_name }}){% else %}No next question{% endif %}"
-                                        aria-label="Next student question"
-                                        {% if not next_pages_group %}disabled{% endif %}>&gt;&gt;
-                                </button>
-                                <div id="copy_page_select"></div>
-                            {% endif %}
-                        </div>
-                        <div class="toolbar-center d-flex" id="mjs-toolbar-center">
-                            <button type="button" class="btn btn-icon btn-light" id="btn-pointer"
-                                    title="Select (Shift+V)" aria-label="Select (Shift+V)">
-                                <i class="fa-solid fa-arrow-pointer fa-lg" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" class="btn btn-icon btn-light" id="btn-text-marker"
-                                    title="Text marker (Shift+T)" aria-label="Text marker (Shift+T)">
-                                <i class="fa-solid fa-t fa-lg" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" class="btn btn-icon btn-light" id="btn-frame-marker"
-                                    title="Rectangle marker (Shift+R)" aria-label="Rectangle marker (Shift+R)">
-                                <i class="fa-regular fa-square fa-lg" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" class="btn btn-icon btn-light" id="btn-freehand-marker"
-                                    title="Freehand marker (Shift+F)" aria-label="Freehand marker (Shift+F)">
-                                <i class="fa-solid fa-s fa-lg" aria-hidden="true"
-                                   style="margin-top:10px;transform:scaleY(-1) rotate(55deg);"></i>
-                                <i class="fa-solid fa-pencil fa-lg" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                        <div class="toolbar-right d-flex">
-                            <button type="button" class="btn btn-icon btn-light" id="btn-pan"
-                                    title="Move image (drag)" aria-label="Move image (drag)">
-                                <i class="fa-solid fa-hand fa-lg" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" class="btn btn-icon btn-light" id="btn-zoom-out"
-                                    title="Zoom out" aria-label="Zoom out">
-                                <i class="fa-solid fa-magnifying-glass-minus fa-lg" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" class="btn btn-light" id="btn-zoom-reset"
-                                    title="Reset zoom" aria-label="Reset zoom">100%
-                            </button>
-                            <button type="button" class="btn btn-icon btn-light" id="btn-zoom-in"
-                                    title="Zoom in" aria-label="Zoom in">
-                                <i class="fa-solid fa-magnifying-glass-plus fa-lg" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="mjsapp">
-                        <div id="marker-wrapper">
-                            <div class="corr-box-div" id="corr_box_div"></div>
-                        </div>
-                    </div>
-                    <div class="markerjs-bottom-bar" id="mjs-bottom-bar">
-                        <div class="color-picker-wrapper">
-                            <button type="button" class="btn btn-icon btn-light" id="btn-color"
-                                    title="Marker color" aria-label="Marker color">
-                                <i class="fa-solid fa-palette fa-lg" aria-hidden="true"></i>
-                            </button>
-                            {# Hidden: opened by the palette button #}
-                            <input type="color" class="form-control form-control-color" id="color-input"
-                                   value="#CCCCCC" title="Choose a color" tabindex="-1" aria-hidden="true"
-                                   style="position:absolute; left:-9999px; width:0; height:0; opacity:0;">
+
+                                <span class="btn-group" tabindex="{% if next_pages_group %}-1{% else %}0{% endif %}"
+                                      data-bs-title="{% if next_pages_group %}Same student, next question ({{ next_pages_group.group_name }}){% else %}No next question{% endif %}"
+                                      data-bs-placement="top">
+                                    <button type="button" class="btn btn-outline-dark" id="btn-next-question"
+                                            data-step-url="{% if next_pages_group %}{% url 'review_group' exam_selected.pk next_pages_group.pk %}{% endif %}"
+                                            aria-label="Next question, same student"
+                                            {% if not next_pages_group %}disabled{% endif %}>
+                                        <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
+                                    </button>
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {# Right: grading schemes #}
-            <div class="h-100">
-                {% if pages_group.use_grading_scheme and grading_schemes|length > 0 %}
-                    <div id="grading-scheme-div" class="card position-relative h-100" style="width: 28rem">
-                        <div class="card-header">
-                            <h6 class="mb-0">Grading schemes</h6>
+            {# ---------------------------------------------------------------- Right: grading schemes #}
+            {% if pages_group.use_grading_scheme and grading_schemes|length > 0 %}
+                <examc-resize-handle for="grading-scheme-div"></examc-resize-handle>
+
+                <div id="grading-scheme-div" class="card position-relative h-100 flex-shrink-0"
+                     style="width: 28rem; min-width: 20rem; max-width: 40vw;">
+                    <div class="card-header">
+                        <h6 class="mb-0">Grading schemes</h6>
+                    </div>
+
+                    <div class="card-body d-flex flex-column align-items-start p-2" style="min-height: 0;">
+                        <div class="nav nav-pills flex-wrap gap-1 border rounded p-1" id="review-scheme-tabs" role="tablist">
+                            {% for tab in scheme_tabs %}
+                                {% with gs=tab.scheme %}
+                                    {# The tooltip goes on the wrapper: a disabled button gets no mouse events #}
+                                    <span class="nav-item" role="presentation"
+                                          {% if tab.invalid_reason %}tabindex="0" data-bs-toggle="tooltip" data-bs-title="{{ tab.invalid_reason }}" data-bs-placement="bottom"{% endif %}>
+                                        <button type="button" role="tab"
+                                                class="nav-link text-nowrap js-scheme-link{% if current_grading_scheme.id == gs.id %} active{% endif %}"
+                                                id="review-scheme-link-{{ gs.id }}"
+                                                aria-selected="{% if current_grading_scheme.id == gs.id %}true{% else %}false{% endif %}"
+                                                aria-controls="review-scheme-panel"
+                                                data-exam-id="{{ exam_selected.id }}"
+                                                hx-get="{% url 'review_grading_scheme_panel' exam_selected.id gs.id 0 %}"
+                                                hx-trigger="never"
+                                                onclick="return sendScheme(this, event)"
+                                                {% if tab.invalid_reason %}disabled aria-disabled="true" tabindex="-1"{% endif %}>
+                                            {{ gs.name }}
+                                        </button>
+                                    </span>
+                                {% endwith %}
+                            {% endfor %}
                         </div>
 
-                        <div class="card-body d-flex flex-column align-items-start gap-0 p-2" style="min-height: 0;">
-                            <div class="nav nav-pills flex-wrap gap-1 border rounded p-1"
-                                 id="review-scheme-tabs"
-                                 role="tablist">
-                                {% for tab in scheme_tabs %}
-                                    {% with gs=tab.scheme %}
-                                        {# The tooltip goes on the wrapper: a disabled button gets no mouse events #}
-                                        <span class="nav-item" role="presentation"
-                                              {% if tab.invalid_reason %}
-                                                  tabindex="0"
-                                                  data-bs-toggle="tooltip"
-                                                  data-bs-title="{{ tab.invalid_reason }}"
-                                                  data-bs-placement="bottom"
-                                              {% endif %}>
-                                            <button type="button" role="tab"
-                                                    class="nav-link text-nowrap js-scheme-link{% if current_grading_scheme.id == gs.id %} active{% endif %}"
-                                                    id="review-scheme-link-{{ gs.id }}"
-                                                    aria-selected="{% if current_grading_scheme.id == gs.id %}true{% else %}false{% endif %}"
-                                                    aria-controls="review-scheme-panel"
-                                                    data-exam-id="{{ exam_selected.id }}"
-                                                    hx-get="{% url 'review_grading_scheme_panel' exam_selected.id gs.id 0 %}"
-                                                    hx-trigger="never"
-                                                    onclick="return sendScheme(this, event)"
-                                                    {% if tab.invalid_reason %}disabled aria-disabled="true" tabindex="-1"{% endif %}>
-                                                {{ gs.name }}
-                                            </button>
-                                        </span>
-                                    {% endwith %}
-                                {% endfor %}
-                            </div>
+                        <hr class="w-100">
 
-                            <hr class="w-100">
-
-                            {# Filled by htmx; the grid stretches the loaded panel to the remaining height #}
-                            <div id="review-scheme-panel" role="tabpanel"
-                                 class="d-grid w-100"
-                                 style="flex: 1 1 auto; min-height: 0;
-                                        grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr);">
-                                <div class="text-muted">Loading…</div>
-                            </div>
-                        </div>
-
-                        {# Shown by the script when the current page isn't part of the review group #}
-                        <div class="alert alert-warning block-overlay" id="grading-scheme-block-overlay">
-                            <span>Please return to a page linked to the review group to use the grading schemes.</span>
+                        {# Filled by htmx; the grid stretches the loaded panel to the remaining height #}
+                        <div id="review-scheme-panel" role="tabpanel" class="d-grid w-100"
+                             style="flex: 1 1 auto; min-height: 0; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr);">
+                            <div class="text-muted">Loading…</div>
                         </div>
                     </div>
-                {% endif %}
-            </div>
+
+                    {# Shown by the script when the page shown isn't part of the question #}
+                    <div class="alert alert-warning block-overlay" id="grading-scheme-block-overlay">
+                        <span>Please return to a page linked to the review group to use the grading schemes.</span>
+                    </div>
+                </div>
+            {% endif %}
         </div>
 
-        <div class="modal fade" id="commentsModal" tabindex="-1" aria-labelledby="commentsModalLabel"
-             aria-hidden="true">
+        {# ---------------------------------------------------------------- Keyboard shortcuts, shown by the "?" button #}
+        <template id="shortcuts-help">
+            <table class="table table-sm table-borderless small mb-0">
+                <tbody>
+                    <tr><th colspan="2" class="pt-0 text-body-secondary fw-semibold">Navigate</th></tr>
+                    <tr><td class="text-nowrap"><kbd>←</kbd> <kbd>→</kbd></td><td>Previous / next page</td></tr>
+                    <tr><td class="text-nowrap"><kbd>↑</kbd> <kbd>↓</kbd></td><td>Previous / next student</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>←</kbd> <kbd>→</kbd></td><td>Same student, previous / next question</td></tr>
+
+                    <tr><th colspan="2" class="pt-2 text-body-secondary fw-semibold">View</th></tr>
+                    <tr><td class="text-nowrap"><kbd>+</kbd> <kbd>−</kbd></td><td>Zoom in / out</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Ctrl</kbd> + wheel</td><td>Zoom</td></tr>
+                    <tr><td class="text-nowrap"><kbd>0</kbd></td><td>Fit and center the page</td></tr>
+                    <tr><td class="text-nowrap">Wheel</td><td>Move the page</td></tr>
+
+                    <tr><th colspan="2" class="pt-2 text-body-secondary fw-semibold">Draw</th></tr>
+                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>V</kbd></td><td>Select</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>T</kbd></td><td>Text</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>R</kbd></td><td>Rectangle</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>F</kbd></td><td>Freehand</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>H</kbd></td><td>Move the page (hand)</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Delete</kbd></td><td>Remove the selected markers</td></tr>
+
+                    <tr><th colspan="2" class="pt-2 text-body-secondary fw-semibold">Help</th></tr>
+                    <tr><td class="text-nowrap"><kbd>?</kbd></td><td>Show or hide this list</td></tr>
+                </tbody>
+            </table>
+        </template>
+
+        {# ---------------------------------------------------------------- Discussion #}
+        <div class="modal fade" id="commentsModal" tabindex="-1" aria-labelledby="commentsModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header handle">
@@ -318,21 +362,22 @@
                         <div id="comments-container" class="p-1"></div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-icon btn-secondary btn-sm" data-bs-dismiss="modal">Close
-                        </button>
+                        <button type="button" class="btn btn-icon btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
         </div>
 
+        {# Read by the http helpers (csrfToken()) for every request #}
+        {% csrf_token %}
+
         <script>
             window.REVIEW_GROUP_CONFIG = {
                 examId: {{ exam_selected.pk }},
                 pagesGroupId: {{ pages_group.id }},
-                useGradingScheme: {{ use_grading_scheme}},
+                useGradingScheme: {{ use_grading_scheme }},
                 userId: {{ user.id }},
                 currPage: {{ currpage|default:"0" }},
-                csrfToken: "{{ csrf_token }}",
 
                 urls: {
                     reviewStudentPageLocked: "{% url 'review_student_pages_group_is_locked' exam_selected.pk %}",
