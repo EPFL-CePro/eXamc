@@ -68,14 +68,14 @@
             </div>
 
             {# To do + shortcuts: stacked on extra-large and small screens, side by side in between #}
-            <div class="d-flex flex-column flex-md-row flex-xl-column gap-3 col-xl-4 align-items-start">
-                <section class="card w-100">
+            <div class="d-flex flex-wrap flex-grow-1 gap-3 align-items-start" style="flex-basis: 20rem">
+                <section class="card flex-grow-1">
                     <div class="card-header">
                         <h4 class="h5 mb-0">
                             <i class="fa-solid fa-list-check me-2" aria-hidden="true"></i>To do
                         </h4>
                     </div>
-                    <div class="list-group list-group-flush overflow-y-auto" style="max-height: 40rem">
+                    <div class="list-group list-group-flush overflow-y-auto" style="max-height: 34rem">
                         {% for todo in dashboard_todos %}
                             <div class="list-group-item d-flex gap-3">
                                 <span class="d-flex align-items-center justify-content-center flex-shrink-0 rounded-circle bg-body-tertiary"
@@ -98,7 +98,7 @@
                     </div>
                 </section>
 
-                <section class="card w-100">
+                <section class="card flex-grow-1">
                     <div class="card-header">
                         <h4 class="h5 mb-0">
                             <i class="fa-solid fa-bolt me-2" aria-hidden="true"></i>Shortcuts
