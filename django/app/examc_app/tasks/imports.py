@@ -20,7 +20,6 @@ from examc_app.utils.zip_security import safe_extract_zip
 
 @shared_task(bind=True, name="examc_app.tasks.import_csv_data")
 def import_csv_data(self, temp_csv_file_path, exam_pk: int):
-
     try:
         progress_recorder = ProgressRecorder(self)
         exam = Exam.objects.get(pk=exam_pk)
@@ -32,7 +31,7 @@ def import_csv_data(self, temp_csv_file_path, exam_pk: int):
         process_number = 1
         progress_recorder.set_progress(0, process_count, description='')
         time.sleep(2)
-        progress_recorder.set_progress(process_number, process_count, description=str(process_number)+'/'+str(process_count)+' - Deleting old data...')
+        progress_recorder.set_progress(process_number, process_count, description=f"{process_number}/{process_count} - Deleting old data...")
         #delete old exam data
         delete_exam_data(exam)
         process_number+=1
@@ -51,7 +50,7 @@ def import_csv_data(self, temp_csv_file_path, exam_pk: int):
 
                 line_nr += 1
 
-                progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(process_count) + ' - Importing data from csv : row ' + str(line_nr) + '...')
+                progress_recorder.set_progress(process_number, process_count, description=f"{process_number}/{process_count} - Importing data from csv : row {line_nr}...")
 
                 if fields[0]:
 
@@ -203,11 +202,6 @@ def import_exam_scans(self, zip_file_path: str, exam_pk: int, delete_old: bool) 
 
     Progress is reported through celery_progress (``current``, ``total`` and ``description``),
     which ``upload_scans_status`` passes on to the page.
-
-    :param zip_file_path: The uploaded zip. Removed once the task is over, whether it worked or not.
-    :param exam_pk: The primary key of the exam.
-    :param delete_old: Whether to delete the existing scans, with their annotations and comments, first.
-    :return: ``"upload_scans_ok"``.
     """
     progress = ProgressRecorder(self)
     extract_root = None

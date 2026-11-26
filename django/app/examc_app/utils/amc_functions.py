@@ -1168,16 +1168,16 @@ def amc_annotate(
 
     command = [
         "auto-multiple-choice", "annotate",
-        "--project", project_path,
-        "--names-file", students_list,
-        "--association-key", assoc_primary_key,
-        "--filename-model", filename_model,
-        "--symbols", symbols,
-        "--verdict", verdict,
-        "--verdict-question", verdict_q,
-        "--verdict-question-cancelled", verdict_qc,
-        "--position", annote_position,
-        "--compose", "0",
+            "--project", project_path,
+            "--names-file", students_list,
+            "--association-key", assoc_primary_key,
+            "--filename-model", filename_model,
+            "--symbols", symbols,
+            "--verdict", verdict,
+            "--verdict-question", verdict_q,
+            "--verdict-question-cancelled", verdict_qc,
+            "--position", annote_position,
+            "--compose", "0",
     ]
     if single_file:
         command.extend(["--single-output", "annotated_papers.pdf"])
@@ -1476,6 +1476,7 @@ def find_student_for_amc_report(exam: Exam, report_row):
         return student
     else:
         raise Exception(f"Student not found for AMC report: exam={exam.pk} copie_no={copie_no}")
+
     # amc_copy_candidates = copy_number_candidates(amc_copy_nr)
     # if amc_copy_candidates:
     #     student = (
