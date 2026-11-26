@@ -283,8 +283,7 @@
                             {% for tab in scheme_tabs %}
                                 {% with gs=tab.scheme %}
                                     {# The tooltip goes on the wrapper: a disabled button gets no mouse events #}
-                                    <span class="nav-item" role="presentation"
-                                          {% if tab.invalid_reason %}tabindex="0" data-bs-toggle="tooltip" data-bs-title="{{ tab.invalid_reason }}" data-bs-placement="bottom"{% endif %}>
+                                    <span class="nav-item" role="presentation">
                                         <button type="button" role="tab"
                                                 class="nav-link text-nowrap js-scheme-link{% if current_grading_scheme.id == gs.id %} active{% endif %}"
                                                 id="review-scheme-link-{{ gs.id }}"
@@ -293,9 +292,9 @@
                                                 data-exam-id="{{ exam_selected.id }}"
                                                 hx-get="{% url 'review_grading_scheme_panel' exam_selected.id gs.id 0 %}"
                                                 hx-trigger="never"
-                                                onclick="return sendScheme(this, event)"
-                                                {% if tab.invalid_reason %}disabled aria-disabled="true" tabindex="-1"{% endif %}>
-                                            {{ gs.name }}
+                                                {% if tab.invalid_reason %}tabindex="0" data-bs-toggle="tooltip" data-bs-title="{{ tab.invalid_reason }}" data-bs-placement="bottom"{% endif %}
+                                                onclick="return sendScheme(this, event)">
+                                            {% if tab.invalid_reason %}⚠️ {% endif %}{{ gs.name }}
                                         </button>
                                     </span>
                                 {% endwith %}
