@@ -9,7 +9,7 @@ services:
       service: caddy
       file: compose.base.yml
     environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS}
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost:8443}
     ports:
       - "127.0.0.1:${CADDY_PORT:-8443}:${CADDY_PORT:-8443}"
 
@@ -39,6 +39,7 @@ services:
       file: compose.base.yml
 
   fe-runner:
+    user: "${UID:-1000}:${GID:-1000}"
     build:
       context: ../frontend
       target: dev
