@@ -38,6 +38,9 @@ class ViewContext:
     project_imported: bool
     "The AMC project has been imported and compiled."
 
+    collapse_sidebar: bool
+    "Let the sidebar be collapsed by default on all viewports"
+
     def __init__(
         self,
         base_dict: dict[str, Any] | None = None,
@@ -56,6 +59,8 @@ class ViewContext:
         curr_tab: str | None = None,
 
         pages_group: PagesGroup | None = None,
+
+        collapse_sidebar: bool = False
     ):
         # Every attribute exists, so reading one that wasn't set gives None instead of an AttributeError
         self.task_id = None
@@ -87,6 +92,8 @@ class ViewContext:
         self.set_pages_group(pages_group)
 
         self.set_project_imported()
+
+        self.set_collapse_sidebar(collapse_sidebar)
 
     def as_dict(self) -> dict[str, Any]:
         """Returns the fully built view context as a dictionary, without the values that were never set."""
@@ -166,3 +173,6 @@ class ViewContext:
             self.project_imported = True
         except AmcProjectPathNotFoundError:
             self.project_imported = False
+
+    def set_collapse_sidebar(self, collapse_sidebar: bool = False):
+        self.collapse_sidebar = collapse_sidebar

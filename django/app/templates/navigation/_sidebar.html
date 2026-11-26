@@ -1,14 +1,14 @@
 {% load static %}
 
 <div id="sidebar-container"
-     class="offcanvas-md offcanvas-start d-flex flex-column bg-dark flex-shrink-0 flex-grow-0 align-self-start"
+     class="{% if collapse_sidebar %}offcanvas{% else %}offcanvas-md{% endif %} offcanvas-start d-flex flex-column bg-dark flex-shrink-0 flex-grow-0 align-self-start"
      style="flex-basis: 14rem; width: 14rem; height: 100dvh; max-width: 14rem"
      tabindex="-1" aria-label="Main menu"
      data-bs-theme="dark">
 
-    {# Mobile toggle: just outside the drawer's right edge, so it slides with it #}
+    {# Mobile toggle: just outside the drawer's right edge, so it slides with it; on every width when collapsed #}
     <button type="button" id="sidebar-toggle"
-            class="btn btn-dark rounded-circle shadow d-flex align-items-center justify-content-center d-md-none"
+            class="btn btn-dark rounded-circle shadow d-flex align-items-center justify-content-center{% if not collapse_sidebar %} d-md-none{% endif %}"
             data-bs-toggle="offcanvas" data-bs-target="#sidebar-container" aria-controls="sidebar-container"
             aria-label="Toggle menu">
         <span class="fa-solid fa-bars fa-lg sidebar-toggle-open" aria-hidden="true"></span>
