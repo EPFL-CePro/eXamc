@@ -16,7 +16,7 @@ class FinalGenerationTaskTestCase(PrepViewsTestCase):
 
     def setUp(self):
         super().setUp()
-        patcher = patch("examc_app.tasks.ProgressRecorder", MagicMock())
+        patcher = patch("examc_app.tasks.preparation.ProgressRecorder", MagicMock())
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -40,8 +40,8 @@ class FinalGenerationTaskTestCase(PrepViewsTestCase):
 
     def run_task(self, build, register=None):
         register = register or MagicMock(return_value=[])
-        with patch("examc_app.tasks.build_final_exam", return_value=build), \
-                patch("examc_app.tasks.register_exam_in_amc", register):
+        with patch("examc_app.tasks.preparation.build_final_exam", return_value=build), \
+                patch("examc_app.tasks.preparation.register_exam_in_amc", register):
             result = generate_final_exam_files_task.apply(args=[self.job.pk])
         self.job.refresh_from_db()
         self.exam = Exam.objects.get(pk=self.exam.pk)

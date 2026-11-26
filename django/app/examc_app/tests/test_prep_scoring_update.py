@@ -197,8 +197,8 @@ class ScoringUpdateTaskTestCase(PrepViewsTestCase):
         job = ExamAMCJob.objects.create(exam=self.exam, requested_by=self.user, job_type="scoring_update",
                                         status="pending")
         latex = patches.pop("latex", MagicMock())
-        with patch("examc_app.tasks.update_exam_scoring_latex", latex), \
-                patch("examc_app.tasks.update_scoring_in_amc", **patches) as amc:
+        with patch("examc_app.tasks.preparation.update_exam_scoring_latex", latex), \
+                patch("examc_app.tasks.preparation.update_scoring_in_amc", **patches) as amc:
             update_amc_scoring_task.apply(args=[job.pk])
         job.refresh_from_db()
         return job, latex, amc

@@ -14,7 +14,7 @@ class PreviewTaskTestCase(TestCase):
                                              status="pending")
 
     def run_task(self, **patches):
-        with patch("examc_app.tasks.compile_exam_preview", **patches):
+        with patch("examc_app.tasks.preparation.compile_exam_preview", **patches):
             compile_exam_preview_task.apply(args=[self.job.pk])
         self.job.refresh_from_db()
 
