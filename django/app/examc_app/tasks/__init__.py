@@ -12,7 +12,11 @@ from examc_app.tasks.correction import (  # noqa: F401
     amc_annotate_task,
     amc_import_from_review_task,
 )
-from examc_app.tasks.exports import generate_marked_files_zip  # noqa: F401
+from examc_app.tasks.exports import (  # noqa: F401
+    finish_marked_files_zip,
+    generate_marked_copy_pdf,
+    generate_marked_files_zip,
+)
 from examc_app.tasks.imports import import_csv_data, import_exam_scans  # noqa: F401
 from examc_app.tasks.maintenance import (  # noqa: F401
     cleanup_review_locks,
