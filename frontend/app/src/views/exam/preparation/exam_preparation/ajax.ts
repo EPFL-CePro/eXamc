@@ -1,6 +1,7 @@
 import { LoadingModal } from "@examc/modals";
 
 import { withSavingOverlay } from "./saving-overlay.ts";
+import { assertHtmx } from "@examc/helpers/htmx.ts";
 
 export function getElement<T extends HTMLElement = HTMLElement>(selector: string): T | null {
     return document.querySelector<T>(selector);
@@ -30,7 +31,8 @@ export function withQuery(url: string, params: Record<string, string | number> =
 
 /** Makes htmx set up the hx-* attributes of HTML inserted by a script (htmx only does it for its own swaps). */
 export function processHtmx(element: Element): void {
-    if (typeof htmx !== "undefined") htmx.process(element);
+    assertHtmx(htmx);
+    htmx.process(element);
 }
 
 /** Shows an element hidden by an inline `display: none`. */

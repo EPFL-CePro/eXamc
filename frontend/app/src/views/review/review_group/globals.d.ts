@@ -6,9 +6,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare const $: any;
 
-declare const htmx: {
-    ajax(method: string, url: string, options: Record<string, unknown>): Promise<void>;
-};
+/** htmx doesn't have types, use `@examc/helpers/htmx.ts`' `assertHtmx` function to do some basic checks that it's correctly instanciated. */
+declare const htmx: unknown;
 
 interface Window {
     MathJax?: unknown;

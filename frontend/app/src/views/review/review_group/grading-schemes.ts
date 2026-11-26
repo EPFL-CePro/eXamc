@@ -6,6 +6,7 @@ import { highlightBox } from './markers';
 import { setMarkedIcon } from './pages-list';
 import { state } from './state';
 import { highlightCorrectorBox } from './viewer/corrector-boxes';
+import { assertHtmx } from '@examc/helpers/htmx';
 
 /**
  * The grading schemes card: its tabs (and their locks), the panel loaded by htmx for the page's copy,
@@ -134,6 +135,7 @@ export function sendScheme(tab: HTMLButtonElement, event?: Event): boolean {
     pendingSchemeSwap = onAfterSwap;
     document.body.addEventListener('htmx:afterSwap', onAfterSwap);
 
+    assertHtmx(htmx);
     void htmx.ajax('GET', url, {target: '#review-scheme-panel', swap: 'innerHTML transition:true', source: tab});
     return false;
 }
@@ -149,7 +151,11 @@ export function refreshActiveScheme(): void {
 function reloadCheckboxPanel(schemeId: string): void {
     const panel = document.getElementById(`chk-panel-${schemeId}`);
     const url = panel?.getAttribute('hx-get');
-    if (panel && url) void htmx.ajax('GET', url, {target: panel, swap: 'innerHTML'});
+
+    if (panel && url) {
+        assertHtmx(htmx);
+        void htmx.ajax('GET', url, {target: panel, swap: 'innerHTML'});
+    }
 }
 
 /**
