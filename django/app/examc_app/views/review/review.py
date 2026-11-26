@@ -80,6 +80,7 @@ class ReviewGroupView(
             nav_url="review_group",
             exam_pk=pages_group.exam.pk,
             pages_group=pages_group,
+            collapse_sidebar=True
         )
 
         # user is not allowed

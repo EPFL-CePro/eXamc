@@ -9,4 +9,7 @@ export function setupDatatables(): void {
     DataTable.type('num', 'className', 'dt-body-right');
     DataTable.type('num-fmt', 'className', 'dt-body-right');
     DataTable.type('date', 'className', 'dt-body-right');
+
+    // remove the default top margin on layout rows
+    DataTable.ext.classes.layout.row = 'row mb-2 justify-content-between';
 }

@@ -7,6 +7,7 @@ from statistics import mean, median, stdev
 
 import mpmath as mp
 import numpy as np
+from celery_progress.backend import ProgressRecorder
 from django.db import IntegrityError, transaction
 from django.db.models import Count, FloatField, Max, Q, Sum
 
@@ -34,8 +35,8 @@ COLORS = ['lightblue','orange', 'lightgreen', 'red', 'lightgray']
 DISCRIMINATORY_FACTOR = 27
 
 
-def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_count):
-    logger.info("GEN STATS for "+exam.code)
+def generate_exam_stats(exam: Exam, progress_recorder: ProgressRecorder, process_number, process_count):
+    logger.info(f"GEN STATS for {exam.code}")
     # reset statistic
     reset_statistics(exam)
 
@@ -69,7 +70,7 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
 
             else:
                 process_number += 1
-                progress_recorder.set_progress(process_number, process_count, description='Generating stats for exam : ' + exam.code)
+                progress_recorder.set_progress(process_number, process_count, description=f'Generating stats for exam : {exam.code}')
 
                 discriminatory_count = round(exam.present_students * 27 / 100)
                 student_list = exam.students.all()
@@ -86,8 +87,10 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
                 question_list = exam.questions.all()
 
             process_number += 1
-            progress_recorder.set_progress(process_number, process_count,
-                                           description='Generating stats for exam : ' + exam.code + '(scale stats & students grades)')
+            progress_recorder.set_progress(
+                process_number,
+                process_count,
+                description=f'Generating stats for exam : {exam.code} (scale stats & students grades)')
             for scale in exam.scales.all():
                 all_grades = []
                 distribution_list = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -193,8 +196,11 @@ def generate_exam_stats(exam: Exam, progress_recorder,process_number,process_cou
             #print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  - scales stats ok !")
 
             process_number += 1
-            progress_recorder.set_progress(process_number, process_count,
-                                           description='Generating stats for exam : ' + exam.code + '(questions & answers stats)')
+            progress_recorder.set_progress(
+                process_number,
+                process_count,
+                description='Generating stats for exam : {exam.code} (questions & answers stats)'
+            )
             #Statistics on questions
             for question in question_list:
                 answer_statistic_list = []

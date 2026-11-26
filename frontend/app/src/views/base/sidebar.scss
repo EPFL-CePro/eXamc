@@ -5,11 +5,14 @@
 @use "bootstrap/scss/bootstrap";
 
 #sidebar-container {
-    // From md up, the sidebar is part of the layout; below md, it's a fixed drawer handled by Bootstrap's offcanvas.
-    @media (min-width: 768px) {
-        position: sticky;
-        top: 0;
-        z-index: 2;
+    // From md up, the inline sidebar is part of the layout. Below md, or on pages that collapse it
+    // (plain .offcanvas), it's a fixed drawer handled by Bootstrap's offcanvas.
+    &.offcanvas-md {
+        @media (min-width: 768px) {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
     }
 
     #sidebar-toggle {
@@ -21,6 +24,13 @@
         margin-left: 1rem;
         // The hidden drawer has visibility: hidden, which its children inherit; the toggle stays visible.
         visibility: visible;
+
+        opacity: 0.6;
+        transition: opacity 0.2s ease-in-out;
+
+        &:hover {
+            opacity: 1;
+        }
 
         .sidebar-toggle-close {
             display: none;
