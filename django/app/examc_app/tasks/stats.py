@@ -3,11 +3,10 @@
 Named ``stats`` rather than ``statistics`` so it can never be mistaken for the standard library module.
 """
 
-from datetime import datetime
-
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder, logger
 from django.db.models import Sum
+from django.utils import timezone
 
 from examc_app.models import Exam
 from examc_app.services.jobs import update_job_progress
@@ -18,7 +17,7 @@ from examc_app.utils.generate_statistics_functions import generate_exam_stats
 def generate_statistics(self,exam_pk: int):
     try:
         exam = Exam.objects.get(pk=exam_pk)
-        logger.info(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : Start generating statistics ---> ")
+        logger.info(timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")+" : Start generating statistics ---> ")
 
         progress_recorder = ProgressRecorder(self)
 
@@ -41,7 +40,7 @@ def generate_statistics(self,exam_pk: int):
             progress_recorder.set_progress(0, process_count, description='')
             process_number = generate_exam_stats(exam,progress_recorder,process_number,process_count)
 
-        logger.info(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  -- > End generating stats !")
+        logger.info(timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")+" :  -- > End generating stats !")
 
         process_number += 1
         progress_recorder.set_progress(process_number, process_count, description=str(process_number) + '/' + str(

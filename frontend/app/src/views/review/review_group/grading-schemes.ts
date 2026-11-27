@@ -187,7 +187,9 @@ export async function updatePagesGroupCheckBox(
     });
     if (response === '' || state.gradingSchemeId === null) return;
 
-    const [corrBoxIndex, points, maxPoints, marked] = JSON.parse(response) as [number, number | '', number, boolean?];
+    const {boxToCheck: corrBoxIndex, points, maxPoints, marked} = JSON.parse(response) as {
+        boxToCheck: number; points: number | ''; maxPoints: number; marked?: boolean | null;
+    };
     const schemeId = state.gradingSchemeId;
 
     if (marked !== undefined && state.copyNo !== null && state.pageNo !== null) {
