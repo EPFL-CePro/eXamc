@@ -85,5 +85,5 @@ class CopiesPagesByGroupTestCase(TestCase):
 
             pages = get_copies_pages_by_group(pages_group)
 
-        self.assertEqual([(p["copy_no"], p["page_no"]) for p in pages],
+        self.assertEqual([(p["copyNo"], p["pageNo"]) for p in pages],
                          [("0001", "02"), ("0032", "03"), ("1122", "02"), ("1234", "02"), ("9912", "02")])
