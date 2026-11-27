@@ -1,5 +1,4 @@
 import { byId } from '@examc/helpers/dom.ts';
-import { parseJson } from '@examc/helpers/http.ts';
 import * as api from './api';
 import { entries, entryIndexOf, type GroupEntry } from './config';
 import { onPageLoaded } from './events';
@@ -35,7 +34,7 @@ function label(copyNo: string | number, pageNo: string | number): string {
 function updateUrl(index: number): void {
     const url = new URL(window.location.href);
     url.searchParams.set('page_id', String(index + 1));
-    url.searchParams.delete('copy_no');  // one-shot: page_id takes over once the copy is resolved
+    url.searchParams.delete('copyNo');  // one-shot: page_id takes over once the copy is resolved
     history.replaceState(history.state, '', url);
 }
 
@@ -52,9 +51,10 @@ export async function goToEntry(index: number): Promise<void> {
 
     for (let attempt = 0; attempt < total; attempt++) {
         requestedIndex = target;
+        
         const entry = entries[target];
         if (!entry) return;
-        const result = await showPage(String(entry.copy_no), String(entry.page_no));
+        const result = await showPage(String(entry.copyNo), String(entry.pageNo));
 
         if (result === 'shown') {
             updateUrl(target);
@@ -81,12 +81,12 @@ export function goToStudentOffset(direction: -1 | 1): void {
 
     for (let scan = requestedIndex + direction; scan >= 0 && scan < entries.length; scan += direction) {
         const candidate = entries[scan];
-        if (!candidate || String(candidate.copy_no) === String(current.copy_no)) continue;
-        const copyNo = String(candidate.copy_no);
+        if (!candidate || String(candidate.copyNo) === String(current.copyNo)) continue;
+        const copyNo = String(candidate.copyNo);
 
         const samePage = entries.findIndex((entry) =>
-            String(entry.copy_no) === copyNo && Number(entry.page_no) === Number(current.page_no));
-        void goToEntry(samePage !== -1 ? samePage : entries.findIndex((entry) => String(entry.copy_no) === copyNo));
+            String(entry.copyNo) === copyNo && Number(entry.pageNo) === Number(current.pageNo));
+        void goToEntry(samePage !== -1 ? samePage : entries.findIndex((entry) => String(entry.copyNo) === copyNo));
         return;
     }
 }
@@ -104,11 +104,11 @@ async function openCopyPage(copyNo: string, pageNo: string): Promise<void> {
     if (navigation === latestNavigation) await showPage(copyNo, pageNo);
 }
 
-/** Opens the same student's copy in another question (the server resolves it from ?copy_no=). */
+/** Opens the same student's copy in another question (the server resolves it from ?copyNo=). */
 export function goToQuestion(baseUrl: string | undefined): void {
     const url = (baseUrl ?? '').trim();
     if (!url || !state.copyNo) return;
-    window.location.assign(`${url}?copy_no=${encodeURIComponent(state.copyNo)}`);
+    window.location.assign(`${url}?copyNo=${encodeURIComponent(state.copyNo)}`);
 }
 
 /** The page indicator and menu of the bottom bar, for the page just loaded. */
@@ -128,8 +128,8 @@ function renderPageControls(copyNo: string, pageNo: string, copyPages: GroupEntr
 
     // The menu: the copy's pages, the ones from other questions marked
     pageMenu.replaceChildren(...copyPages.map((page) => {
-        const pageCopy = String(page.copy_no);
-        const pageNumber = String(page.page_no);
+        const pageCopy = String(page.copyNo);
+        const pageNumber = String(page.pageNo);
         const isCurrent = Number(pageNumber) === Number(pageNo);
 
         const item = document.createElement('a');
@@ -179,7 +179,7 @@ export function init(): void {
     });
 
     onPageLoaded(({copyNo, pageNo, data, inGroup}) => {
-        const copyPages = data.copy_pages ? parseJson<GroupEntry[]>(data.copy_pages) : null;
+        const copyPages: GroupEntry[] = data.copyPages ?? [];
         renderPageControls(copyNo, pageNo, copyPages ?? [], inGroup);
         follow(copyNo, pageNo);
     });

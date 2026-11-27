@@ -1,7 +1,7 @@
 /** One page of the review group, as listed by the server (also the rows of the pages table). */
 export interface GroupEntry {
-    copy_no: string;
-    page_no: string;
+    copyNo: string;
+    pageNo: string;
     marked?: boolean;
     comment?: boolean;
 }
@@ -46,5 +46,5 @@ export const entries: GroupEntry[] = config.copiesPagesList ?? [];
 
 /** Position (0-based) of a copy's page in the review group, or -1 if the page isn't part of it. */
 export function entryIndexOf(copyNo: string, pageNo: string): number {
-    return entries.findIndex((entry) => String(entry.copy_no) === copyNo && String(entry.page_no) === pageNo);
+    return entries.findIndex((entry) => String(entry.copyNo) === copyNo && String(entry.pageNo) === pageNo);
 }
