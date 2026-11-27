@@ -1,5 +1,5 @@
 import json
-from typing import Any, ClassVar, Literal
+from typing import Any, ClassVar
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404

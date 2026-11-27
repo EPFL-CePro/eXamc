@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.contrib.auth.models import Group, User
 from django.contrib.messages import get_messages
 from django.urls import reverse
+from django.utils import timezone
 
 from examc_app.models import AcademicYear, Exam, ExamBuild, ExamUser
 from examc_app.tests.helpers.models import create_mock_user
@@ -80,7 +81,7 @@ class PreparationPageTestCase(PrepViewsTestCase):
 class UnlockEditingTestCase(PrepViewsTestCase):
     def test_unlock_makes_the_exam_editable_again_and_warns(self):
         self.exam.is_finalized = True
-        self.exam.finalized_at = self.exam.date
+        self.exam.finalized_at = timezone.now()
         self.exam.save()
 
         response = self.client.post(self.url("unlock_exam_editing"))

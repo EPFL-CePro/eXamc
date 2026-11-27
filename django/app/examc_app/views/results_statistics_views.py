@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 import zipfile
-from datetime import datetime
 from typing import Any
 
 from django.conf import settings
@@ -11,6 +10,7 @@ from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirec
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import require_POST
 
@@ -69,9 +69,7 @@ def update_student_present(request, exam_pk: int, student_pk: int, value: int):
 @require_POST
 def upload_amc_csv(request, exam_pk: int):
     csv_file = request.FILES["amc_csv_file"]
-    temp_csv_file_name = (
-        "tmp_upload_amc_csv_" + datetime.now().strftime("%Y%m%d%H%M%S") + ".csv"
-    )
+    temp_csv_file_name = f"tmp_upload_amc_csv_{timezone.localtime().strftime("%Y%m%d%H%M%S")}.csv"
     temp_csv_file_path = os.path.join(settings.AUTOUPLOAD_ROOT, temp_csv_file_name)
 
     os.makedirs(os.path.dirname(temp_csv_file_path), exist_ok=True)
@@ -192,7 +190,7 @@ def export_results(request, exam_pk: int):
 
             # create tmp folder
             export_folder_name = "export_" + str(
-                datetime.now().strftime("%d%m%y_%H%M%S")
+                timezone.localtime().strftime("%d%m%y_%H%M%S")
             )
             export_path = str(settings.EXPORT_TMP_ROOT) + "/" + export_folder_name
             os.makedirs(export_path, exist_ok=True)

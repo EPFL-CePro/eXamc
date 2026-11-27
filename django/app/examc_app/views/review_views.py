@@ -9,7 +9,6 @@ import os
 import pathlib
 import uuid
 import zipfile
-from datetime import datetime
 from functools import wraps
 from typing import Any
 
@@ -18,7 +17,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
-from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -539,7 +538,7 @@ def save_markers(request: HttpRequest, exam_pk: int):
         page_markers_user, _ = PageMarkersUser.objects.get_or_create(
             pageMarkers=scan_markers, user=request.user
         )
-        page_markers_user.modified = datetime.now()
+        page_markers_user.modified = timezone.now()
         page_markers_user.save()
 
         return HttpResponse(scan_markers.correctorBoxMarked)
@@ -618,7 +617,7 @@ def get_markers_and_comments(request: HttpRequest, exam_pk: int):
     data_dict["comments"] = [comment.serialize(request.user.id) for comment in comments]
     data_dict["copyPages"] = get_scans_list_by_copy(exam, copy_no)
 
-    return HttpResponse(json.dumps(data_dict))
+    return JsonResponse(data_dict)
 
 
 @exam_permission_required(["manage", "review"])
@@ -643,7 +642,7 @@ def save_comment(request: HttpRequest, exam_pk: int):
             pages_group__exam_id=exam_pk,
         )
         comment.content = comment_data["content"]
-        comment.modified = datetime.now()
+        comment.modified = timezone.now()
         comment.save()
     else:
         pages_group = get_object_or_404(
@@ -654,7 +653,7 @@ def save_comment(request: HttpRequest, exam_pk: int):
         comment = PagesGroupComment()
         comment.is_new = True
         comment.content = comment_data["content"]
-        comment.created = datetime.now()
+        comment.created = timezone.now()
         comment.user_id = request.user.id
         comment.pages_group = pages_group
         comment.copy_no = request.POST["copy_no"]
@@ -691,10 +690,10 @@ def update_page_group_markers(request: HttpRequest, exam_pk: int):
             scan_markers.delete()
 
         # update page markers users entry
-        page_markers_user, created = PageMarkersUser.objects.get_or_create(
+        page_markers_user, _created = PageMarkersUser.objects.get_or_create(
             pageMarkers=scan_markers, user=request.user
         )
-        page_markers_user.modified = datetime.now()
+        page_markers_user.modified = timezone.now()
         page_markers_user.save()
 
         return HttpResponse("Markers updated successfully")
@@ -1402,4 +1401,11 @@ def update_pages_group_check_box(request: HttpRequest, exam_pk: int):
             box_to_check = 0
         else:
             box_to_check = -1
-    return HttpResponse(json.dumps([box_to_check, points_rnd, max_points, marked]))
+    return JsonResponse(
+        {
+            "boxToCheck": box_to_check,
+            "points": points_rnd,
+            "maxPoints": max_points,
+            "marked": marked,
+        }
+    )

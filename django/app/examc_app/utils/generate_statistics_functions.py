@@ -162,7 +162,7 @@ def generate_exam_stats(exam: Exam, progress_recorder: ProgressRecorder, process
                             student_scale_grade.grade = grade
                             student_scales_grades_list.append(student_scale_grade)
 
-                # print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  - student scales grades ok !")
+                # print(timezone.now().strftime("%Y-%m-%d %H:%M:%S")+" :  - student scales grades ok !")
 
                 avg = 0
                 med = 0
@@ -193,7 +193,7 @@ def generate_exam_stats(exam: Exam, progress_recorder: ProgressRecorder, process
 
             ScaleDistribution.objects.bulk_create(distribution_list_all)
             StudentScaleGrade.objects.bulk_create(student_scales_grades_list)
-            #print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" :  - scales stats ok !")
+            #print(timezone.now().strftime("%Y-%m-%d %H:%M:%S")+" :  - scales stats ok !")
 
             process_number += 1
             progress_recorder.set_progress(

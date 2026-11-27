@@ -67,9 +67,12 @@ class SharedPageTestCase(TestCase):
         settings_override.enable()
         self.addCleanup(settings_override.disable)
 
-        self.exam = Exam.objects.create(code="CS-119(d)", name="Exam", date=date(2026, 10, 30),
-                                        semester=Semester.objects.create(code=1, name="Autumn"),
-                                        year=AcademicYear.objects.create(code="2026-2027", name="2026-2027"))
+        self.exam = Exam.objects.create(
+            code="CS-119(d)", name="Exam", date=date(2026, 10, 30),
+            semester=Semester.objects.create(code=1, name="Autumn"),
+            year=AcademicYear.objects.create(code="2026-2027", name="2026-2027")
+        )
+
         self.q1 = PagesGroup.objects.create(exam=self.exam, group_name="OPEN-Q1", nb_pages=1)
         self.q2 = PagesGroup.objects.create(exam=self.exam, group_name="OPEN-Q2", nb_pages=1)
         copy_dir = get_exam_scans_dir(self.exam) / "0001"
@@ -81,8 +84,10 @@ class SharedPageTestCase(TestCase):
         self.client.force_login(self.user, backend="django.contrib.auth.backends.ModelBackend")
 
     def page_markers(self, group, left, top):
-        return PageMarkers.objects.create(exam=self.exam, pages_group=group, copie_no="0001", page_no="02",
-                                          filename=str(self.scan_path), markers=marker_state(left, top))
+        return PageMarkers.objects.create(
+            exam=self.exam, pages_group=group, copie_no="0001", page_no="02",
+            filename=str(self.scan_path), markers=marker_state(left, top)
+        )
 
     @staticmethod
     def is_dark(image, x, y):
@@ -111,12 +116,13 @@ class SharedPageTestCase(TestCase):
         self.page_markers(self.q1, 10, 10)
         self.page_markers(self.q2, 70, 70)
 
-        data = json.loads(self.client.post(reverse("get_markers_and_comments", args=[self.exam.pk]), {
+        data = self.client.post(reverse("get_markers_and_comments", args=[self.exam.pk]), {
             "copy_no": "0001", "page_no": "02", "group_id": self.q2.pk,
-        }).content)
+        }).json()
 
         # Own markers only, to edit
-        self.assertEqual(json.loads(data["markers"])["markers"][0]["left"], 70)
+        self.assertEqual(len(data["markers"]["markers"]), 1)
+        self.assertEqual(data["markers"]["markers"][0]["left"], 70)
         # The corrector boxes of the question of the group only
         self.assertEqual(positions.call_args.args[3], "OPEN-Q2")
         # The page is shown with the markers of OPEN-Q1 burnt in
