@@ -25,6 +25,7 @@ const zoomOutButton = byId<HTMLButtonElement>('btn-zoom-out');
 const fitButton = byId<HTMLButtonElement>('btn-zoom-reset');
 
 const clampRange = (value: number, limit: number): number => Math.min(limit, Math.max(-limit, value));
+const clampZoom = (value: number): number => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 1000) / 1000));
 
 /**
  * Brings the page back if it's moved too far: at least KEEP_IN_VIEW pixels of it stay inside the
@@ -78,7 +79,7 @@ export function applyView(area: MarkerArea = currentArea()): void {
 
 /** Sets the zoom, around the center of the drawing area (marker.js scales the pan with it). */
 export function setZoom(value: number): void {
-    zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 1000) / 1000));
+    zoom = clampZoom(value);
     const area = currentArea();
     area.zoomLevel = zoom;
     clampPan(area);  // zooming out of a moved page could leave it outside the view
@@ -132,6 +133,15 @@ export function setPanMode(on: boolean): void {
     if (on) currentArea().switchToSelectMode();
 }
 
+/** Fingers on the page while the hand tool is active: with two, marker.js pinches instead. */
+const touches = new Set<number>();
+
+/** Ends a hand-tool drag (the pointer was lifted, or a second finger turned it into a pinch). */
+function stopDragging(): void {
+    lastPointer = null;
+    currentArea().toggleAttribute('data-panning', false);
+}
+
 export function init(): void {
     zoomInButton.addEventListener('click', zoomIn);
     zoomOutButton.addEventListener('click', zoomOut);
@@ -154,17 +164,34 @@ export function init(): void {
     }, {passive: true});
     window.addEventListener('pointerup', requestClampPan, {passive: true});
 
-    // Capture phase on the wrapper, so markers are neither created nor moved while panning
+    // Capture phase on the wrapper, so markers are neither created nor moved while panning.
+    // Fingers still reach marker.js when they touch down (only their moves are kept from it),
+    // so a second finger hands over to its pinch zoom.
     markerWrapper.addEventListener('pointerdown', (event) => {
         if (!panMode) return;
         event.preventDefault();
-        event.stopImmediatePropagation();
+
+        if (event.pointerType === 'touch') {
+            touches.add(event.pointerId);
+            if (touches.size > 1) {
+                stopDragging();  // two fingers: marker.js zooms and moves the page
+                return;
+            }
+        } else {
+            event.stopImmediatePropagation();
+            markerWrapper.setPointerCapture(event.pointerId);
+        }
+
         lastPointer = {x: event.clientX, y: event.clientY};
-        markerWrapper.setPointerCapture(event.pointerId);
         currentArea().toggleAttribute('data-panning', true);
     }, {capture: true});
 
     markerWrapper.addEventListener('pointermove', (event) => {
+        // The finger left once a pinch is over doesn't drag a marker (the next touch moves the page again)
+        if (panMode && !lastPointer && touches.size === 1 && touches.has(event.pointerId)) {
+            event.stopImmediatePropagation();
+            return;
+        }
         if (!lastPointer) return;
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -175,11 +202,13 @@ export function init(): void {
     }, {capture: true});
 
     const endPan = (event: PointerEvent): void => {
+        // A finger's touch-down reached marker.js, so its lift does too
+        const touch = touches.delete(event.pointerId);
         if (!lastPointer) return;
-        event.stopImmediatePropagation();
-        lastPointer = null;
-        currentArea().toggleAttribute('data-panning', false);
+        if (!touch) event.stopImmediatePropagation();
+        stopDragging();
     };
-    markerWrapper.addEventListener('pointerup', endPan, {capture: true});
-    markerWrapper.addEventListener('pointercancel', endPan, {capture: true});
+    // On window: a finger can be lifted outside the page
+    window.addEventListener('pointerup', endPan, {capture: true});
+    window.addEventListener('pointercancel', endPan, {capture: true});
 }
