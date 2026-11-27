@@ -20,3 +20,7 @@ $dark: #212529;
 @use "custom-elements";
 
 @use "sidebar";
+
+html {
+  scrollbar-gutter: stable;
+}
