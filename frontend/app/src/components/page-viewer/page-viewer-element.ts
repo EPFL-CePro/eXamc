@@ -35,6 +35,8 @@ function pageError(index: number, error: unknown): string {
 interface PageSlot {
     width: number;
     height: number;
+    /** Display size / image size: every page is shown at the document's page width. */
+    scale: number;
     x: number;
     top: number;
     /** Whether a divider is drawn above the page (known once the page is loaded). */
@@ -75,6 +77,8 @@ export class PageViewerElement extends HTMLElement {
     private contentSize = { width: 0, height: 0 };
     private largestPage = { width: 0, height: 0 };
     private camera: PageCamera | null = null;
+    /** Width every page is shown at, in layout units (the start page's image width). */
+    private pageWidth = FALLBACK_PAGE.width;
     private current = -1;
 
     /** Built on first connection, when the page's children are there. */
@@ -130,10 +134,12 @@ export class PageViewerElement extends HTMLElement {
         });
         if (generation !== this.generation) return;
 
-        // Every page takes the start page's size until it's loaded itself
-        const size = page ? { width: page.image.width, height: page.image.height } : FALLBACK_PAGE;
+        // Every page is shown at the start page's width; until it's loaded, it takes the start page's size
+        this.pageWidth = page?.image.width || FALLBACK_PAGE.width;
+        const size = page ? this.slotSize(page.image) : { ...FALLBACK_PAGE, scale: 1 };
         this.loader = loader as PageLoader<unknown>;
         this.slots = Array.from({ length: count }, () => ({ ...size, x: 0, top: 0, divider: false }));
+
         const startSlot = this.slots[first]!;
         startSlot.content = page ?? undefined;
         startSlot.error = error;
@@ -311,6 +317,12 @@ export class PageViewerElement extends HTMLElement {
         this.updateShadows();
     }
 
+    /** A page's display size: scaled to the document's page width, whatever the scan's resolution. */
+    private slotSize(image: HTMLImageElement): { width: number; height: number; scale: number } {
+        const scale = image.width ? this.pageWidth / image.width : 1;
+        return { width: this.pageWidth, height: image.height * scale, scale };
+    }
+
     /** Shadows under the rendered pages only: drawing thousands of them would be wasted work. */
     private updateShadows(): void {
         this.shadow.setRects(this.slots
@@ -351,10 +363,9 @@ export class PageViewerElement extends HTMLElement {
             if (generation !== this.generation) return;
             slot.content = page;
             const divider = !!page.divider && index > 0;
-            if (page.image.width !== slot.width || page.image.height !== slot.height || divider !== slot.divider) {
-                slot.width = page.image.width;
-                slot.height = page.image.height;
-                slot.divider = divider;
+            const size = this.slotSize(page.image);
+            if (size.height !== slot.height || size.scale !== slot.scale || divider !== slot.divider) {
+                Object.assign(slot, size, { divider });
                 this.relayout();
             }
             this.updateWindow();
@@ -378,7 +389,10 @@ export class PageViewerElement extends HTMLElement {
         const { image, shapes = [], divider } = slot.content;
         const group = new Konva.Group({ x: slot.x, y: slot.top });
         if (divider && slot.divider) group.add(this.dividerNode(divider, slot));
-        group.add(new Konva.Image({ image, width: image.width, height: image.height, listening: false }));
+
+        // Image and shapes in the image's pixels, scaled to the page's display width
+        const page = new Konva.Group({ scaleX: slot.scale, scaleY: slot.scale });
+        page.add(new Konva.Image({ image, width: image.width, height: image.height, listening: false }));
 
         for (const shape of shapes) {
             const node = createShapeNode(shape);
@@ -390,9 +404,10 @@ export class PageViewerElement extends HTMLElement {
             });
             node.on('mouseenter', () => this.setCursor('pointer'));
             node.on('mouseleave', () => this.setCursor('grab'));
-            group.add(node);
+            page.add(node);
         }
 
+        group.add(page);
         this.content.add(group);
         slot.group = group;
     }

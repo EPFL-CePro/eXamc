@@ -2,6 +2,7 @@ import DataTable from 'datatables.net-bs5';
 import 'datatables.net-bs5/css';
 import { setupDatatables } from '@examc/helpers/datatables.ts';
 import { byId } from '@examc/helpers/dom.ts';
+import { onTogglePagesList } from './events';
 
 /** The pages table on the left: it follows the page shown, and opens a page when its row is clicked. */
 
@@ -55,9 +56,18 @@ export function setMarkedIcon(copyNo: string, pageNo: string, marked: boolean): 
     cell.dataset.order = marked ? '1' : '0';
 }
 
-/** Collapses the list into a narrow vertical strip, or expands it back. */
-function toggleCollapsed(): void {
-    const collapsed = byId('pages-group-list-table-div').classList.toggle('d-none');
+/**
+ * Collapses the list into a narrow vertical strip, or expands it back.
+ * @param collapse true collapses, false expands, undefined switches; asking for the current state does nothing.
+ */
+function setCollapsed(collapse?: boolean): void {
+    const body = byId('pages-group-list-table-div');
+    const isCollapsed = body.classList.contains('d-none');
+    const collapsed = collapse ?? !isCollapsed;
+    // Done twice, the width saved on collapse would be overwritten by the strip's own
+    if (collapsed === isCollapsed) return;
+
+    body.classList.toggle('d-none', collapsed);
     byId('expand-collapse-group-list-bt').setAttribute('aria-expanded', String(!collapsed));
     byId('expand-group-list-icon').classList.toggle('d-none', !collapsed);
     byId('collapse-group-list-icon').classList.toggle('d-none', collapsed);
@@ -97,11 +107,10 @@ export function init(onRowClick: (index: number) => void): void {
     setupDatatables();
     if (!DataTable.isDataTable(table)) {
         new DataTable(table, {
-            scrollY: '83.5vh',
-            scrollX: false,
+            autoWidth: true,
             layout: {topStart: null, topEnd: null, bottomStart: 'info', bottomEnd: null},
             lengthChange: false,
-            order: [[1, 'asc']],
+            order: [[0, 'asc']],
             paging: false,
         });
     }
@@ -111,5 +120,6 @@ export function init(onRowClick: (index: number) => void): void {
         if (row) onRowClick(Number(row.dataset.index));
     });
 
-    byId('pages-group-list-header').addEventListener('click', toggleCollapsed);
+    // Collapsed or expanded by whoever sends the event (emitTogglePagesList)
+    onTogglePagesList(setCollapsed);
 }

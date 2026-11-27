@@ -18,7 +18,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -456,22 +456,11 @@ def delete_unrecognized_review_scans(request: HttpRequest, exam_pk: int) -> Json
 
 
 
-
 @exam_permission_required(["manage", "review"])
 @block_review_until_unrecognized_scans_assigned
 @require_POST
 def save_markers(request: HttpRequest, exam_pk: int):
-    """
-    Save the markers and comments for a given exam page group.
-    This function saves the markers and comments provided by the user for a specific exam page group.
-
-    :param request: The HTTP request object.
-    :param exam_pk: The primary key of the exam.
-
-    :return: An HTTP response indicating the success of the operation.
-    """
     exam = Exam.objects.get(pk=exam_pk)
-    # The group reviewed: a page can hold several questions, each one is graded in its own group
     pages_group = PagesGroup.objects.filter(
         exam=exam, pk=request.POST.get("reviewGroup_pk") or None
     ).first()
@@ -483,106 +472,87 @@ def save_markers(request: HttpRequest, exam_pk: int):
                 get_amc_copy_nr(amc_data_path, request.POST["copy_no"]), page_no
             )
         pages_group = PagesGroup.objects.get(exam=exam, group_name=question_name)
-    scan_markers, created = PageMarkers.objects.get_or_create(
+
+    scan_markers, _created = PageMarkers.objects.get_or_create(
         copie_no=request.POST["copy_no"],
         page_no=request.POST["page_no"],
         pages_group=pages_group,
         exam=exam,
     )
-    markers = json.loads(request.POST["markers"])
-    allow_highlight_only_replace = (
-        request.POST.get("allow_highlight_only_replace") == "true"
-    )
+
+    try:
+        markers = json.loads(request.POST.get("markers") or "")
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid markers")
+    if not isinstance(markers, dict):
+        return HttpResponseBadRequest("Invalid markers")
+
+    existing = None
+    if scan_markers.markers:
+        try:
+            existing = json.loads(scan_markers.markers)
+        except json.JSONDecodeError:
+            existing = None
+        if not isinstance(existing, dict):
+            existing = None
+
+    new_types = [m.get("typeName") for m in markers.get("markers", []) if isinstance(m, dict)]
+    existing_types = [
+        m.get("typeName") for m in (existing or {}).get("markers", []) if isinstance(m, dict)
+    ]
+    existing_has_real = any(t != "HighlightMarker" for t in existing_types)
+
+    allow_highlight_only_replace = request.POST.get("allow_highlight_only_replace") == "true"
     allow_empty_replace = request.POST.get("allow_empty_replace") == "true"
 
-    def has_non_highlight_markers(marker_state):
-        return any(
-            marker.get("typeName") != "HighlightMarker"
-            for marker in marker_state.get("markers", [])
-        )
+    if new_types:
+        # Don't let a highlight-only state overwrite real annotations by accident
+        new_only_highlight = all(t == "HighlightMarker" for t in new_types)
+        if existing_has_real and new_only_highlight and not allow_highlight_only_replace:
+            markers = existing
 
-    def has_only_highlight_markers(marker_state):
-        marker_list = marker_state.get("markers", [])
-        return bool(marker_list) and all(
-            marker.get("typeName") == "HighlightMarker" for marker in marker_list
-        )
-
-    marked = False
-    if markers["markers"]:
-        existing_markers = None
-        if scan_markers.markers:
-            existing_markers = json.loads(scan_markers.markers)
-
-        should_reject_highlight_only_overwrite = (
-            existing_markers is not None
-            and has_non_highlight_markers(existing_markers)
-            and has_only_highlight_markers(markers)
-            and not allow_highlight_only_replace
-        )
-
-        if should_reject_highlight_only_overwrite:
-            markers = existing_markers
-        else:
-            scan_markers.markers = request.POST["markers"]
-
-        scan_markers.markers = json.dumps(markers)
         fn = (
             request.POST["filename"]
             .replace("/protected/?token=", "")
             .replace("%3A", ":")
         )
         fn = verify_and_get_path(fn)
-        if (
-            not pathlib.Path(fn)
-            .resolve()
-            .is_relative_to(pathlib.Path(settings.SCANS_ROOT).resolve())
+        if not pathlib.Path(fn).resolve().is_relative_to(
+            pathlib.Path(settings.SCANS_ROOT).resolve()
         ):
-            # The page was shown with the markers of the other groups (render_review_background): keep the scan
+            # The page was shown with the markers of the other groups burnt in: keep the scan
             fn = (
                 build_scan_path_for_copy_page(
                     exam, request.POST["copy_no"], request.POST["page_no"]
                 )
                 or fn
             )
-        fn = str(fn).replace(str(settings.BASE_DIR), "../..")
-        scan_markers.filename = fn
 
+        scan_markers.markers = json.dumps(markers)
+        scan_markers.filename = str(fn).replace(str(settings.BASE_DIR), "../..")
+        scan_markers.correctorBoxMarked = any(
+            isinstance(m, dict) and m.get("typeName") == "HighlightMarker"
+            for m in markers.get("markers", [])
+        )
         scan_markers.save()
 
-        scan_markers.correctorBoxMarked = False
-        if "HighlightMarker" in scan_markers.markers:
-            scan_markers.correctorBoxMarked = True
-            marked = True
-
-        scan_markers.save()
-
-        # update page markers users entry
-        page_markers_user, created = PageMarkersUser.objects.get_or_create(
+        page_markers_user, _ = PageMarkersUser.objects.get_or_create(
             pageMarkers=scan_markers, user=request.user
         )
         page_markers_user.modified = datetime.now()
         page_markers_user.save()
-    else:
-        existing_markers = None
-        if scan_markers.markers:
-            existing_markers = json.loads(scan_markers.markers)
 
-        should_reject_empty_delete = (
-            existing_markers is not None
-            and has_non_highlight_markers(existing_markers)
-            and not allow_empty_replace
-        )
+        return HttpResponse(scan_markers.correctorBoxMarked)
 
-        if should_reject_empty_delete:
-            markers = existing_markers
-            scan_markers.markers = json.dumps(markers)
-            scan_markers.correctorBoxMarked = "HighlightMarker" in scan_markers.markers
-            scan_markers.save()
-            marked = scan_markers.correctorBoxMarked
-        else:
-            scan_markers.delete()
+    # Empty state: keep real annotations unless the client explicitly allows wiping them
+    if existing_has_real and not allow_empty_replace:
+        scan_markers.markers = json.dumps(existing)
+        scan_markers.correctorBoxMarked = "HighlightMarker" in existing_types
+        scan_markers.save()
+        return HttpResponse(scan_markers.correctorBoxMarked)
 
-    return HttpResponse(marked)
+    scan_markers.delete()
+    return HttpResponse(False)
 
 
 @exam_permission_required(["manage", "review"])
@@ -611,10 +581,23 @@ def get_markers_and_comments(request: HttpRequest, exam_pk: int):
     scan_markers = PageMarkers.objects.filter(
         copie_no=copy_no, page_no=page_no, exam=exam, pages_group=pages_group
     ).first()
-    if scan_markers and scan_markers.markers:
-        data_dict["markers"] = json.dumps(json.loads(scan_markers.markers))
-    else:
-        data_dict["markers"] = None
+
+    markers = None
+    raw_markers = scan_markers.markers if scan_markers else None
+    if isinstance(raw_markers, str) and raw_markers.strip():
+        try:
+            markers = json.loads(raw_markers)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Invalid markers JSON for exam %s, copy %s, page %s, group %s",
+                exam.pk,
+                copy_no,
+                page_no,
+                pages_group.pk,
+            )
+    elif isinstance(raw_markers, (dict, list)):
+        markers = raw_markers  # already deserialized (e.g. JSONField)
+    data_dict["markers"] = markers
 
     corrbox_markers = []
     if not "x" in page_no:
@@ -626,14 +609,14 @@ def get_markers_and_comments(request: HttpRequest, exam_pk: int):
             exam, str(amc_copy_nr), float(page_no), pages_group.group_name
         )
 
-    data_dict["corrector_boxes"] = json.dumps(corrbox_markers)
+    data_dict["correctorBoxes"] = corrbox_markers
 
     # comments
     comments = PagesGroupComment.objects.filter(
         pages_group=request.POST["group_id"], copy_no=request.POST["copy_no"]
     ).all()
     data_dict["comments"] = [comment.serialize(request.user.id) for comment in comments]
-    data_dict["copy_pages"] = json.dumps(get_scans_list_by_copy(exam, copy_no))
+    data_dict["copyPages"] = get_scans_list_by_copy(exam, copy_no)
 
     return HttpResponse(json.dumps(data_dict))
 

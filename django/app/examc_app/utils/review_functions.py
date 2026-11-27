@@ -647,8 +647,8 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
                 else:
                     marked = markers_idx.get((copy_no_z4, page_no_norm), False)
                 copies_pages_list.append({
-                    "copy_no": copy_no,
-                    "page_no": page_no_real,
+                    "copyNo": copy_no,
+                    "pageNo": page_no_real,
                     "marked": marked,
                     "comment": copy_has_comment,
                 })
@@ -663,7 +663,7 @@ def get_copies_pages_by_group(pages_group: PagesGroup):
             head_i = 0
         return head_i, tail
 
-    copies_pages_list.sort(key=lambda k: (int(k["copy_no"]), page_sort_key(k["page_no"])))
+    copies_pages_list.sort(key=lambda k: (int(k["copyNo"]), page_sort_key(k["pageNo"])))
     return copies_pages_list
 
 
@@ -749,7 +749,7 @@ def get_scans_list_by_copy(exam, copy_nr):
         for entry in list_dir_copies:
             page = entry.replace('.jpg', '').split('_').pop()
             if int(page.split('.')[0]) != 1:
-                result.append({'copy_no': copy_nr, 'page_no': page})
+                result.append({'copyNo': copy_nr, 'pageNo': page})
     return result
 
 

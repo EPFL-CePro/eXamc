@@ -4,7 +4,7 @@
  */
 import '@examc/components/resize-handle';
 
-import { config } from './config';
+import {config} from './config';
 import * as comments from './comments';
 import * as gradingSchemes from './grading-schemes';
 import * as markers from './markers';
@@ -12,8 +12,13 @@ import * as navigation from './navigation';
 import * as pagesList from './pages-list';
 import * as shortcuts from './shortcuts';
 import * as tools from './tools';
+import * as history from './history';
+import * as tabletMode from './tablet-mode';
 import * as pageView from './viewer/page-view';
 import * as zoomPan from './viewer/zoom-pan';
+
+import "./main.scss";
+
 
 // MathJax: inline and display math in the comments
 window.MathJax = {
@@ -32,6 +37,8 @@ window.saveStudentReportNote = (textarea) => void gradingSchemes.saveStudentRepo
 // The modules listening to new pages and areas first, then the page view (which creates the first area)
 markers.init();
 tools.init();
+history.init();
+tabletMode.init();
 comments.init();
 gradingSchemes.init();
 navigation.init();

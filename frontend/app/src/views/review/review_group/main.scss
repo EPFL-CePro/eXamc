@@ -1,0 +1,62 @@
+// The pages table on the left of the review page (DataTables, in a card)
+
+#pages-group-list-table-div {
+    // The table's part fills the card, so the "Showing x of y" line sits at the card's bottom edge
+    display: flex;
+    flex-direction: column;
+
+    // Scrolling to the current row (scrollIntoView) keeps it clear of the sticky header and info line
+    scroll-padding-block: 2.5rem;
+
+    .dt-container {
+        flex: 1 0 auto;
+        display: flex;
+        flex-direction: column;
+
+        // DataTables wraps the table in Bootstrap .rows, whose negative margins would stick out of the card
+        > .row {
+            margin-inline: 0;
+        }
+
+        // The info line stays at the bottom while a long list scrolls
+        > .row:not(.dt-layout-table) {
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+            margin-bottom: 0 !important;  // over Bootstrap's mb-2 utility
+            padding: 0.25rem 0.5rem;
+            background-color: var(--bs-card-bg);
+            border-top: var(--bs-border-width) solid var(--bs-border-color);
+        }
+    }
+
+    .dt-layout-table {
+        flex: 1 0 auto;
+        margin-bottom: 0 !important;  // over Bootstrap's mb-2 utility
+    }
+}
+
+// Tablet mode (the switch at the top right): bigger buttons on the page, no pages list
+#reviewGroup_div.review-tablet {
+    #mjsapp {
+        // The bars floating over the page: tools, view, clear, navigation
+        .btn {
+            --bs-btn-padding-x: 1rem;
+            --bs-btn-padding-y: 0.65rem;
+            --bs-btn-font-size: 1.25rem;
+        }
+
+        // The page and question menus of the bottom bar
+        .dropdown-menu {
+            --bs-dropdown-font-size: 1.15rem;
+            --bs-dropdown-item-padding-x: 1.25rem;
+            --bs-dropdown-item-padding-y: 0.6rem;
+        }
+    }
+
+    // The color swatch under the active tool (its size is set inline)
+    #btn-color {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+    }
+}

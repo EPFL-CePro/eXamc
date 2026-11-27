@@ -111,12 +111,12 @@ class ReviewGroupView(
         )
 
         # grading schemes: one tab each; the panel of the selected one is loaded by htmx
-        use_grading_scheme: Literal["true", "false"] = "false"
+        use_grading_scheme = False
         if pages_group.use_grading_scheme:
             grading_schemes = list(pages_group.gradingSchemes.all())
 
             if grading_schemes:
-                use_grading_scheme = "true"
+                use_grading_scheme = True
 
                 # A scheme whose marks can't reach the maximum is shown but not selectable
                 scheme_tabs = [
