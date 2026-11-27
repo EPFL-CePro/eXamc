@@ -1,6 +1,6 @@
 import type { MarkerBaseEditor } from '@markerjs/markerjs3';
 import { byId, isTyping } from './dom';
-import { onAreaCreated } from './events';
+import { onAreaCreated, onAreaShown } from './events';
 import { refreshActiveScheme } from './grading-schemes';
 import { applyColorToEditor, clearMarkers } from './markers';
 import { state, type Tool } from './state';
@@ -117,13 +117,18 @@ export function init(): void {
     });
 
     onAreaCreated((area) => {
-        // A new page starts in select mode (marker.js's own); the hand tool is kept across pages
-        syncToolbar(state.tool === 'pan' ? 'pan' : 'select');
+        // The toolbar keeps the tool; it's started on the new page once that page is drawn (onAreaShown)
+        syncToolbar(state.tool);
 
         // marker.js returns to select mode after drawing a marker, except freehand (continuous drawing)
         area.addEventListener('markercreate', (event) => {
             const editor: MarkerBaseEditor = event.detail.markerEditor;
             if (!editor.continuousCreation) syncToolbar('select');
         });
+    });
+
+    // The page is drawn: a marker tool starts drawing on it again (a page whose scan failed is read-only)
+    onAreaShown((area) => {
+        if (!area.inert) activateTool(state.tool);
     });
 }

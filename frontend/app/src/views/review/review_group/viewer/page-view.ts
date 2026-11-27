@@ -1,16 +1,17 @@
 import { MarkerArea, type AnnotationState } from '@markerjs/markerjs3';
 import { byId } from '@examc/helpers/dom.ts';
-import { describeFailure, parseJson, toScanUrl } from '@examc/helpers/http.ts';
+import { describeFailure, toScanUrl } from '@examc/helpers/http.ts';
 import { showToast } from '@examc/helpers/toasts.ts';
 import * as api from '../api';
 import { entryIndexOf } from '../config';
-import { emitAreaCreated, emitPageLoaded } from '../events';
+import { emitAreaCreated, emitAreaShown, emitPageLoaded } from '../events';
 import { restoreMarkers } from '../markers';
 import { setLocked } from '../pages-list';
 import { state } from '../state';
 import { currentArea, drawingArea, markerWrapper, setCurrentArea, setVisibleArea, visibleArea } from './area';
 import { drawCorrectorBoxes, setCorrectorBoxes, type CorrectorBoxCorner } from './corrector-boxes';
 import { applyView, captureView } from './zoom-pan';
+
 
 /**
  * Showing a page: each page gets a new MarkerArea, built hidden beneath the one on screen and
@@ -55,8 +56,11 @@ markerAreaSheet.replaceSync(`
     :host([data-panning]) .canvas-container * { cursor: grabbing !important; }
 `);
 
-const HIDDEN = {position: 'absolute', inset: '0', visibility: 'hidden', zIndex: '-1'};
-const SHOWN = {position: '', inset: '', visibility: '', zIndex: ''};
+const HIDDEN = {position: 'absolute', inset: '0', opacity: '0', pointerEvents: 'none', zIndex: '-1'};
+const SHOWN = {position: '', inset: '', opacity: '', pointerEvents: '', zIndex: ''};
+
+/** How long to wait for marker.js to draw a page before showing it anyway. */
+const DRAW_TIMEOUT_MS = 3000;
 
 /** The scan of the page shown; laying the page out waits for it to load. */
 const sourceImage = new Image();
@@ -76,7 +80,8 @@ function createHiddenArea(): MarkerArea {
     // The page on screen stays, read-only, until the new one is drawn
     const previous = visibleArea();
     previous.style.pointerEvents = 'none';
-    captureView(previous);
+    // The initial empty area has no page: its view means nothing, and applying it would misplace the first page
+    if (previous.targetImage) captureView(previous);
 
     const area = new MarkerArea();
     Object.assign(area.style, HIDDEN);
@@ -93,19 +98,21 @@ function reveal(area: MarkerArea): void {
     visibleArea().remove();
     Object.assign(area.style, SHOWN);
     setVisibleArea(area);
+    emitAreaShown(area);
 }
 
 const nextFrame = (): Promise<void> => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
 /**
  * Resolves once the image is loaded and decoded, so showing it can't flash a blank or half-drawn page.
- * Also resolves if the image fails: better to show what there is than to stay hidden.
+ * Also resolves if the image fails, or takes too long: better to show what there is than to stay hidden.
  */
 async function imageReady(img: HTMLImageElement): Promise<void> {
     if (!(img.complete && img.naturalWidth > 0)) {
         await new Promise((resolve) => {
             img.addEventListener('load', resolve, {once: true});
             img.addEventListener('error', resolve, {once: true});
+            window.setTimeout(resolve, DRAW_TIMEOUT_MS);
         });
     }
     await img.decode().catch(() => undefined);
@@ -226,9 +233,8 @@ function decodePage(data: api.PageData): DecodedPage {
         pageNo,
         scanSrc: toScanUrl(data.copyPageUrl),
         // A page without markers yet: the server sends null, read as an empty annotation
-        markers: (data.markers ? parseJson<AnnotationState>(data.markers) : null)
-            ?? {version: 3, width: 0, height: 0, markers: []},
-        correctorBoxes: (data.corrector_boxes ? parseJson<CorrectorBoxCorner[]>(data.corrector_boxes) : null) ?? [],
+        markers: data.markers ?? {version: 3, width: 0, height: 0, markers: []},
+        correctorBoxes: data.correctorBoxes ?? [],
     };
 }
 
@@ -291,10 +297,10 @@ export async function showPage(copyNo: string, pageNo: string): Promise<ShowResu
 function relayout(): void {
     if (state.copyNo === null) return;
 
-    // A page still loading has no markers in its area yet (marker.js restores them once its image
-    // is loaded): take the ones it was given, or they'd be lost, then saved as empty
-    const loading = currentArea() !== visibleArea();
-    const markers = loading && state.markerState ? state.markerState : currentArea().getState();
+    // A page still loading is fitted by the scan's load handler, at the size the area has then
+    if (currentArea() !== visibleArea()) return;
+
+    const markers = visibleArea().getState();
     const area = createHiddenArea();
     restoreMarkers(markers, area);  // marker.js rescales them to the new page size
     layout();
@@ -327,13 +333,22 @@ export function init(): void {
     new ResizeObserver((entries) => {
         const entry = entries[0];
         if (!entry) return;
-        const size = `${Math.round(entry.contentRect.width)}x${Math.round(entry.contentRect.height)}`;
+        const {width, height} = entry.contentRect;
+        // Not laid out yet: wait for a real size
+        if (width === 0 || height === 0) return;
+
+        const size = `${Math.round(width)}x${Math.round(height)}`;
         if (size === lastSize) return;
         const first = lastSize === '';
         lastSize = size;
-        if (first || dragging) return;
+        if (dragging) return;
 
         clearTimeout(timer);
-        timer = window.setTimeout(relayout, 150);
+        if (first) {
+            // First real size: fit right away (relayout skips a page still loading, its load handler fits it)
+            relayout();
+        } else {
+            timer = window.setTimeout(relayout, 150);
+        }
     }).observe(drawingArea);
 }

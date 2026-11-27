@@ -1,7 +1,7 @@
 import { TextMarkerEditor, type AnnotationState, type MarkerBaseEditor, type MarkerBaseState } from '@markerjs/markerjs3';
 import * as api from './api';
 import { config } from './config';
-import { onAreaCreated } from './events';
+import { emitMarkersSaved, onAreaCreated } from './events';
 import { setMarkedIcon } from './pages-list';
 import { state } from './state';
 import { currentArea } from './viewer/area';
@@ -39,7 +39,7 @@ export function restoreMarkers(markers: AnnotationState, area = currentArea()): 
     }
 }
 
-function isHighlight(marker: MarkerBaseState): boolean {
+export function isHighlight(marker: MarkerBaseState): boolean {
     return marker.typeName === 'HighlightMarker';
 }
 
@@ -50,6 +50,8 @@ interface SaveOptions {
     allowHighlightOnly?: boolean;
     /** Allow replacing the page's markers with none. */
     allowEmpty?: boolean;
+    /** Report the save to the undo history (false: it's an undo or a redo). */
+    record?: boolean;
 }
 
 /** Saves the page's markers, unless nothing changed since the last save. */
@@ -72,6 +74,7 @@ export async function onMarkerChange(options: SaveOptions = {}): Promise<void> {
 
     const copyNo = state.copyNo;
     const pageNo = state.pageNo;
+    const previous = state.lastPersistedMarkerState;
     const marked = await api.saveMarkers({
         copyNo,
         pageNo,
@@ -83,6 +86,11 @@ export async function onMarkerChange(options: SaveOptions = {}): Promise<void> {
     });
     state.lastPersistedMarkerState = snapshot;
     setMarkedIcon(copyNo, pageNo, marked);
+
+    // Saved for the page still shown: what it replaced can be undone to
+    if (options.record !== false && previous && state.copyNo === copyNo && state.pageNo === pageNo) {
+        emitMarkersSaved({previous, saved: snapshot});
+    }
 }
 
 /**

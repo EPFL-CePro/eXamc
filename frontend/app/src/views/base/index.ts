@@ -1,9 +1,9 @@
 import "./main.scss";
 
-import { Tooltip } from "bootstrap";
-import { initTooltips } from "./tooltips";
-import { byId } from "@examc/helpers/dom";
-import { setSidebarToggleOpen } from "./sidebar";
+import {Tooltip} from "bootstrap";
+import {initTooltips} from "./tooltips";
+import {byId} from "@examc/helpers/dom";
+import {setSidebarToggleOpen} from "./sidebar";
 
 
 // The page on load (without htmx, or before htmx processes it), then each piece of content htmx inserts.

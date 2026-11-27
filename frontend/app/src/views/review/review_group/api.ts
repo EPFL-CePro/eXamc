@@ -1,6 +1,7 @@
 import type { AnnotationState } from '@markerjs/markerjs3';
 import { parseJson, postText } from '@examc/helpers/http.ts';
-import { config } from './config';
+import { config, type GroupEntry } from './config';
+import type { CorrectorBoxCorner } from './viewer/corrector-boxes';
 
 /** The review page's server calls. They throw an HttpError when the server answers with an error. */
 
@@ -8,13 +9,10 @@ import { config } from './config';
 export interface PageData {
     /** "<prefix>/<folder>/<prefix>_<copy>_<page>/<file>": the scan's location and its copy and page. */
     copyPageUrl: string;
-    /** JSON of the page's markers (an AnnotationState); null if it has none yet. */
-    markers: string | null;
+    markers: AnnotationState;
     comments: unknown[];
-    /** JSON of the corrector boxes' corners; null if there are none. */
-    corrector_boxes: string | null;
-    /** JSON of the copy's pages ({copy_no, page_no}[]). */
-    copy_pages: string | null;
+    correctorBoxes: CorrectorBoxCorner[];
+    copyPages: GroupEntry[];
 }
 
 type Fields = Record<string, string | number | boolean | null | undefined>;

@@ -12,14 +12,14 @@
     <script src="{% static 'js/jspolygon.js' %}"></script>
 
     <!-- MathJax -->
-    <script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+    <script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-mml-chtml.js"></script>
 {% endblock %}
 
 {% block title %}Review {{ pages_group }}{% endblock %}
 
 {% block content %}
     {# Tooltips: every element with data-bs-title gets a Bootstrap tooltip #}
-    <div class="d-flex align-items-center gap-4 mb-3">
+    <div class="d-flex align-items-center gap-4 mb-3 flex-shrink-0">
         <h3 class="mb-0">
             <i class="fa-solid fa-glasses me-2" aria-hidden="true"></i> Review {{ pages_group.group_name }}
         </h3>
@@ -40,6 +40,12 @@
                     aria-haspopup="dialog">
                 <i class="fa-regular fa-circle-question me-1" aria-hidden="true"></i> Help
             </button>
+
+            {# Bigger buttons on the page for touch screens, and no pages list; remembered on this device #}
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch" id="tablet-mode-switch">
+                <label class="form-check-label text-nowrap" for="tablet-mode-switch">Tablet mode</label>
+            </div>
         {% endif %}
     </div>
 
@@ -48,11 +54,14 @@
             You are currently blocked for Review!<br><br>Please contact the teacher to be unblocked.
         </div>
     {% elif copies_pages_list %}
-        <div class="d-flex gap-1" id="reviewGroup_div" style="height: 92vh;">
+        {# Takes the height the title row leaves in the page's column (base.html's content area) #}
+        {# flex-basis 0: sized by the space left, never by its content (the table, the schemes) #}
+        <div class="d-flex gap-1 overflow-hidden" id="reviewGroup_div" style="flex: 1 1 0; min-height: 0;">
 
             {# ---------------------------------------------------------------- Left: the question's pages #}
-            <div id="pages-group-list" class="card h-100 flex-shrink-0"
-                 style="min-width: 10rem; max-width: 30vw;">
+            {# Full height (stretched by the review area); a set width the resize handle can change #}
+            <div id="pages-group-list" class="card flex-shrink-0"
+                 style="width: 17rem; min-width: 10rem; max-width: 30vw;">
                 <div id="pages-group-list-header"
                      class="card-header d-flex align-items-center justify-content-between gap-2 py-1"
                      style="cursor: pointer;">
@@ -67,18 +76,18 @@
                     </button>
                 </div>
 
-                <div id="pages-group-list-table-div" class="card-body p-0" style="min-height: 0;">
-                    <table class="table table-sm table-hover mb-0" id="table-copies-pages">
+                {# Scrolls inside the card #}
+                <div id="pages-group-list-table-div" class="card-body p-0 overflow-auto" style="min-height: 0;">
+                    <table class="table table-sm table-hover small text-nowrap mb-0" id="table-copies-pages">
                         <thead class="sticky-top">
                             <tr>
-                                <th scope="col">
-                                    <i class="fa-solid fa-lock fa-xs" aria-hidden="true"></i>
-                                    <span class="visually-hidden">Locked</span>
-                                </th>
                                 <th scope="col">#</th>
                                 <th scope="col">Copy</th>
                                 <th scope="col">Page</th>
-                                <th scope="col">Graded</th>
+                                <th class="text-center" scope="col">
+                                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                                    <span class="visually-hidden">Graded</span>
+                                </th>
                                 <th class="text-center" scope="col">
                                     <i class="fa-solid fa-comments" aria-hidden="true"></i>
                                     <span class="visually-hidden">Comments</span>
@@ -88,17 +97,17 @@
                         <tbody>
                             {% for page in copies_pages_list %}
                                 {# data-index: the page's position in the question, opened when its row is clicked #}
-                                <tr id="copy_{{ page.copy_no }}_{{ page.page_no }}" data-index="{{ forloop.counter0 }}" style="cursor: pointer;">
-                                    <td>
-                                        {# Shown by the script when another reviewer has the copy open #}
-                                        <i class="fa-solid fa-lock fa-xs" id="copy_{{ page.copy_no }}_{{ page.page_no }}_id"
-                                           style="display: none; color: #df8134;" aria-hidden="true"></i>
-                                    </td>
+                                <tr id="copy_{{ page.copyNo }}_{{ page.pageNo }}" data-index="{{ forloop.counter0 }}" style="cursor: pointer;">
                                     <td class="text-start text-body-secondary">{{ forloop.counter }}</td>
                                     {# Numbers without leading zeros, as in the page indicator under the page #}
-                                    <td class="text-start">{{ page.copy_no|add:0 }}</td>
-                                    <td class="text-center">{{ page.page_no|add:0 }}</td>
-                                    <td class="text-center" id="copy_{{ page.copy_no }}_{{ page.page_no }}_marked"
+                                    <td class="text-start">
+                                        {{ page.copyNo|add:0 }}
+                                        {# Shown by the script when another reviewer has the copy open #}
+                                        <i class="fa-solid fa-lock fa-xs ms-1" id="copy_{{ page.copyNo }}_{{ page.pageNo }}_id"
+                                           style="display: none; color: #df8134;" aria-hidden="true"></i>
+                                    </td>
+                                    <td class="text-center">{{ page.pageNo|add:0 }}</td>
+                                    <td class="text-center" id="copy_{{ page.copyNo }}_{{ page.pageNo }}_marked"
                                         data-order="{% if page.marked %}1{% else %}0{% endif %}">
                                         {% if page.marked %}
                                             <i class="fa-solid fa-circle-check fa-lg" aria-hidden="true"></i>
@@ -121,10 +130,10 @@
             <examc-resize-handle for="pages-group-list" id="pages-group-list-resize"></examc-resize-handle>
 
             {# ---------------------------------------------------------------- Center: the page, with its controls floating over it #}
-            <div class="d-flex flex-column position-relative h-100 flex-grow-1" id="review-center-div" style="min-width: 0;">
+            <div class="d-flex flex-column position-relative flex-grow-1" id="review-center-div" style="min-width: 0;">
                 <div id="markerjs_div" class="d-flex flex-column flex-grow-1" style="min-height: 0;">
-                    {# A tinted area, so the page (white, with a shadow) stands out from it #}
-                    <div id="mjsapp" class="position-relative flex-grow-1 bg-body-tertiary rounded" style="min-height: 0;">
+                    {# A tinted area, so the page (white, with a shadow) stands out from it; clipped so marker.js can't push the page #}
+                    <div id="mjsapp" class="position-relative flex-grow-1 bg-body-tertiary rounded overflow-hidden" style="min-height: 0;">
 
                         {# marker.js fills the whole area; the page is fitted inside it, clear of the top and bottom bars #}
                         <div id="marker-wrapper" class="position-absolute top-0 start-0 w-100 h-100"></div>
@@ -134,24 +143,38 @@
                              style="backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);"
                              id="mjs-tools" role="toolbar" aria-label="Drawing tools">
                             <button type="button" class="btn btn-outline-dark" id="btn-pointer"
-                                    aria-label="Select" data-bs-title="Select (Shift+V)" data-bs-placement="top">
+                                    aria-label="Select" data-bs-title="Select" data-bs-placement="top">
                                 <i class="fa-solid fa-arrow-pointer" aria-hidden="true"></i>
                             </button>
                             <button type="button" class="btn btn-outline-dark" id="btn-text-marker"
-                                    aria-label="Text" data-bs-title="Text (Shift+T)" data-bs-placement="top">
+                                    aria-label="Text" data-bs-title="Text" data-bs-placement="top">
                                 <i class="fa-solid fa-t" aria-hidden="true"></i>
                             </button>
                             <button type="button" class="btn btn-outline-dark" id="btn-frame-marker"
-                                    aria-label="Rectangle" data-bs-title="Rectangle (Shift+R)" data-bs-placement="top">
+                                    aria-label="Rectangle" data-bs-title="Rectangle" data-bs-placement="top">
                                 <i class="fa-regular fa-square" aria-hidden="true"></i>
                             </button>
                             <button type="button" class="btn btn-outline-dark" id="btn-freehand-marker"
-                                    aria-label="Freehand" data-bs-title="Freehand (Shift+F)" data-bs-placement="top">
+                                    aria-label="Freehand" data-bs-title="Freehand" data-bs-placement="top">
                                 <i class="fa-solid fa-signature" aria-hidden="true"></i>
                             </button>
                             <button type="button" class="btn btn-outline-dark" id="btn-pan"
-                                    aria-label="Move the page" data-bs-title="Move the page (Shift+H)" data-bs-placement="top">
+                                    aria-label="Move the page" data-bs-title="Move the page" data-bs-placement="top">
                                 <i class="fa-solid fa-hand" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        {# Top left: undo / redo of the page's markers #}
+                        <div class="btn-group position-absolute top-0 start-0 m-2 z-1 rounded shadow-sm bg-body bg-opacity-75"
+                             style="backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);"
+                             role="toolbar" aria-label="History">
+                            <button type="button" class="btn btn-outline-dark" id="btn-undo" disabled
+                                    aria-label="Undo" data-bs-title="Undo (Ctrl+Z)" data-bs-placement="bottom">
+                                <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" id="btn-redo" disabled
+                                    aria-label="Redo" data-bs-title="Redo (Ctrl+Shift+Z)" data-bs-placement="bottom">
+                                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
                             </button>
                         </div>
 
@@ -163,7 +186,7 @@
 
                             {# Opened by the swatch; laid under it so the browser opens its picker next to it #}
                             <input type="color" id="color-input" value="#CCCCCC" tabindex="-1" aria-hidden="true"
-                                   class="position-absolute top-0 start-0 w-100 h-100 opacity-0 pe-none">
+                               class="position-absolute top-0 start-0 w-100 h-100 opacity-0 pe-none">
                         </div>
 
                         {# Top right: page view #}
@@ -272,7 +295,7 @@
             {% if pages_group.use_grading_scheme and grading_schemes|length > 0 %}
                 <examc-resize-handle for="grading-scheme-div"></examc-resize-handle>
 
-                <div id="grading-scheme-div" class="card position-relative h-100 flex-shrink-0"
+                <div id="grading-scheme-div" class="card position-relative flex-shrink-0"
                      style="width: 28rem; min-width: 20rem; max-width: 40vw;">
                     <div class="card-header">
                         <h6 class="mb-0">Grading schemes</h6>
@@ -303,8 +326,8 @@
 
                         <hr class="w-100">
 
-                        {# Filled by htmx; the grid stretches the loaded panel to the remaining height #}
-                        <div id="review-scheme-panel" role="tabpanel" class="d-grid w-100"
+                        {# Filled by htmx; the grid stretches the loaded panel to the remaining height, and it scrolls inside the card #}
+                        <div id="review-scheme-panel" role="tabpanel" class="d-grid w-100 overflow-auto"
                              style="flex: 1 1 auto; min-height: 0; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr);">
                             <div class="text-muted">Loading…</div>
                         </div>
@@ -332,14 +355,12 @@
                     <tr><td class="text-nowrap"><kbd>Ctrl</kbd> + wheel</td><td>Zoom</td></tr>
                     <tr><td class="text-nowrap"><kbd>0</kbd></td><td>Fit and center the page</td></tr>
                     <tr><td class="text-nowrap">Wheel</td><td>Move the page</td></tr>
+                    <tr><td class="text-nowrap">Two fingers</td><td>Zoom and move the page (touch)</td></tr>
 
-                    <tr><th colspan="2" class="pt-2 text-body-secondary fw-semibold">Draw</th></tr>
-                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>V</kbd></td><td>Select</td></tr>
-                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>T</kbd></td><td>Text</td></tr>
-                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>R</kbd></td><td>Rectangle</td></tr>
-                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>F</kbd></td><td>Freehand</td></tr>
-                    <tr><td class="text-nowrap"><kbd>Shift</kbd> <kbd>H</kbd></td><td>Move the page (hand)</td></tr>
+                    <tr><th colspan="2" class="pt-2 text-body-secondary fw-semibold">Markers</th></tr>
                     <tr><td class="text-nowrap"><kbd>Delete</kbd></td><td>Remove the selected markers</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Ctrl</kbd> <kbd>Z</kbd></td><td>Undo</td></tr>
+                    <tr><td class="text-nowrap"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></td><td>Redo</td></tr>
 
                     <tr><th colspan="2" class="pt-2 text-body-secondary fw-semibold">Help</th></tr>
                     <tr><td class="text-nowrap"><kbd>?</kbd></td><td>Show or hide this list</td></tr>
@@ -374,7 +395,7 @@
             window.REVIEW_GROUP_CONFIG = {
                 examId: {{ exam_selected.pk }},
                 pagesGroupId: {{ pages_group.id }},
-                useGradingScheme: {{ use_grading_scheme }},
+                useGradingScheme: {{ use_grading_scheme|yesno:"true,false" }},
                 userId: {{ user.id }},
                 currPage: {{ currpage|default:"0" }},
 
