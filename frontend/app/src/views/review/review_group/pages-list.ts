@@ -20,6 +20,7 @@ function rowPart(copyNo: string, pageNo: string, suffix: string): HTMLElement | 
 }
 
 let highlighted: HTMLTableRowElement | null = null;
+let headerEl: HTMLElement | null = null;
 
 /**
  * Highlights the row of the page shown, and scrolls the table to it. For a page outside the
@@ -73,15 +74,16 @@ function setCollapsed(collapse?: boolean): void {
     byId('collapse-group-list-icon').classList.toggle('d-none', collapsed);
 
     // Collapsed: the header becomes a narrow vertical strip, expand button on top, title rotated
-    const header = byId('pages-group-list-header');
-    header.classList.toggle('flex-column-reverse', collapsed);   // the button (last in the markup) on top
-    header.classList.toggle('justify-content-end', collapsed);
-    header.classList.toggle('justify-content-between', !collapsed);
-    header.classList.toggle('flex-grow-1', collapsed);           // the strip runs the full card height
-    header.classList.toggle('border-bottom-0', collapsed);
-    header.classList.toggle('px-1', collapsed);
-    header.classList.toggle('py-2', collapsed);
-    header.classList.toggle('py-1', !collapsed);
+    if (headerEl) {
+        headerEl.classList.toggle('flex-column-reverse', collapsed);   // the button (last in the markup) on top
+        headerEl.classList.toggle('justify-content-end', collapsed);
+        headerEl.classList.toggle('justify-content-between', !collapsed);
+        headerEl.classList.toggle('flex-grow-1', collapsed);           // the strip runs the full card height
+        headerEl.classList.toggle('border-bottom-0', collapsed);
+        headerEl.classList.toggle('px-1', collapsed);
+        headerEl.classList.toggle('py-2', collapsed);
+        headerEl.classList.toggle('py-1', !collapsed);
+    }
 
     // Reads bottom to top, like a spine label
     const title = byId('pages-group-list-title');
@@ -104,7 +106,11 @@ function setCollapsed(collapse?: boolean): void {
  * @param onRowClick Opens the page at a position of the review group (0-based), when its row is clicked.
  */
 export function init(onRowClick: (index: number) => void): void {
+    headerEl = byId('pages-group-list-header');
+    headerEl.addEventListener("click", () => setCollapsed());
+
     setupDatatables();
+
     if (!DataTable.isDataTable(table)) {
         new DataTable(table, {
             autoWidth: true,

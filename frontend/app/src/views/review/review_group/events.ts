@@ -46,13 +46,13 @@ export function onAreaShown(listener: (area: MarkerArea) => void): void {
  * Asks the pages list to collapse (true), expand (false) or switch (no argument).
  * Also works from outside the modules: document.dispatchEvent(new CustomEvent('review:toggle-pages-list', {detail: true})).
  */
-export function emitTogglePagesList(collapse?: boolean): void {
+export function emitTogglePagesList(collapse?: boolean): void {    
     document.dispatchEvent(new CustomEvent(TOGGLE_PAGES_LIST, {detail: collapse}));
 }
 
 export function onTogglePagesList(listener: (collapse?: boolean) => void): void {
     document.addEventListener(TOGGLE_PAGES_LIST, (event) => {
-        const detail = (event as CustomEvent<unknown>).detail;
+        const detail = (event as CustomEvent<unknown>).detail;        
         listener(typeof detail === 'boolean' ? detail : undefined);
     });
 }

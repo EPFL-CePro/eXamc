@@ -7,13 +7,12 @@ import { syncToolbar } from './tools';
  * Tablet mode: bigger buttons on the page (the styles are in review-group.scss), and the pages list collapsed.
  * Remembered on this device, so a tablet opens every review page in it.
  */
-
 const STORAGE_KEY = 'examc.review.tabletMode';
 
 const toggle = byId<HTMLInputElement>('tablet-mode-switch');
 const reviewArea = byId('reviewGroup_div');
 
-function isRemembered(): boolean {
+export function tabletModeIsRemembered(): boolean {
     try {
         return localStorage.getItem(STORAGE_KEY) === '1';
     } catch {
@@ -29,7 +28,7 @@ function remember(on: boolean): void {
     }
 }
 
-function apply(on: boolean): void {
+export function applyTableMode(on: boolean): void {
     toggle.checked = on;
     reviewArea.classList.toggle('review-tablet', on);
 
@@ -42,10 +41,10 @@ function apply(on: boolean): void {
 }
 
 export function init(): void {
-    apply(isRemembered());
+    applyTableMode(tabletModeIsRemembered());
 
     toggle.addEventListener('change', () => {
         remember(toggle.checked);
-        apply(toggle.checked);
+        applyTableMode(toggle.checked);
     });
 }
