@@ -101,6 +101,5 @@ DEP002 = [
 exclude-newer = "7 days"
 add-bounds = "exact"
 
-[tool.uv.exclude-newer-package]
-pypdf = "2026-11-01T00:00:00Z"
-certifi = "2026-10-26T00:00:00Z"
+[tool.pytest]
+addopts = ["-p", "no:cacheprovider"]

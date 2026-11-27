@@ -5,13 +5,13 @@ import pathlib
 import shutil
 import uuid
 import zipfile
-from datetime import datetime
 
 from celery import chord, group, shared_task
 from celery.exceptions import Ignore
 from celery_progress.backend import ProgressRecorder, logger
 from django.conf import settings
 from django.db import connection
+from django.utils import timezone
 from fpdf import FPDF
 from PIL import UnidentifiedImageError
 
@@ -119,8 +119,6 @@ def finish_marked_files_zip(self, unreadable_per_copy: list[list[str]], export_t
     """
     Runs once every copy's PDF is built (the callback of the chord in generate_marked_files_zip): removes the image
     folders and zips the PDFs. Its result is the one of generate_marked_files_zip, which it replaced.
-
-    :param unreadable_per_copy: What each generate_marked_copy_pdf returned, in the order of the copies.
     """
     try:
         progress_recorder = ProgressRecorder(self)
@@ -161,7 +159,7 @@ def generate_marked_files_zip(self, exam_pk: int, export_type, with_comments: bo
         marked_dir = str(get_exam_marked_scans_dir(exam))
         task_token = str(self.request.id or uuid.uuid4()).replace("-", "")
         export_subdir = (
-            f"marked_{exam.year.code}_{exam.semester.code}_{exam.code}_{datetime.now().strftime("%Y%m%d%H%M%S%f")}_{task_token[:12]}"
+            f"marked_{exam.year.code}_{exam.semester.code}_{exam.code}_{timezone.localtime().strftime("%Y%m%d%H%M%S%f")}_{task_token[:12]}"
         )
 
         export_subdir = export_subdir.replace(" ", "_")

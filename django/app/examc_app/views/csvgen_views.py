@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import datetime
 from io import BytesIO
 from typing import Any, Final, TypedDict
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -12,6 +11,7 @@ from django.contrib import messages
 from django.core.files.uploadedfile import UploadedFile
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.utils import timezone
 
 from examc_app.services.epfl_api.people.models import EpflApiPerson
 from examc_app.services.epfl_api.people.search import (
@@ -235,7 +235,7 @@ def build_csv_response(choice: str, students_list: list[StudentRow]) -> HttpResp
     config = _get_config(choice)
     df = pd.DataFrame(students_list, columns=config["output_columns"])
 
-    filename = f"students_list_{datetime.now().strftime('%d%m%y_%H%M%S')}.csv"
+    filename = f"students_list_{timezone.localtime().strftime('%d%m%y_%H%M%S')}.csv"
     response = HttpResponse(df.to_csv(index=False), content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
