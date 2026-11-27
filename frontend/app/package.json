@@ -14,7 +14,7 @@
     "@eslint-community/eslint-utils": "^4.10.1",
     "@eslint/css": "^2.0.1",
     "@eslint/js": "^10.0.1",
-    "@stylistic/eslint-plugin": "^5.10.0",
+    "@stylistic/eslint-plugin": "^6.0.1",
     "@types/bootstrap": "^5.2.11",
     "@types/jquery": "^4.0.1",
     "@types/katex": "^0.16.8",
@@ -23,13 +23,13 @@
     "globals": "^17.14.0",
     "jiti": "^2.7.0",
     "sass": "^1.108.2",
-    "stylelint": "^17.16.0",
-    "stylelint-config-standard": "^40.0.0",
-    "stylelint-config-standard-scss": "^17.0.0",
-    "typescript": "^6.0.3",
+    "stylelint": "^18.1.0",
+    "stylelint-config-standard": "^41.1.0",
+    "stylelint-config-standard-scss": "^18.0.0",
+    "typescript": "6.0.3",
     "typescript-eslint": "^8.73.0",
     "vite": "^8.3.8",
-    "vite-plugin-checker": "^0.14.5"
+    "vite-plugin-checker": "^1.0.0"
   },
   "dependencies": {
     "@awesome.me/webawesome": "^3.15.0",
@@ -43,7 +43,7 @@
     "@fortawesome/fontawesome-free": "^7.3.1",
     "@markerjs/markerjs3": "^3.10.0",
     "@milkdown/crepe": "^7.23.0",
-    "@milkdown/kit": "7.22.3",
+    "@milkdown/kit": "7.23.0",
     "@uiw/codemirror-theme-github": "^4.25.12",
     "bootstrap": "^5.3.9",
     "chart.js": "^4.6.1",
@@ -58,9 +58,9 @@
     "jquery-comments": "^1.0.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
-    "katex": "^0.18.10",
+    "katex": "^0.19.1",
     "konva": "^10.10.0",
-    "latex.js": "^0.12.6",
+    "latex.js": "^0.13.0",
     "vite-plugin-static-copy": "^4.1.1"
   }
 }
