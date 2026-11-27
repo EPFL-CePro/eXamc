@@ -113,7 +113,7 @@ services:
   # is found with a wildcard. Image pinned by digest, updated by Dependabot.
   # ---------------------------------------------------------------------------
   texlive:
-    image: texlive/texlive:latest@sha256:07e8062637249c4f780ca59f42cc2ed592bc2dc1db4320769406aee3f98aa70e
+    image: texlive/texlive:latest@sha256:b20c42c2a5b1be892c26e6d3b896e9aa20350528ddd0d4444d23e5925ea1545d
     entrypoint: ["sh", "-c"]
     command:
       - |
